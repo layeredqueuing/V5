@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15053 2021-10-08 02:13:14Z greg $
+ * $Id: lqns.cc 15062 2021-10-10 00:36:21Z greg $
  *
  * Command line processing.
  *
@@ -130,6 +130,9 @@ int main (int argc, char *argv[])
 #else
     LQIO::CommandLine command_line( );
 #endif
+    Options::Debug::initialize();
+    Options::Trace::initialize();
+    Options::Special::initialize();
 
     unsigned global_error_flag = 0;     /* Error detected anywhere??    */
 
@@ -156,250 +159,271 @@ int main (int argc, char *argv[])
 
         command_line.append( c, optarg );
 
-        switch ( c ) {
-        case 'a':
-            pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_run_time_);
-            break;
+	try {
+	    switch ( c ) {
+	    case 'a':
+		pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_run_time_);
+		break;
 
-        case 'b':
-            flags.bounds_only = true;
-            break;
+	    case 'b':
+		flags.bounds_only = true;
+		break;
 
-	case 256+'b':
-	    break;
+	    case 256+'b':
+		break;
 
-        case 'c':
-	    Options::Special::convergence_value( optarg );
-            break;
+	    case 'c':
+		Options::Special::convergence_value( optarg );
+		break;
 
-	case 512+'c':
-	    /* Set immediately, as it can't be changed once the SPEX program is loaded */
-	    LQIO::Spex::__print_comment = true;
-	    pragmas.insert(LQIO::DOM::Pragma::_spex_comment_,"true");
-	    break;
+	    case 512+'c':
+		/* Set immediately, as it can't be changed once the SPEX program is loaded */
+		LQIO::Spex::__print_comment = true;
+		pragmas.insert(LQIO::DOM::Pragma::_spex_comment_,"true");
+		break;
         
-	case 'd':
-            Options::Debug::initialize();
-            options = optarg;
-            while ( *options ) {
-                char * value = nullptr;
-                Options::Debug::exec( getsubopt( &options, const_cast<char * const *>(Options::Debug::__options), &value ), value );
-            }
-            break;
+	    case 'd':
+		options = optarg;
+		while ( *options ) {
+		    char * value = nullptr;
+		    const char * last_opt = options;
+		    const int ix = getsubopt( &options, Options::Debug::__options.data(), &value );
+		    if ( ix >= 0 && value != nullptr ) {
+			Options::Debug::exec( ix, value );
+		    } else {
+			throw std::invalid_argument( std::string("--debug=") + last_opt );
+		    }
+		}
+		break;
 
-        case 'e':                       /* Error handling.      */
-            switch ( optarg[0] ) {
-            case 'a':
-                matherr_disposition = FP_IMMEDIATE_ABORT;
-                break;
+	    case 'e':                       /* Error handling.      */
+		switch ( optarg[0] ) {
+		case 'a':
+		    matherr_disposition = FP_IMMEDIATE_ABORT;
+		    break;
 
-            case 'd':
-                matherr_disposition = FP_DEFERRED_ABORT;
-                break;
+		case 'd':
+		    matherr_disposition = FP_DEFERRED_ABORT;
+		    break;
 
-            case 'i':
-                matherr_disposition = FP_IGNORE;
-                break;
+		case 'i':
+		    matherr_disposition = FP_IGNORE;
+		    break;
 
-            case 'w':
-                matherr_disposition = FP_REPORT;
-                break;
+		case 'w':
+		    matherr_disposition = FP_REPORT;
+		    break;
 
-            default:
-                std::cerr << LQIO::io_vars.lq_toolname << ": invalid argument to -e -- " << optarg << std::endl;
-                break;
-            }
-            break;
+		default:
+		    std::cerr << LQIO::io_vars.lq_toolname << ": invalid argument to -e -- " << optarg << std::endl;
+		    break;
+		}
+		break;
 
-        case 256+'e':
-            pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_exact_);
-            break;
+	    case 256+'e':
+		pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_exact_);
+		break;
 
-        case 'f':
-            pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_batched_);
-            pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_one_step_linearizer_);
-            pragmas.insert(LQIO::DOM::Pragma::_multiserver_,LQIO::DOM::Pragma::_conway_);
-            break;
+	    case 'f':
+		pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_batched_);
+		pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_one_step_linearizer_);
+		pragmas.insert(LQIO::DOM::Pragma::_multiserver_,LQIO::DOM::Pragma::_conway_);
+		break;
 
-	case 'h':
-	    pragmas.insert(LQIO::DOM::Pragma::_interlocking_,LQIO::DOM::Pragma::_no_);
-            pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_one_step_);
-            pragmas.insert(LQIO::DOM::Pragma::_multiserver_,LQIO::DOM::Pragma::_rolia_);
-	    break;
+	    case 'h':
+		pragmas.insert(LQIO::DOM::Pragma::_interlocking_,LQIO::DOM::Pragma::_no_);
+		pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_one_step_);
+		pragmas.insert(LQIO::DOM::Pragma::_multiserver_,LQIO::DOM::Pragma::_rolia_);
+		break;
 	    
-        case 'H':
-            usage( optarg );
-            exit(0);
+	    case 'H':
+		usage( optarg );
+		exit(0);
 
-        case 256+'h':
-            pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_hwsw_);
-            break;
+	    case 256+'h':
+		pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_hwsw_);
+		break;
 
-        case 512+'h':
-	    /* Set immediately, as it can't be changed once the SPEX program is loaded */
-	    LQIO::Spex::__no_header = true;
-	    pragmas.insert(LQIO::DOM::Pragma::_spex_header_,"false");
-            break;
+	    case 512+'h':
+		/* Set immediately, as it can't be changed once the SPEX program is loaded */
+		LQIO::Spex::__no_header = true;
+		pragmas.insert(LQIO::DOM::Pragma::_spex_header_,"false");
+		break;
 
-        case 'I':
-            if ( strcasecmp( optarg, "xml" ) == 0 ) {
-                Model::input_format = LQIO::DOM::Document::InputFormat::XML;
-            } else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
-                Model::input_format = LQIO::DOM::Document::InputFormat::LQN;
-            } else if ( strcasecmp( optarg, "json" ) == 0 ) {
-                Model::input_format = LQIO::DOM::Document::InputFormat::JSON;
-            } else {
-                std::cerr << LQIO::io_vars.lq_toolname << ": invalid argument to -I -- " << optarg << std::endl;
-            }
-            break;
+	    case 'I':
+		if ( strcasecmp( optarg, "xml" ) == 0 ) {
+		    Model::input_format = LQIO::DOM::Document::InputFormat::XML;
+		} else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
+		    Model::input_format = LQIO::DOM::Document::InputFormat::LQN;
+		} else if ( strcasecmp( optarg, "json" ) == 0 ) {
+		    Model::input_format = LQIO::DOM::Document::InputFormat::JSON;
+		} else {
+		    std::cerr << LQIO::io_vars.lq_toolname << ": invalid argument to -I -- " << optarg << std::endl;
+		    exit( 1 );
+		}
+		break;
 
-        case 'i':
-	    Options::Special::iteration_limit( optarg );
-            break;
+	    case 'i':
+		Options::Special::iteration_limit( optarg );
+		break;
 
-        case 'j':
-            flags.json_output = true;
-            break;
+	    case 'j':
+		flags.json_output = true;
+		break;
 
-        case 256+'l':
-            pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_srvn_);
-            break;
+	    case 256+'l':
+		pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_srvn_);
+		break;
 
-        case (512+'l'):
-	    LQIO::DOM::Document::lqx_parser_trace(stderr);
-            break;
+	    case (512+'l'):
+		LQIO::DOM::Document::lqx_parser_trace(stderr);
+		break;
 
-        case 256+'m':
-            pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_mol_);
-            break;
+	    case 256+'m':
+		pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_mol_);
+		break;
 
-        case 'n':
-            flags.no_execute = true;
-            break;
+	    case 'n':
+		flags.no_execute = true;
+		break;
 
-        case 'o':
-            outputFileName = optarg;
-            break;
+	    case 'o':
+		outputFileName = optarg;
+		break;
 
-        case 256+'o':
-            pragmas.insert(LQIO::DOM::Pragma::_stop_on_message_loss_,LQIO::DOM::Pragma::_no_);
-            break;
+	    case 256+'o':
+		pragmas.insert(LQIO::DOM::Pragma::_stop_on_message_loss_,LQIO::DOM::Pragma::_no_);
+		break;
 
-        case 'p':
-            flags.parseable_output = true;
-            break;
+	    case 'p':
+		flags.parseable_output = true;
+		break;
 
-        case 'P':       /* Pragma processing... */
-	    if ( !pragmas.insert( optarg ) ) {
-                Pragma::usage( std::cerr );
-                exit( INVALID_ARGUMENT );
-            }
-            break;
+	    case 'P':       /* Pragma processing... */
+		if ( !pragmas.insert( optarg ) ) {
+		    Pragma::usage( std::cerr );
+		    exit( INVALID_ARGUMENT );
+		}
+		break;
 
-        case 256+'p':
-            pragmas.insert( LQIO::DOM::Pragma::_processor_scheduling_, scheduling_label[SCHEDULE_PS].XML );
-            break;
+	    case 256+'p':
+		pragmas.insert( LQIO::DOM::Pragma::_processor_scheduling_, scheduling_label[SCHEDULE_PS].XML );
+		break;
 
-	case 512+'p':
-	    Options::Special::print_interval( optarg );
-	    break;
+	    case 512+'p':
+		Options::Special::print_interval( optarg );
+		break;
 	    
-        case 256+'q': //tomari quorum options
-            flags.disable_expanding_quorum_tree = true;
-            break;
+	    case 256+'q': //tomari quorum options
+		flags.disable_expanding_quorum_tree = true;
+		break;
 
-        case 'r':
-            flags.rtf_output = true;
-            break;
+	    case 'r':
+		flags.rtf_output = true;
+		break;
 
-	case 256+'r':
-	    flags.reset_mva = true;
-	    break;
+	    case 256+'r':
+		flags.reset_mva = true;
+		break;
 
-        case 512+'r':
-            flags.reload_only = true;
-            break;
+	    case 512+'r':
+		flags.reload_only = true;
+		break;
 
-	case 512+'R':
-	    flags.restart = true;
-	    break;
+	    case 512+'R':
+		flags.restart = true;
+		break;
 
-        case 256+'s':
-            pragmas.insert( LQIO::DOM::Pragma::_mva_, LQIO::DOM::Pragma::_schweitzer_ );
-            break;
+	    case 256+'s':
+		pragmas.insert( LQIO::DOM::Pragma::_mva_, LQIO::DOM::Pragma::_schweitzer_ );
+		break;
 
-	case 512+'s':
-	    print_lqx = true;
-	    break;
+	    case 512+'s':
+		print_lqx = true;
+		break;
 	    
-        case 't':
-            Options::Trace::initialize();
-            options = optarg;
-            while ( *options ) {
-                char * value = 0;
-                const int ix = getsubopt( &options, const_cast<char * const *>(Options::Trace::__options), &value );
-                Options::Trace::exec( ix, value );
-            }
-            break;
+	    case 't':
+		options = optarg;
+		while ( *options ) {
+		    char * value = nullptr;
+		    const char * last_opt = options;
+		    const int ix = getsubopt( &options, Options::Debug::__options.data(), &value );
+		    if ( ix >= 0 && value != nullptr ) {
+			Options::Trace::exec( ix, value );
+		    } else {
+			throw std::invalid_argument( std::string("--trace=") + last_opt );
+		    }
+		}
+		break;
 
-        case 256+'t':
-            flags.trace_mva = true;
-            break;
+	    case 256+'t':
+		flags.trace_mva = true;
+		break;
 
-        case 'u':
-	    Options::Special::underrelaxation( optarg );
-            break;
+	    case 'u':
+		Options::Special::underrelaxation( optarg );
+		break;
 
-        case 'v':
-            flags.verbose = true;
-            LQIO::Spex::__verbose = true;
-            break;
+	    case 'v':
+		flags.verbose = true;
+		LQIO::Spex::__verbose = true;
+		break;
 
-        case 'V':
-            std::cout << "Layered Queueing Network Analyser, Version " << VERSION << std::endl << std::endl;
-            std::cout << "  Copyright " << copyrightDate << " the Real-Time and Distributed Systems Group," << std::endl;
-            std::cout << "  Department of Systems and Computer Engineering," << std::endl;
-            std::cout << "  Carleton University, Ottawa, Ontario, Canada. K1S 5B6" << std::endl << std::endl;
-            break;
+	    case 'V':
+		std::cout << "Layered Queueing Network Analyser, Version " << VERSION << std::endl << std::endl;
+		std::cout << "  Copyright " << copyrightDate << " the Real-Time and Distributed Systems Group," << std::endl;
+		std::cout << "  Department of Systems and Computer Engineering," << std::endl;
+		std::cout << "  Carleton University, Ottawa, Ontario, Canada. K1S 5B6" << std::endl << std::endl;
+		break;
 
-        case (256+'v'):
-            pragmas.insert(LQIO::DOM::Pragma::_variance_, LQIO::DOM::Pragma::_none_);
-            break;
+	    case (256+'v'):
+		pragmas.insert(LQIO::DOM::Pragma::_variance_, LQIO::DOM::Pragma::_none_);
+		break;
 
-        case 'w':
-            pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_advisory_);
-            break;
+	    case 'w':
+		pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_advisory_);
+		break;
 
-        case 'x':
-            flags.xml_output = true;
-            break;
+	    case 'x':
+		flags.xml_output = true;
+		break;
 
-        case 512+'x':
-            LQIO::DOM::Document::__debugXML = true;
-            break;
+	    case 512+'x':
+		LQIO::DOM::Document::__debugXML = true;
+		break;
 
-        case 512+'y':
-            LQIO_debug = true;
-            break;
+	    case 512+'y':
+		LQIO_debug = true;
+		break;
 
-        case 'z':
-            Options::Special::initialize();
-            options = optarg;
-            while ( *options ) {
-                char * value = 0;
-                const int ix = getsubopt( &options, const_cast<char * const *>(Options::Special::__options), &value );
-                Options::Special::exec( ix, value );
-            }
-            break;
+	    case 'z':
+		options = optarg;
+		while ( *options ) {
+		    char * value = nullptr;
+		    const char * last_opt = options;
+		    const int ix = getsubopt( &options, Options::Debug::__options.data(), &value );
+		    if ( ix >= 0 && value != nullptr ) {
+			Options::Special::exec( ix, value );
+		    } else {
+			throw std::invalid_argument( std::string("--special=") + last_opt );
+		    }
+		}
+		break;
 
-        case (256+'z'):
-            pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_squashed_);
-            break;
+	    case (256+'z'):
+		pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_squashed_);
+		break;
 
-        default:
-            usage();
-            break;
-        }
+	    default:
+		usage();
+		break;
+	    }
+	}
+	catch ( const std::invalid_argument& e )
+	{
+	    std::cerr << LQIO::io_vars.lq_toolname << ": invalid argument to " << e.what() << "." << std::endl;
+	    exit( 1 );
+	}
     }
     LQIO::io_vars.lq_command_line = command_line.c_str();
 

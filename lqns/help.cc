@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 15056 2021-10-08 17:18:09Z greg $
+ * $Id: help.cc 15062 2021-10-10 00:36:21Z greg $
  */
 
 #include "lqns.h"
@@ -428,7 +428,7 @@ usage( const char c )
  */
 
 void
-usage( const char c, const char * s )
+usage( const char c, const std::string& s )
 {
     std::cerr << LQIO::io_vars.lq_toolname << " -" << c << ": invalid argument -- " << s << std::endl;
     usage( c );
@@ -437,25 +437,6 @@ usage( const char c, const char * s )
 /* -------------------------------------------------------------------- */
 /* Man page generation.							*/
 /* -------------------------------------------------------------------- */
-
-Help::Help()
-{
-    initialize();
-}
-
-
-
-/* static */ void
-Help::initialize()
-{
-    /* Load functions used to print option args. */
-
-    Options::Debug::initialize();
-    Options::Trace::initialize();
-    Options::Special::initialize();
-}
-
-
 
 /*
  * Make a man page :-)
@@ -864,8 +845,7 @@ Help::flagTrace( std::ostream& output, bool verbose ) const
 	   << emph( *this, "arg" ) << " can be any combination of the following:" << std::endl;
     increase_indent( output );
     dl_begin( output );
-    std::map<const char *, Options::Trace>::const_iterator opt;
-    for ( opt = Options::Trace::__table.begin(); opt != Options::Trace::__table.end(); ++opt ) {
+    for ( std::map<const std::string, const Options::Trace>::const_iterator opt = Options::Trace::__table.begin(); opt != Options::Trace::__table.end(); ++opt ) {
 	print_option( output, opt->first, opt->second );
     }
     dl_end( output );
@@ -910,8 +890,7 @@ Help::flagSpecial( std::ostream& output, bool verbose ) const
 	   << "numbers.  " << emph( *this, "Arg" ) << " can be any of the following:" << std::endl;
     increase_indent( output );
     dl_begin( output );
-    std::map<const char *, Options::Special>::const_iterator opt;
-    for ( opt = Options::Special::__table.begin(); opt != Options::Special::__table.end(); ++opt ) {
+    for ( std::map<const std::string, const Options::Special>::const_iterator opt = Options::Special::__table.begin(); opt != Options::Special::__table.end(); ++opt ) {
 	print_option( output, opt->first, opt->second );
     }
     dl_end( output );
@@ -2140,7 +2119,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 15056 2021-10-08 17:18:09Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 15062 2021-10-10 00:36:21Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2337,6 +2316,8 @@ HelpTroff::print_option( std::ostream& output, const std::string& name, const Op
     help_fptr h = opt.help();
     if ( h ) {
 	(this->*h)(output,true);
+    } else {
+	output << std::endl;
     }
     return output;
 }
@@ -2437,7 +2418,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 15056 2021-10-08 17:18:09Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 15062 2021-10-10 00:36:21Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl
@@ -2622,6 +2603,8 @@ HelpLaTeX::print_option( std::ostream& output, const std::string& name, const Op
     help_fptr f = opt.help();
     if ( f ) {
 	(this->*f)(output, true);
+    } else {
+	output << std::endl;
     }
     return output;
 }
@@ -2728,6 +2711,8 @@ HelpPlain::print_option( std::ostream& output, const std::string& name, const Op
     help_fptr h = opt.help();
     if ( h ) {
 	(this->*h)(output,false);
+    } else {
+	output << std::endl;
     }
     output.flags(oldFlags);
     return output;
@@ -2768,12 +2753,11 @@ HelpPlain::filename( std::ostream& output, const std::string& s1, const std::str
 void
 HelpPlain::print_special( std::ostream& output ) 
 {
-    Options::Special::initialize();
     HelpPlain self;
-
     output << "Valid arguments for --special" << std::endl;
-    for ( std::map<const char *, Options::Special, lt_str>::const_iterator tp = Options::Special::__table.begin(); tp != Options::Special::__table.end(); ++tp ) {
-	self.print_option( output, tp->first, tp->second );
+//    std::for_each( Options::Special::__table.begin(), Options::Special::__table.end(), ConstExec<&HelpPlain::print_option,std::ostream&> );
+    for ( std::map<const std::string, const Options::Special>::const_iterator opt = Options::Special::__table.begin(); opt != Options::Special::__table.end(); ++opt ) {
+	self.print_option( output, opt->first, opt->second );
     }
 }
 
@@ -2781,11 +2765,10 @@ HelpPlain::print_special( std::ostream& output )
 void
 HelpPlain::print_trace( std::ostream& output ) 
 {
-    Options::Trace::initialize();
     HelpPlain self;
     output << "Valid arguments for --trace" << std::endl;
-    for ( std::map<const char *, Options::Trace, lt_str>::const_iterator tp = Options::Trace::__table.begin(); tp != Options::Trace::__table.end(); ++tp ) {
-	self.print_option( output, tp->first, tp->second );
+    for ( std::map<const std::string, const Options::Trace>::const_iterator opt = Options::Trace::__table.begin(); opt != Options::Trace::__table.end(); ++opt ) {
+	self.print_option( output, opt->first, opt->second );
     }
 }
 
@@ -2793,7 +2776,6 @@ HelpPlain::print_trace( std::ostream& output )
 void
 HelpPlain::print_debug( std::ostream& output ) 
 {
-    Options::Debug::initialize();
     HelpPlain self;
     output << "Valid arguments for --debug" << std::endl;
     for ( std::map<const std::string, const Options::Debug>::const_iterator tp = Options::Debug::__table.begin(); tp != Options::Debug::__table.end(); ++tp ) {

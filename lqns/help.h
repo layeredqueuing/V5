@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 15056 2021-10-08 17:18:09Z greg $
+ * $Id: help.h 15062 2021-10-10 00:36:21Z greg $
  */
 
 #ifndef _HELP_H
@@ -15,7 +15,7 @@ namespace Options {
 
 void usage( const char * = 0 );
 void usage( const char );
-void usage( const char c, const char * s );
+void usage( const char c, const std::string& s );
 
 class Help;
 
@@ -81,8 +81,8 @@ public:
     static StringStringManip filename( const Help& h, const std::string& s1, const std::string& s2 = "" ) { return StringStringManip( &Help::__filename, h, s1, s2 ); }
 
 private:
-    Help( const Help& );
-    Help& operator=( const Help& );
+    Help( const Help& ) = delete;
+    Help& operator=( const Help& ) = delete;
     
     static std::ostream& __textbf( std::ostream& output, const Help & h, const std::string& s ) { return h.textbf( output, s ); }
     static std::ostream& __textit( std::ostream& output, const Help & h, const std::string& s ) { return h.textit( output, s ); }
@@ -93,7 +93,7 @@ private:
     static std::ostream& __tr( std::ostream& output, const Help& h, const std::string& s ) { return h.tr( output, s ); }
 
 public:
-    Help();
+    Help() {}
     virtual ~Help() {}
 
     std::ostream& print( std::ostream& ) const;
