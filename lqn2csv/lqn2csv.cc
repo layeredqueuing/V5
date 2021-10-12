@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15056 2021-10-08 17:18:09Z greg $
+ * $Id: lqn2csv.cc 15068 2021-10-12 14:14:52Z greg $
  *
  * Command line processing.
  *
@@ -304,13 +304,13 @@ process_directory( std::ostream& output, const std::string& dirname, const Model
     size_t i = dirname.find_last_of( "/" );
     size_t j = dirname.find_last_of( "." );
     const std::string basepath = dirname + "/" + dirname.substr( 0, i ).substr( 0, j );	/* strip directories and suffixes */
-    static const std::vector<const std::string> patterns = { "-*.lqxo", ".lqxo~*~", "-*.lqjo", ".lqjo~*~" };
+    static const std::vector<std::string> patterns = { "-*.lqxo", ".lqxo~*~", "-*.lqjo", ".lqjo~*~" };
 
     glob_t dir_list;
     dir_list.gl_offs = 0;
     dir_list.gl_pathc = 0;
     int rc = -1;
-    for ( std::vector<const std::string>::const_iterator match = patterns.begin(); match != patterns.end() && dir_list.gl_pathc == 0 ; ++match ) {
+    for ( std::vector<std::string>::const_iterator match = patterns.begin(); match != patterns.end() && dir_list.gl_pathc == 0 ; ++match ) {
 	std::string pathname = basepath + *match;
 	rc = glob( pathname.c_str(), 0, NULL, &dir_list );
     }

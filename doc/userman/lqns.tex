@@ -3,10 +3,10 @@
 %%
 %% $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/doc/userman/lqns.tex $
 %% Original Author:     Greg Franks <greg@sce.carleton.ca>
-%% Created:             08 October 2021
+%% Created:             10 October 2021
 %%
 %% ----------------------------------------------------------------------
-%% $Id: lqns.tex 15056 2021-10-08 17:18:09Z greg $
+%% $Id: lqns.tex 15065 2021-10-11 02:31:35Z greg $
 %% ----------------------------------------------------------------------
 
 \chapter{Invoking the Analytic Solver ``lqns''}
@@ -101,8 +101,7 @@ This option is used to force the input file format to either \emph{xml} or \emph
 By default, if the suffix of the input filename is one of: \emph{.in}, \emph{.lqn} or \emph{.xlqn}
 , then the LQN parser will be used.  Otherwise, input is assumed to be XML.
 \item[\flag{n}{}, \longopt{no-execute}]~\\
-Read input, but do not solve.  The input is checked for validity.  
-No output is generated.
+Build the model, but do not solve.The input is checked for validity but no output is generated.
 \item[\flag{o}{}, \longopt{output}=\emph{arg}]~\\
 Direct analysis results to \emph{output}\index{output}.  A filename of `\texttt{-}\index{standard input}'
 directs output to standard output.  If \texttt{output} is a directory, all output is saved in \texttt{output/input.out}. If the input model contains a SPEX program with loops, the SPEX output is sent to \texttt{output}; the individual model output files are found in the directory \texttt{output.d}. If \textbf{lqns} is invoked with this
@@ -222,23 +221,23 @@ Set the underrelaxation to \emph{arg}.
 \emph{Arg} must be a number between 0.0 and 1.0.
 The default value is 0.9.
 \end{description}
-\linebreak[4]
 If any one of \emph{convergence}, \emph{iteration-limit}, or\emph{print-interval} are used as arguments, the corresponding 
 value specified in the input file for general information, `G', is
 ignored.  
 \item[\longopt{exact-mva}]~\\
-Use Exact MVA to solve all submodels.\index{MVA!exact}
+Use exact MVA instead of Linearizer for solving submodels.\index{MVA!exact}
 \item[\longopt{schweitzer}]~\\
 Use Bard-Schweitzer approximate MVA to solve all submodels.\index{MVA!Bard-Schweitzer}
 \item[\longopt{batch-layering}]~\\
 Default layering strategy.\index{batch-layering}
 \item[\longopt{hwsw-layering}]~\\
+Use HW/SW layering instead of batched layering.
 \item[\longopt{method-of-layers}]~\\
 This option is to use the Method Of Layers solution approach to solving the layer submodels.
 \item[\longopt{squashed-layering}]~\\
 Use only one submodel to solve the model.
 \item[\longopt{srvn-layering}]~\\
-Solve the model using submodels containing exactly one server.
+Use one server per layer instead of batched layering.
 \item[\longopt{processor-sharing}]~\\
 Use Processor Sharing scheduling at all fixed-rate processors.
 \item[\longopt{no-stop-on-message-loss}]~\\
@@ -246,6 +245,8 @@ Do not stop the solver on overflow (infinities) for open arrivals or send-no-rep
 error message indicating that the arrival rate is too high for the service time of the entry
 \item[\longopt{no-variance}]~\\
 Do not use variances in the waiting time calculations.
+The variance of an entry is used with fixed-rate servers\index{server!fcfs}\index{variance}.
+Ignorning variance will help with convergence problems with some models. \index{convergence!problems}.
 \item[\longopt{reload-lqx}]~\\
 Re-run the LQX/SPEX\index{LQX} program without re-solving the models.  Results must exist from a previous solution run.
 This option is useful if LQX print statements or SPEX results are changed.
@@ -253,8 +254,7 @@ This option is useful if LQX print statements or SPEX results are changed.
 Re-run the LQX/SPEX\index{LQX} program without re-solving models which were solved successfully.  Models which were not solved because of early termination, or which were not solved successfully because of convergence problems, will be solved.
 This option is useful for running a second pass with a new convergnece value and/or iteration limit.
 \item[\longopt{no-header}]~\\
-Do not print out the Result Variable header when running with SPEX input.
-This option has no effect otherwise.
+Do not output the variable name header on SPEX results.This option can be also be set by using \textbf{pragma} \emph{spex-header}=\emph{no}\index{pragma!srvn-header}.This option has no effect if SPEX is not used.
 \item[\longopt{print-comment}]~\\
 Add the model comment as the first line of output when running with SPEX input.
 \item[\longopt{print-interval}=\emph{arg}]~\\
@@ -263,6 +263,9 @@ Output the intermediate solution of the model after <n> iterations.
 Reset the MVA calculation prior to solving a submodel.
 \item[\longopt{trace-mva}]~\\
 Output the inputs and results of each MVA submodel for every iteration of the solver.
+\item[\longopt{debug-json}]~\\
+Output JSON\index{JSON!debug} elements and attributes as they are being parsed.   Since the JSON parser usually stops when it encounters an error,
+this option can be used to localize the error.
 \item[\longopt{debug-lqx}]~\\
 Output debugging information as an LQX\index{LQX!debug} program is being parsed.
 \item[\longopt{debug-spex}]~\\
@@ -270,7 +273,8 @@ Output LQX progam corresponding to SPEX input.
 \item[\longopt{debug-srvn}]~\\
 Output debugging information while parsing SRVN input.This is the output of the Bison LALR parser.
 \item[\longopt{debug-xml}]~\\
-Output XML\index{XML!debug} elements and attributes as they are being parsed.   Since the XML parser usually stops when it encounters an error,
+Output XML\index{XML!debug} elements and attributes as they are being parsed.
+Since the XML parser usually stops when it encounters an error,
 this option can be used to localize the error.
 \end{description}
 

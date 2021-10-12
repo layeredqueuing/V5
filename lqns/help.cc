@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 15063 2021-10-10 13:37:14Z greg $
+ * $Id: help.cc 15066 2021-10-12 12:20:10Z greg $
  */
 
 #include "lqns.h"
@@ -34,13 +34,13 @@ private:
 static const std::map<const std::string,const std::string> opt_help = {
     { "no-advisories",			    "Do not output advisory messages" },
     { "bounds-only",			    "Compute throughput bounds only." },
-    { "convergence",			    "Set the convergence value to ARG." },
-    { "debug",				    "Enable debug code.	 See -Hd." },
+    { "convergence",			    "Set the convergence value to <n.n>." },
+    { "debug",				    "Enable debug code. See -Hd." },
     { "error",				    "Set floating point exception mode." },
     { LQIO::DOM::Pragma::_fast_,	    "Solve using one-step-linearizer, batch layering and Conway multiserver." },
     { "help",				    "Print a summary of the command line options.  The optional argument shows help for -d, -t, -z, and -P respectively." },
     { "huge",				    "Solve using one-step-schweitzer, no interlocking, and Rolia multiserver." },
-    { "iteration-limit",		    "Set the iteration limit to ARG." },
+    { "iteration-limit",		    "Set the iteration limit to <n>." },
     { "input-format",			    "Force input format to ARG. ARG is either 'lqn', 'json' or 'xml'." },
     { "json",				    "Output reuslt in JSON format." },
     { "no-execute",			    "Build the model, but do not solve." },
@@ -49,7 +49,7 @@ static const std::map<const std::string,const std::string> opt_help = {
     { "pragma",				    "Set solver options.  See -HP." },
     { "rtf",				    "Output results in Rich Text Format instead of plain text." },
     { "trace",				    "Trace solver operation.  See -Ht." },
-    { LQIO::DOM::Pragma::_underrelaxation_, "Set the under-relaxation value to ARG." },
+    { LQIO::DOM::Pragma::_underrelaxation_, "Set the under-relaxation value to <n.n>." },
     { "verbose",			    "Output on standard error the progress of the solver." },
     { "version",			    "Print the version of the solver." },
     { "no-warnings",			    "Do not output warning messages." },
@@ -93,7 +93,7 @@ const std::map<const int,const Help::help_fptr> Help::__option_table =
     { 'e',	&Help::flagError },
     { 'f',	&Help::flagFast },
     { 'h',	&Help::flagHuge },
-    { 'H',	nullptr },
+    { 'H',	&Help::flagHelp },
     { 'I',	&Help::flagInputFormat },
     { 'i',	&Help::flagIterationLimit },
     { 'j',	&Help::flagJSON },
@@ -325,9 +325,13 @@ usage ( const char * optarg )
 		s = "--";
 		s += o->name;
 		switch ( o->val ) {
-		case 'G': s += "=ARG"; break;
+		case 'c':
+		case 'u':
+		    s += "=<n.n>";
+		    break;
+
+		case 'I': s += "=<ARG>"; break;
 		case 'H': s += "=[dztP]"; break;
-		case 'I': s += "=ARG"; break;
 		case 'P': s += "=<pragma>"; break;
 		case 'd': s += "=<debug>"; break;
 		case 'e': s += "=[adiw]"; break;
@@ -335,6 +339,7 @@ usage ( const char * optarg )
 		case 't': s += "=<trace>"; break;
 		case 'z': s += "=<special>"; break;
 
+		case 'i':
 		case (256+'c'):
 		case (256+'i'):
 		case (256+'k'):
@@ -2133,7 +2138,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 15063 2021-10-10 13:37:14Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 15066 2021-10-12 12:20:10Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2432,7 +2437,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 15063 2021-10-10 13:37:14Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 15066 2021-10-12 12:20:10Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl
