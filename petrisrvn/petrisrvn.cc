@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 15049 2021-10-07 16:54:01Z greg $
+ * $Id: petrisrvn.cc 15070 2021-10-13 13:40:04Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -24,13 +24,10 @@
 #include <unistd.h>
 #endif
 #include <signal.h>
-#if HAVE_IEEEFP_H && !defined(MSDOS)
-#include <ieeefp.h>
-#elif HAVE_FENV_H
-#if (__GNUC__ && __GNUC__ < 3 && defined(linux)) || (defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 800))
-#define __USE_GNU
-#endif
+#if HAVE_FENV_H
 #include <fenv.h>
+#elif HAVE_IEEEFP_H && !defined(MSDOS)
+#include <ieeefp.h>
 #endif
 #if HAVE_FLOAT_H
 #include <float.h>

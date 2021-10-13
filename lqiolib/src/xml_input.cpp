@@ -46,6 +46,7 @@ namespace XML
 	return value;
     }
 
+#if HAVE_EXPAT_H
     const XML_Char *
     getStringAttribute(const XML_Char ** attributes, const XML_Char * attribute, const XML_Char * default_value )
     {
@@ -122,4 +123,5 @@ namespace XML
 	}
 	return 0.;
     }
+#endif
 }

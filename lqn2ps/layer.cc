@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14589 2021-04-04 12:28:05Z greg $
+ * $Id: layer.cc 15070 2021-10-13 13:40:04Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -11,16 +11,18 @@
 #include "lqn2ps.h"
 #include <cstdlib>
 #include <algorithm>
-#if defined(HAVE_VALUES_H)
+#if HAVE_VALUES_H
 #include <values.h>
 #endif
-#if defined(HAVE_FLOAT_H)
+#if HAVE_FLOAT_H
 #include <float.h>
 #endif
 #include <lqio/error.h>
 #include <lqio/srvn_output.h>
 #include <lqio/dom_document.h>
+#if HAVE_EXPAT_H
 #include <lqio/jmva_document.h>
+#endif
 #include <lqio/qnap2_document.h>
 #include "activity.h"
 #include "arc.h"
@@ -935,7 +937,7 @@ std::ostream& Layer::printBCMPQueueingNetwork( std::ostream& output ) const
     /* Create them model type then print. */
 
     switch ( Flags::print[OUTPUT_FORMAT].value.i ) {
-#if JMVA_OUTPUT
+#if JMVA_OUTPUT && HAVE_EXPAT_H
     case FORMAT_JMVA:	output << BCMP::JMVA_Document("",_bcmp_model);	break;
 #endif
 #if QNAP2_OUTPUT

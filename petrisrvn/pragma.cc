@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 14959 2021-09-08 14:48:54Z greg $
+ * $Id: pragma.cc 15070 2021-10-13 13:40:04Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -15,9 +15,9 @@
 #if !HAVE_GETSUBOPT
 #include <lqio/getsbopt.h>
 #endif
+#include <lqio/dom_pragma.h>
 #include <lqio/labels.h>
 #include <lqio/input.h>
-#include <lqio/expat_document.h>
 #include <lqio/glblerr.h>
 
 Pragma * Pragma::__pragmas = nullptr;
