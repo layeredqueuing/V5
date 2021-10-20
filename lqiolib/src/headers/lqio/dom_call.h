@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_call.h 14765 2021-06-04 01:04:46Z greg $
+ *  $Id: dom_call.h 15072 2021-10-15 13:06:06Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -81,7 +81,7 @@ namespace LQIO {
 	    /* External Variable Access (Do not call until set) */
 	    const ExternalVariable* getCallMean() const;
 	    void setCallMean(const ExternalVariable* callMean);
-	    const double getCallMeanValue() const;
+	    virtual double getCallMeanValue() const;
 	    void setCallMeanValue(double);
 
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

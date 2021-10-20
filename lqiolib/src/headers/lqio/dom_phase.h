@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_phase.h 14387 2021-01-21 14:09:16Z greg $
+ *  $Id: dom_phase.h 15072 2021-10-15 13:06:06Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -52,7 +52,7 @@ namespace LQIO {
 	    const char * getTypeName() const { return __typeName; }
 
 	    bool isPresent() const;
-	    double getServiceTimeValue() const;
+	    virtual double getServiceTimeValue() const;
 	    const ExternalVariable* getServiceTime() const;
 	    void setServiceTime(const ExternalVariable* serviceTime);
 	    void setServiceTimeValue(double value);

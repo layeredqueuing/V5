@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 14387 2021-01-21 14:09:16Z greg $
+ *  $Id: dom_object.h 15080 2021-10-18 20:00:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -65,6 +65,12 @@ namespace LQIO {
 	    virtual bool hasHistogramForPhase( unsigned ) const { return false; };
 	    virtual const Histogram* getHistogramForPhase ( unsigned ) const { subclass(); return nullptr; }	/* But don't... */
 	    virtual void setHistogramForPhase( unsigned, Histogram* ) { subclass(); }
+
+	    /* Input values -- overriden by subclasses */
+	    
+	    virtual double getServiceTimeValue() const { subclass(); return 0.; }
+	    virtual double getCallMeanValue() const { subclass(); return 0.; }
+	    virtual double getCopiesValueAsDouble() const { subclass(); return 0.; }
 
 	    /* Results -- overridden by subclasses */
 

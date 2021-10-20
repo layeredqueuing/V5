@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.am 15021 2021-10-02 13:54:00Z greg $
+# $Id: Makefile.am 15072 2021-10-15 13:06:06Z greg $
 #----------------------------------------------------------------------
 
 AUTOMAKE_OPTIONS = foreign
@@ -7,8 +7,8 @@ ACLOCAL_AMFLAGS = -I../config
 AM_CPPFLAGS	= -I..  -I../lqiolib/src/headers -I../lqx/libsrc/headers
 lqn2csv_CXXFLAGS = -std=c++11 -Wall 
 bin_PROGRAMS 	= lqn2csv
-lqn2csv_SOURCES = lqn2csv.cc model.cc
-noinst_HEADERS  = lqn2csv.h model.h
+lqn2csv_SOURCES = gnuplot.cc lqn2csv.cc model.cc
+noinst_HEADERS  = gnuplot.h lqn2csv.h model.h
 lqn2csv_LDADD	= -L../lqiolib/src/.libs -llqio
 
 lqn2csv_LDFLAGS= @STATIC@

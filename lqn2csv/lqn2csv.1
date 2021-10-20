@@ -19,6 +19,8 @@ model solution to extract and print.  The results are output in the
 order that the options are given, separated by commas. Unlike
 \fBsrvndiff(1)\fP, the model files do \fInot\fP have to be the same;
 \fBlqn2csv\fP simply searches for results that match the arguments.
+and, unlike SPEX or LQX model files, results can be extracted from
+any entity listed below; not just those with result variables.
 If no match is found (or if an argument is not specified correctly),
 the string ``NULL'' is output. 
 
@@ -31,7 +33,7 @@ runs, or the results from using \fB\-\-print-interval\fR with
 supported for the directory version of the command at this time.
 .SH "OPTIONS"
 .TP 8
-\fB\-@,\fP \fB\-\-arguments=\fIarg\fR
+\fB\-@\fP, \fB\-\-arguments=\fIarg\fR
 Load the options to \fBlqn2csv\fP from the file named
 \fIarg\fP. Arguments in \fIarg\fP can be separated by both spaces and
 newlines. All the options to \fBlqn2csv\fP can be loaded from the file
@@ -42,70 +44,98 @@ one or more occurances of \fB\-\-arguments\fR.
 \fB\-a\fP, \fB\-\-open\-wait=\fIentry\fR
 Print open the arrival waiting time for \fIentry\fP.
 .TP 8
-\fB\-b,\fP \fB\-\-bounds=\fIentry\fR
+\fB\-b\fP, \fB\-\-bounds=\fIentry\fR
 Print the throughput bound for \fIentry\fP.
+.TP
+\fB\-d\fP, \fP\-\-demand=\fIentry\fP,\fIn\fR
+Print the demand for \fIentry\fP, phase \fIn\fP.  This is an
+independent variable for plotting.
+.TP
+\fB\-D\fP, \fP\-\-demand=\fItask\fP,\fIactivity\fR
+Print the demand for \fItask\fP, \fIactivity\fP.  This is an
+independent variable for plotting.
 .TP 8
-\fB\-e,\fP \fB\-\-entry\-utilization=\fIentry\fR
+\fB\-e\fP, \fB\-\-entry\-utilization=\fIentry\fR
 Print the utilization for \fIentry\fP.
 .TP 8
-\fB\-\fP,\fP \fB\-\-entry\-throughput=\fIentry\fR
+\fB\-f\fP, \fB\-\-entry\-throughput=\fIentry\fR
 Print the throughput for \fIentry\fP.
 .TP 8
-\fB\-F,\fP \fB\-\-activity\-throughput=\fItask\fP,\fIactivity\fR
+\fB\-F\fP, \fB\-\-activity\-throughput=\fItask\fP,\fIactivity\fR
 Print the througput for \fItask\fP, \fIactivity\fP.
 .TP 8
-\fB\-h,\fP \fB\-\-hold\-times\fR
-Print the hold time at a join.
+\fB\-h\fP, \fB\-\-hold\-times\fR
+Print the hold time at a join.  Not implemented.
 .TP 8
-\fB\-j,\fP \fB\-\-join\-delays\fR
-Print the join delay at a join,.
+\fB\-j\fP, \fB\-\-join\-delays\fR
+Print the join delay at a join.  Not implemented.
 .TP 8
-\fB\-l,\fP \fB\-\-loss\-probability=\fIsrc\fP,\fIn\fP,\fIdst\fR
+\fB\-l\fP, \fB\-\-loss\-probability=\fIsrc\fP,\fIn\fP,\fIdst\fR
 Print the probability of a lost message for an asynchronous send from
 entry \fIsrc\fP, phase \fIn\fP, to entry \fIdst\fP.
 .TP 8
-\fB\-o,\fP \fB\-\-output=\fIarg\fR
+\fB\-L\fP, \fB\-\-loss\-probability=\fItask\fP,\fIactivity\fP,\fIdst\fR
+Print the probability of a lost message for an asynchronous send from
+\fItask\fP, \fIactivity\fP, to entry \fIdst\fP.
+.TP
+\fB\-m\fP, \fP\-\-processor\-mulitplicity=\fIprocessor\fR
+Print the number of copies of \fIprocessor\fP.  This is an independent
+variable for plotting.
+.TP 8
+\fB\-n\fP, \fP\-\-task\-mulitplicity=\task\fR
+Print the number of copies of \fItask\P.  Generally for reference
+tasks (clients), this is the number of customers.  For all serving
+tasks, this is the number of servers.  This is an independent variable
+for plotting.
+.TP 8
+\fB\-o\fP, \fB\-\-output=\fIarg\fR
 Write the  output to the file named \fIarg\fP.
 .TP 8
-\fB\-p,\fP \fB\-\-processor\-utilization=\fIprocessor\fR
+\fB\-p\fP, \fB\-\-processor\-utilization=\fIprocessor\fR
 Print the utilization for \fIprocessor\fP.
 .TP 8
-\fB\-q,\fP \fB\-\-processor\-waiting=\fIentry\fP,\fIn\fR
+\fB\-q\fP, \fB\-\-processor\-waiting=\fIentry\fP,\fIn\fR
 Print the waiting time at the processor for \fIentry\fP, phase \fIn\fP.
 .TP 8
-\fB\-s,\fP \fB\-\-service=\fIentry\fP,\fIn\fR
+\fB\-s\fP, \fB\-\-service=\fIentry\fP,\fIn\fR
 Print the service time for \fIentry\fP, phase \fIn\fP.
 .TP 8
-\fB\-S,\fP \fB\-\-activity\-service=\fIarg\fR
+\fB\-S\fP, \fB\-\-activity\-service=\fIarg\fR
 Print the service time for \fItask\fP, \fIactivity\fP.
 .TP 8
-\fB\-t,\fP \fB\-\-task\-throughput=\fItask\fR
+\fB\-t\fP, \fB\-\-task\-throughput=\fItask\fR
 Print the throughput for \fItask\fP.
 .TP 8
-\fB\-u,\fP \fB\-\-task\-utilization=\fItask\fR
+\fB\-u\fP, \fB\-\-task\-utilization=\fItask\fR
 Print the utilization for \fItask\fP.
 .TP 8
-\fB\-v,\fP \fB\-\-variance=\fIentry\fP,\fIn\fR
+\fB\-v\fP, \fB\-\-variance=\fIentry\fP,\fIn\fR
 Print the  service time variance for \fIentry\fP, phase \fIn\fP.
 .TP 8
-\fB\-V,\fP \fB\-\-activity\-variance=\fIarg\fR
+\fB\-V\fP, \fB\-\-activity\-variance=\fIarg\fR
 Print the  service time variance for \fItask\fP, \fIactivity\fP.
 .TP 8
-\fB\-w,\fP \fB\-\-waiting=\fIsrc\fP,\fIn\fP,\fIdst\fR
+\fB\-w\fP, \fB\-\-waiting=\fIsrc\fP,\fIn\fP,\fIdst\fR
 Print the waiting time for a call from the entry \fIsrc\fP, phase
 \fIn\fP to the entry \fIdst\fP entry.
 .TP 8
-\fB\-W,\fP \fB\-\-activity\-waiting=\fIarg\fR
-Print the activity call waiting time.
+\fB\-W\fP, \fB\-\-activity\-waiting=\fItask\fR,\fIactivity\fP,\fIentry\fP
+Print the waiting time for a call from \fItask\fP, \fIactivity\fP to
+\fIentry\fP.
 .TP 8
-\fB\-x,\fP \fB\-\-service\-exceeded=\fIentry\fP,\fIn\fR
-Print the phase service time exceeded probability.
+\fB\-x\fP, \fB\-\-service\-exceeded=\fIentry\fP,\fIn\fR
+Print the probability the service time was exceeded for \fIentry\fP,
+phase \fIn\fP.
+.TP 8
+\fB\-x\fP, \fB\-\-service\-exceeded=\fIentry\fP,\fIn\fR
+Print the probability the service time was exceeded for \fItask\fP,
+\fIactivity\fP.
 .TP 8
 \fB\fB\-\-gnuplot\fP
 Generate gnuplot ouptut.
 .TP 8
 \fB\fB\-\-no\-header\fP
-Do not output header information.
+Do not output header information for CSV output.
 .TP 8
 \fB\-\-help\fP
 Print out a summary of the options.
