@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: fpgoop.h 14870 2021-07-03 03:16:42Z greg $
+ * $Id: fpgoop.h 15089 2021-10-22 16:14:46Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -28,7 +28,6 @@ void set_fp_abort();
 bool check_fp_ok();
 void set_fp_ok( bool );
 int fp_status_bits();
-double get_infinity();
 
 /*
  * Compute and return factorial.

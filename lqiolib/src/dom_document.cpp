@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 14879 2021-07-07 01:51:16Z greg $
+ *  $Id: dom_document.cpp 15088 2021-10-22 16:14:35Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -675,7 +675,7 @@ namespace LQIO {
 		if (isSymbol) { *isSymbol = true; }
 		return getSymbolExternalVariable(input);
 	    } else if ( strcmp( input, "@infinity" ) == 0 ) {
-		return new ConstantExternalVariable( srvn_get_infinity() );
+		return new ConstantExternalVariable( std::numeric_limits<double>::infinity() );
 	    } else {
 		double result = 0.0;
 		char* endPtr = nullptr;

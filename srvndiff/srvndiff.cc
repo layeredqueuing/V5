@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 15067 2021-10-12 14:12:20Z greg $
+ * $Id: srvndiff.cc 15089 2021-10-22 16:14:46Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -935,7 +935,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2021-10-12 10:12:20 -0400 (Tue, 12 Oct 2021) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2021-10-22 12:14:46 -0400 (Fri, 22 Oct 2021) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -4041,48 +4041,13 @@ stats_buf::sort()
     std::sort( values.begin(), values.end() );
 }
 
-static inline double
-get_infinity()
-{
-#if defined(INFINITY)
-    return INFINITY;
-#else
-    union {
-	unsigned char c[8];
-	double f;
-    } x;
-
-#if defined(WORDS_BIGENDIAN)
-    x.c[0] = 0x7f;
-    x.c[1] = 0xf0;
-    x.c[2] = 0x00;
-    x.c[3] = 0x00;
-    x.c[4] = 0x00;
-    x.c[5] = 0x00;
-    x.c[6] = 0x00;
-    x.c[7] = 0x00;
-#else
-    x.c[7] = 0x7f;
-    x.c[6] = 0xf0;
-    x.c[5] = 0x00;
-    x.c[4] = 0x00;
-    x.c[3] = 0x00;
-    x.c[2] = 0x00;
-    x.c[1] = 0x00;
-    x.c[0] = 0x00;
-#endif
-    return x.f;
-#endif
-}
-
-
 static double
 relative_error( const double a, const double b )
 {
     if ( a == b ) {
 	return 0;
     } else if ( b == 0 ) {
-	return get_infinity();
+	return std::numeric_limits<double>::infinity();
     } else if ( std::isfinite( a ) ) { 			/* BUG_171 */
 	return a * 100.0 / b;
     } else {

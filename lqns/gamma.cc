@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: gamma.cc 14817 2021-06-15 16:51:27Z greg $
+ * $Id: gamma.cc 15091 2021-10-22 17:01:44Z greg $
  *
  * Gamma distribution.
  *
@@ -14,6 +14,7 @@
 
 #include <cmath>
 #include <cassert>
+#include <limits>
 #include <mva/fpgoop.h>
 #include "gamma.h"
 
@@ -78,7 +79,7 @@ Gamma_Distribution::getDensity( double x ) const
 {
     if (x < 0) return 0;
     else if (x == 0 ) {
-	if ( _shape < 1) return get_infinity();
+	if ( _shape < 1) return std::numeric_limits<double>::infinity();
 	if ( _shape == 1) return exp(-_c);
 	else return 0;
     } else {

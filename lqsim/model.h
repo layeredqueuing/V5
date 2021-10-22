@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 14995 2021-09-27 14:01:46Z greg $
+ * $Id: model.h 15089 2021-10-22 16:14:46Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -159,39 +159,6 @@ private:
 public:
     static double max_service;	/* Max service time found.	*/
     static LQIO::DOM::Document::InputFormat input_format;
-
-    inline static double get_infinity()
-    {
-#if defined(INFINITY)
-	return INFINITY;
-#else
-	union {
-	    unsigned char c[8];
-	    double f;
-	} x;
-
-#if defined(WORDS_BIGENDIAN)
-	x.c[0] = 0x7f;
-	x.c[1] = 0xf0;
-	x.c[2] = 0x00;
-	x.c[3] = 0x00;
-	x.c[4] = 0x00;
-	x.c[5] = 0x00;
-	x.c[6] = 0x00;
-	x.c[7] = 0x00;
-#else
-	x.c[7] = 0x7f;
-	x.c[6] = 0xf0;
-	x.c[5] = 0x00;
-	x.c[4] = 0x00;
-	x.c[3] = 0x00;
-	x.c[2] = 0x00;
-	x.c[1] = 0x00;
-	x.c[0] = 0x00;
-#endif
-	return x.f;
-#endif
-    }
 };
 
 double square( const double arg );

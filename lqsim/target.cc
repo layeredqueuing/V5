@@ -2,12 +2,13 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 14997 2021-09-27 18:13:17Z greg $
+ * $Id: target.cc 15091 2021-10-22 17:01:44Z greg $
  * ------------------------------------------------------------------------
  */
 
 #include <parasol.h>
 #include "lqsim.h"
+#include <limits>
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include "target.h"
@@ -124,7 +125,7 @@ double
 tar_t::mean_delay() const
 {
     if ( dropped_messages() ) {
-	return Model::get_infinity();
+	return std::numeric_limits<double>::infinity();
     } else {
 	return r_delay.mean();
     }
@@ -134,7 +135,7 @@ double
 tar_t::variance_delay() const
 {
     if ( dropped_messages() ) {
-	return Model::get_infinity();
+	return std::numeric_limits<double>::infinity();
     } else {
 	return r_delay.variance();
     }
@@ -179,8 +180,8 @@ tar_t::insertDOMResults()
 	meanDelay = r_delay.mean();
 	meanDelayVariance = r_delay_sqr.mean();
     } else {
-	meanDelay = Model::get_infinity();
-	meanDelayVariance = Model::get_infinity();
+	meanDelay = std::numeric_limits<double>::infinity();
+	meanDelayVariance = std::numeric_limits<double>::infinity();
     }
     _dom._call->setResultWaitingTime(meanDelay)
 	.setResultVarianceWaitingTime(meanDelayVariance);
@@ -196,8 +197,8 @@ tar_t::insertDOMResults()
 	    varDelay  = r_delay.variance();
 	    varDelayVariance  = r_delay_sqr.variance();
 	} else {
-	    varDelay = Model::get_infinity();
-	    varDelayVariance = Model::get_infinity();
+	    varDelay = std::numeric_limits<double>::infinity();
+	    varDelayVariance = std::numeric_limits<double>::infinity();
 	}
 
 	_dom._call->setResultWaitingTimeVariance(varDelay)

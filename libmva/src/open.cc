@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: open.cc 14870 2021-07-03 03:16:42Z greg $
+ * $Id: open.cc 15091 2021-10-22 17:01:44Z greg $
  *
  * Open Network solver.
  *
@@ -7,7 +7,7 @@
  * Department of Systems and Computer Engineering,
  * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
  *
- * $Date: 2021-07-02 23:16:42 -0400 (Fri, 02 Jul 2021) $
+ * $Date: 2021-10-22 13:01:44 -0400 (Fri, 22 Oct 2021) $
  * ----------------------------------------------------------------------
  * Conventions:
  *    E - (scalar) number of entries for a given station.
@@ -50,9 +50,7 @@
 
 #include <config.h>
 #include <cmath>
-#if HAVE_VALUES_H
-#include <values.h>
-#endif
+#include <limits>
 #include "fpgoop.h"
 #include "open.h"
 #include "prob.h"
@@ -122,16 +120,16 @@ Open::convert( const Population& N ) const
 	    if ( std::isfinite( num ) && std::isfinite( den ) ) {
 		*Q[m] *= (den / num);
 	    } else {
-		*Q[m] = get_infinity();
+		*Q[m] = std::numeric_limits<double>::infinity();
 		m_err = m;
 	    }
 	} 
 	catch ( const std::range_error& ) {
-	    *Q[m] = get_infinity();
+	    *Q[m] = std::numeric_limits<double>::infinity();
 	    m_err = m;
 	}
 	catch ( const std::domain_error& ) {
-	    *Q[m] = get_infinity();
+	    *Q[m] = std::numeric_limits<double>::infinity();
 	    m_err = m;
 	}
     }
@@ -162,11 +160,11 @@ Open::solve( const MVA& closedModel, const Population& N )
 	    }
 	} 
 	catch ( const std::range_error& e ) {
-	    *Q[m] = get_infinity();
+	    *Q[m] = std::numeric_limits<double>::infinity();
 	    m_err = m;
 	}
 	catch ( const std::domain_error& e ) {
-	    *Q[m] = get_infinity();
+	    *Q[m] = std::numeric_limits<double>::infinity();
 	    m_err = m;
 	}
     }
@@ -191,11 +189,11 @@ Open::solve()
 	    Q[m]->openWait();
 	} 
 	catch ( const std::range_error& e ) {
-	    *Q[m] = get_infinity();
+	    *Q[m] = std::numeric_limits<double>::infinity();
 	    m_err = m;
 	}
 	catch ( const std::domain_error& e ) {
-	    *Q[m] = get_infinity();
+	    *Q[m] = std::numeric_limits<double>::infinity();
 	    m_err = m;
 	}
     }

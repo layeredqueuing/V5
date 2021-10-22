@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 15086 2021-10-20 16:56:56Z greg $
+ * $Id: model.cc 15091 2021-10-22 17:01:44Z greg $
  *
  * Command line processing.
  *
@@ -13,6 +13,7 @@
  */
 
 #include <algorithm>
+#include <limits>
 #include <numeric>
 #include <regex>
 #include <set>
@@ -149,15 +150,14 @@ Model::Print::operator()( double item )
  */
 
 std::vector<double>
-Model::Result::operator()( const std::vector<double>& in, const std::pair<std::string,Model::Result::Type>& result ) const
+Model::Result::operator()( const std::vector<double>& in, const std::pair<std::string,Model::Result::Type>& arg ) const
 {
-    const LQIO::DOM::DocumentObject * object = findObject( result.first, result.second );
+    const Model::Result::result_fields& result = __results.at( arg.second );
+    const LQIO::DOM::DocumentObject * object = findObject( arg.first, result.type );
     std::vector<double> out = in;
 
     if ( object != nullptr ) {
-	std::ostringstream item;
-	const fptr f = __results.at( result.second ).f;
-	out.push_back( (object->*f)() );
+	out.push_back( (object->*(result.f))() );		/* Invoke function to find value	*/
     } else {
 	out.push_back( std::numeric_limits<double>::quiet_NaN() );
     }
@@ -171,83 +171,58 @@ Model::Result::operator()( const std::vector<double>& in, const std::pair<std::s
  */
 
 const LQIO::DOM::DocumentObject *
-Model::Result::findObject( const std::string& item, Model::Result::Type type ) const
+Model::Result::findObject( const std::string& arg, Model::Object::Type type ) const
 {
-    const LQIO::DOM::DocumentObject * object = nullptr;
-
     const std::regex regex(",");
-    const std::vector<std::string> tokens( std::sregex_token_iterator(item.begin(), item.end(), regex, -1), std::sregex_token_iterator() );
-
+    const std::vector<std::string> tokens( std::sregex_token_iterator(arg.begin(), arg.end(), regex, -1), std::sregex_token_iterator() );
     if ( tokens.empty() ) return nullptr;
+
+    const LQIO::DOM::DocumentObject * object = nullptr;
     const std::string& name = tokens.front();
 
     switch ( type ) {
-    case Type::ACTIVITY_DEMAND:
-    case Type::ACTIVITY_PROCESSOR_WAITING:
-    case Type::ACTIVITY_PR_SVC_EXCD:
-    case Type::ACTIVITY_SERVICE:
-    case Type::ACTIVITY_THROUGHPUT:
-    case Type::ACTIVITY_VARIANCE:
-	/* task, activity */
+    case Object::Type::ACTIVITY:	/* task, activity */
 	if ( tokens.size() == 2 ) {
 	    object = findActivity( dom().getTaskByName( name ), tokens.at(1) );
 	}
 	break;
 
-    case Type::ACTIVITY_PR_RQST_LOST:
-    case Type::ACTIVITY_REQUEST_RATE:
-    case Type::ACTIVITY_WAITING:
-	/* task, activity, entry */
+    case Object::Type::ACTIVITY_CALL:	/* task, activity, entry */
 	if ( tokens.size() == 3 ) {
 	    object = findCall( findActivity( dom().getTaskByName( name ), tokens.at(1) ), tokens.at(2) );
 	}
 	break;
 
-    case Type::ENTRY_THROUGHPUT:
-    case Type::ENTRY_UTILIZATION:
-    case Type::OPEN_WAIT:
-    case Type::THROUGHPUT_BOUND:
+    case Object::Type::ENTRY:		/* entry */
 	object = dom().getEntryByName( name );
 	break;
 
-    case Type::PHASE_DEMAND:
-    case Type::PHASE_PROCESSOR_WAITING:
-    case Type::PHASE_PR_SVC_EXCD:
-    case Type::PHASE_SERVICE:
-    case Type::PHASE_UTILIZATION:
-    case Type::PHASE_VARIANCE:
-	/* entry,phase */
+    case Object::Type::PHASE:		/* entry, phase */
 	if ( tokens.size() == 2 ) {
-	    object = findPhase( dom().getEntryByName( name ), tokens.at(1));
+	    object = findPhase( dom().getEntryByName( name ), tokens.at(1) );
 	}
 	break;
 
-    case Type::PHASE_PR_RQST_LOST:
-    case Type::PHASE_REQUEST_RATE:
-    case Type::PHASE_WAITING:			/* phase -> entry */
-	/* entry,phase,entry */
+    case Object::Type::PHASE_CALL:	/* entry, phase -> entry */
 	if ( tokens.size() == 3 ) {
 	    object = findCall( findPhase( dom().getEntryByName( name ), tokens.at(1) ), tokens.at(2) );
 	}
 	break;
 
-    case Type::TASK_MULTIPLICITY:
-    case Type::TASK_THROUGHPUT:
-    case Type::TASK_UTILIZATION:		/* May be by phase */
+    case Object::Type::TASK:		/* task */
 	object = dom().getTaskByName( name );
 	break;
 
-    case Type::PROCESSOR_MULTIPLICITY:
-    case Type::PROCESSOR_UTILIZATION:
+    case Object::Type::PROCESSOR:	/* processor */
 	object = dom().getProcessorByName( name );
 	break;
 
-    case Type::HOLD_TIMES:
-    case Type::JOIN_DELAYS:
+//    case result::Type::HOLD_TIMES:
+//    case Result::Type::JOIN_DELAYS:
 	/* Who knows! */
-	break;
+//	break;
 
-    case Type::NONE:
+    default:
 	abort();
 	break;
     }

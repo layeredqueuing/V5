@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15046 2021-10-05 21:52:16Z greg $
+ * $Id: task.cc 15091 2021-10-22 17:01:44Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -18,6 +18,7 @@
 #include "lqns.h"
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 #include <numeric>
 #include <ostream>
 #include <sstream>
@@ -697,7 +698,7 @@ Task::countCallers( std::set<Task *>& reject ) const
 	if ( hasOpenArrivals() ) {
 	    const_cast<Task *>(this)->isInOpenModel( true );
 	    if ( isInfinite() ) {
-		sum = get_infinity();
+		sum = std::numeric_limits<double>::infinity();
 	    }
 	}
 

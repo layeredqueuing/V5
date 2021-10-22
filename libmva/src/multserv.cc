@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 14871 2021-07-03 03:20:32Z greg $
+ * $Id: multserv.cc 15091 2021-10-22 17:01:44Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -50,9 +50,7 @@
 #include <cmath>
 #include <cassert>
 #include <cstdlib>
-#if HAVE_IEEEFP_H
-#include <ieeefp.h>
-#endif
+#include <limits>
 #include "multserv.h"
 #include "mva.h"
 #include "prob.h"
@@ -126,7 +124,7 @@ Reiser_Multi_Server::openWait() const
     double w;
 
     if ( rho() >= 1.0 ) {
-	w = get_infinity();
+	w = std::numeric_limits<double>::infinity();
     } else if ( J < 50 ) {
 	num = rho() * power( J * rho(), J - 1 );
 	dem = factorial( J ) *  A() * square( 1.0 - rho() );
@@ -693,7 +691,7 @@ Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const Population&
 	for ( unsigned e = 1; e <= E; ++e ) {
 	    if ( !V(e,k) ) continue;
 	    for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
-		W[e][k][p] = get_infinity();
+		W[e][k][p] = std::numeric_limits<double>::infinity();
 	    }
 	}
     }

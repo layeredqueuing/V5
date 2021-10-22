@@ -115,39 +115,6 @@ namespace LQX {
 	    }
 	}
 
-	inline double get_infinity()
-	{
-#if defined(INFINITY)
-	    return INFINITY;
-#else
-	    union {
-		unsigned char c[8];
-		double f;
-	    } x;
-
-#if WORDS_BIGENDIAN
-	    x.c[0] = 0x7f;
-	    x.c[1] = 0xf0;
-	    x.c[2] = 0x00;
-	    x.c[3] = 0x00;
-	    x.c[4] = 0x00;
-	    x.c[5] = 0x00;
-	    x.c[6] = 0x00;
-	    x.c[7] = 0x00;
-#else
-	    x.c[7] = 0x7f;
-	    x.c[6] = 0xf0;
-	    x.c[5] = 0x00;
-	    x.c[4] = 0x00;
-	    x.c[3] = 0x00;
-	    x.c[2] = 0x00;
-	    x.c[1] = 0x00;
-	    x.c[0] = 0x00;
-#endif
-	    return x.f;
-#endif
-	}
-
 	/* This method on the other hand actually does all the heavy lifting */
 	SymbolAutoRef Copyright::invoke(Environment*, std::vector<SymbolAutoRef >& )
 	{
@@ -523,7 +490,7 @@ namespace LQX {
 	registerConstantDouble(symbolTable, "@type_null",    -1 * static_cast<double>(Symbol::SYM_NULL));
     
 	/* Register the Infinity Constant */
-	registerConstantDouble(symbolTable, "@infinity", LQX::Intrinsics::get_infinity());
+	registerConstantDouble(symbolTable, "@infinity", std::numeric_limits<double>::infinity());
     }
 
 #if !HAVE_DRAND48

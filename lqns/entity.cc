@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14893 2021-07-09 13:59:30Z greg $
+ * $Id: entity.cc 15091 2021-10-22 17:01:44Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -18,6 +18,7 @@
 #include <cmath>
 #include <numeric>
 #include <sstream>
+#include <limits>
 #include <lqio/error.h>
 #include <lqio/labels.h>
 #include <lqio/dom_extvar.h>
@@ -525,7 +526,7 @@ Entity::setIdleTime( const double relax )
     } else if ( throughput() > 0.0 ) {
 	z = ( population() - utilization() ) / throughput();
     } else {
-	z = get_infinity();	/* INFINITY */
+	z = std::numeric_limits<double>::infinity();	/* INFINITY */
     }
     if ( flags.trace_idle_time ) {
 	std::cout << "\nEntity::setIdleTime():" << name() << "   Idle Time:  " << z << std::endl;

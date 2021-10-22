@@ -1,10 +1,11 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: entrythread.cc 15091 2021-10-22 17:01:44Z greg $
  *
  */
 
 
 #include "lqns.h"
+#include <limits>
 #include <mva/fpgoop.h>
 #include "actlist.h"
 #include "entity.h"
@@ -155,7 +156,7 @@ Thread::setIdleTime( const double relax )
 #endif
 
     } else {
-	z = get_infinity();	/* INFINITY */
+	z = std::numeric_limits<double>::infinity();	/* INFINITY */
     }
 
     if ( flags.trace_idle_time || flags.trace_throughput  ) {
