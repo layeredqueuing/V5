@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.h 14628 2021-05-10 17:56:53Z greg $
+ *  $Id: srvn_input.h 15095 2021-10-23 23:58:24Z greg $
  *  libsrvnio2
  *
  *  Created by Martin Mroz on 24/02/09.
@@ -96,8 +96,6 @@ extern "C" {
     void * srvn_int_constant( const int );
     void * srvn_real_constant( const double );
     void * srvn_variable( const char * );
-    void * srvn_null_to_inf( void * );			/* Convert NULL to infinity	*/
-
     double srvn_get_infinity();
 #if defined(__cplusplus)
 }

@@ -1,12 +1,11 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 15091 2021-10-22 17:01:44Z greg $
+# $Id: configure.ac 15097 2021-11-09 02:20:33Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
 AC_INIT([liblmva],[0.1.0],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_MACRO_DIR([../config])
-AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([subdir-objects])

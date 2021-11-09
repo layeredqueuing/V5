@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 14898 2021-07-14 12:20:37Z greg $
+ *  $Id: srvn_output.cpp 15094 2021-10-22 17:20:56Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -15,6 +15,7 @@
 #include <sstream>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -3274,7 +3275,7 @@ namespace LQIO {
             const double x1 = ( i == 0 ) ? 0 : hist_min + (i-1) * bin_size;
             const std::streamsize old_precision = _output.precision( 6 );
             if ( histogram.getHistogramType() == DOM::Histogram::Type::CONTINUOUS ) {
-                const double x2 = ( i == limit ) ? __DBL_MAX__ : hist_min + i * bin_size;
+                const double x2 = ( i == limit ) ? std::numeric_limits<double>::max() : hist_min + i * bin_size;
                 _output << std::setw( 4 ) << " ";
                 if ( i == 0 ) {
                     _output << std::setw( 17 ) << "underflow";

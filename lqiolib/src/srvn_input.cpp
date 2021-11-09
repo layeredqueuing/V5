@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 14628 2021-05-10 17:56:53Z greg $
+ *  $Id: srvn_input.cpp 15095 2021-10-23 23:58:24Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -108,7 +108,7 @@ srvn_add_processor( const char *processor_name, scheduling_type scheduling_flag,
     } 
 
     processor = new LQIO::DOM::Processor( LQIO::DOM::__document, processor_name, scheduling_flag );
-//					  new LQIO::DOM::ConstantExternalVariable(1) );	/* Set the defgauult to 1 */
+//					  new LQIO::DOM::ConstantExternalVariable(1) );	/* Set the default to 1 */
 
     if ( !LQIO::DOM::Common_IO::is_default_value( static_cast<LQIO::DOM::ExternalVariable *>(cpu_quantum), 0. ) ) {
 	if ( scheduling_flag == SCHEDULE_FIFO
@@ -615,10 +615,10 @@ srvn_set_task_group( void * task_v, const char * group_name )
     LQIO::DOM::Group * group = LQIO::DOM::__document->getGroupByName(group_name);
     if ( group == nullptr ) {
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, group_name );
-	return;
+    } else {
+	group->addTask(task);
+	task->setGroup(group);
     }
-    group->addTask(task);
-    task->setGroup(group);
 }
 
 
@@ -996,22 +996,6 @@ srvn_get_infinity()
 {
     return std::numeric_limits<double>::infinity();
 }
-
-/* 
- * Convert NULL to infinity.  This is used for the multi-server flag (as 'm 0' represents
- * an infinite server.
- */
-
-void *
-srvn_null_to_inf( void * arg )
-{
-    if ( arg == nullptr ) {
-	return static_cast<void *>(new LQIO::DOM::ConstantExternalVariable( srvn_get_infinity() ));
-    } else {
-	return arg;
-    }
-}
-
 
 namespace LQIO {
     namespace DOM {
