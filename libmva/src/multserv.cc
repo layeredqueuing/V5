@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15091 2021-10-22 17:01:44Z greg $
+ * $Id: multserv.cc 15100 2021-11-15 13:38:37Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -307,30 +307,6 @@ Markov_Phased_Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, co
 	}
     }
 }
-
-
-
-/*
- * Queue length for Open models.
- */
-
-void
-Markov_Phased_Reiser_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
-{
-    Reiser_Multi_Server::mixedWait( solver, N );
-}
-
-
-
-/*
- * Queue length for Open models -- same as open server (for now).
- */
-
-void
-Markov_Phased_Reiser_Multi_Server::openWait() const
-{
-    Reiser_Multi_Server::openWait();
-}
 
 /* ----------------- Processor Sharing Multi Server ------------------- */
 
@@ -572,28 +548,6 @@ Markov_Phased_Conway_Multi_Server::wait( const MVA& solver, const unsigned k, co
 
 
 /*
- * Queue length for Open models.
- */
-
-void
-Markov_Phased_Conway_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
-{
-    Reiser_Multi_Server::mixedWait( solver, N );
-}
-
-
-/*
- * Queue length for Open models -- same as open server (for now).
- */
-
-void
-Markov_Phased_Conway_Multi_Server::openWait() const
-{
-    Reiser_Multi_Server::openWait();
-}
-
-
-/*
  * The elapsed time for the arrival of this customer until the next
  * departure is simply the minimum of the service times of customers in
  * service for exponentially distributed service times: Eqn (15).
@@ -722,29 +676,6 @@ Rolia_Multi_Server::filter( const MVA& solver, const double w, const unsigned e,
 {
     return solver.filter() * w + (1.0 - solver.filter()) * W[e][k][p];
 }
-
-
-/*
- * Queue length for Open models.
- */
-
-void
-Rolia_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
-{
-    /* BUG 70 */
-    throw not_implemented( "Rolia_Multi_Server::mixedWait", __FILE__, __LINE__ );
-}
-
-
-/*
- * Queue length for Open models -- same as open server (for now).
- */
-
-void
-Rolia_Multi_Server::openWait() const
-{
-    Reiser_Multi_Server::openWait();
-}
 
 /* ------------------------ Rolia Multi Server  ----------------------- */
 
@@ -843,29 +774,6 @@ Markov_Phased_Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, con
 	}
     }
 }
-
-
-
-/*
- * Queue length for Open models.
- */
-
-void
-Markov_Phased_Rolia_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
-{
-    Rolia_Multi_Server::mixedWait( solver, N );
-}
-
-
-/*
- * Queue length for Open models -- same as open server (for now).
- */
-
-void
-Markov_Phased_Rolia_Multi_Server::openWait() const
-{
-    Reiser_Multi_Server::openWait();
-}
 
 /* ------------------------ Rolia Multi Server  ----------------------- */
 
@@ -928,28 +836,15 @@ Markov_Phased_Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, 
 	}
     }
 }
-
-
-
-/*
- * Queue length for Open models.
- */
+
+/*----------------------------------------------------------------------*/
+/*                          Zhou Multi Server.                          */
+/*----------------------------------------------------------------------*/
 
 void
-Markov_Phased_Rolia_PS_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
+Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population & N ) const
 {
-    Rolia_Multi_Server::mixedWait( solver, N );
-}
-
-
-/*
- * Queue length for Open models -- same as open server (for now).
- */
-
-void
-Markov_Phased_Rolia_PS_Multi_Server::openWait() const
-{
-    Reiser_Multi_Server::openWait();
+    throw not_implemented( "Zhou_Multi_Server::wait", __FILE__, __LINE__ );
 }
 
 /*----------------------------------------------------------------------*/
@@ -1076,14 +971,17 @@ Suri_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& 
     }
 }
 
+void
+Suri_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
+{
+    throw not_implemented( "Suri_Multi_Server::mixedWait", __FILE__, __LINE__ );
+}
 
-/*
- * Queue length for Open models -- same as open server (for now).
- */
 
 void
 Suri_Multi_Server::openWait() const
 {
+    throw not_implemented( "Suri_Multi_Server::openWait", __FILE__, __LINE__ );
 }
 
 /* ----------------- Markov Phased Franks Multi Server  --------------- */
@@ -1095,31 +993,12 @@ Suri_Multi_Server::openWait() const
 void
 Markov_Phased_Suri_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
-}
-
-
-/*
- * Queue length for Open models.
- */
-
-void
-Markov_Phased_Suri_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
-{
-}
-
-
-/*
- * Queue length for Open models -- same as open server (for now).
- */
-
-void
-Markov_Phased_Suri_Multi_Server::openWait() const
-{
+    throw not_implemented( "Markov_Phased_Suri_Multi_Server::wait", __FILE__, __LINE__ );
 }
 
 /* ---------------------------- Iterators ----------------------------- */
 
-B_Iterator::B_Iterator( const Server& aServer, const Population& N, const unsigned k )
+Conway_Multi_Server::B_Iterator::B_Iterator( const Server& aServer, const Population& N, const unsigned k )
     : Population::Iterator(N), J(static_cast<unsigned>(aServer.mu())), K(N.size()), index(0)
 { 
     for ( unsigned i = 1; i <= K; ++i ) {
@@ -1135,7 +1014,7 @@ B_Iterator::B_Iterator( const Server& aServer, const Population& N, const unsign
  */
 
 void
-B_Iterator::initialize( const unsigned j )
+Conway_Multi_Server::B_Iterator::initialize( const unsigned j )
 {
     if ( j == 0 ) return;		/* No class j.	*/
     assert( limit[j] > 0 );
@@ -1148,7 +1027,7 @@ B_Iterator::initialize( const unsigned j )
  */
 
 int
-B_Iterator::operator()( Population& N )
+Conway_Multi_Server::B_Iterator::operator()( Population& N )
 {
     return step( N, 1, J );	
 }
@@ -1163,7 +1042,7 @@ B_Iterator::operator()( Population& N )
  */
 
 int
-B_Iterator::step( Population& n, const unsigned k, const unsigned n_k )
+Conway_Multi_Server::B_Iterator::step( Population& n, const unsigned k, const unsigned n_k )
 {
     /*
      * Update the present value at `k', but ONLY if `k' is greater
@@ -1217,7 +1096,7 @@ B_Iterator::step( Population& n, const unsigned k, const unsigned n_k )
  */
 
 int
-A_Iterator::operator()( Population& n )
+Conway_Multi_Server::A_Iterator::operator()( Population& n )
 {
     int rc;
     do {

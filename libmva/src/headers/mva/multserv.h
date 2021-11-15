@@ -8,8 +8,9 @@
  * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
  *
  * November, 1994
+ * November, 2021
  *
- * $Id: multserv.h 14611 2021-04-19 21:35:58Z greg $
+ * $Id: multserv.h 15100 2021-11-15 13:38:37Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,7 +22,7 @@
 #include "ph2serv.h"
 
 /* -------------------------------------------------------------------- */
-/* 		       Simple (Reiser Product Form)			*/
+/* 		           Reiser (Product Form)			*/
 /* -------------------------------------------------------------------- */
 
 class Reiser_Multi_Server : public virtual Server {
@@ -80,6 +81,8 @@ public:
 	  Reiser_Multi_Server(copies,e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Phased_Reiser_Multi_Server"; }
 
@@ -112,8 +115,8 @@ public:
 	  Markov_Phased_Server(e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
-    virtual void mixedWait( const MVA& solver, const Population& N ) const;
-    virtual void openWait() const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Markov_Phased_Reiser_Multi_Server"; }
 };
@@ -138,20 +141,53 @@ public:
 	  Reiser_Multi_Server(copies,e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Reiser_PS_Multi_Server"; }
 
 protected:
     virtual Positive sumOf_L( const MVA& solver, const Population& N, const unsigned k ) const;
 };
-
-
+
 /*----------------------------------------------------------------------*/
 /*                         Conway Multi-Server				*/
 /*----------------------------------------------------------------------*/
 
 class Conway_Multi_Server : public virtual Server, 
 			    public Reiser_Multi_Server {
+
+private:
+    class B_Iterator : public Population::Iterator 
+    {
+    public:
+	B_Iterator( const Server& aServer, const Population& N, const unsigned k );
+
+	virtual int operator()( Population& n );
+
+    protected:
+	virtual int step( Population& N, const unsigned i, const unsigned n );
+
+    private:
+	void initialize( const unsigned );
+
+    protected:
+	const unsigned J;			/* Max number.			*/
+	const unsigned K;			/* Number of classes		*/
+	unsigned index;			/* for iterator.		*/
+    };
+
+    class A_Iterator : public B_Iterator 
+    {
+    public:
+	A_Iterator( const Server& aServer, const unsigned i, const Population& N, const unsigned k ): B_Iterator(aServer,N,k), class_i(i) {}
+
+	virtual int operator()( Population& n );
+
+    private:
+	const unsigned class_i;			/* index of class with at least 1 cust.	*/
+    };
+
 public:
     Conway_Multi_Server( const unsigned copies )
 	: Server(),
@@ -167,6 +203,8 @@ public:
 	  Reiser_Multi_Server(copies,e,k,p) {}
 	
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Conway_Multi_Server"; }
 
@@ -208,6 +246,8 @@ public:
 	  Conway_Multi_Server(copies,e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Phased_Conway_Multi_Server"; }
 };
@@ -234,8 +274,8 @@ public:
 	  Markov_Phased_Server(e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
-    virtual void mixedWait( const MVA& solver, const Population& N ) const;
-    virtual void openWait() const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Markov_Phased_Conway_Multi_Server"; }
 
@@ -248,7 +288,7 @@ private:
 private:
     virtual std::ostream& printInput( std::ostream& output, const unsigned e, const unsigned k ) const { return Markov_Phased_Server::printInput( output, e, k ); }
 };
-
+
 /*----------------------------------------------------------------------*/
 /* 			    Rolia Multi Server				*/
 /*----------------------------------------------------------------------*/
@@ -270,8 +310,8 @@ public:
 	  Reiser_Multi_Server(copies,e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
-    virtual void mixedWait( const MVA& solver, const Population& N ) const;
-    virtual void openWait() const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual unsigned int marginalProbabilitiesSize() const { return 0; }	/* No need for marginals	*/
 
@@ -299,6 +339,8 @@ public:
 	  Rolia_Multi_Server(copies,e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Rolia_PS_Multi_Server"; }
 
@@ -325,6 +367,8 @@ public:
 	  Rolia_Multi_Server(copies,e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Phased_Rolia_Multi_Server"; }
 
@@ -354,8 +398,8 @@ public:
 	  Markov_Phased_Server(e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
-    virtual void mixedWait( const MVA& solver, const Population& N ) const;
-    virtual void openWait() const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Markov_Phased_Rolia_Multi_Server"; }
 };
@@ -379,6 +423,8 @@ public:
 	  Rolia_PS_Multi_Server(copies,e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Phased_Rolia_PS_Multi_Server"; }
 
@@ -410,14 +456,43 @@ public:
 	  Markov_Phased_Server(e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
-    virtual void mixedWait( const MVA& solver, const Population& N ) const;
-    virtual void openWait() const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Phased_Rolia_PS_Multi_Server"; }
 };
-
+
 /*----------------------------------------------------------------------*/
-/*                         Bruell Multi-Server				*/
+/*			   Zhou Multi-Server				*/
+/*----------------------------------------------------------------------*/
+
+class Zhou_Multi_Server : public virtual Server, 
+			   public Reiser_Multi_Server {
+public:
+    Zhou_Multi_Server( const unsigned copies )
+	: Server(),
+	  Reiser_Multi_Server(copies) {}
+    Zhou_Multi_Server( const unsigned copies, const unsigned k )
+	: Server(k),
+	  Reiser_Multi_Server(copies,k) {}
+    Zhou_Multi_Server( const unsigned copies, const unsigned e, const unsigned k )
+	: Server(e,k),
+	  Reiser_Multi_Server(copies,e,k) {}
+    Zhou_Multi_Server( const unsigned copies, const unsigned e, const unsigned k, const unsigned p )
+	: Server(e,k,p),
+	  Reiser_Multi_Server(copies,e,k,p) {}
+
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
+
+    virtual unsigned int marginalProbabilitiesSize() const { return 0; }	/* No need for marginals	*/
+
+    virtual const char * typeStr() const { return "Zhou_Multi_Server"; }
+};
+
+/*----------------------------------------------------------------------*/
+/*                        Bruell Multi-Server				*/
 /*----------------------------------------------------------------------*/
 
 class Bruell_Multi_Server : public virtual Server, 
@@ -443,16 +518,17 @@ public:
     virtual double muS( const Population& N, const unsigned k ) const;
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Bruell_Multi_Server"; }
 
 protected:
     unsigned marginalSize;
 };
-
-
+
 /*----------------------------------------------------------------------*/
-/*                         Schmidt Multi-Server				*/
+/*			  Schmidt Multi-Server				*/
 /*----------------------------------------------------------------------*/
 
 class Schmidt_Multi_Server : public virtual Server, 
@@ -474,12 +550,14 @@ public:
     virtual double muS( const Population& N, const unsigned k ) const;
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual const char * typeStr() const { return "Schmidt_Multi_Server"; }
 };
-
+
 /* -------------------------------------------------------------------- */
-/*                         Franks Multi Server                          */
+/*                         Suri Multi Server                          	*/
 /* -------------------------------------------------------------------- */
 
 class Suri_Multi_Server : public Server {
@@ -496,7 +574,9 @@ public:
     virtual double mu() const { return static_cast<double>(J); }
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const;
     virtual void openWait() const;
+
     virtual unsigned int marginalProbabilitiesSize() const { return 0; }
 
     virtual const char * typeStr() const { return "Suri_Multi_Server"; }
@@ -510,20 +590,20 @@ protected:
 };
 
 
-class Markov_Phased_Suri_Multi_Server : public Server {
+class Markov_Phased_Suri_Multi_Server : public Suri_Multi_Server {
 public:
     Markov_Phased_Suri_Multi_Server( const unsigned copies )
-	: Server(1,1,MAX_PHASES) {}
+	: Suri_Multi_Server(1,1,MAX_PHASES) {}
     Markov_Phased_Suri_Multi_Server( const unsigned copies, const unsigned p )
-	: Server(1,1,p) {}
+	: Suri_Multi_Server(1,1,p) {}
     Markov_Phased_Suri_Multi_Server( const unsigned copies, const unsigned k, const unsigned p )
-	: Server(1,k,p) {}
+	: Suri_Multi_Server(1,k,p) {}
     Markov_Phased_Suri_Multi_Server( const unsigned copies, const unsigned e, const unsigned k, const unsigned p )
-	: Server(e,k,p) {}
+	: Suri_Multi_Server(e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
-    virtual void mixedWait( const MVA& solver, const Population& N ) const;
-    virtual void openWait() const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Suri_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Suri_Multi_Server::openWait(); }
 
 protected:
     virtual const char * typeStr() const { return "Markov_Phased_Suri_Multi_Server"; }
@@ -550,43 +630,11 @@ public:
 	  Reiser_Multi_Server(copies,e,k,p) {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const { return Reiser_Multi_Server::mixedWait( solver, N ); }
+    virtual void openWait() const { return Reiser_Multi_Server::openWait(); }
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "HOL_Reiser_Multi_Server"; }
 };
 #endif
-
-/* -------------------------------------------------------------------- */
-/*                              Helper classes.                         */
-/* -------------------------------------------------------------------- */
-
-class B_Iterator : public Population::Iterator 
-{
-public:
-    B_Iterator( const Server& aServer, const Population& N, const unsigned k );
-
-    virtual int operator()( Population& n );
-
-protected:
-    virtual int step( Population& N, const unsigned i, const unsigned n );
-
-private:
-    void initialize( const unsigned );
-
-protected:
-    const unsigned J;			/* Max number.			*/
-    const unsigned K;			/* Number of classes		*/
-    unsigned index;			/* for iterator.		*/
-};
-
-class A_Iterator : public B_Iterator 
-{
-public:
-    A_Iterator( const Server& aServer, const unsigned i, const Population& N, const unsigned k ): B_Iterator(aServer,N,k), class_i(i) {}
-
-    virtual int operator()( Population& n );
-
-private:
-    const unsigned class_i;			/* index of class with at least 1 cust.	*/
-};
 #endif

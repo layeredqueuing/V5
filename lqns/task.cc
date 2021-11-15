@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15091 2021-10-22 17:01:44Z greg $
+ * $Id: task.cc 15099 2021-11-11 20:02:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1969,7 +1969,9 @@ ServerTask::makeServer( const unsigned nChains )
 		break;
 
 	    case Pragma::Multiserver::ZHOU:
-		throw not_implemented( "Task::makeServer", __FILE__, __LINE__ );
+		if ( dynamic_cast<Zhou_Multi_Server *>(_station)  && _station->marginalProbabilitiesSize() == copies()) return nullptr;
+		_station = new Zhou_Multi_Server(    copies(), nEntries(), nChains, maxPhase());
+		break;
 	    }
 
 	} else if ( markovOvertaking() ) {
