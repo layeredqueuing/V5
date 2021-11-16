@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15099 2021-11-11 20:02:40Z greg $
+ * $Id: task.cc 15104 2021-11-16 02:53:19Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1898,6 +1898,9 @@ ServerTask::validScheduling() const
  * Create (or recreate) a server.  If we're called a a second+ time,
  * and the station type changes, then we change the underlying
  * station.  We only return a station when we create one.
+ *
+ * Note: one can't take the address of a constructor in C++ so we use
+ * switch statements.
  */
 
 Server *
@@ -2003,11 +2006,14 @@ ServerTask::makeServer( const unsigned nChains )
 
 	    case Pragma::Multiserver::SURI:
 		if ( dynamic_cast<Markov_Phased_Suri_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
+		throw not_implemented( "Task::makeServer", __FILE__, __LINE__ );
 		_station = new Markov_Phased_Suri_Multi_Server(     copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::ZHOU:
-		throw not_implemented( "Task::makeServer", __FILE__, __LINE__ );
+		if ( dynamic_cast<Markov_Phased_Zhou_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
+		_station = new Markov_Phased_Zhou_Multi_Server(     copies(), nEntries(), nChains, maxPhase());
+		break;
 	    }
 
 	} else {
@@ -2036,6 +2042,11 @@ ServerTask::makeServer( const unsigned nChains )
 	    case Pragma::Multiserver::ROLIA_PS:
 		if ( dynamic_cast<Phased_Rolia_PS_Multi_Server *>(_station) && _station->copies() == copies() ) return nullptr;
 		_station = new Phased_Rolia_PS_Multi_Server(  copies(), nEntries(), nChains, maxPhase());
+		break;
+
+	    case Pragma::Multiserver::ZHOU:
+		if ( dynamic_cast<Phased_Zhou_Multi_Server *>(_station)  && _station->marginalProbabilitiesSize() == copies()) return nullptr;
+		_station = new Phased_Zhou_Multi_Server(    copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    }

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15091 2021-10-22 17:01:44Z greg $
+ * $Id: entity.cc 15104 2021-11-16 02:53:19Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -634,6 +634,7 @@ Entity::initServerStation( Submodel& submodel )
 	}
 
     }
+
     /* Overtaking -- compute for MARKOV overtaking only. */
 
     if ( markovOvertaking() ) {

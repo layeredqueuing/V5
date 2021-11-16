@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15100 2021-11-15 13:38:37Z greg $
+ * $Id: multserv.cc 15105 2021-11-16 03:08:02Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -88,8 +88,8 @@ Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, const Population
 {
     assert( 0 < k && k <= K );
 
-    Positive sum = sumOf_SL( solver, N, k );
-	
+    const Positive sum = sumOf_SL( solver, N, k );
+
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
 
@@ -134,9 +134,9 @@ Reiser_Multi_Server::openWait() const
 	dem = log_factorial( J ) + log( A() * square( 1.0 - rho() ) );
 	w = S(0) * ( 1.0 + exp( num - dem ) );
     }
-	
+
     /* Update waiting */
-	
+
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,0) ) continue;
 
@@ -216,7 +216,7 @@ double
 Reiser_Multi_Server::sumOf_rho( const unsigned n ) const
 {
     double sum = 0.0;
-	
+
     for ( unsigned i = 0; i <= J - 2; ++i ) {
 
 	double product = 1.0;
@@ -316,7 +316,7 @@ Reiser_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const Populat
     assert( 0 < k && k <= K );
 
     const Positive sum  = 1.0 + sumOf_L( solver, N, k );
-	
+
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
 
@@ -370,7 +370,7 @@ Conway_Multi_Server::effectiveBacklog( const MVA& solver, const Population& N, c
     Positive sum = 0.0;
 
     if ( N[k] == 0 || V(k) == 0.0 ) return sum;
-	
+
     for ( unsigned i = 1; i <= K; ++i ) {
 	if ( N[i] == 0 ) continue;
 
@@ -457,7 +457,7 @@ Conway_Multi_Server::A( const MVA& solver, const Population& n, const Population
 	}
 	return factorial( static_cast<unsigned>(mu()) ) * prodOf_F / prodOf_n;
     }
-	
+
 }
 
 
@@ -486,7 +486,7 @@ Conway_Multi_Server::meanMinimumService( const Population& n ) const
 
 
 #if	DEBUG_MVA
-std::ostream& 
+std::ostream&
 Conway_Multi_Server::printXE( std::ostream& output, const unsigned int i, const Population& N, const unsigned int k, const double xe, const double q ) const
 {
     output << "XE_{" << closedIndex << "," << k << "," << i << "}" << N << " = " << xe << ", Q* = " << q << std::endl;
@@ -494,7 +494,7 @@ Conway_Multi_Server::printXE( std::ostream& output, const unsigned int i, const 
 }
 
 
-std::ostream& 
+std::ostream&
 Conway_Multi_Server::printXR( std::ostream& output, const Population& N, const unsigned int k, const double xe, const double pb ) const
 {
     output << "XR_{" << closedIndex << "," << k << "}" << N << " = " << xe << ", PB = " << pb << std::endl;
@@ -602,7 +602,7 @@ Markov_Phased_Conway_Multi_Server::meanMinimumOvertaking( const MVA& solver, con
     /* Add back in "missing" utilization. */
 
     ot += sumOf_S2U( solver, p_i, N, k );
-    
+
     return ot;
 }
 
@@ -630,12 +630,12 @@ Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const Population&
 
     try {
 	const Positive sum = sumOf_SL( solver, N, k );
-	
+
 	for ( unsigned e = 1; e <= E; ++e ) {
 	    if ( !V(e,k) ) continue;
 
 	    const double w = S(e,k) + sum;
-		
+
 	    for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
 		W[e][k][p] = filter( solver, w, e, k, p );
 	    }
@@ -689,12 +689,12 @@ Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const Populati
     assert( 0 < k && k <= K );
 
     const Positive sum  = 1.0 + sumOf_L( solver, N, k );
-	
+
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
 
 	const double w = S(e,k) * sum;
-		
+
 	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
 	    W[e][k][p] = filter( solver, w, e, k, p );
 	}
@@ -725,10 +725,10 @@ Phased_Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const Popu
     assert( 0 < k && k <= K );
 
     const Positive sum = sumOf_SL( solver, N, k );
-	
+
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
-		
+
 	const double w = S(e,k,1) + sum;
 
 	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
@@ -787,7 +787,7 @@ Phased_Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const P
     assert( 0 < k && k <= K );
 
     const Positive sum  = sumOf_L( solver, N, k );
-	
+
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
 
@@ -825,12 +825,12 @@ Markov_Phased_Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, 
     assert( 0 < k && k <= K );
 
     const Positive sum = sumOf_L( solver, N, k );
-	
+
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
 
 	const Positive w = S(e,k,1) + S(e,k) * sum;
-		
+
 	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
 	    W[e][k][p] = filter( solver, w + overtaking( k, p ) / mu(), e, k, p );
 	}
@@ -841,10 +841,50 @@ Markov_Phased_Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, 
 /*                          Zhou Multi Server.                          */
 /*----------------------------------------------------------------------*/
 
+/*
+ * This is the same as the Rolia multi server.  Subclass?  But there are
+ * possible issues with the marginals.
+ */
+
 void
-Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population & N ) const
+Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
-    throw not_implemented( "Zhou_Multi_Server::wait", __FILE__, __LINE__ );
+    /* Compute the time spent in the queue */
+    const Positive sum = sumOf_SL( solver, N, k );		/* Wait_AB in thesis */
+
+    for ( unsigned e = 1; e <= E; ++e ) {
+	if ( !V(e,k) ) continue;
+	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
+	    W[e][k][p] = S(e,k) + sum;
+	}
+    }
+}
+
+
+/*
+ * wait_AB() function.  renamed for possible classification.
+ */
+
+Positive
+Zhou_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const
+{
+    throw not_implemented( "Zhou_Multi_Server::sumOf_SL", __FILE__, __LINE__ );
+    return 0.0;
+}
+
+
+
+void
+Phased_Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
+{
+    throw not_implemented( "Phased_Zhou_Multi_Server::wait", __FILE__, __LINE__ );
+}
+
+
+void
+Markov_Phased_Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
+{
+    throw not_implemented( "Markov_Phased_Zhou_Multi_Server::wait", __FILE__, __LINE__ );
 }
 
 /*----------------------------------------------------------------------*/
@@ -858,7 +898,7 @@ Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population &
  */
 
 void
-Bruell_Multi_Server::setMarginalProbabilitiesSize( const Population &N )
+Bruell_Multi_Server::setMarginalProbabilitiesSize( const Population& N )
 {
     Population::IteratorOffset next( N, N );
 
@@ -936,7 +976,7 @@ Schmidt_Multi_Server::muS( const Population& N, const unsigned k ) const
 	sum1 /= V_k;
 	sum += (static_cast<double>(N.sum()) - mu()) / ( mu() * static_cast<double>(N.sum() - 1) ) * (sum1 - S(k));
     }
-	
+
     return sum;
 }
 
@@ -1000,13 +1040,13 @@ Markov_Phased_Suri_Multi_Server::wait( const MVA& solver, const unsigned k, cons
 
 Conway_Multi_Server::B_Iterator::B_Iterator( const Server& aServer, const Population& N, const unsigned k )
     : Population::Iterator(N), J(static_cast<unsigned>(aServer.mu())), K(N.size()), index(0)
-{ 
+{
     for ( unsigned i = 1; i <= K; ++i ) {
 	if ( !aServer.V(i) ) {
 	    limit[i] = 0;
 	}
     }
-    initialize(k); 
+    initialize(k);
 }
 
 /*
@@ -1021,7 +1061,7 @@ Conway_Multi_Server::B_Iterator::initialize( const unsigned j )
     limit[j] -= 1;
 }
 
- 
+
 /*
  * Generate population vectors.  Overrides superclass.
  */
@@ -1029,7 +1069,7 @@ Conway_Multi_Server::B_Iterator::initialize( const unsigned j )
 int
 Conway_Multi_Server::B_Iterator::operator()( Population& N )
 {
-    return step( N, 1, J );	
+    return step( N, 1, J );
 }
 
 
@@ -1051,7 +1091,7 @@ Conway_Multi_Server::B_Iterator::step( Population& n, const unsigned k, const un
      * line) checks for a zero value for n.  A non-zero value denotes
      * an in-feasible population.
      */
-	
+
     if ( k > K ) {
 	return n_k == 0;		/* End of the line, mine.	*/
     } else if ( k > index ) {
@@ -1066,7 +1106,7 @@ Conway_Multi_Server::B_Iterator::step( Population& n, const unsigned k, const un
      * an infeasible population.  If this is the case, move left in
      * the vector and try again.
      */
-	
+
     while ( !step( n, k + 1, n_k - n[k] ) ) {
 	if ( n[k] == 0 ) {
 	    index = k - 1;		/* Reset back one more class.	*/
@@ -1081,7 +1121,7 @@ Conway_Multi_Server::B_Iterator::step( Population& n, const unsigned k, const un
      * Set index to the largest value of k which is not zero.  Next
      * call from root will start from this value.
      */
-	   
+
     if ( k > index && n[k] > 0 ) {
 	index = k;
     }
