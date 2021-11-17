@@ -4,7 +4,7 @@
  * Exported goodies.
  *
  * ------------------------------------------------------------------------
- * $Id: testmva.h 14307 2020-12-31 15:54:48Z greg $
+ * $Id: testmva.h 15107 2021-11-17 16:45:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -13,10 +13,10 @@
 
 #include <iostream>
 #include <iomanip>
-#include <mva/vector.h>
-#include <mva/pop.h>
-#include <mva/server.h>
-#include <mva/mva.h>
+#include "vector.h"
+#include "pop.h"
+#include "server.h"
+#include "mva.h"
 
 using namespace std;
 

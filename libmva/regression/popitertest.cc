@@ -4,17 +4,14 @@
  * Population iterator testor.  See usage().
  * ------------------------------------------------------------------------
  *
- * $Id: popitertest.cc 14307 2020-12-31 15:54:48Z greg $
+ * $Id: popitertest.cc 15107 2021-11-17 16:45:05Z greg $
  */
 
 #include "testmva.h"
 #include <cstdlib>
 #include <cstdio>
 #include <unistd.h>
-#include "server.h"
 #include "multserv.h"
-#include "pop.h"
-#include "vector.h"
 
 char * myName;
 
@@ -85,12 +82,12 @@ int main ( int argc, char * argv[] )
 	switch ( type ) {
 	case A_POP:
 	    aServer = new Conway_Multi_Server( m );
-	    next = new A_Iterator( *aServer, j, NCust, 0 );
+	    next = new Conway_Multi_Server::A_Iterator( *aServer, j, NCust, 0 );
 	    break;
 
 	case B_POP:
 	    aServer = new Conway_Multi_Server( m );
-	    next = new B_Iterator( *aServer, NCust, 0 );
+	    next = new Conway_Multi_Server::B_Iterator( *aServer, NCust, 0 );
 	    break;
 
 	default:

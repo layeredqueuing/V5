@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15105 2021-11-16 03:08:02Z greg $
+ * $Id: multserv.cc 15106 2021-11-17 16:09:49Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -868,11 +868,82 @@ Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& 
 Positive
 Zhou_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const
 {
-    throw not_implemented( "Zhou_Multi_Server::sumOf_SL", __FILE__, __LINE__ );
-    return 0.0;
+    const double S = S_mean( solver, N, k );		// Ratio of service times (by throughput)
+    const Probability P = P_mean( solver, N, k );	// Residence time divided by cycle time (1/lambba)
+    const unsigned N_sum = N.sum();
+    const unsigned nMax = std::min(N_sum,copies());	// mMax = min(N,m);
+							// nMaxM1 = nMax - 1;	// not used -- offsets adjusted in for loops
+    double pw[nMax];					// pw = array_create();
+    const unsigned Nm1 = N_sum - 1;			// Nm1 = N-1;
+    pw[0] = std::pow( 1.0 - P, Nm1 ); 			// pw[0]= pow(1-P,Nm1); 
+    double pDash = pw[0];				// pDash = pw[0];
+    double M2 = 0;					// M2 = 0;
+//    if ( copies() > 1 ) { 				// if (m>1){   		// not necessary -- loops won't run anyway.
+        for ( unsigned int i = 1; i < nMax; ++i ) {	// for (i = 1; i<=nMaxM1; i = i+1) {
+            pw[i] = pw[i-1]*P*(N_sum-i)/(i*(1-P));	// pw[i] = pw[i-1]*P*(N-i)/(i*(1-P));
+        }
+        for ( unsigned int i = 1; i < nMax; ++i ) { 	// for (i = 1; i<=nMaxM1; i = i+1) {
+            pDash += pw[i];				// pDash = pDash + pw[i];
+            M2 += i * pw[i];				// M2 + i*pw[i];
+        }
+//    }
+    const double L = P*Nm1-(copies()-1)*(1-pDash) - M2;	// L = P*(Nm1)-(m-1)*(1-pDash) - M2;
+    /* !!! S() ratios by visits, not throughput */
+    return L * S / copies();				// return(L*S/m);
 }
 
 
+/*
+ * Mean service time by throughput.
+ *   Prop1 = tp1/(tp1+tp2); 
+ *   Prop2 = tp2/(tp1+tp2);
+ *   MergedS = Prop1*S1 + Prop2*S2; //weighted average service time
+ */
+
+double
+Zhou_Multi_Server::S_mean( const MVA& solver, const Population& N, const unsigned k ) const
+{
+    double sumOf_X = 0.0;
+    double sumOf_S = 0.0;
+    for ( unsigned int k = 1; k <= K; ++k ) {
+	const double X = solver.throughput( *this, k ); 
+	sumOf_X += X;
+	sumOf_S += S(k) * X;
+    }
+    return sumOf_X > 0. ? sumOf_S / sumOf_X : 0.0;
+}
+
+/*
+ * Probability term.  W is queueing time at this station.  S + W = R (residence time).
+ * Mean think time by throughput.  This think time is NOT the chain think time.
+ * Rather, it's the think time for this station (cycle time - residence time).
+ * 
+ *   //chain1 think times (submodel)
+ *   ZZ1 = $n1/tp1-S1-$W; 
+ *   ZZ2 = $n2/tp2-S2-$W; 
+ *   MergedZ = Prop1*ZZ1 + Prop2*ZZ2; //weighted average think time
+ *
+ *   MergedP = (MergedS+$W)/(MergedZ + MergedS + $W); //corresponding probability 
+ */
+
+Probability
+Zhou_Multi_Server::P_mean( const MVA& solver, const Population& N, const unsigned k ) const
+{
+    double sumOf_X = 0.0;
+    double sumOf_Z = 0.0;
+    double sumOf_R = 0.0;
+    for ( unsigned int k = 1; k <= K; ++k ) {
+	const double X_k = solver.throughput( *this, k );
+	const double R_k = this->R(k);
+	if ( X_k == 0. ) continue;
+	sumOf_X += X_k;
+	sumOf_Z += std::max( (N[k] / X_k) - R_k, 0.0 );
+	sumOf_R += R_k;
+    }
+    return sumOf_R / (sumOf_Z + sumOf_R);
+}
+
+/* -------------------- Phased Simple Multi-Server -------------------- */
 
 void
 Phased_Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const

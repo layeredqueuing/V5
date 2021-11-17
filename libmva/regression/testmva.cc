@@ -13,7 +13,7 @@
  *     month =    feb
  *
  * ------------------------------------------------------------------------
- * $Id: testmva.cc 14307 2020-12-31 15:54:48Z greg $
+ * $Id: testmva.cc 15107 2021-11-17 16:45:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -23,8 +23,8 @@
 #include <unistd.h>
 #include <cmath>
 #include <getopt.h>
-#include <mva/prob.h>
-#include <mva/fpgoop.h>
+#include "prob.h"
+#include "fpgoop.h"
 
 static bool doIt( const solverId, Vector<Server *>& Q, const Population & NCust, const VectorMath<double>& thinkTime, const VectorMath<unsigned>& priority, const unsigned special );
 static bool run( const unsigned solver_set, const unsigned special );

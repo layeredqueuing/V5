@@ -2,10 +2,10 @@
 #
 # Make file for Unit test files
 #
-# $Id: Makefile.am 14616 2021-04-21 13:20:38Z greg $
+# $Id: Makefile.am 15107 2021-11-17 16:45:05Z greg $
 # ------------------------------------------------------------------------
 
-AM_CXXFLAGS	= -DTESTMVA -DTESTDIST -DDEBUG_MVA -I../src/headers
+AM_CXXFLAGS	= -std=c++11 -DTESTMVA -DTESTDIST -DDEBUG_MVA
 AM_CPPFLAGS	= -I../src/headers/mva
 check_PROGRAMS  = test0 test0a \
 		  test1 test1hv test1hvp test1p test1ps \
@@ -21,6 +21,7 @@ check_PROGRAMS  = test0 test0a \
 		  test11 test11a test11b test11f \
 		  test12 test12s \
 		  test13e test13s \
+		  test14 \
 		  testA \
 		  testB \
 		  poptest \
@@ -70,6 +71,7 @@ test12_SOURCES		= test12.cc testmva.cc $(EXTRA_test_SOURCES)
 test12s_SOURCES		= test12s.cc testmva.cc $(EXTRA_test_SOURCES)
 test13e_SOURCES		= test13e.cc testmva.cc $(EXTRA_test_SOURCES)
 test13s_SOURCES		= test13s.cc testmva.cc $(EXTRA_test_SOURCES)
+test14_SOURCES		= test10.cc testmva.cc $(EXTRA_test_SOURCES)
 testA_SOURCES		= testA.cc testopen.cc $(EXTRA_test_SOURCES)
 testB_SOURCES		= testB.cc testopen.cc $(EXTRA_test_SOURCES)
 poptest_SOURCES		= poptest.cc $(EXTRA_test_SOURCES)
