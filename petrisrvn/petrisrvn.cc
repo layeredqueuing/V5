@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 15070 2021-10-13 13:40:04Z greg $
+ * $Id: petrisrvn.cc 15113 2021-11-18 14:59:45Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -20,6 +20,9 @@
 #include <cstring>
 #include <cassert>
 #include <errno.h>
+#if HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -74,7 +77,7 @@ bool xml_flag 			= false; /* XML Output desired ?	*/
 bool customers_flag 		= true;	 /* Smash customers together.	*/
 bool distinguish_join_customers = true;	 /* unique cust at join for mult*/
 bool simplify_network		= false; /* Delete single place procs.  */
-					   
+
 double	x_scaling		= 1.0;	 /* Auto-squish if val == 0.	*/
 unsigned open_model_tokens	= OPEN_MODEL_TOKENS;	/* Default val.	*/
 
@@ -151,7 +154,7 @@ static const char * opthelp[]  = {
     /* "random-queueing"    */    "Use random queueing at all tasks and processors (reduces state space).",
     /* "reload-lqx"	    */    "Run the LQX program, but re-use the results from a previous invocation.",
     /* "restart"	    */    "Reuse existing results where available, but solve any unsolved models.",
-    /* "simplify"	    */    "Remove redundant parts of the net such as single place processors.", 	
+    /* "simplify"	    */    "Remove redundant parts of the net such as single place processors.",
     /* "spacing"	    */	  "Set the spacing between places and transitions to ARG.",
     /* "debug-lqx"	    */    "Output debugging information while parsing LQX input.",
     /* "debug-xml"	    */    "Output debugging information while parsing XML input.",
@@ -167,7 +170,7 @@ FILE * stddbg;				/* debugging output goes here.	*/
 static int process ( const std::string& inputFileName, const std::string& outputFileName );
 static void usage( void );
  
-int 
+int
 main (int argc, char *argv[])
 {
     std::string output_file = "";
@@ -180,6 +183,15 @@ main (int argc, char *argv[])
 
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
     command_line = LQIO::io_vars.lq_toolname;
+
+    /* Check for non-empty non-regular file "empty" -- used by GreatSPN */
+#if HAVE_SYS_STAT_H
+    struct stat statbuf;
+    if ( stat( "empty", &statbuf ) == 0 && ((statbuf.st_mode & S_IFMT) != S_IFREG || statbuf.st_size != 0) ) {
+	fprintf( stderr, "%s: \"empty\", used by GreatSPN, is present in the working directory\n", LQIO::io_vars.toolname() );
+	exit( 1 );
+    }
+#endif
 
     stddbg   = stdout;
 
@@ -284,7 +296,7 @@ main (int argc, char *argv[])
 	case 256+'p':
 	    pragmas.insert(LQIO::DOM::Pragma::_processor_scheduling_,scheduling_label[SCHEDULE_RAND].XML);
 	    break;
-	    
+
 	case 256+'q':
 	    pragmas.insert(LQIO::DOM::Pragma::_force_random_queueing_);
 	    break;
@@ -296,7 +308,7 @@ main (int argc, char *argv[])
 	case 256+'Q':
 	    pragmas.insert(LQIO::DOM::Pragma::_queue_size_,optarg);
 	    break;
-	    
+
 	case 'r':
 	    rtf_flag = true;
 	    break;
@@ -421,6 +433,8 @@ main (int argc, char *argv[])
 
     }
 
+    unlink( "empty" );		/* Clean up after GreatSPN. */
+
     return global_error_flag;
 }
 
@@ -456,7 +470,7 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 	if (program == NULL) {
 	    LQIO::solution_error( LQIO::ERR_LQX_COMPILATION, inputFileName.c_str() );
 	    status = FILEIO_ERROR;
-	} else { 
+	} else {
 	    document->registerExternalSymbolsWithProgram(program);
 	    switch ( mode ) {
 	    case Mode::RESTART:
@@ -525,7 +539,7 @@ process( const std::string& inputFileName, const std::string& outputFileName )
     return status;
 }
 
-static void 
+static void
 usage (void)
 {
     (void) fprintf( stderr, "Usage: %s ", LQIO::io_vars.toolname());
@@ -567,7 +581,7 @@ usage (void)
 	    fprintf( stderr, " [-%c", *s );
 	    switch ( *s ) {
 	    default: fprintf( stderr, "file" ); break;
-	    } 
+	    }
 	    fputf( ']', stderr );
 	    ++s;
 	}
@@ -586,7 +600,3 @@ my_handler (int sig )
 {
     abort();
 }
-
-
-
-

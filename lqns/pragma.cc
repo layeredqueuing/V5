@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14955 2021-09-07 16:52:38Z greg $ *
+ * $Id: pragma.cc 15110 2021-11-17 22:09:44Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -223,11 +223,12 @@ void Pragma::setMultiserver(const std::string& value)
 void Pragma::setMva(const std::string& value)
 {
     static const std::map<const std::string,const Pragma::MVA> __mva_pragma = {
-	{ LQIO::DOM::Pragma::_exact_,		MVA::EXACT },
-	{ LQIO::DOM::Pragma::_schweitzer_,	MVA::SCHWEITZER },
-	{ LQIO::DOM::Pragma::_fast_,		MVA::FAST },
-	{ LQIO::DOM::Pragma::_one_step_,	MVA::ONESTEP },
-	{ LQIO::DOM::Pragma::_one_step_linearizer_, MVA::ONESTEP_LINEARIZER }
+	{ LQIO::DOM::Pragma::_exact_,		    MVA::EXACT },
+	{ LQIO::DOM::Pragma::_fast_,		    MVA::FAST },
+	{ LQIO::DOM::Pragma::_linearizer_,	    MVA::LINEARIZER },
+	{ LQIO::DOM::Pragma::_one_step_,	    MVA::ONESTEP },
+	{ LQIO::DOM::Pragma::_one_step_linearizer_, MVA::ONESTEP_LINEARIZER },
+	{ LQIO::DOM::Pragma::_schweitzer_,	    MVA::SCHWEITZER }
     };
 
     const std::map<const std::string,const Pragma::MVA>::const_iterator pragma = __mva_pragma.find( value );

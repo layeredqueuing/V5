@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15106 2021-11-17 16:09:49Z greg $
+ * $Id: multserv.cc 15113 2021-11-18 14:59:45Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -866,30 +866,35 @@ Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& 
  */
 
 Positive
-Zhou_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const
+Zhou_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned ) const
 {
-    const double S = S_mean( solver, N, k );		// Ratio of service times (by throughput)
-    const Probability P = P_mean( solver, N, k );	// Residence time divided by cycle time (1/lambba)
     const unsigned N_sum = N.sum();
-    const unsigned nMax = std::min(N_sum,copies());	// mMax = min(N,m);
-							// nMaxM1 = nMax - 1;	// not used -- offsets adjusted in for loops
-    double pw[nMax];					// pw = array_create();
+    const unsigned m = copies();
+    if ( N_sum == 0 ) return 0;				/* No customers */
+    const Probability P = P_mean( solver, N );		// Residence time divided by cycle time (1/lambba)
+    if ( P == 1.0 ) return static_cast<double>(N_sum - m)
+		      / static_cast<double>(m);		/* server full utilized */
+    const double S = S_mean( solver, N );		// Ratio of service times (by throughput)
+    const unsigned nMax = std::min(N_sum,m);		// nMax = min(N,m);
     const unsigned Nm1 = N_sum - 1;			// Nm1 = N-1;
+
+    double pw[nMax];					// pw = array_create();
     pw[0] = std::pow( 1.0 - P, Nm1 ); 			// pw[0]= pow(1-P,Nm1); 
-    double pDash = pw[0];				// pDash = pw[0];
-    double M2 = 0;					// M2 = 0;
-//    if ( copies() > 1 ) { 				// if (m>1){   		// not necessary -- loops won't run anyway.
-        for ( unsigned int i = 1; i < nMax; ++i ) {	// for (i = 1; i<=nMaxM1; i = i+1) {
-            pw[i] = pw[i-1]*P*(N_sum-i)/(i*(1-P));	// pw[i] = pw[i-1]*P*(N-i)/(i*(1-P));
-        }
-        for ( unsigned int i = 1; i < nMax; ++i ) { 	// for (i = 1; i<=nMaxM1; i = i+1) {
-            pDash += pw[i];				// pDash = pDash + pw[i];
-            M2 += i * pw[i];				// M2 + i*pw[i];
-        }
-//    }
-    const double L = P*Nm1-(copies()-1)*(1-pDash) - M2;	// L = P*(Nm1)-(m-1)*(1-pDash) - M2;
-    /* !!! S() ratios by visits, not throughput */
-    return L * S / copies();				// return(L*S/m);
+    for ( unsigned int i = 1; i < nMax; ++i ) {		// for (i = 1; i<=nMaxM1; i = i+1) {
+	pw[i] = pw[i-1] * P * static_cast<double>(N_sum - i)
+	    / (static_cast<double>(i) * (1.0 - P));	// pw[i] = pw[i-1]*P*(N-i)/(i*(1-P));
+    }
+
+    Probability pDash = pw[0];				// pDash = pw[0];
+    double M2 = 0.;					// M2 = 0;
+    for ( unsigned int i = 1; i < nMax; ++i ) { 	// for (i = 1; i<=nMaxM1; i = i+1) {
+	pDash += pw[i];					// pDash = pDash + pw[i];
+	M2 += i * pw[i];				// M2 + i*pw[i];
+    }
+    const double L = P * Nm1 - static_cast<double>(m - 1)
+	* (1.0 - pDash) - M2; 				// L = P*(Nm1)-(m-1)*(1-pDash) - M2;
+    if ( 0. > L && L > -0.0000001 ) return 0;		// Floating point precision
+    return L * S / static_cast<double>(m);		// return(L*S/m);
 }
 
 
@@ -901,14 +906,14 @@ Zhou_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsig
  */
 
 double
-Zhou_Multi_Server::S_mean( const MVA& solver, const Population& N, const unsigned k ) const
+Zhou_Multi_Server::S_mean( const MVA& solver, const Population& N ) const
 {
     double sumOf_X = 0.0;
     double sumOf_S = 0.0;
     for ( unsigned int k = 1; k <= K; ++k ) {
 	const double X = solver.throughput( *this, k ); 
 	sumOf_X += X;
-	sumOf_S += S(k) * X;
+	sumOf_S += this->S(k) * X;
     }
     return sumOf_X > 0. ? sumOf_S / sumOf_X : 0.0;
 }
@@ -927,7 +932,7 @@ Zhou_Multi_Server::S_mean( const MVA& solver, const Population& N, const unsigne
  */
 
 Probability
-Zhou_Multi_Server::P_mean( const MVA& solver, const Population& N, const unsigned k ) const
+Zhou_Multi_Server::P_mean( const MVA& solver, const Population& N ) const
 {
     double sumOf_X = 0.0;
     double sumOf_Z = 0.0;
@@ -937,7 +942,7 @@ Zhou_Multi_Server::P_mean( const MVA& solver, const Population& N, const unsigne
 	const double R_k = this->R(k);
 	if ( X_k == 0. ) continue;
 	sumOf_X += X_k;
-	sumOf_Z += std::max( (N[k] / X_k) - R_k, 0.0 );
+	sumOf_Z += std::max( (N[k] / X_k) - R_k, 0.0 );		// don't allow negative numbers
 	sumOf_R += R_k;
     }
     return sumOf_R / (sumOf_Z + sumOf_R);

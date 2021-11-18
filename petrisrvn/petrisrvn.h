@@ -12,7 +12,7 @@
 #define _PETRISRVN_H
 
 /*
- * $Id: petrisrvn.h 14929 2021-07-20 11:56:23Z greg $
+ * $Id: petrisrvn.h 15113 2021-11-18 14:59:45Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -72,7 +72,7 @@ enum class Mode { SOLVE, RELOAD, RESTART };
 #define DIMPH 3				/* max 3 phases/task	    	*/
 #define DIMSLICE 5			/* max 5 slices/phase.		*/
 #define DIMP DIMI			/* max 20 processors	    	*/
-#define	MAX_MULT 7			/* Largest multi-server (+1)	*/
+#define	MAX_MULT 10			/* Largest multi-server (+1)	*/
 #define MAX_ACT 25			/* 25 activities per task.	*/
 #define MAX_BRANCH 10			/* 10 branchs per fork-join.	*/
 #define MAX 1.e+12
