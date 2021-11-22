@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15113 2021-11-18 14:59:45Z greg $
+ * $Id: multserv.cc 15115 2021-11-19 12:26:54Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -871,10 +871,12 @@ Zhou_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsig
     const unsigned N_sum = N.sum();
     const unsigned m = copies();
     if ( N_sum == 0 ) return 0;				/* No customers */
+
     const Probability P = P_mean( solver, N );		// Residence time divided by cycle time (1/lambba)
-    if ( P == 1.0 ) return static_cast<double>(N_sum - m)
-		      / static_cast<double>(m);		/* server full utilized */
     const double S = S_mean( solver, N );		// Ratio of service times (by throughput)
+    if ( P == 1.0 ) return static_cast<double>(N_sum - m) * S
+		      / static_cast<double>(m);		/* server full utilized */
+
     const unsigned nMax = std::min(N_sum,m);		// nMax = min(N,m);
     const unsigned Nm1 = N_sum - 1;			// Nm1 = N-1;
 
