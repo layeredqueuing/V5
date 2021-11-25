@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 15124 2021-11-25 00:33:45Z greg $
+ * $Id: qnsolver.cc 15125 2021-11-25 03:12:30Z greg $
  */
 
 #include <algorithm>
@@ -210,7 +210,7 @@ int main (int argc, char *argv[])
 	    if ( print_qnap2 ) {
 		std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
 	    } else {
-//		Pragma::set( input.getPragmaList() );		/* load pragmas here */
+		Pragma::set( input.getPragmaList() );		/* load pragmas here */
 
 		try {
 		    if ( print_gnuplot ) input.plot( plot_type, plot_arg );
@@ -218,7 +218,7 @@ int main (int argc, char *argv[])
 		catch ( const std::invalid_argument& e ) {
 		    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
 		}
-		Model model( input, Pragma::mva(), output_file_name );
+		Model model( input, Pragma::solver(), output_file_name );
 		if ( model.construct() ) {
 		    model.solve();
 		}

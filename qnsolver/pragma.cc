@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15124 2021-11-25 00:33:45Z greg $ *
+ * $Id: pragma.cc 15126 2021-11-25 03:29:42Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -20,7 +20,7 @@ Pragma * Pragma::__cache = nullptr;
 const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
 {
     { LQIO::DOM::Pragma::_multiserver_,			&Pragma::setMultiserver },
-    { LQIO::DOM::Pragma::_mva_,				&Pragma::setMva }
+    { LQIO::DOM::Pragma::_mva_,				&Pragma::setSolver }
 };
 
 /*
@@ -28,8 +28,8 @@ const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
  */
 
 Pragma::Pragma() :
-    _multiserver(Multiserver::DEFAULT),
-    _mva(Model::Using::EXACT_MVA)
+    _multiserver(Model::Multiserver::DEFAULT),
+    _solver(Model::Solver::EXACT_MVA)
 {
 }
 
@@ -58,41 +58,37 @@ Pragma::set( const std::map<std::string,std::string>& list )
 
 void Pragma::setMultiserver(const std::string& value)
 {
-    static const std::map<const std::string,const Pragma::Multiserver> __multiserver_pragma = {
-	{ LQIO::DOM::Pragma::_bruell_,		Pragma::Multiserver::BRUELL },
-	{ LQIO::DOM::Pragma::_conway_,		Pragma::Multiserver::CONWAY },
-	{ LQIO::DOM::Pragma::_reiser_,		Pragma::Multiserver::REISER },
-	{ LQIO::DOM::Pragma::_reiser_ps_,	Pragma::Multiserver::REISER_PS },
-	{ LQIO::DOM::Pragma::_rolia_,		Pragma::Multiserver::ROLIA },
-	{ LQIO::DOM::Pragma::_rolia_ps_,	Pragma::Multiserver::ROLIA_PS },
-	{ LQIO::DOM::Pragma::_schmidt_,		Pragma::Multiserver::SCHMIDT },
-	{ LQIO::DOM::Pragma::_suri_,		Pragma::Multiserver::SURI },
-	{ LQIO::DOM::Pragma::_zhou_,		Pragma::Multiserver::ZHOU }
+    static const std::map<const std::string,const Model::Multiserver> __multiserver_pragma = {
+	{ LQIO::DOM::Pragma::_conway_,		Model::Multiserver::CONWAY },
+	{ LQIO::DOM::Pragma::_reiser_,		Model::Multiserver::REISER },
+	{ LQIO::DOM::Pragma::_reiser_ps_,	Model::Multiserver::REISER_PS },
+	{ LQIO::DOM::Pragma::_rolia_,		Model::Multiserver::ROLIA },
+	{ LQIO::DOM::Pragma::_rolia_ps_,	Model::Multiserver::ROLIA_PS },
+	{ LQIO::DOM::Pragma::_suri_,		Model::Multiserver::SURI },
+	{ LQIO::DOM::Pragma::_zhou_,		Model::Multiserver::ZHOU }
     };
-    const std::map<const std::string,const Pragma::Multiserver>::const_iterator pragma = __multiserver_pragma.find( value );
+    const std::map<const std::string,const Model::Multiserver>::const_iterator pragma = __multiserver_pragma.find( value );
     if ( pragma != __multiserver_pragma.end() ) {
 	_multiserver = pragma->second;
     } else if ( value == LQIO::DOM::Pragma::_default_ ) {
-	_multiserver = Multiserver::DEFAULT;
+	_multiserver = Model::Multiserver::DEFAULT;
     } else {
 	throw std::domain_error( value );
     }
 }
 
-void Pragma::setMva(const std::string& value)
+void Pragma::setSolver(const std::string& value)
 {
-    static const std::map<const std::string,const Model::Using> __mva_pragma = {
-	{ LQIO::DOM::Pragma::_exact_,		    Model::Using::EXACT_MVA },
-	{ LQIO::DOM::Pragma::_fast_,		    Model::Using::LINEARIZER2 },
-	{ LQIO::DOM::Pragma::_linearizer_,	    Model::Using::LINEARIZER },
-//	{ LQIO::DOM::Pragma::_one_step_,	    Model::Using::ONESTEP },
-//	{ LQIO::DOM::Pragma::_one_step_linearizer_, Model::Using::ONESTEP_LINEARIZER },
-	{ LQIO::DOM::Pragma::_schweitzer_,	    Model::Using::BARD_SCHWEITZER }
+    static const std::map<const std::string,const Model::Solver> __mva_pragma = {
+	{ LQIO::DOM::Pragma::_exact_,	     	Model::Solver::EXACT_MVA },
+	{ LQIO::DOM::Pragma::_fast_,		Model::Solver::LINEARIZER2 },
+	{ LQIO::DOM::Pragma::_linearizer_,	Model::Solver::LINEARIZER },
+	{ LQIO::DOM::Pragma::_schweitzer_,	Model::Solver::BARD_SCHWEITZER }
     };
 
-    const std::map<const std::string,const Model::Using>::const_iterator pragma = __mva_pragma.find( value );
+    const std::map<const std::string,const Model::Solver>::const_iterator pragma = __mva_pragma.find( value );
     if ( pragma != __mva_pragma.end() ) {
-	_mva = pragma->second;
+	_solver = pragma->second;
     } else {
 	throw std::domain_error( value );
     }

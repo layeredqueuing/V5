@@ -9,7 +9,7 @@
  *
  * November, 2021
  *
- * $Id: pragma.h 15124 2021-11-25 00:33:45Z greg $
+ * $Id: pragma.h 15125 2021-11-25 03:12:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -28,8 +28,6 @@ class Pragma {
 public:
     typedef void (Pragma::*fptr)(const std::string&);
 
-    enum class Multiserver { DEFAULT, CONWAY, REISER, REISER_PS, ROLIA, ROLIA_PS, BRUELL, SCHMIDT, SURI, ZHOU };
-
 private:
     Pragma();
     virtual ~Pragma()
@@ -38,22 +36,22 @@ private:
 	}
 
 public:
-    static Multiserver multiserver()
+    static Model::Multiserver multiserver()
 	{
 	    assert( __cache != nullptr );
 	    return __cache->_multiserver;
 	}
 
-    static Model::Using mva()
+    static Model::Solver solver()
 	{
 	    assert( __cache != nullptr );
-	    return __cache->_mva;
+	    return __cache->_solver;
 	}
 
 
 private:
     void setMultiserver(const std::string&);
-    void setMva(const std::string&);
+    void setSolver(const std::string&);
 
 public:
     static void set( const std::map<std::string,std::string>& );
@@ -61,8 +59,8 @@ public:
     static const std::map<const std::string,const Pragma::fptr>& getPragmas() { return __set_pragma; }
 
 private:
-    Multiserver _multiserver;
-    Model::Using _mva;
+    Model::Multiserver _multiserver;
+    Model::Solver _solver;
 
     /* --- */
 

@@ -10,7 +10,7 @@
  *
  * December 2020
  *
- * $Id: model.h 14476 2021-02-18 00:00:37Z greg $
+ * $Id: model.h 15125 2021-11-25 03:12:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -44,11 +44,12 @@ class Model {
     friend class ClosedModel;
     
 public:
-    enum class Using {OPEN, EXACT_MVA, LINEARIZER, LINEARIZER2, BARD_SCHWEITZER, EXPERIMENTAL };
+    enum class Solver { OPEN, EXACT_MVA, LINEARIZER, LINEARIZER2, BARD_SCHWEITZER, EXPERIMENTAL };
+    enum class Multiserver { DEFAULT, CONWAY, REISER, REISER_PS, ROLIA, ROLIA_PS, BRUELL, SCHMIDT, SURI, ZHOU };
     
 public:
-    Model( BCMP::JMVA_Document& input, Model::Using mva, const std::string& );
-    Model( BCMP::JMVA_Document& input, Model::Using mva );
+    Model( BCMP::JMVA_Document& input, Model::Solver mva, const std::string& );
+    Model( BCMP::JMVA_Document& input, Model::Solver mva );
     Model();
     virtual ~Model();
 
@@ -166,7 +167,7 @@ private:
     
 protected:
     const BCMP::Model& _model;			/* Input */
-    const Model::Using _solver;
+    const Model::Solver _solver;
     Index _index;				/* Map name to station/class no. */
     Vector<Server *> Q;				/* Stations. */
     bool _result;

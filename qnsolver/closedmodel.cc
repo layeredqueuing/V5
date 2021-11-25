@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: closedmodel.cc 14494 2021-02-26 18:48:22Z greg $
+ * $Id: closedmodel.cc 15126 2021-11-25 03:29:42Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -24,7 +24,7 @@
 #include <mva/multserv.h>
 #include "closedmodel.h"
 
-ClosedModel::ClosedModel( Model& parent, BCMP::JMVA_Document& input, Model::Using mva )
+ClosedModel::ClosedModel( Model& parent, BCMP::JMVA_Document& input, Model::Solver mva )
     : Model(input,mva), _parent(parent), N(), Z(), priority(), _mva(mva), _solver(nullptr)
 {
     const size_t K = _model.n_chains(BCMP::Model::Chain::Type::CLOSED);
@@ -66,9 +66,10 @@ ClosedModel::construct()
     /* Create the solver */
 
     switch ( _mva ) {
-    case Using::EXACT_MVA:	    _solver = new ExactMVA(   Q, N, Z, priority ); break;
-    case Using::BARD_SCHWEITZER:    _solver = new Schweitzer( Q, N, Z, priority ); break;
-    case Using::LINEARIZER:	    _solver = new Linearizer( Q, N, Z, priority ); break;
+    case Solver::EXACT_MVA:	    _solver = new ExactMVA(    Q, N, Z, priority ); break;
+    case Solver::BARD_SCHWEITZER:   _solver = new Schweitzer(  Q, N, Z, priority ); break;
+    case Solver::LINEARIZER:	    _solver = new Linearizer(  Q, N, Z, priority ); break;
+    case Solver::LINEARIZER2:	    _solver = new Linearizer2( Q, N, Z, priority ); break;
     default: _result = false; break;
     }
     return _result;

@@ -28,15 +28,16 @@
 #include <lqx/Program.h>
 #include <mva/multserv.h>
 #include <mva/mva.h>
-#include "model.h"
-#include "runlqx.h"
 #include "closedmodel.h"
+#include "model.h"
 #include "openmodel.h"
+#include "pragma.h"
+#include "runlqx.h"
 
 bool print_spex = false;				/* Print LQX program		*/
 bool debug_flag = false;
 
-Model::Model( BCMP::JMVA_Document& input, Model::Using solver, const std::string& output_file_name )
+Model::Model( BCMP::JMVA_Document& input, Model::Solver solver, const std::string& output_file_name )
     : _model(input.model()), _solver(solver),
       Q(), _result(false), _input(input), _output_file_name(output_file_name), _closed_model(nullptr), _open_model(nullptr)
 {
@@ -50,7 +51,7 @@ Model::Model( BCMP::JMVA_Document& input, Model::Using solver, const std::string
 }
 
 
-Model::Model( BCMP::JMVA_Document& input, Model::Using solver )
+Model::Model( BCMP::JMVA_Document& input, Model::Solver solver )
     : _model(input.model()), _solver(solver),
       Q(), _result(false), _input(input), _output_file_name(), _closed_model(nullptr), _open_model(nullptr)
 {
@@ -370,11 +371,40 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
 		Q(m) = replace_server( input.first, Q(m), new FCFS_Server(E,K) );
 	    }
 	} else {
-	    if ( dynamic_cast<Reiser_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
-		Q(m) = replace_server( input.first, Q(m), new Reiser_Multi_Server(copies,E,K) );
+	    switch ( Pragma::multiserver() ) {
+	    case Multiserver::CONWAY:
+		if ( dynamic_cast<Conway_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
+		    Q(m) = replace_server( input.first, Q(m), new Conway_Multi_Server(copies,E,K) );
+		}
+		break;
+
+	    case Multiserver::REISER:
+	    case Multiserver::REISER_PS:
+		if ( dynamic_cast<Reiser_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
+		    Q(m) = replace_server( input.first, Q(m), new Reiser_Multi_Server(copies,E,K) );
+		}
+		break;
+
+	    case Multiserver::ROLIA:
+	    case Multiserver::ROLIA_PS:
+		if ( dynamic_cast<Rolia_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
+		    Q(m) = replace_server( input.first, Q(m), new Rolia_Multi_Server(copies,E,K) );
+		}
+		break;
+
+	    case Multiserver::ZHOU:
+		if ( dynamic_cast<Zhou_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
+		    Q(m) = replace_server( input.first, Q(m), new Zhou_Multi_Server(copies,E,K) );
+		}
+		break;
+
+	    default:
+		abort();
 	    }
+
 	}
 	break;
+
     case SCHEDULE_PS:
 	if ( station.type() == BCMP::Model::Station::Type::DELAY ) {
 	    if ( dynamic_cast<Infinite_Server *>(Q(m)) == nullptr ) {
@@ -385,16 +415,45 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
 		Q(m) = replace_server( input.first, Q(m), new PS_Server(E,K) );
 	    }
 	} else {
-	    if ( dynamic_cast<Reiser_PS_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
-		Q(m) = replace_server( input.first, Q(m), new Reiser_PS_Multi_Server(copies,E,K) );
+	    switch ( Pragma::multiserver() ) {
+	    case Multiserver::CONWAY:
+		if ( dynamic_cast<Conway_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
+		    Q(m) = replace_server( input.first, Q(m), new Conway_Multi_Server(copies,E,K) );
+		}
+		break;
+
+	    case Multiserver::REISER:
+	    case Multiserver::REISER_PS:
+		if ( dynamic_cast<Reiser_PS_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
+		    Q(m) = replace_server( input.first, Q(m), new Reiser_PS_Multi_Server(copies,E,K) );
+		}
+		break;
+
+	    case Multiserver::ROLIA:
+	    case Multiserver::ROLIA_PS:
+		if ( dynamic_cast<Rolia_PS_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
+		    Q(m) = replace_server( input.first, Q(m), new Rolia_Multi_Server(copies,E,K) );
+		}
+		break;
+
+	    case Multiserver::ZHOU:
+		if ( dynamic_cast<Zhou_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
+		    Q(m) = replace_server( input.first, Q(m), new Zhou_Multi_Server(copies,E,K) );
+		}
+		break;
+
+	    default:
+		abort();
 	    }
 	}
 	break;
+
     case SCHEDULE_DELAY:
 	if ( dynamic_cast<Infinite_Server *>(Q(m)) == nullptr ) {
 	    Q(m) = replace_server( input.first, Q(m), new Infinite_Server(E,K) );
 	}
 	break;
+
     default:
 	abort();
 	break;

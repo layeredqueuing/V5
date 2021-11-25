@@ -1547,6 +1547,15 @@ namespace BCMP {
 	    output << "<!-- " << LQIO::io_vars.lq_command_line << " -->" << std::endl;
 	}
 
+	if ( !_pragmas.empty() ) {
+	    const std::map<std::string,std::string>& pragmas = _pragmas.getList();
+	    for ( std::map<std::string,std::string>::const_iterator next_pragma = pragmas.begin(); next_pragma != pragmas.end(); ++next_pragma ) {
+		output << XML::start_element( Xpragma, false )
+		       << XML::attribute( Xparam, next_pragma->first )
+		       << XML::attribute( Xvalue, next_pragma->second );
+		output << XML::end_element( Xpragma, false ) << std::endl;
+	    }
+	}
 	output << XML::start_element( Xmodel )
 	       << XML::attribute( "xmlns:xsi", std::string("http://www.w3.org/2001/XMLSchema-instance") )
 	       << XML::attribute( "xsi:noNamespaceSchemaLocation", std::string("JMTmodel.xsd") )

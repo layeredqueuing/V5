@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: closedmodel.h 14494 2021-02-26 18:48:22Z greg $
+ * $Id: closedmodel.h 15125 2021-11-25 03:12:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -43,7 +43,7 @@ public:
     };
 
 public:
-    ClosedModel( Model& parent, BCMP::JMVA_Document& input, Model::Using mva );
+    ClosedModel( Model& parent, BCMP::JMVA_Document& input, Model::Solver mva );
     virtual ~ClosedModel();
 
     bool construct();
@@ -64,7 +64,7 @@ private:
     Population N;				/* Population (by class) 	*/
     VectorMath<double> Z;			/* Think Time */
     VectorMath<unsigned> priority;		/* Priority */
-    Model::Using _mva;
+    Model::Solver _mva;
     MVA * _solver;
 };
 #endif

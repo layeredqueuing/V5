@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 14955 2021-09-07 16:52:38Z greg $
+ * $Id: dom_pragma.h 15125 2021-11-25 03:12:30Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -38,6 +38,7 @@ namespace LQIO {
 	    void merge( const std::map<std::string,std::string>& list );
 	    void clear();
 	    const std::map<std::string,std::string>& getList() const;
+	    bool empty() const { return getList().empty(); }
 	    size_t size() const { return getList().size(); }
 	    const std::string get( const std::string& ) const;
 	    static const std::set<std::string>* getValues( const std::string& );
