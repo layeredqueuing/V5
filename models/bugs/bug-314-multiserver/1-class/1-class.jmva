@@ -31,5 +31,6 @@
     <algType maxSamples="10000" name="MVA" tolerance="1.0E-7"/>
     <compareAlgs value="false"/>
   </algParams>
-  <whatIf className="Class1" type="Customer Numbers" values="1.0;2.0;3.0;4.0;5.0;6.0;7.0;8.0;9.0;10.0"/>
+  <whatIf className="Class1" type="Customer Numbers" values="1;2;3;4;5;6;7;8;9;10"/>
+  <whatIf stationName="t0" type="Number of Servers" values="1;2;3;4;5;6;7;8;9;10"/>
 </model>

@@ -35,11 +35,12 @@ const struct option longopts[] =
     { "plot-throughput",    optional_argument, 	0, 't' },
     { "plot-utilization",   required_argument,	0, 'u' },
     { "plot-waiting-time",  required_argument,  0, 'w' },
+    { "multiserver",	    required_argument,  0, 'm' },
+    { "force-multiserver",  no_argument,	0, 'F' },
     { "verbose",            no_argument,        0, 'v' },
     { "help",               no_argument,       	0, 'h' },
-    { "experimental",	    no_argument,	0, 'x' },
     { "export-qnap2",	    no_argument,	0, 'Q' },
-    { "debug-mva",	    no_argument,    	0, 'd' },
+    { "debug-mva",	    no_argument,    	0, 'D' },
     { "debug-xml",	    no_argument, 	0, 'X' },
     { "debug-spex",	    no_argument,	0, 'S' },
     { 0, 0, 0, 0 }
@@ -61,10 +62,11 @@ const static std::map<const std::string,const std::string> opthelp  = {
     { "plot-response-time", "Output gnuplot to plot system response-time (and bounds)." },
     { "plot-throughput",    "Output gnuplot to plot system throughput (and bounds), or for a class or station with ARG." },
     { "plot-utilization",   "Output gnuplot to plot utilization.  ARG specifies a class or station." },
-    { "plot-waiting-time",   "Output gnuplot to plot station waiting-times.  ARG specifies a class or station." },
+    { "plot-waiting-time",  "Output gnuplot to plot station waiting-times.  ARG specifies a class or station." },
+    { "multiserver",	    "Use ARG for multiservers.  ARG={conway,reiser,rolia,zhou}." },
+    { "force-multiserver",  "Use the multiserver solution for load independent stations (copies=1)." },
     { "verbose",	    "" },
     { "help",		    "Show this." },
-    { "experimental",	    "" },
     { "export-qnap2",	    "Export a QNAP2 model.  Do not solve." },
     { "debug-mva",	    "Enable debug code." },
     { "debug-xml",	    "Debug XML input." },
@@ -127,6 +129,10 @@ int main (int argc, char *argv[])
 	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_fast_);
 	    break;
 
+	case 'F':
+	    pragmas.insert(LQIO::DOM::Pragma::_force_multiserver_,LQIO::DOM::Pragma::_true_);
+	    break;
+	    
 	case 'h':
 	    usage();
 	    return 0;
@@ -134,7 +140,11 @@ int main (int argc, char *argv[])
 	case 'l':
 	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_linearizer_);
 	    break;
-			
+
+	case 'm':
+	    pragmas.insert(LQIO::DOM::Pragma::_multiserver_,optarg);
+	    break;
+	    
 	case 'o':
             output_file_name = optarg;
 	    break;
