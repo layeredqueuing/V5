@@ -15,6 +15,7 @@
 #if HAVE_STRINGS_H
 #include <strings.h>
 #endif
+#include "dom_pragma.h"
 #include "bcmp_document.h"
 #include "srvn_spex.h"
 
@@ -139,6 +140,7 @@ namespace BCMP {
 	bool parse();
 	const BCMP::Model& model() const { return _model; }
 	const std::string& getInputFileName() const { return _input_file_name; }
+	const std::map<std::string,std::string>& getPragmaList() const { return _pragmas.getList(); }
 
 	bool hasSPEX() const { return !_variables.empty() || _lqx_program != nullptr; }
 	bool hasVariable( const std::string& name ) { return _variables.find(name) != _variables.end(); }
@@ -343,6 +345,7 @@ namespace BCMP {
 	std::string _text;
 	std::stack<parse_stack_t> _stack;
 	expr_list* _lqx_program;
+	LQIO::DOM::Pragma _pragmas;
 	std::map<std::string,LQIO::DOM::SymbolExternalVariable*> _variables;	/* Spex vars */
 
 	/* Maps for asssociating var (the string) to an object */
@@ -388,7 +391,9 @@ namespace BCMP {
 	static const XML_Char * Xnumber;
 	static const XML_Char * Xopenclass;
 	static const XML_Char * Xparameters;
+	static const XML_Char * Xparam;
 	static const XML_Char * Xpopulation;
+	static const XML_Char * Xpragma;
 	static const XML_Char * Xrate;
 	static const XML_Char * XrefStation;
 	static const XML_Char * Xservers;

@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 15049 2021-10-07 16:54:01Z greg $
+ * $Id: qnsolver.cc 15124 2021-11-25 00:33:45Z greg $
  */
 
 #include <algorithm>
@@ -11,7 +11,10 @@
 #include <lqio/jmva_document.h>
 #include <lqio/dom_document.h>
 #include <lqio/qnap2_document.h>
+#include "pragma.h"
 #include "model.h"
+
+static LQIO::DOM::Pragma pragmas;
 
 
 static void makeopts( const struct option * longopts, std::string& opts );
@@ -77,7 +80,6 @@ BCMP::JMVA_Document* __input = nullptr;
 int main (int argc, char *argv[])
 {
     std::string output_file_name;
-    Model::Using solver = Model::Using::EXACT_MVA;
     bool print_qnap2 = false;			/* Export to qnap2.  		*/
     bool print_gnuplot = false;			/* Output WhatIf as gnuplot	*/
     BCMP::Model::Result::Type plot_type = BCMP::Model::Result::Type::THROUGHPUT;
@@ -91,6 +93,8 @@ int main (int argc, char *argv[])
 #endif
     
     LQIO::io_vars.init( VERSION, basename( argv[0] ), nullptr );
+
+    pragmas.insert( getenv( "QNSOLVER_PRAGMAS" ) );
 
     for ( ;; ) {
 #if HAVE_GETOPT_LONG
@@ -116,11 +120,11 @@ int main (int argc, char *argv[])
 	    break;
 
 	case 'e':
-	    solver = Model::Using::EXACT_MVA;
+	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_exact_);
 	    break;
 			
 	case 'f':
-	    solver = Model::Using::LINEARIZER2;
+	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_fast_);
 	    break;
 
 	case 'h':
@@ -128,7 +132,7 @@ int main (int argc, char *argv[])
 	    return 0;
 
 	case 'l':
-	    solver = Model::Using::LINEARIZER;
+	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_linearizer_);
 	    break;
 			
 	case 'o':
@@ -147,7 +151,7 @@ int main (int argc, char *argv[])
 	    break;
 	    
 	case 's':
-	    solver = Model::Using::BARD_SCHWEITZER;
+	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_schweitzer_);
 	    break;
 
 	case 't':
@@ -173,7 +177,7 @@ int main (int argc, char *argv[])
 	    break;
 	    
 	case 'x':
-	    solver = Model::Using::EXPERIMENTAL;
+	    /* Not implemented */
 	    break;
 
 	case 'Q':
@@ -206,13 +210,15 @@ int main (int argc, char *argv[])
 	    if ( print_qnap2 ) {
 		std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
 	    } else {
+//		Pragma::set( input.getPragmaList() );		/* load pragmas here */
+
 		try {
 		    if ( print_gnuplot ) input.plot( plot_type, plot_arg );
 		}
 		catch ( const std::invalid_argument& e ) {
 		    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
 		}
-		Model model( input, solver, output_file_name );
+		Model model( input, Pragma::mva(), output_file_name );
 		if ( model.construct() ) {
 		    model.solve();
 		}

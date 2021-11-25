@@ -72,14 +72,14 @@ namespace BCMP {
     /* ---------------------------------------------------------------- */
 
     JMVA_Document::JMVA_Document( const std::string& input_file_name ) : _model(), _input_file_name(input_file_name), _parser(nullptr), _stack(),
-									 _lqx_program(nullptr), _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
+									 _lqx_program(nullptr), _pragmas(), _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
 									 _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 									 _plot_population_mix(false), _x1(), _x2()
     {
     }
 
     JMVA_Document::JMVA_Document( const std::string& input_file_name, const BCMP::Model& model ) : _model(model), _input_file_name(input_file_name), _parser(nullptr), _stack(),
-												   _lqx_program(nullptr), _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
+												   _lqx_program(nullptr), _pragmas(), _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
 												   _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 												   _plot_population_mix(false), _x1(), _x2()
     {
@@ -406,6 +406,9 @@ namespace BCMP {
 	    checkAttributes( element, attributes, document_table );
 	    LQIO::DOM::Document::__debugXML = (LQIO::DOM::Document::__debugXML || XML::getBoolAttribute(attributes,Xxml_debug));
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startModel,&JMVA_Document::endModel,object) );
+	} else if ( strcasecmp( element, Xpragma ) == 0 ) {
+	    _pragmas.insert( XML::getStringAttribute(attributes,Xparam), XML::getStringAttribute(attributes,Xvalue,"") );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP) );
 	} else {
 	    throw LQIO::element_error( element );
 	}
@@ -1889,8 +1892,10 @@ namespace BCMP {
     const XML_Char * JMVA_Document::Xname		= "name";
     const XML_Char * JMVA_Document::Xnumber		= "number";
     const XML_Char * JMVA_Document::Xopenclass		= "openclass";
+    const XML_Char * JMVA_Document::Xparam		= "param";
     const XML_Char * JMVA_Document::Xparameters		= "parameters";
     const XML_Char * JMVA_Document::Xpopulation		= "population";
+    const XML_Char * JMVA_Document::Xpragma		= "pragma";
     const XML_Char * JMVA_Document::Xrate		= "rate";
     const XML_Char * JMVA_Document::XrefStation		= "refStation";
     const XML_Char * JMVA_Document::Xservers		= "servers";
