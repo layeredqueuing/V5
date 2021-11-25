@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 15125 2021-11-25 03:12:30Z greg $
+ * $Id: qnsolver.cc 15130 2021-11-25 20:16:57Z greg $
  */
 
 #include <algorithm>
@@ -210,6 +210,7 @@ int main (int argc, char *argv[])
 	    if ( print_qnap2 ) {
 		std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
 	    } else {
+		input.mergePragmas( pragmas.getList() );
 		Pragma::set( input.getPragmaList() );		/* load pragmas here */
 
 		try {

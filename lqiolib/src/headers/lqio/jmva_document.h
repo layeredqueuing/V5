@@ -143,12 +143,14 @@ namespace BCMP {
 	const std::map<std::string,std::string>& getPragmaList() const { return _pragmas.getList(); }
 
 	bool hasSPEX() const { return !_variables.empty() || _lqx_program != nullptr; }
+	bool hasPragmas() const { return !_pragmas.empty(); }
 	bool hasVariable( const std::string& name ) { return _variables.find(name) != _variables.end(); }
 	expr_list * getLQXProgram() const { return _lqx_program; }
 	expr_list * getGNUPlotProgram() { return &_gnuplot; }
-
 	std::vector<std::string> getUndefinedExternalVariables() const;
+
 	void registerExternalSymbolsWithProgram(LQX::Program* program);
+	void mergePragmas(const std::map<std::string,std::string>&);
 
 	std::ostream& print( std::ostream& ) const;
 	void plot( Model::Result::Type, const std::string& );

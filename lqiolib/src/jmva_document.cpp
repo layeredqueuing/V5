@@ -382,6 +382,12 @@ namespace BCMP {
 
 
     void
+    JMVA_Document::mergePragmas(const std::map<std::string,std::string>& list)
+    {
+	_pragmas.merge( list );
+    }
+    
+    void
     JMVA_Document::registerExternalSymbolsWithProgram(LQX::Program* program)
     {
 	std::for_each( _variables.begin(), _variables.end(), register_variable( program ) );
@@ -406,9 +412,6 @@ namespace BCMP {
 	    checkAttributes( element, attributes, document_table );
 	    LQIO::DOM::Document::__debugXML = (LQIO::DOM::Document::__debugXML || XML::getBoolAttribute(attributes,Xxml_debug));
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startModel,&JMVA_Document::endModel,object) );
-	} else if ( strcasecmp( element, Xpragma ) == 0 ) {
-	    _pragmas.insert( XML::getStringAttribute(attributes,Xparam), XML::getStringAttribute(attributes,Xvalue,"") );
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP) );
 	} else {
 	    throw LQIO::element_error( element );
 	}
@@ -419,7 +422,10 @@ namespace BCMP {
     {
 	static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> solutions_table = { XalgCount, Xiteration, XiterationValue, Xok, XsolutionMethod, XResultVariables };
 
-	if ( strcasecmp( element, Xdescription ) == 0 ) {
+	if ( strcasecmp( element, Xpragma ) == 0 ) {
+	    _pragmas.insert( XML::getStringAttribute(attributes,Xparam), XML::getStringAttribute(attributes,Xvalue,"") );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP) );
+	} else if ( strcasecmp( element, Xdescription ) == 0 ) {
 	    checkAttributes( element, attributes, null_table );
 	    _text.clear();						// Reset text buffer.
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startDescription,&JMVA_Document::endDescription,Object(&_model)) );

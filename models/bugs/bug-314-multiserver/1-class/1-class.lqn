@@ -6,6 +6,8 @@
 
 $n = [1:10,1]
 $m = [1:10,1]
+$Z = 10
+$S = 1
 
 G "Single class, product form." 1e-05 50 10 0.9 -1
 
@@ -14,12 +16,12 @@ P 1
 -1
 
 T 1
-  t t0 r e0 -1 p0 z 1 m $n  %f $X
+  t t0 r e0 -1 p0 z $Z m $n  %f $X
 -1
 
 E 1
 # ---------- c0 ----------
-  s e0 1 -1 %s1 $R
+  s e0 $S -1 %s1 $R
 -1
 
 R 0

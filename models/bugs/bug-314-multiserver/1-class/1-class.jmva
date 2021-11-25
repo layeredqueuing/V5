@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="JMTmodel.xsd">
+  <pragma param="mva" value="linearizer"/>
+  <parameters>
+    <classes number="1">
+      <closedclass name="Class1" population="1"/>
+    </classes>
+    <stations number="2">
+      <delaystation name="c0">
+	<servicetimes>
+	  <servicetime customerclass="Class1">5.0</servicetime>
+	</servicetimes>
+	<visits>
+	  <visit customerclass="Class1">1.0</visit>
+	</visits>
+      </delaystation>
+      <listation name="t0" servers="1">
+	<servicetimes>
+	  <servicetime customerclass="Class1">1.0</servicetime>
+	</servicetimes>
+	<visits>
+	  <visit customerclass="Class1">1.0</visit>
+	</visits>
+      </listation>
+    </stations>
+    <ReferenceStation number="1">
+      <Class name="Class1" refStation="c0"/>
+    </ReferenceStation>
+  </parameters>
+  <algParams>
+    <algType maxSamples="10000" name="MVA" tolerance="1.0E-7"/>
+    <compareAlgs value="false"/>
+  </algParams>
+  <whatIf className="Class1" type="Customer Numbers" values="1.0;2.0;3.0;4.0;5.0;6.0;7.0;8.0;9.0;10.0"/>
+</model>

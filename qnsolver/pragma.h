@@ -9,7 +9,7 @@
  *
  * November, 2021
  *
- * $Id: pragma.h 15125 2021-11-25 03:12:30Z greg $
+ * $Id: pragma.h 15131 2021-11-25 20:58:17Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -36,6 +36,12 @@ private:
 	}
 
 public:
+    static bool forceMultiserver()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_force_multiserver;
+	}
+
     static Model::Multiserver multiserver()
 	{
 	    assert( __cache != nullptr );
@@ -50,6 +56,7 @@ public:
 
 
 private:
+    void setForceMultiserver(const std::string&);
     void setMultiserver(const std::string&);
     void setSolver(const std::string&);
 
@@ -59,8 +66,9 @@ public:
     static const std::map<const std::string,const Pragma::fptr>& getPragmas() { return __set_pragma; }
 
 private:
-    Model::Multiserver _multiserver;
-    Model::Solver _solver;
+    bool _force_multiserver;			/* True to force all stations (except delay) to use the multisever algorithnm */
+    Model::Multiserver _multiserver;		/* Multiserver algorithm */
+    Model::Solver _solver;			/* Solver algorithm */
 
     /* --- */
 
