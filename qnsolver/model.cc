@@ -361,105 +361,73 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
     const BCMP::Model::Station& station = input.second;
     const unsigned int copies = station.copies()->wasSet() ? LQIO::DOM::to_unsigned( *station.copies() ) : 1;
     
-    switch ( station.scheduling() ) {
-    case SCHEDULE_FIFO:
-	if ( station.type() == BCMP::Model::Station::Type::DELAY ) {
-	    if ( dynamic_cast<Infinite_Server *>(Q(m)) == nullptr ) {
-		Q(m) = replace_server( input.first, Q(m), new Infinite_Server(E,K) );
-	    }
-	} else if ( !Pragma::forceMultiserver() && copies == 1 && station.type() == BCMP::Model::Station::Type::LOAD_INDEPENDENT ) {
+    if ( station.type() == BCMP::Model::Station::Type::DELAY || station.scheduling() == SCHEDULE_DELAY ) {
+	if ( dynamic_cast<Infinite_Server *>(Q(m)) == nullptr ) {
+	    Q(m) = replace_server( input.first, Q(m), new Infinite_Server(E,K) );
+	}
+
+    } else if ( !Pragma::forceMultiserver() && copies == 1 && station.type() == BCMP::Model::Station::Type::LOAD_INDEPENDENT ) {
+	if ( station.scheduling() == SCHEDULE_FIFO ) {
 	    if ( dynamic_cast<FCFS_Server *>(Q(m)) == nullptr ) {
 		Q(m) = replace_server( input.first, Q(m), new FCFS_Server(E,K) );
 	    }
-	} else {
-	    switch ( Pragma::multiserver() ) {
-	    case Multiserver::CONWAY:
-		if ( dynamic_cast<Conway_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
-		    Q(m) = replace_server( input.first, Q(m), new Conway_Multi_Server(copies,E,K) );
-		}
-		break;
-
-	    case Multiserver::DEFAULT:
-	    case Multiserver::REISER:
-	    case Multiserver::REISER_PS:
-		if ( dynamic_cast<Reiser_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
-		    Q(m) = replace_server( input.first, Q(m), new Reiser_Multi_Server(copies,E,K) );
-		}
-		break;
-
-	    case Multiserver::ROLIA:
-	    case Multiserver::ROLIA_PS:
-		if ( dynamic_cast<Rolia_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
-		    Q(m) = replace_server( input.first, Q(m), new Rolia_Multi_Server(copies,E,K) );
-		}
-		break;
-
-	    case Multiserver::ZHOU:
-		if ( dynamic_cast<Zhou_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
-		    Q(m) = replace_server( input.first, Q(m), new Zhou_Multi_Server(copies,E,K) );
-		}
-		break;
-
-	    default:
-		abort();
-	    }
-
-	}
-	break;
-
-    case SCHEDULE_PS:
-	if ( station.type() == BCMP::Model::Station::Type::DELAY ) {
-	    if ( dynamic_cast<Infinite_Server *>(Q(m)) == nullptr ) {
-		Q(m) = replace_server( input.first, Q(m), new Infinite_Server(E,K) );
-	    }
-	} else if ( !Pragma::forceMultiserver() && copies == 1 && station.type() == BCMP::Model::Station::Type::LOAD_INDEPENDENT ) {
+	} else if ( station.scheduling() == SCHEDULE_PS ) {
 	    if ( dynamic_cast<PS_Server *>(Q(m)) == nullptr ) {
 		Q(m) = replace_server( input.first, Q(m), new PS_Server(E,K) );
 	    }
 	} else {
-	    switch ( Pragma::multiserver() ) {
-	    case Multiserver::CONWAY:
-		if ( dynamic_cast<Conway_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
-		    Q(m) = replace_server( input.first, Q(m), new Conway_Multi_Server(copies,E,K) );
-		}
-		break;
+	    abort();
+	}
 
-	    case Multiserver::DEFAULT:
-	    case Multiserver::REISER:
-	    case Multiserver::REISER_PS:
+    } else {
+	switch ( Pragma::multiserver() ) {
+	case Multiserver::CONWAY:
+	    if ( dynamic_cast<Conway_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
+		Q(m) = replace_server( input.first, Q(m), new Conway_Multi_Server(copies,E,K) );
+	    }
+	    break;
+
+	case Multiserver::DEFAULT:
+	case Multiserver::REISER:
+	case Multiserver::REISER_PS:
+	    if ( station.scheduling() == SCHEDULE_FIFO ) {
+		if ( dynamic_cast<Reiser_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
+		    Q(m) = replace_server( input.first, Q(m), new Reiser_Multi_Server(copies,E,K) );
+		}
+	    } else if ( station.scheduling() == SCHEDULE_PS ) {
 		if ( dynamic_cast<Reiser_PS_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
 		    Q(m) = replace_server( input.first, Q(m), new Reiser_PS_Multi_Server(copies,E,K) );
 		}
-		break;
+	    } else {
+		abort();
+	    }
+	    break;
 
-	    case Multiserver::ROLIA:
-	    case Multiserver::ROLIA_PS:
+	case Multiserver::ROLIA:
+	case Multiserver::ROLIA_PS:
+	    if ( station.scheduling() == SCHEDULE_FIFO ) {
+		if ( dynamic_cast<Rolia_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
+		    Q(m) = replace_server( input.first, Q(m), new Rolia_Multi_Server(copies,E,K) );
+		}
+	    } else if ( station.scheduling() == SCHEDULE_PS ) {
 		if ( dynamic_cast<Rolia_PS_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
 		    Q(m) = replace_server( input.first, Q(m), new Rolia_Multi_Server(copies,E,K) );
 		}
-		break;
-
-	    case Multiserver::ZHOU:
-		if ( dynamic_cast<Zhou_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
-		    Q(m) = replace_server( input.first, Q(m), new Zhou_Multi_Server(copies,E,K) );
-		}
-		break;
-
-	    default:
+	    } else {
 		abort();
 	    }
-	}
-	break;
+	    break;
 
-    case SCHEDULE_DELAY:
-	if ( dynamic_cast<Infinite_Server *>(Q(m)) == nullptr ) {
-	    Q(m) = replace_server( input.first, Q(m), new Infinite_Server(E,K) );
-	}
-	break;
+	case Multiserver::ZHOU:
+	    if ( dynamic_cast<Zhou_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
+		Q(m) = replace_server( input.first, Q(m), new Zhou_Multi_Server(copies,E,K) );
+	    }
+	    break;
 
-    default:
-	abort();
-	break;
+	default:
+	    abort();
+	}
+
     }
 
     const BCMP::Model::Station::Class::map_t& classes = station.classes();
