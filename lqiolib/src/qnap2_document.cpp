@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 14592 2021-04-06 12:39:52Z greg $
+ * $Id: qnap2_document.cpp 15138 2021-12-01 20:47:42Z greg $
  *
  * Read in XML input files.
  *
@@ -688,9 +688,10 @@ namespace BCMP {
 	result = "mthruput(" + station_name;
 	if ( station.reference() ) {
 	    /* Report class results for the customers; the station name is the class name */
-	    std::string think_visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( class_name ) );
 	    if ( multiclass() ) result += "," + class_name;
-	    result += ")/(" + think_visits + ")";
+	    result += ")";
+	    const std::string think_visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( class_name ) );
+	    if ( !think_visits.empty() ) result += "/(" + think_visits + ")";
 	    comment = "Convert to LQN throughput";
 	} else {
 	    if ( !class_name.empty() ) result += "," + class_name;
@@ -711,7 +712,7 @@ namespace BCMP {
     }
 
     /*
-     * KEY_SERVICE is mservice + sum_of mrespone
+     * KEY_SERVICE is mservice + sum_of mresponse
      */
 
     std::pair<std::string,std::string>
@@ -723,11 +724,11 @@ namespace BCMP {
 	result =  "mservice(" + station_name;
 	if ( station.reference() ) {
 	    if ( multiclass() ) result += "," + class_name;
-	    result += ")*(";
-	    result += std::accumulate( stations().begin(), stations().end(), result, fold_visits( class_name ) );
-	    result += ")+(";
-	    result += std::accumulate( stations().begin(), stations().end(), result, fold_mresponse( class_name, chains() ) );
 	    result += ")";
+	    const std::string visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( class_name ) );
+	    if ( !visits.empty() ) result += "*(" + visits + ")";	// Over all visits
+	    const std::string response = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_mresponse( class_name, chains() ) );
+	    if ( !response.empty() ) result += "+(" + response +")";
 	    comment = "Convert to LQN service time";
 	} else {
 	    if ( multiclass() && !class_name.empty() ) result += "," + class_name;

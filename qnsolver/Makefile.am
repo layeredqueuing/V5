@@ -1,13 +1,18 @@
 # 
-# $Id: Makefile.am 15122 2021-11-24 23:18:19Z greg $
+# $Id: Makefile.am 15135 2021-12-01 14:07:41Z greg $
 #
 #----------------------------------------------------------------------
 
 ACLOCAL_AMFLAGS=-I ../config
 AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers -I../libmva/src/headers
 bin_PROGRAMS 	= qnsolver
-qnsolver_SOURCES= closedmodel.cc openmodel.cc model.cc pragma.cc qnsolver.cc runlqx.cc
+qnsolver_SOURCES= pragma.cc qnsolver.cc 
+if EXPAT
+qnsolver_SOURCES+=closedmodel.cc openmodel.cc model.cc runlqx.cc
+endif
 noinst_HEADERS	= closedmodel.h openmodel.h model.h pragma.h runlqx.h
+if EXPAT
+endif
 
 EXTRA_DIST	= qnsolver.1 
 

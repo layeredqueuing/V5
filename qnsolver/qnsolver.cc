@@ -1,14 +1,17 @@
 /*
- * $Id: qnsolver.cc 15133 2021-11-29 17:44:19Z greg $
+ * $Id: qnsolver.cc 15136 2021-12-01 14:19:04Z greg $
  */
 
+#include "config.h"
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
 #include <cstdlib>
 #include <getopt.h>
 #include <libgen.h>
+#if HAVE_EXPAT_H
 #include <lqio/jmva_document.h>
+#endif
 #include <lqio/dom_document.h>
 #include <lqio/qnap2_document.h>
 #include "pragma.h"
@@ -77,7 +80,9 @@ static bool verbose_flag = true;			/* Print results		*/
 
 std::string program_name;
 
+#if HAVE_EXPAT_H
 BCMP::JMVA_Document* __input = nullptr;
+#endif
 
 int main (int argc, char *argv[])
 {
@@ -111,7 +116,9 @@ int main (int argc, char *argv[])
 	    break;
 	    
 	case 'd':
+#if HAVE_EXPAT_H
 	    debug_flag = true;
+#endif
 #if DEBUG_MVA
 	    MVA::debug_D = true;
 	    MVA::debug_L = true;
@@ -195,7 +202,9 @@ int main (int argc, char *argv[])
 	    break;
 		
 	case 'S':
+#if HAVE_EXPAT_H
 	    print_spex = true;
+#endif
 	    break;
 	    
 	case 'X':
@@ -210,6 +219,7 @@ int main (int argc, char *argv[])
 
     /* input is assumed to come in from stdin.                          */
 
+#if HAVE_EXPAT_H
     if ( optind == argc ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": arg count." << std::endl;
 	return 1;
@@ -236,6 +246,9 @@ int main (int argc, char *argv[])
 	    }
 	}
     }
+#else
+    std::cerr << LQIO::io_vars.lq_toolname << ": No expat library available." << std::endl;
+#endif
     return 0;
 }
 

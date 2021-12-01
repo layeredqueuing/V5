@@ -1,5 +1,5 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 14567 2021-03-18 12:18:49Z greg $
+# $Id: configure.ac 15135 2021-12-01 14:07:41Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
@@ -38,22 +38,8 @@ AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([ctime getopt_long getsubopt memset pow rint strcasecmp strchr strdup strerror strrchr strftime])
 AC_CHECK_FUNCS([geteuid getpwuid getrusage gettimeofday uname mmap])
 
-AC_ARG_WITH([xerces],
-  [AS_HELP_STRING([--with-xerces], [Use the Xerces XML parser instead of expat])],
-  [],
-  [with_xerces=no])
-
-dnl LIBXERCES=
-if test "x$with_xerces" = xyes; then
-  rlc_XERCESC
-fi
-
-# Check for libexpat
-if test "x$ac_cv_libxerces_c" != xyes; then
-  AC_CHECK_HEADERS([expat.h])
-  AC_CHECK_LIB([expat], [XML_ParserCreateNS])
-fi
-
+AC_CHECK_HEADERS([expat.h])
+AC_CHECK_LIB([expat], [XML_ParserCreateNS])
 AM_CONDITIONAL([EXPAT], [test "x${ac_cv_lib_expat_XML_ParserCreateNS}" = "xyes"] )
 
 # Produce the desired output files

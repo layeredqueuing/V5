@@ -1,0 +1,61 @@
+& $Id$
+/declare/
+   integer _N1;                                                & SPEX customers vars.
+   real _M1,_Q_c0,_R_c0,_U_c0,_X_c0,_Q_t0,_R_t0,_U_t0,_X_t0;   & SPEX result vars.
+   queue c0,t0;                                                & Station identifiers
+   integer n_users;                                            & Population
+   real think_t;                                               & Think time.
+   real t0_t;                                                  & Station service time
+&
+/station/ name=c0;
+   type=infinite;
+   init=n_users;                                               & Population by class
+   service=exp(think_t);
+   transit=t0,1.;                                              & visits to servers
+&
+/station/ name=t0;
+   sched=ps;
+   type=multiple(_M1);
+   service=exp(t0_t);
+   transit=c0;
+&
+/control/
+   option=nresult;                                             & Suppress default output
+&
+/exec/
+   begin
+   print("_M1",",","_N1",",","_Q_c0",",","_R_c0",",","_U_c0"
+    ,",","_X_c0",",","_Q_t0");                                 & SPEX results
+   print(",","_R_t0",",","_U_t0",",","_X_t0");                 & ... continued
+&  -- SPEX arrays and completions --
+   for _N1:=1 step 1 until 10 do begin
+   for _M1:=1 step 1 until 10 do begin
+&  -- Class variables --
+   think_t:=5/(1.);                                            & Slice time at client
+   t0_t:=1.;
+   n_users:=_N1;                                               & SPEX variable $N1
+&  -- Station variables --
+&  -- Let 'er rip! --
+   solve;
+&  -- SPEX results for QNAP2 solutions are converted to
+&  -- the LQN output for throughput, service and waiting time.
+&  -- QNAP2 throughput for a reference task is per-slice,
+&  -- and not the aggregate so divide by the number of transits.
+&  -- Service time is mservice() + sum of mresponse().
+&  -- Waiting time is mresponse() - mservice().
+   _Q_c0:=mresponse(c0)-mservice(c0);                          & Convert to LQN queueing time
+   _R_c0:=mservice(c0);                                        & Convert to LQN service time
+   _U_c0:=mbusypct(c0);
+   _X_c0:=mthruput(c0);                                        & Convert to LQN throughput
+   _Q_t0:=mresponse(t0)-mservice(t0);                          & Convert to LQN queueing time
+   _R_t0:=mservice(t0);                                        & Station service time only.
+   _U_t0:=mbusypct(t0);
+   _X_t0:=mthruput(t0);
+   print(_M1,",",_N1,",",_Q_c0,",",_R_c0,",",_U_c0,",",_X_c0
+    ,",",_Q_t0);                                               & SPEX results
+   print(",",_R_t0,",",_U_t0,",",_X_t0);                       & ... continued
+   end;                                                        & for _M1
+   end;                                                        & for _N1
+   end;
+/end/
+
