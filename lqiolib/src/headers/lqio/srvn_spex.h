@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 14955 2021-09-07 16:52:38Z greg $
+ * $Id: srvn_spex.h 15146 2021-12-03 03:46:28Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -278,6 +278,7 @@ namespace LQIO {
 	static unsigned int numberOfResultVariables() { return __result_variables.size(); }
 
 	/* Used by srvn_output and qnap_document... */
+	static const std::vector<std::string>& scalar_variables() { return  __scalar_variables; }			/* Saves $<scalar_name> for output */
 	static const std::vector<std::string>& array_variables() { return  __array_variables; }				/* Saves $<array_name> for generating nest for loops */
 	static const std::map<std::string,ComprehensionInfo>& comprehensions() { return __comprehensions; }		/* comprehension name (and values) */
 	static const std::vector<ObservationInfo>& document_variables() { return  __document_variables; }
@@ -335,6 +336,7 @@ namespace LQIO {
 	static std::map<std::string, LQIO::DOM::SymbolExternalVariable*>* __global_variables;	/* Document global variables. (input) */
 
     private:
+	static std::vector<std::string> __scalar_variables;			/* Saves $<scalar_name> for output */
 	static std::vector<std::string> __array_variables;			/* Saves $<array_name> for generating nest for loops */
 	static std::set<std::string> __array_references;			/* Saves $<array_name> when used as an lvalue */
 	static std::vector<var_name_and_expr> __result_variables;		/* Saves $<name> for printing the header of variable names and the expression attached */

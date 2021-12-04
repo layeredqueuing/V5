@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14724 2021-05-29 14:16:40Z greg $
+ * $Id: entry.cc 15141 2021-12-02 15:31:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -763,8 +763,8 @@ Entry::isReferenceTaskEntry() const {
 bool
 Entry::isSelectedIndirectly() const
 {
-    if ( Flags::print[CHAIN].value.i ) {
-	return hasPath( Flags::print[CHAIN].value.i );
+    if ( Flags::print[CHAIN].opts.value.i ) {
+	return hasPath( Flags::print[CHAIN].opts.value.i );
     } else if ( owner()->isSelected() ) {
 	return true;
     }
@@ -1457,7 +1457,7 @@ Entry::aggregate()
 	std::deque<const Activity *> activityStack;
 	unsigned next_p = 1;
 
-	switch ( Flags::print[AGGREGATION].value.i ) {
+	switch ( Flags::print[AGGREGATION].opts.value.i ) {
 	case AGGREGATE_ACTIVITIES:
 	case AGGREGATE_PHASES:
 	case AGGREGATE_ENTRIES:
@@ -1488,7 +1488,7 @@ Entry::aggregate()
 	_activityCallers.clear();
     }
 
-    switch ( Flags::print[AGGREGATION].value.i ) {
+    switch ( Flags::print[AGGREGATION].opts.value.i ) {
     case AGGREGATE_PHASES:
     case AGGREGATE_ENTRIES:
 	aggregatePhases();
@@ -1578,7 +1578,7 @@ Entry::referenceTasks( std::vector<Entity *> &clients, Element * dst ) const
 //!!! Need to create the pseudo arc to the task.
 	if ( dynamic_cast<Processor *>(dst) ) {
 	    const_cast<Task *>(owner())->findOrAddPseudoCall( dynamic_cast<Processor *>(dst) );
-	} else if ( Flags::print[AGGREGATION].value.i ==  AGGREGATE_ENTRIES ) {
+	} else if ( Flags::print[AGGREGATION].opts.value.i ==  AGGREGATE_ENTRIES ) {
 	    const_cast<Task *>(owner())->findOrAddPseudoCall( const_cast<Task *>(dynamic_cast<Entry *>(dst)->owner()) );
 	} else {
 	    const_cast<Entry *>(this)->findOrAddPseudoCall( dynamic_cast<Entry *>(dst) );
@@ -1655,7 +1655,7 @@ Entry::span() const
 Graphic::colour_type
 Entry::colour() const
 {
-    switch ( Flags::print[COLOUR].value.i ) {
+    switch ( Flags::print[COLOUR].opts.value.i ) {
     case COLOUR_RESULTS:
 	if ( Flags::have_results && Flags::graphical_output_style == JLQNDEF_STYLE && !owner()->isReferenceTask() ) {
 	    return colourForUtilization( owner()->isInfinite() ? 0.0 : utilization() / owner()->copiesValue() );
@@ -1799,8 +1799,8 @@ Entry::moveDst()
 
 	const int nFwd = countArcs( &GenericCall::hasForwardingLevel );
 	const double delta = width() / static_cast<double>(countCallers() + 1 + nFwd );
-	const double fy1 = Flags::print[Y_SPACING].value.f / 2.0 + top();
-	const double fy2 = Flags::print[Y_SPACING].value.f / 1.5 + top();
+	const double fy1 = Flags::print[Y_SPACING].opts.value.f / 2.0 + top();
+	const double fy2 = Flags::print[Y_SPACING].opts.value.f / 1.5 + top();
 
 	/* Draw incomming forwarding arcs from the same level first. */
 
@@ -1911,29 +1911,29 @@ Entry&
 Entry::label()
 {
     *myLabel << name();
-    if ( !startActivity() && Flags::print[INPUT_PARAMETERS].value.b ) {
+    if ( !startActivity() && Flags::print[INPUT_PARAMETERS].opts.value.b ) {
 	myLabel->newLine() << '[' << print_service_time(*this)  << ']';
 	if ( hasThinkTime() ) {
 	    *myLabel << ",Z=" << print_think_time(*this);
 	}
     }
     if ( Flags::have_results ) {
-	if ( Flags::print[SERVICE].value.b ) {
+	if ( Flags::print[SERVICE].opts.value.b ) {
 	    myLabel->newLine() << begin_math() << label_execution_time(*this) << end_math();
 	}
-	if ( Flags::print[VARIANCE].value.b && Model::variancePresent ) {
+	if ( Flags::print[VARIANCE].opts.value.b && Model::variancePresent ) {
 	    myLabel->newLine() << begin_math( &Label::sigma ) << "=" << print_variance(*this) << end_math();
 	}
-	if ( Flags::print[SERVICE_EXCEEDED].value.b && serviceExceeded() > 0. ) {
+	if ( Flags::print[SERVICE_EXCEEDED].opts.value.b && serviceExceeded() > 0. ) {
 	    myLabel->newLine() << "!=";
 	}
-	if ( Flags::print[THROUGHPUT_BOUNDS].value.b && Model::boundsPresent ) {
+	if ( Flags::print[THROUGHPUT_BOUNDS].opts.value.b && Model::boundsPresent ) {
 	    myLabel->newLine() << begin_math() << "L=" << opt_pct(throughputBound()) << end_math();
 	}
-	if ( Flags::print[ENTRY_THROUGHPUT].value.b ) {
+	if ( Flags::print[ENTRY_THROUGHPUT].opts.value.b ) {
 	    myLabel->newLine() << begin_math( &Label::lambda ) << "=" << opt_pct(throughput()) << end_math();
 	}
-	if ( Flags::print[ENTRY_UTILIZATION].value.b ) {
+	if ( Flags::print[ENTRY_UTILIZATION].opts.value.b ) {
 	    myLabel->newLine() << begin_math( &Label::mu ) << "=" << opt_pct(utilization()) << end_math();
 	}
     }
@@ -2451,16 +2451,16 @@ Entry::create( LQIO::DOM::Entry* domEntry )
 
 static std::ostream&
 format( std::ostream& output, int p ) {
-    switch ( Flags::print[OUTPUT_FORMAT].value.i ) {
-    case FORMAT_SRVN:
+    switch ( Flags::print[OUTPUT_FORMAT].opts.value.o ) {
+    case file_format::SRVN:
 	if ( p != 1 ) {
 	    output << ' ';
 	}
 	break;
 
-    case FORMAT_OUTPUT:
-    case FORMAT_PARSEABLE:
-    case FORMAT_RTF:
+    case file_format::OUTPUT:
+    case file_format::PARSEABLE:
+    case file_format::RTF:
 	output << std::setw( maxDblLen );
 	break;
 

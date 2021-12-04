@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 14603 2021-04-16 15:53:36Z greg $
+ * $Id: actlist.cc 15140 2021-12-02 15:04:21Z greg $
  */
 
 
@@ -405,8 +405,8 @@ JoinActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned& n
     if ( next() ) {
 	double count = next()->aggregate( anEntry, curr_p, next_p, rate, activityStack, aFunc );
 	if ( aFunc == &Activity::aggregateService
-	     && (Flags::print[AGGREGATION].value.i == AGGREGATE_SEQUENCES
-		 || Flags::print[AGGREGATION].value.i == AGGREGATE_THREADS)
+	     && (Flags::print[AGGREGATION].opts.value.i == AGGREGATE_SEQUENCES
+		 || Flags::print[AGGREGATION].opts.value.i == AGGREGATE_THREADS)
 	     && dynamic_cast<ForkActivityList *>(next())
 	     && !dynamic_cast<RepeatActivityList *>(next()) ) {
 
@@ -861,7 +861,7 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 
     if ( aFunc == &Activity::aggregateService
 	 && joinList->size() == size()
-	 && Flags::print[AGGREGATION].value.i == AGGREGATE_THREADS
+	 && Flags::print[AGGREGATION].opts.value.i == AGGREGATE_THREADS
 	 && dynamic_cast<OrJoinActivityList *>(joinList)
 	 && dynamic_cast<ForkActivityList *>(joinList->next())
 	 && !dynamic_cast<RepeatActivityList *>(joinList->next()) ) {
@@ -943,7 +943,7 @@ OrForkActivityList::scaleBy( const double sx, const double sy )
 OrForkActivityList&
 OrForkActivityList::label()
 {
-    if ( Flags::print[INPUT_PARAMETERS].value.b ) {
+    if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
 	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	    *(_labelList[*activity]) << prBranch( *activity );
 	}
@@ -1519,7 +1519,7 @@ AndJoinActivityList::scaleBy( const double sx, const double sy )
 AndJoinActivityList&
 AndJoinActivityList::label()
 {
-    if ( Flags::have_results && Flags::print[JOIN_DELAYS].value.b ) {
+    if ( Flags::have_results && Flags::print[JOIN_DELAYS].opts.value.b ) {
 	*_label << begin_math() << opt_pct(joinDelay()) << end_math();
     }
     return *this;
@@ -1573,7 +1573,7 @@ RepeatActivityList::clone() const
 RepeatActivityList&
 RepeatActivityList::label()
 {
-    if ( Flags::print[INPUT_PARAMETERS].value.b ) {
+    if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
 	for ( std::map<Activity *,Label *>::iterator label = _labelList.begin(); label != _labelList.end(); ++label ) {
 	    const LQIO::DOM::ExternalVariable * var = rateBranch(label->first);
 	    if ( var ) {

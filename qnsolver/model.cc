@@ -362,12 +362,15 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
     const unsigned int copies = station.copies()->wasSet() ? LQIO::DOM::to_unsigned( *station.copies() ) : 1;
     
     if ( station.type() == BCMP::Model::Station::Type::DELAY || station.scheduling() == SCHEDULE_DELAY ) {
-	if ( dynamic_cast<Infinite_Server *>(Q(m)) == nullptr ) {
+	if ( copies != 1 ) {
+	} else if ( dynamic_cast<Infinite_Server *>(Q(m)) == nullptr ) {
 	    Q(m) = replace_server( input.first, Q(m), new Infinite_Server(E,K) );
 	}
 
-    } else if ( !Pragma::forceMultiserver() && copies == 1 && station.type() == BCMP::Model::Station::Type::LOAD_INDEPENDENT ) {
-	if ( station.scheduling() == SCHEDULE_FIFO ) {
+    } else if ( !Pragma::forceMultiserver() && station.type() == BCMP::Model::Station::Type::LOAD_INDEPENDENT ) {
+	if ( copies != 1 ) {
+	    throw std::runtime_error( "Number of servers does not equal 1 for load independent server " + input.first );
+	} else if ( station.scheduling() == SCHEDULE_FIFO ) {
 	    if ( dynamic_cast<FCFS_Server *>(Q(m)) == nullptr ) {
 		Q(m) = replace_server( input.first, Q(m), new FCFS_Server(E,K) );
 	    }
@@ -376,7 +379,7 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
 		Q(m) = replace_server( input.first, Q(m), new PS_Server(E,K) );
 	    }
 	} else {
-	    abort();
+	    throw std::runtime_error( "Invalid scheduling for load independent server " + input.first );
 	}
 
     } else {
@@ -399,7 +402,7 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
 		    Q(m) = replace_server( input.first, Q(m), new Reiser_PS_Multi_Server(copies,E,K) );
 		}
 	    } else {
-		abort();
+		throw std::runtime_error( "Invalid scheduling for load dependent server " + input.first );
 	    }
 	    break;
 
@@ -414,7 +417,7 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
 		    Q(m) = replace_server( input.first, Q(m), new Rolia_Multi_Server(copies,E,K) );
 		}
 	    } else {
-		abort();
+		throw std::runtime_error( "Invalid scheduling for load dependent server " + input.first );
 	    }
 	    break;
 

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 15051 2021-10-07 23:56:46Z greg $
+ * $Id: model.h 15149 2021-12-03 16:29:26Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -41,6 +41,7 @@ private:
     {
 	bool operator()(const Type * a, const Type * b) const { return a->name() < b->name() || a->getReplicaNumber() < b->getReplicaNumber(); }
     };
+    typedef Model * (*create_func)( const LQIO::DOM::Document *, const std::string&, const std::string& );
     
 protected:
     class SolveSubmodel {
@@ -64,9 +65,12 @@ public:
 
 public:
     static LQIO::DOM::Document* load( const std::string& inputFileName, const std::string& outputFileName );
+    static int create( const std::string&, const std::string& );
     static bool prepare( const LQIO::DOM::Document* document );
     static void recalculateDynamicValues( const LQIO::DOM::Document* document );
     static void setModelParameters( const LQIO::DOM::Document* doc );
+
+private:
     static Model * create( const LQIO::DOM::Document *, const std::string&, const std::string& );
 
 public:
@@ -149,6 +153,8 @@ class MOL_Model : public Model {
 
 protected:
     MOL_Model( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) : Model( document, inputFileName, outputFileName ), _HWSubmodel(0) {}
+    
+    static Model * create( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) { return new MOL_Model( document, inputFileName, outputFileName ); }
 
     virtual unsigned assignSubmodel();
     virtual void addToSubmodel();
@@ -168,6 +174,8 @@ class BackPropogate_MOL_Model : public MOL_Model {
 protected:
     BackPropogate_MOL_Model( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) : MOL_Model( document, inputFileName, outputFileName ) {}
 
+    static Model * create( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) { return new BackPropogate_MOL_Model( document, inputFileName, outputFileName ); }
+
     virtual void backPropogate();
 };
 
@@ -179,6 +187,8 @@ class Batch_Model :  public Model {
 
 protected:
     Batch_Model( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) : Model( document, inputFileName, outputFileName ) {}
+
+    static Model * create( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) { return new Batch_Model( document, inputFileName, outputFileName ); }
 
     virtual unsigned assignSubmodel();
     virtual void addToSubmodel();
@@ -194,6 +204,9 @@ class BackPropogate_Batch_Model : public Batch_Model {
 
 protected:
     BackPropogate_Batch_Model( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) : Batch_Model( document, inputFileName, outputFileName ) {}
+
+    static Model * create( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) { return new BackPropogate_Batch_Model( document, inputFileName, outputFileName ); }
+
     virtual void backPropogate();
 };
 
@@ -204,9 +217,9 @@ class SRVN_Model : public Batch_Model {
     friend class Model;		/* Allows use of constructor within class Model */
 
 protected:
-    SRVN_Model( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) 
-	: Batch_Model( document, inputFileName, outputFileName )
-	{}
+    SRVN_Model( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) : Batch_Model( document, inputFileName, outputFileName ) {}
+
+    static Model * create( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) { return new SRVN_Model( document, inputFileName, outputFileName ); }
 
     virtual unsigned assignSubmodel();
 };
@@ -217,9 +230,9 @@ class Squashed_Model : public Batch_Model {
     friend class Model;		/* Allows use of constructor within class Model */
 
 protected:
-    Squashed_Model( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) 
-	: Batch_Model( document, inputFileName, outputFileName )
-	{}
+    Squashed_Model( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) : Batch_Model( document, inputFileName, outputFileName ) {}
+
+    static Model * create( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) { return new Squashed_Model( document, inputFileName, outputFileName ); }
 
     virtual unsigned assignSubmodel();
 };
@@ -230,9 +243,9 @@ class HwSw_Model : public Batch_Model {
     friend class Model;		/* Allows use of constructor within class Model */
 
 protected:
-    HwSw_Model( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) 
-	: Batch_Model( document, inputFileName, outputFileName )
-	{}
+    HwSw_Model( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) : Batch_Model( document, inputFileName, outputFileName ) {}
+
+    static Model * create( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName ) { return new HwSw_Model( document, inputFileName, outputFileName ); }
 
     virtual unsigned assignSubmodel();
 };

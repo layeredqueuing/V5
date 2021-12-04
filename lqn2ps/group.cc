@@ -1,6 +1,6 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: group.cc 15154 2021-12-03 22:16:10Z greg $
  */
 
 #include "group.h"
@@ -87,7 +87,7 @@ Group::populate()
 	if ( (*processor)->hasGroup() || !match((*processor)->name()) ) continue;
 	(*processor)->hasGroup( true );
 
-	if ( Flags::print[LAYERING].value.i == LAYERING_PROCESSOR ) {
+	if ( Flags::print[LAYERING].opts.value.l == Layering::PROCESSOR ) {
 	    penColour( (*processor)->colour() == Graphic::GREY_10 ? Graphic::BLACK : (*processor)->colour() );
 	    fillColour( (*processor)->colour() );
 	}
@@ -119,7 +119,7 @@ Group::populate()
 Group&
 Group::resizeBox()
 {
-    myNode->resizeBox( -4.5, -(4.5 + Flags::print[FONT_SIZE].value.i * 1.2), 9.0, 9.0 + Flags::print[FONT_SIZE].value.i * 1.2 );
+    myNode->resizeBox( -4.5, -(4.5 + Flags::print[FONT_SIZE].opts.value.i * 1.2), 9.0, 9.0 + Flags::print[FONT_SIZE].opts.value.i * 1.2 );
     return *this;
 }
 
@@ -128,7 +128,7 @@ Group const&
 Group::positionLabel() const
 {
     myLabel->moveTo( myNode->left() + myNode->width() / 2.0,
-		     myNode->bottom() + Flags::print[FONT_SIZE].value.i * 0.6 );
+		     myNode->bottom() + Flags::print[FONT_SIZE].opts.value.i * 0.6 );
     return *this;
 }
 
@@ -257,7 +257,7 @@ GroupByProcessor&
 GroupByProcessor::label()
 {
     *myLabel << myProcessor->name();
-    if ( Flags::print[INPUT_PARAMETERS].value.b ) {
+    if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
 	if ( myProcessor->isMultiServer() ) {
 	    *myLabel << " {" << myProcessor->copies() << "}";
 	} else if ( myProcessor->isInfinite() ) {
@@ -267,7 +267,7 @@ GroupByProcessor::label()
 	    *myLabel << " <" << myProcessor->replicas() << ">";
 	}
     }
-    if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].value.b ) {
+    if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
 	myLabel->newLine() << begin_math( &Label::mu ) << "=" << myProcessor->utilization() << end_math();
 	if ( !myProcessor->hasBogusUtilization() ) {
 	    myLabel->colour(Graphic::RED);
@@ -284,8 +284,8 @@ GroupByProcessor::label()
 GroupByProcessor&
 GroupByProcessor::resizeBox()
 {
-    if ( Flags::print[PROCESSOR_UTILIZATION].value.b && Flags::have_results ) {
-	myNode->resizeBox( -4.5, -(4.5 + Flags::print[FONT_SIZE].value.i * 2.2), 9.0, 9.0 + Flags::print[FONT_SIZE].value.i * 2.2 );
+    if ( Flags::print[PROCESSOR_UTILIZATION].opts.value.b && Flags::have_results ) {
+	myNode->resizeBox( -4.5, -(4.5 + Flags::print[FONT_SIZE].opts.value.i * 2.2), 9.0, 9.0 + Flags::print[FONT_SIZE].opts.value.i * 2.2 );
     } else {
 	Group::resizeBox();
     }
@@ -296,9 +296,9 @@ GroupByProcessor::resizeBox()
 GroupByProcessor const&
 GroupByProcessor::positionLabel() const
 {
-    if ( Flags::print[PROCESSOR_UTILIZATION].value.b && Flags::have_results ) {
+    if ( Flags::print[PROCESSOR_UTILIZATION].opts.value.b && Flags::have_results ) {
 	myLabel->moveTo( myNode->left() + myNode->width() / 2.0,
-			 myNode->bottom() + Flags::print[FONT_SIZE].value.i * 1.4 );
+			 myNode->bottom() + Flags::print[FONT_SIZE].opts.value.i * 1.4 );
 
     } else {
 	Group::positionLabel();
@@ -361,7 +361,7 @@ GroupByShareDefault::format()
     }
 
     if ( isUsed() ) {
-	const double newX = width() + + Flags::print[X_SPACING].value.f;
+	const double newX = width() + + Flags::print[X_SPACING].opts.value.f;
 	for ( std::vector<Layer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
 	    if ( !*layer ) continue;
 	    layer->moveBy( newX, 0 );

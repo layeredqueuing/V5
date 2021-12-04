@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  * 
- * $Id: label.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: label.cc 15141 2021-12-02 15:31:46Z greg $
  */
 
 #include "lqn2ps.h"
@@ -38,15 +38,15 @@ private:
 
 Label::Line::Line() : _font(NORMAL_FONT), _colour(DEFAULT_COLOUR), _string()
 {
-    if ( Flags::print[PRECISION].value.i > 0 ) {
-	_string.precision( Flags::print[PRECISION].value.i );
+    if ( Flags::print[PRECISION].opts.value.i > 0 ) {
+	_string.precision( Flags::print[PRECISION].opts.value.i );
     }
 }
 
 Label::Line::Line( const Line& src ) : _font(src._font), _colour(src._colour), _string() 
 {
-    if ( Flags::print[PRECISION].value.i > 0 ) {
-	_string.precision( Flags::print[PRECISION].value.i );
+    if ( Flags::print[PRECISION].opts.value.i > 0 ) {
+	_string.precision( Flags::print[PRECISION].opts.value.i );
     }
     _string << src.getStr(); 
 }
@@ -54,41 +54,41 @@ Label::Line::Line( const Line& src ) : _font(src._font), _colour(src._colour), _
 Label *
 Label::newLabel()
 {
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-    case FORMAT_EEPIC:
+    switch( Flags::print[OUTPUT_FORMAT].opts.value.o ) {
+    case file_format::EEPIC:
 	return new LabelTeX();
 #if defined(EMF_OUTPUT)
-    case FORMAT_EMF:
+    case file_format::EMF:
 	return new LabelEMF();
 #endif
-    case FORMAT_FIG:
+    case file_format::FIG:
 	return new LabelFig();
 #if HAVE_GD_H && HAVE_LIBGD
 #if HAVE_GDIMAGEGIFPTR
-    case FORMAT_GIF:
+    case file_format::GIF:
 #endif
 #if HAVE_LIBJPEG
-    case FORMAT_JPEG:
+    case file_format::JPEG:
 #endif
 #if HAVE_LIBPNG
-    case FORMAT_PNG:
+    case file_format::PNG:
 #endif
 	return new LabelGD();
 #endif	/* HAVE_LIBGD */
-    case FORMAT_POSTSCRIPT:
+    case file_format::POSTSCRIPT:
 	return new LabelPostScript();	/* the graphical object		*/
-    case FORMAT_PSTEX:
+    case file_format::PSTEX:
 	return new LabelPsTeX();	/* the graphical object		*/
 #if defined(SVG_OUTPUT)
-    case FORMAT_SVG:
+    case file_format::SVG:
 	return new LabelSVG();
 #endif
 #if defined(SXD_OUTPUT)
-    case FORMAT_SXD:
+    case file_format::SXD:
 	return new LabelSXD();
 #endif
 #if defined(X11_OUTPUT)
-    case FORMAT_X11:
+    case file_format::X11:
 	return new LabelX11();
 #endif
     default:
@@ -184,7 +184,7 @@ Label::width() const
 double 
 Label::height() const
 {
-    return size() * Flags::print[FONT_SIZE].value.i;
+    return size() * Flags::print[FONT_SIZE].opts.value.i;
 }
 
 
@@ -594,13 +594,13 @@ LabelEMF::initialPoint() const
     double dx = 0.0;
     switch ( justification() ) {
     case LEFT_JUSTIFY:
-	dx =  Flags::print[FONT_SIZE].value.i / 2.0 * EMF_SCALING;
+	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0 * EMF_SCALING;
 	break;
     case RIGHT_JUSTIFY:
-	dx = -Flags::print[FONT_SIZE].value.i / 2.0 * EMF_SCALING;
+	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0 * EMF_SCALING;
 	break;
     }
-    aPoint.moveBy( dx, (2.0 - size()) / 2.0 * Flags::print[FONT_SIZE].value.i * EMF_SCALING );
+    aPoint.moveBy( dx, (2.0 - size()) / 2.0 * Flags::print[FONT_SIZE].opts.value.i * EMF_SCALING );
     return aPoint;
 }
 #endif
@@ -687,13 +687,13 @@ LabelFig::initialPoint() const
     double dx = 0.0;
     switch ( justification() ) {
     case LEFT_JUSTIFY:
-	dx =  Flags::print[FONT_SIZE].value.i / 2.0 * FIG_SCALING;
+	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0 * FIG_SCALING;
 	break;
     case RIGHT_JUSTIFY:
-	dx = -Flags::print[FONT_SIZE].value.i / 2.0 * FIG_SCALING;
+	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0 * FIG_SCALING;
 	break;
     }
-    aPoint.moveBy( dx, (((1-size())*Flags::print[FONT_SIZE].value.i)/2 + 2) * FIG_SCALING );
+    aPoint.moveBy( dx, (((1-size())*Flags::print[FONT_SIZE].opts.value.i)/2 + 2) * FIG_SCALING );
     return aPoint;
 }
 
@@ -827,11 +827,11 @@ LabelGD::initialPoint() const
 
     if ( haveTTF ) {
 	switch ( justification() ) {
-	case LEFT_JUSTIFY:	dx =  Flags::print[FONT_SIZE].value.i / 2.0; break;
-	case RIGHT_JUSTIFY:	dx = -Flags::print[FONT_SIZE].value.i / 2.0; break;
+	case LEFT_JUSTIFY:	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0; break;
+	case RIGHT_JUSTIFY:	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0; break;
 	}
 
-	aPoint.moveBy( dx, -(((-1.2-size())*Flags::print[FONT_SIZE].value.i)/2.0) );
+	aPoint.moveBy( dx, -(((-1.2-size())*Flags::print[FONT_SIZE].opts.value.i)/2.0) );
     } else {
 	gdFont * font = getfont();
 
@@ -899,11 +899,11 @@ LabelPostScript::initialPoint() const
     Point aPoint = _origin;
     double dx = 0.0;
     switch ( justification() ) {
-    case LEFT_JUSTIFY:	dx =  Flags::print[FONT_SIZE].value.i / 2.0; break;
-    case RIGHT_JUSTIFY:	dx = -Flags::print[FONT_SIZE].value.i / 2.0; break;
+    case LEFT_JUSTIFY:	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0; break;
+    case RIGHT_JUSTIFY:	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0; break;
     }
 
-    aPoint.moveBy( dx, -(((1.6-size())*Flags::print[FONT_SIZE].value.i)/2.0) );
+    aPoint.moveBy( dx, -(((1.6-size())*Flags::print[FONT_SIZE].opts.value.i)/2.0) );
     return aPoint;
 }
 
@@ -997,11 +997,11 @@ LabelSVG::initialPoint() const
     Point aPoint = _origin;
     double dx = 0.0;
     switch ( justification() ) {
-    case LEFT_JUSTIFY:	dx =  Flags::print[FONT_SIZE].value.i / 2.0; break;
-    case RIGHT_JUSTIFY:	dx = -Flags::print[FONT_SIZE].value.i / 2.0; break;
+    case LEFT_JUSTIFY:	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0; break;
+    case RIGHT_JUSTIFY:	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0; break;
     }
 
-    aPoint.moveBy( dx, ( (size()/2.0) * Flags::print[FONT_SIZE].value.i * SVG_SCALING) / 1.2 );
+    aPoint.moveBy( dx, ( (size()/2.0) * Flags::print[FONT_SIZE].opts.value.i * SVG_SCALING) / 1.2 );
     return aPoint;
 }
 
@@ -1242,11 +1242,11 @@ LabelTeX::initialPoint() const
     Point aPoint = _origin;
     double dx = 0.0;
     switch ( justification() ) {
-    case LEFT_JUSTIFY:	dx =  Flags::print[FONT_SIZE].value.i / 2.0 * EEPIC_SCALING; break;
-    case RIGHT_JUSTIFY:	dx = -Flags::print[FONT_SIZE].value.i / 2.0 * EEPIC_SCALING; break;
+    case LEFT_JUSTIFY:	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0 * EEPIC_SCALING; break;
+    case RIGHT_JUSTIFY:	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0 * EEPIC_SCALING; break;
     }
 
-    aPoint.moveBy( dx, -(((1-size())*Flags::print[FONT_SIZE].value.i)/2. + 1.) * EEPIC_SCALING);
+    aPoint.moveBy( dx, -(((1-size())*Flags::print[FONT_SIZE].opts.value.i)/2. + 1.) * EEPIC_SCALING);
     return aPoint;
 }
 
@@ -1340,13 +1340,13 @@ LabelPsTeX::initialPoint() const
     double dx = 0.0;
     switch ( justification() ) {
     case LEFT_JUSTIFY:
-	dx =  Flags::print[FONT_SIZE].value.i / 2.0 * FIG_SCALING;
+	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0 * FIG_SCALING;
 	break;
     case RIGHT_JUSTIFY:
-	dx = -Flags::print[FONT_SIZE].value.i / 2.0 * FIG_SCALING;
+	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0 * FIG_SCALING;
 	break;
     }
-    aPoint.moveBy( dx, (((1-size())*Flags::print[FONT_SIZE].value.i)/2 + 2) * FIG_SCALING );
+    aPoint.moveBy( dx, (((1-size())*Flags::print[FONT_SIZE].opts.value.i)/2 + 2) * FIG_SCALING );
     return aPoint;
 }
 

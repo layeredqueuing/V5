@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.h 14956 2021-09-07 19:27:11Z greg $
+ * $Id: glblerr.h 15139 2021-12-02 02:00:26Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -38,7 +38,6 @@ namespace LQIO {
         ERR_NO_OBJECT,
         ERR_NON_UNITY_REPLIES,
         ERR_DUPLICATE_SYMBOL,
-        ERR_DOMAIN_ERROR,
         ERR_LQX_COMPILATION,
         ERR_LQX_EXECUTION,
 	ERR_LQX_SPEX,

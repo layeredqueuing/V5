@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14661 2021-05-17 19:39:16Z greg $ *
+ * $Id: pragma.cc 15154 2021-12-03 22:16:10Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -19,6 +19,7 @@
 #include <lqio/glblerr.h>
 #include "pragma.h"
 
+LQIO::DOM::Pragma pragmas;
 Pragma * Pragma::__cache = nullptr;
 std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
 {
@@ -101,8 +102,8 @@ void Pragma::setBCMP( const std::string& value )
     if ( pragma != __bcmp_pragma.end() ) {
 	switch ( pragma->second ) {
 	case BCMP::STANDARD:
-	    Flags::print[QUEUEING_MODEL].value.i = 1;
-	    Flags::print[AGGREGATION].value.i = AGGREGATE_ENTRIES;
+	    Flags::print[QUEUEING_MODEL].opts.value.i = 1;
+	    Flags::print[AGGREGATION].opts.value.i = AGGREGATE_ENTRIES;
 	    Flags::bcmp_model = true;
 	    break;
 	default:
@@ -140,36 +141,36 @@ void Pragma::setForceInfinite( const std::string& value )
 }
 
 
-layering_format Pragma::layering()
+Layering Pragma::layering()
 {
-    switch ( Flags::print[LAYERING].value.i ) {
-    case LAYERING_BATCH:
-    case LAYERING_HWSW:
-    case LAYERING_MOL:
-    case LAYERING_SQUASHED:
-    case LAYERING_SRVN:
-	return static_cast<layering_format>(Flags::print[LAYERING].value.i);
+    switch ( Flags::print[LAYERING].opts.value.l ) {
+    case Layering::BATCH:
+    case Layering::HWSW:
+    case Layering::MOL:
+    case Layering::SQUASHED:
+    case Layering::SRVN:
+	return Flags::print[LAYERING].opts.value.l;
 	
     default:
-	return LAYERING_BATCH;
+	return Layering::BATCH;
     }
 }
 
 void Pragma::setLayering(const std::string& value)
 {
-    static const std::map<const std::string,const layering_format> __layering_pragma = {
-	{ LQIO::DOM::Pragma::_batched_,		LAYERING_BATCH },
-	{ LQIO::DOM::Pragma::_batched_back_,	LAYERING_BATCH },
-	{ LQIO::DOM::Pragma::_hwsw_,		LAYERING_HWSW },
-	{ LQIO::DOM::Pragma::_mol_,		LAYERING_MOL },
-	{ LQIO::DOM::Pragma::_mol_back_,	LAYERING_MOL },
-	{ LQIO::DOM::Pragma::_squashed_,	LAYERING_SQUASHED },
-	{ LQIO::DOM::Pragma::_srvn_,		LAYERING_SRVN }
+    static const std::map<const std::string,const Layering> __layering_pragma = {
+	{ LQIO::DOM::Pragma::_batched_,		Layering::BATCH },
+	{ LQIO::DOM::Pragma::_batched_back_,	Layering::BATCH },
+	{ LQIO::DOM::Pragma::_hwsw_,		Layering::HWSW },
+	{ LQIO::DOM::Pragma::_mol_,		Layering::MOL },
+	{ LQIO::DOM::Pragma::_mol_back_,	Layering::MOL },
+	{ LQIO::DOM::Pragma::_squashed_,	Layering::SQUASHED },
+	{ LQIO::DOM::Pragma::_srvn_,		Layering::SRVN }
     };
 
-    const std::map<const std::string,const layering_format>::const_iterator pragma = __layering_pragma.find( value );
+    const std::map<const std::string,const Layering>::const_iterator pragma = __layering_pragma.find( value );
     if ( pragma != __layering_pragma.end() ) {
-	Flags::print[LAYERING].value.i = pragma->second;
+	Flags::print[LAYERING].opts.value.l = pragma->second;
     } else {
 	throw std::domain_error( value );
     }

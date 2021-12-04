@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 15067 2021-10-12 14:12:20Z greg $
+ * $Id: activity.cc 15140 2021-12-02 15:04:21Z greg $
  */
 
 #include "activity.h"
@@ -584,7 +584,7 @@ Activity::aggregateService( Entry * anEntry, const unsigned p, const double rate
 	sum = rate;
     }
 
-    switch ( Flags::print[AGGREGATION].value.i ) {
+    switch ( Flags::print[AGGREGATION].opts.value.i ) {
     case AGGREGATE_ENTRIES:
     case AGGREGATE_PHASES:
     case AGGREGATE_ACTIVITIES:
@@ -836,8 +836,8 @@ Activity::hasCalls( const callPredicate predicate ) const
 bool
 Activity::isSelectedIndirectly() const
 {
-    if ( Flags::print[CHAIN].value.i ) {
-	return hasPath( Flags::print[CHAIN].value.i );
+    if ( Flags::print[CHAIN].opts.value.i ) {
+	return hasPath( Flags::print[CHAIN].opts.value.i );
     } else if ( owner()->isSelected() ) {
 	return true;
     }
@@ -1013,14 +1013,14 @@ Activity&
 Activity::label()
 {
     *myLabel << name();
-    if ( Flags::print[INPUT_PARAMETERS].value.b && hasServiceTime() ) {
+    if ( Flags::print[INPUT_PARAMETERS].opts.value.b && hasServiceTime() ) {
 	myLabel->newLine() << '[' << serviceTime()  << ']';
     }
     if ( Flags::have_results ) {
-	if ( Flags::print[SERVICE].value.b ) {
+	if ( Flags::print[SERVICE].opts.value.b ) {
 	    myLabel->newLine() << begin_math() << opt_pct(executionTime()) << end_math();
 	}
-	if ( Flags::print[VARIANCE].value.b ) {
+	if ( Flags::print[VARIANCE].opts.value.b ) {
 	    myLabel->newLine() << begin_math( &Label::sigma ) << "=" << opt_pct(variance()) << end_math();
 	}
     }
@@ -1039,7 +1039,7 @@ Activity::colour() const
 {
     if ( !reachable() ) {
 	return Graphic::RED;
-    } else switch ( Flags::print[COLOUR].value.i ) {
+    } else switch ( Flags::print[COLOUR].opts.value.i ) {
     case COLOUR_RESULTS:
     case COLOUR_DIFFERENCES:
 	return owner()->colour();

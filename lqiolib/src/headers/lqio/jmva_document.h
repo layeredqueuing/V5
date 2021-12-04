@@ -211,7 +211,7 @@ namespace BCMP {
 	
 	void appendResultVariable( const std::string& );
 	
-	class what_if {
+	class What_If {
 	private:
 	    class has_customers {
 	    public:
@@ -264,8 +264,9 @@ namespace BCMP {
 	    };
 
 	public:
-	    what_if( std::ostream& output, const BCMP::Model& model ) : _output(output), _model(model) {}
+	    What_If( std::ostream& output, const BCMP::Model& model ) : _output(output), _model(model) {}
 	    void operator()( const std::pair<std::string,LQX::SyntaxTreeNode *>& ) const;
+	    void operator()( const std::string& ) const;
 	    const Model::Model::Station::map_t& stations() const { return _model.stations(); }
 	    const Model::Chain::map_t& chains() const { return _model.chains(); }
 	private:
@@ -346,8 +347,10 @@ namespace BCMP {
 	XML_Parser _parser;
 	std::string _text;
 	std::stack<parse_stack_t> _stack;
-	expr_list* _lqx_program;
 	LQIO::DOM::Pragma _pragmas;
+
+	/* SPEX */
+	expr_list* _lqx_program;
 	std::map<std::string,LQIO::DOM::SymbolExternalVariable*> _variables;	/* Spex vars */
 
 	/* Maps for asssociating var (the string) to an object */
@@ -385,6 +388,7 @@ namespace BCMP {
 	static const XML_Char * Xcustomerclass;
 	static const XML_Char * Xdelaystation;
 	static const XML_Char * Xdescription;
+	static const XML_Char * Xldstation;
 	static const XML_Char * Xlistation;
 	static const XML_Char * XmaxSamples;
 	static const XML_Char * Xmodel;

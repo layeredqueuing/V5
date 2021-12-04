@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 14644 2021-05-14 15:09:03Z greg $
+ * $Id: model.h 15154 2021-12-03 22:16:10Z greg $
  */
 
 #ifndef _MODEL_H
@@ -155,6 +155,7 @@ public:
 
     Model& setModelNumber( unsigned int n ) { _modelNumber = n; return *this; }
 
+    static void create( const std::string& inputFileName,  const std::string& output_file_name, const std::string& parse_file_name, int model_no );
     bool load( const char * );
     bool process();
     bool store();
@@ -236,12 +237,21 @@ private:
     std::ostream& printBCMP( std::ostream& output ) const;
 #endif
     std::ostream& printEEPIC( std::ostream& output ) const;
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
     std::ostream& printEMF( std::ostream& output ) const;
 #endif
     std::ostream& printFIG( std::ostream& output ) const;
 #if HAVE_LIBGD
     std::ostream& printGD( std::ostream& output, outputFuncPtr func ) const;
+#if HAVE_GDIMAGEGIFPTR
+    std::ostream& printGIF( std::ostream& output ) const;
+#endif
+#if HAVE_LIBJPEG
+    std::ostream& printJPG( std::ostream& output ) const;
+#endif
+#if HAVE_LIBPNG
+    std::ostream& printPNG( std::ostream& output ) const;
+#endif
 #endif
     std::ostream& printPostScript( std::ostream& output ) const;
 #if defined(SVG_OUTPUT)
@@ -264,9 +274,11 @@ private:
 #endif
     std::ostream& printInput( std::ostream& output ) const;
     std::ostream& printOutput( std::ostream& output ) const;
+    std::ostream& printNOP( std::ostream& output ) const { return output; }
     std::ostream& printParseable( std::ostream& output ) const;
     std::ostream& printRTF( std::ostream& output ) const;
     std::ostream& printJSON( std::ostream& output ) const;
+    std::ostream& printLQX( std::ostream& output ) const;
     std::ostream& printXML( std::ostream& output ) const;
 
     std::ostream& printLayers( std::ostream& ) const;

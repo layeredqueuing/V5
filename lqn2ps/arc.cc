@@ -1,6 +1,6 @@
 /* arc.cc	-- Greg Franks Thu Jan 30 2003
  *
- * $Id: arc.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: arc.cc 15141 2021-12-02 15:31:46Z greg $
  */
 
 #include "lqn2ps.h"
@@ -13,41 +13,41 @@
 Arc *
 Arc::newArc( const unsigned size, const arrowhead_type arrow )
 {
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-    case FORMAT_EEPIC:
+    switch( Flags::print[OUTPUT_FORMAT].opts.value.o ) {
+    case file_format::EEPIC:
 	return new ArcTeX( size, arrow );	/* the graphical object		*/
-    case FORMAT_PSTEX:
+    case file_format::PSTEX:
 	return new ArcFig(size, arrow);		/* the graphical object		*/
-    case FORMAT_POSTSCRIPT:
+    case file_format::POSTSCRIPT:
 	return new ArcPostScript( size, arrow );/* the graphical object		*/
-    case FORMAT_FIG:
+    case file_format::FIG:
 	return new ArcFig( size, arrow );	/* the graphical object		*/
 #if HAVE_GD_H && HAVE_LIBGD
 #if HAVE_GDIMAGEGIFPTR
-    case FORMAT_GIF:
+    case file_format::GIF:
 #endif
 #if HAVE_LIBJPEG 
-    case FORMAT_JPEG:
+    case file_format::JPEG:
 #endif
 #if HAVE_LIBPNG
-    case FORMAT_PNG:
+    case file_format::PNG:
 #endif
 	return new ArcGD( size, arrow );
 #endif
 #if defined(SVG_OUTPUT)
-    case FORMAT_SVG:
+    case file_format::SVG:
 	return new ArcSVG( size, arrow );
 #endif
 #if defined(SXD_OUTPUT)
-    case FORMAT_SXD:
+    case file_format::SXD:
 	return new ArcSXD( size, arrow );
 #endif
 #if defined(EMF_OUTPUT)
-    case FORMAT_EMF:
+    case file_format::EMF:
 	return new ArcEMF( size, arrow );
 #endif
 #if defined(X11_OUTPUT)
-    case FORMAT_X11:
+    case file_format::X11:
 	return new ArcX11( size, arrow );
 #endif
     default:

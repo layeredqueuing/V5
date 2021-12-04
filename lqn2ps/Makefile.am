@@ -1,6 +1,6 @@
 # Makefile for .
 # Copyright (C) 2003 Greg Franks <rgfranks@alumni.uwaterloo.ca>
-# $Id: Makefile.am 14429 2021-01-29 20:49:19Z greg $
+# $Id: Makefile.am 15140 2021-12-02 15:04:21Z greg $
 # ----------------------------------------------------------------------
 ACLOCAL_AMFLAGS=-I ../config 
 SUBDIRS		= 
@@ -18,7 +18,7 @@ AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers
 bin_PROGRAMS 	= lqn2ps 
 OTHEREXE	= lqn2emf lqn2fig lqn2out lqn2lqn lqn2svg lqn2xml $(MAYBE_PNG) $(MAYBE_JPEG) $(MAYBE_GIF) rep2flat 
 lqn2ps_SOURCES 	= activity.cc actlayer.cc actlist.cc arc.cc call.cc element.cc entity.cc entry.cc errmsg.cc \
-		getopt2.cc graphic.cc group.cc help.cc key.cc label.cc layer.cc lqn2ps.cc main.cc model.cc node.cc \
+		getopt2.cc graphic.cc group.cc help.cc key.cc label.cc layer.cc lqn2ps.cc option.cc model.cc node.cc \
 		open.cc phase.cc point.cc pragma.cc processor.cc runlqx.cc share.cc task.cc
 
 noinst_HEADERS 	= actlayer.h activity.h actlist.h arc.h call.h element.h entity.h entry.h errmsg.h \

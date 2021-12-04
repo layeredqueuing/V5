@@ -14,14 +14,14 @@
 	  <visit customerclass="Class1">1.0</visit>
 	</visits>
       </delaystation>
-      <listation name="t0" servers="1">
+      <ldstation name="t0">
 	<servicetimes>
 	  <servicetime customerclass="Class1">1.0</servicetime>
 	</servicetimes>
 	<visits>
 	  <visit customerclass="Class1">1.0</visit>
 	</visits>
-      </listation>
+      </ldstation>
     </stations>
     <ReferenceStation number="1">
       <Class name="Class1" refStation="c0"/>

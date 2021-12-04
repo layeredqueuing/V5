@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: flags.h 15053 2021-10-08 02:13:14Z greg $
+ * $Id: flags.h 15149 2021-12-03 16:29:26Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -30,7 +30,7 @@ extern struct FLAGS {
     unsigned verbose:1;				/* -v: Be chatty.			*/
     unsigned json_output:1;			/* -j: Ouptut JSON output		*/
     unsigned xml_output:1;			/* -x: Ouptut XML output		*/
-    unsigned debug_spex:1;			/* --debug-spex: Ouptut LQX		*/
+    unsigned print_lqx:1;			/* --debug-spex: Ouptut LQX		*/
     
     unsigned average_variance:1;		/* Use average variance values.		*/
 

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 15053 2021-10-08 02:13:14Z greg $
+ * $Id: model.cc 15149 2021-12-03 16:29:26Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -17,7 +17,7 @@
  * 2) Call initialize (after lqx starts executing)
  *    a) Call extend (add replicas, think server...)
  *    b) Call generate().  (adds entities to submodels.)
- *       i)  topologicalSort() to sort to visit all nodes and sort into layers.  
+ *       i)  topologicalSort() to sort to visit all nodes and sort into layers.
  *           Activitly lists checked and are set up during the sorting process.
  *       ii) addToSubmodel() to add server stations to the basic model.
  *    c) Call configure (dimension arrays)
@@ -51,6 +51,8 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <lqio/dom_bindings.h>
+#include <lqio/dom_document.h>
 #include <lqio/error.h>
 #include <lqio/filename.h>
 #include <lqio/input.h>
@@ -88,6 +90,7 @@ unsigned Model::__print_interval = 0;
 Processor * Model::__think_server = nullptr;
 unsigned Model::__sync_submodel = 0;
 LQIO::DOM::Document::InputFormat Model::input_format = LQIO::DOM::Document::InputFormat::AUTOMATIC;
+extern LQIO::DOM::Pragma pragmas;
 
 std::set<Processor *,Model::lt_replica<Processor>> Model::__processor;
 std::set<Group *,Model::lt_replica<Group>> Model::__group;
@@ -97,6 +100,146 @@ std::set<Entry *,Model::lt_replica<Entry>> Model::__entry;
 /*----------------------------------------------------------------------*/
 /*                           Factory Methods                            */
 /*----------------------------------------------------------------------*/
+
+/*
+ * Open output files, solve, and print.
+ */
+
+int
+Model::create( const std::string& inputFileName, const std::string& outputFileName )
+{
+    /* Open input file. */
+
+    if ( !flags.no_execute && flags.generate && Generate::file_name.size() == 0 ) {
+        Generate::file_name = LQIO::Filename( inputFileName )();
+    }
+
+    /* This is a departure from before -- we begin by loading a model */
+    LQIO::DOM::Document* document = Model::load(inputFileName,outputFileName);
+
+    /* Make sure we got a document */
+
+    if ( document == nullptr || LQIO::io_vars.anError() ) return INVALID_INPUT;
+
+    document->mergePragmas( pragmas.getList() );       /* Save pragmas -- prepare will process */
+    if ( Model::prepare(document) == false ) return INVALID_INPUT;
+
+    if ( document->getInputFormat() == LQIO::DOM::Document::InputFormat::XML || document->getInputFormat() == LQIO::DOM::Document::InputFormat::JSON ) {
+	if ( LQIO::Spex::__no_header ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
+	}
+	if ( LQIO::Spex::__print_comment ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": --print-comment is ignored for " << inputFileName << "." << std::endl;
+	}
+    }
+
+    /* declare Model * at this scope but don't instantiate due to problems with LQX programs and registering external symbols*/
+    Model * model = nullptr;
+    int rc = 0;
+
+    /* We can simply run if there's no control program */
+    LQX::Program * program = document->getLQXProgram();
+    FILE * output = nullptr;
+    if ( !program ) {
+
+	/* There is no control flow program, check for $-variables */
+	if (document->getSymbolExternalVariableCount() != 0) {
+	    LQIO::solution_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, inputFileName.c_str() );
+	    rc = INVALID_INPUT;
+	} else {
+	    /* Make sure values are up to date */
+	    Model::recalculateDynamicValues( document );
+
+	    /* Simply invoke the solver for the current DOM state */
+
+	    try {
+		model = Model::create( document, inputFileName, outputFileName );
+
+		if ( model->check() && model->initialize() ) {
+		    if ( Pragma::spexComment() ) {	// Not spex/lqx, so output on stderr.
+			std::cerr << inputFileName << ": " << document->getModelCommentString() << std::endl;
+		    }
+		    model->solve();
+		} else {
+		    rc = INVALID_INPUT;
+		}
+	    }
+	    catch ( const std::domain_error& e ) {
+		rc = INVALID_INPUT;
+	    }
+	    catch ( const std::range_error& e ) {
+		std::cerr << LQIO::io_vars.lq_toolname << ": range error - " << e.what() << std::endl;
+		rc = INVALID_OUTPUT;
+	    }
+	    catch ( const floating_point_error& e ) {
+		std::cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << e.what() << std::endl;
+		rc = INVALID_OUTPUT;
+	    }
+	    catch ( const std::runtime_error& e ) {
+		std::cerr << LQIO::io_vars.lq_toolname << ": run time error - " << e.what() << std::endl;
+		rc = INVALID_INPUT;
+	    }
+	}
+
+    } else {
+
+	if ( flags.verbose ) {
+	    std::cerr << "Compile LQX..." << std::endl;
+	}
+
+	/* Attempt to run the program */
+	document->registerExternalSymbolsWithProgram( program );
+
+	if ( flags.print_lqx ) {
+	    program->print( std::cout );
+	}
+
+	model = Model::create( document, inputFileName, outputFileName );
+
+	LQX::Environment * environment = program->getEnvironment();
+	if ( flags.restart ) {
+	    environment->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::restart, model));
+	} else if ( flags.reload_only ) {
+	    environment->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::reload, model));
+	} else {
+	    environment->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::solve, model));
+	}
+	LQIO::RegisterBindings(environment, document);
+
+	if ( outputFileName.size() > 0 && outputFileName != "-" && LQIO::Filename::isRegularFile(outputFileName.c_str()) ) {
+	    output = fopen( outputFileName.c_str(), "w" );
+	    if ( !output ) {
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, outputFileName.c_str(), strerror( errno ) );
+		rc = FILEIO_ERROR;
+	    } else {
+		environment->setDefaultOutput( output );      /* Default is stdout */
+	    }
+	}
+
+	if ( rc == 0 ) {
+	    /* Invoke the LQX program itself */
+	    if ( !program->invoke() ) {
+		LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, inputFileName.c_str() );
+		rc = INVALID_INPUT;
+	    } else if ( !SolverInterface::Solve::solveCallViaLQX ) {
+		/* There was no call to solve the LQX */
+		LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, inputFileName.c_str() );
+		std::vector<LQX::SymbolAutoRef> args;
+		environment->invokeGlobalMethod("solve", &args);
+	    }
+	}
+    }
+
+    /* Clean things up */
+    if ( model ) delete model;
+    if ( output ) fclose( output );
+    if ( program ) delete program;
+    delete document;
+    return rc;
+}
+
+
+
 
 /*
  * Step 1: load model.
@@ -130,7 +273,7 @@ Model::load( const std::string& input_filename, const std::string& output_filena
 }
 
 
-/* 
+/*
  * Step 2: convert DOM into lqn entities.
  */
 
@@ -255,7 +398,7 @@ Model::prepare(const LQIO::DOM::Document* document)
     Activity::completeConnections();
 
     std::for_each( __task.begin(), __task.end(), Exec<Task>( &Task::linkForkToJoin ) );	/* Link forks to joins		*/
-    
+
     /* Tell the user that we have finished */
     DEBUG("[0]: Finished loading the model" << std::endl << std::endl);
 
@@ -289,7 +432,15 @@ Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
 Model *
 Model::create( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName )
 {
-    Model *model = nullptr;
+    static const std::map<const Pragma::Layering, create_func> create_funcs = {
+	{ Pragma::Layering::BATCHED,  			    &Batch_Model::create },
+	{ Pragma::Layering::BACKPROPOGATE_BATCHED,  	    &BackPropogate_Batch_Model::create },
+	{ Pragma::Layering::METHOD_OF_LAYERS,  		    &MOL_Model::create },
+	{ Pragma::Layering::BACKPROPOGATE_METHOD_OF_LAYERS, &BackPropogate_MOL_Model::create },
+	{ Pragma::Layering::SRVN,  			    &SRVN_Model::create },
+	{ Pragma::Layering::SQUASHED,  			    &Squashed_Model::create },
+	{ Pragma::Layering::HWSW,  			    &HwSw_Model::create }
+    };
 
     Activity::clearConnectionMaps();
     MVA::__bounds_limit = Pragma::tau();
@@ -299,38 +450,10 @@ Model::create( const LQIO::DOM::Document * document, const std::string& inputFil
      * disable model checking and expansion at this stage with LQX programs
      */
 
-
     if ( flags.verbose ) std::cerr << "Create: " << Pragma::getLayeringStr() << " layers..." << std::endl;
-	
-    switch ( Pragma::layering() ) {
-    case Pragma::Layering::BATCHED: 
-	model = new Batch_Model( document, inputFileName, outputFileName );
-	break;
 
-    case Pragma::Layering::BACKPROPOGATE_BATCHED:
-	model = new BackPropogate_Batch_Model( document, inputFileName, outputFileName );
-	break;
-
-    case Pragma::Layering::METHOD_OF_LAYERS:
-	model = new MOL_Model( document, inputFileName, outputFileName );
-	break;
-
-    case Pragma::Layering::BACKPROPOGATE_METHOD_OF_LAYERS:
-	model = new BackPropogate_MOL_Model( document, inputFileName, outputFileName );
-	break;
-
-    case Pragma::Layering::SRVN:
-	model = new SRVN_Model( document, inputFileName, outputFileName );
-	break;
-
-    case Pragma::Layering::SQUASHED:
-	model = new Squashed_Model( document, inputFileName, outputFileName );
-	break;
-
-    case Pragma::Layering::HWSW:
-	model = new HwSw_Model( document, inputFileName, outputFileName );
-	break;
-    }
+    create_func f = create_funcs.at(Pragma::layering());
+    Model * model = (*f)( document, inputFileName, outputFileName );
 
     if ( !model ) throw std::runtime_error( "could not create model" );
 
@@ -471,7 +594,7 @@ Model::extend()
 //	const std::set<Group *,lt_replica<Group>> Model::__group;
 	const std::set<Task *,lt_replica<Task>> tasks(Model::__task);
 	const std::set<Entry *,lt_replica<Entry>> entries(Model::__entry);
-	
+
 	/* Create processors and entries first as tasks need them.  */
 	std::for_each( processors.begin(), processors.end(), Exec<Processor>( &Processor::expand ) );
 	std::for_each( entries.begin(), entries.end(), Exec<Entry>( &Entry::expand ) );
@@ -481,9 +604,9 @@ Model::extend()
 	std::for_each( entries.begin(), entries.end(), Exec<Entry>( &Entry::expandCalls ) );
 	std::for_each( tasks.begin(), tasks.end(), Exec<Task>( &Task::expandCalls ) );
     }
-    
+
     /* Think times. */
-    
+
     for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
 
 	/* Add a delay server for think times. */
@@ -515,9 +638,9 @@ bool
 Model::check()
 {
     if ( flags.verbose ) std::cerr << "Check..." << std::endl;
-    
+
     if ( LQIO::io_vars.anError() ) return false;	/* Don't bother */
-    
+
     bool rc = true;
     rc = std::all_of( __processor.begin(), __processor.end(), Predicate<Processor>( &Processor::check ) ) && rc;
     rc = std::all_of( __task.begin(), __task.end(), Predicate<Task>( &Task::check ) ) && rc;
@@ -553,7 +676,7 @@ Model::generate( unsigned max_depth )
     for ( unsigned int i = 1; i <= max_depth; ++i ) {
 	_submodels[i] = new MVASubmodel(i);
     }
-    
+
     /* Add submodel for join delay calculation */
 
     if ( std::any_of( __task.begin(), __task.end(), Predicate<Task>( &Task::hasForks ) ) ) {
@@ -609,7 +732,7 @@ Model::initStations()
 	}
     }
 
-    /* 
+    /*
      * Initialize waiting times and populations at servers Done in
      * reverse order (bottom up) because waits propogate upwards.
      */
@@ -627,7 +750,7 @@ Model::initStations()
     }
 
     /* build stations and customers as needed. */
-    
+
     std::for_each( _submodels.begin(), _submodels.end(), Exec<Submodel>( &Submodel::build ) );      	    /* For use by MVA stats/generate*/
 }
 
@@ -661,7 +784,7 @@ Model::reinitStations()
 
     std::for_each( __task.begin(),  __task.end(), Exec<Task>( &Task::createInterlock ) );
 
-    /* 
+    /*
      * Initialize waiting times and populations at servers Done in
      * reverse order (bottom up) because waits propogate upwards.
      */
@@ -863,7 +986,7 @@ Model::reload()
     }
 
     unsigned int errorCode;
-    if ( !const_cast<LQIO::DOM::Document *>(_document)->loadResults( directory_name(), _input_file_name, 
+    if ( !const_cast<LQIO::DOM::Document *>(_document)->loadResults( directory_name(), _input_file_name,
 								     SolverInterface::Solve::customSuffix, errorCode ) ) {
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     } else {
@@ -878,7 +1001,7 @@ Model::restart()
     try {
 	if ( !reload() ) {
 	    return solve();
-	} 
+	}
 	return false;
     }
     catch ( const LQX::RuntimeException& e ) {
@@ -999,7 +1122,7 @@ Model::printSubmodelWait( std::ostream& output ) const
 
 
 
-std::ostream& 
+std::ostream&
 Model::printOvertaking( std::ostream& output ) const
 {
     std::ios_base::fmtflags oldFlags = output.setf( std::ios::left, std::ios::adjustfield );
@@ -1082,7 +1205,7 @@ Model::topologicalSort()
     static const NullCall null_call;				/* Place holder */
 
     /* Only do reference tasks or those with open arrivals */
-    
+
     for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
 	switch ( (*task)->rootLevel() ) {
 	case Task::root_level_t::IS_NON_REFERENCE: continue;
@@ -1265,10 +1388,7 @@ Batch_Model::addToSubmodel()
     for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
 	const unsigned int i = (*task)->submodel();
 	if ( !(*task)->isReferenceTask() ) {
-	    if ( i == 0 ) {
-		const Task& client = **task;
-		throw std::runtime_error( "Batch_Model::addToSubmodel: bad submodel for task " + client.name() );
-	    }
+	    if ( i == 0 ) continue;
 	    _submodels[i]->addServer( *task );
 	}
 	if ( (*task)->hasForks() ) {

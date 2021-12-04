@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14644 2021-05-14 15:09:03Z greg $
+ * $Id: call.cc 15141 2021-12-02 15:31:46Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -833,9 +833,9 @@ Call::isSelected() const
 	|| queueing_output()
 	|| (!partial_output()
 	    && (!queueing_output()
-		&& Flags::print[CHAIN].value.i == 0
+		&& Flags::print[CHAIN].opts.value.i == 0
 		&& !isPseudoCall())
-	    || (Flags::print[CHAIN].value.i != 0
+	    || (Flags::print[CHAIN].opts.value.i != 0
 		&& dstTask()->isSelectedIndirectly()));
 }
 
@@ -896,7 +896,7 @@ Call::hasSendNoReplyForPhase( const unsigned p ) const
 Graphic::colour_type
 Call::colour() const
 {
-    switch ( Flags::print[COLOUR].value.i ) {
+    switch ( Flags::print[COLOUR].opts.value.i ) {
     case COLOUR_RESULTS:
     case COLOUR_DIFFERENCES:
 	if ( hasDropProbability() || hasInfiniteWait() ) {
@@ -920,7 +920,7 @@ Call&
 Call::moveDst( const Point& aPoint )
 {
     GenericCall::moveDst( aPoint );
-    const double delta_y = Flags::print[Y_SPACING].value.f / 3.0;
+    const double delta_y = Flags::print[Y_SPACING].opts.value.f / 3.0;
     /* Hack to stagger labels */
     const std::vector<GenericCall *>& callers = dstEntry()->callers();
     unsigned int even = 1;
@@ -961,11 +961,11 @@ Call::moveDst( const Point& aPoint )
 Call&
 Call::label()
 {
-    if ( Flags::print[INPUT_PARAMETERS].value.b ) {
-	if ( hasNoCall() && Flags::print[COLOUR].value.i != COLOUR_OFF ) {
+    if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
+	if ( hasNoCall() && Flags::print[COLOUR].opts.value.i != COLOUR_OFF ) {
 	    _label->colour( Graphic::RED );
 	}
-	if ( Flags::print[AGGREGATION].value.i != AGGREGATE_ENTRIES ) {
+	if ( Flags::print[AGGREGATION].opts.value.i != AGGREGATE_ENTRIES ) {
 	    *_label << '(' << print_calls(*this) << ')';
 	}
 	const LQIO::DOM::ExternalVariable& fan_out = srcTask()->fanOut( dstTask() );
@@ -979,10 +979,10 @@ Call::label()
     }
     if ( Flags::have_results ) {
 	Graphic::colour_type c = (hasDropProbability() || hasInfiniteWait()) ? Graphic::RED : Graphic::DEFAULT_COLOUR;
-	if ( Flags::print[WAITING].value.b && hasWaiting() ) {
+	if ( Flags::print[WAITING].opts.value.b && hasWaiting() ) {
 	    _label->newLine().colour(c) << begin_math() << print_wait(*this) << end_math();
 	}
-	if ( Flags::print[LOSS_PROBABILITY].value.b && hasDropProbability() ) {
+	if ( Flags::print[LOSS_PROBABILITY].opts.value.b && hasDropProbability() ) {
 	    _label->newLine().colour(c) << begin_math( &Label::epsilon ) << "=" << print_drop_probability(*this) << end_math();
 	}
     }
@@ -1301,7 +1301,7 @@ EntryCall::setChain( const unsigned k )
 Graphic::colour_type
 EntryCall::colour() const
 {
-    switch ( Flags::print[COLOUR].value.i ) {
+    switch ( Flags::print[COLOUR].opts.value.i ) {
     case COLOUR_CLIENTS:
 	return srcEntry()->colour();
 
@@ -1438,7 +1438,7 @@ ActivityCall::addForwardingCall( Entry * toEntry, const double rate )
 Graphic::colour_type
 ActivityCall::colour() const
 {
-    switch ( Flags::print[COLOUR].value.i ) {
+    switch ( Flags::print[COLOUR].opts.value.i ) {
     case COLOUR_CLIENTS:
 	return srcActivity()->colour();
 
@@ -1648,9 +1648,9 @@ TaskCall::isSelected() const
 		    && !isPseudoCall()) ))
 	|| (!partial_output()
 	    && (!queueing_output()
-		&& Flags::print[CHAIN].value.i == 0
+		&& Flags::print[CHAIN].opts.value.i == 0
 		&& !isPseudoCall())
-	    || (Flags::print[CHAIN].value.i != 0
+	    || (Flags::print[CHAIN].opts.value.i != 0
 		&& dstEntity()->isSelectedIndirectly()));
 }
 
@@ -1697,7 +1697,7 @@ TaskCall::setChain( const unsigned k )
 Graphic::colour_type
 TaskCall::colour() const
 {
-    switch ( Flags::print[COLOUR].value.i ) {
+    switch ( Flags::print[COLOUR].opts.value.i ) {
     case COLOUR_CLIENTS:
 	return srcTask()->colour();
     case COLOUR_SERVER_TYPE:
@@ -1739,9 +1739,9 @@ TaskCall::moveSrcBy( const double dx, const double dy )
 TaskCall&
 TaskCall::label()
 {
-    if ( Flags::print[INPUT_PARAMETERS].value.b ) {
+    if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
 	bool print_goop = false;
-	if ( hasRendezvous() && Flags::print[PRINT_AGGREGATE].value.b ) {
+	if ( hasRendezvous() && Flags::print[PRINT_AGGREGATE].opts.value.b ) {
 	    *_label << "(" << rendezvous() << ")";
 	    print_goop = true;
 	}
@@ -1762,7 +1762,7 @@ TaskCall::label()
 	}
     }
     if ( dynamic_cast<const Task *>(srcTask())->hasQueueingTime() &&
-	 Flags::have_results && Flags::print[PROCESSOR_QUEUEING].value.b ) {
+	 Flags::have_results && Flags::print[PROCESSOR_QUEUEING].opts.value.b ) {
 	bool print = false;
 	const std::vector<Entry *>& entries = dynamic_cast<const Task *>(srcTask())->entries();
 	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
@@ -1917,9 +1917,9 @@ ProcessorCall::fanOut() const
 bool
 ProcessorCall::isSelected() const
 {
-    return ( dstEntity()->isSelected() || Flags::print[INCLUDE_ONLY].value.r )
+    return ( dstEntity()->isSelected() || Flags::print[INCLUDE_ONLY].opts.value.r )
 	&& ( dynamic_cast<const Processor *>(dstEntity())->isInteresting()
-	     || (Flags::print[CHAIN].value.i != 0 && dstEntity()->isSelectedIndirectly())
+	     || (Flags::print[CHAIN].opts.value.i != 0 && dstEntity()->isSelectedIndirectly())
 	     || submodel_output()
 	     || queueing_output() );
 }
@@ -1941,7 +1941,7 @@ ProcessorCall::setChain( const unsigned k )
 Graphic::colour_type
 ProcessorCall::colour() const
 {
-    switch ( Flags::print[COLOUR].value.i ) {
+    switch ( Flags::print[COLOUR].opts.value.i ) {
     case COLOUR_CLIENTS:	return srcTask()->colour();
     case COLOUR_SERVER_TYPE:	return GenericCall::colour();
     }
@@ -1984,7 +1984,7 @@ ProcessorCall::moveDst( const Point& aPoint )
 ProcessorCall&
 ProcessorCall::label()
 {
-    if ( Flags::print[INPUT_PARAMETERS].value.b && Flags::prune ) {
+    if ( Flags::print[INPUT_PARAMETERS].opts.value.b && Flags::prune ) {
 	if ( (hasRendezvous() || hasSendNoReply()) && _demand.visits() != nullptr ) {	/* Ignore the default */
 	    *_label << '(' << *_demand.visits() << ')';
 	}
@@ -1994,7 +1994,7 @@ ProcessorCall::label()
     const std::vector<Entry *>& entries = src.entries();
     const std::vector<Activity *>& activities = src.activities();
     bool do_newline = false;
-    if ( Flags::print[ENTRY_UTILIZATION].value.b && Flags::print[PROCESSOR_UTILIZATION].value.b ) {
+    if ( Flags::print[ENTRY_UTILIZATION].opts.value.b && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
 	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
 	    if ( !(*entry)->hasQueueingTime() || (*entry)->isActivityEntry() ) continue;
 	    if ( do_newline ) _label->newLine();
@@ -2008,7 +2008,7 @@ ProcessorCall::label()
 	    do_newline = true;
 	}
     }
-    if ( src.hasQueueingTime() && Flags::print[PROCESSOR_QUEUEING].value.b ) {
+    if ( src.hasQueueingTime() && Flags::print[PROCESSOR_QUEUEING].opts.value.b ) {
 	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
 	    if ( !(*entry)->hasQueueingTime() || (*entry)->isActivityEntry() ) continue;
 	    if ( do_newline ) _label->newLine();
@@ -2029,7 +2029,7 @@ ProcessorCall::label()
 void
 ProcessorCall::moveLabel()
 {
-    const double delta_y = Flags::print[Y_SPACING].value.f / 3.0;
+    const double delta_y = Flags::print[Y_SPACING].opts.value.f / 3.0;
     /* Hack to stagger labels */
     const std::vector<GenericCall *>& callers = dstEntity()->callers();
     unsigned int even = 1;
@@ -2248,7 +2248,7 @@ OpenArrival::setChain( const unsigned k )
 Graphic::colour_type
 OpenArrival::colour() const
 {
-    switch ( Flags::print[COLOUR].value.i ) {
+    switch ( Flags::print[COLOUR].opts.value.i ) {
     case COLOUR_SERVER_TYPE:
 	return Graphic::RED;
     }
@@ -2278,13 +2278,13 @@ OpenArrival&
 OpenArrival::label()
 {
     bool print = false;
-    if ( Flags::print[INPUT_PARAMETERS].value.b ) {
+    if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
 	*_label << begin_math( &Label::lambda ) << "=" << _destination->openArrivalRate() << end_math();
 	print = true;
     }
     if ( _destination->openWait()
 	 && Flags::have_results
-	 && Flags::print[OPEN_WAIT].value.b ) {
+	 && Flags::print[OPEN_WAIT].opts.value.b ) {
 	if ( print ) _label->newLine();
 	Graphic::colour_type c = std::isfinite( _destination->openWait() ) ? Graphic::DEFAULT_COLOUR : Graphic::RED;
 	_label->colour(c) << begin_math() << _destination->openWait() << end_math();
@@ -2365,9 +2365,9 @@ CallStack::size() const
 static std::ostream&
 format_prologue( std::ostream& output, const Call& aCall, int p )
 {
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-    case FORMAT_EEPIC:
-    case FORMAT_PSTEX:
+    switch( Flags::print[OUTPUT_FORMAT].opts.value.o ) {
+    case file_format::EEPIC:
+    case file_format::PSTEX:
 	if ( p != 1 ) {
 	    output << ',';
 	}
@@ -2375,14 +2375,14 @@ format_prologue( std::ostream& output, const Call& aCall, int p )
 	    output << "\\fbox{";
 	}
 	break;
-    case FORMAT_OUTPUT:
-    case FORMAT_PARSEABLE:
-    case FORMAT_RTF:
+    case file_format::OUTPUT:
+    case file_format::PARSEABLE:
+    case file_format::RTF:
 	output << std::setw( maxDblLen );
 	break;
-    case FORMAT_POSTSCRIPT:
-    case FORMAT_FIG:
-    case FORMAT_SVG:
+    case file_format::POSTSCRIPT:
+    case file_format::FIG:
+    case file_format::SVG:
 	if ( p != 1 ) {
 	    output << ',';
 	}
@@ -2399,16 +2399,16 @@ format_prologue( std::ostream& output, const Call& aCall, int p )
 static std::ostream&
 format_epilogue( std::ostream& output, const Call& aCall, int p )
 {
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-    case FORMAT_EEPIC:
-    case FORMAT_PSTEX:
+    switch( Flags::print[OUTPUT_FORMAT].opts.value.o ) {
+    case file_format::EEPIC:
+    case file_format::PSTEX:
 	if ( aCall.phaseTypeFlag(p) == LQIO::DOM::Phase::Type::DETERMINISTIC ) {
 	    output << "}";
 	}
 	break;
-    case FORMAT_POSTSCRIPT:
-    case FORMAT_SVG:
-    case FORMAT_FIG:
+    case file_format::POSTSCRIPT:
+    case file_format::SVG:
+    case file_format::FIG:
 	if ( aCall.phaseTypeFlag(p) == LQIO::DOM::Phase::Type::DETERMINISTIC ) {
 	    output << ":D";
 	}

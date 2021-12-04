@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 14724 2021-05-29 14:16:40Z greg $
+ * $Id: lqn2ps.h 15154 2021-12-03 22:16:10Z greg $
  *
  */
 
@@ -14,7 +14,6 @@
 #define SVG_OUTPUT	1
 #define SXD_OUTPUT	1
 #define TXT_OUTPUT	1
-#define QNAP_OUTPUT
 /* #define X11_OUTPUT */
 #define REP2FLAT	1	/* Allow expansion */
 #define BUG_270		1	/* Prune Null servers */
@@ -55,7 +54,7 @@ namespace LQIO {
 	class Phase;
 	class Pragma;
 	class Processor;
-	class Task;    
+	class Task;
     };
 };
 
@@ -101,67 +100,64 @@ typedef enum {
     JLQNDEF_STYLE
 } graphical_output_style_type;
 
-typedef enum {
-    FORMAT_EEPIC,
+enum class file_format {
+    EEPIC,
 #if defined(EMF_OUTPUT)
-    FORMAT_EMF,
+    EMF,
 #endif
-    FORMAT_FIG,
+    FIG,
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_GDIMAGEGIFPTR
-    FORMAT_GIF,
+    GIF,
 #endif
-#if JMVA_OUTPUT
-    FORMAT_JMVA,
+#if JMVA_OUTPUT && HAVE_EXPAT_H
+    JMVA,
 #endif
-#if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG 
-    FORMAT_JPEG,
+#if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG
+    JPEG,
 #endif
-    FORMAT_JSON,
-    FORMAT_LQX,
-    FORMAT_NULL,
-    FORMAT_OUTPUT,
+    JSON,
+    LQX,
+    NO_OUTPUT,
+    OUTPUT,
 #if QNAP2_OUTPUT
-    FORMAT_QNAP2,
+    QNAP2,
 #endif
-    FORMAT_PARSEABLE,
+    PARSEABLE,
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
-    FORMAT_PNG,
+    PNG,
 #endif
-    FORMAT_POSTSCRIPT,
-    FORMAT_PSTEX,
-#if defined(QNAP_OUTPUT)
-    FORMAT_QNAP,
-#endif
-    FORMAT_RTF,
-    FORMAT_SRVN,
+    POSTSCRIPT,
+    PSTEX,
+    RTF,
+    SRVN,
 #if defined(SVG_OUTPUT)
-    FORMAT_SVG,
+    SVG,
 #endif
 #if defined(SXD_OUTPUT)
-    FORMAT_SXD,
+    SXD,
 #endif
 #if defined(TXT_OUTPUT)
-    FORMAT_TXT,
+    TXT,
 #endif
 #if defined(X11_OUTPUT)
-    FORMAT_X11,
+    X11,
 #endif
-    FORMAT_XML,
-    FORMAT_UNKNOWN
-} output_format;
+    XML,
+    UNKNOWN
+};
 
-typedef enum {
-    LAYERING_BATCH,
-    LAYERING_GROUP,
-    LAYERING_HWSW,
-    LAYERING_MOL,
-    LAYERING_PROCESSOR,
-    LAYERING_PROCESSOR_TASK,
-    LAYERING_SHARE,
-    LAYERING_SQUASHED,
-    LAYERING_SRVN,
-    LAYERING_TASK_PROCESSOR
-} layering_format;
+enum class Layering {
+    BATCH,
+    GROUP,
+    HWSW,
+    MOL,
+    PROCESSOR,
+    PROCESSOR_TASK,
+    SHARE,
+    SQUASHED,
+    SRVN,
+    TASK_PROCESSOR
+};
 
 typedef enum {
     PROCESSOR_NONE,
@@ -243,22 +239,43 @@ typedef enum {
     COLOUR_DIFFERENCES		/* Results are differences */
 } colouring_type;
 	
-typedef struct 
+struct option_type
 {
     const char * name;
     const int c;
     const char * arg;
-    const char ** opts;
-    union {
-	int i;
-	bool b;
-	std::regex * r;
-	char * s;
-	double f;
-    } value;
+    struct {
+	union p {		/* Parameter */
+	    p(int _i_) : i(_i_) {}
+	    p(const char ** _a_ ) : a(_a_) {}
+	    p(const std::map<const file_format,const std::string>* _m_) : m(_m_) {}
+	    p(const std::map<const Layering,const std::string>* _l_) : l(_l_) {}
+	    const int i;
+	    const char ** a;
+	    const std::map<const file_format,const std::string>* m;
+	    const std::map<const Layering,const std::string>* l;
+	} param;
+	union a {		/* Argument */
+	    a() : s(nullptr) {}
+	    a(file_format _o_) : o(_o_) {}
+	    a(int _i_) : i(_i_) {}
+	    a(bool _b_) : b(_b_) {}
+	    a(Layering _l_) : l(_l_) {}
+	    a(std::regex * _r_) : r(_r_) {}
+	    a(char * _s_) : s(_s_) {}
+	    a(double _f_) : f(_f_) {}
+	    file_format o;
+	    Layering l;
+	    int i;
+	    bool b;
+	    std::regex * r;
+	    char * s;
+	    double f;
+	} value;
+    } opts;
     const bool result;
     const char * msg;
-} option_type;
+};
 
 
 /*
@@ -273,7 +290,7 @@ typedef enum
     COLOUR               ,
     DIFFMODE		 ,
     FONT_SIZE            ,
-    INPUT_FILE_FORMAT	 , 
+    INPUT_FORMAT	 ,
     HELP                 ,
     JUSTIFICATION        ,
     KEY                  ,
@@ -291,7 +308,7 @@ typedef enum
     WARNINGS             ,
     X_SPACING            ,
     Y_SPACING            ,
-    SPECIAL               ,
+    SPECIAL              ,
     OPEN_WAIT            ,
     THROUGHPUT_BOUNDS    ,
     CONFIDENCE_INTERVALS ,
@@ -331,7 +348,7 @@ struct Flags
     static bool async_topological_sort;
     static bool bcmp_model;
     static bool clear_label_background;
-    static bool convert_to_reference_task; 
+    static bool convert_to_reference_task;
     static bool debug;
     static bool debug_submodels;
     static bool dump_graphviz;
@@ -360,7 +377,7 @@ struct Flags
     static double icon_slope;
     static double icon_width;
     static justification_type activity_justification;
-    static justification_type label_justification; 
+    static justification_type label_justification;
     static justification_type node_justification;
     static graphical_output_style_type graphical_output_style;
     static option_type print[];
@@ -378,8 +395,8 @@ private:
     Options& operator=( const Options& );
 
 public:
-    static const char * io[];
-    static const char * layering[];
+    static const std::map<const file_format,const std::string> io;
+    static const std::map<const Layering,const std::string> layering;
     static const char * colouring[];
     static const char * processor[];
     static const char * activity[];
@@ -407,7 +424,7 @@ private:
 };
 
 
-class subclass_responsibility : public class_error 
+class subclass_responsibility : public class_error
 {
 public:
     subclass_responsibility( const std::string& method, const char * file, const unsigned line )
@@ -415,7 +432,7 @@ public:
     virtual ~subclass_responsibility() throw() {}
 };
 
-class not_implemented  : public class_error 
+class not_implemented  : public class_error
 {
 public:
     not_implemented( const std::string& method, const char * file, const unsigned line )
@@ -424,7 +441,7 @@ public:
 };
 
 
-class should_not_implement  : public class_error 
+class should_not_implement  : public class_error
 {
 public:
     should_not_implement( const std::string& method, const char * file, const unsigned line )
@@ -435,7 +452,7 @@ public:
 class path_error : public std::exception {
 public:
     explicit path_error( const size_t depth=0 ) : _depth(depth) {}
-    virtual ~path_error() throw() {} 
+    virtual ~path_error() throw() {}
     virtual const char * what() const throw();
     size_t depth() const { return _depth; }
 
@@ -454,7 +471,7 @@ private:
     std::ostream& (*f)( std::ostream&, const char * );
     const char * myStr;
 
-    friend std::ostream& operator<<(std::ostream & os, const StringManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const StringManip& m )
 	{ return m.f(os,m.myStr); }
 };
 
@@ -466,7 +483,7 @@ private:
     std::ostream& (*f)( std::ostream&, const std::string& );
     const std::string& myStr;
 
-    friend std::ostream& operator<<(std::ostream & os, const StringManip2& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const StringManip2& m )
 	{ return m.f(os,m.myStr); }
 };
 
@@ -479,7 +496,7 @@ private:
     const std::string& myStr;
     const unsigned myInt;
 
-    friend std::ostream& operator<<(std::ostream & os, const StringPlural& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const StringPlural& m )
 	{ return m.f(os,m.myStr,m.myInt); }
 };
 
@@ -491,7 +508,7 @@ private:
     std::ostream& (*f)( std::ostream&, const int );
     const int myInt;
 
-    friend std::ostream& operator<<(std::ostream & os, const IntegerManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const IntegerManip& m )
 	{ return m.f(os,m.myInt); }
 };
 
@@ -503,7 +520,7 @@ private:
     std::ostream& (*f)( std::ostream&, const unsigned int );
     const unsigned int myInt;
 
-    friend std::ostream& operator<<(std::ostream & os, const UnsignedManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const UnsignedManip& m )
 	{ return m.f(os,m.myInt); }
 };
 
@@ -515,7 +532,7 @@ private:
     std::ostream& (*f)( std::ostream&, const bool );
     const bool myBool;
 
-    friend std::ostream& operator<<(std::ostream & os, const BooleanManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const BooleanManip& m )
 	{ return m.f(os,m.myBool); }
 };
 
@@ -527,7 +544,7 @@ private:
     std::ostream& (*f)( std::ostream&, const double );
     const double myDouble;
 
-    friend std::ostream& operator<<(std::ostream & os, const DoubleManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const DoubleManip& m )
 	{ return m.f(os,m.myDouble); }
 };
 
@@ -540,7 +557,7 @@ private:
     const int myInt1;
     const int myInt2;
 
-    friend std::ostream& operator<<(std::ostream & os, const Integer2Manip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const Integer2Manip& m )
 	{ return m.f(os,m.myInt1,m.myInt2); }
 };
 
@@ -552,7 +569,7 @@ private:
     std::ostream& (*f)( std::ostream&, const double );
     const double myTime;
 
-    friend std::ostream& operator<<(std::ostream & os, const TimeManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const TimeManip& m )
 	{ return m.f(os,m.myTime); }
 };
 
@@ -564,7 +581,7 @@ private:
     std::ostream& (*f)( std::ostream&, const LQIO::DOM::ExternalVariable& );
     const LQIO::DOM::ExternalVariable& myVar;
 
-    friend std::ostream& operator<<(std::ostream & os, const ExtVarManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const ExtVarManip& m )
 	{ return m.f(os,m.myVar); }
 };
 
@@ -599,7 +616,7 @@ typedef LQIO::DOM::DocumentObject& (LQIO::DOM::DocumentObject::*set_function)( c
 
 
 int lqn2ps( int argc, char *argv[] );
-void setOutputFormat( const int i );
+void setOutputFormat( const file_format );
 
 bool graphical_output();
 bool output_output();
@@ -611,7 +628,7 @@ bool submodel_output();			/* true if generating a submodel */
 bool difference_output();		/* true if print differences */
 bool share_output();			/* true if sorting by processor share */
 int set_indent( int anInt );
-inline double normalized_font_size() { return Flags::print[FONT_SIZE].value.i / Flags::print[MAGNIFICATION].value.f; }
+inline double normalized_font_size() { return Flags::print[FONT_SIZE].opts.value.i / Flags::print[MAGNIFICATION].opts.value.f; }
 
 IntegerManip indent( const int anInt );				/* See main.cc */
 IntegerManip temp_indent( const int anInt );			/* See main.cc */
@@ -646,7 +663,7 @@ template <class Type> struct ConstExec
 private:
     const funcPtr _f;
 };
-    
+
 template <class Type1, class Type2> struct Exec1
 {
     typedef Type1& (Type1::*funcPtr)( Type2 x );

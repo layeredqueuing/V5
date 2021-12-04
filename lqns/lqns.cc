@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15063 2021-10-10 13:37:14Z greg $
+ * $Id: lqns.cc 15149 2021-12-03 16:29:26Z greg $
  *
  * Command line processing.
  *
@@ -20,12 +20,8 @@
 #include <cmath>
 #include <errno.h>
 #include <libgen.h>
-#include <lqio/input.h>
-#include <lqio/error.h>
-#include <lqio/dom_document.h>
 #include <lqio/filename.h>
 #include <lqio/commandline.h>
-#include <lqio/dom_bindings.h>
 #include <lqio/srvn_spex.h>
 #include <lqio/dom_pragma.h>
 #if HAVE_GETOPT_H
@@ -35,7 +31,6 @@
 #include <lqio/getsbopt.h>
 #endif
 #include <mva/fpgoop.h>
-#include <mva/mva.h>
 #include "errmsg.h"
 #include "generate.h"
 #include "help.h"
@@ -43,17 +38,15 @@
 #include "model.h"
 #include "option.h"
 #include "pragma.h"
-#include "runlqx.h"
 
 extern "C" int LQIO_debug;
-static bool print_lqx = false;
 
 static char copyrightDate[20];
 
 /* -- */
 
 struct FLAGS flags;
-static LQIO::DOM::Pragma pragmas;
+LQIO::DOM::Pragma pragmas;
 
 #if HAVE_GETOPT_LONG
 const struct option longopts[] =
@@ -113,7 +106,6 @@ const struct option longopts[] =
 #endif
 const char opts[]       = "abc:d:e:fhH:i:I:jno:pP:rt:u:vVwxz:";
 
-static int process ( const std::string&, const std::string& );
 static void init_flags ();
 
 #if (defined(linux) || defined(__linux__)) && !defined(__USE_XOPEN_EXTENDED)
@@ -183,7 +175,7 @@ int main (int argc, char *argv[])
 		LQIO::Spex::__print_comment = true;
 		pragmas.insert(LQIO::DOM::Pragma::_spex_comment_,"true");
 		break;
-        
+
 	    case 'd':
 		options = optarg;
 		while ( *options ) {
@@ -237,7 +229,7 @@ int main (int argc, char *argv[])
 		pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_one_step_);
 		pragmas.insert(LQIO::DOM::Pragma::_multiserver_,LQIO::DOM::Pragma::_rolia_);
 		break;
-	    
+
 	    case 'H':
 		usage( optarg );
 		exit(0);
@@ -315,7 +307,7 @@ int main (int argc, char *argv[])
 	    case 512+'p':
 		Options::Special::print_interval( optarg );
 		break;
-	    
+
 	    case 256+'q': //tomari quorum options
 		flags.disable_expanding_quorum_tree = true;
 		break;
@@ -341,9 +333,9 @@ int main (int argc, char *argv[])
 		break;
 
 	    case 512+'s':
-		print_lqx = true;
+		flags.print_lqx = true;
 		break;
-	    
+
 	    case 't':
 		options = optarg;
 		while ( *options ) {
@@ -450,7 +442,7 @@ int main (int argc, char *argv[])
             outputFileName = "-";
         }
 
-        global_error_flag = process( "-", outputFileName );
+        global_error_flag = Model::create( "-", outputFileName );
 
     } else {
 
@@ -475,150 +467,12 @@ int main (int argc, char *argv[])
             if ( file_count > 1 ) {
                 std::cout << argv[optind] << ':' << std::endl;
             }
-            global_error_flag |= process( argv[optind], outputFileName );
+            global_error_flag |= Model::create( argv[optind], outputFileName );
         }
     }
 
     return global_error_flag;
 }
-
-/*
- * Open output files, solve, and print.
- */
-
-static int
-process( const std::string& inputFileName, const std::string& outputFileName )
-{
-    /* Open input file. */
-
-    if ( !flags.no_execute && flags.generate && Generate::file_name.size() == 0 ) {
-        Generate::file_name = LQIO::Filename( inputFileName )();
-    }
-
-    /* This is a departure from before -- we begin by loading a model */
-    LQIO::DOM::Document* document = Model::load(inputFileName,outputFileName);
-
-    /* Make sure we got a document */
-
-    if ( document == nullptr || LQIO::io_vars.anError() ) return INVALID_INPUT;
-
-    document->mergePragmas( pragmas.getList() );       /* Save pragmas -- prepare will process */
-    if ( Model::prepare(document) == false ) return INVALID_INPUT;
-        
-    if ( document->getInputFormat() == LQIO::DOM::Document::InputFormat::XML || document->getInputFormat() == LQIO::DOM::Document::InputFormat::JSON ) {
-	if ( LQIO::Spex::__no_header ) {
-	    std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
-	}
-	if ( LQIO::Spex::__print_comment ) {
-	    std::cerr << LQIO::io_vars.lq_toolname << ": --print-comment is ignored for " << inputFileName << "." << std::endl;
-	}
-    }
-
-    /* declare Model * at this scope but don't instantiate due to problems with LQX programs and registering external symbols*/
-    Model * model = nullptr;
-    int rc = 0;
-
-    /* We can simply run if there's no control program */
-    LQX::Program * program = document->getLQXProgram();
-    FILE * output = nullptr;
-    if ( !program ) {
-
-	/* There is no control flow program, check for $-variables */
-	if (document->getSymbolExternalVariableCount() != 0) {
-	    LQIO::solution_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, inputFileName.c_str() );
-	    rc = INVALID_INPUT;
-	} else {
-	    /* Make sure values are up to date */
-	    Model::recalculateDynamicValues( document );
-
-	    /* Simply invoke the solver for the current DOM state */
-
-	    try {
-		model = Model::create( document, inputFileName, outputFileName );
-
-		if ( model->check() && model->initialize() ) {
-		    if ( Pragma::spexComment() ) {	// Not spex/lqx, so output on stderr.
-			std::cerr << inputFileName << ": " << document->getModelCommentString() << std::endl;
-		    }
-		    model->solve();
-		} else {
-		    rc = INVALID_INPUT;
-		}
-	    }
-	    catch ( const std::domain_error& e ) {
-		rc = INVALID_INPUT;
-	    }
-	    catch ( const std::range_error& e ) {
-		std::cerr << LQIO::io_vars.lq_toolname << ": range error - " << e.what() << std::endl;
-		rc = INVALID_OUTPUT;
-	    }
-	    catch ( const floating_point_error& e ) {
-		std::cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << e.what() << std::endl;
-		rc = INVALID_OUTPUT;
-	    }
-	    catch ( const std::runtime_error& e ) {
-		std::cerr << LQIO::io_vars.lq_toolname << ": run time error - " << e.what() << std::endl;
-		rc = INVALID_INPUT;
-	    }
-	}
-
-    } else {
-
-	if ( flags.verbose ) {
-	    std::cerr << "Compile LQX..." << std::endl;
-	}
-
-	/* Attempt to run the program */
-	document->registerExternalSymbolsWithProgram( program );
-
-	if ( print_lqx ) {
-	    program->print( std::cout );
-	}
-	
-	model = Model::create( document, inputFileName, outputFileName );
-		
-	LQX::Environment * environment = program->getEnvironment();
-	if ( flags.restart ) {
-	    environment->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::restart, model));
-	} else if ( flags.reload_only ) {
-	    environment->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::reload, model));
-	} else {
-	    environment->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::solve, model));
-	}
-	LQIO::RegisterBindings(environment, document);
-
-	if ( outputFileName.size() > 0 && outputFileName != "-" && LQIO::Filename::isRegularFile(outputFileName.c_str()) ) {
-	    output = fopen( outputFileName.c_str(), "w" );
-	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, outputFileName.c_str(), strerror( errno ) );
-		rc = FILEIO_ERROR;
-	    } else {
-		environment->setDefaultOutput( output );      /* Default is stdout */
-	    }
-	}
-
-	if ( rc == 0 ) {
-	    /* Invoke the LQX program itself */
-	    if ( !program->invoke() ) {
-		LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, inputFileName.c_str() );
-		rc = INVALID_INPUT;
-	    } else if ( !SolverInterface::Solve::solveCallViaLQX ) {
-		/* There was no call to solve the LQX */
-		LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, inputFileName.c_str() );
-		std::vector<LQX::SymbolAutoRef> args;
-		environment->invokeGlobalMethod("solve", &args);
-	    }
-	}
-    }
-
-    /* Clean things up */
-    if ( model ) delete model;
-    if ( output ) fclose( output );
-    if ( program ) delete program;
-    delete document;
-    return rc;
-}
-
 
 
 
@@ -638,6 +492,7 @@ void init_flags()
     flags.reset_mva		= false;
     flags.print_overtaking      = false;
     flags.single_step           = false;
+    flags.print_lqx		= false;
 
     flags.trace_activities      = false;
     flags.trace_convergence     = false;
@@ -668,11 +523,11 @@ void init_flags()
 }
 
 /*
- * Common underrelaxation code.  
+ * Common underrelaxation code.
  */
 
 void
-under_relax( double& old_value, const double new_value, const double relax ) 
+under_relax( double& old_value, const double new_value, const double relax )
 {
     if ( std::isfinite( new_value ) && std::isfinite( old_value ) ) {
 	old_value = new_value * relax + old_value * (1.0 - relax);

@@ -38,7 +38,6 @@ DOM::BCMP_to_LQN::convert()
 	std::for_each( chains().begin(), chains().end(), createLQNTaskProcessor( *this ) );
 	std::for_each( stations().begin(), stations().end(), createLQNTaskProcessor( *this ) );
 	std::for_each( chains().begin(), chains().end(), connectClassToStation( *this ) );
-	LQIO::Spex::__result_variables.clear();		/* Get rid of them all. */
     }
     catch ( const std::runtime_error& ) {
 	return false;

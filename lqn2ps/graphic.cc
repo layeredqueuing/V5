@@ -1,6 +1,6 @@
 /* graphic.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: graphic.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: graphic.cc 15140 2021-12-02 15:04:21Z greg $
  */
 
 #include <cassert>
@@ -887,7 +887,7 @@ EMF::setcolour( const Graphic::colour_type aColour )
 Colour::FontManip
 EMF::setfont( const Graphic::font_type aFont )
 {
-    return Colour::FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
+    return Colour::FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].opts.value.i );
 }
 
 DoubleManip
@@ -1609,11 +1609,11 @@ GD::text( const Point& p1, const std::string& aStr, Graphic::font_type font, int
 gdFont *
 GD::getfont() const
 {
-    if ( Flags::print[FONT_SIZE].value.i <= 10 ) {
+    if ( Flags::print[FONT_SIZE].opts.value.i <= 10 ) {
 	return gdFontTiny;
-    } else if ( Flags::print[FONT_SIZE].value.i <= 14 ) {
+    } else if ( Flags::print[FONT_SIZE].opts.value.i <= 14 ) {
 	return gdFontSmall;
-    } else if ( Flags::print[FONT_SIZE].value.i <= 18 ) {
+    } else if ( Flags::print[FONT_SIZE].opts.value.i <= 18 ) {
 	return gdFontLarge;
     } else {
 	return gdFontGiant;
@@ -2045,7 +2045,7 @@ PostScript::moveto( const Point& aPoint )
 Colour::FontManip
 PostScript::setfont( const Graphic::font_type aFont )
 {
-    return Colour::FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
+    return Colour::FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].opts.value.i );
 }
 
 Colour::JustificationManip
@@ -3049,7 +3049,7 @@ SXD::stroke_colour( const Graphic::colour_type colour )
 Colour::FontManip
 SXD::setfont( const Graphic::font_type aFont )
 {
-    return Colour::FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
+    return Colour::FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].opts.value.i );
 }
 
 UnsignedManip
@@ -3328,7 +3328,7 @@ TeX::justify( const justification_type justification )
 Colour::FontManip
 TeX::setfont( const Graphic::font_type aFont )
 {
-    return Colour::FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
+    return Colour::FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].opts.value.i );
 }
 
 Graphic::colour_type

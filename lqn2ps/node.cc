@@ -1,6 +1,6 @@
 /* node.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: node.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: node.cc 15141 2021-12-02 15:31:46Z greg $
  */
 
 #include "lqn2ps.h"
@@ -17,41 +17,41 @@ static std::string unicode_string( const char * s );
 Node *
 Node::newNode( double x, double y )
 {
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-    case FORMAT_EEPIC:
+    switch( Flags::print[OUTPUT_FORMAT].opts.value.o ) {
+    case file_format::EEPIC:
 	return new NodeTeX( 0, 0, x, y );
 #if defined(EMF_OUTPUT)
-    case FORMAT_EMF:
+    case file_format::EMF:
 	return new NodeEMF( 0, 0, x, y );
 #endif
-    case FORMAT_FIG:
+    case file_format::FIG:
 	return new NodeFig( 0, 0, x, y );
 #if HAVE_GD_H && HAVE_LIBGD
 #if HAVE_GDIMAGEGIFPTR
-    case FORMAT_GIF:
+    case file_format::GIF:
 #endif
 #if HAVE_LIBJPEG 
-    case FORMAT_JPEG:
+    case file_format::JPEG:
 #endif
 #if HAVE_LIBPNG
-    case FORMAT_PNG:
+    case file_format::PNG:
 #endif
 	return new NodeGD( 0, 0, x, y );
 #endif	/* HAVE_LIBGD */
-    case FORMAT_POSTSCRIPT:
+    case file_format::POSTSCRIPT:
 	return new NodePostScript( 0, 0, x, y );	/* the graphical object		*/
-    case FORMAT_PSTEX:
+    case file_format::PSTEX:
 	return new NodePsTeX( 0, 0, x, y );
 #if defined(SVG_OUTPUT)
-    case FORMAT_SVG:
+    case file_format::SVG:
 	return new NodeSVG( 0, 0, x, y );
 #endif
 #if defined(SXD_OUTPUT)
-    case FORMAT_SXD:
+    case file_format::SXD:
 	return new NodeSXD( 0, 0, x, y );
 #endif
 #if defined(X11_OUTPUT)
-    case FORMAT_X11:
+    case file_format::X11:
 	return new NodeX11( 0, 0, x, y );
 #endif
     default:
@@ -217,7 +217,7 @@ std::ostream&
 NodeEMF::text( std::ostream& output, const Point& c, const char * s ) const
 {
     std::string aStr = unicode_string( s );
-    EMF::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
+    EMF::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
@@ -274,7 +274,7 @@ NodeFig::roundedRectangle( std::ostream& output ) const
 std::ostream&
 NodeFig::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    Fig::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour(), Fig::POSTSCRIPT );
+    Fig::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour(), Fig::POSTSCRIPT );
     return output;
 }
 
@@ -337,7 +337,7 @@ NodeGD::text( std::ostream& output, const Point& c, const char * s ) const
     Point aPoint( c );
     gdFont * font = GD::getfont();
     aPoint.moveBy( 0, -font->h );
-    GD::text( aPoint, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
+    GD::text( aPoint, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
@@ -398,7 +398,7 @@ NodePostScript::roundedRectangle( std::ostream& output ) const
 std::ostream&
 NodePostScript::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    PostScript::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
+    PostScript::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
@@ -414,7 +414,7 @@ std::ostream&
 NodePsTeX::text( std::ostream& output, const Point& c, const char * s ) const
 {
     std::string aStr = tex_string( s );
-    Fig::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour(), 
+    Fig::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour(), 
 	       Fig::SPECIAL );
     return output;
 }
@@ -465,7 +465,7 @@ NodeSVG::roundedRectangle( std::ostream& output ) const
 std::ostream&
 NodeSVG::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    SVG::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
+    SVG::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
@@ -524,11 +524,11 @@ std::ostream&
 NodeSXD::text( std::ostream& output, const Point& c, const char * s ) const
 {
     Point boxOrigin = c;
-    Point boxExtent( strlen(s) / 2.4, Flags::print[FONT_SIZE].value.i );		/* A guess... width is half of height */
+    Point boxExtent( strlen(s) / 2.4, Flags::print[FONT_SIZE].opts.value.i );		/* A guess... width is half of height */
     boxExtent *= SXD_SCALING;
     boxOrigin.moveBy( 0, -boxExtent.y() / 2.0 );
     SXD::begin_paragraph( output, boxOrigin, boxExtent, CENTER_JUSTIFY );
-    SXD::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
+    SXD::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour() );
     SXD::end_paragraph( output );
     return output;
 }
@@ -587,7 +587,7 @@ std::ostream&
 NodeTeX::text( std::ostream& output, const Point& c, const char * s ) const
 {
     std::string aStr = tex_string( s );
-    TeX::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
+    TeX::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 

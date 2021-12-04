@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 14651 2021-05-17 14:12:18Z greg $
+ * $Id: help.cc 15154 2021-12-03 22:16:10Z greg $
  */
 
 #include "lqn2ps.h"
@@ -21,7 +21,7 @@ private:
 };
 
 
-static HelpManip current_arg( unsigned int i, const int j );
+static HelpManip current_arg( unsigned int i, unsigned int j );
 static HelpManip current_flag( unsigned int i );
 static HelpManip current_option( unsigned int i );
 static HelpManip default_setting( unsigned int i );
@@ -80,9 +80,9 @@ usage( const bool full_usage )
 	if ( Flags::print[i].arg ) {
 	    s += "=";
 	    if ( strcmp( Flags::print[i].name, Flags::print[i].arg ) == 0 ) {
-		if ( Flags::print[i].opts == Options::real ) {
+		if ( Flags::print[i].opts.param.a == Options::real ) {
 		    s += "N.N";
-		} else if ( Flags::print[i].opts == Options::integer ) {
+		} else if ( Flags::print[i].opts.param.a == Options::integer ) {
 		    s += "N";
 		} else {
 		    s += "ARG";
@@ -98,7 +98,7 @@ usage( const bool full_usage )
     for ( unsigned i = 0; i < N_FLAG_VALUES; ++i ) {
 	if ( !Flags::print[i].arg ) {
 	    std::cerr << "(+|-)" << static_cast<char>(Flags::print[i].c) << "  " << Flags::print[i].msg
-		 << " (" << (Flags::print[i].value.b ? "true" : "false") << ")" << std::endl;
+		 << " (" << (Flags::print[i].opts.value.b ? "true" : "false") << ")" << std::endl;
 	}
     }
     for ( unsigned int i = 0; i < N_FLAG_VALUES; ++i ) {
@@ -149,39 +149,40 @@ man()
 	 << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 14651 2021-05-17 14:12:18Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 15154 2021-12-03 22:16:10Z greg $" << std::endl
 	 << comm << std::endl
 	 << comm << " --------------------------------" << std::endl;
 
+    
     std::cout << ".SH \"NAME\"" << std::endl;
     bool printed = false;
-    for ( i = 0; Options::io[i]; ++i ) {
-	switch ( i ) {
+    for ( std::map<const file_format,const std::string>::const_iterator i = Options::io.begin(); i != Options::io.end(); ++i ) {
+	switch ( i->first ) {
 #if defined(EMF_OUTPUT)
-	case FORMAT_EMF:
+	case file_format::EMF:
 #endif
-	case FORMAT_FIG:
+	case file_format::FIG:
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_GDIMAGEGIFPTR
-	case FORMAT_GIF:
+	case file_format::GIF:
 #endif
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG
-	case FORMAT_JPEG:
+	case file_format::JPEG:
 #endif
-	case FORMAT_OUTPUT:
+	case file_format::OUTPUT:
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
-	case FORMAT_PNG:
+	case file_format::PNG:
 #endif
-	case FORMAT_POSTSCRIPT:
-	case FORMAT_SRVN:
-	case FORMAT_SXD:
-	case FORMAT_JSON:
-	case FORMAT_XML:
+	case file_format::POSTSCRIPT:
+	case file_format::SRVN:
+	case file_format::SXD:
+	case file_format::JSON:
+	case file_format::XML:
 	    if ( printed ) {
 		std::cout << ", ";
 	    } else {
 		printed = true;
 	    }
-	    std::cout << "lqn2" << Options::io[i];
+	    std::cout << "lqn2" << i->second;
 	}
     }
     std::cout << " \\- format and translate layered queueing network models."
@@ -337,36 +338,36 @@ man()
 	case 'L':
 	    std::cout << "The " << current_option(i) << "is used to choose the layering strategy for output." << std::endl
 		 << ".RS" << std::endl;
-	    for ( unsigned j = 0; Options::layering[j]; ++j ) {
+	    for ( std::map<const Layering,const std::string>::const_iterator j = Options::layering.begin(); j != Options::layering.end(); ++j ) {
 
 		std::cout << ".TP" << std::endl
-		     << "\\fB" << current_arg(i,j);
-		if ( j == LAYERING_GROUP ) {
+		     << "\\fB" << j->second;
+		if ( j->first == Layering::GROUP ) {
 		    std::cout << "=\\fIregexp\\fR";
 		}
 		std::cout << "\\fR" << std::endl;
 
-		switch ( j ) {
-		case LAYERING_BATCH:
+		switch ( j->first ) {
+		case Layering::BATCH:
 		    std::cout << "Batch layering (default for lqns(1))" << std::endl;
 		    break;
-		case LAYERING_HWSW:
+		case Layering::HWSW:
 		    std::cout << "Hardware-Software layering (Clients and software servers in one layer," << std::endl
 			 << "software servers and processors in the other)." << std::endl;
 		    break;
-		case LAYERING_PROCESSOR:
+		case Layering::PROCESSOR:
 		    std::cout << "Batch layering, but tasks are grouped by processor." << std::endl
 			 << "Processors are ordered by the level of their calling tasks," << std::endl
 			 << "i.e., processors for reference tasks appear first." << std::endl;
 		    break;
-		case LAYERING_TASK_PROCESSOR:
+		case Layering::TASK_PROCESSOR:
 		    std::cout << "Hardware-Software layering, but tasks are grouped by processor." << std::endl;
 		    break;
-		case LAYERING_PROCESSOR_TASK:
+		case Layering::PROCESSOR_TASK:
 		    std::cout << "Hardware-Software layering, but tasks are grouped by processor." << std::endl;
 		    break;
 #if 0
-		case LAYERING_FOLLOW_CLIENTS:
+		case Layering::FOLLOW_CLIENTS:
 		    std::cout << "Select a subset of the model starting from the tasks which match the \\fIregexp\\fP." << std::endl
 			 << "The tasks in  \\fIregexp\\fP must be reference tasks or tasks accepting open arrivals." << std::endl
 			 << "This option does not affect the layering strategy selected." << std::endl
@@ -374,25 +375,25 @@ man()
 			 << current_option(CHAIN) << "." << std::endl;
 		    break;
 #endif
-		case LAYERING_GROUP:
+		case Layering::GROUP:
 		    std::cout << "Batch layering, but tasks are grouped by the processors identified by \\fIregexp\\fP." << std::endl
 			 << "Multiple occurances of this option can be used to specify multiple groups." << std::endl
 			 << "Processors not matching any group expression are assigned to the last \"default\" group." << std::endl
 			 << "Groups may also be identified in the input file using the \\fIgroup\\fP pragma." << std::endl;
 		    break;
-		case LAYERING_SHARE:
+		case Layering::SHARE:
 		    std::cout << "Batch layering, but tasks are grouped by their processor share." << std::endl
 			 << "Shares are ordered by the level of their calling tasks," << std::endl
 			 << "i.e., processors for reference tasks appear first." << std::endl;
 		    break;
-		case LAYERING_SRVN:
+		case Layering::SRVN:
 		    std::cout << "Each server is assigned to its own submodel." << std::endl;
 		    break;
-		case LAYERING_SQUASHED:
+		case Layering::SQUASHED:
 		    std::cout << "Place all tasks in level 1, and all processors in level 2.  There is only" << std::endl
 			 << "one submodel overall." << std::endl;
 		    break;
-		case LAYERING_MOL:
+		case Layering::MOL:
 		    std::cout << "Mol layering (all of the processors are on their own layer)." << std::endl;
 		    break;
 		}
@@ -415,52 +416,52 @@ man()
 	    std::cout << "Set the output format." << std::endl
 		 << ".RS" << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_EEPIC) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::EEPIC) << "\\fR" << std::endl
 		 << "Generate eepic macros for LaTeX." << std::endl;
 #if defined(EMF_OUTPUT)
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_EMF) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::EMF) << "\\fR" << std::endl
 		 << "Generate Windows Enhanced Meta File (vector) output." << std::endl;
 #endif
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_FIG) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::FIG) << "\\fR" << std::endl
 		 << "Generate input for xfig(1)." << std::endl;
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_GDIMAGEGIFPTR
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_GIF) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::GIF) << "\\fR" << std::endl
 		 << "Generate GIF (bitmap) output." << std::endl;
 #endif
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_JPEG) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::JPEG) << "\\fR" << std::endl
 		 << "Generate JPEG (bitmap) output." << std::endl;
 #endif
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_JSON) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::JSON) << "\\fR" << std::endl
 		 << "Generate an JSON input file.  If results are available, they are included." << std::endl
 		 << "The " << current_flag( INCLUDE_ONLY ) << " and " << current_flag( SUBMODEL ) << " options can be used to generate new input models" << std::endl
 		 << "consisting only of the objects selected." << std::endl
 		 << "New input files are always \"cleaned up\"." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_LQX) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::LQX) << "\\fR" << std::endl
 		 << "Generate an XML input file.  If results are available, they are included." << std::endl
 		 << "The " << current_flag( INCLUDE_ONLY ) << " and " << current_flag( SUBMODEL ) << " options can be used to generate new input models" << std::endl
 		 << "consisting only of the objects selected.  If SPEX is present, it will be converted to LQX." << std::endl
 		 << "New input files are always \"cleaned up\"." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_NULL) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::NO_OUTPUT) << "\\fR" << std::endl
 		 << "Generate no output except summary statistics about the model or models." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_OUTPUT) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::OUTPUT) << "\\fR" << std::endl
 		 << "Generate a new output file using the results from a parseable output file or from the results found in an XML file." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_PARSEABLE) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::PARSEABLE) << "\\fR" << std::endl
 		 << "Generate a new parseable output file using the results from a parseable output file or from the results found in an XML file." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_RTF) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::RTF) << "\\fR" << std::endl
 		 << "Generate a new output file in Rich Text Format using the results from a parseable output file or from the results found in an XML file." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_SRVN) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::SRVN) << "\\fR" << std::endl
 		 << "Generate a new input file.	 Results are ignored unless a subset of the input file is being generated." << std::endl
 		 << "The " << current_flag( INCLUDE_ONLY ) << " and " << current_flag( SUBMODEL ) << " options can be used to generate new input models" << std::endl
 		 << "consisting only of the objects selected." << std::endl
@@ -469,36 +470,36 @@ man()
 		 << "description of the input file format for the programs." << std::endl
 		 << "New input files are always \"cleaned up\"." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_POSTSCRIPT) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::POSTSCRIPT) << "\\fR" << std::endl
 		 << "Generate Encapsulated Postscript." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_PSTEX) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::PSTEX) << "\\fR" << std::endl
 		 << "Generate PostScript and LaTeX (pstex)." << std::endl;
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_PNG) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::PNG) << "\\fR" << std::endl
 		 << "Generate Portable Network Graphics (bitmap) output." << std::endl;
 #endif
 #if defined(SVG_OUTPUT)
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_SVG) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::SVG) << "\\fR" << std::endl
 		 << "Generate Scalable Vector Graphics (vector) output." << std::endl;
 #endif
 #if defined(SXD_OUTPUT)
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_SXD) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::SXD) << "\\fR" << std::endl
 		 << "Generate OpenOffice Drawing (vector) output.  " << std::endl
 		 << "The output file must be a regular file.  Output to special files is not supported." << std::endl;
 #endif
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_XML) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::XML) << "\\fR" << std::endl
 		 << "Generate an XML input file.  If results are available, they are included." << std::endl
 		 << "The " << current_flag( INCLUDE_ONLY ) << " and " << current_flag( SUBMODEL ) << " options can be used to generate new input models" << std::endl
 		 << "consisting only of the objects selected." << std::endl
 		 << "New input files are always \"cleaned up\"." << std::endl;
 #if defined(X11_OUTPUT)
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,FORMAT_X11) << "\\fR" << std::endl
+		 << "\\fB" << Options::io.at(file_format::X11) << "\\fR" << std::endl
 		 << "Not implemented." << std::endl;
 #endif
 	    std::cout << ".RE" << std::endl;
@@ -634,18 +635,26 @@ print_args_str( std::ostream& output, const option_type &o, const int )
 {
     if ( o.c == 'I' ) {
 	std::cerr << "ARG=(lqn,xml)";
-    } else if ( o.opts
-		&& o.opts != Options::integer
-		&& o.opts != Options::real
-		&& o.opts != Options::string ) {
+    } else if ( o.opts.param.a != nullptr
+		&& o.opts.param.m != &Options::io
+		&& o.opts.param.a != Options::integer
+		&& o.opts.param.a != Options::real
+		&& o.opts.param.a != Options::string ) {
 	std::cerr << "ARG=(";
-	for ( int j = 0; o.opts[j]; ++j ) {
+	for ( int j = 0; o.opts.param.a[j]; ++j ) {
 	    if ( j != 0 ) std::cerr << '|';
-	    std::cerr << o.opts[j];
+	    std::cerr << o.opts.param.a[j];
+	}
+	std::cerr << ")";
+    } else if ( o.opts.param.m == &Options::io ) {
+	std::cerr << "ARG=(";
+	for ( std::map<const file_format,const std::string>::const_iterator j = o.opts.param.m->begin(); j != o.opts.param.m->end(); ++j ) {
+	    if ( j != o.opts.param.m->begin() ) std::cerr << '|';
+	    std::cerr << j->second;
 	}
 	std::cerr << ")";
     } else if ( ( (o.c & 0xff00) == 0x0300 || (o.c & 0xff00) == 0 && islower( o.c ) ) && o.arg == 0 ) {
-	std::cerr << "(" << (o.value.b ? "true" : "false") << ")";
+	std::cerr << "(" << (o.opts.value.b ? "true" : "false") << ")";
     }
     return output;
 }
@@ -661,7 +670,7 @@ current_option_str( std::ostream& output, const option_type& o, const int )
 static std::ostream&
 current_arg_str( std::ostream& output, const option_type& o, const int j )
 {
-    output << "\\fB" << o.opts[j] << "\\fR";
+    output << "\\fB" << o.opts.param.a[j] << "\\fR";
     return output;
 }
 
@@ -679,13 +688,13 @@ default_setting_str( std::ostream& output, const option_type& o, const int )
 {
     output << "(The default is ";
     if ( o.arg == 0 ) {
-	output << (o.value.b ? "on" : "off");
-    } else if ( o.opts == Options::integer ) {
-	output << o.value.i;
-    } else if ( o.opts == Options::real ) {
-	output << o.value.f;
-    } else if ( o.opts && o.opts != Options::string ) {
-	output << o.opts[o.value.i];
+	output << (o.opts.value.b ? "on" : "off");
+    } else if ( o.opts.param.a == Options::integer ) {
+	output << o.opts.value.i;
+    } else if ( o.opts.param.a == Options::real ) {
+	output << o.opts.value.f;
+    } else if ( o.opts.param.a != nullptr && o.opts.param.a != Options::string && o.opts.param.m != &Options::io ) {
+	output << o.opts.param.a[o.opts.value.i];
     } else {
 	output << "N/A";
     }
@@ -702,7 +711,7 @@ current_option( unsigned int i )
 }
 
 static HelpManip
-current_arg( unsigned int i, const int j )
+current_arg( unsigned int i, unsigned int j )
 {
     return HelpManip( &current_arg_str, Flags::print[i], j );
 }

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 14592 2021-04-06 12:39:52Z greg $
+ *  $Id: qnap2_document.h 15146 2021-12-03 03:46:28Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -50,6 +50,7 @@ namespace BCMP {
     private:
 	struct getIntegerVariables {
 	    getIntegerVariables( const Model& model, std::set<const LQIO::DOM::ExternalVariable *>& symbol_table ) : _model(model), _symbol_table(symbol_table) {}
+	    std::string operator()( const std::string&, const Model::Station::pair_t& m ) const;
 	    std::string operator()( const std::string&, const Model::Chain::pair_t& k ) const;
 	private:
 	    const Model& model() const { return _model; }
@@ -120,7 +121,7 @@ namespace BCMP {
 
 	struct printSPEXScalars {
 	    printSPEXScalars( std::ostream& output ) : _output(output) {}
-	    void operator()( const std::pair<std::string, const LQX::SyntaxTreeNode *>& ) const;
+	    void operator()( const std::string& ) const;
 	private:
 	    std::ostream& _output;
 	};

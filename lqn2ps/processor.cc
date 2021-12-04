@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14724 2021-05-29 14:16:40Z greg $
+ * $Id: processor.cc 15143 2021-12-02 18:51:41Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -70,7 +70,7 @@ Processor::Processor( const LQIO::DOM::Processor* dom )
       _shares(),
       _groupIsSelected(false)
 { 
-    if ( Flags::print[PROCESSORS].value.i == PROCESSOR_NONE ) {
+    if ( Flags::print[PROCESSORS].opts.value.i == PROCESSOR_NONE ) {
 	isSelected(false);
     }
     if ( !isMultiServer() && scheduling() != SCHEDULE_DELAY && !Pragma::defaultProcessorScheduling() ) {
@@ -212,14 +212,14 @@ Processor::hasPriorities() const
 bool
 Processor::isInteresting() const
 {
-    return Flags::print[PROCESSORS].value.i == PROCESSOR_ALL
-	|| (Flags::print[PROCESSORS].value.i == PROCESSOR_DEFAULT 
+    return Flags::print[PROCESSORS].opts.value.i == PROCESSOR_ALL
+	|| (Flags::print[PROCESSORS].opts.value.i == PROCESSOR_DEFAULT 
 	    && !isInfinite() 
 	    && clientsCanQueue() )
-	|| (Flags::print[PROCESSORS].value.i == PROCESSOR_NONINFINITE
+	|| (Flags::print[PROCESSORS].opts.value.i == PROCESSOR_NONINFINITE
 	    && !isInfinite() )
 #if defined(TXT_OUTPUT)
-	|| Flags::print[OUTPUT_FORMAT].value.i == FORMAT_TXT
+	|| Flags::print[OUTPUT_FORMAT].opts.value.o == file_format::TXT
 #endif
 	|| input_output();
 }
@@ -376,7 +376,7 @@ Processor::colour() const
     if ( isSurrogate() ) {
 	return Graphic::GREY_10;
     }
-    switch ( Flags::print[COLOUR].value.i ) {
+    switch ( Flags::print[COLOUR].opts.value.i ) {
     case COLOUR_SERVER_TYPE:
 	return Graphic::BLUE;
     }
@@ -392,7 +392,7 @@ Processor&
 Processor::label()
 {
     *myLabel << name();
-    if ( Flags::print[INPUT_PARAMETERS].value.b && queueing_output() ) {
+    if ( Flags::print[INPUT_PARAMETERS].opts.value.b && queueing_output() ) {
 	for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
 	    const Task * aTask = *nextTask;
 	    for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
@@ -404,7 +404,7 @@ Processor::label()
 	if ( scheduling() != SCHEDULE_FIFO && !isInfinite() ) {
 	    *myLabel << "*";
 	}
-	if ( Flags::print[INPUT_PARAMETERS].value.b ) {
+	if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
 	    bool newline = false;
 	    if ( isMultiServer() ) {
 		if ( !processor_output() ) {
@@ -427,9 +427,9 @@ Processor::label()
 	    }
 	}
     }
-    if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].value.b ) {
+    if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
 	myLabel->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(utilization()) << end_math();
-	if ( hasBogusUtilization() && Flags::print[COLOUR].value.i != COLOUR_OFF ) {
+	if ( hasBogusUtilization() && Flags::print[COLOUR].opts.value.i != COLOUR_OFF ) {
 	    myLabel->colour(Graphic::RED);
 	}
     }
@@ -610,10 +610,15 @@ Processor::accumulateDemand( BCMP::Model::Station& station ) const
 	    }
 	} else {
 	    for ( demand_map::iterator k = classes.begin(); k != classes.end(); ++k ) {
-		LQIO::DOM::Task * task = getDOM()->getDocument()->getTaskByName( k->first );
+		const LQIO::DOM::Task * task = getDOM()->getDocument()->getTaskByName( k->first );
 		if ( obs->first == task ) {
 		    switch ( obs->second.getKey() ) {
 		    case KEY_PROCESSOR_UTILIZATION: k->second.insertResultVariable( BCMP::Model::Result::Type::UTILIZATION, obs->second.getVariableName() ); break;
+		    }
+		} else if ( dynamic_cast<const LQIO::DOM::Phase *>(obs->first) && dynamic_cast<const LQIO::DOM::Phase *>(obs->first)->getSourceEntry()->getTask() == task ) {
+		    BCMP::Model::Station::Class& result = station.classAt(k->first);
+		    switch ( obs->second.getKey() ) {
+		    case KEY_SERVICE_TIME: result.insertResultVariable( BCMP::Model::Result::Type::RESIDENCE_TIME, obs->second.getVariableName() ); break;	/* by class? */
 		    }
 		}
 	    }
