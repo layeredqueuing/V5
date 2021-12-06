@@ -1,13 +1,14 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 15155 2021-12-06 18:54:53Z greg $
+ * $Id: layer.h 15160 2021-12-06 19:54:16Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
 #define _LQN2PS_LAYER_H
 
 #include "lqn2ps.h"
+#include <limits>
 #include <vector>
 #include <lqio/bcmp_document.h>
 #include "entity.h"
