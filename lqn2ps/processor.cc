@@ -154,7 +154,7 @@ Processor::utilization() const
 size_t
 Processor::taskDepth() const
 { 
-    size_t minLevel = UINT_MAX;
+    size_t minLevel = std::numeric_limits<std::size_t>::max();
 
     for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
 	const Task& aTask = **nextTask;
@@ -172,7 +172,7 @@ Processor::taskDepth() const
 double
 Processor::meanLevel() const
 {
-    size_t minLevel = UINT_MAX;
+    size_t minLevel = std::numeric_limits<std::size_t>::max();
     size_t maxLevel = 0;
     for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
 	const Task& aTask = **nextTask;
@@ -273,7 +273,7 @@ Processor::nClients() const
     for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
 	const Task& aTask = **nextTask;
 	if ( aTask.isInfinite() ) {
-	    return UINT_MAX;
+	    return std::numeric_limits<unsigned int>::max();
 	}
 	const LQIO::DOM::ExternalVariable * copies = dynamic_cast<const LQIO::DOM::Task *>(aTask.getDOM())->getCopies();
 	double value = 1;
