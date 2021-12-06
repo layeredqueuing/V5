@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id: configure.ac 15155 2021-12-06 18:54:53Z greg $
+# $Id: configure.ac 15162 2021-12-06 20:42:16Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([lqns],[5.22],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([../config])
@@ -62,39 +62,22 @@ AM_CONDITIONAL([QUORUM], [test ${ac_cv_lib_gsl_gsl_cdf_gamma_P} = "yes"] )
 #
 AC_HEADER_SYS_WAIT
 AC_TYPE_SIZE_T
-AC_CHECK_HEADERS([fenv.h float.h getopt.h ieeefp.h unistd.h values.h sys/resource.h sys/utsname.h])
+AC_CHECK_HEADERS([getopt.h unistd.h sys/resource.h sys/utsname.h])
 # ----------------------------------------------------------------------
 # Checks for typedefs, structures, and compiler characteristics.
 #
-AC_HEADER_STAT
-AC_CHECK_DECLS([sys_siglist],[],[],[#include <signal.h>
-/* NetBSD declares sys_siglist in unistd.h.  */
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
-#endif
-])
 
 AC_TYPE_MODE_T
-AC_TYPE_OFF_T
-AC_TYPE_PID_T
-AC_TYPE_SIZE_T
 AC_CHECK_HEADERS_ONCE([sys/time.h])
 AC_STRUCT_TM
-AC_C_BIGENDIAN
-AC_C_INLINE
-AC_HEADER_STDBOOL
 
 # ----------------------------------------------------------------------
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_SELECT_ARGTYPES 
-AC_FUNC_STAT
-AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
-AC_FUNC_VPRINTF
 AC_STRUCT_TM
-AC_CHECK_FUNCS([ctime floor isascii lgamma mkdir pow sqrt snprintf strcasecmp strdup strerror strrchr strtol uname rmdir])
-AC_CHECK_FUNCS([feclearexcept feenableexcept fesetexceptflag fetestexcept finite fpgetsticky fpsetmask fpsetsticky ieee_retrospective signbit])
+AC_CHECK_FUNCS([ctime lgamma])
 AC_CHECK_FUNCS([getopt_long getsubopt getrusage])
 AC_CONFIG_FILES([Makefile regression/Makefile])
 AC_OUTPUT

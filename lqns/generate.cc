@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: generate.cc 15162 2021-12-06 20:42:16Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -425,9 +425,6 @@ Generate::makefile( const unsigned nSubmodels )
     }
 
     std::string defines = "-DTESTMVA -DHAVE_BOOL -DHAVE_STD=1 -DHAVE_NAMESPACES=1";
-#if HAVE_IEEEFP_H
-    defines += " -DHAVE_IEEEFP_H=1";
-#endif
 
     output << "LQNDIR=$(HOME)/Interlock_merge_LQN/lqn/interlock-merge" << std::endl
 	   << "CC = gcc" << std::endl

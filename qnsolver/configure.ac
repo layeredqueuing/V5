@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id: configure.ac 15155 2021-12-06 18:54:53Z greg $
+# $Id: configure.ac 15162 2021-12-06 20:42:16Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([lqns],[5.22],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([../config])
@@ -47,7 +47,7 @@ AC_CHECK_LIB([m], [sqrt])
 #
 AC_HEADER_SYS_WAIT
 AC_TYPE_SIZE_T
-AC_CHECK_HEADERS([fenv.h float.h getopt.h ieeefp.h unistd.h values.h sys/resource.h sys/utsname.h])
+AC_CHECK_HEADERS([expat.h getopt.h])
 # ----------------------------------------------------------------------
 # Checks for typedefs, structures, and compiler characteristics.
 #
@@ -67,7 +67,6 @@ AC_FUNC_ERROR_AT_LINE
 AC_CHECK_FUNCS([pow sqrt])
 AC_CHECK_FUNCS([getopt_long getsubopt])
 AC_CONFIG_FILES([Makefile])
-AC_CHECK_HEADERS([expat.h])
 AC_CHECK_LIB([expat], [XML_ParserCreateNS])
 AM_CONDITIONAL([EXPAT], [test "x${ac_cv_lib_expat_XML_ParserCreateNS}" = "xyes"] )
 
