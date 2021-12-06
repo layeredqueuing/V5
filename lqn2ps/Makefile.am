@@ -1,6 +1,6 @@
 # Makefile for .
 # Copyright (C) 2003 Greg Franks <rgfranks@alumni.uwaterloo.ca>
-# $Id: Makefile.am 15140 2021-12-02 15:04:21Z greg $
+# $Id: Makefile.am 15161 2021-12-06 19:56:46Z greg $
 # ----------------------------------------------------------------------
 ACLOCAL_AMFLAGS=-I ../config 
 SUBDIRS		= 
@@ -23,7 +23,7 @@ lqn2ps_SOURCES 	= activity.cc actlayer.cc actlist.cc arc.cc call.cc element.cc e
 
 noinst_HEADERS 	= actlayer.h activity.h actlist.h arc.h call.h element.h entity.h entry.h errmsg.h \
 		getopt2.h graphic.h group.h help.h key.h label.h layer.h lqn2ps.h model.h node.h \
-		open.h phase.h point.h pragma.h processor.h runlqx.h share.h task.h 
+		open.h option.h phase.h point.h pragma.h processor.h runlqx.h share.h task.h 
 
 EXTRA_DIST	= lqn2ps.1 
 
