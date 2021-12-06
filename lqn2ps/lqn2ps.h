@@ -1,8 +1,8 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 15154 2021-12-03 22:16:10Z greg $
- *
+ * $Id: lqn2ps.h 15155 2021-12-06 18:54:53Z greg $
+ * ------------------------------------------------------------------------
  */
 
 #ifndef _LQN2PS_H
@@ -36,10 +36,7 @@
 #if defined(HAVE_FLOAT_H)
 #include <float.h>
 #endif
-
-#if !defined(MAXDOUBLE)
-#define MAXDOUBLE FLT_MAX
-#endif
+#include "option.h"
 
 namespace LQIO {
     namespace DOM {
@@ -62,7 +59,7 @@ extern std::string command_line;
 bool process_special( const char * p, LQIO::DOM::Pragma& );
 bool special( const std::string& parameter, const std::string& value, LQIO::DOM::Pragma& );
 
-const unsigned int MAX_PHASES	    = 3;	/* Number of Phases.		*/
+const unsigned int MAX_PHASES	    = 3;		/* Number of Phases.		*/
 
 const double PTS_PER_INCH	    = 72.0;
 const double DEFAULT_X_SPACING	    = 9.0;
@@ -81,83 +78,15 @@ const int min_fontsize 		    = 6;
 const int max_fontsize              = 36;
 const unsigned int MAX_CONFIDENCE   = 2;
 const unsigned N_SEMAPHORE_ENTRIES  = 2;
-const unsigned N_RWLOCK_ENTRIES		= 4;
+const unsigned N_RWLOCK_ENTRIES	    = 4;
 const double EPSILON = 0.000001;
 
 extern std::string command_line;
 
 typedef enum {
-    AGGREGATE_NONE,
-    AGGREGATE_SEQUENCES,
-    AGGREGATE_ACTIVITIES,
-    AGGREGATE_PHASES,
-    AGGREGATE_ENTRIES,
-    AGGREGATE_THREADS
-} aggregation_type;
-
-typedef enum {
     TIMEBENCH_STYLE,
     JLQNDEF_STYLE
 } graphical_output_style_type;
-
-enum class file_format {
-    EEPIC,
-#if defined(EMF_OUTPUT)
-    EMF,
-#endif
-    FIG,
-#if HAVE_GD_H && HAVE_LIBGD && HAVE_GDIMAGEGIFPTR
-    GIF,
-#endif
-#if JMVA_OUTPUT && HAVE_EXPAT_H
-    JMVA,
-#endif
-#if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG
-    JPEG,
-#endif
-    JSON,
-    LQX,
-    NO_OUTPUT,
-    OUTPUT,
-#if QNAP2_OUTPUT
-    QNAP2,
-#endif
-    PARSEABLE,
-#if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
-    PNG,
-#endif
-    POSTSCRIPT,
-    PSTEX,
-    RTF,
-    SRVN,
-#if defined(SVG_OUTPUT)
-    SVG,
-#endif
-#if defined(SXD_OUTPUT)
-    SXD,
-#endif
-#if defined(TXT_OUTPUT)
-    TXT,
-#endif
-#if defined(X11_OUTPUT)
-    X11,
-#endif
-    XML,
-    UNKNOWN
-};
-
-enum class Layering {
-    BATCH,
-    GROUP,
-    HWSW,
-    MOL,
-    PROCESSOR,
-    PROCESSOR_TASK,
-    SHARE,
-    SQUASHED,
-    SRVN,
-    TASK_PROCESSOR
-};
 
 typedef enum {
     PROCESSOR_NONE,
@@ -202,34 +131,6 @@ typedef enum {
 } sort_type;
 
 typedef enum {
-    SPECIAL_ANNOTATE,
-    SPECIAL_ARROW_SCALING,
-    SPECIAL_BCMP,
-    SPECIAL_CLEAR_LABEL_BACKGROUND,
-    SPECIAL_EXHAUSTIVE_TOPOLOGICAL_SORT,
-    SPECIAL_FLATTEN_SUBMODEL,
-    SPECIAL_FORCE_INFINITE,
-    SPECIAL_FORWARDING_DEPTH,
-    SPECIAL_GROUP,
-    SPECIAL_LAYER_NUMBER,
-    SPECIAL_NO_ALIGNMENT_BOX,
-    SPECIAL_NO_ASYNC_TOPOLOGICAL_SORT,
-    SPECIAL_NO_CV_SQR,
-    SPECIAL_NO_PHASE_TYPE,
-    SPECIAL_NO_REF_TASK_CONVERSION,
-    SPECIAL_PRUNE,
-    SPECIAL_PROCESSOR_SCHEDULING,
-    SPECIAL_QUORUM_REPLY,
-    SPECIAL_RENAME,
-    SPECIAL_SORT,
-    SPECIAL_SQUISH_ENTRY_NAMES,
-    SPECIAL_SPEX_HEADER,
-    SPECIAL_SUBMODEL_CONTENTS,
-    SPECIAL_TASKS_ONLY,	
-    SPECIAL_TASK_SCHEDULING
-} special_type;
-
-typedef enum {
     COLOUR_OFF,
     COLOUR_RESULTS,		/* Default */
     COLOUR_LAYERS,		/* Each layer gets its own colour */
@@ -248,29 +149,37 @@ struct option_type
 	union p {		/* Parameter */
 	    p(int _i_) : i(_i_) {}
 	    p(const char ** _a_ ) : a(_a_) {}
-	    p(const std::map<const file_format,const std::string>* _m_) : m(_m_) {}
+	    p(const std::map<const Aggregate,const std::string>* _x_) : x(_x_) {}
 	    p(const std::map<const Layering,const std::string>* _l_) : l(_l_) {}
+	    p(const std::map<const Special,const std::string>* _z_) : z(_z_) {}
+	    p(const std::map<const File_Format,const std::string>* _f_) : f(_f_) {}
 	    const int i;
 	    const char ** a;
-	    const std::map<const file_format,const std::string>* m;
+	    const std::map<const Aggregate,const std::string>* x;
 	    const std::map<const Layering,const std::string>* l;
+	    const std::map<const Special,const std::string>* z;
+	    const std::map<const File_Format,const std::string>* f;
 	} param;
 	union a {		/* Argument */
 	    a() : s(nullptr) {}
-	    a(file_format _o_) : o(_o_) {}
-	    a(int _i_) : i(_i_) {}
-	    a(bool _b_) : b(_b_) {}
+	    a(Aggregate _x_) : x(_x_) {}
+	    a(File_Format _f_) : f(_f_) {}
 	    a(Layering _l_) : l(_l_) {}
-	    a(std::regex * _r_) : r(_r_) {}
+	    a(Special _z_) : z(_z_) {}
+	    a(bool _b_) : b(_b_) {}
 	    a(char * _s_) : s(_s_) {}
-	    a(double _f_) : f(_f_) {}
-	    file_format o;
+	    a(double _d_) : d(_d_) {}
+	    a(int _i_) : i(_i_) {}
+	    a(std::regex * _r_) : r(_r_) {}
+	    Aggregate x;
 	    Layering l;
-	    int i;
+	    Special z;
 	    bool b;
-	    std::regex * r;
 	    char * s;
-	    double f;
+	    double d;
+	    File_Format f;
+	    int i;
+	    std::regex * r;
 	} value;
     } opts;
     const bool result;
@@ -385,31 +294,6 @@ struct Flags
     static sort_type sort;
     static unsigned long span;
     static const unsigned int size;
-};
-
-class Options
-{
-private:
-    Options();
-    Options( const Options& );
-    Options& operator=( const Options& );
-
-public:
-    static const std::map<const file_format,const std::string> io;
-    static const std::map<const Layering,const std::string> layering;
-    static const char * colouring[];
-    static const char * processor[];
-    static const char * activity[];
-    static const char * justification[];
-    static const char * integer[];
-    static const char * key[];
-    static const char * real[];
-    static const char * replication[];
-    static const char * string[];
-    static const char * sort[];
-    static const char * special[];
-
-    static size_t find_if( const char**, const std::string& );
 };
 
 /* ------------------------------------------------------------------------ */
@@ -616,7 +500,7 @@ typedef LQIO::DOM::DocumentObject& (LQIO::DOM::DocumentObject::*set_function)( c
 
 
 int lqn2ps( int argc, char *argv[] );
-void setOutputFormat( const file_format );
+void setOutputFormat( const File_Format );
 
 bool graphical_output();
 bool output_output();
@@ -628,7 +512,7 @@ bool submodel_output();			/* true if generating a submodel */
 bool difference_output();		/* true if print differences */
 bool share_output();			/* true if sorting by processor share */
 int set_indent( int anInt );
-inline double normalized_font_size() { return Flags::print[FONT_SIZE].opts.value.i / Flags::print[MAGNIFICATION].opts.value.f; }
+inline double normalized_font_size() { return Flags::print[FONT_SIZE].opts.value.i / Flags::print[MAGNIFICATION].opts.value.d; }
 
 IntegerManip indent( const int anInt );				/* See main.cc */
 IntegerManip temp_indent( const int anInt );			/* See main.cc */

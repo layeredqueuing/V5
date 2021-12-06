@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 15154 2021-12-03 22:16:10Z greg $
+ * $Id: help.cc 15155 2021-12-06 18:54:53Z greg $
  */
 
 #include "lqn2ps.h"
@@ -149,34 +149,34 @@ man()
 	 << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 15154 2021-12-03 22:16:10Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 15155 2021-12-06 18:54:53Z greg $" << std::endl
 	 << comm << std::endl
 	 << comm << " --------------------------------" << std::endl;
 
     
     std::cout << ".SH \"NAME\"" << std::endl;
     bool printed = false;
-    for ( std::map<const file_format,const std::string>::const_iterator i = Options::io.begin(); i != Options::io.end(); ++i ) {
+    for ( std::map<const File_Format,const std::string>::const_iterator i = Options::file_format.begin(); i != Options::file_format.end(); ++i ) {
 	switch ( i->first ) {
 #if defined(EMF_OUTPUT)
-	case file_format::EMF:
+	case File_Format::EMF:
 #endif
-	case file_format::FIG:
+	case File_Format::FIG:
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_GDIMAGEGIFPTR
-	case file_format::GIF:
+	case File_Format::GIF:
 #endif
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG
-	case file_format::JPEG:
+	case File_Format::JPEG:
 #endif
-	case file_format::OUTPUT:
+	case File_Format::OUTPUT:
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
-	case file_format::PNG:
+	case File_Format::PNG:
 #endif
-	case file_format::POSTSCRIPT:
-	case file_format::SRVN:
-	case file_format::SXD:
-	case file_format::JSON:
-	case file_format::XML:
+	case File_Format::POSTSCRIPT:
+	case File_Format::SRVN:
+	case File_Format::SXD:
+	case File_Format::JSON:
+	case File_Format::XML:
 	    if ( printed ) {
 		std::cout << ", ";
 	    } else {
@@ -262,16 +262,16 @@ man()
 	    std::cout << "The " << current_option(i) << "is used to aggregate objects." << std::endl
 		 << ".RS" << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,AGGREGATE_NONE) << "\\fR" << std::endl
+		 << "\\fB" << Options::aggregate.at(Aggregate::NONE) << "\\fR" << std::endl
 		 << "Don't aggregate objects." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,AGGREGATE_SEQUENCES) << "\\fR" << std::endl
+		 << "\\fB" << Options::aggregate.at(Aggregate::SEQUENCES) << "\\fR" << std::endl
 		 << "Aggregate sequences of activities into a single activity." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,AGGREGATE_ACTIVITIES) << "\\fR" << std::endl
+		 << "\\fB" << Options::aggregate.at(Aggregate::ACTIVITIES) << "\\fR" << std::endl
 		 << "Aggregate activities called by an entry into the entry." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,AGGREGATE_PHASES) << "\\fR" << std::endl
+		 << "\\fB" << Options::aggregate.at(Aggregate::PHASES) << "\\fR" << std::endl
 		 << "Aggregate activities called by an entry into the entry and remove all phases." << std::endl;
 	    std::cout << ".PP" << std::endl
 		 << "A new model that results from aggregation may not necessarily have the same solution as the original model." << std::endl
@@ -416,52 +416,52 @@ man()
 	    std::cout << "Set the output format." << std::endl
 		 << ".RS" << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::EEPIC) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::EEPIC) << "\\fR" << std::endl
 		 << "Generate eepic macros for LaTeX." << std::endl;
 #if defined(EMF_OUTPUT)
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::EMF) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::EMF) << "\\fR" << std::endl
 		 << "Generate Windows Enhanced Meta File (vector) output." << std::endl;
 #endif
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::FIG) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::FIG) << "\\fR" << std::endl
 		 << "Generate input for xfig(1)." << std::endl;
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_GDIMAGEGIFPTR
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::GIF) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::GIF) << "\\fR" << std::endl
 		 << "Generate GIF (bitmap) output." << std::endl;
 #endif
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::JPEG) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::JPEG) << "\\fR" << std::endl
 		 << "Generate JPEG (bitmap) output." << std::endl;
 #endif
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::JSON) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::JSON) << "\\fR" << std::endl
 		 << "Generate an JSON input file.  If results are available, they are included." << std::endl
 		 << "The " << current_flag( INCLUDE_ONLY ) << " and " << current_flag( SUBMODEL ) << " options can be used to generate new input models" << std::endl
 		 << "consisting only of the objects selected." << std::endl
 		 << "New input files are always \"cleaned up\"." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::LQX) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::LQX) << "\\fR" << std::endl
 		 << "Generate an XML input file.  If results are available, they are included." << std::endl
 		 << "The " << current_flag( INCLUDE_ONLY ) << " and " << current_flag( SUBMODEL ) << " options can be used to generate new input models" << std::endl
 		 << "consisting only of the objects selected.  If SPEX is present, it will be converted to LQX." << std::endl
 		 << "New input files are always \"cleaned up\"." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::NO_OUTPUT) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::NO_OUTPUT) << "\\fR" << std::endl
 		 << "Generate no output except summary statistics about the model or models." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::OUTPUT) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::OUTPUT) << "\\fR" << std::endl
 		 << "Generate a new output file using the results from a parseable output file or from the results found in an XML file." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::PARSEABLE) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::PARSEABLE) << "\\fR" << std::endl
 		 << "Generate a new parseable output file using the results from a parseable output file or from the results found in an XML file." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::RTF) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::RTF) << "\\fR" << std::endl
 		 << "Generate a new output file in Rich Text Format using the results from a parseable output file or from the results found in an XML file." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::SRVN) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::SRVN) << "\\fR" << std::endl
 		 << "Generate a new input file.	 Results are ignored unless a subset of the input file is being generated." << std::endl
 		 << "The " << current_flag( INCLUDE_ONLY ) << " and " << current_flag( SUBMODEL ) << " options can be used to generate new input models" << std::endl
 		 << "consisting only of the objects selected." << std::endl
@@ -470,36 +470,36 @@ man()
 		 << "description of the input file format for the programs." << std::endl
 		 << "New input files are always \"cleaned up\"." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::POSTSCRIPT) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::POSTSCRIPT) << "\\fR" << std::endl
 		 << "Generate Encapsulated Postscript." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::PSTEX) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::PSTEX) << "\\fR" << std::endl
 		 << "Generate PostScript and LaTeX (pstex)." << std::endl;
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::PNG) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::PNG) << "\\fR" << std::endl
 		 << "Generate Portable Network Graphics (bitmap) output." << std::endl;
 #endif
 #if defined(SVG_OUTPUT)
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::SVG) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::SVG) << "\\fR" << std::endl
 		 << "Generate Scalable Vector Graphics (vector) output." << std::endl;
 #endif
 #if defined(SXD_OUTPUT)
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::SXD) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::SXD) << "\\fR" << std::endl
 		 << "Generate OpenOffice Drawing (vector) output.  " << std::endl
 		 << "The output file must be a regular file.  Output to special files is not supported." << std::endl;
 #endif
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::XML) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::XML) << "\\fR" << std::endl
 		 << "Generate an XML input file.  If results are available, they are included." << std::endl
 		 << "The " << current_flag( INCLUDE_ONLY ) << " and " << current_flag( SUBMODEL ) << " options can be used to generate new input models" << std::endl
 		 << "consisting only of the objects selected." << std::endl
 		 << "New input files are always \"cleaned up\"." << std::endl;
 #if defined(X11_OUTPUT)
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << Options::io.at(file_format::X11) << "\\fR" << std::endl
+		 << "\\fB" << Options::file_format.at(File_Format::X11) << "\\fR" << std::endl
 		 << "Not implemented." << std::endl;
 #endif
 	    std::cout << ".RE" << std::endl;
@@ -558,70 +558,70 @@ man()
 	    std::cout << "Special options:" << std::endl
 		      << ".RS" << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_ANNOTATE) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::ANNOTATE) << "\\fR" << std::endl
 		      << "Annotate the lqn input file (lqn output only)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_ARROW_SCALING) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::ARROW_SCALING) << "\\fR" << std::endl
 		      << "Scale the size of arrow heads by the scaling factor \\fIarg\\fP." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_CLEAR_LABEL_BACKGROUND) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::CLEAR_LABEL_BACKGROUND) << "\\fR" << std::endl
 		      << "Clear the area behind the label (fig output only)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_BCMP) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::BCMP) << "\\fR" << std::endl
 		      << "BCMP." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_EXHAUSTIVE_TOPOLOGICAL_SORT) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::EXHAUSTIVE_TOPOLOGICAL_SORT) << "\\fR" << std::endl
 		      << "Don't short circuit the topological sorter.  (Some models render better)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_FLATTEN_SUBMODEL) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::FLATTEN_SUBMODEL) << "\\fR" << std::endl
 		      << "Submodels drawn with \\-S or \\-Q normally place clients in their level found from the full model.  This option draws all clients for a given submodel in one layer." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_FORWARDING_DEPTH) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::FORWARDING_DEPTH) << "\\fR" << std::endl
 		      << "Nest forwarding instead of keeping it at the current level (historical). " << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_GROUP) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::GROUP) << "\\fR" << std::endl
 		      << "When using \\-Lgroup, name a group.  Multiple groups are named using a comma separated list." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_LAYER_NUMBER) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::LAYER_NUMBER) << "\\fR" << std::endl
 		      << "Print the layer number (valid for graphical output only)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_NO_ALIGNMENT_BOX) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::NO_ALIGNMENT_BOX) << "\\fR" << std::endl
 		      << "Don't generate the alignment boxes (Fig output)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_NO_ASYNC_TOPOLOGICAL_SORT) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::NO_ASYNC_TOPOLOGICAL_SORT) << "\\fR" << std::endl
 		      << "Don't follow asynchronous calls when doing the topological sort." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_NO_CV_SQR) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::NO_CV_SQR) << "\\fR" << std::endl
 		      << "Remove all coefficient of variation terms from a model.  This option is used when generating new models." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_NO_PHASE_TYPE) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::NO_PHASE_TYPE) << "\\fR" << std::endl
 		      << "Remove all phase type flag terms from a model.  This option is used when generating new models." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_NO_REF_TASK_CONVERSION) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::NO_REF_TASK_CONVERSION) << "\\fR" << std::endl
 		      << "When generating new models as submodels of existing models, servers in the original model are converted to reference tasks when possible.  This option overrides this conversion; these models use open-arrivals instead." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_PROCESSOR_SCHEDULING) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::PROCESSOR_SCHEDULING) << "\\fR" << std::endl
 		      << "Change the scheduling for all fixed-rate processors to ?." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_PRUNE) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::PRUNE) << "\\fR" << std::endl
 		      << "All tasks which are infinite servers are merged into non-infinite server tasks and clients" << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_RENAME) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::RENAME) << "\\fR" << std::endl
 		      << "Rename all of the icons to p\\fIn\\fP, t\\fIn\\fP, e\\fIn\\fP and a\\fIn\\fP where \\fIn\\fP is an integer starting from one." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_SORT) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::SORT) << "\\fR" << std::endl
 		      << "Set the order of sorting of objects in a layer (ascending, descending, topological, none)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_SQUISH_ENTRY_NAMES) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::SQUISH_ENTRY_NAMES) << "\\fR" << std::endl
 		      << "Rename entries/activities by taking only capital letters, letters following an underscore, or numbers." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_SUBMODEL_CONTENTS) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::SUBMODEL_CONTENTS) << "\\fR" << std::endl
 		      << "For graphical output, output the submodels (though this only works for a strictly layered model)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_TASKS_ONLY) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::TASKS_ONLY) << "\\fR" << std::endl
 		      << "Draw the model omitting all entries." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << current_arg(i,SPECIAL_TASK_SCHEDULING) << "\\fR" << std::endl
+		      << "\\fB" << Options::special.at(Special::TASK_SCHEDULING) << "\\fR" << std::endl
 		      << "Change the scheduling for all fixed-rate tasks to ?." << std::endl;
 	    std::cout << ".RE" << std::endl;
 	    break;
@@ -636,7 +636,7 @@ print_args_str( std::ostream& output, const option_type &o, const int )
     if ( o.c == 'I' ) {
 	std::cerr << "ARG=(lqn,xml)";
     } else if ( o.opts.param.a != nullptr
-		&& o.opts.param.m != &Options::io
+		&& o.opts.param.f != &Options::file_format
 		&& o.opts.param.a != Options::integer
 		&& o.opts.param.a != Options::real
 		&& o.opts.param.a != Options::string ) {
@@ -646,10 +646,10 @@ print_args_str( std::ostream& output, const option_type &o, const int )
 	    std::cerr << o.opts.param.a[j];
 	}
 	std::cerr << ")";
-    } else if ( o.opts.param.m == &Options::io ) {
+    } else if ( o.opts.param.f == &Options::file_format ) {
 	std::cerr << "ARG=(";
-	for ( std::map<const file_format,const std::string>::const_iterator j = o.opts.param.m->begin(); j != o.opts.param.m->end(); ++j ) {
-	    if ( j != o.opts.param.m->begin() ) std::cerr << '|';
+	for ( std::map<const File_Format,const std::string>::const_iterator j = o.opts.param.f->begin(); j != o.opts.param.f->end(); ++j ) {
+	    if ( j != o.opts.param.f->begin() ) std::cerr << '|';
 	    std::cerr << j->second;
 	}
 	std::cerr << ")";
@@ -692,8 +692,8 @@ default_setting_str( std::ostream& output, const option_type& o, const int )
     } else if ( o.opts.param.a == Options::integer ) {
 	output << o.opts.value.i;
     } else if ( o.opts.param.a == Options::real ) {
-	output << o.opts.value.f;
-    } else if ( o.opts.param.a != nullptr && o.opts.param.a != Options::string && o.opts.param.m != &Options::io ) {
+	output << o.opts.value.d;
+    } else if ( o.opts.param.a != nullptr && o.opts.param.a != Options::string && o.opts.param.f != &Options::file_format ) {
 	output << o.opts.param.a[o.opts.value.i];
     } else {
 	output << "N/A";

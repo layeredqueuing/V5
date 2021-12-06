@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 15143 2021-12-02 18:51:41Z greg $
+ * $Id: processor.cc 15155 2021-12-06 18:54:53Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -15,7 +15,6 @@
 #include "lqn2ps.h"
 #include <cmath>
 #include <algorithm>
-#include <limits.h>
 #if HAVE_VALUES_H
 #include <values.h>
 #endif
@@ -219,7 +218,7 @@ Processor::isInteresting() const
 	|| (Flags::print[PROCESSORS].opts.value.i == PROCESSOR_NONINFINITE
 	    && !isInfinite() )
 #if defined(TXT_OUTPUT)
-	|| Flags::print[OUTPUT_FORMAT].opts.value.o == file_format::TXT
+	|| Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::TXT
 #endif
 	|| input_output();
 }
@@ -297,7 +296,7 @@ double
 Processor::getIndex() const
 {
     std::vector<Task *> clients;
-    double anIndex = MAXDOUBLE;
+    double anIndex = std::numeric_limits<double>::max();
     this->clients( clients );
 
     for( std::vector<Task *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {

@@ -1,13 +1,12 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 15140 2021-12-02 15:04:21Z greg $
+ * $Id: element.cc 15155 2021-12-06 18:54:53Z greg $
  */
 
 #include "element.h"
 #include <cmath>
 #include <cstdlib>
 #include <map>
-#include <limits.h>
 #include <lqio/error.h>
 #include "errmsg.h"
 #include "entry.h"
@@ -119,7 +118,7 @@ Element::followCalls( std::pair<std::vector<Call *>::const_iterator,std::vector<
 
 	/* Ignore async calls to tasks that accept rendezvous requests. */
 
-	if ( (*call)->hasSendNoReply() && !Flags::async_topological_sort && dstTask->isCalled( RENDEZVOUS_REQUEST ) ) continue;
+	if ( (*call)->hasSendNoReply() && !Flags::async_topological_sort && dstTask->isCalled( request_type::RENDEZVOUS ) ) continue;
 
 	try {
 

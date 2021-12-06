@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15141 2021-12-02 15:31:46Z greg $
+ * $Id: entity.cc 15155 2021-12-06 18:54:53Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -18,7 +18,6 @@
 #include <cmath>
 #include <sstream>
 #include <cstdlib>
-#include <limits.h>
 #if HAVE_IEEEFP_H
 #include <ieeefp.h>
 #endif
@@ -49,7 +48,7 @@
 std::ostream&
 operator<<( std::ostream& output, const Entity& self ) 
 {
-    if ( Flags::print[OUTPUT_FORMAT].opts.value.o == file_format::TXT ) {
+    if ( Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::TXT ) {
 	self.print( output );
     } else {
 	self.draw( output );
@@ -517,7 +516,7 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
     Arc * outArc = Arc::newArc( 6 );
     outArc->scaleBy( Model::scaling(), Model::scaling() ).penColour( chainColour( k ) ).depth( myNode->depth() );
     const double direction = static_cast<double>(myNode->direction());
-    const double spacing = Flags::print[Y_SPACING].opts.value.f * Model::scaling();
+    const double spacing = Flags::print[Y_SPACING].opts.value.d * Model::scaling();
 
     if ( aClient->hasClientClosedChain(k) ) {
 	const double offset = radius() / 2.5;

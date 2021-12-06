@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 14644 2021-05-14 15:09:03Z greg $
+ * $Id: entry.h 15155 2021-12-06 18:54:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -156,9 +156,10 @@ public:
 
     /* Queries */
 
-    bool isCalled( const requesting_type callType );
-    bool isCalled( const requesting_type callType ) const { return _isCalled == callType; }
-    requesting_type isCalled() const { return _isCalled; }
+    bool isCalledBy( const request_type callType );
+    bool isCalledBy( const request_type callType ) const { return _requestType == callType; }
+    bool isCalled() const { return _requestType != request_type::NOT_CALLED; }
+    request_type requestType() const { return _requestType; }
     bool isReferenceTaskEntry() const;
     bool isSelectedIndirectly() const;
 
@@ -278,7 +279,7 @@ protected:
 
 private:
     const Task * _owner;
-    requesting_type _isCalled;			/* true if entry referenced.	*/
+    request_type _requestType;			/* Type of call to entry.	*/
     std::vector<Call *> _calls;			/* Who I call.			*/
     std::vector<GenericCall *> _callers;	/* Who calls me.		*/
     Activity * _startActivity;			/* If I have activities.	*/

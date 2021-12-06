@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 14547 2021-03-15 17:48:06Z greg $
+ * $Id: layer.h 15155 2021-12-06 18:54:53Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -29,7 +29,7 @@ private:
     class Position
     {
     public:
-	Position( taskFPtr f, double y=MAXDOUBLE ) : _f(f), _x(0.0), _y(y), _h(0.0) {}
+	Position( taskFPtr f, double y=std::numeric_limits<double>::max() ) : _f(f), _x(0.0), _y(y), _h(0.0) {}
 	void operator()( Entity * );
 	double x() const { return _x; }
 	double y() const { return _y; }

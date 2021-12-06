@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15141 2021-12-02 15:31:46Z greg $
+ * $Id: entry.cc 15155 2021-12-06 18:54:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,7 +24,6 @@
 #if defined(HAVE_IEEEFP_H) && !defined(MSDOS)
 #include <ieeefp.h>
 #endif
-#include <limits.h>
 #if HAVE_VALUES_H
 #include <values.h>
 #endif
@@ -73,7 +72,7 @@ Entry::Entry( const LQIO::DOM::DocumentObject * dom )
       drawRight(true),
       _phases(),
       _owner(0),
-      _isCalled(NOT_CALLED),
+      _requestType(request_type::NOT_CALLED),
       _calls(),
       _callers(),
       _startActivity(nullptr),
@@ -104,7 +103,7 @@ Entry::Entry( const Entry& src )
       drawRight(src.drawRight),
       _phases(),
       _owner(0),
-      _isCalled(src._isCalled),
+      _requestType(src._requestType),
       _calls(),
       _callers(),
       _startActivity(nullptr),
@@ -309,7 +308,7 @@ Entry::addCall( const unsigned int p, LQIO::DOM::Call* domCall )
 Entry&
 Entry::rendezvous( const Entry * toEntry, unsigned int p, const LQIO::DOM::Call * value )
 {
-    if ( value && const_cast<Entry *>(toEntry)->isCalled( RENDEZVOUS_REQUEST ) ) {
+    if ( value && const_cast<Entry *>(toEntry)->isCalledBy( request_type::RENDEZVOUS ) ) {
  	Model::rendezvousCount[0] += 1;
 	Model::rendezvousCount[p] += 1;
 	getPhase( p );
@@ -366,7 +365,7 @@ Entry::rendezvous( const Entry * anEntry ) const
 Entry&
 Entry::sendNoReply( const Entry * toEntry, unsigned int p, const LQIO::DOM::Call * value )
 {
-    if ( value  && const_cast<Entry *>(toEntry)->isCalled( SEND_NO_REPLY_REQUEST ) ) {
+    if ( value  && const_cast<Entry *>(toEntry)->isCalledBy( request_type::SEND_NO_REPLY ) ) {
 	Model::sendNoReplyCount[0] += 1;
 	Model::sendNoReplyCount[p] += 1;
 	getPhase( p );
@@ -436,7 +435,7 @@ Entry::forward( const Entry * toEntry ) const
 Entry&
 Entry::forward( const Entry * toEntry, const LQIO::DOM::Call * value )
 {
-    if ( value && const_cast<Entry *>(toEntry)->isCalled( RENDEZVOUS_REQUEST ) ) {
+    if ( value && const_cast<Entry *>(toEntry)->isCalledBy( request_type::RENDEZVOUS ) ) {
 	Model::forwardingCount += 1;
 	getPhase( 1 );
 	Call * aCall = findOrAddCall( toEntry, &GenericCall::hasForwardingOrNone );
@@ -613,7 +612,7 @@ Entry::utilization() const
 Call *
 Entry::forwardingRendezvous( Entry * toEntry, const unsigned p, const double value )
 {
-    if ( value > 0.0 && toEntry->isCalled( RENDEZVOUS_REQUEST ) ) {
+    if ( value > 0.0 && toEntry->isCalledBy( request_type::RENDEZVOUS ) ) {
 	ProxyEntryCall * aCall = findOrAddFwdCall( toEntry );
 	const LQIO::DOM::Call * dom = aCall->getDOM(p);
 	if ( dom ) {
@@ -727,14 +726,14 @@ Entry::serviceExceeded() const
  */
 
 bool
-Entry::isCalled(const requesting_type callType )
+Entry::isCalledBy( const request_type requestType )
 {
-    if ( _isCalled != NOT_CALLED && _isCalled != callType ) {
+    if ( _requestType != request_type::NOT_CALLED && _requestType != requestType ) {
 	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, name().c_str() );
 	return false;
     } else {
 	getPhase( 1 );        /* mark an entry which is called as being present */
-	_isCalled = callType;
+	_requestType = requestType;
 	return true;
     }
 }
@@ -1374,7 +1373,7 @@ Entry::check() const
 	std::deque<const Activity *> activityStack;
 	unsigned next_p = 1;
 	double replies = startActivity()->aggregate( const_cast<Entry *>(this), 1, next_p, 1.0, activityStack, &Activity::aggregateReplies );
-	if ( isCalled() == RENDEZVOUS_REQUEST ) {
+	if ( requestType() == request_type::RENDEZVOUS ) {
 	    if ( replies == 0.0 ) {
 		LQIO::solution_error( LQIO::ERR_REPLY_NOT_GENERATED, name().c_str() );
 		rc = false;
@@ -1457,18 +1456,18 @@ Entry::aggregate()
 	std::deque<const Activity *> activityStack;
 	unsigned next_p = 1;
 
-	switch ( Flags::print[AGGREGATION].opts.value.i ) {
-	case AGGREGATE_ACTIVITIES:
-	case AGGREGATE_PHASES:
-	case AGGREGATE_ENTRIES:
+	switch ( Flags::print[AGGREGATION].opts.value.x ) {
+	case Aggregate::ACTIVITIES:
+	case Aggregate::PHASES:
+	case Aggregate::ENTRIES:
 	    startActivity()->aggregate( this, 1, next_p, 1.0, activityStack, &Activity::aggregateService );
 	    _startActivity = nullptr;
 	    const_cast<LQIO::DOM::Entry *>(dom)->setStartActivity( nullptr );
 	    const_cast<LQIO::DOM::Entry *>(dom)->setEntryType( LQIO::DOM::Entry::Type::STANDARD );
 	    break;
 
-	case AGGREGATE_SEQUENCES:
-	case AGGREGATE_THREADS:
+	case Aggregate::SEQUENCES:
+	case Aggregate::THREADS:
 	    startActivity()->transmorgrify( activityStack, 1.0 );
 	    break;
 
@@ -1488,9 +1487,9 @@ Entry::aggregate()
 	_activityCallers.clear();
     }
 
-    switch ( Flags::print[AGGREGATION].opts.value.i ) {
-    case AGGREGATE_PHASES:
-    case AGGREGATE_ENTRIES:
+    switch ( Flags::print[AGGREGATION].opts.value.x ) {
+    case Aggregate::PHASES:
+    case Aggregate::ENTRIES:
 	aggregatePhases();
 	break;
     }
@@ -1578,7 +1577,7 @@ Entry::referenceTasks( std::vector<Entity *> &clients, Element * dst ) const
 //!!! Need to create the pseudo arc to the task.
 	if ( dynamic_cast<Processor *>(dst) ) {
 	    const_cast<Task *>(owner())->findOrAddPseudoCall( dynamic_cast<Processor *>(dst) );
-	} else if ( Flags::print[AGGREGATION].opts.value.i ==  AGGREGATE_ENTRIES ) {
+	} else if ( Flags::print[AGGREGATION].opts.value.x ==  Aggregate::ENTRIES ) {
 	    const_cast<Task *>(owner())->findOrAddPseudoCall( const_cast<Task *>(dynamic_cast<Entry *>(dst)->owner()) );
 	} else {
 	    const_cast<Entry *>(this)->findOrAddPseudoCall( dynamic_cast<Entry *>(dst) );
@@ -1622,7 +1621,7 @@ Entry::clients( std::vector<Task *> &clients, const callPredicate aFunc ) const
 double
 Entry::getIndex() const
 {
-    double anIndex = MAXDOUBLE;
+    double anIndex = std::numeric_limits<double>::max();
 
     for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
 	if ( !(*call)->isPseudoCall() ) {
@@ -1799,8 +1798,8 @@ Entry::moveDst()
 
 	const int nFwd = countArcs( &GenericCall::hasForwardingLevel );
 	const double delta = width() / static_cast<double>(countCallers() + 1 + nFwd );
-	const double fy1 = Flags::print[Y_SPACING].opts.value.f / 2.0 + top();
-	const double fy2 = Flags::print[Y_SPACING].opts.value.f / 1.5 + top();
+	const double fy1 = Flags::print[Y_SPACING].opts.value.d / 2.0 + top();
+	const double fy2 = Flags::print[Y_SPACING].opts.value.d / 1.5 + top();
 
 	/* Draw incomming forwarding arcs from the same level first. */
 
@@ -2451,16 +2450,16 @@ Entry::create( LQIO::DOM::Entry* domEntry )
 
 static std::ostream&
 format( std::ostream& output, int p ) {
-    switch ( Flags::print[OUTPUT_FORMAT].opts.value.o ) {
-    case file_format::SRVN:
+    switch ( Flags::print[OUTPUT_FORMAT].opts.value.f ) {
+    case File_Format::SRVN:
 	if ( p != 1 ) {
 	    output << ' ';
 	}
 	break;
 
-    case file_format::OUTPUT:
-    case file_format::PARSEABLE:
-    case file_format::RTF:
+    case File_Format::OUTPUT:
+    case File_Format::PARSEABLE:
+    case File_Format::RTF:
 	output << std::setw( maxDblLen );
 	break;
 

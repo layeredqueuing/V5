@@ -9,7 +9,7 @@
  * November, 1994
  * August, 2005
  *
- * $Id: mva.h 14871 2021-07-03 03:20:32Z greg $
+ * $Id: mva.h 15156 2021-12-06 19:09:56Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -61,8 +61,12 @@ protected:
 //Shorthand for [N][m][e][k]
     typedef std::vector<double ***> N_m_e_k;
 
+public:
+    /* Function to create a MVA solver (because one can't take the address of constructors). */
+    typedef MVA * (*new_solver)( Vector<Server *>&, const Population&, const Vector<double>&, const Vector<unsigned>&, const Vector<double>* );
+
 protected:
-    MVA( Vector<Server *>&, const Population &, const Vector<double>&, const Vector<unsigned>&, const Vector<double>* );
+    MVA( Vector<Server *>&, const Population&, const Vector<double>&, const Vector<unsigned>&, const Vector<double>* );
 
 private:
     MVA( const MVA& ) = delete;
@@ -217,8 +221,9 @@ private:
 
 class ExactMVA : public MVA {
 public:
-    ExactMVA( Vector<Server *>&, const Population&, const Vector<double>&,
-	      const Vector<unsigned>&, const Vector<double>* of = 0 );
+    ExactMVA( Vector<Server *>&, const Population&, const Vector<double>&, const Vector<unsigned>&, const Vector<double>* of = nullptr );
+    static MVA * create( Vector<Server *>& Q, const Population& N, const Vector<double>& Z, const Vector<unsigned>& pri, const Vector<double>* of )
+	{ return new ExactMVA( Q, N, Z, pri, of ); }
 
     virtual bool solve();
     virtual const char * getTypeName() const { return __typeName; }
@@ -245,7 +250,7 @@ private:
 class SchweitzerCommon : public MVA {
 public:
     SchweitzerCommon( Vector<Server *>&, const Population&, const Vector<double>&,
-		      const Vector<unsigned>&, const Vector<double>* of = 0 );
+		      const Vector<unsigned>&, const Vector<double>* of = nullptr );
     virtual ~SchweitzerCommon();
 
     virtual Probability priorityInflation( const Server& station, const Population &N, const unsigned k ) const;
@@ -281,9 +286,10 @@ protected:
 
 class Schweitzer : public SchweitzerCommon {
 public:
-    Schweitzer( Vector<Server *>&, const Population&, const Vector<double>&,
-		const Vector<unsigned>&, const Vector<double>* of = 0 );
+    Schweitzer( Vector<Server *>&, const Population&, const Vector<double>&, const Vector<unsigned>&, const Vector<double>* of = nullptr );
     virtual ~Schweitzer();
+    static MVA * create( Vector<Server *>& Q, const Population& N, const Vector<double>& Z, const Vector<unsigned>& pri, const Vector<double>* of )
+	{ return new Schweitzer( Q, N, Z, pri, of ); }
 
     virtual bool solve();
     virtual const char * getTypeName() const { return __typeName; }
@@ -303,7 +309,7 @@ protected:
 class OneStepMVA: public Schweitzer {
 public:
     OneStepMVA( Vector<Server *>&, const Population&, const Vector<double>&,
-		const Vector<unsigned>&, const Vector<double>* of = 0 );
+		const Vector<unsigned>&, const Vector<double>* of = nullptr );
     virtual bool solve();
     virtual const char * getTypeName() const { return __typeName; }
 private:
@@ -314,9 +320,10 @@ private:
 
 class Linearizer: public SchweitzerCommon {
 public:
-    Linearizer( Vector<Server *>&, const Population&, const Vector<double>&,
-		const Vector<unsigned>&, const Vector<double>* of = 0 );
+    Linearizer( Vector<Server *>&, const Population&, const Vector<double>&, const Vector<unsigned>&, const Vector<double>* of = nullptr );
     virtual ~Linearizer();
+    static MVA * create( Vector<Server *>& Q, const Population& N, const Vector<double>& Z, const Vector<unsigned>& pri, const Vector<double>* of )
+	{ return new Linearizer( Q, N, Z, pri, of ); }
 
     virtual void reset();
     virtual bool solve();
@@ -351,8 +358,10 @@ private:
 
 class OneStepLinearizer: public Linearizer {
 public:
-    OneStepLinearizer( Vector<Server *>&, const Population&, const Vector<double>&,
-		       const Vector<unsigned>&, const Vector<double>* of = 0 );
+    OneStepLinearizer( Vector<Server *>&, const Population&, const Vector<double>&, const Vector<unsigned>&, const Vector<double>* of = nullptr );
+    static MVA * create( Vector<Server *>& Q, const Population& N, const Vector<double>& Z, const Vector<unsigned>& pri, const Vector<double>* of )
+	{ return new OneStepLinearizer( Q, N, Z, pri, of ); }
+
     virtual bool solve();
     virtual const char * getTypeName() const { return __typeName; }
 private:
@@ -363,9 +372,11 @@ private:
 
 class Linearizer2: public Linearizer {
 public:
-    Linearizer2( Vector<Server *>&, const Population&,
-		 const Vector<double>&, const Vector<unsigned>&, const Vector<double>* of = 0 );
+    Linearizer2( Vector<Server *>&, const Population&, const Vector<double>&, const Vector<unsigned>&, const Vector<double>* of = nullptr );
     virtual ~Linearizer2();
+    static MVA * create( Vector<Server *>& Q, const Population& N, const Vector<double>& Z, const Vector<unsigned>& pri, const Vector<double>* of )
+	{ return new Linearizer2( Q, N, Z, pri, of ); }
+
     virtual const char * getTypeName() const { return __typeName; }
 
     virtual double sumOf_L_m( const Server& station, const Population &N, const unsigned j ) const;

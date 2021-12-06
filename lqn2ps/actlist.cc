@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 15140 2021-12-02 15:04:21Z greg $
+ * $Id: actlist.cc 15155 2021-12-06 18:54:53Z greg $
  */
 
 
@@ -12,7 +12,6 @@
 #include <cmath>
 #include <algorithm>
 #include <cstdlib>
-#include <limits.h>
 #if HAVE_VALUES_H
 #include <values.h>
 #endif
@@ -303,7 +302,7 @@ ForkActivityList::getIndex() const
     if ( prev() ) {
 	return prev()->getIndex();
     } else {
-	return MAXDOUBLE;
+	return std::numeric_limits<double>::max();
     }
 }
 
@@ -405,8 +404,8 @@ JoinActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned& n
     if ( next() ) {
 	double count = next()->aggregate( anEntry, curr_p, next_p, rate, activityStack, aFunc );
 	if ( aFunc == &Activity::aggregateService
-	     && (Flags::print[AGGREGATION].opts.value.i == AGGREGATE_SEQUENCES
-		 || Flags::print[AGGREGATION].opts.value.i == AGGREGATE_THREADS)
+	     && (Flags::print[AGGREGATION].opts.value.x == Aggregate::SEQUENCES
+		 || Flags::print[AGGREGATION].opts.value.x == Aggregate::THREADS)
 	     && dynamic_cast<ForkActivityList *>(next())
 	     && !dynamic_cast<RepeatActivityList *>(next()) ) {
 
@@ -441,7 +440,7 @@ JoinActivityList::getIndex() const
     if ( myActivity ) {
 	return myActivity->index();
     } else {
-	return MAXDOUBLE;
+	return std::numeric_limits<double>::max();
     }
 }
 
@@ -662,7 +661,7 @@ AndOrForkActivityList::getIndex() const
     if ( prev() ) {
 	return prev()->getIndex();
     } else {
-	return MAXDOUBLE;
+	return std::numeric_limits<double>::max();
     }
 }
 
@@ -861,7 +860,7 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 
     if ( aFunc == &Activity::aggregateService
 	 && joinList->size() == size()
-	 && Flags::print[AGGREGATION].opts.value.i == AGGREGATE_THREADS
+	 && Flags::print[AGGREGATION].opts.value.x == Aggregate::THREADS
 	 && dynamic_cast<OrJoinActivityList *>(joinList)
 	 && dynamic_cast<ForkActivityList *>(joinList->next())
 	 && !dynamic_cast<RepeatActivityList *>(joinList->next()) ) {
@@ -1134,7 +1133,7 @@ AndOrJoinActivityList::backtrack( const std::deque<const AndForkActivityList *>&
 double
 AndOrJoinActivityList::getIndex() const
 {
-    double anIndex = MAXDOUBLE;
+    double anIndex = std::numeric_limits<double>::max();
     for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	anIndex = std::min( anIndex, (*activity)->index() );
     }

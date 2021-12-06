@@ -1,6 +1,6 @@
 /* node.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: node.cc 15141 2021-12-02 15:31:46Z greg $
+ * $Id: node.cc 15155 2021-12-06 18:54:53Z greg $
  */
 
 #include "lqn2ps.h"
@@ -17,41 +17,41 @@ static std::string unicode_string( const char * s );
 Node *
 Node::newNode( double x, double y )
 {
-    switch( Flags::print[OUTPUT_FORMAT].opts.value.o ) {
-    case file_format::EEPIC:
+    switch( Flags::print[OUTPUT_FORMAT].opts.value.f ) {
+    case File_Format::EEPIC:
 	return new NodeTeX( 0, 0, x, y );
 #if defined(EMF_OUTPUT)
-    case file_format::EMF:
+    case File_Format::EMF:
 	return new NodeEMF( 0, 0, x, y );
 #endif
-    case file_format::FIG:
+    case File_Format::FIG:
 	return new NodeFig( 0, 0, x, y );
 #if HAVE_GD_H && HAVE_LIBGD
 #if HAVE_GDIMAGEGIFPTR
-    case file_format::GIF:
+    case File_Format::GIF:
 #endif
 #if HAVE_LIBJPEG 
-    case file_format::JPEG:
+    case File_Format::JPEG:
 #endif
 #if HAVE_LIBPNG
-    case file_format::PNG:
+    case File_Format::PNG:
 #endif
 	return new NodeGD( 0, 0, x, y );
 #endif	/* HAVE_LIBGD */
-    case file_format::POSTSCRIPT:
+    case File_Format::POSTSCRIPT:
 	return new NodePostScript( 0, 0, x, y );	/* the graphical object		*/
-    case file_format::PSTEX:
+    case File_Format::PSTEX:
 	return new NodePsTeX( 0, 0, x, y );
 #if defined(SVG_OUTPUT)
-    case file_format::SVG:
+    case File_Format::SVG:
 	return new NodeSVG( 0, 0, x, y );
 #endif
 #if defined(SXD_OUTPUT)
-    case file_format::SXD:
+    case File_Format::SXD:
 	return new NodeSXD( 0, 0, x, y );
 #endif
 #if defined(X11_OUTPUT)
-    case file_format::X11:
+    case File_Format::X11:
 	return new NodeX11( 0, 0, x, y );
 #endif
     default:

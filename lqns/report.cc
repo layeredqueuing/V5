@@ -10,14 +10,13 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: report.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: report.cc 15155 2021-12-06 18:54:53Z greg $
  * ------------------------------------------------------------------------
  */
 
 
 #include "lqns.h"
 #include <iomanip>
-#include <limits.h>
 #if HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif

@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15154 2021-12-03 22:16:10Z greg $
+ * $Id: task.cc 15155 2021-12-06 18:54:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,7 +24,6 @@
 #if HAVE_FLOAT_H
 #include <float.h>
 #endif
-#include <limits.h>
 #include <lqio/dom_activity.h>
 #include <lqio/dom_actlist.h>
 #include <lqio/dom_document.h>
@@ -275,10 +274,10 @@ Task::aggregate()
 {
     for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::aggregate ) );
 
-    switch ( Flags::print[AGGREGATION].opts.value.i ) {
-    case AGGREGATE_ENTRIES:
-    case AGGREGATE_PHASES:
-    case AGGREGATE_ACTIVITIES:
+    switch ( Flags::print[AGGREGATION].opts.value.x ) {
+    case Aggregate::ENTRIES:
+    case Aggregate::PHASES:
+    case Aggregate::ACTIVITIES:
 	for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
 	    delete *activity;
 	}
@@ -319,7 +318,7 @@ Task::sort()
 double
 Task::getIndex() const
 {
-    double anIndex = MAXDOUBLE;
+    double anIndex = std::numeric_limits<double>::max();
 
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	anIndex = std::min( anIndex, (*entry)->getIndex() );
@@ -560,19 +559,19 @@ Task::rootLevel() const
 {
     root_level_t level = root_level_t::IS_NON_REFERENCE;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	const requesting_type callType = (*entry)->isCalled();
+	const request_type callType = (*entry)->requestType();
 	switch ( callType ) {
 
-	case OPEN_ARRIVAL_REQUEST:	/* Root task, but at lower level */
+	case request_type::OPEN_ARRIVAL:	/* Root task, but at lower level */
 	    level = root_level_t::HAS_OPEN_ARRIVALS;
 	    break;
 
-	case RENDEZVOUS_REQUEST:	/* Non-root task. 		*/
-	case SEND_NO_REPLY_REQUEST:	/* Non-root task. 		*/
+	case request_type::RENDEZVOUS:		/* Non-root task. 		*/
+	case request_type::SEND_NO_REPLY:	/* Non-root task. 		*/
 	    return root_level_t::IS_NON_REFERENCE;
 	    break;
 	    
-	case NOT_CALLED:		/* No operation.		*/
+	case request_type::NOT_CALLED:		/* No operation.		*/
 	    break;
 	}
     }
@@ -620,9 +619,9 @@ Task::isForwardingTarget() const
  */
 
 bool
-Task::isCalled( const requesting_type callType ) const
+Task::isCalled( const request_type callType ) const
 {
-    return std::any_of( entries().begin(), entries().end(), Predicate1<Entry,const requesting_type>( &Entry::isCalled, callType ) );
+    return std::any_of( entries().begin(), entries().end(), Predicate1<Entry,const request_type>( &Entry::isCalledBy, callType ) );
 }
 
 
@@ -742,7 +741,7 @@ Task::check() const
 
     /* Check replication */
 
-    if ( Flags::print[OUTPUT_FORMAT].opts.value.o == file_format::PARSEABLE ) {
+    if ( Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::PARSEABLE ) {
 	LQIO::io_vars.error_messages[ERR_REPLICATION].severity = LQIO::WARNING_ONLY;
 	LQIO::io_vars.error_messages[ERR_REPLICATION_PROCESSOR].severity = LQIO::WARNING_ONLY;
     }
@@ -767,7 +766,7 @@ Task::check() const
 	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR,
 				  static_cast<int>(srcReplicasValue), srcName.c_str(),
 				  static_cast<int>(dstReplicasValue), processor->name().c_str() );
-	    if ( Flags::print[OUTPUT_FORMAT].opts.value.o != file_format::PARSEABLE ) {
+	    if ( Flags::print[OUTPUT_FORMAT].opts.value.f != File_Format::PARSEABLE ) {
 		rc = false;
 	    }
 	}
@@ -1204,7 +1203,7 @@ Task::canPrune() const
      * this point.  canPrune could be recursive?
      */
 
-    assert( Flags::print[AGGREGATION].opts.value.i = AGGREGATE_ENTRIES );
+    assert( Flags::print[AGGREGATION].opts.value.x == Aggregate::ENTRIES );
 //    std::set<const Task *> callers = std::accumulate( entries().begin(), entries().end(), std::set<const Task *>(), &Entry::collect_callers );
     return calls().size() == 1;
 }
@@ -1484,7 +1483,7 @@ Task::reformat()
 double
 Task::justify()
 {
-    double left  = MAXDOUBLE;
+    double left  = std::numeric_limits<double>::max();
     double right = 0.0;
 
     for ( std::vector<ActivityLayer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
@@ -1520,7 +1519,7 @@ Task::justifyByEntry()
     double x = left() + adjustForSlope( fabs( height() ) ) + Flags::act_x_spacing / 4.;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	double right = 0.0;
-	double left  = MAXDOUBLE;
+	double left  = std::numeric_limits<double>::max();
 	Activity * startActivity = (*entry)->startActivity();
 	if ( !startActivity ) continue;
 
@@ -1573,7 +1572,7 @@ Task::justifyByEntry()
 
 	x += right;
 	width = x;
-	x += Flags::print[X_SPACING].opts.value.f;
+	x += Flags::print[X_SPACING].opts.value.d;
     }
 
     return width - (left() + adjustForSlope( fabs( height() ) ) );
@@ -1585,7 +1584,7 @@ Task::justifyByEntry()
 double
 Task::alignActivities()
 {
-    double minLeft  = MAXDOUBLE;
+    double minLeft  = std::numeric_limits<double>::max();
     double maxRight = 0;
 
     for ( std::vector<ActivityLayer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
@@ -1631,7 +1630,7 @@ Task::moveTo( const double x, const double y )
 
     reformat();
 
-    if ( Flags::print[AGGREGATION].opts.value.i == AGGREGATE_ENTRIES ) {
+    if ( Flags::print[AGGREGATION].opts.value.x == Aggregate::ENTRIES ) {
 	myLabel->moveTo( bottomCenter() ).moveBy( 0, height() / 2 );
     } else if ( !queueing_output() ) {
 
@@ -1720,7 +1719,7 @@ Task::moveDst()
 
 	const int nFwd = countArcs( &GenericCall::hasForwardingLevel );
 	const double delta = width() / static_cast<double>(countCallers() + 1 + nFwd );
-	const double fy = Flags::print[Y_SPACING].opts.value.f / 2.0 + top();
+	const double fy = Flags::print[Y_SPACING].opts.value.d / 2.0 + top();
 
 	/* Draw incomming forwarding arcs first. */
 
@@ -1824,7 +1823,7 @@ Task::label()
 	    }
 	    labelQueueingNetwork( &Entry::labelQueueingNetworkService );
 	} else {
-	    if ( Flags::print[AGGREGATION].opts.value.i == AGGREGATE_ENTRIES && Flags::print[PRINT_AGGREGATE].opts.value.b ) {
+	    if ( Flags::print[AGGREGATION].opts.value.x == Aggregate::ENTRIES && Flags::print[PRINT_AGGREGATE].opts.value.b ) {
 		myLabel->newLine() << " [" << print_service_time( *entries().front() ) << ']';
 	    }
 	    if ( hasThinkTime()  ) {
@@ -2445,7 +2444,7 @@ Task::draw( std::ostream& output ) const
     myLabel->backgroundColour( colour() ).comment( output, aComment.str() );
     output << *myLabel;
 
-    if ( Flags::print[AGGREGATION].opts.value.i != AGGREGATE_ENTRIES ) {
+    if ( Flags::print[AGGREGATION].opts.value.x != Aggregate::ENTRIES ) {
 	for_each( entries().begin(), entries().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
 	for_each( activities().begin(), activities().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
 	for_each( precedences().begin(), precedences().end(), ConstExec1<ActivityList,std::ostream&>( &ActivityList::draw, output ) );

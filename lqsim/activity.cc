@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 14997 2021-09-27 18:13:17Z greg $
+ * $Id: activity.cc 15155 2021-12-06 18:54:53Z greg $
  */
 
 #include <parasol.h>
@@ -19,7 +19,6 @@
 #include <cstdarg>
 #include <algorithm>
 #include <string.h>
-#include <limits.h>
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/dom_histogram.h>

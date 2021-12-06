@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15154 2021-12-03 22:16:10Z greg $ *
+ * $Id: pragma.cc 15155 2021-12-06 18:54:53Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -103,7 +103,7 @@ void Pragma::setBCMP( const std::string& value )
 	switch ( pragma->second ) {
 	case BCMP::STANDARD:
 	    Flags::print[QUEUEING_MODEL].opts.value.i = 1;
-	    Flags::print[AGGREGATION].opts.value.i = AGGREGATE_ENTRIES;
+	    Flags::print[AGGREGATION].opts.value.x = Aggregate::ENTRIES;
 	    Flags::bcmp_model = true;
 	    break;
 	default:

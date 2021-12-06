@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 14589 2021-04-04 12:28:05Z greg $
+ * $Id: entity.h 15155 2021-12-06 18:54:53Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -114,7 +114,7 @@ public:
     virtual bool hasForwardingLevel() const                 { return false; }
     virtual bool hasCalls( const callPredicate ) const      { return false; }
     virtual bool isForwardingTarget() const                 { return false; }
-    virtual bool isCalled( const requesting_type ) const    { return false; }
+    virtual bool isCalled( const request_type ) const       { return false; }
     bool isInfinite() const;
     bool isMultiServer() const;
     virtual bool isPureServer() const                       { return false; }

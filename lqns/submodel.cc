@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 15051 2021-10-07 23:56:46Z greg $
+ * $Id: submodel.cc 15156 2021-12-06 19:09:56Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -256,6 +256,15 @@ MVASubmodel::usePanReplication() const
 MVASubmodel&
 MVASubmodel::build()
 {
+    static const std::map<const Pragma::MVA, MVA::new_solver> solvers = {
+	{ Pragma::MVA::EXACT, 	    	    ExactMVA::create },
+	{ Pragma::MVA::SCHWEITZER,	    Schweitzer::create },
+	{ Pragma::MVA::LINEARIZER,	    Linearizer::create },
+	{ Pragma::MVA::FAST,	    	    Linearizer2::create },
+	{ Pragma::MVA::ONESTEP,	    	    OneStepMVA::create },
+	{ Pragma::MVA::ONESTEP_LINEARIZER,  OneStepLinearizer::create },
+    };
+
     /* BUG 144 */
     if ( _servers.empty() ) {
 	if ( !Pragma::allowCycles()  ) {
@@ -326,26 +335,8 @@ MVASubmodel::build()
     }
 
     if ( nChains() > 0 && n_closedStns() > 0 ) {
-	switch ( Pragma::mva() ) {
-	case Pragma::MVA::EXACT:
-	    _closedModel = new ExactMVA(          _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
-	    break;
-	case Pragma::MVA::SCHWEITZER:
-	    _closedModel = new Schweitzer(        _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
-	    break;
-	case Pragma::MVA::LINEARIZER:
-	    _closedModel = new Linearizer(        _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
-	    break;
-	case Pragma::MVA::FAST:
-	    _closedModel = new Linearizer2(       _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
-	    break;
-	case Pragma::MVA::ONESTEP:
-	    _closedModel = new OneStepMVA(        _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
-	    break;
-	case Pragma::MVA::ONESTEP_LINEARIZER:
-	    _closedModel = new OneStepLinearizer( _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
-	    break;
-	}
+	const MVA::new_solver solver = solvers.at(Pragma::mva());
+	_closedModel = (*solver)( _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
     }
 
     std::for_each( _clients.begin(), _clients.end(), ConstExec1<Task,MVASubmodel&>( &Task::setChains, *this ) );

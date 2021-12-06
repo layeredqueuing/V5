@@ -1,6 +1,6 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 15154 2021-12-03 22:16:10Z greg $
+ * $Id: group.cc 15155 2021-12-06 18:54:53Z greg $
  */
 
 #include "group.h"
@@ -61,7 +61,7 @@ Group::format()
 
     /* Now, move all entities for this processor together */
 
-    origin( MAXDOUBLE, MAXDOUBLE ).extent( 0, 0 );
+    origin( std::numeric_limits<double>::max(), std::numeric_limits<double>::max() ).extent( 0, 0 );
     for ( std::vector<Layer>::reverse_iterator layer = _layers.rbegin(); layer != _layers.rend(); ++layer ) {
 	if ( !*layer ) continue;
 	layer->reformat();
@@ -352,7 +352,7 @@ GroupByShareDefault::format()
      * origin and extent as necessary.  If we have any tasks as part
      * of the default, then we will have set our own bounds. */
 
-    origin( MAXDOUBLE, MAXDOUBLE ).extent( 0., 0.);
+    origin( std::numeric_limits<double>::max(), std::numeric_limits<double>::max() ).extent( 0., 0.);
     for ( std::vector<Group *>::iterator group = Group::__groups.begin(); group != Group::__groups.end(); ++group ) {
 	if ( !dynamic_cast<GroupByShareGroup *>( (*group) ) || (*group)->processor() != processor() ) continue;
 
@@ -361,7 +361,7 @@ GroupByShareDefault::format()
     }
 
     if ( isUsed() ) {
-	const double newX = width() + + Flags::print[X_SPACING].opts.value.f;
+	const double newX = width() + Flags::print[X_SPACING].opts.value.d;
 	for ( std::vector<Layer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
 	    if ( !*layer ) continue;
 	    layer->moveBy( newX, 0 );
@@ -446,7 +446,7 @@ GroupSquashed::GroupSquashed( unsigned int nLayers, const std::string& s, const 
 GroupSquashed&
 GroupSquashed::format()
 {
-    origin( MAXDOUBLE, MAXDOUBLE ).extent( 0, 0 );
+    origin( std::numeric_limits<double>::max(), std::numeric_limits<double>::max() ).extent( 0, 0 );
     originMin( std::min( layer_1.x(), layer_2.x() ), std::min( layer_1.y(), layer_2.y() ) );
     extentMax( std::max( layer_1.x() + layer_1.width(), layer_2.x() + layer_2.width() ),
 	       std::max( layer_1.y() + layer_1.height(), layer_2.y() + layer_2.height() ) );

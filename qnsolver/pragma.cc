@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15131 2021-11-25 20:58:17Z greg $ *
+ * $Id: pragma.cc 15155 2021-12-06 18:54:53Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -67,6 +67,7 @@ void Pragma::setMultiserver(const std::string& value)
 {
     static const std::map<const std::string,const Model::Multiserver> __multiserver_pragma = {
 	{ LQIO::DOM::Pragma::_conway_,		Model::Multiserver::CONWAY },
+	{ LQIO::DOM::Pragma::_default_,		Model::Multiserver::DEFAULT },
 	{ LQIO::DOM::Pragma::_reiser_,		Model::Multiserver::REISER },
 	{ LQIO::DOM::Pragma::_reiser_ps_,	Model::Multiserver::REISER_PS },
 	{ LQIO::DOM::Pragma::_rolia_,		Model::Multiserver::ROLIA },
@@ -77,8 +78,6 @@ void Pragma::setMultiserver(const std::string& value)
     const std::map<const std::string,const Model::Multiserver>::const_iterator pragma = __multiserver_pragma.find( value );
     if ( pragma != __multiserver_pragma.end() ) {
 	_multiserver = pragma->second;
-    } else if ( value == LQIO::DOM::Pragma::_default_ ) {
-	_multiserver = Model::Multiserver::DEFAULT;
     } else {
 	throw std::domain_error( value );
     }

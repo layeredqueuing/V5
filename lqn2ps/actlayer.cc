@@ -2,7 +2,7 @@
  *
  * Layering logic for activities.
  *
- * $Id: actlayer.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: actlayer.cc 15155 2021-12-06 18:54:53Z greg $
  */
 
 
@@ -13,7 +13,6 @@
 #include "activity.h"
 #include "actlist.h"
 #include <cstdlib>
-#include <limits.h>
 #if HAVE_VALUES_H
 #include <values.h>
 #endif
@@ -264,7 +263,7 @@ ActivityLayer::shift( unsigned i, double amount )
 ActivityLayer&
 ActivityLayer::crop()
 {
-    double left  = MAXDOUBLE;
+    double left  = std::numeric_limits<double>::max();
     double right = 0.;
     for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
 	left  = std::min( left, (*activity)->left() );

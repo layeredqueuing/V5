@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: closedmodel.cc 15126 2021-11-25 03:29:42Z greg $
+ * $Id: closedmodel.cc 15156 2021-12-06 19:09:56Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -49,6 +49,13 @@ ClosedModel::~ClosedModel()
 bool
 ClosedModel::construct()
 {
+    static const std::map<const Model::Solver, MVA::new_solver> solvers = {
+	{ Model::Solver::EXACT_MVA,	    ExactMVA::create },
+	{ Model::Solver::BARD_SCHWEITZER,   Schweitzer::create },
+	{ Model::Solver::LINEARIZER,	    Linearizer::create },
+	{ Model::Solver::LINEARIZER2,	    Linearizer2::create }
+    };
+
     assert( !isParent() );
 
     Model::construct();
@@ -65,13 +72,8 @@ ClosedModel::construct()
 
     /* Create the solver */
 
-    switch ( _mva ) {
-    case Solver::EXACT_MVA:	    _solver = new ExactMVA(    Q, N, Z, priority ); break;
-    case Solver::BARD_SCHWEITZER:   _solver = new Schweitzer(  Q, N, Z, priority ); break;
-    case Solver::LINEARIZER:	    _solver = new Linearizer(  Q, N, Z, priority ); break;
-    case Solver::LINEARIZER2:	    _solver = new Linearizer2( Q, N, Z, priority ); break;
-    default: _result = false; break;
-    }
+    const MVA::new_solver solver = solvers.at(_mva);
+    _solver = (*solver)( Q, N, Z, priority, nullptr );
     return _result;
 }
 

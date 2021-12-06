@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id: configure.ac 14978 2021-09-14 01:31:42Z greg $
+# $Id: configure.ac 15155 2021-12-06 18:54:53Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([srvndiff],[5.22],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([../config])
@@ -54,7 +54,6 @@ AC_CHECK_HEADERS([float.h])
 AC_CHECK_HEADERS([getopt.h])
 AC_CHECK_HEADERS([inttypes.h]) 
 AC_CHECK_HEADERS([libgen.h]) 
-AC_CHECK_HEADERS([limits.h]) 
 AC_CHECK_HEADERS([malloc.h]) 
 AC_CHECK_HEADERS([stddef.h]) 
 AC_CHECK_HEADERS([string.h])

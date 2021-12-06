@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15141 2021-12-02 15:31:46Z greg $
+ * $Id: call.cc 15155 2021-12-06 18:54:53Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -920,7 +920,7 @@ Call&
 Call::moveDst( const Point& aPoint )
 {
     GenericCall::moveDst( aPoint );
-    const double delta_y = Flags::print[Y_SPACING].opts.value.f / 3.0;
+    const double delta_y = Flags::print[Y_SPACING].opts.value.d / 3.0;
     /* Hack to stagger labels */
     const std::vector<GenericCall *>& callers = dstEntry()->callers();
     unsigned int even = 1;
@@ -965,7 +965,7 @@ Call::label()
 	if ( hasNoCall() && Flags::print[COLOUR].opts.value.i != COLOUR_OFF ) {
 	    _label->colour( Graphic::RED );
 	}
-	if ( Flags::print[AGGREGATION].opts.value.i != AGGREGATE_ENTRIES ) {
+	if ( Flags::print[AGGREGATION].opts.value.x != Aggregate::ENTRIES ) {
 	    *_label << '(' << print_calls(*this) << ')';
 	}
 	const LQIO::DOM::ExternalVariable& fan_out = srcTask()->fanOut( dstTask() );
@@ -2029,7 +2029,7 @@ ProcessorCall::label()
 void
 ProcessorCall::moveLabel()
 {
-    const double delta_y = Flags::print[Y_SPACING].opts.value.f / 3.0;
+    const double delta_y = Flags::print[Y_SPACING].opts.value.d / 3.0;
     /* Hack to stagger labels */
     const std::vector<GenericCall *>& callers = dstEntity()->callers();
     unsigned int even = 1;
@@ -2365,9 +2365,9 @@ CallStack::size() const
 static std::ostream&
 format_prologue( std::ostream& output, const Call& aCall, int p )
 {
-    switch( Flags::print[OUTPUT_FORMAT].opts.value.o ) {
-    case file_format::EEPIC:
-    case file_format::PSTEX:
+    switch( Flags::print[OUTPUT_FORMAT].opts.value.f ) {
+    case File_Format::EEPIC:
+    case File_Format::PSTEX:
 	if ( p != 1 ) {
 	    output << ',';
 	}
@@ -2375,14 +2375,14 @@ format_prologue( std::ostream& output, const Call& aCall, int p )
 	    output << "\\fbox{";
 	}
 	break;
-    case file_format::OUTPUT:
-    case file_format::PARSEABLE:
-    case file_format::RTF:
+    case File_Format::OUTPUT:
+    case File_Format::PARSEABLE:
+    case File_Format::RTF:
 	output << std::setw( maxDblLen );
 	break;
-    case file_format::POSTSCRIPT:
-    case file_format::FIG:
-    case file_format::SVG:
+    case File_Format::POSTSCRIPT:
+    case File_Format::FIG:
+    case File_Format::SVG:
 	if ( p != 1 ) {
 	    output << ',';
 	}
@@ -2399,16 +2399,16 @@ format_prologue( std::ostream& output, const Call& aCall, int p )
 static std::ostream&
 format_epilogue( std::ostream& output, const Call& aCall, int p )
 {
-    switch( Flags::print[OUTPUT_FORMAT].opts.value.o ) {
-    case file_format::EEPIC:
-    case file_format::PSTEX:
+    switch( Flags::print[OUTPUT_FORMAT].opts.value.f ) {
+    case File_Format::EEPIC:
+    case File_Format::PSTEX:
 	if ( aCall.phaseTypeFlag(p) == LQIO::DOM::Phase::Type::DETERMINISTIC ) {
 	    output << "}";
 	}
 	break;
-    case file_format::POSTSCRIPT:
-    case file_format::SVG:
-    case file_format::FIG:
+    case File_Format::POSTSCRIPT:
+    case File_Format::SVG:
+    case File_Format::FIG:
 	if ( aCall.phaseTypeFlag(p) == LQIO::DOM::Phase::Type::DETERMINISTIC ) {
 	    output << ":D";
 	}

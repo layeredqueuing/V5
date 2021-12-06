@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 15140 2021-12-02 15:04:21Z greg $
+ * $Id: activity.cc 15155 2021-12-06 18:54:53Z greg $
  */
 
 #include "activity.h"
@@ -11,7 +11,6 @@
 #include <vector>
 #include <algorithm>
 #include <numeric>
-#include <limits.h>
 #if HAVE_VALUES_H
 #include <values.h>
 #endif
@@ -198,7 +197,7 @@ Activity::rendezvous ( const Entry * toEntry )  const
 Activity&
 Activity::rendezvous (Entry * toEntry, const LQIO::DOM::Call * value )
 {
-    if ( value && toEntry->isCalled( RENDEZVOUS_REQUEST ) ) {
+    if ( value && toEntry->isCalledBy( request_type::RENDEZVOUS ) ) {
 	Model::rendezvousCount[0] += 1;
 
 	Call * aCall = findOrAddCall( toEntry );
@@ -223,7 +222,7 @@ Activity::sendNoReply ( const Entry * toEntry ) const
 Activity&
 Activity::sendNoReply (Entry * toEntry, const LQIO::DOM::Call * value )
 {
-    if ( value && toEntry->isCalled( SEND_NO_REPLY_REQUEST ) ) {
+    if ( value && toEntry->isCalledBy( request_type::SEND_NO_REPLY ) ) {
 	Model::sendNoReplyCount[0] += 1;
 
 	Call * aCall = findOrAddCall( toEntry );
@@ -421,7 +420,7 @@ Activity::findActivityChildren( std::deque<const Activity *>& activityStack, std
 	if ( p == 2 ) {
 	    LQIO::solution_error( LQIO::ERR_DUPLICATE_REPLY, owner()->name().c_str(), name().c_str(), srcEntry->name().c_str() );
 	}
-	if (  srcEntry->isCalled() == SEND_NO_REPLY_REQUEST || srcEntry->isCalled() == OPEN_ARRIVAL_REQUEST ) {
+	if (  srcEntry->requestType() == request_type::SEND_NO_REPLY || srcEntry->requestType() == request_type::OPEN_ARRIVAL ) {
 	    LQIO::solution_error( LQIO::ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY, owner()->name().c_str(), name().c_str(), srcEntry->name().c_str() );
 	}
 	p = 2;
@@ -462,7 +461,7 @@ Activity::getIndex() const
     } else if ( inputFrom() ) {
 	anIndex = inputFrom()->getIndex();
     } else {
-	anIndex = MAXDOUBLE;
+	anIndex = std::numeric_limits<double>::max();
     }
     return anIndex;
 }
@@ -555,7 +554,7 @@ Activity::aggregateReplies( Entry * anEntry, const unsigned p, const double rate
 	anEntry->getPhase(p);
     }
     if ( repliesTo( anEntry ) ) {
-	if (  anEntry->isCalled() == SEND_NO_REPLY_REQUEST || anEntry->isCalled() == OPEN_ARRIVAL_REQUEST ) {
+	if (  anEntry->requestType() == request_type::SEND_NO_REPLY || anEntry->requestType() == request_type::OPEN_ARRIVAL ) {
 	    LQIO::solution_error( LQIO::ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY, owner()->name().c_str(), name().c_str(), anEntry->name().c_str() );
 	} else if ( rate <= 0 ) {
 	    LQIO::solution_error( LQIO::ERR_INVALID_REPLY, owner()->name().c_str(), name().c_str(), anEntry->name().c_str() );
@@ -584,10 +583,10 @@ Activity::aggregateService( Entry * anEntry, const unsigned p, const double rate
 	sum = rate;
     }
 
-    switch ( Flags::print[AGGREGATION].opts.value.i ) {
-    case AGGREGATE_ENTRIES:
-    case AGGREGATE_PHASES:
-    case AGGREGATE_ACTIVITIES:
+    switch ( Flags::print[AGGREGATION].opts.value.x ) {
+    case Aggregate::ENTRIES:
+    case Aggregate::PHASES:
+    case Aggregate::ACTIVITIES:
 	const_cast<Entry *>(anEntry)->aggregateService( this, p, rate );
 	std::map<Entry *,Reply *>::iterator reply = _replyArcs.find(anEntry);
 	if ( reply != replyArcs().end() ) {
