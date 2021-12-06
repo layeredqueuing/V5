@@ -8,28 +8,20 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: entry.cc 15159 2021-12-06 19:48:15Z greg $
  * ------------------------------------------------------------------------
  */
 
 #include "lqn2ps.h"
+#include <algorithm>
+#include <algorithm>
 #include <cassert>
-#include <cstdlib>
-#include <cstdarg>
-#include <cstring>
-#include <algorithm>
-#include <ctype.h>
 #include <cmath>
-#include <algorithm>
-#if defined(HAVE_IEEEFP_H) && !defined(MSDOS)
-#include <ieeefp.h>
-#endif
-#if HAVE_VALUES_H
-#include <values.h>
-#endif
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
+#include <cstdarg>
+#include <cstdlib>
+#include <cstring>
+#include <ctype.h>
+#include <limits>
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include <lqio/dom_extvar.h>

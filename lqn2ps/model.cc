@@ -1,31 +1,26 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: model.cc 15159 2021-12-06 19:48:15Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
 
 #include "lqn2ps.h"
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#endif
 #include <algorithm>
-#include <fstream>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <stdexcept>
 #include <cstring>
 #include <errno.h>
-#include <cmath>
+#include <fstream>
+#include <limits>
 #include <sstream>
+#include <stdexcept>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
-#if HAVE_VALUES_H
-#include <values.h>
+#if HAVE_UNISTD_H
+#include <unistd.h>
 #endif
 #if defined(X11_OUTPUT)
 #include <sys/stat.h>

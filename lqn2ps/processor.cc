@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: processor.cc 15159 2021-12-06 19:48:15Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -13,14 +13,9 @@
  */
 
 #include "lqn2ps.h"
-#include <cmath>
 #include <algorithm>
-#if HAVE_VALUES_H
-#include <values.h>
-#endif
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
+#include <cmath>
+#include <limits>
 #include <lqio/dom_document.h>
 #include <lqio/dom_processor.h>
 #include <lqio/error.h>

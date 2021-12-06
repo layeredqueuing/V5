@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: activity.cc 15159 2021-12-06 19:48:15Z greg $
  */
 
 #include "activity.h"
@@ -8,15 +8,10 @@
 #include <cstdarg>
 #include <cstring>
 #include <cmath>
+#include <limits>
 #include <vector>
 #include <algorithm>
 #include <numeric>
-#if HAVE_VALUES_H
-#include <values.h>
-#endif
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/dom_activity.h>

@@ -4,22 +4,17 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: actlist.cc 15159 2021-12-06 19:48:15Z greg $
  */
 
 
-#include "actlist.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
-#if HAVE_VALUES_H
-#include <values.h>
-#endif
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
+#include <limits>
 #include <lqio/error.h>
 #include <lqio/dom_actlist.h>
+#include "actlist.h"
 #include "task.h"
 #include "entry.h"
 #include "activity.h"

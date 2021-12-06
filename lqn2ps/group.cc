@@ -1,18 +1,13 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: group.cc 15159 2021-12-06 19:48:15Z greg $
  */
 
-#include "group.h"
 #include <algorithm>
 #include <cstring>
 #include <cstdlib>
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
-#if HAVE_VALUES_H
-#include <values.h>
-#endif
+#include <limits>
+#include "group.h"
 #include "element.h"
 #include "node.h"
 #include "label.h"

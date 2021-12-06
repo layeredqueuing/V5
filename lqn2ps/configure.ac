@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 # $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/configure.ac $
 # ------------------------------------------------------------------------
-# $Id: configure.ac 15155 2021-12-06 18:54:53Z greg $
+# $Id: configure.ac 15159 2021-12-06 19:48:15Z greg $
 # ------------------------------------------------------------------------
 AC_PREREQ([2.69])
 AC_INIT([lqn2ps],[5.22],[greg@sce.carleton.ca])
@@ -53,11 +53,10 @@ fi
 # ----------------------------------------------------------------------
 # Checks for header files.
 #
-AC_CHECK_HEADERS([float.h ieeefp.h])
 if test "x$enable_shared" = "xyes"; then
    AC_CHECK_HEADERS([gd.h])
 fi
-AC_CHECK_HEADERS([string.h unistd.h values.h])
+AC_CHECK_HEADERS([string.h unistd.h])
 AC_CHECK_HEADERS([getopt.h])
 AC_CHECK_HEADERS([expat.h])
 

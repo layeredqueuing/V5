@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: layer.cc 15159 2021-12-06 19:48:15Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -11,12 +11,6 @@
 #include "lqn2ps.h"
 #include <cstdlib>
 #include <algorithm>
-#if HAVE_VALUES_H
-#include <values.h>
-#endif
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
 #include <lqio/error.h>
 #include <lqio/srvn_output.h>
 #include <lqio/dom_document.h>

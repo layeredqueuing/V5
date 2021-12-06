@@ -2,23 +2,17 @@
  *
  * Layering logic for activities.
  *
- * $Id: actlayer.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: actlayer.cc 15159 2021-12-06 19:48:15Z greg $
  */
 
 
 
-#include "actlayer.h"
 #include <algorithm>
 #include <cstdlib>
+#include <limits>
+#include "actlayer.h"
 #include "activity.h"
 #include "actlist.h"
-#include <cstdlib>
-#if HAVE_VALUES_H
-#include <values.h>
-#endif
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
 
 ActivityLayer::ActivityLayer( const ActivityLayer& src ) :
     myActivities(src.myActivities),

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 15155 2021-12-06 18:54:53Z greg $
+ * $Id: lqn2ps.h 15159 2021-12-06 19:48:15Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -30,12 +30,6 @@
 #include <regex>
 #include <lqio/input.h>
 #include <lqio/dom_extvar.h>
-#if defined(HAVE_VALUES_H)
-#include <values.h>
-#endif
-#if defined(HAVE_FLOAT_H)
-#include <float.h>
-#endif
 #include "option.h"
 
 namespace LQIO {

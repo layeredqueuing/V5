@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: task.cc 15159 2021-12-06 19:48:15Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -19,11 +19,9 @@
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 #include <string>
 #include <vector>
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
 #include <lqio/dom_activity.h>
 #include <lqio/dom_actlist.h>
 #include <lqio/dom_document.h>
@@ -76,10 +74,7 @@ private:
 
 
 static std::ostream& entries_of_str( std::ostream& output,  const Task& aTask );
-static std::ostream& task_scheduling_of_str( std::ostream& output,  const Task & aTask );
-
 static inline SRVNTaskManip entries_of( const Task& aTask ) { return SRVNTaskManip( entries_of_str, aTask ); }
-static inline SRVNTaskManip task_scheduling_of( const Task & aTask ) { return SRVNTaskManip( &task_scheduling_of_str, aTask ); }
 
 /* -------------------------- Constructor ----------------------------- */
 
@@ -2393,10 +2388,23 @@ Task::UpdateFanInOut::updateFanInOut( const std::vector<Call *>& calls ) const
 const Task&
 Task::draw( std::ostream& output ) const
 {
+    /* see lqiolib/src/srvn_gram.y:task_sched_flag */
+    static const std::map<const scheduling_type,const char> task_scheduling = {
+	{ SCHEDULE_BURST,       'b' },
+	{ SCHEDULE_CUSTOMER,	'r' },
+	{ SCHEDULE_DELAY,       'n' },
+	{ SCHEDULE_FIFO,	'n' },
+	{ SCHEDULE_HOL,	        'h' },
+	{ SCHEDULE_POLL,        'P' },
+	{ SCHEDULE_PPR,	        'p' },
+	{ SCHEDULE_RWLOCK,      'W' },
+	{ SCHEDULE_UNIFORM,     'u' }
+    };
+
     std::ostringstream aComment;
     aComment << "Task " << name()
-	     << task_scheduling_of( *this )
-	     << entries_of( *this );
+	     << task_scheduling.at( scheduling() )
+	     << " " << entries_of( *this );
     if ( processor() ) {
 	aComment << " " << processor()->name();
     }
@@ -2795,28 +2803,3 @@ entries_of_str( std::ostream& output, const Task& aTask )
     output << " -1";
     return output;
 }
-
-/*
- * Print out of scheduling flag field.  See ../lqio input.h
- */
-
-static std::ostream&
-task_scheduling_of_str( std::ostream& output, const Task & aTask )
-{
-    output << ' ';
-    switch ( aTask.scheduling() ) {
-    case SCHEDULE_BURST:     output << 'b'; break;
-    case SCHEDULE_CUSTOMER:  output << 'r'; break;
-    case SCHEDULE_DELAY:     output << 'n'; break;
-    case SCHEDULE_FIFO:	     output << 'n'; break;
-    case SCHEDULE_HOL:	     output << 'h'; break;
-    case SCHEDULE_POLL:      output << 'P'; break;
-    case SCHEDULE_PPR:	     output << 'p'; break;
-    case SCHEDULE_RWLOCK:    output << 'W'; break;
-    case SCHEDULE_UNIFORM:   output << 'u'; break;
-    default:	   	     output << '?'; break;
-    }
-    return output;
-}
-
-
