@@ -1,6 +1,6 @@
 /* node.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: node.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: node.cc 15170 2021-12-07 23:33:05Z greg $
  */
 
 #include "lqn2ps.h"
@@ -217,7 +217,7 @@ std::ostream&
 NodeEMF::text( std::ostream& output, const Point& c, const char * s ) const
 {
     std::string aStr = unicode_string( s );
-    EMF::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour() );
+    EMF::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour() );
     return output;
 }
 
@@ -274,7 +274,7 @@ NodeFig::roundedRectangle( std::ostream& output ) const
 std::ostream&
 NodeFig::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    Fig::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour(), Fig::POSTSCRIPT );
+    Fig::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour(), Fig::POSTSCRIPT );
     return output;
 }
 
@@ -337,7 +337,7 @@ NodeGD::text( std::ostream& output, const Point& c, const char * s ) const
     Point aPoint( c );
     gdFont * font = GD::getfont();
     aPoint.moveBy( 0, -font->h );
-    GD::text( aPoint, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour() );
+    GD::text( aPoint, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour() );
     return output;
 }
 
@@ -398,7 +398,7 @@ NodePostScript::roundedRectangle( std::ostream& output ) const
 std::ostream&
 NodePostScript::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    PostScript::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour() );
+    PostScript::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour() );
     return output;
 }
 
@@ -414,7 +414,7 @@ std::ostream&
 NodePsTeX::text( std::ostream& output, const Point& c, const char * s ) const
 {
     std::string aStr = tex_string( s );
-    Fig::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour(), 
+    Fig::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour(), 
 	       Fig::SPECIAL );
     return output;
 }
@@ -465,7 +465,7 @@ NodeSVG::roundedRectangle( std::ostream& output ) const
 std::ostream&
 NodeSVG::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    SVG::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour() );
+    SVG::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour() );
     return output;
 }
 
@@ -527,8 +527,8 @@ NodeSXD::text( std::ostream& output, const Point& c, const char * s ) const
     Point boxExtent( strlen(s) / 2.4, Flags::print[FONT_SIZE].opts.value.i );		/* A guess... width is half of height */
     boxExtent *= SXD_SCALING;
     boxOrigin.moveBy( 0, -boxExtent.y() / 2.0 );
-    SXD::begin_paragraph( output, boxOrigin, boxExtent, CENTER_JUSTIFY );
-    SXD::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour() );
+    SXD::begin_paragraph( output, boxOrigin, boxExtent, Justification::CENTER );
+    SXD::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour() );
     SXD::end_paragraph( output );
     return output;
 }
@@ -587,7 +587,7 @@ std::ostream&
 NodeTeX::text( std::ostream& output, const Point& c, const char * s ) const
 {
     std::string aStr = tex_string( s );
-    TeX::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, CENTER_JUSTIFY, penColour() );
+    TeX::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour() );
     return output;
 }
 

@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15159 2021-12-06 19:48:15Z greg $
+ * $Id: model.cc 15170 2021-12-07 23:33:05Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -66,11 +66,6 @@ private:
 Model * Model::__model = 0;
 std::vector<Entity *> Model::__zombies;
 
-unsigned Model::iteration_limit   = 50;
-unsigned Model::print_interval    = 10;
-double Model::convergence_value   = 0.00001;
-double Model::underrelaxation     = 0.9;
-
 unsigned Model::openArrivalCount  = 0;
 unsigned Model::forwardingCount	  = 0;
 unsigned Model::rendezvousCount[MAX_PHASES+1];
@@ -93,8 +88,6 @@ Model::Stats Model::stats[Model::N_STATS];
 
 static CommentManip print_comment( const char * aPrefix, const LQIO::DOM::ExternalVariable& );
 static DoubleManip to_inches( const double );
-
-const char * Model::XMLSchema_instance = "http://www.w3.org/2001/XMLSchema-instance";
 
 /*
  * Compare two entities by their submodel.
@@ -662,17 +655,17 @@ Model::process()
     if ( !generate() ) return false;
     if ( !check() ) return false;
 
-#if defined(REP2FLAT)
-    switch ( Flags::print[REPLICATION].opts.value.i ) {
-    case REPLICATION_EXPAND: expand(); /* Fall through to call removeReplication()! */
-    case REPLICATION_REMOVE: removeReplication(); break;
-    case REPLICATION_RETURN: returnReplication(); break;
+#if REP2FLAT
+    switch ( Flags::print[REPLICATION].opts.value.r ) {
+    case Replication::EXPAND: expand(); /* Fall through to call removeReplication()! */
+    case Replication::REMOVE: removeReplication(); break;
+    case Replication::RETURN: returnReplication(); break;
     }
 #endif
 
     /* Simplify model if requested. */
 
-    if ( Flags::print[AGGREGATION].opts.value.x != Aggregate::NONE ) {
+    if ( Flags::print[AGGREGATION].opts.value.a != Aggregate::NONE ) {
 	for_each( Task::__tasks.begin(), Task::__tasks.end(), ::Exec<Entity>( &Entity::aggregate ) );
     }
 
@@ -685,7 +678,7 @@ Model::process()
 
     /* Simplify to tasks (for queueing models) */
 
-    if ( Flags::print[AGGREGATION].opts.value.x == Aggregate::ENTRIES ) {
+    if ( Flags::print[AGGREGATION].opts.value.a == Aggregate::ENTRIES ) {
 	for_each( _layers.begin(), _layers.end(), ::Exec<Layer>( &Layer::aggregate ) );
     }
 
@@ -693,8 +686,8 @@ Model::process()
 	printSummary( std::cerr );
     } 
 
-    if ( !Flags::have_results && Flags::print[COLOUR].opts.value.i == COLOUR_RESULTS ) {
-	Flags::print[COLOUR].opts.value.i = COLOUR_OFF;
+    if ( !Flags::have_results && Flags::print[COLOUR].opts.value.c == Colouring::RESULTS ) {
+	Flags::print[COLOUR].opts.value.c = Colouring::NONE;
     }
 
     if ( share_output() ) {
@@ -728,7 +721,7 @@ Model::process()
 		_layers.at(layer).sort( (compare_func_ptr)(&Entity::compare) ).format( 0 ).justify( Entry::__entries.size() * Flags::entry_width );
 	    }
 	}
-    } else if ( Flags::print[INCLUDE_ONLY].opts.value.r && Flags::surrogates ) {
+    } else if ( Flags::print[INCLUDE_ONLY].opts.value.m != nullptr && Flags::surrogates ) {
 
 	/* Call transmorgrify on all layers */
 	
@@ -807,18 +800,18 @@ Model::process()
     	if ( _key ) {
 	    _key->label().moveTo( _origin.x(), _origin.y() );
 
-	    switch ( Flags::print[KEY].opts.value.i ) {
-	    case KEY_TOP_LEFT:	    _key->moveBy( 0, _extent.y() - _key->height() ); break;
-	    case KEY_TOP_RIGHT:	    _key->moveBy( _extent.x() - _key->width(), _extent.y() - _key->height() ); break;
-	    case KEY_BOTTOM_LEFT:   break;
-	    case KEY_BOTTOM_RIGHT:  _key->moveBy( _extent.x() - _key->width(), 0 ); break;
-	    case KEY_BELOW_LEFT:
+	    switch ( Flags::print[KEY].opts.value.k ) {
+	    case Key_Position::TOP_LEFT:      _key->moveBy( 0, _extent.y() - _key->height() ); break;
+	    case Key_Position::TOP_RIGHT:     _key->moveBy( _extent.x() - _key->width(), _extent.y() - _key->height() ); break;
+	    case Key_Position::BOTTOM_LEFT:   break;
+	    case Key_Position::BOTTOM_RIGHT:  _key->moveBy( _extent.x() - _key->width(), 0 ); break;
+	    case Key_Position::BELOW_LEFT:
 		moveBy( 0, _key->height() );
 		_origin.moveBy( 0, -_key->height() );
 		_key->moveBy( 0, -_key->height() );
 		_extent.moveBy( 0, _key->height() );
 		break;
-	    case KEY_ABOVE_LEFT:
+	    case Key_Position::ABOVE_LEFT:
 		_key->moveBy( 0, _extent.y() );
 		_extent.moveBy( 0, _key->height() );
 		break;
@@ -895,8 +888,8 @@ Model::store()
 	}
 
 	if ( _inputFileName == filename() && input_output() ) {
-#if defined(REP2FLAT)
-	    if ( Flags::print[REPLICATION].opts.value.i == REPLICATION_EXPAND ) {
+#if REP2FLAT
+	    if ( Flags::print[REPLICATION].opts.value.r == Replication::EXPAND ) {
 		std::string ext = ".";		// look for .ext
 		ext += extension;
 		const size_t pos = filename.rfind( ext );
@@ -908,15 +901,15 @@ Model::store()
 		    throw std::runtime_error( msg.str() );
 		}
 	    } else if ( partial_output()
-			|| Flags::print[AGGREGATION].opts.value.x != Aggregate::NONE
-			|| Flags::print[REPLICATION].opts.value.i != REPLICATION_NOP ) {
+			|| Flags::print[AGGREGATION].opts.value.a != Aggregate::NONE
+			|| Flags::print[REPLICATION].opts.value.r != Replication::NONE ) {
 		std::ostringstream msg;
 		msg << "Cannot overwrite input file " << filename() << " with a subset of original model.";
 		throw std::runtime_error( msg.str() );
 	    }
 #else
 	    if ( partial_output()
-		 || Flags::print[AGGREGATION].opts.value.x != Aggregate::NONE ) {
+		 || Flags::print[AGGREGATION].opts.value.a != Aggregate::NONE ) {
 		ostringstream msg;
 		msg << "Cannot overwrite input file " << filename() << " with a subset of original model.";
 		throw runtime_error( msg.str() );
@@ -1249,8 +1242,8 @@ Model::format()
     align();
 
     switch ( Flags::node_justification ) {
-    case DEFAULT_JUSTIFY:
-    case ALIGN_JUSTIFY:
+    case Justification::DEFAULT:
+    case Justification::ALIGN:
 	if ( Flags::print[LAYERING].opts.value.l == Layering::BATCH
 	     || Flags::print[LAYERING].opts.value.l == Layering::HWSW
 	     || Flags::print[LAYERING].opts.value.l == Layering::MOL ) {
@@ -2835,23 +2828,23 @@ ProcessorTask_Model::justify()
 	const unsigned int i = layer->number();
 
 	switch ( Flags::node_justification ) {
-	case ALIGN_JUSTIFY:
-	case CENTER_JUSTIFY:
+	case Justification::ALIGN:
+	case Justification::CENTER:
 	    justify2( procLayer[i], taskLayer[i], (right() - (taskLayer[i].width() + procLayer[i].width() + Flags::print[X_SPACING].opts.value.d)) / 2.0 );
 	    break;
-	case RIGHT_JUSTIFY:
+	case Justification::RIGHT:
 	    justify2( procLayer[i], taskLayer[i],  right() - (taskLayer[i].width() + procLayer[i].width() + Flags::print[X_SPACING].opts.value.d) );
 	    break;
-	case LEFT_JUSTIFY:
+	case Justification::LEFT:
 	    justify2( procLayer[i], taskLayer[i],  0.0 );
 	    break;
-	case DEFAULT_JUSTIFY:
+	case Justification::DEFAULT:
 	    if ( Flags::print[LAYERING].opts.value.l == Layering::PROCESSOR_TASK ) {
-		procLayer[i].justify( procWidthPts, RIGHT_JUSTIFY );
-		taskLayer[i].justify( taskWidthPts, LEFT_JUSTIFY ).moveBy( procWidthPts + Flags::print[X_SPACING].opts.value.d, 0.0 );
+		procLayer[i].justify( procWidthPts, Justification::RIGHT );
+		taskLayer[i].justify( taskWidthPts, Justification::LEFT ).moveBy( procWidthPts + Flags::print[X_SPACING].opts.value.d, 0.0 );
 	    } else {
-		taskLayer[i].justify( taskWidthPts, RIGHT_JUSTIFY );
-		procLayer[i].justify( procWidthPts, LEFT_JUSTIFY ).moveBy( taskWidthPts + Flags::print[X_SPACING].opts.value.d, 0.0 );
+		taskLayer[i].justify( taskWidthPts, Justification::RIGHT );
+		procLayer[i].justify( procWidthPts, Justification::LEFT ).moveBy( taskWidthPts + Flags::print[X_SPACING].opts.value.d, 0.0 );
 	    }
 	    break;
 	}

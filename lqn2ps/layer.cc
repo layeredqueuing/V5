@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 15159 2021-12-06 19:48:15Z greg $
+ * $Id: layer.cc 15170 2021-12-07 23:33:05Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -238,7 +238,7 @@ Layer&
 Layer::moveLabelTo( const double xx, const double yy )
 {
     if ( Flags::print_layer_number ) {
-	_label->justification( LEFT_JUSTIFY ).moveTo( xx, y() + yy );
+	_label->justification( Justification::LEFT ).moveTo( xx, y() + yy );
     } else if ( submodel_output() ) {
 	_label->moveTo( _origin.x() + _extent.x() / 2.0, _origin.y() - Flags::print[FONT_SIZE].opts.value.i * 1.2 );
     }
@@ -309,18 +309,18 @@ Layer::justify( const double width )
 
 
 Layer&
-Layer::justify( const double maxWidthPts, const justification_type justification )
+Layer::justify( const double maxWidthPts, const Justification justification )
 {
     switch ( justification ) {
-    case ALIGN_JUSTIFY:
-    case DEFAULT_JUSTIFY:
-    case CENTER_JUSTIFY:
+    case Justification::ALIGN:
+    case Justification::DEFAULT:
+    case Justification::CENTER:
 	moveBy( (maxWidthPts - width())/2, 0.0 );
 	break;
-    case RIGHT_JUSTIFY:
+    case Justification::RIGHT:
 	moveBy( (maxWidthPts - width()), 0.0 );
 	break;
-    case LEFT_JUSTIFY:
+    case Justification::LEFT:
 	moveBy( 0.0, 0.0 );		/* Force recomputation of slopes */
 	break;
     default:
@@ -440,7 +440,7 @@ void Layer::Position::operator()( Entity * entity )
     if ( !entity->isSelectedIndirectly() ) return;
     if ( _x != 0.0 ) _x += Flags::print[X_SPACING].opts.value.d;
     Task * aTask = dynamic_cast<Task *>(entity);
-    if ( aTask && Flags::print[AGGREGATION].opts.value.x != Aggregate::ENTRIES ) {
+    if ( aTask && Flags::print[AGGREGATION].opts.value.a != Aggregate::ENTRIES ) {
 	(aTask->*_f)();
     }
     if ( Flags::debug ) std::cerr << "  Layer::Position move " << entity->name() << " to (" << _x << "," << entity->bottom() << ")" << std::endl;
@@ -458,7 +458,7 @@ Layer&
 Layer::selectSubmodel()
 {
     for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
-	if ( !(*entity)->isProcessor() || Flags::print[PROCESSORS].opts.value.i != PROCESSOR_NONE ) {
+	if ( !(*entity)->isProcessor() || Flags::print[PROCESSORS].opts.value.p != Processors::NONE ) {
 	    (*entity)->isSelected( true );		/* Enable arc drawing to this entity */
 	}
     }

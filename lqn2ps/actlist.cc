@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 15159 2021-12-06 19:48:15Z greg $
+ * $Id: actlist.cc 15170 2021-12-07 23:33:05Z greg $
  */
 
 
@@ -399,8 +399,8 @@ JoinActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned& n
     if ( next() ) {
 	double count = next()->aggregate( anEntry, curr_p, next_p, rate, activityStack, aFunc );
 	if ( aFunc == &Activity::aggregateService
-	     && (Flags::print[AGGREGATION].opts.value.x == Aggregate::SEQUENCES
-		 || Flags::print[AGGREGATION].opts.value.x == Aggregate::THREADS)
+	     && (Flags::print[AGGREGATION].opts.value.a == Aggregate::SEQUENCES
+		 || Flags::print[AGGREGATION].opts.value.a == Aggregate::THREADS)
 	     && dynamic_cast<ForkActivityList *>(next())
 	     && !dynamic_cast<RepeatActivityList *>(next()) ) {
 
@@ -855,7 +855,7 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 
     if ( aFunc == &Activity::aggregateService
 	 && joinList->size() == size()
-	 && Flags::print[AGGREGATION].opts.value.x == Aggregate::THREADS
+	 && Flags::print[AGGREGATION].opts.value.a == Aggregate::THREADS
 	 && dynamic_cast<OrJoinActivityList *>(joinList)
 	 && dynamic_cast<ForkActivityList *>(joinList->next())
 	 && !dynamic_cast<RepeatActivityList *>(joinList->next()) ) {
@@ -1484,7 +1484,7 @@ AndJoinActivityList&
 AndJoinActivityList::moveSrcTo( const Point& src, Activity * anActivity )
 {
     AndOrJoinActivityList::moveSrcTo( src, anActivity );
-    _label->moveTo( myNode->center() ).moveBy( radius(), 0.0 ).justification( LEFT_JUSTIFY );
+    _label->moveTo( myNode->center() ).moveBy( radius(), 0.0 ).justification( Justification::LEFT );
     return *this;
 }
 

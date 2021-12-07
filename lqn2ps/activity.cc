@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 15159 2021-12-06 19:48:15Z greg $
+ * $Id: activity.cc 15170 2021-12-07 23:33:05Z greg $
  */
 
 #include "activity.h"
@@ -578,7 +578,7 @@ Activity::aggregateService( Entry * anEntry, const unsigned p, const double rate
 	sum = rate;
     }
 
-    switch ( Flags::print[AGGREGATION].opts.value.x ) {
+    switch ( Flags::print[AGGREGATION].opts.value.a ) {
     case Aggregate::ENTRIES:
     case Aggregate::PHASES:
     case Aggregate::ACTIVITIES:
@@ -1033,9 +1033,9 @@ Activity::colour() const
 {
     if ( !reachable() ) {
 	return Graphic::RED;
-    } else switch ( Flags::print[COLOUR].opts.value.i ) {
-    case COLOUR_RESULTS:
-    case COLOUR_DIFFERENCES:
+    } else switch ( Flags::print[COLOUR].opts.value.c ) {
+	case Colouring::RESULTS:
+	case Colouring::DIFFERENCES:
 	return owner()->colour();
     default:
 	return Graphic::DEFAULT_COLOUR;

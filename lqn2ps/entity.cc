@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: entity.cc 15170 2021-12-07 23:33:05Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -69,8 +69,8 @@ Entity::Entity( const LQIO::DOM::Entity* domEntity, const size_t id )
       _isSelected(true),
       _isSurrogate(false)
 {
-    if ( Flags::print[INCLUDE_ONLY].opts.value.r ) {
-	_isSelected = std::regex_match( name(), *Flags::print[INCLUDE_ONLY].opts.value.r );
+    if ( Flags::print[INCLUDE_ONLY].opts.value.m ) {
+	_isSelected = std::regex_match( name(), *Flags::print[INCLUDE_ONLY].opts.value.m );
     } else if ( submodel_output()
 		|| queueing_output()
 		|| Flags::print[CHAIN].opts.value.i != 0 ) {
@@ -336,23 +336,23 @@ Entity::colour() const
     if ( isSurrogate() ) {
 	return Graphic::GREY_10;
     }
-    switch ( Flags::print[COLOUR].opts.value.i ) {
-    case COLOUR_RESULTS:
+    switch ( Flags::print[COLOUR].opts.value.c ) {
+    case Colouring::RESULTS:
 	if ( Flags::have_results ) {
 	    return colourForUtilization( isInfinite() ? 0.0 : utilization() / copiesValue() );
 	}
 	break;
 
 	if ( Flags::have_results ) {
-    case COLOUR_DIFFERENCES:
+	case Colouring::DIFFERENCES:
 	    return colourForDifference( utilization() );
 	}
 	break;
 
-    case COLOUR_CLIENTS:
+    case Colouring::CLIENTS:
 	return (Graphic::colour_type)(*myPaths.begin() % 11 + 5);		// first element is smallest 
 
-    case COLOUR_LAYERS:
+    case Colouring::LAYERS:
 	return (Graphic::colour_type)(level() % 11 + 5);
     }
     return Graphic::DEFAULT_COLOUR;			// No colour.
@@ -396,7 +396,7 @@ Entity::chainColour( unsigned int k ) const
 {
     static Graphic::colour_type chain_colours[] = { Graphic::BLACK, Graphic::MAGENTA, Graphic::VIOLET, Graphic::BLUE, Graphic::INDIGO, Graphic::CYAN, Graphic::TURQUOISE, Graphic::GREEN, Graphic::SPRINGGREEN, Graphic::YELLOW, Graphic::ORANGE, Graphic::RED };
 
-    if ( Flags::print[COLOUR].opts.value.i == COLOUR_CHAINS ) { 
+    if ( Flags::print[COLOUR].opts.value.c == Colouring::CHAINS ) { 
 	return chain_colours[k%12];
     } else if ( colour() == Graphic::GREY_10 || colour() == Graphic::DEFAULT_COLOUR ) {
 	return Graphic::BLACK;
@@ -494,7 +494,7 @@ Entity::drawServer( std::ostream& output ) const
     /* Draw the label */
 
     myLabel->moveTo( bottomCenter() )
-	.justification( LEFT_JUSTIFY )
+	.justification( Justification::LEFT )
 	.moveBy( radius() * 1.5, radius() * 3.0 * myNode->direction() );
     output << *myLabel;
 

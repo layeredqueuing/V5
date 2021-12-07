@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: key.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: key.cc 15170 2021-12-07 23:33:05Z greg $
  */
 
 #include "key.h"
@@ -29,7 +29,7 @@ Key::Key()
 
 Key::~Key()
 {
-    for ( std::map<Label *,Arc *>::iterator label = myLabels.begin(); label != myLabels.end(); ++label ) {
+    for ( std::map<Label *,Arc *>::iterator label = _labels.begin(); label != _labels.end(); ++label ) {
 	delete label->first;
 	delete label->second;
     }
@@ -49,30 +49,30 @@ Key::label()
 	Arc * arc = Arc::newArc();
 	arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::SOLID);
 	Label * label = Label::newLabel();
-	label->justification( LEFT_JUSTIFY );
+	label->justification( Justification::LEFT );
 	*label << "Synchronous request";
 	maxWidth = std::max( maxWidth, label->width() );
-	myLabels[label] = arc;
+	_labels[label] = arc;
 	i += 1;
     }
     if ( Model::sendNoReplyCount[0] > 0 ) {
 	Arc * arc = Arc::newArc();
 	arc->arrowhead(Graphic::OPEN_ARROW).linestyle(Graphic::SOLID);
 	Label * label = Label::newLabel();
-	label->justification( LEFT_JUSTIFY );
+	label->justification( Justification::LEFT );
 	*label << "Asynchronous request";
 	maxWidth = std::max( maxWidth, label->width() );
-	myLabels[label] = arc;
+	_labels[label] = arc;
 	i += 1;
     }
     if ( Model::forwardingCount > 0 ) {
 	Arc * arc = Arc::newArc();
 	arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DASHED);
 	Label * label = Label::newLabel();
-	label->justification( LEFT_JUSTIFY );
+	label->justification( Justification::LEFT );
 	*label << "Forwarded request";
 	maxWidth = std::max( maxWidth, label->width() );
-	myLabels[label] = arc;
+	_labels[label] = arc;
 	i += 1;
     }
 
@@ -96,7 +96,7 @@ Key::moveTo( const double x, const double y )
     const double x_offset = Flags::arrow_scaling * 18;
 
     unsigned i = 1;
-    for ( std::map<Label *,Arc *>::const_iterator label = myLabels.begin(); label != myLabels.end(); ++label ) {
+    for ( std::map<Label *,Arc *>::const_iterator label = _labels.begin(); label != _labels.end(); ++label ) {
 	label->second->moveSrc( x+0, (i-0.5) * y_offset + y );
 	label->second->moveDst( x+x_offset, (i-0.5) * y_offset + y );
 	label->first->moveTo( x+x_offset + y_offset / 2, (i-0.5) * y_offset + y );
@@ -120,7 +120,7 @@ Key::scaleBy( const double sx, const double sy )
 {
     origin.scaleBy( sx, sy );
     extent.scaleBy( sx, sy );
-    for ( std::map<Label *,Arc *>::const_iterator label = myLabels.begin(); label != myLabels.begin(); ++label ) {
+    for ( std::map<Label *,Arc *>::const_iterator label = _labels.begin(); label != _labels.begin(); ++label ) {
 	label->first->scaleBy( sx, sy );
 	label->second->scaleBy( sx, sy );
     }
@@ -131,7 +131,7 @@ Key::scaleBy( const double sx, const double sy )
 Key& 
 Key::translateY( const double y )
 {
-    for ( std::map<Label *,Arc *>::const_iterator label = myLabels.begin(); label != myLabels.begin(); ++label ) {
+    for ( std::map<Label *,Arc *>::const_iterator label = _labels.begin(); label != _labels.begin(); ++label ) {
 	label->first->translateY( y );
 	label->second->translateY( y );
     }
@@ -145,7 +145,7 @@ Key::translateY( const double y )
 std::ostream&
 Key::print( std::ostream& output ) const
 {
-    for ( std::map<Label *,Arc *>::const_iterator label = myLabels.begin(); label != myLabels.end(); ++label ) {
+    for ( std::map<Label *,Arc *>::const_iterator label = _labels.begin(); label != _labels.end(); ++label ) {
 	output << *label->first;
 	output << *label->second;
     }

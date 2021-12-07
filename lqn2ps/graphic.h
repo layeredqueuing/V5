@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * graphic.h	-- Greg Franks
  *
- * $Id: graphic.h 15140 2021-12-02 15:04:21Z greg $
+ * $Id: graphic.h 15170 2021-12-07 23:33:05Z greg $
  */
 
 #ifndef _GRAPHIC_H
@@ -234,15 +234,15 @@ private:
 class JustificationManip
 {
 public:
-    JustificationManip( std::ostream& (*ff)(std::ostream&, const justification_type justification ),
-		const justification_type justification )
-	: f(ff), myJustification(justification) {}
+    JustificationManip( std::ostream& (*ff)(std::ostream&, const Justification justification ),
+		const Justification justification )
+	: f(ff), j(justification) {}
 private:
-    std::ostream& (*f)( std::ostream&, const justification_type justification );
-    const justification_type myJustification;
+    std::ostream& (*f)( std::ostream&, const Justification justification );
+    const Justification j;
 
     friend std::ostream& operator<<(std::ostream & os, const JustificationManip& m )
-	{ return m.f( os, m.myJustification ); }
+	{ return m.f( os, m.j ); }
 };
 
 
@@ -286,7 +286,7 @@ protected:
     std::ostream& rectangle( std::ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     std::ostream& circle( std::ostream& output, const Point& c, const double r, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
     double text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-		 justification_type justification, Graphic::colour_type colour, unsigned=0 ) const;
+		 Justification justification, Graphic::colour_type colour, unsigned=0 ) const;
     static DoubleManip writef( const double );
     static LongManip writel( const unsigned long );
     static ShortManip writes( const unsigned short );
@@ -330,7 +330,7 @@ private:
     std::ostream& draw_line( std::ostream& output, extended_meta_record, const std::vector<Point>& ) const;
     std::ostream& draw_dashed_line( std::ostream& output, Graphic::linestyle_type line_style, const std::vector<Point>& ) const;
     static ColourManip setfill( const Graphic::colour_type );
-    static JustificationManip justify( const justification_type );
+    static JustificationManip justify( const Justification );
     static PointManip lineto( const Point& );
     static PointManip moveto( const Point& );
     static PointManip point( const Point& );
@@ -342,7 +342,7 @@ private:
 
 
     static std::ostream& setfill_str( std::ostream& output, Graphic::colour_type aColour );
-    static std::ostream& justify_str( std::ostream& output, const justification_type );
+    static std::ostream& justify_str( std::ostream& output, const Justification );
     static std::ostream& lineto_str( std::ostream& output, const Point& aPoint );
     static std::ostream& moveto_str( std::ostream& output, const Point& aPoint );
     static std::ostream& point_str( std::ostream& output, const Point& aPoint );
@@ -361,7 +361,7 @@ private:
     static Graphic::colour_type last_pen_colour;
     static Graphic::colour_type last_fill_colour;
     static Graphic::colour_type last_arrow_colour;
-    static justification_type last_justification;
+    static Justification last_justification;
     static Graphic::font_type last_font;
     static Graphic::linestyle_type last_line_style;
     static int last_font_size;
@@ -390,7 +390,7 @@ protected:
     std::ostream& rectangle( std::ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, int depth, Graphic::linestyle_type line_style=Graphic::DEFAULT_LINESTYLE ) const;
     std::ostream& roundedRectangle( std::ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, int depth, Graphic::linestyle_type line_style=Graphic::DEFAULT_LINESTYLE ) const;
     double text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-		 justification_type, Graphic::colour_type colour, unsigned flags=0 ) const;
+		 Justification, Graphic::colour_type colour, unsigned flags=0 ) const;
     std::ostream& clearBackground( std::ostream& output, const Point&, const Point&, const Graphic::colour_type ) const;
 
 private:
@@ -444,7 +444,7 @@ protected:
     GD const & drawline( const Point& p1, const Point& p2, Graphic::colour_type pen_colour, Graphic::linestyle_type linestyle ) const;
     GD const & rectangle( const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     GD const & circle( const Point& center, const double d, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
-    double text( const Point& p1, const std::string&, Graphic::font_type, int, justification_type, Graphic::colour_type fill_colour ) const;
+    double text( const Point& p1, const std::string&, Graphic::font_type, int, Justification, Graphic::colour_type fill_colour ) const;
     GD const & arrowHead( const Point&, const Point&, const double scaling, const Graphic::colour_type pen_colour, const Graphic::colour_type fill_colour) const;
 
     gdFont * getfont() const;
@@ -477,7 +477,7 @@ protected:
     std::ostream& roundedRectangle( std::ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     std::ostream& circle( std::ostream& output, const Point& c, const double r, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
     double text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-		 justification_type justification, Graphic::colour_type colour, unsigned=0 ) const;
+		 Justification justification, Graphic::colour_type colour, unsigned=0 ) const;
 
 private:
     std::ostream& arrowHead( std::ostream& output, const Point&, const Point&, const double scale,
@@ -489,11 +489,11 @@ private:
     static PointManip moveto( const Point& );
     static FontManip setfont( const Graphic::font_type aFont );
     static LineStyleManip linestyle( const Graphic::linestyle_type );
-    static JustificationManip justify( const justification_type );
+    static JustificationManip justify( const Justification );
 
     static std::ostream& point( std::ostream& output, const Point& aPoint );
     static std::ostream& setfill_str( std::ostream& output, const Graphic::colour_type );
-    static std::ostream& justify_str( std::ostream& output, const justification_type );
+    static std::ostream& justify_str( std::ostream& output, const Justification );
     static std::ostream& linestyle_str( std::ostream& output, Graphic::linestyle_type style );
     static std::ostream& setcolour_str( std::ostream& output, const Graphic::colour_type );
     static std::ostream& setfont_str( std::ostream& output, const Graphic::font_type aFont, const int fontSize );
@@ -521,7 +521,7 @@ protected:
     std::ostream& rectangle( std::ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     std::ostream& circle( std::ostream& output, const Point& c, const double r, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
     double text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-		 justification_type justification, Graphic::colour_type colour, unsigned=0 ) const;
+		 Justification justification, Graphic::colour_type colour, unsigned=0 ) const;
 
 private:
     std::ostream& arrowHead( std::ostream& output, const Point&, const Point&, const double scale,
@@ -531,13 +531,13 @@ private:
     static ColourManip setcolour( const Graphic::colour_type aColour ) { return ColourManip( SVG::setcolour_str, aColour ); }
     static ColourManip stroke( const Graphic::colour_type aColour ) { return ColourManip( SVG::stroke_str, aColour ); }
     static FontManip setfont( const Graphic::font_type aFont ) { return FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].opts.value.i ); }
-    static JustificationManip justify( const justification_type justification ) { return JustificationManip( justify_str, justification ); }
+    static JustificationManip justify( const Justification justification ) { return JustificationManip( justify_str, justification ); }
     static LineStyleManip linestyle( const Graphic::linestyle_type aStyle ) { return LineStyleManip( SVG::linestyle_str, aStyle ); }
     static PointManip moveto( const Point& aPoint ) { return PointManip( point, aPoint ); }
 
     static std::ostream& point( std::ostream& output, const Point& aPoint );
     static std::ostream& setfill_str( std::ostream& output, const Graphic::colour_type );
-    static std::ostream& justify_str( std::ostream& output, const justification_type );
+    static std::ostream& justify_str( std::ostream& output, const Justification );
     static std::ostream& linestyle_str( std::ostream& output, Graphic::linestyle_type style );
     static std::ostream& setcolour_str( std::ostream& output, const Graphic::colour_type );
     static std::ostream& setfont_str( std::ostream& output, const Graphic::font_type aFont, const int fontSize );
@@ -562,9 +562,9 @@ protected:
     std::ostream& rectangle( std::ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     std::ostream& circle( std::ostream& output, const Point& c, const double r, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
 
-    std::ostream& begin_paragraph( std::ostream& output, const Point&, const Point&, const justification_type ) const;
+    std::ostream& begin_paragraph( std::ostream& output, const Point&, const Point&, const Justification ) const;
     double text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-		 justification_type justification, Graphic::colour_type colour, unsigned=0 ) const;
+		 Justification justification, Graphic::colour_type colour, unsigned=0 ) const;
     std::ostream& end_paragraph( std::ostream& output ) const;
 
 private:
@@ -579,7 +579,7 @@ private:
     static ColourManip stroke_colour( const Graphic::colour_type );
     static FontManip setfont( const Graphic::font_type aFont );
     static UnsignedManip style_properties( const unsigned int );
-    static JustificationManip justify( const justification_type );
+    static JustificationManip justify( const Justification );
     static PointManip moveto( const Point& );
     static XMLString::StringManip draw_layer( const std::string& );
     static XMLString::StringManip end_style();
@@ -590,7 +590,7 @@ private:
     static std::ostream& draw_layer_str( std::ostream& output, const std::string&, const std::string& );
     static std::ostream& end_style_str( std::ostream& output, const std::string&, const std::string& );
     static std::ostream& setfill_str( std::ostream& output, const Graphic::colour_type );
-    static std::ostream& justify_str( std::ostream& output, const justification_type );
+    static std::ostream& justify_str( std::ostream& output, const Justification );
     static std::ostream& point( std::ostream& output, const Point& aPoint );
     static std::ostream& setfont_str( std::ostream& output, const Graphic::font_type aFont, const int fontSize );
     static std::ostream& start_style_str( std::ostream& output, const std::string&, const std::string& );
@@ -614,14 +614,14 @@ protected:
     std::ostream& rectangle( std::ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     std::ostream& circle( std::ostream& output, const Point& c, const double r, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
     double text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-		 justification_type justification, Graphic::colour_type colour, unsigned=0 ) const;
+		 Justification justification, Graphic::colour_type colour, unsigned=0 ) const;
 
 private:
     static PointManip moveto( const Point& );
     static ColourManip setcolour( const Graphic::colour_type );
     static ColourManip setfill( const Graphic::colour_type );
     static FontManip setfont( const Graphic::font_type aFont );
-    static JustificationManip justify( const justification_type );
+    static JustificationManip justify( const Justification );
 
     std::ostream& arrowHead( std::ostream& output, const Point&, const Point&, const double scale,
 			const Graphic::colour_type, const Graphic::colour_type ) const;
@@ -630,7 +630,7 @@ private:
     static std::ostream& setcolour_str( std::ostream& output, const Graphic::colour_type );
     static std::ostream& setfill_str( std::ostream& output, Graphic::colour_type aColour );
     static std::ostream& setfont_str( std::ostream& output, const Graphic::font_type aFont, const int fontSize );
-    static std::ostream& justify_str( std::ostream& output, const justification_type );
+    static std::ostream& justify_str( std::ostream& output, const Justification );
 };
 
 #if defined(X11_OUTPUT)
@@ -644,7 +644,7 @@ protected:
     static ColourManip setfill( const Graphic::colour_type );
     static PointManip moveto( const Point& );
     static FontManip setfont( const Graphic::font_type aFont );
-    static JustificationManip justify( const justification_type );
+    static JustificationManip justify( const Justification );
 #endif
 
     std::ostream& lineStyle( std::ostream& output, Graphic::linestyle_type style ) const { return output; }
@@ -658,7 +658,7 @@ private:
     static std::ostream& stroke_str( std::ostream& output, const Graphic::colour_type );
     static std::ostream& setfill_str( std::ostream& output, const Graphic::colour_type );
     static std::ostream& setfont_str( std::ostream& output, const Graphic::font_type aFont, const int fontSize );
-    static std::ostream& justify_str( std::ostream& output, const justification_type );
+    static std::ostream& justify_str( std::ostream& output, const Justification );
     static const char * font_value[];
 #endif
 };

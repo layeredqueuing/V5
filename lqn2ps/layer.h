@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 15160 2021-12-06 19:54:16Z greg $
+ * $Id: layer.h 15170 2021-12-07 23:33:05Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -71,7 +71,7 @@ public:
     Layer& depth(  unsigned );
     Layer& fill( double );
     Layer& justify( double );
-    Layer& justify( double,  justification_type );
+    Layer& justify( double,  Justification );
     Layer& align();
     Layer& alignEntities();
     Layer& shift( unsigned index, double amount );

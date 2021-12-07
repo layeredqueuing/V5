@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15159 2021-12-06 19:48:15Z greg $
+ * $Id: entry.cc 15170 2021-12-07 23:33:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,7 +20,6 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <cstring>
-#include <ctype.h>
 #include <limits>
 #include <lqio/input.h>
 #include <lqio/error.h>
@@ -1448,7 +1447,7 @@ Entry::aggregate()
 	std::deque<const Activity *> activityStack;
 	unsigned next_p = 1;
 
-	switch ( Flags::print[AGGREGATION].opts.value.x ) {
+	switch ( Flags::print[AGGREGATION].opts.value.a ) {
 	case Aggregate::ACTIVITIES:
 	case Aggregate::PHASES:
 	case Aggregate::ENTRIES:
@@ -1479,7 +1478,7 @@ Entry::aggregate()
 	_activityCallers.clear();
     }
 
-    switch ( Flags::print[AGGREGATION].opts.value.x ) {
+    switch ( Flags::print[AGGREGATION].opts.value.a ) {
     case Aggregate::PHASES:
     case Aggregate::ENTRIES:
 	aggregatePhases();
@@ -1569,7 +1568,7 @@ Entry::referenceTasks( std::vector<Entity *> &clients, Element * dst ) const
 //!!! Need to create the pseudo arc to the task.
 	if ( dynamic_cast<Processor *>(dst) ) {
 	    const_cast<Task *>(owner())->findOrAddPseudoCall( dynamic_cast<Processor *>(dst) );
-	} else if ( Flags::print[AGGREGATION].opts.value.x ==  Aggregate::ENTRIES ) {
+	} else if ( Flags::print[AGGREGATION].opts.value.a ==  Aggregate::ENTRIES ) {
 	    const_cast<Task *>(owner())->findOrAddPseudoCall( const_cast<Task *>(dynamic_cast<Entry *>(dst)->owner()) );
 	} else {
 	    const_cast<Entry *>(this)->findOrAddPseudoCall( dynamic_cast<Entry *>(dst) );
@@ -1646,8 +1645,8 @@ Entry::span() const
 Graphic::colour_type
 Entry::colour() const
 {
-    switch ( Flags::print[COLOUR].opts.value.i ) {
-    case COLOUR_RESULTS:
+    switch ( Flags::print[COLOUR].opts.value.c ) {
+    case Colouring::RESULTS:
 	if ( Flags::have_results && Flags::graphical_output_style == JLQNDEF_STYLE && !owner()->isReferenceTask() ) {
 	    return colourForUtilization( owner()->isInfinite() ? 0.0 : utilization() / owner()->copiesValue() );
 	} else if ( serviceExceeded() > 0. ) {
@@ -1655,13 +1654,13 @@ Entry::colour() const
 	}
 	break;
 
-    case COLOUR_DIFFERENCES:
+    case Colouring::DIFFERENCES:
 	if ( Flags::have_results ) {
 	    return colourForDifference( executionTime() );
 	}
 	break;
 	
-    case COLOUR_CLIENTS:
+    case Colouring::CLIENTS:
 	if ( myPaths.size() ) {
 	    return (Graphic::colour_type)(*myPaths.begin() % 11 + 5);		// first element is smallest
 	} else {
@@ -2586,4 +2585,3 @@ print_variance( const Entry& anEntry )
 {
     return SRVNEntryManip( &variance_of_str, anEntry );
 }
-

@@ -1,10 +1,10 @@
 .\" -*- nroff -*-
-.TH lqn2ps 1 "15 April 2021"  "5.20"
-.\" $Id: lqn2ps.1 14600 2021-04-15 19:19:42Z greg $
+.TH lqn2ps 1 "07 December 2021"  "5.22"
+.\" $Id: lqn2ps.1 15170 2021-12-07 23:33:05Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
-lqn2emf, lqn2fig, lqn2out, lqn2ps, lqn2lqn, lqn2sxd, lqn2xml \- format and translate layered queueing network models.
+lqn2emf, lqn2fig, lqn2json, lqn2out, lqn2ps, lqn2lqn, lqn2sxd, lqn2xml \- format and translate layered queueing network models.
 .SH "SYNOPSIS"
 .br
 .B lqn2ps
@@ -42,16 +42,16 @@ file name `\-' is used to specify standard input.
 The \fB\-A\fI objects\fR option is used to aggregate objects.
 .RS
 .TP
-\fB\fBnone\fR\fR
+\fBnone\fR
 Don't aggregate objects.
 .TP
-\fB\fBsequences\fR\fR
+\fBsequences\fR
 Aggregate sequences of activities into a single activity.
 .TP
-\fB\fBactivities\fR\fR
+\fBactivities\fR
 Aggregate activities called by an entry into the entry.
 .TP
-\fB\fBphases\fR\fR
+\fBphases\fR
 Aggregate activities called by an entry into the entry and remove all phases.
 .PP
 A new model that results from aggregation may not necessarily have the same solution as the original model.
@@ -67,25 +67,25 @@ Set the border (in points).
 The \fB\-C\fI colour\fR option is used to choose how to colour objects.
 .RS
 .TP
-\fB\fBoff\fR\fR
+\fBnone\fR
 Use gray scale instead of colour for results.
 .TP
-\fB\fBresults\fR\fR
+\fBresults\fR
 Colour nodes based on utilization and arcs based on the utilization of the destination.  This is the default.
 .TP
-\fB\fBlayers\fR\fR
+\fBlayers\fR
 Colour nodes based on their layer.
 .TP
-\fB\fBclients\fR\fR
+\fBclients\fR
 Colour nodes based on their client(s).
 .TP
-\fB\fBtype\fR\fR
+\fBtype\fR
 Client tasks are coloured red, server tasks are coloured blue.
 .TP
-\fB\fBchains\fR\fR
+\fBchains\fR
 Queueing output only: colour each chain differently.
 .TP
-\fB\fBdifferences\fR\fR
+\fBdifferences\fR
 Results are displayed as percent differences (found from srvndiff --difference file1 file2) with the colour reflecting
 the percentage difference.
 .RE
@@ -96,17 +96,17 @@ The \fB\-D\fI filename\fR option  is used to load \fIdifference\fR data produced
 \fB\-F\fR, \fB\-\-font-size=\fIfont-size\fR
 Set the font size (from 6 to 36 points).
 .TP
-\fB\-I\fR, \fB\-\-input-format=\fIformat\fR
-The \fB\-I\fI format\fR option  is used to force the input file format to either \fIxml\fR, or \fIlqn\fR.
+\fB\-I\fR, \fB\-\-input-format=\fIARG\fR
+The \fB\-I\fI ARG\fR option  is used to force the input file format to either \fIxml\fR, \fIlqn\fR, of \fIjson\fR.
 By default, if the suffix of the input filename is one of: \fI.in\fR, \fI.lqn\fR, \fI.xlqn\fR, of \fI.txt\fR,
-then the LQN parser will be used.	Otherwise, input is assumed to be XML.
+then the LQN parser will be used.  If the suffix of the input filename is one of: \fI.json\fR, \fI.lqnj\fR, \fI.jlqn\fR, of \fI.lqjo\fR,
+then the JSON parser will be used.  Otherwise, input is assumed to be XML.
 .TP
 \fB\-H\fR, \fB\-\-help\fR
 Print help.
 .TP
-\fB\-J\fR, \fB\-\-justification=\fIobject=justification\fR
-The \fB\-J\fI object=justification\fR option is used to set the justification for \fIobject\fP.	 \fIObject\fR is one of:\fBnodes\fR, \fBlabels\fR, or \fBactivities\fR.
-\fIJustification\fR is one of \fBleft\fR, \fBcenter\fR, \fBright\fR or \fBalign\fR.
+\fB\-J\fR, \fB\-\-justification=\fIobject=ARG\fR
+The \fB\-J\fI object=ARG\fR option is used to set the justification for \fIobject\fP.	 \fIObject\fR is one of:\fBnodes\fR, \fBlabels\fR, or \fBactivitiesR.\fIJustification\fR is one of \fBleft\fR,\fBcenter\fR,\fBright\fR,\fBalign (for nodes)\fR, or\fBabove (for activities)\fR.
 The default is center justifcation for all objects.
 .TP
 \fB\-K\fR, \fB\-\-key=\fIkey\fR
@@ -116,43 +116,43 @@ Print key.
 The \fB\-L\fI layering\fR option is used to choose the layering strategy for output.
 .RS
 .TP
-\fB\fBbatched\fR\fR
+\fBbatched\fR
 Batch layering (default for lqns(1))
 .TP
-\fB\fBgroup\fR=\fIregexp\fR\fR
+\fBgroup=\fIregexp\fR\fR
 Batch layering, but tasks are grouped by the processors identified by \fIregexp\fP.
 Multiple occurances of this option can be used to specify multiple groups.
 Processors not matching any group expression are assigned to the last "default" group.
 Groups may also be identified in the input file using the \fIgroup\fP pragma.
 .TP
-\fB\fBhwsw\fR\fR
+\fBhwsw\fR
 Hardware-Software layering (Clients and software servers in one layer,
 software servers and processors in the other).
 .TP
-\fB\fBmol\fR\fR
+\fBmol\fR
 Mol layering (all of the processors are on their own layer).
 .TP
-\fB\fBprocessor\fR\fR
+\fBprocessor\fR
 Batch layering, but tasks are grouped by processor.
 Processors are ordered by the level of their calling tasks,
 i.e., processors for reference tasks appear first.
 .TP
-\fB\fBprocessor-task\fR\fR
+\fBprocessor-task\fR
 Hardware-Software layering, but tasks are grouped by processor.
 .TP
-\fB\fBshare\fR\fR
+\fBshare\fR
 Batch layering, but tasks are grouped by their processor share.
 Shares are ordered by the level of their calling tasks,
 i.e., processors for reference tasks appear first.
 .TP
-\fB\fBsquashed\fR\fR
+\fBsquashed\fR
 Place all tasks in level 1, and all processors in level 2.  There is only
 one submodel overall.
 .TP
-\fB\fBsrvn\fR\fR
+\fBsrvn\fR
 Each server is assigned to its own submodel.
 .TP
-\fB\fBtask-processor\fR\fR
+\fBtask-processor\fR
 Hardware-Software layering, but tasks are grouped by processor.
 .LP
 (The default is batched).
@@ -168,34 +168,40 @@ Number of digits of output precision.
 Set the output format.
 .RS
 .TP
-\fB\fBeepic\fR\fR
+\fBeepic\fR
 Generate eepic macros for LaTeX.
 .TP
-\fB\fBemf\fR\fR
+\fBemf\fR
 Generate Windows Enhanced Meta File (vector) output.
 .TP
-\fB\fBfig\fR\fR
+\fBfig\fR
 Generate input for xfig(1).
 .TP
-\fB\fBlqx\fR\fR
+\fBjson\fR
+Generate an JSON input file.  If results are available, they are included.
+The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
+consisting only of the objects selected.
+New input files are always "cleaned up".
+.TP
+\fBlqx\fR
 Generate an XML input file.  If results are available, they are included.
 The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.  If SPEX is present, it will be converted to LQX.
 New input files are always "cleaned up".
 .TP
-\fB\fBnull\fR\fR
+\fBnull\fR
 Generate no output except summary statistics about the model or models.
 .TP
-\fB\fBout\fR\fR
+\fBout\fR
 Generate a new output file using the results from a parseable output file or from the results found in an XML file.
 .TP
-\fB\fBparseable\fR\fR
+\fBparseable\fR
 Generate a new parseable output file using the results from a parseable output file or from the results found in an XML file.
 .TP
-\fB\fBrtf\fR\fR
+\fBrtf\fR
 Generate a new output file in Rich Text Format using the results from a parseable output file or from the results found in an XML file.
 .TP
-\fB\fBlqn\fR\fR
+\fBlqn\fR
 Generate a new input file.	 Results are ignored unless a subset of the input file is being generated.
 The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.
@@ -204,20 +210,20 @@ Refer to \fI``SRVN Input File Format''\fR for a complete
 description of the input file format for the programs.
 New input files are always "cleaned up".
 .TP
-\fB\fBps\fR\fR
+\fBps\fR
 Generate Encapsulated Postscript.
 .TP
-\fB\fBpstex\fR\fR
+\fBpstex\fR
 Generate PostScript and LaTeX (pstex).
 .TP
-\fB\fBsvg\fR\fR
+\fBsvg\fR
 Generate Scalable Vector Graphics (vector) output.
 .TP
-\fB\fBsxd\fR\fR
+\fBsxd\fR
 Generate OpenOffice Drawing (vector) output.  
 The output file must be a regular file.  Output to special files is not supported.
 .TP
-\fB\fBxml\fR\fR
+\fBxml\fR
 Generate an XML input file.  If results are available, they are included.
 The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.
@@ -228,16 +234,16 @@ New input files are always "cleaned up".
 Specify which processors are displayed.
 .RS
 .TP
-\fB\fBnone\fR\fR
+\fBnone\fR
 Don't display any processors..
 .TP
-\fB\fBdefault\fR\fR
+\fBdefault\fR
 Only display those processors that might have contention.
 .TP
-\fB\fBall\fR\fR
+\fBall\fR
 Show all processors.
 .TP
-\fB\fBnon-infinite\fR\fR
+\fBnon-infinite\fR
 Show all non-infinite processors.
 .LP
 (The default is default).
@@ -249,17 +255,17 @@ The \fB\-Q\fI queueing-model\fR option is used to generate a diagram of the unde
 model for the submodel number given as an argument.
 This option has no effect for LQN input and output file generation.
 .TP
-\fB\-R\fR, \fB\-\-replication=\fIoperation\fR
-The \fB\-R\fI operation\fR option is to expand or remove replication.
+\fB\-R\fR, \fB\-\-replication=\fIARG\fR
+The \fB\-R\fI ARG\fR option is to expand or remove replication.
 .RS
 .TP
-\fB\fBnone\fR\fR
+\fBnone\fR
 Don't remove or expand replication.
 .TP
-\fB\fBexpand\fR\fR
+\fBexpand\fR
 Exapand replicated models into a flat model.  Tasks and processors are renamed to <name>_1, <name>_2, etc.
 .TP
-\fB\fBremove\fR\fR
+\fBremove\fR
 Remove all replication from the model.
 .LP
 (The default is none).
@@ -281,74 +287,74 @@ X spacing [and task width] (points).
 \fB\-Y\fR, \fB\-\-y-spacing=\fIspacing[,height]\fR
 Y spacing [and task height] (points).
 .TP
-\fB\-Z\fR, \fB\-\-special=\fIspecial[=arg]\fR
+\fB\-Z\fR, \fB\-\-special=\fIARG[=value]\fR
 Special options:
 .RS
 .TP
-\fB\fBannotate\fR\fR
+\fBannotate\fR
 Annotate the lqn input file (lqn output only).
 .TP
-\fB\fBarrow-scaling\fR\fR
+\fBarrow-scaling\fR
 Scale the size of arrow heads by the scaling factor \fIarg\fP.
 .TP
-\fB\fBclear-label-background\fR\fR
+\fBclear-label-background\fR
 Clear the area behind the label (fig output only).
 .TP
-\fB\fBbcmp\fR\fR
+\fBbcmp\fR
 BCMP.
 .TP
-\fB\fBexhaustive-topological-sort\fR\fR
+\fBexhaustive-topological-sort\fR
 Don't short circuit the topological sorter.  (Some models render better).
 .TP
-\fB\fBflatten\fR\fR
+\fBflatten\fR
 Submodels drawn with \-S or \-Q normally place clients in their level found from the full model.  This option draws all clients for a given submodel in one layer.
 .TP
-\fB\fBforwarding\fR\fR
+\fBforwarding\fR
 Nest forwarding instead of keeping it at the current level (historical). 
 .TP
-\fB\fBgroup\fR\fR
+\fBgroup\fR
 When using \-Lgroup, name a group.  Multiple groups are named using a comma separated list.
 .TP
-\fB\fBlayer-number\fR\fR
+\fBlayer-number\fR
 Print the layer number (valid for graphical output only).
 .TP
-\fB\fBno-alignment-box\fR\fR
+\fBno-alignment-box\fR
 Don't generate the alignment boxes (Fig output).
 .TP
-\fB\fBno-async\fR\fR
+\fBno-async\fR
 Don't follow asynchronous calls when doing the topological sort.
 .TP
-\fB\fBno-cv-sqr\fR\fR
+\fBno-cv-sqr\fR
 Remove all coefficient of variation terms from a model.  This option is used when generating new models.
 .TP
-\fB\fBno-phase-type\fR\fR
+\fBno-phase-type\fR
 Remove all phase type flag terms from a model.  This option is used when generating new models.
 .TP
-\fB\fBno-reference-task-conversion\fR\fR
+\fBno-reference-task-conversion\fR
 When generating new models as submodels of existing models, servers in the original model are converted to reference tasks when possible.  This option overrides this conversion; these models use open-arrivals instead.
 .TP
-\fB\fBprocessor-scheduling\fR\fR
+\fBprocessor-scheduling\fR
 Change the scheduling for all fixed-rate processors to ?.
 .TP
-\fB\fBprune\fR\fR
+\fBprune\fR
 All tasks which are infinite servers are merged into non-infinite server tasks and clients
 .TP
-\fB\fBrename\fR\fR
+\fBrename\fR
 Rename all of the icons to p\fIn\fP, t\fIn\fP, e\fIn\fP and a\fIn\fP where \fIn\fP is an integer starting from one.
 .TP
-\fB\fBsort\fR\fR
+\fBsort\fR
 Set the order of sorting of objects in a layer (ascending, descending, topological, none).
 .TP
-\fB\fBsquish\fR\fR
+\fBsquish\fR
 Rename entries/activities by taking only capital letters, letters following an underscore, or numbers.
 .TP
-\fB\fBsubmodels\fR\fR
+\fBsubmodels\fR
 For graphical output, output the submodels (though this only works for a strictly layered model).
 .TP
-\fB\fBtasks-only\fR\fR
+\fBtasks-only\fR
 Draw the model omitting all entries.
 .TP
-\fB\fBtask-scheduling\fR\fR
+\fBtask-scheduling\fR
 Change the scheduling for all fixed-rate tasks to ?.
 .RE
 .TP
@@ -472,8 +478,8 @@ Rename all objects.
 \fB\-\-tasks-only\fR
 Print tasks only.
 .TP
-\fB\-\-no-bcmp\fR
-Do not perform BCMP model conversion.
+\fB\-\-bcmp\fR
+[Don't] perform BCMP model conversion.
 .TP
 \fB\-\-no-activities\fR
 Don't print activities.
@@ -485,7 +491,7 @@ Use grey scale when colouring result.
 Do not output the variable name header on SPEX results.
 .TP
 \fB\-\-surrogates\fR
-[Don't] Add surrogate tasks for submodel/include-only output.
+[Don't] add surrogate tasks for submodel/include-only output.
 .TP
 \fB\-\-merge-replicas\fR
 Merge replicas from a flattened model back to a replicated model.
@@ -504,6 +510,9 @@ Show submodels.
 .TP
 \fB\-\-print-summary\fR
 Print model summary on stdout.
+.TP
+\fB\-\-debug-json\fR
+Output debugging information while parsing JSON input.
 .TP
 \fB\-\-debug-lqx\fR
 Output debugging information while parsing LQX input.

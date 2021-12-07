@@ -1,6 +1,6 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: open.cc 15170 2021-12-07 23:33:05Z greg $
  */
 
 #include "lqn2ps.h"
@@ -105,7 +105,7 @@ OpenArrivalSource::setChain( unsigned k, const callPredicate aFunc )
 OpenArrivalSource&
 OpenArrivalSource::aggregate()
 {
-    switch ( Flags::print[AGGREGATION].opts.value.x ) {
+    switch ( Flags::print[AGGREGATION].opts.value.a ) {
     case Aggregate::ENTRIES:
 	for ( std::vector<OpenArrival *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	    Task * dstTask = const_cast<Task *>((*call)->dstTask());
@@ -258,7 +258,7 @@ OpenArrivalSource::drawClient( std::ostream& output, const bool is_in_open_model
 {
     myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
     myNode->open_source( output, bottomCenter(), Entity::radius() );
-    myLabel->moveTo( bottomCenter() ).justification( LEFT_JUSTIFY );
+    myLabel->moveTo( bottomCenter() ).justification( Justification::LEFT );
     myLabel->moveBy( Entity::radius() * 1, radius() * myNode->direction() );
     output << *myLabel;
     return output;

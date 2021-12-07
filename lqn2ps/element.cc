@@ -1,11 +1,12 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: element.cc 15170 2021-12-07 23:33:05Z greg $
  */
 
 #include "element.h"
 #include <cmath>
 #include <cstdlib>
+#include <cctype>
 #include <map>
 #include <lqio/error.h>
 #include "errmsg.h"
@@ -53,14 +54,14 @@ Element::squish( std::map<std::string,unsigned>& key_table, std::map<std::string
     char first =  '_';
     char second = '_';
     for ( std::string::const_iterator c = name().begin() + 3; c != name().end(); ++c ) {
-	if ( isupper(*c) ) {
-	    if ( islower(first) ) first = *c;
-	    else if ( islower(second) ) second = *c;
+	if ( std::isupper(*c) ) {
+	    if ( std::islower(first) ) first = *c;
+	    else if ( std::islower(second) ) second = *c;
 	} else if ( *c == '_' && std::next(c) != name().end() && isalpha(*std::next(c)) ) {
 	    ++c;
-	    if ( islower(first) ) first = toupper(*c);
-	    else if ( islower(second) ) second = toupper(*c);
-	} else if ( isalpha(*c) ) {
+	    if ( std::islower(first) ) first = toupper(*c);
+	    else if ( std::islower(second) ) second = toupper(*c);
+	} else if ( std::isalpha(*c) ) {
 	    if ( first == '_' ) first = *c;
 	    else if ( second == '_' ) second = *c;
 	}
@@ -312,7 +313,7 @@ Element::depth( const unsigned depth  )
 bool
 Element::compare( const Element * e1, const Element * e2 )
 {
-    if ( Flags::sort == NO_SORT ) {
+    if ( Flags::sort == Sorting::NONE ) {
 	return e1->getDOM()->getSequenceNumber() < e2->getDOM()->getSequenceNumber();
     } else if ( e1->getIndex() != e2->getIndex() ) {
 	return e1->getIndex() < e2->getIndex();
@@ -325,8 +326,8 @@ Element::compare( const Element * e1, const Element * e2 )
     }
 
     switch ( Flags::sort ) {
-    case REVERSE_SORT: return e2->name() > e1->name();
-    case FORWARD_SORT: return e1->name() < e2->name();
+    case Sorting::REVERSE: return e2->name() > e1->name();
+    case Sorting::FORWARD: return e1->name() < e2->name();
     default: return false;
     }
 }

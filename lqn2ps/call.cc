@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: call.cc 15170 2021-12-07 23:33:05Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -896,16 +896,16 @@ Call::hasSendNoReplyForPhase( const unsigned p ) const
 Graphic::colour_type
 Call::colour() const
 {
-    switch ( Flags::print[COLOUR].opts.value.i ) {
-    case COLOUR_RESULTS:
-    case COLOUR_DIFFERENCES:
+    switch ( Flags::print[COLOUR].opts.value.c ) {
+    case Colouring::RESULTS:
+    case Colouring::DIFFERENCES:
 	if ( hasDropProbability() || hasInfiniteWait() ) {
 	    return Graphic::RED;
 	} else {
 	    return dstTask()->colour();
 	}
-    case COLOUR_SERVER_TYPE:
-    case COLOUR_OFF:
+    case Colouring::SERVER_TYPE:
+    case Colouring::NONE:
 	return GenericCall::colour();
     }
     if ( hasAncestorLevel() || hasForwardingLevel() ) {
@@ -930,11 +930,11 @@ Call::moveDst( const Point& aPoint )
 	    break;
 	}
     }
-    if ( Flags::label_justification == ABOVE_JUSTIFY ) {
+    if ( Flags::label_justification == Justification::ABOVE ) {
 	/* Move all labels above entry */
 	Point tempPoint = _arc->dstPoint();
 	tempPoint.moveBy( 0, delta_y * even );
-	_label->moveTo( tempPoint ).justification( CENTER_JUSTIFY );
+	_label->moveTo( tempPoint ).justification( Justification::CENTER );
     } else {
 	double offset;
 	const Point& p1 = _arc->penultimatePoint();
@@ -962,10 +962,10 @@ Call&
 Call::label()
 {
     if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
-	if ( hasNoCall() && Flags::print[COLOUR].opts.value.i != COLOUR_OFF ) {
+	if ( hasNoCall() && Flags::print[COLOUR].opts.value.c != Colouring::NONE ) {
 	    _label->colour( Graphic::RED );
 	}
-	if ( Flags::print[AGGREGATION].opts.value.x != Aggregate::ENTRIES ) {
+	if ( Flags::print[AGGREGATION].opts.value.a != Aggregate::ENTRIES ) {
 	    *_label << '(' << print_calls(*this) << ')';
 	}
 	const LQIO::DOM::ExternalVariable& fan_out = srcTask()->fanOut( dstTask() );
@@ -1301,8 +1301,8 @@ EntryCall::setChain( const unsigned k )
 Graphic::colour_type
 EntryCall::colour() const
 {
-    switch ( Flags::print[COLOUR].opts.value.i ) {
-    case COLOUR_CLIENTS:
+    switch ( Flags::print[COLOUR].opts.value.c ) {
+    case Colouring::CLIENTS:
 	return srcEntry()->colour();
 
     }
@@ -1438,8 +1438,8 @@ ActivityCall::addForwardingCall( Entry * toEntry, const double rate )
 Graphic::colour_type
 ActivityCall::colour() const
 {
-    switch ( Flags::print[COLOUR].opts.value.i ) {
-    case COLOUR_CLIENTS:
+    switch ( Flags::print[COLOUR].opts.value.c ) {
+    case Colouring::CLIENTS:
 	return srcActivity()->colour();
 
     }
@@ -1697,10 +1697,10 @@ TaskCall::setChain( const unsigned k )
 Graphic::colour_type
 TaskCall::colour() const
 {
-    switch ( Flags::print[COLOUR].opts.value.i ) {
-    case COLOUR_CLIENTS:
+    switch ( Flags::print[COLOUR].opts.value.c ) {
+    case Colouring::CLIENTS:
 	return srcTask()->colour();
-    case COLOUR_SERVER_TYPE:
+    case Colouring::SERVER_TYPE:
 	return GenericCall::colour();
 
     }
@@ -1917,7 +1917,7 @@ ProcessorCall::fanOut() const
 bool
 ProcessorCall::isSelected() const
 {
-    return ( dstEntity()->isSelected() || Flags::print[INCLUDE_ONLY].opts.value.r )
+    return ( dstEntity()->isSelected() || Flags::print[INCLUDE_ONLY].opts.value.m )
 	&& ( dynamic_cast<const Processor *>(dstEntity())->isInteresting()
 	     || (Flags::print[CHAIN].opts.value.i != 0 && dstEntity()->isSelectedIndirectly())
 	     || submodel_output()
@@ -1941,9 +1941,9 @@ ProcessorCall::setChain( const unsigned k )
 Graphic::colour_type
 ProcessorCall::colour() const
 {
-    switch ( Flags::print[COLOUR].opts.value.i ) {
-    case COLOUR_CLIENTS:	return srcTask()->colour();
-    case COLOUR_SERVER_TYPE:	return GenericCall::colour();
+    switch ( Flags::print[COLOUR].opts.value.c ) {
+    case Colouring::CLIENTS:	return srcTask()->colour();
+    case Colouring::SERVER_TYPE:	return GenericCall::colour();
     }
     return dstEntity()->colour();
 }
@@ -2248,8 +2248,8 @@ OpenArrival::setChain( const unsigned k )
 Graphic::colour_type
 OpenArrival::colour() const
 {
-    switch ( Flags::print[COLOUR].opts.value.i ) {
-    case COLOUR_SERVER_TYPE:
+    switch ( Flags::print[COLOUR].opts.value.c ) {
+    case Colouring::SERVER_TYPE:
 	return Graphic::RED;
     }
 

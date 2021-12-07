@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15159 2021-12-06 19:48:15Z greg $
+ * $Id: task.cc 15170 2021-12-07 23:33:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -269,7 +269,7 @@ Task::aggregate()
 {
     for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::aggregate ) );
 
-    switch ( Flags::print[AGGREGATION].opts.value.x ) {
+    switch ( Flags::print[AGGREGATION].opts.value.a ) {
     case Aggregate::ENTRIES:
     case Aggregate::PHASES:
     case Aggregate::ACTIVITIES:
@@ -1163,7 +1163,7 @@ bool
 Task::canConvertToReferenceTask() const
 {
     return Flags::convert_to_reference_task
-      && (submodel_output() || Flags::print[INCLUDE_ONLY].opts.value.r )
+      && (submodel_output() || Flags::print[INCLUDE_ONLY].opts.value.m != nullptr )
       && !isSelected()
       && !hasOpenArrivals()
       && !isInfinite()
@@ -1198,7 +1198,7 @@ Task::canPrune() const
      * this point.  canPrune could be recursive?
      */
 
-    assert( Flags::print[AGGREGATION].opts.value.x == Aggregate::ENTRIES );
+    assert( Flags::print[AGGREGATION].opts.value.a == Aggregate::ENTRIES );
 //    std::set<const Task *> callers = std::accumulate( entries().begin(), entries().end(), std::set<const Task *>(), &Entry::collect_callers );
     return calls().size() == 1;
 }
@@ -1383,8 +1383,8 @@ Task::format()
 	/* Calculate the space needed for the activities */
 
 	switch( Flags::activity_justification ) {
-	case ALIGN_JUSTIFY:
-	case DEFAULT_JUSTIFY:
+	case Justification::ALIGN:
+	case Justification::DEFAULT:
 	    aWidth = justifyByEntry();
 	    break;
 	default:
@@ -1452,8 +1452,8 @@ Task::reformat()
 	}
 
 	switch( Flags::activity_justification ) {
-	case ALIGN_JUSTIFY:
-	case DEFAULT_JUSTIFY:
+	case Justification::ALIGN:
+	case Justification::DEFAULT:
 	    justifyByEntry();
 	    break;
 	default:
@@ -1549,7 +1549,7 @@ Task::justifyByEntry()
 	    sublayer[i].justify( right - left, Flags::activity_justification ).moveBy( x, 0 );
 	}
 
-	if ( Flags::activity_justification == ALIGN_JUSTIFY ) {
+	if ( Flags::activity_justification == Justification::ALIGN ) {
 	    double shift = 0;
 	    for ( unsigned i = 0; i < MAX_LEVEL; ++i ) {
 		sublayer[i].alignActivities();
@@ -1625,7 +1625,7 @@ Task::moveTo( const double x, const double y )
 
     reformat();
 
-    if ( Flags::print[AGGREGATION].opts.value.x == Aggregate::ENTRIES ) {
+    if ( Flags::print[AGGREGATION].opts.value.a == Aggregate::ENTRIES ) {
 	myLabel->moveTo( bottomCenter() ).moveBy( 0, height() / 2 );
     } else if ( !queueing_output() ) {
 
@@ -1773,8 +1773,8 @@ Task::moveSrcBy( const double dx, const double dy )
 
 Graphic::colour_type Task::colour() const
 {
-    switch ( Flags::print[COLOUR].opts.value.i ) {
-    case COLOUR_DIFFERENCES:
+    switch ( Flags::print[COLOUR].opts.value.c ) {
+    case Colouring::DIFFERENCES:
 	return colourForDifference( throughput() );
 
     default:
@@ -1818,7 +1818,7 @@ Task::label()
 	    }
 	    labelQueueingNetwork( &Entry::labelQueueingNetworkService );
 	} else {
-	    if ( Flags::print[AGGREGATION].opts.value.x == Aggregate::ENTRIES && Flags::print[PRINT_AGGREGATE].opts.value.b ) {
+	    if ( Flags::print[AGGREGATION].opts.value.a == Aggregate::ENTRIES && Flags::print[PRINT_AGGREGATE].opts.value.b ) {
 		myLabel->newLine() << " [" << print_service_time( *entries().front() ) << ']';
 	    }
 	    if ( hasThinkTime()  ) {
@@ -1831,7 +1831,7 @@ Task::label()
  	bool print_goop = false;
 	if ( Flags::print[TASK_THROUGHPUT].opts.value.b ) {
 	    myLabel->newLine();
-	    if ( throughput() == 0.0 && Flags::print[COLOUR].opts.value.i != COLOUR_OFF ) {
+	    if ( throughput() == 0.0 && Flags::print[COLOUR].opts.value.c != Colouring::NONE ) {
 		myLabel->colour( Graphic::RED );
 	    }
 	    *myLabel << begin_math( &Label::lambda ) << "=" << opt_pct(throughput());
@@ -1845,7 +1845,7 @@ Task::label()
 		print_goop = true;
 	    }
 	    *myLabel << _rho() << "=" << opt_pct(utilization());
-	    if ( hasBogusUtilization() && Flags::print[COLOUR].opts.value.i != COLOUR_OFF ) {
+	    if ( hasBogusUtilization() && Flags::print[COLOUR].opts.value.c != Colouring::NONE ) {
 		myLabel->colour(Graphic::RED);
 	    }
 	}
@@ -2413,7 +2413,7 @@ Task::draw( std::ostream& output ) const
 #endif
     myNode->comment( output, aComment.str() );
     myNode->fillColour( colour() );
-    if ( Flags::print[COLOUR].opts.value.i == COLOUR_OFF ) {
+    if ( Flags::print[COLOUR].opts.value.c == Colouring::NONE ) {
 	myNode->penColour( Graphic::DEFAULT_COLOUR );			// No colour.
     } else if ( throughput() == 0.0 ) {
 	myNode->penColour( Graphic::RED );
@@ -2443,7 +2443,7 @@ Task::draw( std::ostream& output ) const
 	const double shift = width() - (Flags::entry_width * JLQNDEF_TASK_BOX_SCALING * Model::scaling());
 	points[0].moveBy( shift, 0 );
 	points[3].moveBy( shift, 0 );
-	if ( Flags::print[COLOUR].opts.value.i == COLOUR_OFF ) {
+	if ( Flags::print[COLOUR].opts.value.c == Colouring::NONE ) {
 	    myNode->fillColour( Graphic::GREY_10 );
 	}
     }
@@ -2452,7 +2452,7 @@ Task::draw( std::ostream& output ) const
     myLabel->backgroundColour( colour() ).comment( output, aComment.str() );
     output << *myLabel;
 
-    if ( Flags::print[AGGREGATION].opts.value.x != Aggregate::ENTRIES ) {
+    if ( Flags::print[AGGREGATION].opts.value.a != Aggregate::ENTRIES ) {
 	for_each( entries().begin(), entries().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
 	for_each( activities().begin(), activities().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
 	for_each( precedences().begin(), precedences().end(), ConstExec1<ActivityList,std::ostream&>( &ActivityList::draw, output ) );
@@ -2482,7 +2482,7 @@ Task::drawClient( std::ostream& output, const bool is_in_open_model, const bool 
     myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
 
     myLabel->moveTo( bottomCenter() )
-	.justification( LEFT_JUSTIFY );
+	.justification( Justification::LEFT );
     if ( is_in_open_model && is_in_closed_model ) {
 	Point aPoint = bottomCenter();
 	aPoint.moveBy( radius() * -3.0, 0 );
@@ -2542,11 +2542,11 @@ Graphic::colour_type
 ReferenceTask::colour() const
 {
     const Processor * processor = this->processor(); 
-    switch ( Flags::print[COLOUR].opts.value.i ) {
-    case COLOUR_SERVER_TYPE:
+    switch ( Flags::print[COLOUR].opts.value.c ) {
+    case Colouring::SERVER_TYPE:
 	return Graphic::RED;
 
-    case COLOUR_RESULTS:
+    case Colouring::RESULTS:
 	if ( processor != nullptr ) {
 	    return processor->colour();
 	}
@@ -2659,7 +2659,7 @@ bool
 ServerTask::canConvertToReferenceTask() const
 {
     return Flags::convert_to_reference_task
-	&& (submodel_output() || Flags::print[INCLUDE_ONLY].opts.value.r )
+	&& (submodel_output() || Flags::print[INCLUDE_ONLY].opts.value.m != nullptr )
 	&& !isSelected()
 	&& !hasOpenArrivals()
 	&& !isInfinite()

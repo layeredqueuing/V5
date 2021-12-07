@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 15154 2021-12-03 22:16:10Z greg $
+ * $Id: model.h 15167 2021-12-07 17:49:17Z greg $
  */
 
 #ifndef _MODEL_H
@@ -49,7 +49,6 @@ class Model
 		   OPEN_ARRIVALS_PER_ENTRY, OPEN_ARRIVAL_RATE_PER_ENTRY,
 		   FORWARDING_PER_ENTRY, FORWARDING_PROBABILITY_PER_CALL,	/* OUT */
 		   N_STATS } MODEL_STATS;
-    typedef enum { REAL_TIME, USER_TIME, SYS_TIME } TIME_VALUES;
 public:
     static const unsigned CLIENT_LEVEL = 0;
     static const unsigned SERVER_LEVEL = 1;
@@ -57,11 +56,6 @@ public:
 
 public:
     /* default values */
-    static unsigned iteration_limit;
-    static unsigned print_interval;
-    static double convergence_value;
-    static double underrelaxation;
-
     static int maxModelNumber;
 
     static bool deterministicPhasesPresent;
@@ -74,8 +68,6 @@ public:
     static bool variancePresent;
 
 private:
-    static const char * XMLSchema_instance;
-
     struct Count {
 	Count() : _tasks(0), _processors(0), _entries(0), _activities(0) {}
 	Count& operator=( unsigned int value );

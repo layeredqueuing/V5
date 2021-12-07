@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 15163 2021-12-06 21:13:49Z greg $
+ * $Id: processor.cc 15170 2021-12-07 23:33:05Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -64,7 +64,7 @@ Processor::Processor( const LQIO::DOM::Processor* dom )
       _shares(),
       _groupIsSelected(false)
 { 
-    if ( Flags::print[PROCESSORS].opts.value.i == PROCESSOR_NONE ) {
+    if ( Flags::print[PROCESSORS].opts.value.p == Processors::NONE ) {
 	isSelected(false);
     }
     if ( !isMultiServer() && scheduling() != SCHEDULE_DELAY && !Pragma::defaultProcessorScheduling() ) {
@@ -206,11 +206,11 @@ Processor::hasPriorities() const
 bool
 Processor::isInteresting() const
 {
-    return Flags::print[PROCESSORS].opts.value.i == PROCESSOR_ALL
-	|| (Flags::print[PROCESSORS].opts.value.i == PROCESSOR_DEFAULT 
+    return Flags::print[PROCESSORS].opts.value.p == Processors::ALL
+	|| (Flags::print[PROCESSORS].opts.value.p == Processors::DEFAULT 
 	    && !isInfinite() 
 	    && clientsCanQueue() )
-	|| (Flags::print[PROCESSORS].opts.value.i == PROCESSOR_NONINFINITE
+	|| (Flags::print[PROCESSORS].opts.value.p == Processors::NONINFINITE
 	    && !isInfinite() )
 #if defined(TXT_OUTPUT)
 	|| Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::TXT
@@ -370,8 +370,8 @@ Processor::colour() const
     if ( isSurrogate() ) {
 	return Graphic::GREY_10;
     }
-    switch ( Flags::print[COLOUR].opts.value.i ) {
-    case COLOUR_SERVER_TYPE:
+    switch ( Flags::print[COLOUR].opts.value.c ) {
+    case Colouring::SERVER_TYPE:
 	return Graphic::BLUE;
     }
     return Entity::colour();
@@ -423,7 +423,7 @@ Processor::label()
     }
     if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
 	myLabel->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(utilization()) << end_math();
-	if ( hasBogusUtilization() && Flags::print[COLOUR].opts.value.i != COLOUR_OFF ) {
+	if ( hasBogusUtilization() && Flags::print[COLOUR].opts.value.c != Colouring::NONE ) {
 	    myLabel->colour(Graphic::RED);
 	}
     }
@@ -678,7 +678,7 @@ proc_scheduling_of_str( std::ostream& output, const Processor & processor )
 bool
 Processor::compare( const void * n1, const void *n2 )
 {
-    if ( Flags::sort == NO_SORT ) {
+    if ( Flags::sort == Sorting::NONE ) {
 	return false;
     }
     const Processor * p1 = *static_cast<Processor **>(const_cast<void *>(n1));
@@ -688,8 +688,8 @@ Processor::compare( const void * n1, const void *n2 )
     } else if ( p1->taskDepth() - p2->taskDepth() != 0 ) {
 	return p1->taskDepth() < p2->taskDepth();
     } else switch ( Flags::sort ) {
-    case REVERSE_SORT: return p2->name() > p1->name();
-    case FORWARD_SORT: return p1->name() < p2->name();
+	case Sorting::REVERSE: return p2->name() > p1->name();
+	case Sorting::FORWARD: return p1->name() < p2->name();
     default: return false;
     }
 }

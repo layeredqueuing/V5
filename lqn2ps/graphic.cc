@@ -1,6 +1,6 @@
 /* graphic.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: graphic.cc 15140 2021-12-02 15:04:21Z greg $
+ * $Id: graphic.cc 15170 2021-12-07 23:33:05Z greg $
  */
 
 #include <cassert>
@@ -164,7 +164,7 @@ long EMF::record_count = 0;
 Graphic::colour_type EMF::last_pen_colour    = Graphic::BLACK;
 Graphic::colour_type EMF::last_fill_colour   = Graphic::BLACK;
 Graphic::colour_type EMF::last_arrow_colour  = Graphic::BLACK;
-justification_type EMF::last_justification   = CENTER_JUSTIFY;
+Justification EMF::last_justification        = Justification::CENTER;
 Graphic::font_type EMF::last_font	     = Graphic::NORMAL_FONT;
 Graphic::linestyle_type EMF::last_line_style = Graphic::SOLID;
 int EMF::last_font_size			     = 0;
@@ -185,7 +185,7 @@ EMF::init( std::ostream& output, const double xmax, const double ymax, const std
     last_pen_colour   	= static_cast<Graphic::colour_type>(-1);
     last_fill_colour  	= static_cast<Graphic::colour_type>(-1);
     last_arrow_colour 	= static_cast<Graphic::colour_type>(-1);
-    last_justification  = CENTER_JUSTIFY;
+    last_justification  = Justification::CENTER;
     last_line_style     = Graphic::SOLID;
     last_font		= Graphic::NORMAL_FONT;
     last_font_size	= 0;
@@ -510,7 +510,7 @@ EMF::rectangle( std::ostream& output, const Point& origin, const Point& extent, 
 
 double
 EMF::text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-	   justification_type justification, Graphic::colour_type colour, unsigned ) const
+	   Justification justification, Graphic::colour_type colour, unsigned ) const
 {
     Point origin(0,0);
     Point extent(0,0);
@@ -731,13 +731,13 @@ EMF::setfill_str( std::ostream& output, const Graphic::colour_type colour )
 }
 
 std::ostream&
-EMF::justify_str( std::ostream& output, const justification_type justification )
+EMF::justify_str( std::ostream& output, const Justification justification )
 {
     int align = 8;
     switch( justification ) {
-    case CENTER_JUSTIFY:  align |= 6; break;
-    case RIGHT_JUSTIFY:   align |= 2; break;
-    case LEFT_JUSTIFY:    align |= 0; break;
+    case Justification::CENTER:  align |= 6; break;
+    case Justification::RIGHT:   align |= 2; break;
+    case Justification::LEFT:    align |= 0; break;
     }
     output << start_record( EMR_SETTEXTALIGN, 12 )
 	   << writel( align );
@@ -852,7 +852,7 @@ EMF::setfill( const Graphic::colour_type aColour )
 }
 
 Colour::JustificationManip
-EMF::justify( const justification_type justification )
+EMF::justify( const Justification justification )
 {
     return Colour::JustificationManip( justify_str, justification );
 }
@@ -1189,12 +1189,12 @@ Fig::roundedRectangle( std::ostream& output, const Point& origin, const Point& e
 
 double
 Fig::text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-	   justification_type justification, Graphic::colour_type colour, unsigned flags ) const
+	   Justification justification, Graphic::colour_type colour, unsigned flags ) const
 {
     int sub_type = 1;
     switch ( justification ) {
-    case LEFT_JUSTIFY:	 sub_type = 0; break;
-    case RIGHT_JUSTIFY:	 sub_type = 2; break;
+    case Justification::LEFT:	 sub_type = 0; break;
+    case Justification::RIGHT:	 sub_type = 2; break;
     default:  		 sub_type = 1; break;	/* Center */
     }
     output << "4 "		//int  	object 	     (always 4)
@@ -1556,7 +1556,7 @@ GD::rectangle( const Point& origin, const Point& extent, Graphic::colour_type pe
 
 
 double
-GD::text( const Point& p1, const std::string& aStr, Graphic::font_type font, int fontsize, justification_type justification,
+GD::text( const Point& p1, const std::string& aStr, Graphic::font_type font, int fontsize, Justification justification,
 	  Graphic::colour_type pen_colour ) const
 {
     int x = static_cast<int>(p1.x());
@@ -1568,8 +1568,8 @@ GD::text( const Point& p1, const std::string& aStr, Graphic::font_type font, int
 	const int len = width( aStr.c_str(), font, fontsize );		/* Compute bounding box */
 
 	switch ( justification ) {
-	case CENTER_JUSTIFY: x -= len / 2; break;
-	case RIGHT_JUSTIFY:  x -= len; break;
+	case Justification::CENTER: x -= len / 2; break;
+	case Justification::RIGHT:  x -= len; break;
 	default:             break;
 	}
 
@@ -1588,8 +1588,8 @@ GD::text( const Point& p1, const std::string& aStr, Graphic::font_type font, int
 	const int len = f->w * aStr.length();
 
 	switch ( justification ) {
-	case CENTER_JUSTIFY: x -= len / 2; break;
-	case RIGHT_JUSTIFY:  x -= len; break;
+	case Justification::CENTER: x -= len / 2; break;
+	case Justification::RIGHT:  x -= len; break;
 	default:             break;
 	}
 
@@ -1881,7 +1881,7 @@ PostScript::roundedRectangle( std::ostream& output, const Point& origin, const P
 
 double
 PostScript::text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-		  justification_type justification, Graphic::colour_type colour, unsigned ) const
+		  Justification justification, Graphic::colour_type colour, unsigned ) const
 {
     output << "gsave "
 	   << setfont( font ) << std::endl
@@ -1979,12 +1979,12 @@ PostScript::setfont_str( std::ostream& output, const Graphic::font_type aFont, c
 }
 
 std::ostream&
-PostScript::justify_str( std::ostream& output, const justification_type justification )
+PostScript::justify_str( std::ostream& output, const Justification justification )
 {
     switch( justification ) {
-    case LEFT_JUSTIFY:
+    case Justification::LEFT:
 	break;
-    case RIGHT_JUSTIFY:
+    case Justification::RIGHT:
 	output << "dup stringwidth pop neg 0 rmoveto ";
 	break;
     default:
@@ -2049,7 +2049,7 @@ PostScript::setfont( const Graphic::font_type aFont )
 }
 
 Colour::JustificationManip
-PostScript::justify( const justification_type justification )
+PostScript::justify( const Justification justification )
 {
     return Colour::JustificationManip( justify_str, justification );
 }
@@ -2197,7 +2197,7 @@ SVG::rectangle( std::ostream& output, const Point& origin, const Point& extent, 
 
 double
 SVG::text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-	   justification_type justification, Graphic::colour_type colour, unsigned ) const
+	   Justification justification, Graphic::colour_type colour, unsigned ) const
 {
     output << "<text x=\"" << static_cast<int>(c.x() + 0.5)
 	   << "\" y=\"" << static_cast<int>(c.y() + 0.5) << "\""
@@ -2266,14 +2266,14 @@ SVG::setfont_str( std::ostream& output, const Graphic::font_type aFont, const in
 }
 
 std::ostream&
-SVG::justify_str( std::ostream& output, const justification_type justification )
+SVG::justify_str( std::ostream& output, const Justification justification )
 {
     output << " text-anchor=\"" ;
     switch( justification ) {
-    case RIGHT_JUSTIFY:
+    case Justification::RIGHT:
 	output << "right";
 	break;
-    case LEFT_JUSTIFY:
+    case Justification::LEFT:
 	output << "left";
 	break;
     default:
@@ -2479,41 +2479,41 @@ SXD::init( std::ostream& output )
     output << indent( 0 )  << "<style:style style:name=\"dp1\" style:family=\"drawing-page\"/>" << std::endl;
     output << start_style( "gr1", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::TRANSPARENT ) << setfill( Graphic::TRANSPARENT )
-	   << justify( CENTER_JUSTIFY ) << "draw:auto-grow-width=\"true\" draw:auto-grow-height=\"true\" fo:min-height=\"0cm\" fo:min-width=\"0cm\"/>" << std::endl
+	   << justify( Justification::CENTER ) << "draw:auto-grow-width=\"true\" draw:auto-grow-height=\"true\" fo:min-height=\"0cm\" fo:min-width=\"0cm\"/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr2", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::TRANSPARENT ) << setfill( Graphic::TRANSPARENT )
-	   << justify( LEFT_JUSTIFY ) << "draw:auto-grow-width=\"true\" draw:auto-grow-height=\"true\" fo:min-height=\"0cm\" fo:min-width=\"0cm\"/>" << std::endl
+	   << justify( Justification::LEFT ) << "draw:auto-grow-width=\"true\" draw:auto-grow-height=\"true\" fo:min-height=\"0cm\" fo:min-width=\"0cm\"/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr3", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::TRANSPARENT ) << setfill( Graphic::TRANSPARENT )
-	   << justify( RIGHT_JUSTIFY ) << "draw:auto-grow-width=\"true\" draw:auto-grow-height=\"true\" fo:min-height=\"0cm\" fo:min-width=\"0cm\"/>" << std::endl
+	   << justify( Justification::RIGHT ) << "draw:auto-grow-width=\"true\" draw:auto-grow-height=\"true\" fo:min-height=\"0cm\" fo:min-width=\"0cm\"/>" << std::endl
 	   << end_style() << std::endl;
     output << std::endl;
 
     output << start_style( "gr4", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::BLACK ) << setfill( Graphic::WHITE )
-	   << justify( CENTER_JUSTIFY ) << "/>" << std::endl
+	   << justify( Justification::CENTER ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr5", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::BLACK ) << setfill( Graphic::BLACK )
-	   << justify( CENTER_JUSTIFY ) << "/>" << std::endl
+	   << justify( Justification::CENTER ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr6", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::BLUE )  << setfill( Graphic::BLUE )
-	   << justify( CENTER_JUSTIFY ) << "/>" << std::endl
+	   << justify( Justification::CENTER ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr7", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::GREEN ) << setfill( Graphic::GREEN )
-	   << justify( CENTER_JUSTIFY ) << "/>" << std::endl
+	   << justify( Justification::CENTER ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr8", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::ORANGE )<< setfill( Graphic::ORANGE )
-	   << justify( CENTER_JUSTIFY ) << "/>" << std::endl
+	   << justify( Justification::CENTER ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr9", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::RED )   << setfill( Graphic::RED )
-	   << justify( CENTER_JUSTIFY ) << "/>" << std::endl
+	   << justify( Justification::CENTER ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << std::endl;
 
@@ -2839,12 +2839,12 @@ SXD::rectangle( std::ostream& output, const Point& origin, const Point& extent, 
 // svg:x="9.327cm" svg:y="2.62cm">
 
 std::ostream&
-SXD::begin_paragraph( std::ostream& output, const Point& origin, const Point& extent, const justification_type justification ) const
+SXD::begin_paragraph( std::ostream& output, const Point& origin, const Point& extent, const Justification justification ) const
 {
     output << indent( 1 ) << "<draw:text-box draw:style-name=\"";
     switch ( justification ) {			/* Alignment of BOX */
-    case LEFT_JUSTIFY:	output << "gr2"; break;
-    case RIGHT_JUSTIFY:	output << "gr3"; break;
+    case Justification::LEFT:	output << "gr2"; break;
+    case Justification::RIGHT:	output << "gr3"; break;
     default:		output << "gr1"; break;
     }
     output << "\" draw:text-style-name=\"P5\" draw:layer=\"layout\" " << box( origin, extent ) << ">" << std::endl;
@@ -2856,12 +2856,12 @@ SXD::begin_paragraph( std::ostream& output, const Point& origin, const Point& ex
 
 double
 SXD::text( std::ostream& output, const Point&, const std::string& s, Graphic::font_type font, int fontsize,
-	   justification_type justification, Graphic::colour_type colour, unsigned ) const
+	   Justification justification, Graphic::colour_type colour, unsigned ) const
 {
     output << indent( 1 )  << "<text:p text:style-name=\"";
     switch ( justification ) {			/* Alignment of Text within BOX */
-    case LEFT_JUSTIFY:	 output << "P3"; break;
-    case RIGHT_JUSTIFY:	 output << "P4"; break;
+    case Justification::LEFT:	 output << "P3"; break;
+    case Justification::RIGHT:	 output << "P4"; break;
     default:  		 output << "P2"; break;
     }
     output << "\">" << std::endl;
@@ -2956,12 +2956,12 @@ SXD::setfill_str( std::ostream& output, const Graphic::colour_type colour )
 }
 
 std::ostream&
-SXD::justify_str( std::ostream& output, const justification_type justification )
+SXD::justify_str( std::ostream& output, const Justification justification )
 {
     output << "draw:textarea-horizontal-align=\"";
     switch ( justification ) {
-    case LEFT_JUSTIFY:   output << "left"; break;
-    case RIGHT_JUSTIFY:  output << "right"; break;
+    case Justification::LEFT:   output << "left"; break;
+    case Justification::RIGHT:  output << "right"; break;
     default:             output << "center"; break;
     }
     output << "\" draw:textarea-vertical-align=\"middle\" ";
@@ -3059,7 +3059,7 @@ SXD::style_properties( const unsigned int j )
 }
 
 Colour::JustificationManip
-SXD::justify( const justification_type justification )
+SXD::justify( const Justification justification )
 {
     return Colour::JustificationManip( justify_str, justification );
 }
@@ -3187,7 +3187,7 @@ TeX::rectangle( std::ostream& output, const Point& origin, const Point& extent, 
 
 double
 TeX::text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-	   justification_type justification, Graphic::colour_type pen_colour, unsigned ) const
+	   Justification justification, Graphic::colour_type pen_colour, unsigned ) const
 {
     output << "\\put" << moveto( c )
 	   << "{\\makebox(0,0)" << justify( justification )
@@ -3234,11 +3234,11 @@ TeX::setfill_str( std::ostream& output, const Graphic::colour_type colour )
 }
 
 std::ostream&
-TeX::justify_str( std::ostream& output, const justification_type justification )
+TeX::justify_str( std::ostream& output, const Justification justification )
 {
     switch( justification ) {
-    case RIGHT_JUSTIFY:   output << "[r]"; break;
-    case LEFT_JUSTIFY:    output << "[l]"; break;
+    case Justification::RIGHT:   output << "[r]"; break;
+    case Justification::LEFT:    output << "[l]"; break;
     }
     return output;
 }
@@ -3320,7 +3320,7 @@ TeX::setfill( const Graphic::colour_type aColour )
 }
 
 Colour::JustificationManip
-TeX::justify( const justification_type justification )
+TeX::justify( const Justification justification )
 {
     return Colour::JustificationManip( justify_str, justification );
 }

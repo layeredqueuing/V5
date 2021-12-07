@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: option.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: option.cc 15170 2021-12-07 23:33:05Z greg $
  */
 
 #include "lqn2ps.h"
@@ -10,7 +10,6 @@
 #include <cmath>
 #include <cstring>
 #include <sstream>
-#include <libgen.h>
 #include <lqio/dom_object.h>
 #include <lqio/json_document.h>
 #include <lqio/dom_pragma.h>
@@ -56,11 +55,11 @@ double Flags::icon_width               	= DEFAULT_ICON_HEIGHT * 1.6;	/* 72 */
 
 std::regex * Flags::client_tasks	= nullptr;
 
-sort_type Flags::sort	 		= FORWARD_SORT;
+Sorting Flags::sort	 		= Sorting::FORWARD;
 
-justification_type Flags::node_justification = DEFAULT_JUSTIFY;
-justification_type Flags::label_justification = CENTER_JUSTIFY;
-justification_type Flags::activity_justification = DEFAULT_JUSTIFY;
+Justification Flags::node_justification = Justification::DEFAULT;
+Justification Flags::label_justification = Justification::CENTER;
+Justification Flags::activity_justification = Justification::DEFAULT;
 graphical_output_style_type Flags::graphical_output_style = TIMEBENCH_STYLE;
 
 double Flags::icon_slope	        = 1.0/10.0;
@@ -69,31 +68,26 @@ const unsigned int maxDblLen	= 12;		/* Field width in srvnoutput. */
 
 const std::map<const Aggregate, const std::string> Options::aggregate = 
 {
-    { Aggregate::NONE,           "none" },
+    { Aggregate::NONE,           LQIO::DOM::Pragma::_none_ },
     { Aggregate::SEQUENCES,      "sequences" },
     { Aggregate::ACTIVITIES,     "activities" },
     { Aggregate::PHASES,         "phases" },
     { Aggregate::ENTRIES,        "entries" },
-    { Aggregate::THREADS,        "threads" }
+    { Aggregate::THREADS,        LQIO::DOM::Pragma::_threads_ }
 };
 
-const char * Options::colouring[] =
+const std::map<const Colouring, const std::string> Options::colouring =
 {
-    "off",
-    "results",
-    "layers",
-    "clients",
-    "type",
-    "chains",
-    "differences",
-    0
+    { Colouring::NONE,		LQIO::DOM::Pragma::_none_ },
+    { Colouring::RESULTS,    	"results" },
+    { Colouring::LAYERS,     	"layers" },
+    { Colouring::CLIENTS,    	"clients" },
+    { Colouring::SERVER_TYPE,	"type" },
+    { Colouring::CHAINS,     	"chains" },
+    { Colouring::DIFFERENCES,	"differences" },
 };
 
-const char * Options::integer [] =
-{
-    "int",
-    0
-};
+const std::string Options::integer = "int";
 
 /*
  * Input output format options
@@ -145,25 +139,26 @@ const std::map<const File_Format,const std::string> Options::file_format =
     { File_Format::XML,		"xml" }
 };
 
-const char * Options::justification[] =
+const std::map<const Justification, const std::string> Options::justification =
 {
-    "nodes",
-    "labels",
-    "activities",
-    0
+    { Justification::DEFAULT,	LQIO::DOM::Pragma::_default_ },
+    { Justification::CENTER,	"center" },
+    { Justification::LEFT,	"left" },
+    { Justification::RIGHT,	"right" },
+    { Justification::ALIGN,	"align" },	/* For Nodes		*/
+    { Justification::ABOVE,	"above" }	/* For labels on Arcs.	*/
 };
 
-const char * Options::key[] =
+const std::multimap<const Key_Position, const std::string> Options::key_position =
 {
-    "none",
-    "top-left",
-    "top-right",
-    "bottom-left",
-    "bottom-right",
-    "below-left",
-    "above-left",
-    "on",
-    0
+    { Key_Position::NONE,               LQIO::DOM::Pragma::_none_ },
+    { Key_Position::TOP_LEFT,           "top-left" },
+    { Key_Position::TOP_RIGHT,          "top-right" },
+    { Key_Position::BOTTOM_LEFT,        "bottom-left" },
+    { Key_Position::BOTTOM_RIGHT,	"bottom-right" },
+    { Key_Position::BELOW_LEFT,         "below-left" },
+    { Key_Position::ABOVE_LEFT,         "above-left" },
+    { Key_Position::TOP_LEFT,           "on" }			/* alias */
 };
 
 const std::map<const Layering, const std::string> Options::layering =
@@ -178,6 +173,24 @@ const std::map<const Layering, const std::string> Options::layering =
     { Layering::SQUASHED,       LQIO::DOM::Pragma::_squashed_ },
     { Layering::SRVN,           LQIO::DOM::Pragma::_srvn_ },
     { Layering::TASK_PROCESSOR,	"task-processor" }
+};
+
+const std::map<const Processors, const std::string> Options::processors = {
+    { Processors::NONE,         LQIO::DOM::Pragma::_none_ },
+    { Processors::DEFAULT,      "default" },
+    { Processors::NONINFINITE,	"non-infinite" },
+    { Processors::ALL,          LQIO::DOM::Pragma::_all_ }
+};
+
+const std::string Options::real = "float";
+
+
+const std::map<const Replication, const std::string> Options::replication =
+{
+    { Replication::NONE,    	LQIO::DOM::Pragma::_none_ },
+    { Replication::REMOVE,    	"remove" },
+    { Replication::EXPAND,    	"expand" },
+    { Replication::RETURN,    	"return" }
 };
 
 const std::map<const Special, const std::string> Options::special = {
@@ -208,85 +221,18 @@ const std::map<const Special, const std::string> Options::special = {
     { Special::TASK_SCHEDULING,		    LQIO::DOM::Pragma::_task_scheduling_ }
 };
 
-const char * Options::processor[] = {
-    "none",
-    "default",
-    "non-infinite",
-    "all",
-    nullptr
-};
-
-const char * Options::real [] = {
-    "float",
-    nullptr
-};
-
-const char * Options::replication [] =
+const std::map<const Sorting,const std::string> Options::sorting=
 {
-    "none",
-    "remove",
-    "expand",
-    nullptr
+    { Sorting::FORWARD,        "ascending" },
+    { Sorting::REVERSE,        "descending" },
+    { Sorting::TOPILOGICAL,    "topological" },
+    { Sorting::NONE,           LQIO::DOM::Pragma::_none_ }
 };
 
-const char * Options::sort [] = {
-    "ascending",
-    "descending",
-    "topological",
-    "none",
-    nullptr
-};
+const std::string Options::string = "string";
 
-const char * Options::string [] = {
-    "string",
-    nullptr
-};
 
 static bool get_bool( const std::string&, bool default_value );
-
-/*----------------------------------------------------------------------*/
-/*			      Main line					*/
-/*----------------------------------------------------------------------*/
-
-int
-main(int argc, char *argv[])
-{
-    /* We can only initialize integers in the Flags object -- initialize floats here. */
-
-    Flags::print[MAGNIFICATION].opts.value.d = 1.0;
-    Flags::print[BORDER].opts.value.d = 18.0;
-    Flags::print[X_SPACING].opts.value.d = DEFAULT_X_SPACING;
-    Flags::print[Y_SPACING].opts.value.d = DEFAULT_Y_SPACING;
-
-    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
-
-    command_line += LQIO::io_vars.lq_toolname;
-
-    /* If we are invoked as lqn2xxx or rep2flat, then enable other options. */
-
-    const char * p = strrchr( LQIO::io_vars.toolname(), '2' );
-    if ( p ) {
-	p += 1;
-	for ( std::map<const File_Format,const std::string>::const_iterator j = Options::file_format.begin(); j != Options::file_format.end(); ++j ) {
-	    if ( j->second == p ) {
-		setOutputFormat( j->first );
-		goto found1;
-	    }
-	}
-#if defined(REP2FLAT)
-	if ( strcmp( p, "flat" ) == 0 ) {
-	    setOutputFormat( File_Format::SRVN );
-	    Flags::print[REPLICATION].opts.value.i = REPLICATION_EXPAND;
-	    goto found1;
-	}
-#endif
-	std::cerr << LQIO::io_vars.lq_toolname << ": command not found." << std::endl;
-	exit( 1 );
-    found1: ;
-    }
-
-    return lqn2ps( argc, argv );
-}
 
 /*
  * construct the error message.
@@ -331,6 +277,15 @@ Options::get_aggregate( const std::string& value )
     throw std::invalid_argument( value );
 }
 
+Colouring
+Options::get_colouring( const std::string& value )
+{
+    for ( std::map<const Colouring,const std::string>::const_iterator i = Options::colouring.begin(); i != Options::colouring.end(); ++i ) {
+	if ( value == i->second ) return i->first;
+    }
+    throw std::invalid_argument( value );
+}
+
 File_Format
 Options::get_file_format( const std::string& value )
 {
@@ -350,6 +305,56 @@ Options::get_layering( const std::string& value )
     throw std::invalid_argument( value );
 }
     
+
+Key_Position
+Options::get_key_position( const std::string& value )
+{
+    for ( std::map<const Key_Position,const std::string>::const_iterator i = Options::key_position.begin(); i != Options::key_position.end(); ++i ) {
+	if ( value == i->second ) return i->first;
+    }
+    throw std::invalid_argument( value );
+}
+    
+
+Justification
+Options::get_justification( const std::string& value )
+{
+    for ( std::map<const Justification,const std::string>::const_iterator i = Options::justification.begin(); i != Options::justification.end(); ++i ) {
+	if ( value == i->second ) return i->first;
+    }
+    throw std::invalid_argument( value );
+}
+    
+
+Processors
+Options::get_processors( const std::string& value )
+{
+    for ( std::map<const Processors,const std::string>::const_iterator i = Options::processors.begin(); i != Options::processors.end(); ++i ) {
+	if ( value == i->second ) return i->first;
+    }
+    throw std::invalid_argument( value );
+}
+    
+
+Replication
+Options::get_replication( const::std::string& value )
+{
+    for ( std::map<const Replication,const std::string>::const_iterator i = Options::replication.begin(); i != Options::replication.end(); ++i ) {
+	if ( value == i->second ) return i->first;
+    }
+    throw std::invalid_argument( value );
+}
+
+
+Sorting
+Options::get_sorting( const::std::string& value )
+{
+    for ( std::multimap<const Sorting,const std::string>::const_iterator i = Options::sorting.begin(); i != Options::sorting.end(); ++i ) {
+	if ( value == i->second ) return i->first;
+    }
+    throw std::invalid_argument( value );
+}
+
 
 Special
 Options::get_special( const::std::string& value )
@@ -432,8 +437,7 @@ special( const std::string& parameter, const std::string& value, LQIO::DOM::Prag
 	    break;
 
 	case Special::SORT:
-	    Flags::sort = static_cast<sort_type>(Options::find_if( Options::sort, value ));
-	    if ( Flags::sort == INVALID_SORT ) throw std::domain_error( value );
+	    Flags::sort = Options::get_sorting( value );
 	    break;
 
 	case Special::TASK_SCHEDULING:
@@ -441,7 +445,7 @@ special( const std::string& parameter, const std::string& value, LQIO::DOM::Prag
 	    break;
 	
 	case Special::TASKS_ONLY:
-	    Flags::print[AGGREGATION].opts.value.x = Aggregate::ENTRIES;
+	    Flags::print[AGGREGATION].opts.value.a = Aggregate::ENTRIES;
 	    if ( Flags::icon_height == DEFAULT_ICON_HEIGHT ) {
 		if ( processor_output() || share_output() ) {
 		    Flags::print[Y_SPACING].opts.value.d = 45;
@@ -557,7 +561,7 @@ bool
 partial_output()
 {
     return submodel_output() || queueing_output()
-	|| Flags::print[INCLUDE_ONLY].opts.value.r != nullptr;
+	|| Flags::print[INCLUDE_ONLY].opts.value.m != nullptr;
 }
 
 bool
@@ -590,7 +594,7 @@ submodel_output()
 bool
 difference_output()
 {
-    return Flags::print[COLOUR].opts.value.i == COLOUR_DIFFERENCES;
+    return Flags::print[COLOUR].opts.value.c == Colouring::DIFFERENCES;
 }
 
 #if defined(REP2FLAT)

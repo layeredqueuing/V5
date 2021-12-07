@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 15159 2021-12-06 19:48:15Z greg $
+ * $Id: lqn2ps.h 15170 2021-12-07 23:33:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -81,105 +81,6 @@ typedef enum {
     TIMEBENCH_STYLE,
     JLQNDEF_STYLE
 } graphical_output_style_type;
-
-typedef enum {
-    PROCESSOR_NONE,
-    PROCESSOR_DEFAULT,
-    PROCESSOR_NONINFINITE,
-    PROCESSOR_ALL
-} processor_format;
-
-typedef enum {
-    DEFAULT_JUSTIFY,
-    CENTER_JUSTIFY,
-    LEFT_JUSTIFY,
-    RIGHT_JUSTIFY,
-    ALIGN_JUSTIFY,		/* For Nodes		*/
-    ABOVE_JUSTIFY		/* For labels on Arcs.	*/
-} justification_type;
-
-typedef enum {
-    KEY_NONE,
-    KEY_TOP_LEFT,
-    KEY_TOP_RIGHT,
-    KEY_BOTTOM_LEFT,
-    KEY_BOTTOM_RIGHT,
-    KEY_BELOW_LEFT,
-    KEY_ABOVE_LEFT,
-    KEY_ON
-} key_type;
-
-typedef enum {
-    REPLICATION_NOP,
-    REPLICATION_REMOVE,
-    REPLICATION_EXPAND,
-    REPLICATION_RETURN
-} replication_type;
-
-typedef enum {
-    FORWARD_SORT,
-    REVERSE_SORT,
-    TOPILOGICAL_SORT,
-    NO_SORT,
-    INVALID_SORT
-} sort_type;
-
-typedef enum {
-    COLOUR_OFF,
-    COLOUR_RESULTS,		/* Default */
-    COLOUR_LAYERS,		/* Each layer gets its own colour */
-    COLOUR_CLIENTS,		/* Each client chaing gets its own colour */
-    COLOUR_SERVER_TYPE,		/* client, server, etc... */
-    COLOUR_CHAINS,		/* Useful for queueing output only */
-    COLOUR_DIFFERENCES		/* Results are differences */
-} colouring_type;
-	
-struct option_type
-{
-    const char * name;
-    const int c;
-    const char * arg;
-    struct {
-	union p {		/* Parameter */
-	    p(int _i_) : i(_i_) {}
-	    p(const char ** _a_ ) : a(_a_) {}
-	    p(const std::map<const Aggregate,const std::string>* _x_) : x(_x_) {}
-	    p(const std::map<const Layering,const std::string>* _l_) : l(_l_) {}
-	    p(const std::map<const Special,const std::string>* _z_) : z(_z_) {}
-	    p(const std::map<const File_Format,const std::string>* _f_) : f(_f_) {}
-	    const int i;
-	    const char ** a;
-	    const std::map<const Aggregate,const std::string>* x;
-	    const std::map<const Layering,const std::string>* l;
-	    const std::map<const Special,const std::string>* z;
-	    const std::map<const File_Format,const std::string>* f;
-	} param;
-	union a {		/* Argument */
-	    a() : s(nullptr) {}
-	    a(Aggregate _x_) : x(_x_) {}
-	    a(File_Format _f_) : f(_f_) {}
-	    a(Layering _l_) : l(_l_) {}
-	    a(Special _z_) : z(_z_) {}
-	    a(bool _b_) : b(_b_) {}
-	    a(char * _s_) : s(_s_) {}
-	    a(double _d_) : d(_d_) {}
-	    a(int _i_) : i(_i_) {}
-	    a(std::regex * _r_) : r(_r_) {}
-	    Aggregate x;
-	    Layering l;
-	    Special z;
-	    bool b;
-	    char * s;
-	    double d;
-	    File_Format f;
-	    int i;
-	    std::regex * r;
-	} value;
-    } opts;
-    const bool result;
-    const char * msg;
-};
-
 
 /*
  * This enumeration must be the same size and in the same order as
@@ -279,13 +180,13 @@ struct Flags
     static double icon_height;
     static double icon_slope;
     static double icon_width;
-    static justification_type activity_justification;
-    static justification_type label_justification;
-    static justification_type node_justification;
+    static Justification activity_justification;
+    static Justification label_justification;
+    static Justification node_justification;
     static graphical_output_style_type graphical_output_style;
-    static option_type print[];
+    static Options::Type print[];
     static std::regex * client_tasks;
-    static sort_type sort;
+    static Sorting sort;
     static unsigned long span;
     static const unsigned int size;
 };

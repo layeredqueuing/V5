@@ -2,7 +2,7 @@
  *
  * Layering logic for activities.
  *
- * $Id: actlayer.cc 15159 2021-12-06 19:48:15Z greg $
+ * $Id: actlayer.cc 15170 2021-12-07 23:33:05Z greg $
  */
 
 
@@ -157,18 +157,18 @@ ActivityLayer::depth( const unsigned depth )
 
 
 ActivityLayer&
-ActivityLayer::justify( const double maxWidthPts, const justification_type justification )
+ActivityLayer::justify( const double maxWidthPts, const Justification justification )
 {
     switch ( justification ) {
-    case ALIGN_JUSTIFY:
-    case DEFAULT_JUSTIFY:
-    case CENTER_JUSTIFY:
+    case Justification::ALIGN:
+    case Justification::DEFAULT:
+    case Justification::CENTER:
 	moveBy( (maxWidthPts - width())/2, 0.0 );
 	break;
-    case RIGHT_JUSTIFY:
+    case Justification::RIGHT:
 	moveBy( (maxWidthPts - width()), 0.0 );
 	break;
-    case LEFT_JUSTIFY:
+    case Justification::LEFT:
 	moveBy( 0, 0.0 );		/* Force recomputation of slopes */
 	break;
     default:
