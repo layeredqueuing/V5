@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 15170 2021-12-07 23:33:05Z greg $
+ * $Id: help.cc 15173 2021-12-08 03:04:00Z greg $
  */
 
 #include "lqn2ps.h"
@@ -151,7 +151,7 @@ man()
 	      << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 15170 2021-12-07 23:33:05Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 15173 2021-12-08 03:04:00Z greg $" << std::endl
 	      << comm << std::endl
 	      << comm << " --------------------------------" << std::endl;
 
@@ -329,8 +329,8 @@ man()
 	    break;
 
 	case 'J':
-	    std::cout << "The " << current_option( i ) << "is used to set the justification for \\fIobject\\fP.	 \\fIObject\\fR is one of:"
-		      << "\\fBnodes\\fR, \\fBlabels\\fR, or \\fBactivities\fR."
+	    std::cout << "The " << current_option( i ) << "is used to set the justification for \\fIobject\\fP.	 \\fIObject\\fR is one of:" << std::endl
+		      << "\\fBnodes\\fR, \\fBlabels\\fR, or \\fBactivities\\fR." << std::endl
 		      << "\\fIJustification\\fR is one of "
 		      << "\\fB" << Options::justification.at(Justification::LEFT) << "\\fR," 
 		      << "\\fB" << Options::justification.at(Justification::CENTER) << "\\fR,"
