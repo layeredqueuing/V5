@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: option.h 15170 2021-12-07 23:33:05Z greg $
+ * $Id: option.h 15175 2021-12-08 12:40:31Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -167,78 +167,87 @@ public:
 	const char * name;
 	const int c;
 	const char * arg;
-	struct {
+	struct opts {
 	    union param {		/* Parameter */
-		param(int _i_) : i(_i_) {}
 		param(const std::map<const Aggregate,const std::string>* _a_) : a(_a_) {}
 		param(const std::map<const Colouring,const std::string>* _c_) : c(_c_) {}
 		param(const std::map<const File_Format,const std::string>* _f_) : f(_f_) {}
 		param(const std::map<const Justification,const std::string>* _j_ ) : j(_j_) {}
 		param(const std::multimap<const Key_Position,const std::string>*  _k_ ) : k(_k_) {}
 		param(const std::map<const Layering,const std::string>* _l_) : l(_l_) {}
+		param(const std::map<const Sorting,const std::string>* _o_ ) : o(_o_) {}
 		param(const std::map<const Processors,const std::string>* _p_) : p(_p_) {}
 		param(const std::map<const Replication,const std::string>* _r_ ) : r(_r_) {}
-		param(const std::map<const Sorting,const std::string>* _o_ ) : o(_o_) {}
+		param(const std::string* _s_ ) : s(_s_) {}		/* Strings, integers, etc.	*/
 		param(const std::map<const Special,const std::string>* _z_) : z(_z_) {}
-		param(const std::string* _s_ ) : s(_s_) {}
-		const int i;
+
 		const std::string* s;
 		const std::map<const Aggregate,const std::string>* a;
 		const std::map<const Colouring,const std::string>* c;
-		const std::map<const Layering,const std::string>* l;
-		const std::map<const Special,const std::string>* z;
 		const std::map<const File_Format,const std::string>* f;
-		const std::map<const Processors,const std::string>* p;
-		const std::map<const Replication,const std::string>* r;
 		const std::map<const Justification,const std::string>* j;
 		const std::multimap<const Key_Position,const std::string>* k;
+		const std::map<const Layering,const std::string>* l;
 		const std::map<const Sorting,const std::string>* o;
+		const std::map<const Processors,const std::string>* p;
+		const std::map<const Replication,const std::string>* r;
+		const std::map<const Special,const std::string>* z;
 	    } param;
 	    union arg {		/* Argument */
 		arg() : s(nullptr) {}
 		arg(Aggregate _a_) : a(_a_) {}
+		arg(bool _b_) : b(_b_) {}
 		arg(Colouring _c_) : c(_c_) {}
+		arg(double _d_) : d(_d_) {}
 		arg(File_Format _f_) : f(_f_) {}
 		arg(Justification _j_) : j(_j_) {}
+		arg(int _i_) : i(_i_) {}
 		arg(Key_Position _k_ ) : k(_k_) {}
 		arg(Layering _l_) : l(_l_) {}
+		arg(std::regex * _m_) : m(_m_) {}
+		arg(Sorting _o_) : o(_o_) {}
 		arg(Processors _p_) : p(_p_) {}
 		arg(Replication _r_) : r(_r_) {}
-		arg(Sorting _o_) : o(_o_) {}
 		arg(Special _z_) : z(_z_) {}
-		arg(bool _b_) : b(_b_) {}
 		arg(const std::string * _s_) : s(_s_) {}
-		arg(double _d_) : d(_d_) {}
-		arg(int _i_) : i(_i_) {}
-		arg(std::regex * _m_) : m(_m_) {}
+
 		Aggregate a;
+		bool b;
 		Colouring c;
+		double d;
 		File_Format f;
+		int i;
 		Justification j;
 		Key_Position k;
 		Layering l;
+		std::regex * m;
+		Sorting o;
 		Processors p;
 		Replication r;
-		Sorting o;
 		Special z;
-		bool b;
 		const std::string * s;
-		double d;
-		int i;
-		std::regex * m;
 	    } value;
 	} opts;
-	const bool result;
-	const char * msg;
+    
+    const char * msg;
     };
 
-    
+public:
+    class find_option {
+    public:
+	find_option( const int c ) : _c(c) {}
+	bool operator()( Options::Type& arg ) const { return (arg.opts.param.s == &Options::result || arg.opts.param.s == &Options::boolean) && arg.c == _c; }
+    private:
+	const int _c;
+    };
+
 private:
     Options();
     Options( const Options& );
     Options& operator=( const Options& );
 
 public:
+    /* Discriminators */
     static const std::map<const Aggregate,const std::string> aggregate;
     static const std::map<const Colouring,const std::string> colouring;
     static const std::map<const File_Format,const std::string> file_format;
@@ -249,10 +258,14 @@ public:
     static const std::map<const Replication,const std::string> replication;
     static const std::map<const Sorting,const std::string> sorting;
     static const std::map<const Special,const std::string> special;
-    static const std::string integer;
-    static const std::string real;
-    static const std::string string;
+    static const std::string integer;		/* Option arg is an interger	*/
+    static const std::string real;		/* Option arg is a real		*/
+    static const std::string string;		/* Option arg is a string	*/
+    static const std::string boolean;		/* Option is a boolean.		*/
+    static const std::string none;		/* No argument			*/
+    static const std::string result;		/* Option arg is a result (bool)*/
 
+    static bool set_all_result_options( const bool yesOrNo );
     static Aggregate get_aggregate( const std::string& );
     static Colouring get_colouring( const std::string& );
     static File_Format get_file_format( const std::string& );

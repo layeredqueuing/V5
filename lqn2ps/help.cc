@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 15173 2021-12-08 03:04:00Z greg $
+ * $Id: help.cc 15175 2021-12-08 12:40:31Z greg $
  */
 
 #include "lqn2ps.h"
@@ -41,17 +41,18 @@ usage( const bool full_usage )
     std::cerr << "Options:" << std::endl;
     if ( !full_usage ) {
 	std::cerr << "[(+|-)";
-	for ( unsigned int i = 0; i < Flags::size; ++i ) {
-	    if ( (Flags::print[i].c & 0xff00) == 0 && !Flags::print[i].arg ) {
-		std::cerr << static_cast<char>(Flags::print[i].c);
+	for ( std::vector<Options::Type>::const_iterator f = Flags::print.begin(); f != Flags::print.end(); ++f ) {
+	    if ( (f->c & 0xff00) == 0 && !f->arg ) {
+		std::cerr << static_cast<char>(f->c);
 	    }
 	}
 	std::cerr << ']';
 
-	for ( unsigned int j = 0, i = 0; i < Flags::size; ++i ) {
-	    if ( (Flags::print[i].c & 0xff00) == 0 && Flags::print[i].arg ) {
+	unsigned j = 0;
+	for ( std::vector<Options::Type>::const_iterator f = Flags::print.begin(); f != Flags::print.end(); ++f ) {
+	    if ( (f->c & 0xff00) == 0 && f->arg ) {
 		if ( (j % 4) == 0 ) std::cerr << std::endl << "	  ";
-		std::cerr << " [-" << static_cast<char>(Flags::print[i].c) << " <" << Flags::print[i].arg << ">]";
+		std::cerr << " [-" << static_cast<char>(f->c) << " <" << f->arg << ">]";
 		++j;
 	    }
 	}
@@ -60,52 +61,52 @@ usage( const bool full_usage )
     }
 
 #if HAVE_GETOPT_LONG
-    for ( unsigned int i = 0; i < Flags::size; ++i ) {
+    for ( std::vector<Options::Type>::const_iterator f = Flags::print.begin(); f != Flags::print.end(); ++f ) {
 	std::string s;
-	if ( (Flags::print[i].c & 0xff00) != 0 ) {
+	if ( (f->c & 0xff00) != 0 ) {
             s = "         --";
-	    if ( (Flags::print[i].c & 0xff00) == 0x0300 ) {
+	    if ( (f->c & 0xff00) == 0x0300 ) {
 		s += "[no-]";
 	    }
-	} else if ( Flags::print[i].arg == 0 && std::islower( Flags::print[i].c ) ) {
+	} else if ( f->arg == 0 && std::islower( f->c ) ) {
 	    s = " -";
-	    s += Flags::print[i].c;
+	    s += f->c;
 	    s += ", +";
-	    s += Flags::print[i].c;
+	    s += f->c;
 	    s += ", --[no-]";
 	} else {
 	    s = " -";
-	    s += Flags::print[i].c;
+	    s += f->c;
             s += ",     --";
 	}
-	s += Flags::print[i].name;
-	if ( Flags::print[i].arg ) {
+	s += f->name;
+	if ( f->arg ) {
 	    s += "=";
-	    if ( strcmp( Flags::print[i].name, Flags::print[i].arg ) == 0 ) {
-		if ( Flags::print[i].opts.param.s == &Options::real ) {
+	    if ( strcmp( f->name, f->arg ) == 0 ) {
+		if ( f->opts.param.s == &Options::real ) {
 		    s += "N.N";
-		} else if ( Flags::print[i].opts.param.s == &Options::integer ) {
+		} else if ( f->opts.param.s == &Options::integer ) {
 		    s += "N";
 		} else {
 		    s += "ARG";
 		}
 	    } else {
-		s += Flags::print[i].arg;
+		s += f->arg;
 	    }
 	}
 	std::cerr.setf( std::ios::left, std::ios::adjustfield );
-	std::cerr << std::setw(40) << s << Flags::print[i].msg << " " << print_args( i ) << std::endl;
+	std::cerr << std::setw(40) << s << f->msg << " " << print_args( f - Flags::print.begin() ) << std::endl;
     }
 #else
     for ( unsigned i = 0; i < N_FLAG_VALUES; ++i ) {
-	if ( !Flags::print[i].arg ) {
-	    std::cerr << "(+|-)" << static_cast<char>(Flags::print[i].c) << "  " << Flags::print[i].msg
-		      << " (" << (Flags::print[i].opts.value.b ? "true" : "false") << ")" << std::endl;
+	if ( !f->arg ) {
+	    std::cerr << "(+|-)" << static_cast<char>(f->c) << "  " << f->msg
+		      << " (" << (f->opts.value.b ? "true" : "false") << ")" << std::endl;
 	}
     }
     for ( unsigned int i = 0; i < N_FLAG_VALUES; ++i ) {
-	if ( Flags::print[i].arg ) {
-	    std::cerr << "-" << static_cast<char>(Flags::print[i].c) << "  " << Flags::print[i].msg << std::endl;
+	if ( f->arg ) {
+	    std::cerr << "-" << static_cast<char>(f->c) << "  " << f->msg << std::endl;
 	}
     }
 #endif
@@ -117,10 +118,10 @@ void
 invalid_option( char c, char * optarg )
 {
 #if HAVE_GETOPT_LONG
-    for ( unsigned int i = 0; i < N_FLAG_VALUES; ++i ) {
-	if ( Flags::print[i].c == c ) {
-	    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid argument to --" << Flags::print[i].name << ", ARG=" << optarg << std::endl;
-	    std::cerr << "    " << print_args( i ) << std::endl;
+    for ( std::vector<Options::Type>::const_iterator f = Flags::print.begin(); f != Flags::print.end(); ++f ) {
+	if ( f->c == c ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid argument to --" << f->name << ", ARG=" << optarg << std::endl;
+	    std::cerr << "    " << print_args( f - Flags::print.begin() ) << std::endl;
 	}
     }
 #else
@@ -137,7 +138,6 @@ invalid_option( char c, char * optarg )
 void
 man()
 {
-    unsigned i;
     static const char * comm = ".\\\"";
     char date[32];
     time_t tloc;
@@ -151,7 +151,7 @@ man()
 	      << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 15173 2021-12-08 03:04:00Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 15175 2021-12-08 12:40:31Z greg $" << std::endl
 	      << comm << std::endl
 	      << comm << " --------------------------------" << std::endl;
 
@@ -224,37 +224,38 @@ man()
 	      << "file name `\\-' is used to specify standard input." << std::endl;
 
     std::cout << ".SH \"OPTIONS\"" << std::endl;
-    for ( i = 0; i < Flags::size; ++i ) {
+    for ( std::vector<Options::Type>::const_iterator f = Flags::print.begin(); f != Flags::print.end(); ++f ) {
+	unsigned int i = f - Flags::print.begin();
 	std::cout << ".TP" << std::endl;
 	std::cout << "\\fB";
-	if ( (Flags::print[i].c & ~0x7f) == 0 ) {	/* Only lower ascii */
-	    if ( std::islower(Flags::print[i].c) && Flags::print[i].arg == 0 ) {
+	if ( (f->c & ~0x7f) == 0 ) {	/* Only lower ascii */
+	    if ( std::islower(f->c) && f->arg == 0 ) {
 		std::cout << "(\\-|+)";
 	    } else {
 		std::cout << "\\-";
 	    }
-	    std::cout << static_cast<char>(Flags::print[i].c) << "\\fR";
-	    if ( Flags::print[i].name ) {
+	    std::cout << static_cast<char>(f->c) << "\\fR";
+	    if ( f->name ) {
 		std::cout << ", \\fB";
 	    }
 	}
-	if ( Flags::print[i].name ) {
+	if ( f->name ) {
 	    std::cout << "\\-\\-";
-	    if ( ((Flags::print[i].c & ~0x7f) == 0) && std::islower(Flags::print[i].c) && Flags::print[i].arg == 0 ) {
+	    if ( ((f->c & ~0x7f) == 0) && std::islower(f->c) && f->arg == 0 ) {
 		std::cout << "[no-]";
 	    }
-	    std::cout << Flags::print[i].name;
+	    std::cout << f->name;
 	}
-	if ( Flags::print[i].arg ) {
-	    std::cout << "=\\fI" << Flags::print[i].arg;
+	if ( f->arg ) {
+	    std::cout << "=\\fI" << f->arg;
 	}
 	std::cout << "\\fR" << std::endl;
 
 	/* Description goes here... */
-	switch ( Flags::print[i].c ) {
+	switch ( f->c ) {
 	default:
-	    std::cout << Flags::print[i].msg;
-	    if ( ((Flags::print[i].c & ~0x7f) == 0) && std::islower(Flags::print[i].c) ) {
+	    std::cout << f->msg;
+	    if ( ((f->c & ~0x7f) == 0) && std::islower(f->c) ) {
 		std::cout << " " << default_setting(i);
 	    }
 	    std::cout  << std::endl;
