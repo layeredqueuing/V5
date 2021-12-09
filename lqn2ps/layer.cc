@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 15170 2021-12-07 23:33:05Z greg $
+ * $Id: layer.cc 15184 2021-12-09 20:22:28Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -240,7 +240,7 @@ Layer::moveLabelTo( const double xx, const double yy )
     if ( Flags::print_layer_number ) {
 	_label->justification( Justification::LEFT ).moveTo( xx, y() + yy );
     } else if ( submodel_output() ) {
-	_label->moveTo( _origin.x() + _extent.x() / 2.0, _origin.y() - Flags::print[FONT_SIZE].opts.value.i * 1.2 );
+	_label->moveTo( _origin.x() + _extent.x() / 2.0, _origin.y() - Flags::font_size() * 1.2 );
     }
     return *this;
 }
@@ -283,7 +283,7 @@ Layer::fill( const double maxWidthPts )
 {
     const double width = for_each( entities().begin(), entities().end(), Sum<Element,double>( &Element::width ) ).sum();
     const double fill = std::max( 0.0, (maxWidthPts - width) / static_cast<double>(entities().size() + 1) );
-    if ( fill < Flags::print[X_SPACING].opts.value.d ) return *this;		/* Don't bother... */
+    if ( fill < Flags::x_spacing() ) return *this;		/* Don't bother... */
 
     _origin.x( fill );
 
@@ -385,7 +385,7 @@ Layer::shift( unsigned i, double amount )
 	    _entities[i]->moveBy( amount, 0 );
 	    _origin.moveBy( amount, 0 );
 	} else {
-	    _entities[i]->moveBy( std::min( std::max( (_entities[i-1]->right() + Flags::print[X_SPACING].opts.value.d) - _entities[i]->left(), amount ), 0.0 ), 0 );
+	    _entities[i]->moveBy( std::min( std::max( (_entities[i-1]->right() + Flags::x_spacing()) - _entities[i]->left(), amount ), 0.0 ), 0 );
 	}
 	if ( Flags::debug ) std::cerr << " to (" << _entities.at(i)->left() << "," << _entities.at(i)->bottom() << ")" << std::endl;
 	_origin.x( _entities.front()->left() );
@@ -400,7 +400,7 @@ Layer::shift( unsigned i, double amount )
 	if ( i + 1 == size() ) {
 	    _entities[i]->moveBy( amount, 0 );
 	} else {
-	    _entities[i]->moveBy( std::max( std::min( _entities[i+1]->left() - (_entities[i]->right() + Flags::print[X_SPACING].opts.value.d), amount ), 0.0 ), 0 );
+	    _entities[i]->moveBy( std::max( std::min( _entities[i+1]->left() - (_entities[i]->right() + Flags::x_spacing()), amount ), 0.0 ), 0 );
 	}
 	if ( Flags::debug ) std::cerr << " to (" << _entities.at(i)->left() << "," << _entities.at(i)->bottom() << ")" << std::endl;
 	_origin.x( _entities.front()->left() );
@@ -438,9 +438,9 @@ Layer::label()
 void Layer::Position::operator()( Entity * entity )
 {
     if ( !entity->isSelectedIndirectly() ) return;
-    if ( _x != 0.0 ) _x += Flags::print[X_SPACING].opts.value.d;
+    if ( _x != 0.0 ) _x += Flags::x_spacing();
     Task * aTask = dynamic_cast<Task *>(entity);
-    if ( aTask && Flags::print[AGGREGATION].opts.value.a != Aggregate::ENTRIES ) {
+    if ( aTask && Flags::aggregation() == Aggregate::ENTRIES ) {
 	(aTask->*_f)();
     }
     if ( Flags::debug ) std::cerr << "  Layer::Position move " << entity->name() << " to (" << _x << "," << entity->bottom() << ")" << std::endl;
@@ -458,7 +458,7 @@ Layer&
 Layer::selectSubmodel()
 {
     for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
-	if ( !(*entity)->isProcessor() || Flags::print[PROCESSORS].opts.value.p != Processors::NONE ) {
+	if ( !(*entity)->isProcessor() || Flags::processors() != Processors::NONE ) {
 	    (*entity)->isSelected( true );		/* Enable arc drawing to this entity */
 	}
     }
@@ -930,7 +930,7 @@ std::ostream& Layer::printBCMPQueueingNetwork( std::ostream& output ) const
 {
     /* Create them model type then print. */
 
-    switch ( Flags::print[OUTPUT_FORMAT].opts.value.f ) {
+    switch ( Flags::output_format() ) {
 #if JMVA_OUTPUT && HAVE_EXPAT_H
     case File_Format::JMVA:	output << BCMP::JMVA_Document("",_bcmp_model);	break;
 #endif

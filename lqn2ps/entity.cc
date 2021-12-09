@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15170 2021-12-07 23:33:05Z greg $
+ * $Id: entity.cc 15184 2021-12-09 20:22:28Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -48,7 +48,7 @@
 std::ostream&
 operator<<( std::ostream& output, const Entity& self ) 
 {
-    if ( Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::TXT ) {
+    if ( Flags::output_format() == File_Format::TXT ) {
 	self.print( output );
     } else {
 	self.draw( output );
@@ -69,11 +69,11 @@ Entity::Entity( const LQIO::DOM::Entity* domEntity, const size_t id )
       _isSelected(true),
       _isSurrogate(false)
 {
-    if ( Flags::print[INCLUDE_ONLY].opts.value.m ) {
-	_isSelected = std::regex_match( name(), *Flags::print[INCLUDE_ONLY].opts.value.m );
+    if ( Flags::include_only() != nullptr ) {
+	_isSelected = std::regex_match( name(), *Flags::include_only() );
     } else if ( submodel_output()
 		|| queueing_output()
-		|| Flags::print[CHAIN].opts.value.i != 0 ) {
+		|| Flags::chain() != 0 ) {
 	_isSelected = false;
     }
 }
@@ -224,8 +224,8 @@ Entity::scheduling() const
 bool
 Entity::isSelectedIndirectly() const
 {
-    if ( Flags::print[CHAIN].opts.value.i != 0 && !queueing_output() ) {
-	return hasPath( Flags::print[CHAIN].opts.value.i );
+    if ( Flags::chain() != 0 && !queueing_output() ) {
+	return hasPath( Flags::chain() );
     } else { 
 	return isSelected();
     }
@@ -336,7 +336,7 @@ Entity::colour() const
     if ( isSurrogate() ) {
 	return Graphic::GREY_10;
     }
-    switch ( Flags::print[COLOUR].opts.value.c ) {
+    switch ( Flags::colouring() ) {
     case Colouring::RESULTS:
 	if ( Flags::have_results ) {
 	    return colourForUtilization( isInfinite() ? 0.0 : utilization() / copiesValue() );
@@ -368,7 +368,7 @@ Entity&
 Entity::label()
 {
     *myLabel << name();
-    if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
+    if ( Flags::print_input_parameters() ) {
 	if ( isMultiServer() ) {
 	    *myLabel << " {" << copies() << "}";
 	} else if ( isInfinite() ) {
@@ -396,7 +396,7 @@ Entity::chainColour( unsigned int k ) const
 {
     static Graphic::colour_type chain_colours[] = { Graphic::BLACK, Graphic::MAGENTA, Graphic::VIOLET, Graphic::BLUE, Graphic::INDIGO, Graphic::CYAN, Graphic::TURQUOISE, Graphic::GREEN, Graphic::SPRINGGREEN, Graphic::YELLOW, Graphic::ORANGE, Graphic::RED };
 
-    if ( Flags::print[COLOUR].opts.value.c == Colouring::CHAINS ) { 
+    if ( Flags::colouring() == Colouring::CHAINS ) { 
 	return chain_colours[k%12];
     } else if ( colour() == Graphic::GREY_10 || colour() == Graphic::DEFAULT_COLOUR ) {
 	return Graphic::BLACK;
@@ -516,7 +516,7 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
     Arc * outArc = Arc::newArc( 6 );
     outArc->scaleBy( Model::scaling(), Model::scaling() ).penColour( chainColour( k ) ).depth( myNode->depth() );
     const double direction = static_cast<double>(myNode->direction());
-    const double spacing = Flags::print[Y_SPACING].opts.value.d * Model::scaling();
+    const double spacing = Flags::y_spacing() * Model::scaling();
 
     if ( aClient->hasClientClosedChain(k) ) {
 	const double offset = radius() / 2.5;

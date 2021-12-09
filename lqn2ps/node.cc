@@ -1,6 +1,6 @@
 /* node.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: node.cc 15170 2021-12-07 23:33:05Z greg $
+ * $Id: node.cc 15184 2021-12-09 20:22:28Z greg $
  */
 
 #include "lqn2ps.h"
@@ -14,51 +14,49 @@ static std::string tex_string( const char * s );
 static std::string xml_comment( const std::string& );
 static std::string unicode_string( const char * s );
 
+/*
+ * Create a new node.
+ */
+
 Node *
 Node::newNode( double x, double y )
 {
-    switch( Flags::print[OUTPUT_FORMAT].opts.value.f ) {
-    case File_Format::EEPIC:
-	return new NodeTeX( 0, 0, x, y );
-#if defined(EMF_OUTPUT)
-    case File_Format::EMF:
-	return new NodeEMF( 0, 0, x, y );
+    static const std::map<const File_Format,Node::create_func> new_node = {
+	{ File_Format::EEPIC,       NodeTeX::create },
+#if definedEMF_OUTPUT
+	{ File_Format::EMF,         NodeEMF::create },
 #endif
-    case File_Format::FIG:
-	return new NodeFig( 0, 0, x, y );
+	{ File_Format::FIG,         NodeFig::create },
 #if HAVE_GD_H && HAVE_LIBGD
 #if HAVE_GDIMAGEGIFPTR
-    case File_Format::GIF:
+	{ File_Format::GIF,         NodeGD::create },
 #endif
 #if HAVE_LIBJPEG 
-    case File_Format::JPEG:
+	{ File_Format::JPEG,        NodeGD::create },
 #endif
 #if HAVE_LIBPNG
-    case File_Format::PNG:
+	{ File_Format::PNG,         NodeGD::create },
 #endif
-	return new NodeGD( 0, 0, x, y );
-#endif	/* HAVE_LIBGD */
-    case File_Format::POSTSCRIPT:
-	return new NodePostScript( 0, 0, x, y );	/* the graphical object		*/
-    case File_Format::PSTEX:
-	return new NodePsTeX( 0, 0, x, y );
-#if defined(SVG_OUTPUT)
-    case File_Format::SVG:
-	return new NodeSVG( 0, 0, x, y );
+#endif  /* HAVE_LIBGD */
+	{ File_Format::POSTSCRIPT,  NodePostScript::create }, 
+	{ File_Format::PSTEX,       NodePsTeX::create }, 		/* the graphical object         */ 
+#if SVG_OUTPUT
+	{ File_Format::SVG,         NodeSVG::create },
 #endif
-#if defined(SXD_OUTPUT)
-    case File_Format::SXD:
-	return new NodeSXD( 0, 0, x, y );
+#if SXD_OUTPUT
+	{ File_Format::SXD,         NodeSXD::create },
 #endif
-#if defined(X11_OUTPUT)
-    case File_Format::X11:
-	return new NodeX11( 0, 0, x, y );
+#if X11_OUTPUT
+	{ File_Format::X11,         NodeX11::create },
 #endif
-    default:
-	return new NodeNull( 0, 0, x, y );
+    };
+
+    std::map<const File_Format,Node::create_func>::const_iterator f = new_node.find( Flags::output_format() );
+    if ( f == new_node.end() ) {
+	return NodeNull::create( 0, 0, x, y );
+    } else {
+	return (*(f->second))( 0, 0, x, y );
     }
-    abort();
-    return nullptr;
 }
 
 Node&
@@ -217,7 +215,7 @@ std::ostream&
 NodeEMF::text( std::ostream& output, const Point& c, const char * s ) const
 {
     std::string aStr = unicode_string( s );
-    EMF::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour() );
+    EMF::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour() );
     return output;
 }
 
@@ -274,7 +272,7 @@ NodeFig::roundedRectangle( std::ostream& output ) const
 std::ostream&
 NodeFig::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    Fig::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour(), Fig::POSTSCRIPT );
+    Fig::text( output, c, s, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour(), Fig::POSTSCRIPT );
     return output;
 }
 
@@ -337,7 +335,7 @@ NodeGD::text( std::ostream& output, const Point& c, const char * s ) const
     Point aPoint( c );
     gdFont * font = GD::getfont();
     aPoint.moveBy( 0, -font->h );
-    GD::text( aPoint, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour() );
+    GD::text( aPoint, s, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour() );
     return output;
 }
 
@@ -398,7 +396,7 @@ NodePostScript::roundedRectangle( std::ostream& output ) const
 std::ostream&
 NodePostScript::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    PostScript::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour() );
+    PostScript::text( output, c, s, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour() );
     return output;
 }
 
@@ -414,7 +412,7 @@ std::ostream&
 NodePsTeX::text( std::ostream& output, const Point& c, const char * s ) const
 {
     std::string aStr = tex_string( s );
-    Fig::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour(), 
+    Fig::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour(), 
 	       Fig::SPECIAL );
     return output;
 }
@@ -465,7 +463,7 @@ NodeSVG::roundedRectangle( std::ostream& output ) const
 std::ostream&
 NodeSVG::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    SVG::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour() );
+    SVG::text( output, c, s, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour() );
     return output;
 }
 
@@ -524,11 +522,11 @@ std::ostream&
 NodeSXD::text( std::ostream& output, const Point& c, const char * s ) const
 {
     Point boxOrigin = c;
-    Point boxExtent( strlen(s) / 2.4, Flags::print[FONT_SIZE].opts.value.i );		/* A guess... width is half of height */
+    Point boxExtent( strlen(s) / 2.4, Flags::font_size() );		/* A guess... width is half of height */
     boxExtent *= SXD_SCALING;
     boxOrigin.moveBy( 0, -boxExtent.y() / 2.0 );
     SXD::begin_paragraph( output, boxOrigin, boxExtent, Justification::CENTER );
-    SXD::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour() );
+    SXD::text( output, c, s, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour() );
     SXD::end_paragraph( output );
     return output;
 }
@@ -587,7 +585,7 @@ std::ostream&
 NodeTeX::text( std::ostream& output, const Point& c, const char * s ) const
 {
     std::string aStr = tex_string( s );
-    TeX::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].opts.value.i, Justification::CENTER, penColour() );
+    TeX::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour() );
     return output;
 }
 

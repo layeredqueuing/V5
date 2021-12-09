@@ -1,7 +1,7 @@
 /* -*- c++ -*- 
  * arc.h	-- Greg Franks
  *
- * $Id: arc.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: arc.h 15179 2021-12-08 20:18:42Z greg $
  */
 
 #ifndef _ARC_H
@@ -15,8 +15,10 @@
 
 class Arc : public Graphic, protected std::vector<Point>
 {
+    typedef Arc * (*create_func)( const unsigned , const arrowhead_type );
+
 private:
-    Arc( const Arc& );
+    Arc( const Arc& ) = delete;
 
 public:
     Arc( const unsigned size, const arrowhead_type anArrowhead ) 
@@ -75,11 +77,13 @@ protected:
 inline std::ostream& operator<<( std::ostream& output, const Arc& self ) { self.draw( output ); return output; }
 
 
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
 class ArcEMF : public Arc, private EMF
 {
-public:
+protected:
     ArcEMF( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
+public:
+    static Arc * create( const unsigned size, const arrowhead_type anArrowHead ) { return new ArcEMF(size,anArrowHead); }
     virtual const ArcEMF& draw( std::ostream& ) const;
     virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
@@ -87,8 +91,10 @@ public:
 
 class ArcFig : public Arc, private Fig
 {
+protected:
+    ArcFig( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}    
 public:
-    ArcFig( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
+    static Arc * create( const unsigned size, const arrowhead_type anArrowHead ) { return new ArcFig(size,anArrowHead); }
     virtual int direction() const { return -1; }
 
     virtual const ArcFig& draw( std::ostream& ) const;
@@ -98,8 +104,10 @@ public:
 #if HAVE_GD_H && HAVE_LIBGD
 class ArcGD : public Arc, private GD
 {
+protected:
+    ArcGD( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}    
 public:
-    ArcGD( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
+    static Arc * create( const unsigned size, const arrowhead_type anArrowHead ) { return new ArcGD(size,anArrowHead); }
     virtual int direction() const { return -1; }
 
     virtual const ArcGD& draw( std::ostream& ) const;
@@ -109,8 +117,10 @@ public:
 
 class ArcNull : public Arc
 {
+protected:
+    ArcNull( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}    
 public:
-    ArcNull( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
+    static Arc * create( const unsigned size, const arrowhead_type anArrowHead ) { return new ArcNull(size,anArrowHead); }
     virtual int direction() const { return 1; }
 
     virtual const ArcNull& draw( std::ostream& output ) const { return *this; }
@@ -119,27 +129,33 @@ public:
 
 class ArcPostScript : public Arc, private PostScript
 {
+protected:
+    ArcPostScript( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}    
 public:
-    ArcPostScript( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
+    static Arc * create( const unsigned size, const arrowhead_type anArrowHead ) { return new ArcPostScript(size,anArrowHead); }
     virtual const ArcPostScript& draw( std::ostream& ) const;
     virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 
-#if defined(SVG_OUTPUT)
+#if SVG_OUTPUT
 class ArcSVG : public Arc, private SVG
 {
+protected:
+    ArcSVG( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}    
 public:
-    ArcSVG( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
+    static Arc * create( const unsigned size, const arrowhead_type anArrowHead ) { return new ArcSVG(size,anArrowHead); }
     virtual const ArcSVG& draw( std::ostream& ) const;
     virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 #endif
 
-#if defined(SXD_OUTPUT)
+#if SXD_OUTPUT
 class ArcSXD : public Arc, private SXD
 {
+protected:
+    ArcSXD( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}    
 public:
-    ArcSXD( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
+    static Arc * create( const unsigned size, const arrowhead_type anArrowHead ) { return new ArcSXD(size,anArrowHead); }
     virtual const ArcSXD& draw( std::ostream& ) const;
     virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
@@ -147,17 +163,21 @@ public:
 
 class ArcTeX : public Arc, private TeX
 {
+protected:
+    ArcTeX( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}    
 public:
-    ArcTeX( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
+    static Arc * create( const unsigned size, const arrowhead_type anArrowHead ) { return new ArcTeX(size,anArrowHead); }
     virtual const ArcTeX& draw( std::ostream& ) const;
     virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 
-#if defined(X11_OUTPUT)
+#if X11_OUTPUT
 class ArcX11 : public Arc, private X11
 {
+protected:
+    ArcX11( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}    
 public:
-    ArcX11( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
+    static Arc * create( const unsigned size, const arrowhead_type anArrowHead ) { return new ArcX11(size,anArrowHead); }
     virtual std::ostream& print( std::ostream& output ) const { return output; }
     virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };

@@ -1,6 +1,6 @@
 /* arc.cc	-- Greg Franks Thu Jan 30 2003
  *
- * $Id: arc.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: arc.cc 15184 2021-12-09 20:22:28Z greg $
  */
 
 #include "lqn2ps.h"
@@ -13,48 +13,42 @@
 Arc *
 Arc::newArc( const unsigned size, const arrowhead_type arrow )
 {
-    switch( Flags::print[OUTPUT_FORMAT].opts.value.f ) {
-    case File_Format::EEPIC:
-	return new ArcTeX( size, arrow );	/* the graphical object		*/
-    case File_Format::PSTEX:
-	return new ArcFig(size, arrow);		/* the graphical object		*/
-    case File_Format::POSTSCRIPT:
-	return new ArcPostScript( size, arrow );/* the graphical object		*/
-    case File_Format::FIG:
-	return new ArcFig( size, arrow );	/* the graphical object		*/
+    static const std::map<const File_Format,Arc::create_func> new_arc = {
+	{ File_Format::EEPIC,	    ArcTeX::create },
+	{ File_Format::PSTEX,	    ArcFig::create },
+	{ File_Format::POSTSCRIPT,  ArcPostScript::create },
+	{ File_Format::FIG,	    ArcFig::create },
 #if HAVE_GD_H && HAVE_LIBGD
 #if HAVE_GDIMAGEGIFPTR
-    case File_Format::GIF:
+	{ File_Format::GIF,	    ArcGD::create },
 #endif
 #if HAVE_LIBJPEG 
-    case File_Format::JPEG:
+	{ File_Format::JPEG,	    ArcGD::create },
 #endif
 #if HAVE_LIBPNG
-    case File_Format::PNG:
+	{ File_Format::PNG,	    ArcGD::create },
 #endif
-	return new ArcGD( size, arrow );
 #endif
-#if defined(SVG_OUTPUT)
-    case File_Format::SVG:
-	return new ArcSVG( size, arrow );
+#if SVG_OUTPUT
+	{ File_Format::SVG,	    ArcSVG::create },
 #endif
-#if defined(SXD_OUTPUT)
-    case File_Format::SXD:
-	return new ArcSXD( size, arrow );
+#if SXD_OUTPUT
+	{ File_Format::SXD,	    ArcSXD::create },
 #endif
-#if defined(EMF_OUTPUT)
-    case File_Format::EMF:
-	return new ArcEMF( size, arrow );
+#if EMF_OUTPUT
+	{ File_Format::EMF,	    ArcEMF::create },
 #endif
-#if defined(X11_OUTPUT)
-    case File_Format::X11:
-	return new ArcX11( size, arrow );
+#if X11_OUTPUT
+	{ File_Format::X11,	    ArcX11::create },
 #endif
-    default:
-	return new ArcNull( size, arrow );
+    };
+
+    std::map<const File_Format,Arc::create_func>::const_iterator f = new_arc.find( Flags::output_format() );
+    if ( f == new_arc.end() ) {
+	return ArcNull::create(size, arrow);
+    } else {
+	return (*(f->second))(size, arrow);
     }
-    abort();
-    return nullptr;
 }
 
 

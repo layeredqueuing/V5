@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 15175 2021-12-08 12:40:31Z greg $
+ * $Id: lqn2ps.h 15184 2021-12-09 20:22:28Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -77,10 +77,10 @@ const double EPSILON = 0.000001;
 
 extern std::string command_line;
 
-typedef enum {
-    TIMEBENCH_STYLE,
-    JLQNDEF_STYLE
-} graphical_output_style_type;
+enum class Output_Style {
+    TIMEBENCH,
+    JLQNDEF
+};
 
 /*
  * This enumeration must be the same size and in the same order as
@@ -183,12 +183,55 @@ struct Flags
     static Justification activity_justification;
     static Justification label_justification;
     static Justification node_justification;
-    static graphical_output_style_type graphical_output_style;
+    static Output_Style graphical_output_style;
     static std::vector<Options::Type> print;
     static std::regex * client_tasks;
     static Sorting sort;
     static unsigned long span;
     static const unsigned int size;
+
+public:
+    static bool print_input_parameters() { return Flags::print[INPUT_PARAMETERS].opts.value.b; }
+    static bool set_print_input_parameters( bool b ) { Flags::print[INPUT_PARAMETERS].opts.value.b = b; return b; }
+    static unsigned int set_font_size( int i ) { Flags::print[FONT_SIZE].opts.value.i = i; return i; }
+    static unsigned int font_size() { return Flags::print[FONT_SIZE].opts.value.i; }
+    static double x_spacing() { return Flags::print[X_SPACING].opts.value.d; }
+    static double set_x_spacing( double d ) { return Flags::print[X_SPACING].opts.value.d = d; return d; }
+    static double y_spacing() { return Flags::print[Y_SPACING].opts.value.d; }
+    static double set_y_spacing( double d ) { return Flags::print[Y_SPACING].opts.value.d = d; return d; }
+    static double magnification() { return Flags::print[MAGNIFICATION].opts.value.d; }
+    static double set_magnification( double d ) { Flags::print[MAGNIFICATION].opts.value.d = d; return d; }
+    static double border() { return Flags::print[BORDER].opts.value.d; }
+    static double set_border( double d ) { Flags::print[BORDER].opts.value.d = d; return d; }
+    static unsigned int chain() { return Flags::print[CHAIN].opts.value.i; }
+    static unsigned int set_chain( unsigned int i ) { Flags::print[CHAIN].opts.value.i = i; return i; }
+    static unsigned int submodel() { return Flags::print[SUBMODEL].opts.value.i; }
+    static unsigned int set_submodel( unsigned int i ) { Flags::print[SUBMODEL].opts.value.i = i; return i; }
+    static unsigned int precision() { return Flags::print[PRECISION].opts.value.i; }
+    static unsigned int set_precision( unsigned int i ) { Flags::print[PRECISION].opts.value.i = i; return i; }
+    static unsigned int queueing_model() { return Flags::print[QUEUEING_MODEL].opts.value.i; }
+    static unsigned int set_queueing_model( unsigned int i ) { Flags::print[QUEUEING_MODEL].opts.value.i = i; return i; }
+    static std::regex* include_only() { return Flags::print[INCLUDE_ONLY].opts.value.m; }
+    static std::regex* set_include_only( std::regex* m ) { Flags::print[INCLUDE_ONLY].opts.value.m = m; return m; }
+    
+    static Aggregate aggregation() { return print[AGGREGATION].opts.value.a; }
+    static Aggregate set_aggregation( Aggregate a ) { print[AGGREGATION].opts.value.a = a; return a; }
+    static File_Format output_format() { return print[OUTPUT_FORMAT].opts.value.f; }
+    static File_Format set_output_format( File_Format f ) { print[OUTPUT_FORMAT].opts.value.f = f; return f; }
+    static File_Format input_format() { return print[INPUT_FORMAT].opts.value.f; }
+    static File_Format set_input_format( File_Format f ) { print[INPUT_FORMAT].opts.value.f = f; return f; }
+    static Colouring colouring() { return print[COLOUR].opts.value.c; }
+    static Colouring set_colouring( Colouring c ) { print[COLOUR].opts.value.c = c; return c; }
+    static Key_Position key_position() { return print[KEY].opts.value.k; }
+    static Key_Position set_key_position( Key_Position k ) { print[KEY].opts.value.k = k; return k; }
+    static Layering layering() { return print[LAYERING].opts.value.l; }
+    static Layering set_layering( Layering l ) { print[LAYERING].opts.value.l = l; return l;}
+    static Processors processors() { return print[PROCESSORS].opts.value.p; }
+    static Processors set_processors( Processors p ) { print[PROCESSORS].opts.value.p = p; return p; }
+    static Replication replication() { return print[REPLICATION].opts.value.r; }
+    static Replication set_replication( Replication r ) { return print[REPLICATION].opts.value.r = r; return r; }
+    //    static Special
+    //    static Sorting
 };
 
 /* ------------------------------------------------------------------------ */
@@ -407,7 +450,7 @@ bool submodel_output();			/* true if generating a submodel */
 bool difference_output();		/* true if print differences */
 bool share_output();			/* true if sorting by processor share */
 int set_indent( int anInt );
-inline double normalized_font_size() { return Flags::print[FONT_SIZE].opts.value.i / Flags::print[MAGNIFICATION].opts.value.d; }
+inline double normalized_font_size() { return Flags::font_size() / Flags::magnification(); }
 
 IntegerManip indent( const int anInt );				/* See main.cc */
 IntegerManip temp_indent( const int anInt );			/* See main.cc */

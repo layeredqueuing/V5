@@ -1,7 +1,7 @@
 /* -*- c++ -*-  
  * node.h	-- Greg Franks
  *
- * $Id: node.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: node.h 15179 2021-12-08 20:18:42Z greg $
  */
 
 #ifndef _NODE_H
@@ -14,6 +14,8 @@
 class Node : public Graphic
 {
 public:
+    typedef Node * (*create_func)( double x1, double y1, double x2, double y2 );
+    
     Node() : Graphic(), origin(0,0), extent(0,0) {}
     Node( const Point& aPoint ) : Graphic(), origin(aPoint), extent(0,0) {}
     Node(double x1, double y1, double x2, double y2 ) : Graphic(), origin(x1,y1), extent(x2,y2) {}
@@ -68,11 +70,13 @@ protected:
     Point extent;
 };
 
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
 class NodeEMF : public Node, private EMF
 {
-public:
+private:
     NodeEMF(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
+public:
+    static Node * create(double x1, double y1, double x2, double y2 ) { return new NodeEMF(x1,y1,x2,y2); }
     virtual std::ostream& polygon( std::ostream& output, const std::vector<Point>& points ) const;
     virtual std::ostream& polyline( std::ostream& output, const std::vector<Point>& points ) const;
     virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius ) const;
@@ -86,8 +90,10 @@ public:
 
 class NodeFig : public Node, protected Fig
 {
-public:
+protected:
     NodeFig(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
+public:
+    static Node * create(double x1, double y1, double x2, double y2 ) { return new NodeFig(x1,y1,x2,y2); }
     virtual std::ostream& polygon( std::ostream&, const std::vector<Point>& points ) const;
     virtual std::ostream& polyline( std::ostream&, const std::vector<Point>& points ) const;
     virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius  ) const;
@@ -100,8 +106,10 @@ public:
 
 class NodePostScript : public Node, private PostScript
 {
-public:
+private:
     NodePostScript(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
+public:
+    static Node * create(double x1, double y1, double x2, double y2 ) { return new NodePostScript(x1,y1,x2,y2); }
     virtual std::ostream& polygon( std::ostream&, const std::vector<Point>& points ) const;
     virtual std::ostream& polyline( std::ostream&, const std::vector<Point>& points ) const;
     virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius  ) const;
@@ -113,8 +121,10 @@ public:
 
 class NodeNull : public Node 
 {
-public:
+private:
     NodeNull(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
+public:
+    static Node * create(double x1, double y1, double x2, double y2 ) { return new NodeNull(x1,y1,x2,y2); }
     virtual std::ostream& polygon( std::ostream& output, const std::vector<Point>& points ) const { return output; }
     virtual std::ostream& polyline( std::ostream& output, const std::vector<Point>& points ) const { return output; }
     virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius  ) const { return output; }
@@ -126,16 +136,20 @@ public:
 
 class NodePsTeX : public NodeFig
 {
-public:
+private:
     NodePsTeX(double x1, double y1, double x2, double y2 ) : NodeFig(x1,y1,x2,y2) {}
+public:
+    static Node * create(double x1, double y1, double x2, double y2 ) { return new NodePsTeX(x1,y1,x2,y2); }
     virtual std::ostream& text( std::ostream& output, const Point&, const char * ) const;
 };
 
-#if defined(SVG_OUTPUT)
+#if SVG_OUTPUT
 class NodeSVG : public Node, private SVG
 {
-public:
+private:
     NodeSVG(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
+public:
+    static Node * create(double x1, double y1, double x2, double y2 ) { return new NodeSVG(x1,y1,x2,y2); }
     virtual std::ostream& polygon( std::ostream& output, const std::vector<Point>& points ) const;
     virtual std::ostream& polyline( std::ostream& output, const std::vector<Point>& points ) const;
     virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius ) const;
@@ -147,11 +161,13 @@ public:
 };
 #endif
 
-#if defined(SXD_OUTPUT)
+#if SXD_OUTPUT
 class NodeSXD : public Node, private SXD
 {
-public:
+private:
     NodeSXD(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
+public:
+    static Node * create(double x1, double y1, double x2, double y2 ) { return new NodeSXD(x1,y1,x2,y2); }
     virtual int direction() const { return -1; }
     virtual std::ostream& polygon( std::ostream& output, const std::vector<Point>& points ) const;
     virtual std::ostream& polyline( std::ostream& output, const std::vector<Point>& points ) const;
@@ -165,8 +181,10 @@ public:
 
 class NodeTeX : public Node, private TeX
 {
-public:
+private:
     NodeTeX(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
+public:
+    static Node * create(double x1, double y1, double x2, double y2 ) { return new NodeTeX(x1,y1,x2,y2); }
     virtual std::ostream& polygon( std::ostream&, const std::vector<Point>& points ) const;
     virtual std::ostream& polyline( std::ostream&, const std::vector<Point>& points ) const;
     virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius  ) const;
@@ -176,11 +194,13 @@ public:
     virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 
-#if defined(X11_OUTPUT)
+#if X11_OUTPUT
 class NodeX11 : public Node, private X11
 {
-public:
+private:
     NodeX11(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
+public:
+    static Node * create(double x1, double y1, double x2, double y2 ) { return new NodeX11(x1,y1,x2,y2); }
     virtual std::ostream& polygon( std::ostream& output, const std::vector<Point>& points ) const { return output; }
     virtual std::ostream& polyline( std::ostream& output, const std::vector<Point>& points ) const { return output; }
     virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius  ) const{ return output; }
@@ -194,8 +214,10 @@ public:
 #if HAVE_GD_H && HAVE_LIBGD
 class NodeGD : public Node, private GD
 {
-public:
+private:
     NodeGD(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
+public:
+    static Node * create(double x1, double y1, double x2, double y2 ) { return new NodeGD(x1,y1,x2,y2); }
     virtual std::ostream& polygon( std::ostream& output, const std::vector<Point>& points ) const;
     virtual std::ostream& polyline( std::ostream& output, const std::vector<Point>& points ) const;
     virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius ) const;

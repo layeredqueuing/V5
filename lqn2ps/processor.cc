@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 15170 2021-12-07 23:33:05Z greg $
+ * $Id: processor.cc 15184 2021-12-09 20:22:28Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -64,7 +64,7 @@ Processor::Processor( const LQIO::DOM::Processor* dom )
       _shares(),
       _groupIsSelected(false)
 { 
-    if ( Flags::print[PROCESSORS].opts.value.p == Processors::NONE ) {
+    if ( Flags::processors() == Processors::NONE ) {
 	isSelected(false);
     }
     if ( !isMultiServer() && scheduling() != SCHEDULE_DELAY && !Pragma::defaultProcessorScheduling() ) {
@@ -72,7 +72,7 @@ Processor::Processor( const LQIO::DOM::Processor* dom )
 	const_cast<LQIO::DOM::Processor *>(dom)->setSchedulingType(Pragma::processorScheduling());
     }
 
-    const double r = Flags::graphical_output_style == TIMEBENCH_STYLE ? Flags::icon_height : Flags::entry_height;
+    const double r = Flags::graphical_output_style == Output_Style::TIMEBENCH ? Flags::icon_height : Flags::entry_height;
     myNode = Node::newNode( r, r );
     myLabel = Label::newLabel();
 }
@@ -206,14 +206,14 @@ Processor::hasPriorities() const
 bool
 Processor::isInteresting() const
 {
-    return Flags::print[PROCESSORS].opts.value.p == Processors::ALL
-	|| (Flags::print[PROCESSORS].opts.value.p == Processors::DEFAULT 
+    return Flags::processors() == Processors::ALL
+	|| (Flags::processors() == Processors::DEFAULT 
 	    && !isInfinite() 
 	    && clientsCanQueue() )
-	|| (Flags::print[PROCESSORS].opts.value.p == Processors::NONINFINITE
+	|| (Flags::processors() == Processors::NONINFINITE
 	    && !isInfinite() )
 #if defined(TXT_OUTPUT)
-	|| Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::TXT
+	|| Flags::output_format() == File_Format::TXT
 #endif
 	|| input_output();
 }
@@ -370,7 +370,7 @@ Processor::colour() const
     if ( isSurrogate() ) {
 	return Graphic::GREY_10;
     }
-    switch ( Flags::print[COLOUR].opts.value.c ) {
+    switch ( Flags::colouring() ) {
     case Colouring::SERVER_TYPE:
 	return Graphic::BLUE;
     }
@@ -386,7 +386,7 @@ Processor&
 Processor::label()
 {
     *myLabel << name();
-    if ( Flags::print[INPUT_PARAMETERS].opts.value.b && queueing_output() ) {
+    if ( Flags::print_input_parameters() && queueing_output() ) {
 	for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
 	    const Task * aTask = *nextTask;
 	    for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
@@ -398,7 +398,7 @@ Processor::label()
 	if ( scheduling() != SCHEDULE_FIFO && !isInfinite() ) {
 	    *myLabel << "*";
 	}
-	if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
+	if ( Flags::print_input_parameters() ) {
 	    bool newline = false;
 	    if ( isMultiServer() ) {
 		if ( !processor_output() ) {
@@ -423,7 +423,7 @@ Processor::label()
     }
     if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
 	myLabel->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(utilization()) << end_math();
-	if ( hasBogusUtilization() && Flags::print[COLOUR].opts.value.c != Colouring::NONE ) {
+	if ( hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
 	    myLabel->colour(Graphic::RED);
 	}
     }

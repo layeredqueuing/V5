@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15170 2021-12-07 23:33:05Z greg $
+ * $Id: task.cc 15184 2021-12-09 20:22:28Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -100,7 +100,7 @@ Task::Task( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * a
 	const_cast<Processor *>(aProc)->addTask( this );
     }
 
-    myNode = Node::newNode( Flags::icon_width, Flags::graphical_output_style == TIMEBENCH_STYLE ? Flags::icon_height : Flags::entry_height );
+    myNode = Node::newNode( Flags::icon_width, Flags::graphical_output_style == Output_Style::TIMEBENCH ? Flags::icon_height : Flags::entry_height );
     myLabel = Label::newLabel();
 }
 
@@ -269,7 +269,7 @@ Task::aggregate()
 {
     for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::aggregate ) );
 
-    switch ( Flags::print[AGGREGATION].opts.value.a ) {
+    switch ( Flags::aggregation() ) {
     case Aggregate::ENTRIES:
     case Aggregate::PHASES:
     case Aggregate::ACTIVITIES:
@@ -326,7 +326,7 @@ Task::getIndex() const
 int
 Task::span() const
 {
-    if ( Flags::print[LAYERING].opts.value.l == Layering::GROUP ) {
+    if ( Flags::layering() == Layering::GROUP ) {
 	std::vector<Entity *> myServers;
 	return servers( myServers );		/* Force those making calls to lower levels right */
     }
@@ -736,7 +736,7 @@ Task::check() const
 
     /* Check replication */
 
-    if ( Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::PARSEABLE ) {
+    if ( Flags::output_format() == File_Format::PARSEABLE ) {
 	LQIO::io_vars.error_messages[ERR_REPLICATION].severity = LQIO::WARNING_ONLY;
 	LQIO::io_vars.error_messages[ERR_REPLICATION_PROCESSOR].severity = LQIO::WARNING_ONLY;
     }
@@ -761,7 +761,7 @@ Task::check() const
 	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR,
 				  static_cast<int>(srcReplicasValue), srcName.c_str(),
 				  static_cast<int>(dstReplicasValue), processor->name().c_str() );
-	    if ( Flags::print[OUTPUT_FORMAT].opts.value.f != File_Format::PARSEABLE ) {
+	    if ( Flags::output_format() != File_Format::PARSEABLE ) {
 		rc = false;
 	    }
 	}
@@ -1163,12 +1163,12 @@ bool
 Task::canConvertToReferenceTask() const
 {
     return Flags::convert_to_reference_task
-      && (submodel_output() || Flags::print[INCLUDE_ONLY].opts.value.m != nullptr )
-      && !isSelected()
-      && !hasOpenArrivals()
-      && !isInfinite()
-      && nEntries() == 1
-      && !_processors.empty();
+	&& (submodel_output() || Flags::include_only() != nullptr )
+	&& !isSelected()
+	&& !hasOpenArrivals()
+	&& !isInfinite()
+	&& nEntries() == 1
+	&& !_processors.empty();
 }
 
 
@@ -1198,7 +1198,7 @@ Task::canPrune() const
      * this point.  canPrune could be recursive?
      */
 
-    assert( Flags::print[AGGREGATION].opts.value.a == Aggregate::ENTRIES );
+    assert( Flags::aggregation() == Aggregate::ENTRIES );
 //    std::set<const Task *> callers = std::accumulate( entries().begin(), entries().end(), std::set<const Task *>(), &Entry::collect_callers );
     return calls().size() == 1;
 }
@@ -1350,7 +1350,7 @@ Task::format()
 	(*entry)->moveTo( _entryWidthInPts + myNode->left(), ty - (*entry)->height() );
 	_entryWidthInPts += (*entry)->width() - adjustForSlope( fabs( (*entry)->height() ) );
     }
-    if ( Flags::graphical_output_style == JLQNDEF_STYLE ) {
+    if ( Flags::graphical_output_style == Output_Style::JLQNDEF ) {
 	_entryWidthInPts += Flags::entry_width * JLQNDEF_TASK_BOX_SCALING;
     }
 
@@ -1421,7 +1421,7 @@ Task::reformat()
     if ( fill == 0.0 ) {
 	for ( std::vector<Entry *>::const_reverse_iterator entry = entries().rbegin(); entry != entries().rend(); ++entry ) {
 	    (*entry)->drawLeft  = false;
-	    (*entry)->drawRight = ( entry != entries().rbegin() || Flags::graphical_output_style == JLQNDEF_STYLE );
+	    (*entry)->drawRight = ( entry != entries().rbegin() || Flags::graphical_output_style == Output_Style::JLQNDEF );
 	}
     }
 
@@ -1567,7 +1567,7 @@ Task::justifyByEntry()
 
 	x += right;
 	width = x;
-	x += Flags::print[X_SPACING].opts.value.d;
+	x += Flags::x_spacing();
     }
 
     return width - (left() + adjustForSlope( fabs( height() ) ) );
@@ -1625,13 +1625,13 @@ Task::moveTo( const double x, const double y )
 
     reformat();
 
-    if ( Flags::print[AGGREGATION].opts.value.a == Aggregate::ENTRIES ) {
+    if ( Flags::aggregation() == Aggregate::ENTRIES ) {
 	myLabel->moveTo( bottomCenter() ).moveBy( 0, height() / 2 );
     } else if ( !queueing_output() ) {
 
 	/* Move Label -- do after X extent recalculated */
 
-	if ( Flags::graphical_output_style == JLQNDEF_STYLE ) {
+	if ( Flags::graphical_output_style == Output_Style::JLQNDEF ) {
 	    myLabel->moveTo( topRight() ).moveBy( -(Flags::entry_width * JLQNDEF_TASK_BOX_SCALING * 0.5), -entries().front()->height()/2 );
 	} else if ( _layers.size() ) {
 	    myLabel->moveTo( topCenter() ).moveBy( 0, -entries().front()->height() - 10 );
@@ -1655,7 +1655,7 @@ Task::moveTo( const double x, const double y )
 Task&
 Task::moveSrc()
 {
-    if ( Flags::graphical_output_style == JLQNDEF_STYLE ) {
+    if ( Flags::graphical_output_style == Output_Style::JLQNDEF ) {
 	Point aPoint = bottomRight();
 	aPoint.moveBy( -(Flags::entry_width * JLQNDEF_TASK_BOX_SCALING)/2.0, 0 );
 	calls().front()->moveSrc( aPoint );
@@ -1714,7 +1714,7 @@ Task::moveDst()
 
 	const int nFwd = countArcs( &GenericCall::hasForwardingLevel );
 	const double delta = width() / static_cast<double>(countCallers() + 1 + nFwd );
-	const double fy = Flags::print[Y_SPACING].opts.value.d / 2.0 + top();
+	const double fy = Flags::y_spacing() / 2.0 + top();
 
 	/* Draw incomming forwarding arcs first. */
 
@@ -1773,7 +1773,7 @@ Task::moveSrcBy( const double dx, const double dy )
 
 Graphic::colour_type Task::colour() const
 {
-    switch ( Flags::print[COLOUR].opts.value.c ) {
+    switch ( Flags::colouring() ) {
     case Colouring::DIFFERENCES:
 	return colourForDifference( throughput() );
 
@@ -1792,7 +1792,7 @@ Task::label()
 {
     if ( queueing_output() ) {
 	bool print_goop = false;
-	if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
+	if ( Flags::print_input_parameters() ) {
 	    labelQueueingNetwork( &Entry::labelQueueingNetworkVisits );
 	    print_goop = true;
 	}
@@ -1808,7 +1808,7 @@ Task::label()
     if ( !queueing_output() ) {
 	myLabel->justification( Flags::label_justification );
     }
-    if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
+    if ( Flags::print_input_parameters() ) {
 	if ( queueing_output() ) {
 	    if ( !isSelected() ) {
 		const double Z = Flags::have_results ? (copiesValue() - utilization()) / throughput() : 0.0;
@@ -1818,7 +1818,7 @@ Task::label()
 	    }
 	    labelQueueingNetwork( &Entry::labelQueueingNetworkService );
 	} else {
-	    if ( Flags::print[AGGREGATION].opts.value.a == Aggregate::ENTRIES && Flags::print[PRINT_AGGREGATE].opts.value.b ) {
+	    if ( Flags::aggregation() == Aggregate::ENTRIES && Flags::print[PRINT_AGGREGATE].opts.value.b ) {
 		myLabel->newLine() << " [" << print_service_time( *entries().front() ) << ']';
 	    }
 	    if ( hasThinkTime()  ) {
@@ -1831,7 +1831,7 @@ Task::label()
  	bool print_goop = false;
 	if ( Flags::print[TASK_THROUGHPUT].opts.value.b ) {
 	    myLabel->newLine();
-	    if ( throughput() == 0.0 && Flags::print[COLOUR].opts.value.c != Colouring::NONE ) {
+	    if ( throughput() == 0.0 && Flags::colouring() != Colouring::NONE ) {
 		myLabel->colour( Graphic::RED );
 	    }
 	    *myLabel << begin_math( &Label::lambda ) << "=" << opt_pct(throughput());
@@ -1845,7 +1845,7 @@ Task::label()
 		print_goop = true;
 	    }
 	    *myLabel << _rho() << "=" << opt_pct(utilization());
-	    if ( hasBogusUtilization() && Flags::print[COLOUR].opts.value.c != Colouring::NONE ) {
+	    if ( hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
 		myLabel->colour(Graphic::RED);
 	    }
 	}
@@ -2413,7 +2413,7 @@ Task::draw( std::ostream& output ) const
 #endif
     myNode->comment( output, aComment.str() );
     myNode->fillColour( colour() );
-    if ( Flags::print[COLOUR].opts.value.c == Colouring::NONE ) {
+    if ( Flags::colouring() == Colouring::NONE ) {
 	myNode->penColour( Graphic::DEFAULT_COLOUR );			// No colour.
     } else if ( throughput() == 0.0 ) {
 	myNode->penColour( Graphic::RED );
@@ -2439,11 +2439,11 @@ Task::draw( std::ostream& output ) const
 	myNode->polygon( output, copies );
 	myNode->depth( aDepth );
     }
-    if ( Flags::graphical_output_style == JLQNDEF_STYLE ) {
+    if ( Flags::graphical_output_style == Output_Style::JLQNDEF ) {
 	const double shift = width() - (Flags::entry_width * JLQNDEF_TASK_BOX_SCALING * Model::scaling());
 	points[0].moveBy( shift, 0 );
 	points[3].moveBy( shift, 0 );
-	if ( Flags::print[COLOUR].opts.value.c == Colouring::NONE ) {
+	if ( Flags::colouring() == Colouring::NONE ) {
 	    myNode->fillColour( Graphic::GREY_10 );
 	}
     }
@@ -2452,7 +2452,7 @@ Task::draw( std::ostream& output ) const
     myLabel->backgroundColour( colour() ).comment( output, aComment.str() );
     output << *myLabel;
 
-    if ( Flags::print[AGGREGATION].opts.value.a != Aggregate::ENTRIES ) {
+    if ( Flags::aggregation() == Aggregate::ENTRIES ) {
 	for_each( entries().begin(), entries().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
 	for_each( activities().begin(), activities().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
 	for_each( precedences().begin(), precedences().end(), ConstExec1<ActivityList,std::ostream&>( &ActivityList::draw, output ) );
@@ -2542,7 +2542,7 @@ Graphic::colour_type
 ReferenceTask::colour() const
 {
     const Processor * processor = this->processor(); 
-    switch ( Flags::print[COLOUR].opts.value.c ) {
+    switch ( Flags::colouring() ) {
     case Colouring::SERVER_TYPE:
 	return Graphic::RED;
 
@@ -2659,7 +2659,7 @@ bool
 ServerTask::canConvertToReferenceTask() const
 {
     return Flags::convert_to_reference_task
-	&& (submodel_output() || Flags::print[INCLUDE_ONLY].opts.value.m != nullptr )
+	&& (submodel_output() || Flags::include_only() != nullptr )
 	&& !isSelected()
 	&& !hasOpenArrivals()
 	&& !isInfinite()

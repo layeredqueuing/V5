@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15170 2021-12-07 23:33:05Z greg $
+ * $Id: entry.cc 15184 2021-12-09 20:22:28Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -753,8 +753,8 @@ Entry::isReferenceTaskEntry() const {
 bool
 Entry::isSelectedIndirectly() const
 {
-    if ( Flags::print[CHAIN].opts.value.i ) {
-	return hasPath( Flags::print[CHAIN].opts.value.i );
+    if ( Flags::chain() ) {
+	return hasPath( Flags::chain() );
     } else if ( owner()->isSelected() ) {
 	return true;
     }
@@ -1447,7 +1447,7 @@ Entry::aggregate()
 	std::deque<const Activity *> activityStack;
 	unsigned next_p = 1;
 
-	switch ( Flags::print[AGGREGATION].opts.value.a ) {
+	switch ( Flags::aggregation() ) {
 	case Aggregate::ACTIVITIES:
 	case Aggregate::PHASES:
 	case Aggregate::ENTRIES:
@@ -1478,7 +1478,7 @@ Entry::aggregate()
 	_activityCallers.clear();
     }
 
-    switch ( Flags::print[AGGREGATION].opts.value.a ) {
+    switch ( Flags::aggregation() ) {
     case Aggregate::PHASES:
     case Aggregate::ENTRIES:
 	aggregatePhases();
@@ -1568,7 +1568,7 @@ Entry::referenceTasks( std::vector<Entity *> &clients, Element * dst ) const
 //!!! Need to create the pseudo arc to the task.
 	if ( dynamic_cast<Processor *>(dst) ) {
 	    const_cast<Task *>(owner())->findOrAddPseudoCall( dynamic_cast<Processor *>(dst) );
-	} else if ( Flags::print[AGGREGATION].opts.value.a ==  Aggregate::ENTRIES ) {
+	} else if ( Flags::aggregation() == Aggregate::ENTRIES ) {
 	    const_cast<Task *>(owner())->findOrAddPseudoCall( const_cast<Task *>(dynamic_cast<Entry *>(dst)->owner()) );
 	} else {
 	    const_cast<Entry *>(this)->findOrAddPseudoCall( dynamic_cast<Entry *>(dst) );
@@ -1645,9 +1645,9 @@ Entry::span() const
 Graphic::colour_type
 Entry::colour() const
 {
-    switch ( Flags::print[COLOUR].opts.value.c ) {
+    switch ( Flags::colouring() ) {
     case Colouring::RESULTS:
-	if ( Flags::have_results && Flags::graphical_output_style == JLQNDEF_STYLE && !owner()->isReferenceTask() ) {
+	if ( Flags::have_results && Flags::graphical_output_style == Output_Style::JLQNDEF && !owner()->isReferenceTask() ) {
 	    return colourForUtilization( owner()->isInfinite() ? 0.0 : utilization() / owner()->copiesValue() );
 	} else if ( serviceExceeded() > 0. ) {
 	    return Graphic::RED;
@@ -1789,8 +1789,8 @@ Entry::moveDst()
 
 	const int nFwd = countArcs( &GenericCall::hasForwardingLevel );
 	const double delta = width() / static_cast<double>(countCallers() + 1 + nFwd );
-	const double fy1 = Flags::print[Y_SPACING].opts.value.d / 2.0 + top();
-	const double fy2 = Flags::print[Y_SPACING].opts.value.d / 1.5 + top();
+	const double fy1 = Flags::y_spacing() / 2.0 + top();
+	const double fy2 = Flags::y_spacing() / 1.5 + top();
 
 	/* Draw incomming forwarding arcs from the same level first. */
 
@@ -1901,7 +1901,7 @@ Entry&
 Entry::label()
 {
     *myLabel << name();
-    if ( !startActivity() && Flags::print[INPUT_PARAMETERS].opts.value.b ) {
+    if ( !startActivity() && Flags::print_input_parameters() ) {
 	myLabel->newLine() << '[' << print_service_time(*this)  << ']';
 	if ( hasThinkTime() ) {
 	    *myLabel << ",Z=" << print_think_time(*this);
@@ -2285,7 +2285,7 @@ Entry::draw( std::ostream& output ) const
 
     myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );	/* fillColour ignored since its a line. */
     std::vector<Point> points;
-    if ( Flags::graphical_output_style == JLQNDEF_STYLE ) {
+    if ( Flags::graphical_output_style == Output_Style::JLQNDEF ) {
 	points.resize(4);
 	points[0] = myNode->topRight();
 	points[1] = myNode->topLeft().moveBy( dx, 0 );
@@ -2441,7 +2441,7 @@ Entry::create( LQIO::DOM::Entry* domEntry )
 
 static std::ostream&
 format( std::ostream& output, int p ) {
-    switch ( Flags::print[OUTPUT_FORMAT].opts.value.f ) {
+    switch ( Flags::output_format() ) {
     case File_Format::SRVN:
 	if ( p != 1 ) {
 	    output << ' ';

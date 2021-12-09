@@ -1,6 +1,6 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 15159 2021-12-06 19:48:15Z greg $
+ * $Id: group.cc 15184 2021-12-09 20:22:28Z greg $
  */
 
 #include <algorithm>
@@ -82,7 +82,7 @@ Group::populate()
 	if ( (*processor)->hasGroup() || !match((*processor)->name()) ) continue;
 	(*processor)->hasGroup( true );
 
-	if ( Flags::print[LAYERING].opts.value.l == Layering::PROCESSOR ) {
+	if ( Flags::layering() == Layering::PROCESSOR ) {
 	    penColour( (*processor)->colour() == Graphic::GREY_10 ? Graphic::BLACK : (*processor)->colour() );
 	    fillColour( (*processor)->colour() );
 	}
@@ -114,7 +114,7 @@ Group::populate()
 Group&
 Group::resizeBox()
 {
-    myNode->resizeBox( -4.5, -(4.5 + Flags::print[FONT_SIZE].opts.value.i * 1.2), 9.0, 9.0 + Flags::print[FONT_SIZE].opts.value.i * 1.2 );
+    myNode->resizeBox( -4.5, -(4.5 + Flags::font_size() * 1.2), 9.0, 9.0 + Flags::font_size() * 1.2 );
     return *this;
 }
 
@@ -123,7 +123,7 @@ Group const&
 Group::positionLabel() const
 {
     myLabel->moveTo( myNode->left() + myNode->width() / 2.0,
-		     myNode->bottom() + Flags::print[FONT_SIZE].opts.value.i * 0.6 );
+		     myNode->bottom() + Flags::font_size() * 0.6 );
     return *this;
 }
 
@@ -252,7 +252,7 @@ GroupByProcessor&
 GroupByProcessor::label()
 {
     *myLabel << myProcessor->name();
-    if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
+    if ( Flags::print_input_parameters() ) {
 	if ( myProcessor->isMultiServer() ) {
 	    *myLabel << " {" << myProcessor->copies() << "}";
 	} else if ( myProcessor->isInfinite() ) {
@@ -280,7 +280,7 @@ GroupByProcessor&
 GroupByProcessor::resizeBox()
 {
     if ( Flags::print[PROCESSOR_UTILIZATION].opts.value.b && Flags::have_results ) {
-	myNode->resizeBox( -4.5, -(4.5 + Flags::print[FONT_SIZE].opts.value.i * 2.2), 9.0, 9.0 + Flags::print[FONT_SIZE].opts.value.i * 2.2 );
+	myNode->resizeBox( -4.5, -(4.5 + Flags::font_size() * 2.2), 9.0, 9.0 + Flags::font_size() * 2.2 );
     } else {
 	Group::resizeBox();
     }
@@ -293,7 +293,7 @@ GroupByProcessor::positionLabel() const
 {
     if ( Flags::print[PROCESSOR_UTILIZATION].opts.value.b && Flags::have_results ) {
 	myLabel->moveTo( myNode->left() + myNode->width() / 2.0,
-			 myNode->bottom() + Flags::print[FONT_SIZE].opts.value.i * 1.4 );
+			 myNode->bottom() + Flags::font_size() * 1.4 );
 
     } else {
 	Group::positionLabel();
@@ -356,7 +356,7 @@ GroupByShareDefault::format()
     }
 
     if ( isUsed() ) {
-	const double newX = width() + Flags::print[X_SPACING].opts.value.d;
+	const double newX = width() + Flags::x_spacing();
 	for ( std::vector<Layer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
 	    if ( !*layer ) continue;
 	    layer->moveBy( newX, 0 );

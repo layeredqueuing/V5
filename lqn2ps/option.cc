@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: option.cc 15175 2021-12-08 12:40:31Z greg $
+ * $Id: option.cc 15184 2021-12-09 20:22:28Z greg $
  */
 
 #include "lqn2ps.h"
@@ -60,13 +60,13 @@ Sorting Flags::sort	 		= Sorting::FORWARD;
 Justification Flags::node_justification = Justification::DEFAULT;
 Justification Flags::label_justification = Justification::CENTER;
 Justification Flags::activity_justification = Justification::DEFAULT;
-graphical_output_style_type Flags::graphical_output_style = TIMEBENCH_STYLE;
+Output_Style Flags::graphical_output_style = Output_Style::TIMEBENCH;
 
 double Flags::icon_slope	        = 1.0/10.0;
 unsigned int maxStrLen 		= 16;
 const unsigned int maxDblLen	= 12;		/* Field width in srvnoutput. */
 
-const std::map<const Aggregate, const std::string> Options::aggregate = 
+const std::map<const Aggregate, const std::string> Options::aggregate =
 {
     { Aggregate::NONE,           LQIO::DOM::Pragma::_none_ },
     { Aggregate::SEQUENCES,      "sequences" },
@@ -306,7 +306,7 @@ Options::get_layering( const std::string& value )
     }
     throw std::invalid_argument( value );
 }
-    
+
 
 Key_Position
 Options::get_key_position( const std::string& value )
@@ -316,7 +316,7 @@ Options::get_key_position( const std::string& value )
     }
     throw std::invalid_argument( value );
 }
-    
+
 
 Justification
 Options::get_justification( const std::string& value )
@@ -326,7 +326,7 @@ Options::get_justification( const std::string& value )
     }
     throw std::invalid_argument( value );
 }
-    
+
 
 Processors
 Options::get_processors( const std::string& value )
@@ -336,7 +336,7 @@ Options::get_processors( const std::string& value )
     }
     throw std::invalid_argument( value );
 }
-    
+
 
 Replication
 Options::get_replication( const::std::string& value )
@@ -417,19 +417,19 @@ special( const std::string& parameter, const std::string& value, LQIO::DOM::Prag
 	case Special::RENAME:			    Flags::rename_model			    = get_bool( value, true ); break;
 	case Special::SQUISH_ENTRY_NAMES:	    Flags::squish_names			    = get_bool( value, true ); break;
 	case Special::SUBMODEL_CONTENTS:	    Flags::print_submodels		    = get_bool( value, true ); break;
-	
+
 	case Special::BCMP:
 	    pragmas.insert(LQIO::DOM::Pragma::_bcmp_, value );
 	    break;
-	
+
 	case Special::FORCE_INFINITE:
 	    pragmas.insert(LQIO::DOM::Pragma::_force_infinite_, value );
 	    break;
-	
+
 	case Special::PROCESSOR_SCHEDULING:
 	    pragmas.insert(LQIO::DOM::Pragma::_processor_scheduling_, value );
 	    break;
-	
+
 	case Special::PRUNE:
 	    pragmas.insert(LQIO::DOM::Pragma::_prune_, value );
 	    break;
@@ -445,14 +445,14 @@ special( const std::string& parameter, const std::string& value, LQIO::DOM::Prag
 	case Special::TASK_SCHEDULING:
 	    pragmas.insert(LQIO::DOM::Pragma::_task_scheduling_, value );
 	    break;
-	
+
 	case Special::TASKS_ONLY:
 	    Flags::print[AGGREGATION].opts.value.a = Aggregate::ENTRIES;
 	    if ( Flags::icon_height == DEFAULT_ICON_HEIGHT ) {
 		if ( processor_output() || share_output() ) {
-		    Flags::print[Y_SPACING].opts.value.d = 45;
+		    Flags::set_y_spacing(45);
 		} else {
-		    Flags::print[Y_SPACING].opts.value.d = 27;
+		    Flags::set_y_spacing(27);
 		}
 		Flags::icon_height = 18;
 		Flags::entry_height = Flags::icon_height * 0.6;
@@ -541,7 +541,7 @@ graphical_output()
 	File_Format::XML
     };
 
-    return std::find( reject.begin(), reject.end(), Flags::print[OUTPUT_FORMAT].opts.value.f ) != reject.end();
+    return std::find( reject.begin(), reject.end(), Flags::output_format() ) == reject.end();
 }
 
 
@@ -552,9 +552,9 @@ graphical_output()
 bool
 output_output()
 {
-    return Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::OUTPUT
-	|| Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::PARSEABLE
-	|| Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::RTF;
+    return Flags::output_format() == File_Format::OUTPUT
+	|| Flags::output_format() == File_Format::PARSEABLE
+	|| Flags::output_format() == File_Format::RTF;
 }
 
 
@@ -565,10 +565,10 @@ output_output()
 bool
 input_output()
 {
-    return Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::SRVN
-	|| Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::JSON
-	|| Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::LQX
-	|| Flags::print[OUTPUT_FORMAT].opts.value.f == File_Format::XML
+    return Flags::output_format() == File_Format::SRVN
+	|| Flags::output_format() == File_Format::JSON
+	|| Flags::output_format() == File_Format::LQX
+	|| Flags::output_format() == File_Format::XML
 	;
 }
 
@@ -581,40 +581,40 @@ bool
 partial_output()
 {
     return submodel_output() || queueing_output()
-	|| Flags::print[INCLUDE_ONLY].opts.value.m != nullptr;
+	|| Flags::include_only() != nullptr;
 }
 
 bool
 processor_output()
 {
-    return Flags::print[LAYERING].opts.value.l == Layering::PROCESSOR
-	|| Flags::print[LAYERING].opts.value.l == Layering::PROCESSOR_TASK
-	|| Flags::print[LAYERING].opts.value.l == Layering::TASK_PROCESSOR;
+    return Flags::layering() == Layering::PROCESSOR
+	|| Flags::layering() == Layering::PROCESSOR_TASK
+	|| Flags::layering() == Layering::TASK_PROCESSOR;
 }
 
 bool
 queueing_output()
 {
-    return Flags::print[QUEUEING_MODEL].opts.value.i != 0;
+    return Flags::queueing_model() != 0;
 }
 
 
 bool
 share_output()
 {
-    return Flags::print[LAYERING].opts.value.l == Layering::SHARE;
+    return Flags::layering() == Layering::SHARE;
 }
 
 bool
 submodel_output()
 {
-    return Flags::print[SUBMODEL].opts.value.i != 0;
+    return Flags::submodel() != 0;
 }
 
 bool
 difference_output()
 {
-    return Flags::print[COLOUR].opts.value.c == Colouring::DIFFERENCES;
+    return Flags::colouring() == Colouring::DIFFERENCES;
 }
 
 #if defined(REP2FLAT)

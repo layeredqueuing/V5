@@ -1,6 +1,6 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 15170 2021-12-07 23:33:05Z greg $
+ * $Id: open.cc 15184 2021-12-09 20:22:28Z greg $
  */
 
 #include "lqn2ps.h"
@@ -30,7 +30,7 @@ OpenArrivalSource::OpenArrivalSource( Entry * source )
     const_cast<Entry *>(source)->addDstCall( aCall );
     __source.push_back( this );
 
-    myNode = Node::newNode( Flags::icon_width, Flags::graphical_output_style == TIMEBENCH_STYLE ? Flags::icon_height : Flags::entry_height );
+    myNode = Node::newNode( Flags::icon_width, Flags::graphical_output_style == Output_Style::TIMEBENCH ? Flags::icon_height : Flags::entry_height );
     myLabel = Label::newLabel();
 }
 
@@ -105,7 +105,7 @@ OpenArrivalSource::setChain( unsigned k, const callPredicate aFunc )
 OpenArrivalSource&
 OpenArrivalSource::aggregate()
 {
-    switch ( Flags::print[AGGREGATION].opts.value.a ) {
+    switch ( Flags::aggregation() ) {
     case Aggregate::ENTRIES:
 	for ( std::vector<OpenArrival *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	    Task * dstTask = const_cast<Task *>((*call)->dstTask());
@@ -190,7 +190,7 @@ OpenArrivalSource::label()
     for ( std::vector<OpenArrival *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	if ( queueing_output() ) {
 	    bool print_goop = false;
-	    if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
+	    if ( Flags::print_input_parameters() ) {
 		*myLabel << (*call)->dstName() << " (" << (*call)->openArrivalRate() << ")";
 		myLabel->newLine();
 	    }

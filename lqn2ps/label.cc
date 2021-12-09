@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
- * 
- * $Id: label.cc 15170 2021-12-07 23:33:05Z greg $
+ *
+ * $Id: label.cc 15184 2021-12-09 20:22:28Z greg $
  */
 
 #include "lqn2ps.h"
@@ -24,7 +24,7 @@
 
 class LabelStringManip {
 public:
-    LabelStringManip( std::ostream& (*ff)(std::ostream&, const char * ), 
+    LabelStringManip( std::ostream& (*ff)(std::ostream&, const char * ),
 		      const char * aStr  )
 	: f(ff), myStr(aStr) {}
 private:
@@ -37,101 +37,96 @@ private:
 
 Label::Line::Line() : _font(NORMAL_FONT), _colour(DEFAULT_COLOUR), _string()
 {
-    if ( Flags::print[PRECISION].opts.value.i > 0 ) {
-	_string.precision( Flags::print[PRECISION].opts.value.i );
+    if ( Flags::precision() > 0 ) {
+	_string.precision( Flags::precision() );
     }
 }
 
-Label::Line::Line( const Line& src ) : _font(src._font), _colour(src._colour), _string() 
+Label::Line::Line( const Line& src ) : _font(src._font), _colour(src._colour), _string()
 {
-    if ( Flags::print[PRECISION].opts.value.i > 0 ) {
-	_string.precision( Flags::print[PRECISION].opts.value.i );
+    if ( Flags::precision() > 0 ) {
+	_string.precision( Flags::precision() );
     }
-    _string << src.getStr(); 
+    _string << src.getStr();
 }
 
 Label *
 Label::newLabel()
 {
-    switch( Flags::print[OUTPUT_FORMAT].opts.value.f ) {
-    case File_Format::EEPIC:
-	return new LabelTeX();
+    static const std::map<const File_Format,Label::create_func> new_label = {
+	{ File_Format::EEPIC,        LabelTeX::create },
 #if defined(EMF_OUTPUT)
-    case File_Format::EMF:
-	return new LabelEMF();
+	{ File_Format::EMF,          LabelEMF::create },
 #endif
-    case File_Format::FIG:
-	return new LabelFig();
+	{ File_Format::FIG,          LabelFig::create },
 #if HAVE_GD_H && HAVE_LIBGD
 #if HAVE_GDIMAGEGIFPTR
-    case File_Format::GIF:
+	{ File_Format::GIF,          LabelGD::create },
 #endif
 #if HAVE_LIBJPEG
-    case File_Format::JPEG:
+	{ File_Format::JPEG,         LabelGD::create },
 #endif
 #if HAVE_LIBPNG
-    case File_Format::PNG:
+	{ File_Format::PNG,          LabelGD::create },
 #endif
-	return new LabelGD();
-#endif	/* HAVE_LIBGD */
-    case File_Format::POSTSCRIPT:
-	return new LabelPostScript();	/* the graphical object		*/
-    case File_Format::PSTEX:
-	return new LabelPsTeX();	/* the graphical object		*/
-#if defined(SVG_OUTPUT)
-    case File_Format::SVG:
-	return new LabelSVG();
+
+#endif  /* HAVE_LIBGD */
+	{ File_Format::POSTSCRIPT,   LabelPostScript::create },
+	{ File_Format::PSTEX,        LabelPsTeX::create },
+#if SVG_OUTPUT
+	{ File_Format::SVG,          LabelSVG::create },
 #endif
-#if defined(SXD_OUTPUT)
-    case File_Format::SXD:
-	return new LabelSXD();
+#if SXD_OUTPUT
+	{ File_Format::SXD,          LabelSXD::create },
 #endif
-#if defined(X11_OUTPUT)
-    case File_Format::X11:
-	return new LabelX11();
+#if X11_OUTPUT
+	{ File_Format::X11,          LabelX11::create },
 #endif
-    default:
-	return new LabelNull();
+    };
+
+    std::map<const File_Format,Label::create_func>::const_iterator f = new_label.find( Flags::output_format() );
+    if ( f == new_label.end() ) {
+	return LabelNull::create();
+    } else {
+	return (*(f->second))();
     }
-    abort();
-    return nullptr;
 }
 
-Label::Label() 
-    : Graphic(), 
+Label::Label()
+    : Graphic(),
       _origin(),
       _lines(1),
-      _backgroundColour(TRANSPARENT), 
-      _justification(Justification::CENTER), 
+      _backgroundColour(TRANSPARENT),
+      _justification(Justification::CENTER),
       _mathMode(false)
 {
 }
 
 
-Label::Label( const Label& src ) 
-    : Graphic(), 
+Label::Label( const Label& src )
+    : Graphic(),
       _origin(src._origin),
       _lines(src._lines),		// Deep copy?
-      _backgroundColour(src._backgroundColour), 
-      _justification(src._justification), 
+      _backgroundColour(src._backgroundColour),
+      _justification(src._justification),
       _mathMode(src._mathMode)
 {
 }
 
 
-Label::Label( const Point& aPoint ) 
-    : Graphic(), 
+Label::Label( const Point& aPoint )
+    : Graphic(),
       _origin(aPoint),
       _lines(1),
-      _backgroundColour(TRANSPARENT), 
-      _justification(Justification::CENTER), 
+      _backgroundColour(TRANSPARENT),
+      _justification(Justification::CENTER),
       _mathMode(false)
 {
 }
 
 Label&
 Label::scaleBy( const double sx, const double sy )
-{	
+{
     _origin.x( sx * _origin.x() );
     _origin.y( sy * _origin.y() );
     return *this;
@@ -172,7 +167,7 @@ Label::colour( const colour_type colour )
 }
 
 
-double 
+double
 Label::width() const
 {
     return for_each( _lines.begin(), _lines.end(), Width( 0 ) ).width() * normalized_font_size() / 2.0;		// A guess.
@@ -180,69 +175,69 @@ Label::width() const
 
 
 
-double 
+double
 Label::height() const
 {
-    return size() * Flags::print[FONT_SIZE].opts.value.i;
+    return size() * Flags::font_size();
 }
 
 
 Label&
 Label::appendLSM( const LabelStringManip& m)
-{ 
-    _lines.back() << m; 
+{
+    _lines.back() << m;
     return *this;
 }
 
 
 Label&
 Label::appendSCM( const SRVNCallManip& m )
-{ 
-    _lines.back() << m; 
+{
+    _lines.back() << m;
     return *this;
 }
 
 
 Label&
 Label::appendSEM( const SRVNEntryManip& m)
-{ 
-    _lines.back() << m; 
+{
+    _lines.back() << m;
     return *this;
 }
 
 
 Label&
 Label::appendSTM( const TaskCallManip& m )
-{ 
-    _lines.back() << m; 
+{
+    _lines.back() << m;
     return *this;
 }
 
 
 Label&
 Label::appendDM( const DoubleManip& m )
-{ 
-    _lines.back() << m; 
+{
+    _lines.back() << m;
     return *this;
 }
 
 
-Label& 
+Label&
 Label::appendD( const double aDouble )
 {
     if ( !std::isfinite( aDouble ) ) {
 	if ( aDouble < 0.0 ) {
-	    _lines.back() << '-'; 
+	    _lines.back() << '-';
 	}
 	infty();
     } else {
-	_lines.back() << aDouble; 
+	_lines.back() << aDouble;
     }
-    return *this; 
+    return *this;
 }
 
 Label&
-Label::appendV( const LQIO::DOM::ExternalVariable& v ) 
+Label::appendV( const LQIO::DOM::ExternalVariable& v )
 {
     if ( Flags::instantiate ) {
 	appendD( to_double( v ) );
@@ -254,7 +249,7 @@ Label::appendV( const LQIO::DOM::ExternalVariable& v )
     return *this;
 }
 
-Label& 
+Label&
 Label::beginMath()
 {
     if ( !_mathMode ) {
@@ -265,7 +260,7 @@ Label::beginMath()
 }
 
 
-Label& 
+Label&
 Label::endMath()
 {
     return *this;
@@ -312,7 +307,7 @@ Label::rho()
 }
 
 
-Label& 
+Label&
 Label::sigma()
 {
     (*this) << "s2";
@@ -348,13 +343,13 @@ Label::boundingBox( Point& boxOrigin, Point& boxExtent, const double scaling ) c
     boxOrigin = _origin;
     boxExtent.moveTo( width(), height() );		/* A guess... width is half of height */
     boxExtent *= scaling;
-    
+
     switch ( justification() ) {
-    case Justification::LEFT:	
+    case Justification::LEFT:
 	boxOrigin.moveBy( 0.0, -boxExtent.y() / 2.0 );
 	break;
 
-    case Justification::RIGHT:	
+    case Justification::RIGHT:
 	boxOrigin.moveBy( -boxExtent.x(), -boxExtent.y() / 2.0 );
 	break;
 
@@ -382,7 +377,7 @@ LabelEMF::width() const
  * EMF uses UNICode.  Little Endian
  */
 
-Label& 
+Label&
 LabelEMF::epsilon()
 {
     _lines.back() << static_cast<char>(0x03) << static_cast<char>(0xb5);	/* Greek 0x3b5 */
@@ -476,12 +471,12 @@ LabelEMF::appendS( const std::string& s )
  * We have to convert to unicode.  Ugh.
  */
 
-Label& 
+Label&
 LabelEMF::appendD( const double aDouble )
 {
     if ( !std::isfinite( aDouble ) ) {
 	if ( aDouble < 0.0 ) {
-	    appendC( '-' ); 
+	    appendC( '-' );
 	}
 	infty();
     } else {
@@ -489,7 +484,7 @@ LabelEMF::appendD( const double aDouble )
 	s << aDouble;
 	appendS( s.str() );
     }
-    return *this; 
+    return *this;
 }
 
 
@@ -497,13 +492,13 @@ LabelEMF::appendD( const double aDouble )
  * We have to convert to unicode.  Ugh.
  */
 
-Label& 
+Label&
 LabelEMF::appendI( const int anInt )
 {
     std::ostringstream s;
     s << anInt;
     appendS( s.str() );
-    return *this; 
+    return *this;
 }
 
 
@@ -511,13 +506,13 @@ LabelEMF::appendI( const int anInt )
  * We have to convert to unicode.  Ugh.
  */
 
-Label& 
+Label&
 LabelEMF::appendUI( const unsigned anInt )
 {
     std::ostringstream s;
     s << anInt;
     appendS( s.str() );
-    return *this; 
+    return *this;
 }
 
 
@@ -593,13 +588,13 @@ LabelEMF::initialPoint() const
     double dx = 0.0;
     switch ( justification() ) {
     case Justification::LEFT:
-	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0 * EMF_SCALING;
+	dx =  Flags::font_size() / 2.0 * EMF_SCALING;
 	break;
     case Justification::RIGHT:
-	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0 * EMF_SCALING;
+	dx = -Flags::font_size() / 2.0 * EMF_SCALING;
 	break;
     }
-    aPoint.moveBy( dx, (2.0 - size()) / 2.0 * Flags::print[FONT_SIZE].opts.value.i * EMF_SCALING );
+    aPoint.moveBy( dx, (2.0 - size()) / 2.0 * Flags::font_size() * EMF_SCALING );
     return aPoint;
 }
 #endif
@@ -686,17 +681,17 @@ LabelFig::initialPoint() const
     double dx = 0.0;
     switch ( justification() ) {
     case Justification::LEFT:
-	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0 * FIG_SCALING;
+	dx =  Flags::font_size() / 2.0 * FIG_SCALING;
 	break;
     case Justification::RIGHT:
-	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0 * FIG_SCALING;
+	dx = -Flags::font_size() / 2.0 * FIG_SCALING;
 	break;
     }
-    aPoint.moveBy( dx, (((1-size())*Flags::print[FONT_SIZE].opts.value.i)/2 + 2) * FIG_SCALING );
+    aPoint.moveBy( dx, (((1-size())*Flags::font_size())/2 + 2) * FIG_SCALING );
     return aPoint;
 }
 
-#if HAVE_GD_H && HAVE_LIBGD 
+#if HAVE_GD_H && HAVE_LIBGD
 /* -------------------------------------------------------------------- */
 /* GD (Jpeg, PNG, GIF ) output						*/
 /* -------------------------------------------------------------------- */
@@ -782,7 +777,7 @@ Label&
 LabelGD::infty()
 {
     if ( haveTTF && _mathMode ) {
-//	_lines.back() << "&#8734;";	
+//	_lines.back() << "&#8734;";
 	Label::infty();
     } else {
 	Label::infty();
@@ -826,11 +821,11 @@ LabelGD::initialPoint() const
 
     if ( haveTTF ) {
 	switch ( justification() ) {
-	case Justification::LEFT:	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0; break;
-	case Justification::RIGHT:	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0; break;
+	case Justification::LEFT:	dx =  Flags::font_size() / 2.0; break;
+	case Justification::RIGHT:	dx = -Flags::font_size() / 2.0; break;
 	}
 
-	aPoint.moveBy( dx, -(((-1.2-size())*Flags::print[FONT_SIZE].opts.value.i)/2.0) );
+	aPoint.moveBy( dx, -(((-1.2-size())*Flags::font_size())/2.0) );
     } else {
 	gdFont * font = getfont();
 
@@ -879,8 +874,8 @@ LabelPostScript::times()
 }
 
 
-/* 
- * Now put out stuff 
+/*
+ * Now put out stuff
  */
 
 const LabelPostScript&
@@ -898,11 +893,11 @@ LabelPostScript::initialPoint() const
     Point aPoint = _origin;
     double dx = 0.0;
     switch ( justification() ) {
-    case Justification::LEFT:	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0; break;
-    case Justification::RIGHT:	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0; break;
+    case Justification::LEFT:	dx =  Flags::font_size() / 2.0; break;
+    case Justification::RIGHT:	dx = -Flags::font_size() / 2.0; break;
     }
 
-    aPoint.moveBy( dx, -(((1.6-size())*Flags::print[FONT_SIZE].opts.value.i)/2.0) );
+    aPoint.moveBy( dx, -(((1.6-size())*Flags::font_size())/2.0) );
     return aPoint;
 }
 
@@ -996,11 +991,11 @@ LabelSVG::initialPoint() const
     Point aPoint = _origin;
     double dx = 0.0;
     switch ( justification() ) {
-    case Justification::LEFT:	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0; break;
-    case Justification::RIGHT:	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0; break;
+    case Justification::LEFT:	dx =  Flags::font_size() / 2.0; break;
+    case Justification::RIGHT:	dx = -Flags::font_size() / 2.0; break;
     }
 
-    aPoint.moveBy( dx, ( (size()/2.0) * Flags::print[FONT_SIZE].opts.value.i * SVG_SCALING) / 1.2 );
+    aPoint.moveBy( dx, ( (size()/2.0) * Flags::font_size() * SVG_SCALING) / 1.2 );
     return aPoint;
 }
 
@@ -1099,7 +1094,7 @@ LabelSXD::draw( std::ostream& output ) const
 
 
 /*
- * Effectively No-operation because we don't need it. 
+ * Effectively No-operation because we don't need it.
  */
 
 Point
@@ -1241,11 +1236,11 @@ LabelTeX::initialPoint() const
     Point aPoint = _origin;
     double dx = 0.0;
     switch ( justification() ) {
-    case Justification::LEFT:	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0 * EEPIC_SCALING; break;
-    case Justification::RIGHT:	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0 * EEPIC_SCALING; break;
+    case Justification::LEFT:	dx =  Flags::font_size() / 2.0 * EEPIC_SCALING; break;
+    case Justification::RIGHT:	dx = -Flags::font_size() / 2.0 * EEPIC_SCALING; break;
     }
 
-    aPoint.moveBy( dx, -(((1-size())*Flags::print[FONT_SIZE].opts.value.i)/2. + 1.) * EEPIC_SCALING);
+    aPoint.moveBy( dx, -(((1-size())*Flags::font_size())/2. + 1.) * EEPIC_SCALING);
     return aPoint;
 }
 
@@ -1339,13 +1334,13 @@ LabelPsTeX::initialPoint() const
     double dx = 0.0;
     switch ( justification() ) {
     case Justification::LEFT:
-	dx =  Flags::print[FONT_SIZE].opts.value.i / 2.0 * FIG_SCALING;
+	dx =  Flags::font_size() / 2.0 * FIG_SCALING;
 	break;
     case Justification::RIGHT:
-	dx = -Flags::print[FONT_SIZE].opts.value.i / 2.0 * FIG_SCALING;
+	dx = -Flags::font_size() / 2.0 * FIG_SCALING;
 	break;
     }
-    aPoint.moveBy( dx, (((1-size())*Flags::print[FONT_SIZE].opts.value.i)/2 + 2) * FIG_SCALING );
+    aPoint.moveBy( dx, (((1-size())*Flags::font_size())/2 + 2) * FIG_SCALING );
     return aPoint;
 }
 

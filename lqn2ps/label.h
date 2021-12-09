@@ -1,6 +1,6 @@
 /* -*- c++ -*- node.h	-- Greg Franks
  *
- * $Id: label.h 15170 2021-12-07 23:33:05Z greg $
+ * $Id: label.h 15179 2021-12-08 20:18:42Z greg $
  */
 
 #ifndef _LABEL_H
@@ -24,6 +24,8 @@ class TaskCallManip;
 class Label : public Graphic
 {
 public:
+    typedef Label * (*create_func)();
+    
     class Line {
     public:
 	Line();
@@ -153,13 +155,12 @@ inline std::ostream& operator<<( std::ostream& output, const Label& self ) { sel
 #if defined(EMF_OUTPUT)
 class LabelEMF : public Label, private EMF
 {
-    friend Label * Label::newLabel();
-
 private:
     LabelEMF() : Label(), EMF() {}
     LabelEMF( const LabelEMF& src ) : Label( src ) {}
 
 public:
+    static Label * create() { return new LabelEMF(); }
     virtual LabelEMF * clone() { return new LabelEMF( *this ); }
 
     virtual double width() const;
@@ -191,13 +192,12 @@ protected:
 
 class LabelFig : public Label, private Fig
 {
-    friend Label * Label::newLabel();
-
 private:
     LabelFig() : Label(), Fig() {}
     LabelFig( const LabelFig& src ) : Label( src ), Fig() {}
 
 public:
+    static Label * create() { return new LabelFig(); }
     virtual LabelFig * clone() { return new LabelFig( *this ); }
 
     virtual Label& infty();
@@ -213,13 +213,12 @@ protected:
 #if HAVE_GD_H && HAVE_LIBGD
 class LabelGD : public Label, private GD
 {
-    friend Label * Label::newLabel();
-
 private:
     LabelGD() : Label(), GD() {}
     LabelGD( const LabelGD& src ) : Label( src ), GD() {}
 
 public:
+    static Label * create() { return new LabelGD(); }
     virtual LabelGD * clone() { return new LabelGD( *this ); }
 
     virtual double width() const;
@@ -241,13 +240,12 @@ protected:
 
 class LabelNull : public Label
 {
-    friend Label * Label::newLabel();
-
 private:
     LabelNull() : Label() {}
     LabelNull( const LabelNull& src ) : Label( src ) {}
 
 public:
+    static Label * create() { return new LabelNull(); }
     virtual LabelNull * clone() { return new LabelNull( *this ); }
 
     virtual const LabelNull& draw( std::ostream& output ) const { return *this; }
@@ -258,13 +256,12 @@ protected:
 
 class LabelPostScript : public Label, private PostScript
 {
-    friend Label * Label::newLabel();
-
 private:
     LabelPostScript() : Label(), PostScript() {}
     LabelPostScript( const LabelPostScript& src ) : Label( src ), PostScript() {}
 
 public:
+    static Label * create() { return new LabelPostScript(); }
     virtual LabelPostScript * clone() { return new LabelPostScript( *this ); }
 
     virtual Label& infty();
@@ -278,13 +275,12 @@ protected:
 #if defined(SVG_OUTPUT)
 class LabelSVG : public Label, private SVG
 {
-    friend Label * Label::newLabel();
-
 private:
     LabelSVG() : Label(), SVG() {}
     LabelSVG( const LabelSVG& src ) : Label( src ), SVG() {}
 
 public:
+    static Label * create() { return new LabelSVG(); }
     virtual LabelSVG * clone() { return new LabelSVG( *this ); }
 
     virtual Label& epsilon();
@@ -302,16 +298,15 @@ protected:
 };
 #endif
 
-#if defined(SXD_OUTPUT)
+#if SXD_OUTPUT
 class LabelSXD : public Label, private SXD
 {
-    friend Label * Label::newLabel();
-
 private:
     LabelSXD() : Label(), SXD() {}
     LabelSXD( const LabelSXD& src ) : Label( src ), SXD() {}
 
 public:
+    static Label * create() { return new LabelSXD(); }
     virtual LabelSXD * clone() { return new LabelSXD( *this ); }
 
     virtual Label& epsilon();
@@ -329,13 +324,15 @@ protected:
 };
 #endif
 
-#if defined(X11_OUTPUT)
+#if X11_OUTPUT
 class LabelX11 : public Label, private X11
 {
 private:
+    LabelX11() : Label(), X11() {}
     LabelX11( const LabelX11& src ) : Label( src ), X11() {}
 
 public:
+    static LabelX * create() { return new LabelX11(); }
     virtual LabelX11 * clone() { return new LabelX11( *this ); }
 
     virtual const LabelX11& draw( std::ostream& output ) const { return output; }
@@ -355,11 +352,11 @@ protected:
 class LabelTeX : public LabelTeXCommon, private TeX
 {
 private:
+    LabelTeX() : LabelTeXCommon(), TeX() {}
     LabelTeX( const LabelTeX& src ) : LabelTeXCommon( src ), TeX() {}
 
 public:
-    LabelTeX() : LabelTeXCommon(), TeX() {}
-
+    static Label * create() { return new LabelTeX(); }
     virtual LabelTeX * clone() { return new LabelTeX( *this ); }
 
     virtual Label& epsilon();
@@ -379,10 +376,10 @@ class LabelPsTeX : public LabelTeXCommon, public Fig
 {
 private:
     LabelPsTeX( const LabelTeX& src ) : LabelTeXCommon( src ), Fig() {}
-
-public:
     LabelPsTeX() : LabelTeXCommon(), Fig() {}
 
+public:
+    static Label * create() { return new LabelPsTeX(); }
     virtual LabelPsTeX * clone() { return new LabelPsTeX( *this ); }
 
     virtual Label& epsilon();

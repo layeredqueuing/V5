@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 15170 2021-12-07 23:33:05Z greg $
+ * $Id: actlist.cc 15184 2021-12-09 20:22:28Z greg $
  */
 
 
@@ -399,8 +399,8 @@ JoinActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned& n
     if ( next() ) {
 	double count = next()->aggregate( anEntry, curr_p, next_p, rate, activityStack, aFunc );
 	if ( aFunc == &Activity::aggregateService
-	     && (Flags::print[AGGREGATION].opts.value.a == Aggregate::SEQUENCES
-		 || Flags::print[AGGREGATION].opts.value.a == Aggregate::THREADS)
+	     && (Flags::aggregation() == Aggregate::SEQUENCES
+		 || Flags::aggregation() == Aggregate::THREADS)
 	     && dynamic_cast<ForkActivityList *>(next())
 	     && !dynamic_cast<RepeatActivityList *>(next()) ) {
 
@@ -855,7 +855,7 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 
     if ( aFunc == &Activity::aggregateService
 	 && joinList->size() == size()
-	 && Flags::print[AGGREGATION].opts.value.a == Aggregate::THREADS
+	 && Flags::aggregation() == Aggregate::THREADS
 	 && dynamic_cast<OrJoinActivityList *>(joinList)
 	 && dynamic_cast<ForkActivityList *>(joinList->next())
 	 && !dynamic_cast<RepeatActivityList *>(joinList->next()) ) {
@@ -937,7 +937,7 @@ OrForkActivityList::scaleBy( const double sx, const double sy )
 OrForkActivityList&
 OrForkActivityList::label()
 {
-    if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
+    if ( Flags::print_input_parameters() ) {
 	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	    *(_labelList[*activity]) << prBranch( *activity );
 	}
@@ -1567,7 +1567,7 @@ RepeatActivityList::clone() const
 RepeatActivityList&
 RepeatActivityList::label()
 {
-    if ( Flags::print[INPUT_PARAMETERS].opts.value.b ) {
+    if ( Flags::print_input_parameters() ) {
 	for ( std::map<Activity *,Label *>::iterator label = _labelList.begin(); label != _labelList.end(); ++label ) {
 	    const LQIO::DOM::ExternalVariable * var = rateBranch(label->first);
 	    if ( var ) {
