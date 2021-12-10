@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15149 2021-12-03 16:29:26Z greg $
+ * $Id: lqns.cc 15194 2021-12-10 12:01:01Z greg $
  *
  * Command line processing.
  *
@@ -46,7 +46,6 @@ static char copyrightDate[20];
 /* -- */
 
 struct FLAGS flags;
-LQIO::DOM::Pragma pragmas;
 
 #if HAVE_GETOPT_LONG
 const struct option longopts[] =
@@ -183,7 +182,7 @@ int main (int argc, char *argv[])
 		    const char * subopt = options;
 		    const int ix = getsubopt( &options, Options::Debug::__options.data(), &value );
 		    if ( ix >= 0 && value != nullptr ) {
-			Options::Debug::exec( ix, value );
+			Options::Debug::exec( ix, (value == nullptr ? std::string("") : value) );
 		    } else {
 			throw std::invalid_argument( std::string("--debug=") + subopt );
 		    }
@@ -342,8 +341,8 @@ int main (int argc, char *argv[])
 		    char * value = nullptr;
 		    const char * subopt = options;
 		    const int ix = getsubopt( &options, Options::Debug::__options.data(), &value );
-		    if ( ix >= 0 && value != nullptr ) {
-			Options::Trace::exec( ix, value );
+		    if ( ix >= 0 ) {
+			Options::Trace::exec( ix, (value != nullptr ? value : std::string("") ) );
 		    } else {
 			throw std::invalid_argument( std::string("--trace=") + subopt );
 		    }

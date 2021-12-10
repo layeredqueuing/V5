@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: model.cc 15186 2021-12-10 00:32:18Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -368,7 +368,7 @@ Model::create( const std::string& input_file_name, const std::string& output_fil
     /* This is a departure from before -- we begin by loading a model.  Load results if possible (except if overridden with a parseable output filename */
 
     unsigned int errorCode;
-    LQIO::DOM::Document* document = LQIO::DOM::Document::load( input_file_name, input_format, errorCode, parse_file_name.empty() && Flags::print[RESULTS].opts.value.b );
+    LQIO::DOM::Document* document = LQIO::DOM::Document::load( input_file_name, input_format, errorCode, parse_file_name.empty() && Flags::print_results() );
     if ( !document ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": Input model was not loaded successfully." << std::endl;
 	LQIO::io_vars.error_count += 1;
@@ -378,7 +378,7 @@ Model::create( const std::string& input_file_name, const std::string& output_fil
 	Flags::set_output_format( dom_to_lqn2xxx.at(input_format) );
     }
 
-    if ( !parse_file_name.empty() && Flags::print[RESULTS].opts.value.b ) {
+    if ( !parse_file_name.empty() && Flags::print_results() ) {
 	try {
 	    Flags::have_results = LQIO::SRVN::loadResults( parse_file_name );
 	} 
@@ -392,7 +392,7 @@ Model::create( const std::string& input_file_name, const std::string& output_fil
 	    if ( output_output() ) return;
 	}
     } else {
-	Flags::have_results = Flags::print[RESULTS].opts.value.b && document->hasResults();
+	Flags::have_results = Flags::print_results() && document->hasResults();
     }
 
     /* Now fold, mutiliate and spindle */
@@ -427,7 +427,7 @@ Model::create( const std::string& input_file_name, const std::string& output_fil
 
 	try {
 	    program = document->getLQXProgram();
-	    if ( program && Flags::print[RUN_LQX].opts.value.b ) {
+	    if ( program != nullptr && Flags::run_lqx() ) {
 		Flags::instantiate  = true;
 
 		if (program == NULL) {
@@ -677,7 +677,7 @@ Model::process()
     } 
 
     if ( !Flags::have_results && Flags::colouring() == Colouring::RESULTS ) {
-	Flags::print[COLOUR].opts.value.c = Colouring::NONE;
+	Flags::set_colouring( Colouring::NONE );
     }
 
     if ( share_output() ) {
@@ -1041,7 +1041,7 @@ Model::prune()
 	LQIO::solution_error( ERR_UNASSIGNED_VARIABLES );
     }
     
-    return Flags::print[IGNORE_ERRORS].opts.value.b || !LQIO::io_vars.anError();
+    return Flags::ignore_errors() || !LQIO::io_vars.anError();
 }
 #endif
 
@@ -1062,7 +1062,7 @@ Model::generate()
 	}
     }
 
-    return Flags::print[IGNORE_ERRORS].opts.value.b || !LQIO::io_vars.anError();
+    return Flags::ignore_errors() || !LQIO::io_vars.anError();
 }
 
 
@@ -1422,7 +1422,7 @@ Model::finalScaleTranslate()
 Model&
 Model::label()
 {
-    Flags::have_results = Flags::print[RESULTS].opts.value.b && ( _document->getResultIterations() > 0 || _document->getResultConvergenceValue() > 0 );
+    Flags::have_results = Flags::print_results() && ( _document->getResultIterations() > 0 || _document->getResultConvergenceValue() > 0 );
     for_each( _layers.rbegin(), _layers.rend(), Exec<Layer>( &Layer::label ) );
     return *this;
 }
@@ -2931,7 +2931,7 @@ Squashed_Model::generate()
 
     _layers.resize( SERVER_LEVEL );
 
-    return Flags::print[IGNORE_ERRORS].opts.value.b || !LQIO::io_vars.anError();
+    return Flags::ignore_errors() || !LQIO::io_vars.anError();
 }
 
 Model&

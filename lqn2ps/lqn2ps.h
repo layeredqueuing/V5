@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 15184 2021-12-09 20:22:28Z greg $
+ * $Id: lqn2ps.h 15186 2021-12-10 00:32:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -191,37 +191,48 @@ struct Flags
     static const unsigned int size;
 
 public:
+    static bool ignore_errors() { return print[IGNORE_ERRORS].opts.value.b; }
+    static bool set_ignore_errors( bool b ) { print[IGNORE_ERRORS].opts.value.b = b; return b; }
     static bool print_input_parameters() { return Flags::print[INPUT_PARAMETERS].opts.value.b; }
     static bool set_print_input_parameters( bool b ) { Flags::print[INPUT_PARAMETERS].opts.value.b = b; return b; }
-    static unsigned int set_font_size( int i ) { Flags::print[FONT_SIZE].opts.value.i = i; return i; }
-    static unsigned int font_size() { return Flags::print[FONT_SIZE].opts.value.i; }
+    static bool print_results() { return print[RESULTS].opts.value.b; }
+    static bool set_print_results( bool b ) { print[RESULTS].opts.value.b = b; return b; }
+    static bool reload_lqx() { return print[RELOAD_LQX].opts.value.b; }
+    static bool set_reload_lqx( bool b ) { print[RELOAD_LQX].opts.value.b = b; return b; }
+    static bool run_lqx() { return print[RUN_LQX].opts.value.b; }
+    static bool set_run_lqx( bool b ) { print[RUN_LQX].opts.value.b = b; return b; }
+
+    static double border() { return Flags::print[BORDER].opts.value.d; }
+    static double set_border( double d ) { Flags::print[BORDER].opts.value.d = d; return d; }
+    static double magnification() { return Flags::print[MAGNIFICATION].opts.value.d; }
+    static double set_magnification( double d ) { Flags::print[MAGNIFICATION].opts.value.d = d; return d; }
     static double x_spacing() { return Flags::print[X_SPACING].opts.value.d; }
     static double set_x_spacing( double d ) { return Flags::print[X_SPACING].opts.value.d = d; return d; }
     static double y_spacing() { return Flags::print[Y_SPACING].opts.value.d; }
     static double set_y_spacing( double d ) { return Flags::print[Y_SPACING].opts.value.d = d; return d; }
-    static double magnification() { return Flags::print[MAGNIFICATION].opts.value.d; }
-    static double set_magnification( double d ) { Flags::print[MAGNIFICATION].opts.value.d = d; return d; }
-    static double border() { return Flags::print[BORDER].opts.value.d; }
-    static double set_border( double d ) { Flags::print[BORDER].opts.value.d = d; return d; }
+
     static unsigned int chain() { return Flags::print[CHAIN].opts.value.i; }
     static unsigned int set_chain( unsigned int i ) { Flags::print[CHAIN].opts.value.i = i; return i; }
-    static unsigned int submodel() { return Flags::print[SUBMODEL].opts.value.i; }
-    static unsigned int set_submodel( unsigned int i ) { Flags::print[SUBMODEL].opts.value.i = i; return i; }
+    static unsigned int font_size() { return Flags::print[FONT_SIZE].opts.value.i; }
+    static unsigned int set_font_size( int i ) { Flags::print[FONT_SIZE].opts.value.i = i; return i; }
     static unsigned int precision() { return Flags::print[PRECISION].opts.value.i; }
-    static unsigned int set_precision( unsigned int i ) { Flags::print[PRECISION].opts.value.i = i; return i; }
     static unsigned int queueing_model() { return Flags::print[QUEUEING_MODEL].opts.value.i; }
     static unsigned int set_queueing_model( unsigned int i ) { Flags::print[QUEUEING_MODEL].opts.value.i = i; return i; }
+    static unsigned int set_precision( unsigned int i ) { Flags::print[PRECISION].opts.value.i = i; return i; }
+    static unsigned int submodel() { return Flags::print[SUBMODEL].opts.value.i; }
+    static unsigned int set_submodel( unsigned int i ) { Flags::print[SUBMODEL].opts.value.i = i; return i; }
+
     static std::regex* include_only() { return Flags::print[INCLUDE_ONLY].opts.value.m; }
     static std::regex* set_include_only( std::regex* m ) { Flags::print[INCLUDE_ONLY].opts.value.m = m; return m; }
     
     static Aggregate aggregation() { return print[AGGREGATION].opts.value.a; }
     static Aggregate set_aggregation( Aggregate a ) { print[AGGREGATION].opts.value.a = a; return a; }
-    static File_Format output_format() { return print[OUTPUT_FORMAT].opts.value.f; }
-    static File_Format set_output_format( File_Format f ) { print[OUTPUT_FORMAT].opts.value.f = f; return f; }
-    static File_Format input_format() { return print[INPUT_FORMAT].opts.value.f; }
-    static File_Format set_input_format( File_Format f ) { print[INPUT_FORMAT].opts.value.f = f; return f; }
     static Colouring colouring() { return print[COLOUR].opts.value.c; }
     static Colouring set_colouring( Colouring c ) { print[COLOUR].opts.value.c = c; return c; }
+    static File_Format input_format() { return print[INPUT_FORMAT].opts.value.f; }
+    static File_Format output_format() { return print[OUTPUT_FORMAT].opts.value.f; }
+    static File_Format set_input_format( File_Format f ) { print[INPUT_FORMAT].opts.value.f = f; return f; }
+    static File_Format set_output_format( File_Format f ) { print[OUTPUT_FORMAT].opts.value.f = f; return f; }
     static Key_Position key_position() { return print[KEY].opts.value.k; }
     static Key_Position set_key_position( Key_Position k ) { print[KEY].opts.value.k = k; return k; }
     static Layering layering() { return print[LAYERING].opts.value.l; }

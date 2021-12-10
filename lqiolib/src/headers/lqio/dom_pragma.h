@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 15125 2021-11-25 03:12:30Z greg $
+ * $Id: dom_pragma.h 15191 2021-12-10 04:12:37Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -117,6 +117,7 @@ namespace LQIO {
 	    static const char * _max_blocks_;
 	    static const char * _mol_;
 	    static const char * _mol_back_;
+	    static const char * _mol_underrelaxation_;	// lqns
 	    static const char * _multiserver_;
 	    static const char * _multiservers_;
 	    static const char * _mva_;

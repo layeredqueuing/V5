@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: option.h 15060 2021-10-09 23:28:42Z greg $
+ * $Id: option.h 15194 2021-12-10 12:01:01Z greg $
  */
 
 #ifndef _OPTION_H
@@ -133,7 +133,9 @@ namespace Options
 	static void make_man( const std::string& );
 	static void make_tex( const std::string& );
 	static void min_steps( const std::string& );
+#if HAVE_LIBGSL
 	static void ignore_overhanging_threads( const std::string& );
+#endif
 	static void full_reinitialize( const std::string& );
     };
 }

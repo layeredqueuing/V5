@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 15112 2021-11-17 23:41:07Z greg $
+ * $Id: processor.cc 15191 2021-12-10 04:12:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -341,6 +341,11 @@ Processor::makeServer( const unsigned nChains )
 		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) ) return nullptr;
 		_station = new Rolia_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
+
+	    case Pragma::Multiserver::ZHOU:
+		if ( dynamic_cast<Zhou_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;
+		_station = new Zhou_Multi_Server( copies(), nEntries(), nChains );
+		break;
 	    }
 
 	} else {
@@ -396,7 +401,7 @@ Processor::makeServer( const unsigned nChains )
 		throw not_implemented( "Task::makeServer", __FILE__, __LINE__ );
 
 	    case Pragma::Multiserver::ZHOU:
-		if ( dynamic_cast<Schmidt_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;
+		if ( dynamic_cast<Zhou_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;
 		_station = new Zhou_Multi_Server( copies(), nEntries(), nChains );
 		break;
 		

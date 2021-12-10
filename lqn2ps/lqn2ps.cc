@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: lqn2ps.cc 15186 2021-12-10 00:32:18Z greg $
  *
  * Command line processing.
  *
@@ -205,7 +205,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-12-09 15:22:28 -0500 (Thu, 09 Dec 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-12-09 19:32:18 -0500 (Thu, 09 Dec 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -308,7 +308,7 @@ main(int argc, char *argv[])
 	    break;
 
 	case 0x200+'E':
-	    Flags::print[IGNORE_ERRORS].opts.value.b = true;
+	    Flags::set_ignore_errors( true );
 	    break;
 
 	case 'F':
@@ -328,7 +328,7 @@ main(int argc, char *argv[])
 	    break;
 
 	case 0x200+'G':
-	    Flags::print[RUN_LQX].opts.value.b 	= true;		    /* Run lqx */
+	    Flags::set_run_lqx( true );		    /* Run lqx */
 	    Flags::dump_graphviz 		= true;
 	    break;
 
@@ -476,7 +476,7 @@ main(int argc, char *argv[])
 	    break;
 
 	case 0x200+'l':
-	    Flags::print[RUN_LQX].opts.value.b 	= true;		    /* Run lqx */
+	    Flags::set_run_lqx( true );		    /* Run lqx */
 	    break;
 
 	case 0x200+'L':
@@ -554,7 +554,7 @@ main(int argc, char *argv[])
 	    break;
 
 	case 'r':
-	    Flags::print[RESULTS].opts.value.b = Options::set_all_result_options( enable );
+	    Flags::set_print_results( Options::set_all_result_options( enable ) );
 	    break;
 
 #if REP2FLAT
@@ -568,7 +568,7 @@ main(int argc, char *argv[])
 #endif
 
 	case 0x200+'r':
-	    Flags::print[RUN_LQX].opts.value.b 		= true;		    /* Reload lqx */
+	    Flags::set_run_lqx( true );		    /* Reload lqx */
 	    Flags::print[RELOAD_LQX].opts.value.b	= true;
 	    break;
 
@@ -764,7 +764,7 @@ main(int argc, char *argv[])
     }
 
     if ( Flags::output_format() == File_Format::SRVN && !partial_output() ) {
-	Flags::print[RESULTS].opts.value.b = false;	/* Ignore results */
+	Flags::set_print_results( false );	/* Ignore results */
     }
 
     if ( Flags::flatten_submodel && !(submodel_output() || queueing_output()) ) {

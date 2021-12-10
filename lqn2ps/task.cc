@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: task.cc 15188 2021-12-10 02:23:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2452,7 +2452,7 @@ Task::draw( std::ostream& output ) const
     myLabel->backgroundColour( colour() ).comment( output, aComment.str() );
     output << *myLabel;
 
-    if ( Flags::aggregation() == Aggregate::ENTRIES ) {
+    if ( Flags::aggregation() != Aggregate::ENTRIES ) {
 	for_each( entries().begin(), entries().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
 	for_each( activities().begin(), activities().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
 	for_each( precedences().begin(), precedences().end(), ConstExec1<ActivityList,std::ostream&>( &ActivityList::draw, output ) );

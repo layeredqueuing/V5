@@ -1,6 +1,6 @@
 /* arc.cc	-- Greg Franks Thu Jan 30 2003
  *
- * $Id: arc.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: arc.cc 15187 2021-12-10 00:50:52Z greg $
  */
 
 #include "lqn2ps.h"
@@ -44,10 +44,10 @@ Arc::newArc( const unsigned size, const arrowhead_type arrow )
     };
 
     std::map<const File_Format,Arc::create_func>::const_iterator f = new_arc.find( Flags::output_format() );
-    if ( f == new_arc.end() ) {
-	return ArcNull::create(size, arrow);
-    } else {
+    if ( f != new_arc.end() ) {
 	return (*(f->second))(size, arrow);
+    } else {
+	return ArcNull::create(size, arrow);
     }
 }
 
@@ -280,7 +280,7 @@ Arc::removeDuplicates() const
     return new_arc;
 }
 
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
 const ArcEMF&
 ArcEMF::draw( std::ostream& output ) const
 {
@@ -376,7 +376,7 @@ ArcPostScript::comment( std::ostream& output, const std::string& aString ) const
     return output;
 }
 
-#if defined(SVG_OUTPUT)
+#if SVG_OUTPUT
 const ArcSVG&
 ArcSVG::draw( std::ostream& output ) const
 {
@@ -396,7 +396,7 @@ ArcSVG::comment( std::ostream& output, const std::string& aString ) const
 }
 #endif
 
-#if defined(SXD_OUTPUT)
+#if SXD_OUTPUT
 const ArcSXD&
 ArcSXD::draw( std::ostream& output ) const
 {

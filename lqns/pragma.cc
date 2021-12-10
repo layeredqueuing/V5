@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15131 2021-11-25 20:58:17Z greg $ *
+ * $Id: pragma.cc 15192 2021-12-10 11:53:33Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -18,6 +18,7 @@
 #include <lqio/glblerr.h>
 #include "pragma.h"
 
+LQIO::DOM::Pragma pragmas;
 Pragma * Pragma::__cache = nullptr;
 const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
 {
@@ -27,6 +28,7 @@ const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
     { LQIO::DOM::Pragma::_interlocking_,		&Pragma::setInterlock },
     { LQIO::DOM::Pragma::_layering_,			&Pragma::setLayering },
     { LQIO::DOM::Pragma::_multiserver_,			&Pragma::setMultiserver },
+    { LQIO::DOM::Pragma::_mol_underrelaxation_,		&Pragma::setMOLUnderrelaxation },
     { LQIO::DOM::Pragma::_mva_,				&Pragma::setMva },
     { LQIO::DOM::Pragma::_overtaking_,			&Pragma::setOvertaking },
     { LQIO::DOM::Pragma::_processor_scheduling_,	&Pragma::setProcessorScheduling },
@@ -61,6 +63,7 @@ Pragma::Pragma() :
     _force_multiserver(ForceMultiserver::NONE),
     _interlock(true),
     _layering(Layering::BATCHED),
+    _mol_underrelaxation(0.5),
     _multiserver(Multiserver::DEFAULT),
     _mva(MVA::LINEARIZER),
     _overtaking(Overtaking::MARKOV),
@@ -198,6 +201,14 @@ void Pragma::setLayering(const std::string& value)
     }
 }
 
+
+void Pragma::setMOLUnderrelaxation(const std::string& value)
+{
+    char * endptr = nullptr;
+    const double temp = std::strtod( value.c_str(), &endptr );
+    if ( (temp <= 0 || 1 < temp) || *endptr != '\0' ) throw std::domain_error( value );
+    _mol_underrelaxation = temp;
+}
 
 void Pragma::setMultiserver(const std::string& value)
 {
@@ -422,7 +433,7 @@ void Pragma::setTaskScheduling(const std::string& value)
 void Pragma::setTau(const std::string& value)
 {
     char * endptr = nullptr;
-    const unsigned int temp = std::strtol( value.c_str(), &endptr, 10 );
+    const unsigned int temp = std::strtoul( value.c_str(), &endptr, 10 );
     if ( temp > 20 || *endptr != '\0' ) throw std::domain_error( value );
     _tau = temp;
 }

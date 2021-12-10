@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: label.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: label.cc 15187 2021-12-10 00:50:52Z greg $
  */
 
 #include "lqn2ps.h"
@@ -85,10 +85,10 @@ Label::newLabel()
     };
 
     std::map<const File_Format,Label::create_func>::const_iterator f = new_label.find( Flags::output_format() );
-    if ( f == new_label.end() ) {
-	return LabelNull::create();
-    } else {
+    if ( f != new_label.end() ) {
 	return (*(f->second))();
+    } else {
+	return LabelNull::create();
     }
 }
 

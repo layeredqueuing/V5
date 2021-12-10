@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: call.cc 15188 2021-12-10 02:23:30Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -965,7 +965,7 @@ Call::label()
 	if ( hasNoCall() && Flags::colouring() != Colouring::NONE ) {
 	    _label->colour( Graphic::RED );
 	}
-	if ( Flags::aggregation() == Aggregate::ENTRIES ) {
+	if ( Flags::aggregation() != Aggregate::ENTRIES ) {
 	    *_label << '(' << print_calls(*this) << ')';
 	}
 	const LQIO::DOM::ExternalVariable& fan_out = srcTask()->fanOut( dstTask() );

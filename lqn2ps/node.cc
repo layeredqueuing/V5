@@ -1,6 +1,6 @@
 /* node.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: node.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: node.cc 15187 2021-12-10 00:50:52Z greg $
  */
 
 #include "lqn2ps.h"
@@ -52,10 +52,10 @@ Node::newNode( double x, double y )
     };
 
     std::map<const File_Format,Node::create_func>::const_iterator f = new_node.find( Flags::output_format() );
-    if ( f == new_node.end() ) {
-	return NodeNull::create( 0, 0, x, y );
-    } else {
+    if ( f != new_node.end() ) {
 	return (*(f->second))( 0, 0, x, y );
+    } else {
+	return NodeNull::create( 0, 0, x, y );
     }
 }
 

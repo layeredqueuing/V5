@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: layer.cc 15188 2021-12-10 02:23:30Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -440,7 +440,7 @@ void Layer::Position::operator()( Entity * entity )
     if ( !entity->isSelectedIndirectly() ) return;
     if ( _x != 0.0 ) _x += Flags::x_spacing();
     Task * aTask = dynamic_cast<Task *>(entity);
-    if ( aTask && Flags::aggregation() == Aggregate::ENTRIES ) {
+    if ( aTask && Flags::aggregation() != Aggregate::ENTRIES ) {
 	(aTask->*_f)();
     }
     if ( Flags::debug ) std::cerr << "  Layer::Position move " << entity->name() << " to (" << _x << "," << entity->bottom() << ")" << std::endl;
