@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15186 2021-12-10 00:32:18Z greg $
+ * $Id: model.cc 15206 2021-12-13 15:22:46Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -22,7 +22,10 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#if defined(X11_OUTPUT)
+#if HAVE_SYS_TIMES_H
+#include <sys/times.h>
+#endif
+#if X11_OUTPUT
 #include <sys/stat.h>
 #endif
 #include <lqio/dom_document.h>
@@ -321,7 +324,7 @@ Model::group_by_submodel()
  */
 
 void
-Model::create( const std::string& input_file_name, const std::string& output_file_name, const std::string& parse_file_name, int model_no )
+Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& pragmas, const std::string& output_file_name, const std::string& parse_file_name, int model_no )
 {
     /* Maps for type conversion */
     static const std::map<const File_Format,const LQIO::DOM::Document::InputFormat> lqn2xxx_to_dom = {

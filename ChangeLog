@@ -1,3 +1,8 @@
+2021-12-10  Gregory Franks  <greg@Gregs-Retina-iMac.local>
+
+	* lqns
+	- Added #pragma multiserver=zhou to use Siyu's approximation.
+
 2021-09-13  Gregory Franks  <greg@Gregs-MacBookPro-2.local>
 
 	* lqiolib
@@ -524,4 +529,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 14976 2021-09-14 01:13:25Z greg $
+$Id: ChangeLog 15196 2021-12-10 17:37:47Z greg $

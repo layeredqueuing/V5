@@ -1,6 +1,6 @@
 #
 #----------------------------------------------------------------------
-# $Id: Makefile.am 14948 2021-08-19 21:15:26Z greg $
+# $Id: Makefile.am 15206 2021-12-13 15:22:46Z greg $
 #----------------------------------------------------------------------
 
 ACLOCAL_AMFLAGS=-I ../config
@@ -24,7 +24,6 @@ petrisrvn_SOURCES = actlist.cc \
 
 noinst_HEADERS=	activity.h \
 	actlist.h \
-	config.h \
 	entry.h \
 	errmsg.h \
 	makeobj.h \
@@ -38,7 +37,7 @@ noinst_HEADERS=	activity.h \
 	runlqx.h \
 	task.h
 
-EXTRA_DIST 	= README NEWS ChangeLog AUTHORS COPYING petrisrvn.1
+EXTRA_DIST 	= petrisrvn.1
 
 petrisrvn_CXXFLAGS  = -std=c++11 -Wall -Wno-parentheses -Wno-unknown-pragmas
 petrisrvn_LDADD	    = -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio -Lwspnlib -lwspn

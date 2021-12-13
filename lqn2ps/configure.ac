@@ -67,27 +67,11 @@ AC_TYPE_SIZE_T
 
 # ----------------------------------------------------------------------
 # Checks for library functions.
-AC_FUNC_STAT
-AC_FUNC_STRFTIME
 AC_CHECK_FUNCS([basename ctime getsubopt])
 AC_CHECK_FUNCS([pow sqrt])
 AC_CHECK_FUNCS([getuid])
-if test "x$enable_shared" = "xyes"; then
-   AC_CHECK_FUNCS([gdImageFilledArc gdImageGifPtr gdImageSetAntiAliased gdFTUseFontConfig])
-fi
 AC_CHECK_FUNCS([getopt_long])
 AC_CHECK_FUNCS([mkdir rmdir])
 AC_CHECK_FUNCS([strchr strdup strerror strrchr strtol])
-#
-# Final pass for jpeg/png/gd. 
-#
-# echo "ac_cv_lib_png_png_write_image is ${ac_cv_lib_png_png_write_image}"
-# echo "ac_cv_lib_gd_gdMalloc is ${ac_cv_lib_gd_gdMalloc}"
-AM_CONDITIONAL([COND_PNG], [test "${ac_cv_lib_png_png_write_image}" = "yes" -a "${ac_cv_lib_gd_gdMalloc}" = "yes" ])
-AM_CONDITIONAL([COND_GIF], [test "${ac_cv_func_gdImageGifPtr}" = "yes" ])
-AM_CONDITIONAL([COND_JPEG], [test "${ac_cv_lib_jpeg_jpeg_write_raw_data}" = "yes" -a "${ac_cv_lib_gd_gdMalloc}" = "yes" ])
-if test "${ac_cv_lib_gd_gdMalloc}" = "no"; then
-   LIBS=`echo $LIBS | sed -e "s/-lpng//" -e "s/-ljpeg//" -e "s/-lz//"`
-fi
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

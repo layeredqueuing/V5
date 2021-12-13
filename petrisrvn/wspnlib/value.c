@@ -1,11 +1,11 @@
 /*
- *  $Id: value.c 11063 2012-07-06 16:15:58Z greg $
+ *  $Id: value.c 15206 2021-12-13 15:22:46Z greg $
  *
  *  This file provides different values for modelling.
  *
  */
 
-#include <../config.h>
+#include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>

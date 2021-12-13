@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15184 2021-12-09 20:22:28Z greg $ *
+ * $Id: pragma.cc 15201 2021-12-13 01:31:53Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -202,7 +202,7 @@ void Pragma::setProcessorScheduling(const std::string& value)
 
 void Pragma::setPrune(const std::string& value)
 {
-    if ( input_output() ) return;		// Ignore if generating input.
+    if ( input_output() ) return;		// Ignore if not generating input.
     Flags::prune = LQIO::DOM::Pragma::isTrue(value);
 }
 

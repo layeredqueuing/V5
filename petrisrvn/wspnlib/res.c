@@ -1,11 +1,11 @@
 /*
- *  $Id: res.c 10972 2012-06-19 01:12:22Z greg $
+ *  $Id: res.c 15206 2021-12-13 15:22:46Z greg $
  *
  *  Routines to edit and show result definitions.
  *
  */
 
-#include <../config.h>
+#include <config.h>
 #include <math.h>
 #include <sys/types.h>
 #include <sys/stat.h>

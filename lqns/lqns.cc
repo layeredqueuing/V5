@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15194 2021-12-10 12:01:01Z greg $
+ * $Id: lqns.cc 15206 2021-12-13 15:22:46Z greg $
  *
  * Command line processing.
  *
@@ -118,11 +118,7 @@ extern "C" int getsubopt (char **, char * const *, char **);
 int main (int argc, char *argv[])
 {
     std::string outputFileName = "";
-#if HAVE_GETOPT_LONG
-    LQIO::CommandLine command_line( longopts );
-#else
-    LQIO::CommandLine command_line( );
-#endif
+    LQIO::CommandLine command_line;
     Options::Debug::initialize();
     Options::Trace::initialize();
     Options::Special::initialize();

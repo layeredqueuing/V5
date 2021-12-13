@@ -143,7 +143,7 @@ bool
 Model::solve()
 {
     bool ok = true;
-    if ( _input.hasSPEX() ) {
+    if ( _input.hasSPEX() && _input.getLQXProgram() != nullptr ) {
 	std::vector<LQX::SyntaxTreeNode *> * program = _input.getLQXProgram();
 		
 	/* Get the result variables and convert to an expression list for construct */

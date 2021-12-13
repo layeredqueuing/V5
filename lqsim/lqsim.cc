@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 15049 2021-10-07 16:54:01Z greg $
+ * $Id: lqsim.cc 15206 2021-12-13 15:22:46Z greg $
  */
 
 #define STACK_TESTING
@@ -312,11 +312,7 @@ main( int argc, char * argv[] )
     char * value;
     extern int optind;
 
-#if HAVE_GETOPT_LONG
-    LQIO::CommandLine command_line( longopts );
-#else
-    LQIO::CommandLine command_line();
-#endif
+    LQIO::CommandLine command_line;
 
     /* Set the program name and revision numbers.			*/
 
@@ -324,7 +320,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2021-10-07 12:54:01 -0400 (Thu, 07 Oct 2021) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2021-12-13 10:22:46 -0500 (Mon, 13 Dec 2021) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 15113 2021-11-18 14:59:45Z greg $
+ * $Id: petrisrvn.cc 15206 2021-12-13 15:22:46Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -174,7 +174,7 @@ int
 main (int argc, char *argv[])
 {
     std::string output_file = "";
-    LQIO::CommandLine command_line( longopts );
+    LQIO::CommandLine command_line;
 
     extern char *optarg;
     extern int optind;

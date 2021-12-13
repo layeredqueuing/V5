@@ -1,5 +1,5 @@
 /*
- *  $Id: alloc.c 10972 2012-06-19 01:12:22Z greg $
+ *  $Id: alloc.c 15206 2021-12-13 15:22:46Z greg $
  *  Prentiss Riddle
  *
  *  Front-ends for the Unix(tm) malloc routines, with rudimentary error
@@ -7,7 +7,7 @@
  *
  */
 
-#include <../config.h>
+#include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "const.h"

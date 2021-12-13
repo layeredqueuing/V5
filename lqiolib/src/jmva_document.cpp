@@ -77,6 +77,7 @@ namespace BCMP {
 									 _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 									 _plot_population_mix(false), _x1(), _x2()
     {
+	LQIO::DOM::Document::__input_file_name = input_file_name;
     }
 
     JMVA_Document::JMVA_Document( const std::string& input_file_name, const BCMP::Model& model ) : _model(model), _input_file_name(input_file_name), _parser(nullptr), _stack(),
@@ -85,6 +86,7 @@ namespace BCMP {
 												   _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 												   _plot_population_mix(false), _x1(), _x2()
     {
+	LQIO::DOM::Document::__input_file_name = input_file_name;
     }
 
     JMVA_Document::~JMVA_Document()
@@ -94,6 +96,7 @@ namespace BCMP {
 	}
 	
 	LQIO::Spex::clear();
+	LQIO::DOM::Document::__input_file_name.clear();
     }
 
     /* static */ JMVA_Document *
@@ -109,9 +112,9 @@ namespace BCMP {
     }
 
     bool
-    JMVA_Document::load( LQIO::DOM::Document& lqn, const std::string& input_filename )
+    JMVA_Document::load( LQIO::DOM::Document& lqn, const std::string& input_file_name )
     {
-	JMVA_Document * jmva = create( input_filename );
+	JMVA_Document * jmva = create( input_file_name );
 	if ( !jmva ) return false;
 	return  jmva->convertToLQN( lqn );
     }
@@ -255,6 +258,9 @@ namespace BCMP {
 	}
 	catch ( const LQIO::undefined_symbol & e ) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, e.what() );
+	}
+	catch ( const std::out_of_range& e ) {
+	    LQIO::input_error( "Undefined variable." );
 	}
 	catch ( const std::domain_error & e ) {
 	    LQIO::input_error( "Domain error: %s ", e.what() );

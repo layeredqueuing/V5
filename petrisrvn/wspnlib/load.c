@@ -1,5 +1,5 @@
 /*
- * $Id: load.c 10974 2012-06-19 14:27:04Z greg $
+ * $Id: load.c 15206 2021-12-13 15:22:46Z greg $
  * 
  * Routines to translate a GSPN definition in file  "~/nets/netname.net" into the internal data structures used by the editor.
  * 
@@ -9,7 +9,7 @@
 
 #define VBAR '|'
 
-#include <../config.h>
+#include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
