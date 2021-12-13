@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 14900 2021-07-14 21:32:58Z greg $
+ *  $Id: dom_bindings.cpp 15209 2021-12-13 16:20:37Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -643,7 +643,7 @@ namespace LQIO {
 	    /* Make sure we got one */
 	    if (domAct == nullptr) {
 		throw LQX::RuntimeException("No activity named `%s' for task `%s'.",
-					    domAct->getName().c_str(), domTask->getName().c_str());
+					    actName, domTask->getName().c_str());
 		return LQX::Symbol::encodeNull();
 	    }
 
