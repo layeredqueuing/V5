@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 15206 2021-12-13 15:22:46Z greg $
+ * $Id: srvndiff.cc 15212 2021-12-13 17:19:13Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -935,7 +935,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2021-12-13 10:22:46 -0500 (Mon, 13 Dec 2021) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2021-12-13 12:19:13 -0500 (Mon, 13 Dec 2021) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1302,7 +1302,7 @@ compare_directories (unsigned n, char * const dirs[])
 	for ( i = 0; i < n; ++i ) {
 	    int rc;
 	    dir_list[i].gl_pathc = 0;
-	    for ( std::vector<const std::string>::const_iterator match = patterns.begin(); match != patterns.end() && dir_list[i].gl_pathc == 0 ; ++match ) {
+	    for ( std::vector<std::string>::const_iterator match = patterns.begin(); match != patterns.end() && dir_list[i].gl_pathc == 0 ; ++match ) {
 		std::string path = std::string(dirs[i]) + "/" + file_pattern + *match;
 		rc = glob( path.c_str(), 0, NULL, &dir_list[i] );
 	    }
