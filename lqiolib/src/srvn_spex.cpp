@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 15146 2021-12-03 03:46:28Z greg $
+ *  $Id: srvn_spex.cpp 15217 2021-12-14 21:32:46Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -140,8 +140,7 @@ namespace LQIO {
 
 	/* Add observation variables */
 	for ( std::map<std::string,LQX::SyntaxTreeNode *>::iterator obs_p = __observation_variables.begin(); obs_p != __observation_variables.end(); ++obs_p ) {
-	    const std::string& name = obs_p->first;		    /* Strip $ for LQX var name	 vvvvvvvv */
-	    main_line->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), new LQX::ConstantValueExpression( 0.0 ) ) );	/* Initialize all observations variables */
+	    main_line->push_back( new LQX::AssignmentStatementNode( get_observation_variable(obs_p->first), new LQX::ConstantValueExpression( 0.0 ) ) );	/* Initialize all observations variables */
 	}
 
 	/* Remove any array references from the completions. */
@@ -219,8 +218,8 @@ namespace LQIO {
 	case KEY_SYSTEM_TIME:	node = new LQX::ObjectPropertyReadNode( object, "system_cpu_time" ); break;
 	default:	abort();
 	}
-	const std::string& name = obs.getVariableName();	      /* Strip $ for LQX name vvvvvvvv */
-	__observation_variables[name] = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), node );
+	const std::string& name = obs.getVariableName();
+	__observation_variables[name] = new LQX::AssignmentStatementNode( get_observation_variable( name ), node );
 	return object;		/* For chaining */
     }
 
@@ -306,18 +305,37 @@ namespace LQIO {
 	    LQIO::input_error2( LQIO::ERR_SPEX_PARAMETER_OBSERVATION, name.c_str(), obs.getKeyCode().c_str(), doc_obj->getName().c_str() );
 	}
 	__observations.insert( std::pair<const DOM::DocumentObject*,ObservationInfo>(doc_obj,obs) );			/* Save variable names per DOM object */
-	__observation_variables[name] = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ),	/* Strip $ for LQX variable name */
+	__observation_variables[name] = new LQX::AssignmentStatementNode( get_observation_variable( name ),		/* Strip $ for LQX variable name */
 									  new LQX::ObjectPropertyReadNode( lqx_obj, __key_lqx_function_map.at(key) ) );
 	const unsigned int conf_level = obs.getConfLevel();
 	if ( conf_level != 0 ) {
 	    const std::string& conf_name = obs.getConfVariableName().c_str();
 	    lqx_obj = new LQX::MethodInvocationExpression( "conf_int", lqx_obj, new LQX::ConstantValueExpression( static_cast<double>(conf_level) ), NULL );
-	    __observation_variables[conf_name] = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &conf_name[1], false ),
+	    __observation_variables[conf_name] = new LQX::AssignmentStatementNode( get_observation_variable( conf_name ),
 										   new LQX::ObjectPropertyReadNode( lqx_obj, __key_lqx_function_map.at(key) ) );
 	}
 	return lqx_obj;		/* For chaining */
     }
 	
+
+    /*
+     * Get an observation variable (which should not be an input variable).
+     */
+    
+    LQX::VariableExpression * Spex::get_observation_variable( const std::string& name ) const
+    {
+	LQX::VariableExpression * var = nullptr;
+	if ( std::isdigit( name[1] ) ) {
+	    std::string local = name;
+	    local[0] = '_';					  	/* Swap $ to _ */
+	    var = new LQX::VariableExpression( local, false );
+	} else {
+	    var = new LQX::VariableExpression( &name[1], false );	/* Strip $ */
+	}
+	return var;
+    }
+	
+
     /*
      * foreach( i,$var in list );
      * loop_stmt(X) ::= FOREACH OBRACKET IDENTIFIER(A) COMMA IDENTIFIER(B) IN expr(C) CBRACKET stmt(D).
@@ -1534,8 +1552,8 @@ void * spex_result_assignment_statement( const char * name, void * expr )
 	const LQX::SyntaxTreeNode * node = static_cast<LQX::SyntaxTreeNode *>(expr);
 	node->print( ss );
 	var_name = ss.str();
-	if ( dynamic_cast<const LQX::VariableExpression *>(node) != nullptr && var_name[0] != '$' ) {
-	    var_name.insert( 0, "$" );			/* Convert to external variable */
+	if ( dynamic_cast<const LQX::VariableExpression *>(node) != nullptr && var_name[0] == '_' ) {
+	    var_name[0] = '$';				/* Convert to external variable */
 	}
 	LQIO::Spex::__result_variables.push_back( LQIO::Spex::var_name_and_expr(var_name,nullptr) );		/* Save variable name for printing */
     }
@@ -1592,7 +1610,7 @@ void * spex_get_symbol( const char * name )
     const bool is_external = LQIO::Spex::is_global_var( name );
     if ( is_external || name[0] != '$' ) {
 	return new LQX::VariableExpression( name, is_external );
-    } else if ( !isdigit( name[1] ) ) {
+    } else if ( !std::isdigit( name[1] ) ) {
 	return new LQX::VariableExpression( &name[1], is_external );
     } else {
 	std::string local = name;

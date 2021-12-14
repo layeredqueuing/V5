@@ -1,7 +1,5 @@
-# $Id: Makefile.am 14825 2021-06-15 19:26:29Z greg $
+# $Id: Makefile.am 15217 2021-12-14 21:32:46Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
-
-#AM_CXXFLAGS=-std=c++11
 
 # This project uses Libtool to generate a product
 SUBDIRS = headers/lqio
@@ -29,7 +27,7 @@ liblqio_la_SOURCES = bcmp_bindings.cpp \
 	dom_task.cpp \
 	error.cpp \
 	filename.cpp \
-	getsbopt.cc \
+	getsubopt.cpp \
 	glblerr.cpp \
 	json_document.cpp \
 	labels.cpp \
