@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: dom_pragma.cpp 15231 2021-12-17 14:22:39Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -190,12 +190,12 @@ namespace LQIO {
 	const char * Pragma::_default_ =			"default";
 	const char * Pragma::_default_natural_ = 		"default-natural";
 	const char * Pragma::_deterministic_ = 			"deterministic";	// Quorum
-	const char * Pragma::_exact_ =				"exact";
+	const char * Pragma::_exact_ =				"exact-mva";
 	const char * Pragma::_expand_ =				"expand";
 	const char * Pragma::_exponential_ =			"exponential";
 	const char * Pragma::_extended_ =			"extended";		// BUG 270
 	const char * Pragma::_false_ =				"false";
-	const char * Pragma::_fast_ =				"fast";
+	const char * Pragma::_fast_ =				"fast-linearizer";
 	const char * Pragma::_fixed_rate_ =			"fixed-rate";
 	const char * Pragma::_force_infinite_ =			"force-infinite";
 	const char * Pragma::_force_multiserver_ =		"force-multiserver";

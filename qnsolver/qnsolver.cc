@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 15223 2021-12-15 19:31:15Z greg $
+ * $Id: qnsolver.cc 15230 2021-12-17 14:22:19Z greg $
  */
 
 #include "config.h"
@@ -27,26 +27,26 @@ static void usage() ;
 const struct option longopts[] =
     /* name */ /* has arg */ /*flag */ /* val */
 {
-    { "bounds",		    no_argument,	0, 'b' },
-    { "exact-mva",          no_argument,       	0, 'e' },
-    { "bard-schweitzer",    no_argument,       	0, 's' },
-    { "linearizer",         no_argument,       	0, 'l' },
-    { "fast-linearizer",    no_argument,       	0, 'f' },
-    { "output", 	    required_argument, 	0, 'o' },
-    { "plot-queue-length",  required_argument,  0, 'q' },
-    { "plot-response-time", no_argument,        0, 'r' },
-    { "plot-throughput",    optional_argument, 	0, 't' },
-    { "plot-utilization",   required_argument,	0, 'u' },
-    { "plot-waiting-time",  required_argument,  0, 'w' },
-    { "multiserver",	    required_argument,  0, 'm' },
-    { "force-multiserver",  no_argument,	0, 'F' },
-    { "verbose",            no_argument,        0, 'v' },
-    { "help",               no_argument,       	0, 'h' },
-    { "export-qnap2",	    no_argument,	0, 'Q' },
-    { "debug-mva",	    no_argument,    	0, 'D' },
-    { "debug-xml",	    no_argument, 	0, 'X' },
-    { "debug-spex",	    no_argument,	0, 'S' },
-    { 0, 0, 0, 0 }
+    { "bounds",					no_argument,		0, 'b' },
+    { LQIO::DOM::Pragma::_exact_,		no_argument,		0, 'e' },
+    { LQIO::DOM::Pragma::_schweitzer_,		no_argument,		0, 's' },
+    { LQIO::DOM::Pragma::_linearizer_,		no_argument,		0, 'l' },
+    { LQIO::DOM::Pragma::_fast_,		no_argument,		0, 'f' },
+    { "output",					required_argument,	0, 'o' },
+    { "plot-queue-length",			required_argument,	0, 'q' },
+    { "plot-response-time",			no_argument,		0, 'r' },
+    { "plot-throughput",			optional_argument,	0, 't' },
+    { "plot-utilization",			required_argument,	0, 'u' },
+    { "plot-waiting-time",			required_argument,	0, 'w' },
+    { "multiserver",				required_argument,	0, 'm' },
+    { LQIO::DOM::Pragma::_force_multiserver_,	no_argument,		0, 'F' },
+    { "verbose",				no_argument,		0, 'v' },
+    { "help",					no_argument,		0, 'h' },
+    { "export-qnap2",				no_argument,		0, 'Q' },
+    { "debug-mva",				no_argument,		0, 'D' },
+    { "debug-xml",				no_argument,		0, 'X' },
+    { "debug-spex",				no_argument,		0, 'S' },
+    { nullptr, 0, 0, 0 }
 };
 
 static std::string opts;
@@ -55,42 +55,50 @@ static std::string opts = "bdefhlo:rstvxQSX";
 #endif
 
 const static std::map<const std::string,const std::string> opthelp  = {
-    { "bounds",		    "Compute bounds" },
-    { "exact-mva",	    "Use Exact MVA." },	
-    { "bard-schweitzer",    "Use Bard-Schweitzer approximate MVA." },
-    { "linearizer",	    "Use Linearizer." },
-    { "fast-linearizer",    "Use the Fast Linearizer solver." },
-    { "output",		    "Send output to ARG." },
-    { "plot-queue-length",  "Output gnuplot to plot station queue-length.  ARG specifies a class or station." },
-    { "plot-response-time", "Output gnuplot to plot system response-time (and bounds)." },
-    { "plot-throughput",    "Output gnuplot to plot system throughput (and bounds), or for a class or station with ARG." },
-    { "plot-utilization",   "Output gnuplot to plot utilization.  ARG specifies a class or station." },
-    { "plot-waiting-time",  "Output gnuplot to plot station waiting-times.  ARG specifies a class or station." },
-    { "multiserver",	    "Use ARG for multiservers.  ARG={conway,reiser,rolia,zhou}." },
-    { "force-multiserver",  "Use the multiserver solution for load independent stations (copies=1)." },
-    { "verbose",	    "" },
-    { "help",		    "Show this." },
-    { "export-qnap2",	    "Export a QNAP2 model.  Do not solve." },
-    { "debug-mva",	    "Enable debug code." },
-    { "debug-xml",	    "Debug XML input." },
-    { "debug-spex",	    "Debug SPEX program." },
+    { "bounds",		    			"Compute bounds" },
+    { LQIO::DOM::Pragma::_exact_,		"Use Exact MVA." },
+    { LQIO::DOM::Pragma::_schweitzer_,		"Use Bard-Schweitzer approximate MVA." },
+    { LQIO::DOM::Pragma::_linearizer_,		"Use Linearizer." },
+    { LQIO::DOM::Pragma::_fast_,		"Use the Fast Linearizer solver." },
+    { "output",					"Send output to ARG." },
+    { "plot-queue-length",			"Output gnuplot to plot station queue-length.  ARG specifies a class or station." },
+    { "plot-response-time",			"Output gnuplot to plot system response-time (and bounds)." },
+    { "plot-throughput",			"Output gnuplot to plot system throughput (and bounds), or for a class or station with ARG." },
+    { "plot-utilization",			"Output gnuplot to plot utilization.  ARG specifies a class or station." },
+    { "plot-waiting-time",			"Output gnuplot to plot station waiting-times.	ARG specifies a class or station." },
+    { "multiserver",				"Use ARG for multiservers.  ARG={conway,reiser,rolia,zhou}." },
+    { LQIO::DOM::Pragma::_force_multiserver_,	"Use the multiserver solution for load independent stations (copies=1)." },
+    { "verbose",				"" },
+    { "help",					"Show this." },
+    { "export-qnap2",				"Export a QNAP2 model.	Do not solve." },
+    { "debug-mva",				"Enable debug code." },
+    { "debug-xml",				"Debug XML input." },
+    { "debug-spex",				"Debug SPEX program." },
 };
 
-static bool verbose_flag = true;			/* Print results		*/
+/* Flags */
+
+static bool verbose_flag = false;		/* Print steps		*/
+static bool print_qnap2 = false;		/* Export to qnap2.  		*/
+static bool print_gnuplot = false;		/* Output WhatIf as gnuplot	*/
+static BCMP::Model::Result::Type plot_type = BCMP::Model::Result::Type::THROUGHPUT;
+static std::string plot_arg;
+
+/* Globals */
 
 std::string program_name;
 
 #if HAVE_EXPAT_H
 BCMP::JMVA_Document* __input = nullptr;
 #endif
+
+/* Local procedures */
+
+static void exec( const std::string& input_file_name, const std::string& output_file_name );
 
 int main (int argc, char *argv[])
 {
     std::string output_file_name;
-    bool print_qnap2 = false;			/* Export to qnap2.  		*/
-    bool print_gnuplot = false;			/* Output WhatIf as gnuplot	*/
-    BCMP::Model::Result::Type plot_type = BCMP::Model::Result::Type::THROUGHPUT;
-    std::string plot_arg;
 
     program_name = basename( argv[0] );
 
@@ -98,7 +106,7 @@ int main (int argc, char *argv[])
 #if HAVE_GETOPT_LONG
     makeopts( longopts, opts );
 #endif
-    
+
     LQIO::io_vars.init( VERSION, basename( argv[0] ), nullptr );
 
     pragmas.insert( getenv( "QNSOLVER_PRAGMAS" ) );
@@ -114,7 +122,7 @@ int main (int argc, char *argv[])
 	switch( c ) {
 	case 'b':
 	    break;
-	    
+
 	case 'd':
 #if HAVE_EXPAT_H
 	    debug_flag = true;
@@ -131,7 +139,7 @@ int main (int argc, char *argv[])
 	case 'e':
 	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_exact_);
 	    break;
-			
+
 	case 'f':
 	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_fast_);
 	    break;
@@ -139,7 +147,7 @@ int main (int argc, char *argv[])
 	case 'F':
 	    pragmas.insert(LQIO::DOM::Pragma::_force_multiserver_,LQIO::DOM::Pragma::_true_);
 	    break;
-	    
+
 	case 'h':
 	    usage();
 	    return 0;
@@ -151,22 +159,22 @@ int main (int argc, char *argv[])
 	case 'm':
 	    pragmas.insert(LQIO::DOM::Pragma::_multiserver_,optarg);
 	    break;
-	    
+
 	case 'o':
             output_file_name = optarg;
 	    break;
-	    
+
 	case 'q':
 	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
 	    plot_type = BCMP::Model::Result::Type::QUEUE_LENGTH;
 	    if ( optarg != nullptr ) plot_arg = optarg;
 	    break;
-	    
+
 	case 'r':
 	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
 	    plot_type = BCMP::Model::Result::Type::RESPONSE_TIME;
 	    break;
-	    
+
 	case 's':
 	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_schweitzer_);
 	    break;
@@ -176,23 +184,23 @@ int main (int argc, char *argv[])
 	    plot_type = BCMP::Model::Result::Type::THROUGHPUT;
 	    if ( optarg != nullptr ) plot_arg = optarg;
 	    break;
-	    
+
 	case 'u':
 	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
 	    plot_type = BCMP::Model::Result::Type::UTILIZATION;
 	    if ( optarg != nullptr ) plot_arg = optarg;
 	    break;
-	    
+
 	case 'v':
 	    verbose_flag = true;
 	    break;
-			
+
 	case 'w':
 	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
 	    plot_type = BCMP::Model::Result::Type::RESIDENCE_TIME;
 	    if ( optarg != nullptr ) plot_arg = optarg;
 	    break;
-	    
+
 	case 'x':
 	    /* Not implemented */
 	    break;
@@ -200,17 +208,17 @@ int main (int argc, char *argv[])
 	case 'Q':
 	    print_qnap2 = true;
 	    break;
-		
+
 	case 'S':
 #if HAVE_EXPAT_H
 	    print_spex = true;
 #endif
 	    break;
-	    
+
 	case 'X':
             LQIO::DOM::Document::__debugXML = true;
 	    break;
-	    
+
 	default:
 	    usage();
 	    return 1;
@@ -221,35 +229,58 @@ int main (int argc, char *argv[])
 
 #if HAVE_EXPAT_H
     if ( optind == argc ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": arg count." << std::endl;
-	return 1;
+	exec( "-", output_file_name );
     } else {
         for ( ; optind < argc; ++optind ) {
-	    BCMP::JMVA_Document input( argv[optind] );
-	    if ( !input.parse() ) continue;
-	    if ( print_qnap2 ) {
-		std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
-	    } else {
-		input.mergePragmas( pragmas.getList() );
-		Pragma::set( input.getPragmaList() );		/* load pragmas here */
-
-		try {
-		    if ( print_gnuplot ) input.plot( plot_type, plot_arg );
-		}
-		catch ( const std::invalid_argument& e ) {
-		    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
-		}
-		Model model( input, Pragma::solver(), output_file_name );
-		if ( model.construct() ) {
-		    model.solve();
-		}
-	    }
+	    exec( argv[optind], output_file_name );
 	}
     }
 #else
     std::cerr << LQIO::io_vars.lq_toolname << ": No expat library available." << std::endl;
 #endif
     return 0;
+}
+
+
+/*
+ * Run the solver.
+ */
+
+static void exec( const std::string& input_file_name, const std::string& output_file_name )
+{
+    static std::map<const Model::Solver,const std::string> solver_name = {
+	{ Model::Solver::EXACT_MVA,		LQIO::DOM::Pragma::_exact_ },
+	{ Model::Solver::BARD_SCHWEITZER,	LQIO::DOM::Pragma::_schweitzer_ },
+	{ Model::Solver::LINEARIZER,		LQIO::DOM::Pragma::_linearizer_ },
+	{ Model::Solver::LINEARIZER2,		LQIO::DOM::Pragma::_fast_ },
+	{ Model::Solver::EXPERIMENTAL,		"experimental" },
+	{ Model::Solver::OPEN,			"open" }
+    };
+
+    if ( verbose_flag ) std::cerr << input_file_name << ": load... ";
+    BCMP::JMVA_Document input( input_file_name );
+    if ( input.parse() ) {
+	if ( print_qnap2 ) {
+	    std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
+	} else {
+	    input.mergePragmas( pragmas.getList() );
+	    Pragma::set( input.getPragmaList() );		/* load pragmas here */
+
+	    try {
+		if ( print_gnuplot ) input.plot( plot_type, plot_arg );
+	    }
+	    catch ( const std::invalid_argument& e ) {
+		std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
+	    }
+	    Model model( input, Pragma::solver(), output_file_name );
+	    if ( verbose_flag ) std::cerr << "construct... ";
+	    if ( model.construct() ) {
+		if ( verbose_flag ) std::cerr << "solve using " << solver_name.at(model.solver()) << "... ";
+		model.solve();
+	    }
+	}
+    }
+    if ( verbose_flag ) std::cerr << "done" << std::endl;
 }
 
 static void
@@ -266,7 +297,7 @@ makeopts( const struct option * longopts, std::string& opts )
 }
 
 static void
-usage() 
+usage()
 {
     std::cerr << "Usage: " << program_name;
 

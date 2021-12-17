@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 15066 2021-10-12 12:20:10Z greg $
+ * $Id: help.cc 15232 2021-12-17 14:46:45Z greg $
  */
 
 #include "lqns.h"
@@ -55,7 +55,7 @@ static const std::map<const std::string,const std::string> opt_help = {
     { "no-warnings",			    "Do not output warning messages." },
     { "xml",				    "Ouptut results in XML format." },
     { "special",			    "Set special options.  See -Hz." },
-    { "exact-mva",			    "Use exact MVA instead of Linearizer for solving submodels." },
+    { LQIO::DOM::Pragma::_exact_,	    "Use exact MVA instead of Linearizer for solving submodels." },
     { LQIO::DOM::Pragma::_schweitzer_,	    "Use Schweitzer approximate MVA instead of Linearizer." },
     { "batch-layering",			    "Default layering strategy." },
     { "hwsw-layering",			    "Use HW/SW layering instead of batched layering." },
@@ -2138,7 +2138,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 15066 2021-10-12 12:20:10Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 15232 2021-12-17 14:46:45Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2437,7 +2437,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 15066 2021-10-12 12:20:10Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 15232 2021-12-17 14:46:45Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

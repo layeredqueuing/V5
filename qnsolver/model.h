@@ -10,7 +10,7 @@
  *
  * December 2020
  *
- * $Id: model.h 15125 2021-11-25 03:12:30Z greg $
+ * $Id: model.h 15230 2021-12-17 14:22:19Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -59,6 +59,7 @@ public:
     bool instantiate();
     virtual bool solve();
     void bounds();
+    Solver solver() const { return _solver; }
     
 protected:
     virtual BCMP::Model::Chain::Type type() const { return BCMP::Model::Chain::Type::UNDEFINED; }

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15206 2021-12-13 15:22:46Z greg $
+ * $Id: lqns.cc 15232 2021-12-17 14:46:45Z greg $
  *
  * Command line processing.
  *
@@ -74,7 +74,7 @@ const struct option longopts[] =
     { "no-warnings",			    no_argument,       nullptr, 'w' },
     { "xml",				    no_argument,       nullptr, 'x' },
     { "special",			    required_argument, nullptr, 'z' },
-    { "exact-mva",			    no_argument,       nullptr, 256+'e' },
+    { LQIO::DOM::Pragma::_exact_,	    no_argument,       nullptr, 256+'e' },
     { LQIO::DOM::Pragma::_schweitzer_,	    no_argument,       nullptr, 256+'s' },
     { "batch-layering",			    no_argument,       nullptr, 256+'b' },	/* NOP */
     { "hwsw-layering",			    no_argument,       nullptr, 256+'h' },
@@ -90,7 +90,6 @@ const struct option longopts[] =
     { "reload-lqx",			    no_argument,       nullptr, 512+'r' },
     { "restart",			    no_argument,       nullptr, 512+'R' },
     { "no-header",			    no_argument,       nullptr, 512+'h' },
-//  { "no-variance",			    no_argument,       nullptr, 512+'v' },
     { "print-comment",			    no_argument,       nullptr, 512+'c' },
     { "print-interval",			    optional_argument, nullptr, 512+'p' },
     { "reset-mva",			    no_argument,       nullptr, 256+'r' },
