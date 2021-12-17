@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 15037 2021-10-04 16:35:47Z greg $
+ * $Id: gnuplot.cc 15223 2021-12-15 19:31:15Z greg $
  *
  * Command line processing.
  *

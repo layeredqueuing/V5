@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: entry.cc 15228 2021-12-16 23:28:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2075,14 +2075,14 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 	    client_task->addProcessor( processor );
 	    const_cast<Processor *>(processor)->addTask( client_task );
 	    const_cast<Processor *>(processor)->addDstCall( clone );
-#if defined(BUG_270)
+#if BUG_270
 	    std::cerr << "  Move " << (*p)->srcName() <<  "->" << (*p)->dstName()
 		      << "    to " << clone->srcName() << "->" << clone->dstName();
 	    if ( clone->sumOfRendezvous() != nullptr ) {
 		std::cerr << ", visits=" << *clone->sumOfRendezvous();
 	    }
 #endif
-	    if ( dynamic_cast<ProcessorCall *>(clone) ) {
+	    if ( dynamic_cast<ProcessorCall *>(clone) != nullptr && dynamic_cast<ProcessorCall *>(clone)->service_time() != nullptr ) {
 		const Entry * entry = dynamic_cast<ProcessorCall *>(clone)->srcEntry();
 		std::cerr << ", service time=" << *dynamic_cast<ProcessorCall *>(clone)->service_time() << " from " << entry->name();
 	    }

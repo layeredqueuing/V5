@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: common_io.cpp 13433 2019-02-04 20:07:09Z greg $
+ * $Id: common_io.cpp 15221 2021-12-15 15:40:03Z greg $
  *
  * Read in XML input files.
  *

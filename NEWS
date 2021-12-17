@@ -1,10 +1,10 @@
 * Bugs fixed in 5.22
+314 	lqns	 	Add -Pmultiserver=zhou 
 316 	lqns 	 	Allow zero's for rendezvous/send-no-reply requests 
-317 	petrisrv 	SIGSEGV, Segmentation fault. in LQIO::DOM::Entity::getSchedulingType (this=0x0) at dom_entity.cpp:55 
+317 	petrisrv 	SIGSEGV, Segmentation fault. in LQIO::DOM::Entity::getSchedulingType (this=0x0) at dom_entity.cpp:55 	
+319 	qnsolver 	Can't build qnsolver without expat. 
 322 	qnsolver 	Add -Pmultiserver 
 325 	lqn2xxx 	Graphical output is borked. 
-314 	lqns 	 	Add -Pmultiserver=zhou 
-319 	qnsolver	Can't build qnsolver without expat. 
 
 * Bugs fixed in 5.21
 179     lqns            Replication does not take into consideration interlock.

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cpp 13764 2020-08-17 19:50:05Z greg $
+ * $Id: bcmp_document.cpp 15220 2021-12-15 15:18:47Z greg $
  *
  * Read in XML input files.
  *

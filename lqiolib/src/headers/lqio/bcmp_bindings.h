@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: bcmp_bindings.h 14511 2021-03-02 20:43:37Z greg $
+ *  $Id: bcmp_bindings.h 15220 2021-12-15 15:18:47Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.

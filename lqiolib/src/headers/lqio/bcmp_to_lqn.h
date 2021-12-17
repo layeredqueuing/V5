@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 13717 2020-08-03 00:04:28Z greg $
+ *  $Id: bcmp_to_lqn.h 15220 2021-12-15 15:18:47Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */

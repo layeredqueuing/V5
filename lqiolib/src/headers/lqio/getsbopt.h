@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: getsbopt.h 13717 2020-08-03 00:04:28Z greg $
+ * $Id: getsbopt.h 15220 2021-12-15 15:18:47Z greg $
  * This exists only if getsubopt isn't found in cstdlib (like on windoze)
  */
 
