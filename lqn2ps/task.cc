@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15188 2021-12-10 02:23:30Z greg $
+ * $Id: task.cc 15241 2021-12-18 13:36:50Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -968,7 +968,7 @@ Task::findOrAddPseudoCall( Entity * toEntity )
 }
 
 
-#if defined(BUG_270)
+#if BUG_270
 void
 Task::addSrcCall( EntityCall * call )
 {
@@ -1173,7 +1173,7 @@ Task::canConvertToReferenceTask() const
 
 
 
-#if defined(BUG_270)
+#if BUG_270
 bool
 Task::canPrune() const
 {
@@ -1953,7 +1953,7 @@ Task::translateY( const double dy )
 /* Converion to BCMP model.						*/
 /* -------------------------------------------------------------------- */
 
-#if defined(BUG_270)
+#if BUG_270
 Task&
 Task::relink()
 {
@@ -1962,6 +1962,7 @@ Task::relink()
     for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::unlinkFromServers ) );
     unlinkFromProcessor();
     Model::__zombies.push_back( this );
+    /* Observation variables ??? */
     return *this;
 }
 
@@ -1974,11 +1975,11 @@ Task::unlinkFromProcessor()
     processor->removeTask( this );
     for ( std::vector<EntityCall *>::iterator call = _calls.begin(); call != _calls.end(); ++call ) {
 	if ( dynamic_cast<ProcessorCall *>(*call) && dynamic_cast<ProcessorCall *>(*call)->dstEntity() == processor ) {
-	    processor->removeDstCall(*call);
+	    processor->removeDstCall( *call );
 	    break;
 	}
     }
-    _processors.erase(processor);
+    _processors.erase( processor );
     Model::__zombies.push_back( processor );
     return *this;
 }
@@ -1991,7 +1992,7 @@ Task::unlinkFromProcessor()
 Task&
 Task::mergeCalls()
 {
-#if BUG_270	
+#if BUG_270_DEBUG
     std::cout << "Task::mergeCalls() for " << name() << std::endl;
 #endif
     /* At this point, they are all processor calls */
@@ -2009,7 +2010,7 @@ Task::mergeCalls()
 	/* Accumlating visits appears to be correct, but service time is NOT... I need demand, then normalize to visits */
 	const LQIO::DOM::ExternalVariable * demand 	 = std::accumulate( lower, upper, static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &Task::sum_demand );
 	const LQIO::DOM::ExternalVariable * service_time = Entity::divideExternalVariables( demand, visits );
-#if BUG_270	
+#if BUG_270_DEBUG
 	size_t count = merge.count( server );
 	std::cout << "  To " << server->name() << ", count=" << count
 		  << ", visits=";
@@ -2051,7 +2052,6 @@ Task::sum_rendezvous( const LQIO::DOM::ExternalVariable * augend, const merge_pa
 }
 
 
-/* +BUG_270 */
 const LQIO::DOM::ExternalVariable *
 Task::sum_demand( const LQIO::DOM::ExternalVariable * augend, const merge_pair& addend )
 {
@@ -2061,7 +2061,6 @@ Task::sum_demand( const LQIO::DOM::ExternalVariable * augend, const merge_pair& 
     const LQIO::DOM::ExternalVariable * demand = Entity::multiplyExternalVariables( call->sumOfRendezvous(), call->srcEntry()->serviceTime() );
     return Entity::addExternalVariables( augend, demand );
 }
-/* -BUG_270 */
 #endif
 
 /* -------------------------------------------------------------------- */
@@ -2585,7 +2584,7 @@ ReferenceTask::findChildren( CallStack& callStack, const unsigned directPath )
 }
 
 
-#if defined(BUG_270)
+#if BUG_270
 Task&
 ReferenceTask::relink()
 {

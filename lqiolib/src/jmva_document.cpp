@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 15238 2021-12-17 19:56:21Z greg $
+ * $Id: jmva_document.cpp 15240 2021-12-18 04:40:03Z greg $
  *
  * Read in XML input files.
  *
@@ -1598,8 +1598,8 @@ namespace BCMP {
 	    for ( std::map<std::string,std::string>::const_iterator next_pragma = pragmas.begin(); next_pragma != pragmas.end(); ++next_pragma ) {
 		output << XML::start_element( Xpragma, false )
 		       << XML::attribute( Xparam, next_pragma->first )
-		       << XML::attribute( Xvalue, next_pragma->second );
-		output << XML::end_element( Xpragma, false ) << std::endl;
+		       << XML::attribute( Xvalue, next_pragma->second )
+		       << XML::end_element( Xpragma, false ) << std::endl;
 	    }
 	}
 	output << XML::start_element( Xmodel )
@@ -1629,8 +1629,8 @@ namespace BCMP {
 
 	output << XML::end_element( Xparameters ) << std::endl;
 	output << XML::start_element( XalgParams ) << ">" << std::endl
-	       << XML::simple_element( XalgType ) << XML::attribute( "maxSamples", 10000U ) << XML::attribute( Xname, std::string("MVA") ) << XML::attribute( "tolerance", 1.0E-7 ) << "/>" << std::endl
-	       << XML::simple_element( XcompareAlgs ) << XML::attribute( Xvalue, false ) << "/>" << std::endl
+	       << XML::simple_element( XalgType ) << XML::attribute( "maxSamples", 10000U ) << XML::attribute( Xname, std::string("MVA") ) << XML::attribute( "tolerance", 1.0E-7 ) << XML::end_element( XalgType, false ) << std::endl
+	       << XML::simple_element( XcompareAlgs ) << XML::attribute( Xvalue, false ) << XML::end_element( XcompareAlgs, false )  << std::endl
 	       << XML::end_element( XalgParams ) << std::endl;
 
 	/* SPEX */
@@ -1657,17 +1657,15 @@ namespace BCMP {
 	    output << XML::start_element( Xalgorithm ) << XML::attribute( Xiterations, static_cast<unsigned int>(0) ) << ">" << std::endl;
 	    /* Output by station, then class */
 	    for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
-		output << XML::start_element( Xstationresults ) << XML::attribute( Xstation, m->first );
+		output << XML::start_element( Xstationresults ) << XML::attribute( Xstation, m->first ) << ">" << std::endl;
 		const BCMP::Model::Station& station = m->second;
 		const BCMP::Model::Result::map_t& station_variables = station.resultVariables();
-		std::for_each( station_variables.begin(), station_variables.end(), printResultVariable( output ) );
-		output << ">" << std::endl;
+		std::for_each( station_variables.begin(), station_variables.end(), printMeasure( output ) );
 		for ( BCMP::Model::Station::Class::map_t::const_iterator k = station.classes().begin(); k != station.classes().end(); ++k ) {
-		    output << XML::start_element( Xclassresults ) << XML::attribute( Xcustomerclass, k->first );
+		    output << XML::start_element( Xclassresults ) << XML::attribute( Xcustomerclass, k->first ) << ">" << std::endl;
 		    const BCMP::Model::Station::Class& clasx = k->second;
 		    const BCMP::Model::Result::map_t& class_variables = clasx.resultVariables();
-		    std::for_each( class_variables.begin(), class_variables.end(), printResultVariable( output ) );
-		    output << ">" << std::endl;
+		    std::for_each( class_variables.begin(), class_variables.end(), printMeasure( output ) );
 		    output << XML::end_element( Xclassresults ) << std::endl;
 		}
 		output << XML::end_element( Xstationresults ) << std::endl;
@@ -1680,8 +1678,13 @@ namespace BCMP {
     }
 
 
+    /*
+     * Insert SPEX result variables.  The <measure> element is hijacked by putting the result variable
+     * into the meanValue for the measure.
+     */
+    
     void
-    JMVA_Document::printResultVariable::operator()( const Model::Result::pair_t& r ) const
+    JMVA_Document::printMeasure::operator()( const Model::Result::pair_t& r ) const
     {
 	static const std::map<const BCMP::Model::Result::Type,const char * const> attribute = {
 	    { BCMP::Model::Result::Type::QUEUE_LENGTH, XNumberOfCustomers },
@@ -1689,7 +1692,10 @@ namespace BCMP {
 	    { BCMP::Model::Result::Type::THROUGHPUT, XThroughput },
 	    { BCMP::Model::Result::Type::UTILIZATION, XUtilization }
 	};
-	_output << XML::attribute( attribute.at(r.first), r.second );
+	_output << XML::simple_element( Xmeasure )
+		<< XML::attribute( XmeasureType, attribute.at(r.first) )
+		<< XML::attribute( XmeanValue, r.second )
+		<< XML::end_element( Xmeasure, false ) << std::endl;
     }
 
     /*
@@ -1726,12 +1732,12 @@ namespace BCMP {
 	    _output << XML::simple_element( Xclosedclass )
 		    << XML::attribute( Xname, k.first )
 		    << XML::attribute( Xpopulation, *k.second.customers() )
-		    << "/>" << std::endl;
+		    << XML::end_element( Xclosedclass, false ) << std::endl;
 	} else if ( k.second.isOpen() ) {
 	    _output << XML::simple_element( Xopenclass )
 		    << XML::attribute( Xname, k.first )
 		    << XML::attribute( Xrate, *k.second.arrival_rate() )
-		    << "/>" << std::endl;
+		    << XML::end_element( Xopenclass ) << std::endl;
 	} else {
 	    throw std::range_error( "JMVA_Document::printClass::operator(): Undefined class." );
 	}
@@ -1745,7 +1751,7 @@ namespace BCMP {
 	    _output << XML::simple_element( XClass )
 		    << XML::attribute( Xname, k.first )
 		    << XML::attribute( XrefStation, m->first )
-		    << "/>" << std::endl;
+		    << XML::end_element( XClass, false ) << std::endl;
 	}
     }
 

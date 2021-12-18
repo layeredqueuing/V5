@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15206 2021-12-13 15:22:46Z greg $
+ * $Id: model.cc 15241 2021-12-18 13:36:50Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -417,7 +417,7 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 #endif
     Model::prepare( document );				/* This creates the various objects 	*/
 #if BUG_270
-    if ( Flags::prune ) {		/* Never prune if generating LQN	*/
+    if ( Flags::prune ) {				/* Never prune if generating LQN	*/
 	Model::prune();
     }
 #endif
@@ -1992,9 +1992,6 @@ Model::printInput( std::ostream& output ) const
 std::ostream&
 Model::printOutput( std::ostream& output ) const
 {
-    if ( Flags::precision() >= 0 ) {
-	output.precision(Flags::precision());
-    }
     LQIO::SRVN::Output srvn( *getDOM(), remapEntities(), Flags::print[CONFIDENCE_INTERVALS].opts.value.b, Flags::print[VARIANCE].opts.value.b, Flags::print[HISTOGRAMS].opts.value.b );
     srvn.print( output );
     return output;

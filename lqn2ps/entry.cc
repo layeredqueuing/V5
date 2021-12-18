@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15228 2021-12-16 23:28:54Z greg $
+ * $Id: entry.cc 15241 2021-12-18 13:36:50Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2016,7 +2016,7 @@ Entry::rename()
 }
 
 
-#if defined(BUG_270)
+#if BUG_270
 /* 
  * Find all callers to this entry, then move the arc to the client.  Delete the client arc.  
  * We don't do activities (yet)
@@ -2028,7 +2028,7 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 {
     if ( isActivityEntry() ) throw not_implemented( "Entry::linkToClients", __FILE__, __LINE__ );
 
-#if defined(BUG_270)
+#if BUG_270_DEBUG
     std::cerr << "Entry::linkToClients() for " << name() << std::endl;
 #endif
     for ( std::vector<GenericCall *>::const_iterator x = callers().begin(); x != callers().end(); ++x ) {
@@ -2050,7 +2050,7 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 	    client_entry->addSrcCall( clone );	// copy to parent entry.  Duplicates?
 	    const Entry * entry = (*server_call)->dstEntry();
 	    const_cast<Entry *>(entry)->addDstCall( clone );
-#if defined(BUG_270)
+#if BUG_270_DEBUG
 	    std::cerr << "  Move " << (*server_call)->srcName() <<  "->" << (*server_call)->dstName()
 		      << "    to " << clone->srcName() << "->" << clone->dstName();
 	    if ( clone->sumOfRendezvous() != nullptr ) {
@@ -2075,7 +2075,7 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 	    client_task->addProcessor( processor );
 	    const_cast<Processor *>(processor)->addTask( client_task );
 	    const_cast<Processor *>(processor)->addDstCall( clone );
-#if BUG_270
+#if BUG_270_DEBUG
 	    std::cerr << "  Move " << (*p)->srcName() <<  "->" << (*p)->dstName()
 		      << "    to " << clone->srcName() << "->" << clone->dstName();
 	    if ( clone->sumOfRendezvous() != nullptr ) {

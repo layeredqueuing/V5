@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 15226 2021-12-16 16:57:39Z greg $
+ *  $Id: dom_bindings.cpp 15241 2021-12-18 13:36:50Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -565,8 +565,8 @@ namespace LQIO {
 	    /* Obtain the phase for the entry */
 	    const DOM::Entry* domEntry = entry->getDOMEntry();
 	    const DOM::Phase* domPhase = domEntry->getPhase(phase);
-	    if ( domPhase == nullptr ) {
-		throw LQX::RuntimeException( "Argument 2 to phase(%s,%d) was not found.", domEntry->getName().c_str(), phase );
+	    if ( domPhase == nullptr || !domPhase->isPresent() ) {
+		throw LQX::RuntimeException( "No phase `%d' for entry `%s'.", phase, domEntry->getName().c_str() );
 		return LQX::Symbol::encodeNull();
 	    }
 	    return LQX::Symbol::encodeObject(new LQXPhase(domPhase), false);

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 15238 2021-12-17 19:56:21Z greg $
+ *  $Id: jmva_document.h 15240 2021-12-18 04:40:03Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -346,8 +346,8 @@ namespace BCMP {
 	    std::ostream& _output;
 	};
 
-	struct printResultVariable {
-	    printResultVariable( std::ostream& output ) : _output(output) {}
+	struct printMeasure {
+	    printMeasure( std::ostream& output ) : _output(output) {}
 	    void operator()( const Model::Result::pair_t& r ) const;
 	private:
 	    std::ostream& _output;

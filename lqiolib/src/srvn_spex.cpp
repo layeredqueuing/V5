@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 15217 2021-12-14 21:32:46Z greg $
+ *  $Id: srvn_spex.cpp 15241 2021-12-18 13:36:50Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -232,9 +232,9 @@ namespace LQIO {
 	const unsigned p = obs.getPhase();
 	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( document_object->getTypeName(), new LQX::ConstantValueExpression( document_object->getName() ), NULL );
 	if ( dynamic_cast<const DOM::Entry *>(document_object) != nullptr && 0 < p && p <= DOM::Phase::MAX_PHASE ) {
-	    /* A phase of an entry */
+	    /* (BUG_231 Create) A phase of an entry */
 	    object = new LQX::MethodInvocationExpression( "phase", object, new LQX::ConstantValueExpression( static_cast<double>(p) ), NULL );
-	    document_object = dynamic_cast<const DOM::Entry *>(document_object)->getPhase( p );
+	    document_object = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const DOM::Entry *>(document_object))->getPhase( p );
 	}
 	return observation( object, document_object, obs );
     }

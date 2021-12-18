@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15188 2021-12-10 02:23:30Z greg $
+ * $Id: call.cc 15241 2021-12-18 13:36:50Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -494,7 +494,7 @@ Call::aggregatePhases( LQIO::DOM::Phase& src )
 }
 
 
-#if defined(BUG_270)
+#if BUG_270
 /*
  * multiply rate from client call (by phase) by server (by phase) and overwrite clone.  The 
  * server should only have one phase.
@@ -1532,7 +1532,7 @@ EntityCall::dstLevel() const
 }
 
 
-#if defined(BUG_270)
+#if BUG_270
 EntityCall&
 EntityCall::updateRateFrom( const Call& src )
 {
@@ -2045,7 +2045,7 @@ ProcessorCall::moveLabel()
 
 
 
-#if defined(BUG_270)
+#if BUG_270
 ProcessorCall&
 ProcessorCall::updateRateFrom( const Call& call )
 {
