@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 15091 2021-10-22 17:01:44Z greg $
+ * $Id: mva.cc 15243 2021-12-20 22:55:41Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -227,15 +227,15 @@ MVA::dimension( const size_t mapMaxOffset )
 	    L[n] = new double ** [M+1];
 	    U[n] = new double ** [M+1];
 	    P[n] = new double * [M+1];
+
 	    for ( unsigned m = 1; m <= M; ++m ) {
 		const unsigned E = Q[m]->nEntries();
-
 		L[n][m] = new double * [E+1];
 		U[n][m] = new double * [E+1];
 		P[n][m] = nullptr;
-
 		L[n][m][0] = nullptr;
 		U[n][m][0] = nullptr;
+
 		for ( unsigned e = 1; e <= E; ++e ) {
 		    L[n][m][e] = new double [K+1];
 		    U[n][m][e] = new double [K+1];
@@ -349,11 +349,14 @@ MVA::reset()
     dimension( P, maxOffset );
 
     for ( unsigned n = 0; n < maxOffset; ++n) {
+	assert( L[n][0] == nullptr );
+	assert( U[n][0] == nullptr );
+
 	for ( unsigned m = 1; m <= M; ++m ) {
 	    const unsigned E = Q[m]->nEntries();
+	    assert( L[n][m][0] == nullptr );
+	    assert( U[n][m][0] == nullptr );
 
-	    L[n][m][0] = 0;
-	    U[n][m][0] = 0;
 	    for ( unsigned e = 1; e <= E; ++e ) {
 		for ( unsigned k = 0; k <= K; k++ ) {
 		    L[n][m][e][k] = 0.0;
@@ -2087,7 +2090,7 @@ SchweitzerCommon::reset()
 
 
 /*
- * Hairy initilalization for marginal probabilties.
+ * Hairy initialization for marginal probabilties.
  */
 
 void
@@ -2797,15 +2800,15 @@ Linearizer::reset()
 	}
     }
 
-    D[0] = 0;
+    D[0] = nullptr;
 
     for ( unsigned m = 1; m <= M; ++m ) {
 	const unsigned E = Q[m]->nEntries();
 
-	D[m][0] = 0;
+	D[m][0] = nullptr;
 
 	for ( unsigned e = 1; e <= E; ++e ) {
-	    D[m][e][0] = 0;
+	    D[m][e][0] = nullptr;
 	    for ( unsigned j = 1; j <= K; ++j ) {
 		for ( unsigned l = 1; l <= K; ++l ) {
 		    D[m][e][j][l] = 0.0;
@@ -3144,13 +3147,13 @@ Linearizer2::Linearizer2( Vector<Server *>&q, const Population & N, const Vector
     }
 
     D_k = new double ** [M+1];
-    D_k[0] = 0;
+    D_k[0] = nullptr;
     for ( unsigned m = 1; m <= M; ++m ) {
 	const unsigned E = Q[m]->nEntries();
 
 	D_k[m] = new double * [E+1];
 
-	D_k[m][0] = 0;
+	D_k[m][0] = nullptr;
 	for ( unsigned e = 1; e <= E; ++e ) {
 	    D_k[m][e] = new double [K+1];
 
