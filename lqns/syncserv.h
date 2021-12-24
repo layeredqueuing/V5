@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: syncserv.h 14817 2021-06-15 16:51:27Z greg $
+ * $Id: syncserv.h 15248 2021-12-22 20:05:28Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -47,8 +47,6 @@ private:
     void initialize();
     void shouldNotImplement();
 
-    virtual short updateD() const { return 0; }			/* For synch server.  	*/
-	
 //	double synchDelay( const MVA&, const unsigned, const Population &N ) const;
     Positive max( const double, const double ) const;
     Positive Upsilon( const MVA&, const unsigned e, const Population &N, const unsigned k ) const;

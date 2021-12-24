@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: server.h 14870 2021-07-03 03:16:42Z greg $
+ * $Id: server.h 15248 2021-12-22 20:05:28Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -77,7 +77,6 @@ public:
     unsigned nEntries() const { return E; }			/* Number of entries 	*/
     virtual double mu() const { return 1.0; }			/* Capacity function.	*/
     virtual double mu( const unsigned ) const { return 1.0; }	/* Capacity function.	*/
-    virtual short updateD() const { return 1; }			/* For synch server.  	*/
     virtual bool hasTau() const { return false; }
 
     double S() const;

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 15243 2021-12-20 22:55:41Z greg $
+ * $Id: mva.cc 15248 2021-12-22 20:05:28Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -3004,7 +3004,6 @@ Linearizer::update_Delta( const Population & N )
     const unsigned n = offset_e_c_e_j(0, 0);			/* Hoist */
 
     for ( unsigned m = 1; m <= M; ++m ) {
-	if ( !Q[m]->updateD() ) continue;	/* For synch servers. */
 	const unsigned E = Q[m]->nEntries();
 
 	for ( unsigned j = 1; j <= K; ++j ) {

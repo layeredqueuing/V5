@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15241 2021-12-18 13:36:50Z greg $
+ * $Id: model.cc 15252 2021-12-24 02:56:59Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -68,6 +68,8 @@ private:
 
 Model * Model::__model = 0;
 std::vector<Entity *> Model::__zombies;
+std::vector<std::string> Model::__group_list;
+
 
 unsigned Model::openArrivalCount  = 0;
 unsigned Model::forwardingCount	  = 0;
@@ -658,7 +660,7 @@ Model::process()
 
     /* Simplify model if requested. */
 
-    if ( Flags::aggregation() == Aggregate::NONE ) {
+    if ( Flags::aggregation() != Aggregate::NONE ) {
 	for_each( Task::__tasks.begin(), Task::__tasks.end(), ::Exec<Entity>( &Entity::aggregate ) );
     }
 
@@ -687,7 +689,8 @@ Model::process()
 	group_by_share();
     } else if ( processor_output() ) {
 	group_by_processor();
-    } else if ( Group::__groups.size() ) {
+    } else if ( !Model::__group_list.empty() ) {
+	std::for_each( __group_list.begin(), __group_list.end(), &Model::add_group );
 	Model::add_group( ".*" );		    /* Tack on default rule */
     }
 
@@ -1630,7 +1633,7 @@ Model::print( std::ostream& output ) const
 /*                      Major model transmorgrification                     */
 /* ------------------------------------------------------------------------ */
 
-#if defined(REP2FLAT)
+#if REP2FLAT
 Model&
 Model::expand()
 {

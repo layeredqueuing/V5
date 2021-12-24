@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 15201 2021-12-13 01:31:53Z greg $
+ * $Id: model.h 15252 2021-12-24 02:56:59Z greg $
  */
 
 #ifndef _MODEL_H
@@ -138,7 +138,9 @@ public:
     static bool prune();
 #endif
     static unsigned topologicalSort();
+
     static void add_group( const std::string& );
+    static void setGroupList( const std::vector<std::string>& group_list ) { Model::__group_list = group_list; }
 
 private:
     Model( const Model& );		/* Copying is verbotten */
@@ -199,6 +201,7 @@ protected:
 private:
     static void group_by_processor();
     static void group_by_share();
+
     void group_by_submodel();
     Model& relayerize( const unsigned );
 
@@ -208,7 +211,7 @@ private:
     bool hasOutputFileName() const { return _outputFileName.size() > 0 && _outputFileName != "-"; }
 
     bool check() const;
-#if defined(REP2FLAT)
+#if REP2FLAT
     Model& expand();
     Model& removeReplication();
     Model& returnReplication();
@@ -297,6 +300,7 @@ protected:
     Count _total;
 
 private:
+    static std::vector<std::string> __group_list;	/* group by regex list	*/
     static Model * __model;
     static Stats stats[];
 

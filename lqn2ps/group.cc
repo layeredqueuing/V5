@@ -1,6 +1,6 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: group.cc 15252 2021-12-24 02:56:59Z greg $
  */
 
 #include <algorithm>
@@ -214,7 +214,7 @@ Group::draw( std::ostream& output ) const
 {
     if ( isUsed() ) {
 	const colour_type colour = processor() ?  processor()->colour() : Graphic::BLACK;
-	myNode->penColour( colour == Graphic::GREY_10 ? Graphic::BLACK : colour ).fillColour( colour ).linestyle( linestyle() ).depth( depth() + 1 );
+	myNode->penColour( colour == Graphic::GREY_10 ? Graphic::BLACK : colour ).fillColour( Graphic::WHITE ).linestyle( linestyle() ).depth( depth() + 1 );
 	myLabel->depth( depth() );
 
 	myNode->roundedRectangle( output );

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 15201 2021-12-13 01:31:53Z greg $
+ * $Id: lqn2ps.cc 15252 2021-12-24 02:56:59Z greg $
  *
  * Command line processing.
  *
@@ -75,7 +75,7 @@ std::vector<Options::Type> Flags::print = {
 #endif
     { "submodel",              'S', "submodel",            {&Options::integer,      0},                 "Print submodel <n>." },
     { "version",               'V', nullptr,               {&Options::boolean,      false},             "Tool version." },
-    { "warnings",              'W', nullptr,               {&Options::boolean,      false},             "Suppress warnings." },
+    { "no-warnings",           'W', nullptr,               {&Options::boolean,      false},             "Suppress warnings." },
     { "x-spacing",             'X', "spacing[,width]",     {&Options::real,         DEFAULT_X_SPACING}, "X spacing [and task width] (points)." },
     { "y-spacing",             'Y', "spacing[,height]",    {&Options::real,         DEFAULT_Y_SPACING}, "Y spacing [and task height] (points)." },
     { "special",               'Z', "ARG[=value]",         {&Options::special,      Special::NONE},     "Special option." },
@@ -205,7 +205,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-12-12 20:31:53 -0500 (Sun, 12 Dec 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-12-23 21:56:59 -0500 (Thu, 23 Dec 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -251,188 +251,179 @@ main(int argc, char *argv[])
 
 	pragmas.insert( getenv( "LQNS_PRAGMAS" ) );
 
-	switch( c ) {
-	case 'A':
-	    Flags::set_aggregation( Options::get_aggregate( optarg ) );
-	    break;
+	try {
+	    switch( c ) {
+	    case 'A':
+		Flags::set_aggregation( Options::get_aggregate( optarg ) );
+		break;
 
-	case 0x200+'A':;
-	    Flags::set_aggregation( Aggregate::ACTIVITIES );
-	    Flags::print[PRINT_AGGREGATE].opts.value.b = true;
-	    break;
+	    case 0x200+'A':;
+		Flags::set_aggregation( Aggregate::ACTIVITIES );
+		Flags::print[PRINT_AGGREGATE].opts.value.b = true;
+		break;
 
-	case 'B':
-	    Flags::set_border( strtod( optarg, &endptr ) );
-	    if ( Flags::border() < 0.0 || *endptr != '\0' ) {
-		invalid_option( c, optarg );
-		exit( 1 );
-	    }
-	    break;
+	    case 'B':
+		Flags::set_border( strtod( optarg, &endptr ) );
+		if ( Flags::border() < 0.0 || *endptr != '\0' ) {
+		    throw std::invalid_argument( optarg );
+		}
+		break;
 
-	case 0x300+'B':
-	    pragmas.insert(LQIO::DOM::Pragma::_bcmp_,(enable ? LQIO::DOM::Pragma::_true_ : LQIO::DOM::Pragma::_false_));
-	    break;
+	    case 0x300+'B':
+		pragmas.insert(LQIO::DOM::Pragma::_bcmp_,(enable ? LQIO::DOM::Pragma::_true_ : LQIO::DOM::Pragma::_false_));
+		break;
 
-	case 'C':
-	    Flags::set_colouring( Options::get_colouring( optarg ) );
-	    if ( Flags::colouring() == Colouring::DIFFERENCES && Flags::precision() == 3 ) {
-		Flags::set_precision(1);
-	    }
-	    break;
+	    case 'C':
+		Flags::set_colouring( Options::get_colouring( optarg ) );
+		if ( Flags::colouring() == Colouring::DIFFERENCES && Flags::precision() == 3 ) {
+		    Flags::set_precision(1);
+		}
+		break;
 
-	case 0x200+'c':
-	    Flags::print_comment = true;
-	    break;
+	    case 0x200+'c':
+		Flags::print_comment = true;
+		break;
 
-	case 0x200+'C':
-	    Flags::use_colour = false;
-	    break;
+	    case 0x200+'C':
+		Flags::use_colour = false;
+		break;
 
-	case 'D':
-	    Flags::set_colouring( Colouring::DIFFERENCES );
-	    if ( Flags::precision() == 3 ) {
-		Flags::set_precision(2);
-	    }
-	    /* Fall through... */
-	case 0x200+'p':
-	    parse_file_name = optarg;
-	    if ( parse_file_name != "-" && access( parse_file_name.c_str(), R_OK ) != 0 ) {
-		std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open parseable output file " << parse_file_name << " - "
-			  << strerror( errno ) << std::endl;
-		exit ( 1 );
-	    }
-	    break;
+	    case 'D':
+		Flags::set_colouring( Colouring::DIFFERENCES );
+		if ( Flags::precision() == 3 ) {
+		    Flags::set_precision(2);
+		}
+		/* Fall through... */
+	    case 0x200+'p':
+		parse_file_name = optarg;
+		if ( parse_file_name != "-" && access( parse_file_name.c_str(), R_OK ) != 0 ) {
+		    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open parseable output file " << parse_file_name << " - "
+			      << strerror( errno ) << std::endl;
+		    exit ( 1 );
+		}
+		break;
 
-	case (0x200+'D'):
-	    Flags::print_submodels = true;
-	    break;
+	    case (0x200+'D'):
+		Flags::print_submodels = true;
+		break;
 
-	case 0x200+'E':
-	    Flags::set_ignore_errors( true );
-	    break;
+	    case 0x200+'E':
+		Flags::set_ignore_errors( true );
+		break;
 
-	case 'F':
-	    Flags::set_font_size( strtoul( optarg, &endptr, 10 ) );
-	    if ( *endptr != '\0' || Flags::font_size() < min_fontsize || max_fontsize < Flags::font_size() ) {
-		invalid_option( c, optarg );
-		exit( 1 );
-	    }
-	    break;
+	    case 'F':
+		Flags::set_font_size( strtoul( optarg, &endptr, 10 ) );
+		if ( *endptr != '\0' || Flags::font_size() < min_fontsize || max_fontsize < Flags::font_size() ) {
+		    throw std::invalid_argument( optarg );
+		}
+		break;
 
-	case 0x200+'f':
-	    Flags::flatten_submodel = true;
-	    break;
+	    case 0x200+'f':
+		Flags::flatten_submodel = true;
+		break;
 
-	case 0x200+'F':
-	    Flags::debug = true;
-	    break;
+	    case 0x200+'F':
+		Flags::debug = true;
+		break;
 
-	case 0x200+'G':
-	    Flags::set_run_lqx( true );		    /* Run lqx */
-	    Flags::dump_graphviz 		= true;
-	    break;
+	    case 0x200+'G':
+		Flags::set_run_lqx( true );		    /* Run lqx */
+		Flags::dump_graphviz 		= true;
+		break;
 
-	case 'H':
-	    usage();
-	    exit(0);
+	    case 'H':
+		usage();
+		exit(0);
 
-	case 0x200+'h':
-	    Flags::set_processors( Processors::ALL );
-	    Flags::set_layering( Layering::HWSW );
-	    break;
+	    case 0x200+'h':
+		Flags::set_processors( Processors::ALL );
+		Flags::set_layering( Layering::HWSW );
+		break;
 
-	case 0x200+'H':
-	    /* Set immediately, as it can't be changed once the SPEX program is loaded */
-            LQIO::Spex::__no_header = true;
-	    break;
+	    case 0x200+'H':
+		/* Set immediately, as it can't be changed once the SPEX program is loaded */
+		LQIO::Spex::__no_header = true;
+		break;
 
-	case 'I':
-	    try {
+	    case 'I':
 		Flags::set_input_format( Options::get_file_format( optarg ) );
-	    }
-	    catch ( const std::invalid_argument& e ) {
-		invalid_option( c, optarg );
-		exit( 1 );
-	    }
-	    break;
+		break;
 
-	case 0x200+'I':
-	    Flags::set_include_only( new std::regex( optarg ) );
-	    break;
+	    case 0x200+'I':
+		Flags::set_include_only( new std::regex( optarg ) );
+		break;
 
-	case 'J':
-	    options = optarg;
-	    while ( *options ) {
-		static char const * object[] = { "nodes", "labels", "activities" };
+	    case 'J':
+		options = optarg;
+		while ( *options ) {
+		    static char const * object[] = { "nodes", "labels", "activities" };
 
-		char * value = nullptr;
-		int arg = getsubopt( &options, const_cast<char **>(object), &value );
-		Justification justify;
+		    char * value = nullptr;
+		    int arg = getsubopt( &options, const_cast<char **>(object), &value );
+		    Justification justify;
 
-		if ( !value ) {
-		    justify = Justification::DEFAULT;
-		} else {
-		    justify = Options::get_justification( value );
+		    if ( !value ) {
+			justify = Justification::DEFAULT;
+		    } else {
+			justify = Options::get_justification( value );
+		    }
+
+		    switch ( arg ) {
+		    case 0:
+			if ( justify != Justification::ABOVE ) {
+			    Flags::node_justification = justify;
+			} else {
+			    std::cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << std::endl;
+			    exit( 1 );
+			}
+			break;
+		    case 1:
+			if ( justify != Justification::ALIGN ) {
+			    Flags::label_justification = justify;
+			} else {
+			    std::cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << std::endl;
+			    exit( 1 );
+			}
+			break;
+		    case 2:
+			if ( justify != Justification::ABOVE ) {
+			    Flags::activity_justification = justify;
+			} else {
+			    std::cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << std::endl;
+			    exit( 1 );
+			}
+			break;
+		    default:
+			throw std::invalid_argument( optarg );
+		    }
 		}
+		break;
 
-		switch ( arg ) {
-		case 0:
-		    if ( justify != Justification::ABOVE ) {
-			Flags::node_justification = justify;
-		    } else {
-			std::cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << std::endl;
-			exit( 1 );
-		    }
-		    break;
-		case 1:
-		    if ( justify != Justification::ALIGN ) {
-			Flags::label_justification = justify;
-		    } else {
-			std::cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << std::endl;
-			exit( 1 );
-		    }
-		    break;
-		case 2:
-		    if ( justify != Justification::ABOVE ) {
-			Flags::activity_justification = justify;
-		    } else {
-			std::cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << std::endl;
-			exit( 1 );
-		    }
-		    break;
-		default:
-		    invalid_option( c, optarg );
-		    exit( 1 );
+	    case 0x200+'j':
+		Flags::graphical_output_style = Output_Style::JLQNDEF;
+		Flags::icon_slope = 0;
+		Flags::set_y_spacing(45);
+		break;
+
+	    case 0x200+'J':
+		LQIO::DOM::Document::__debugJSON = true;
+		break;
+
+	    case 'K':
+		Flags::set_key_position( Options::get_key_position( optarg ) );
+		break;
+
+	    case 'k':
+		Flags::set_chain( strtoul( optarg, &endptr, 10 ) );
+		if ( *endptr != '\0' || Flags::chain() < 1 ) {
+		    throw std::invalid_argument( optarg );
 		}
-	    }
-	    break;
+		Flags::set_processors( Processors::ALL );
+		break;
 
-	case 0x200+'j':
-	    Flags::graphical_output_style = Output_Style::JLQNDEF;
-	    Flags::icon_slope = 0;
-	    Flags::set_y_spacing(45);
-	    break;
-
-	case 0x200+'J':
-	    LQIO::DOM::Document::__debugJSON = true;
-	    break;
-
-	case 'K':
-	    Flags::set_key_position( Options::get_key_position( optarg ) );
-	    break;
-
-	case 'k':
-	    Flags::set_chain( strtoul( optarg, &endptr, 10 ) );
-	    if ( *endptr != '\0' || Flags::chain() < 1 ) {
-		invalid_option( c, optarg );
-		exit( 1 );
-	    }
-	    Flags::set_processors( Processors::ALL );
-	    break;
-
-	case 'L':
-	    try {
-		Layering l = Flags::set_layering( Options::get_layering( optarg ) );
+	    case 'L': {
+		std::vector<std::string> values;
+		const Layering l = Flags::set_layering( Options::get_layering( optarg, values ) );
 		switch ( l ) {
 		case Layering::HWSW:
 		case Layering::MOL:
@@ -458,231 +449,218 @@ main(int argc, char *argv[])
 		    break;
 
 		case Layering::GROUP:
-		    if ( optarg ) {
-			Model::add_group( optarg );
+		    if ( !values.empty() ) {
+			Model::setGroupList( values );
 		    }
 		    Flags::set_processors( Processors::ALL );
 		    break;
 
 		default:
-		    invalid_option( c, optarg );
-		    exit( 1 );
+		    throw std::invalid_argument( optarg );
+		} }
+		break;
+
+	    case 0x200+'l':
+		Flags::set_run_lqx( true );		    /* Run lqx */
+		break;
+
+	    case 0x200+'L':
+		LQIO::DOM::Document::lqx_parser_trace(stderr);
+		break;
+
+	    case 'M':
+		Flags::set_magnification( strtod( optarg, &endptr ) );
+		if ( *endptr != '\0' || Flags::magnification() <= 0.0 ) {
+		    throw std::invalid_argument( optarg );
 		}
-	    }
-	    catch ( const std::invalid_argument& e ) {
-		invalid_option( c, optarg );
-		exit( 1 );
-	    }
-	    break;
+		break;
 
-	case 0x200+'l':
-	    Flags::set_run_lqx( true );		    /* Run lqx */
-	    break;
+	    case 0x200+'M':
+		man();
+		exit(0);
 
-	case 0x200+'L':
-	    LQIO::DOM::Document::lqx_parser_trace(stderr);
-	    break;
+	    case 0x200+'m':
+		Flags::set_processors( Processors::ALL );
+		Flags::set_layering( Layering::MOL );
+		break;
 
-	case 'M':
-	    Flags::set_magnification( strtod( optarg, &endptr ) );
-	    if ( *endptr != '\0' || Flags::magnification() <= 0.0 ) {
-		invalid_option( c, optarg );
-		exit( 1 );
-	    }
-	    break;
+	    case 'N':
+		Flags::set_precision( strtoul( optarg, &endptr, 10 ) );
+		if ( *endptr != '\0' || Flags::precision() < 1 ) {
+		    throw std::invalid_argument( optarg );
+		}
+		break;
 
-	case 0x200+'M':
-	    man();
-	    exit(0);
+	    case (0x200+'n'):
+		Flags::print_layer_number 		= true;
+		break;
 
-	case 0x200+'m':
-	    Flags::set_processors( Processors::ALL );
-	    Flags::set_layering( Layering::MOL );
-	    break;
+	    case (0x200+'N'):
+		Flags::rename_model	 		= true;
+		break;
 
-	case 'N':
-	    Flags::set_precision( strtoul( optarg, &endptr, 10 ) );
-	    if ( *endptr != '\0' || Flags::precision() < 1 ) {
-		invalid_option( c, optarg );
-		exit( 1 );
-	    }
-	    break;
+	    case 'o':
+		/* Output to special file of some sort.  Do not map filename. */
+		output_file_name = optarg;
+		break;
 
-	case (0x200+'n'):
-	    Flags::print_layer_number 		= true;
-	    break;
-
-	case (0x200+'N'):
-	    Flags::rename_model	 		= true;
-	    break;
-
-	case 'o':
-	    /* Output to special file of some sort.  Do not map filename. */
-	    output_file_name = optarg;
-	    break;
-
-	case 'O':
-	    try {
+	    case 'O':
 		setOutputFormat( Options::get_file_format( optarg ) );
-	    }
-	    catch ( const std::invalid_argument& e ) {
-		invalid_option( c, optarg );
-		exit( 1 );
-	    }
-	    break;
+		break;
 
-	case 0x200+'o':
-	    setOutputFormat( File_Format::LQX );
-	    break;
+	    case 0x200+'o':
+		setOutputFormat( File_Format::LQX );
+		break;
 
-	case 'P':
-	    Flags::set_processors( Options::get_processors( optarg ) );
-	    break;
+	    case 'P':
+		Flags::set_processors( Options::get_processors( optarg ) );
+		break;
 
-	case 0x200+'P':
+	    case 0x200+'P':
 //	    pragma( "tasks-only", "" );
-	    Flags::set_aggregation( Aggregate::ENTRIES );
-	    Flags::print[PRINT_AGGREGATE].opts.value.b = true;
-	    break;
+		Flags::set_aggregation( Aggregate::ENTRIES );
+		Flags::print[PRINT_AGGREGATE].opts.value.b = true;
+		break;
 
-	case 'Q':
-	    Flags::set_queueing_model( strtoul( optarg, &endptr, 10 ) );
-	    if ( *endptr != '\0' || Flags::queueing_model() < 1 ) {
-		invalid_option( c, optarg );
-		exit( 1 );
-	    }
-	    break;
+	    case 'Q':
+		Flags::set_queueing_model( strtoul( optarg, &endptr, 10 ) );
+		if ( *endptr != '\0' || Flags::queueing_model() < 1 ) {
+		    throw std::invalid_argument( optarg );
+		}
+		break;
 
-	case 'r':
-	    Flags::set_print_results( Options::set_all_result_options( enable ) );
-	    break;
+	    case 'r':
+		Flags::set_print_results( Options::set_all_result_options( enable ) );
+		break;
 
 #if REP2FLAT
-	case 'R':
-	    Flags::set_replication( Options::get_replication( optarg ) );
-	    break;
+	    case 'R':
+		Flags::set_replication( Options::get_replication( optarg ) );
+		break;
 
-	case 0x200+'R':
-	    Flags::set_replication( Replication::RETURN );
-	    break;
+	    case 0x200+'R':
+		Flags::set_replication( Replication::RETURN );
+		break;
 #endif
 
-	case 0x200+'r':
-	    Flags::set_run_lqx( true );		    /* Reload lqx */
-	    Flags::print[RELOAD_LQX].opts.value.b	= true;
-	    break;
+	    case 0x200+'r':
+		Flags::set_run_lqx( true );		    /* Reload lqx */
+		Flags::print[RELOAD_LQX].opts.value.b	= true;
+		break;
 
-	case 'S':
-	    Flags::set_submodel( strtoul( optarg, &endptr, 10 ) );
-	    if ( *endptr != '\0' || Flags::submodel() < 1 ) {
-		invalid_option( c, optarg );
-		exit( 1 );
-	    }
-	    Flags::set_processors( Processors::ALL );
-	    break;
+	    case 'S':
+		Flags::set_submodel( strtoul( optarg, &endptr, 10 ) );
+		if ( *endptr != '\0' || Flags::submodel() < 1 ) {
+		    throw std::invalid_argument( optarg );
+		}
+		Flags::set_processors( Processors::ALL );
+		break;
 
-	case 0x200+'s':
-	    Flags::sort = Sorting::NONE;
-	    break;
+	    case 0x200+'s':
+		Flags::sort = Sorting::NONE;
+		break;
 
-	case 0x200+'t':
-	    special( "tasks-only", "true", pragmas );
-	    break;
+	    case 0x200+'t':
+		special( "tasks-only", "true", pragmas );
+		break;
 
-	case 'V':
-	    Flags::print[XX_VERSION].opts.value.b = true;
-	    break;
+	    case 'V':
+		Flags::print[XX_VERSION].opts.value.b = true;
+		break;
 
-	case 0x200+'S':
-	case 0x200+'V':	/* Always set... :-) */
-	    Flags::print[SUMMARY].opts.value.b = true;
-	    break;
+	    case 0x200+'S':
+	    case 0x200+'V':	/* Always set... :-) */
+		Flags::print[SUMMARY].opts.value.b = true;
+		break;
 
-	case 0x200+'w':
-	    Flags::set_processors( Processors::ALL );
-	    Flags::set_layering( Layering::SRVN );
-	    break;
+	    case 0x200+'w':
+		Flags::set_processors( Processors::ALL );
+		Flags::set_layering( Layering::SRVN );
+		break;
 
-	case 'W':
-	    LQIO::io_vars.severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
-	    break;
+	    case 'W':
+		LQIO::io_vars.severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
+		break;
 
-	case 'X':
-	    switch ( sscanf( optarg, "%lf,%lf", &Flags::print[X_SPACING].opts.value.d, &Flags::icon_width ) ) {
-	    case 1: break;
+	    case 'X':
+		switch ( sscanf( optarg, "%lf,%lf", &Flags::print[X_SPACING].opts.value.d, &Flags::icon_width ) ) {
+		case 1: break;
 
-	    default:
-		if ( sscanf( optarg, ",%lf", &Flags::icon_width ) < 1 ) {
-		    invalid_option( c, optarg );
+		default:
+		    if ( sscanf( optarg, ",%lf", &Flags::icon_width ) < 1 ) {
+			throw std::invalid_argument( optarg );
+		    }
+		    /* Fall through */
+		case 2:
+		    Flags::entry_width = Flags::icon_width * 0.625;
+		    break;
+		}
+
+		break;
+
+	    case 0x200+'X':
+		LQIO::DOM::Document::__debugXML = true;
+		break;
+
+	    case 'Y':
+		switch ( sscanf( optarg, "%lf,%lf", &Flags::print[Y_SPACING].opts.value.d, &Flags::icon_height ) ) {
+		case 1: break;
+
+		default:
+		    if ( sscanf( optarg, ",%lf", &Flags::icon_height ) < 1 ) {
+			throw std::invalid_argument( optarg );
+		    }
+		    /* Fall through */
+		case 2:
+		    Flags::entry_height = Flags::icon_height * 0.6;
+		}
+		break;
+
+	    case 0x200+'Y':
+		LQIO_debug = true;
+		break;
+
+	    case 'Z':	/* Always set... :-) */
+		if ( !process_special( optarg, pragmas ) ) {
 		    exit( 1 );
 		}
-		/* Fall through */
-	    case 2:
-		Flags::entry_width = Flags::icon_width * 0.625;
+		break;
+
+	    case 0x200+'z':
+		Flags::surrogates = false;
+		break;
+
+	    case 0x300+'z':
+		Flags::surrogates = enable;
+		break;
+
+	    case 0x200+'Z':
+		resultdebug = true;
+		break;
+
+	    case 0x300+'#':
+		Flags::print[MODEL_COMMENT].opts.value.b = enable;
+		break;
+
+	    case 0x300+'!':
+		Flags::print[SOLVER_INFO].opts.value.b = enable;
+		break;
+
+	    default:
+		/* If not in the above list, try the table */
+		std::vector<Options::Type>::iterator f = std::find_if( Flags::print.begin(), Flags::print.end(), Options::find_option( c ) );
+		if ( f != Flags::print.end() ) {
+		    f->opts.value.b = enable;
+		} else {
+		    usage( false );
+		    exit( 1 );
+		}
 		break;
 	    }
-
-	    break;
-
-        case 0x200+'X':
-	    LQIO::DOM::Document::__debugXML = true;
-	    break;
-
-	case 'Y':
-	    switch ( sscanf( optarg, "%lf,%lf", &Flags::print[Y_SPACING].opts.value.d, &Flags::icon_height ) ) {
-	    case 1: break;
-
-	    default:
-		if ( sscanf( optarg, ",%lf", &Flags::icon_height ) < 1 ) {
-		    invalid_option( c, optarg );
-		    exit( 1 );
-		}
-		/* Fall through */
-	    case 2:
-		Flags::entry_height = Flags::icon_height * 0.6;
-	    }
-	    break;
-
-	case 0x200+'Y':
-	    LQIO_debug = true;
-	    break;
-
-	case 'Z':	/* Always set... :-) */
-	    if ( !process_special( optarg, pragmas ) ) {
-		exit( 1 );
-	    }
-	    break;
-
-	case 0x200+'z':
-	    Flags::surrogates = false;
-	    break;
-
-	case 0x300+'z':
-	    Flags::surrogates = enable;
-	    break;
-
-	case 0x200+'Z':
-	    resultdebug = true;
-	    break;
-
-	case 0x300+'#':
-	    Flags::print[MODEL_COMMENT].opts.value.b = enable;
-	    break;
-
-	case 0x300+'!':
-	    Flags::print[SOLVER_INFO].opts.value.b = enable;
-	    break;
-
-	default:
-	    /* If not in the above list, try the table */
-	    std::vector<Options::Type>::iterator f = std::find_if( Flags::print.begin(), Flags::print.end(), Options::find_option( c ) );
-	    if ( f != Flags::print.end() ) {
-		f->opts.value.b = enable;
-	    } else {
-		usage( false );
-		exit( 1 );
-	    }
-	    break;
+	}
+	catch ( const std::invalid_argument& e ) {
+	    invalid_option( c, optarg );
+	    exit( 1 );
 	}
     }
     LQIO::io_vars.lq_command_line = command_line.c_str();
@@ -822,7 +800,7 @@ main(int argc, char *argv[])
 
     if ( output_file_name == "-" ) {
 	switch( Flags::output_format() ) {
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
 	case File_Format::EMF:
 	    if ( LQIO::Filename::isRegularFile( fileno( stdout ) ) == 0 ) {
 		std::cerr << LQIO::io_vars.lq_toolname << ": Cannot write "
@@ -832,7 +810,7 @@ main(int argc, char *argv[])
 	    }
 	    break;
 #endif
-#if defined(SXD_OUTPUT)
+#if SXD_OUTPUT
 	case File_Format::SXD:
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot write "
 		      << Options::file_format.at(Flags::output_format())

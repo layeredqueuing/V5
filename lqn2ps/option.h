@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: option.h 15183 2021-12-09 14:30:48Z greg $
+ * $Id: option.h 15252 2021-12-24 02:56:59Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -271,7 +271,7 @@ public:
     static File_Format get_file_format( const std::string& );
     static Justification get_justification( const std::string& );
     static Key_Position get_key_position( const std::string& );
-    static Layering get_layering( const std::string& );
+    static Layering get_layering( const std::string&, std::vector<std::string>& );
     static Processors get_processors( const std::string& );
     static Replication get_replication( const std::string& );
     static Sorting get_sorting( const std::string& );

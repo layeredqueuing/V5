@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15241 2021-12-18 13:36:50Z greg $
+ * $Id: entry.cc 15251 2021-12-23 22:29:12Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1462,8 +1462,8 @@ Entry::aggregate()
 	    startActivity()->transmorgrify( activityStack, 1.0 );
 	    break;
 
-	default:
-	    abort();
+	case Aggregate::NONE:
+	    break;
 	}
     }
 
