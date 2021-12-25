@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15241 2021-12-18 13:36:50Z greg $
+ * $Id: task.cc 15255 2021-12-24 17:42:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1771,7 +1771,7 @@ Task::moveSrcBy( const double dx, const double dy )
 }
 
 
-Graphic::colour_type Task::colour() const
+Graphic::Colour Task::colour() const
 {
     switch ( Flags::colouring() ) {
     case Colouring::DIFFERENCES:
@@ -1832,7 +1832,7 @@ Task::label()
 	if ( Flags::print[TASK_THROUGHPUT].opts.value.b ) {
 	    myLabel->newLine();
 	    if ( throughput() == 0.0 && Flags::colouring() != Colouring::NONE ) {
-		myLabel->colour( Graphic::RED );
+		myLabel->colour( Graphic::Colour::RED );
 	    }
 	    *myLabel << begin_math( &Label::lambda ) << "=" << opt_pct(throughput());
 	    print_goop = true;
@@ -1846,7 +1846,7 @@ Task::label()
 	    }
 	    *myLabel << _rho() << "=" << opt_pct(utilization());
 	    if ( hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
-		myLabel->colour(Graphic::RED);
+		myLabel->colour(Graphic::Colour::RED);
 	    }
 	}
 	if ( print_goop ) {
@@ -2413,11 +2413,11 @@ Task::draw( std::ostream& output ) const
     myNode->comment( output, aComment.str() );
     myNode->fillColour( colour() );
     if ( Flags::colouring() == Colouring::NONE ) {
-	myNode->penColour( Graphic::DEFAULT_COLOUR );			// No colour.
+	myNode->penColour( Graphic::Colour::DEFAULT );			// No colour.
     } else if ( throughput() == 0.0 ) {
-	myNode->penColour( Graphic::RED );
-    } else if ( colour() == Graphic::GREY_10 ) {
-	myNode->penColour( Graphic::BLACK );
+	myNode->penColour( Graphic::Colour::RED );
+    } else if ( colour() == Graphic::Colour::GREY_10 ) {
+	myNode->penColour( Graphic::Colour::BLACK );
     } else {
 	myNode->penColour( colour() );
     }
@@ -2443,7 +2443,7 @@ Task::draw( std::ostream& output ) const
 	points[0].moveBy( shift, 0 );
 	points[3].moveBy( shift, 0 );
 	if ( Flags::colouring() == Colouring::NONE ) {
-	    myNode->fillColour( Graphic::GREY_10 );
+	    myNode->fillColour( Graphic::Colour::GREY_10 );
 	}
     }
     myNode->polygon( output, points );
@@ -2478,7 +2478,7 @@ Task::drawClient( std::ostream& output, const bool is_in_open_model, const bool 
     aComment += name();
     aComment += " ==========";
     myNode->comment( output, aComment );
-    myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
+    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
 
     myLabel->moveTo( bottomCenter() )
 	.justification( Justification::LEFT );
@@ -2537,13 +2537,13 @@ ReferenceTask::thinkTime() const
  * problem, so always draw them black.
  */
 
-Graphic::colour_type
+Graphic::Colour
 ReferenceTask::colour() const
 {
     const Processor * processor = this->processor(); 
     switch ( Flags::colouring() ) {
     case Colouring::SERVER_TYPE:
-	return Graphic::RED;
+	return Graphic::Colour::RED;
 
     case Colouring::RESULTS:
 	if ( processor != nullptr ) {

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 15155 2021-12-06 18:54:53Z greg $
+ * $Id: entity.h 15255 2021-12-24 17:42:46Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -145,7 +145,7 @@ public:
 
     double align() const;
 
-    virtual Graphic::colour_type colour() const;
+    virtual Graphic::Colour colour() const;
 
     virtual Entity& label();
     virtual Entity& labelBCMPModel( const BCMP::Model::Station::Class::map_t&, const std::string& class_name="" ) = 0;
@@ -165,7 +165,7 @@ protected:
     unsigned countCallers() const;
     
 private:
-    Graphic::colour_type chainColour( unsigned int ) const;
+    Graphic::Colour chainColour( unsigned int ) const;
     std::ostream& drawServerToClient( std::ostream&, const double, const double, const Entity *, std::vector<bool> &, const unsigned ) const;
     std::ostream& drawClientToServer( std::ostream&, const Entity *, std::vector<bool> &, const unsigned, std::vector<Arc *>& lastArc ) const;
 

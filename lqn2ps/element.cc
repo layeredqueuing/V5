@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: element.cc 15255 2021-12-24 17:42:46Z greg $
  */
 
 #include "element.h"
@@ -339,36 +339,36 @@ Element::adjustForSlope( double y )
     return y * Flags::icon_slope;
 }
 
-Graphic::colour_type Element::colourForUtilization( double utilization ) const
+Graphic::Colour Element::colourForUtilization( double utilization ) const
 {
     if ( Flags::use_colour ) {
 	if ( utilization == 0.0 ) {
-	    return Graphic::DEFAULT_COLOUR;
+	    return Graphic::Colour::DEFAULT;
 	} else if ( utilization < 0.1 ) {
-	    return Graphic::VIOLET;
+	    return Graphic::Colour::VIOLET;
 	} else if ( utilization < 0.2 ) {
-	    return Graphic::BLUE;
+	    return Graphic::Colour::BLUE;
 	} else if ( utilization < 0.3 ) {
-	    return Graphic::INDIGO;
+	    return Graphic::Colour::INDIGO;
 	} else if ( utilization < 0.4 ) {
-	    return Graphic::CYAN;
+	    return Graphic::Colour::CYAN;
 	} else if ( utilization < 0.5 ) {
-	    return Graphic::TURQUOISE;
+	    return Graphic::Colour::TURQUOISE;
 	} else if ( utilization < 0.6 ) {
-	    return Graphic::GREEN;
+	    return Graphic::Colour::GREEN;
 	} else if ( utilization < 0.7 ) {
-	    return Graphic::SPRINGGREEN;
+	    return Graphic::Colour::SPRINGGREEN;
 	} else if ( utilization < 0.8 ) {
-	    return Graphic::YELLOW;
+	    return Graphic::Colour::YELLOW;
 	} else if ( utilization < 0.9 ) {
-	    return Graphic::ORANGE;
+	    return Graphic::Colour::ORANGE;
 	} else { 
-	    return Graphic::RED;
+	    return Graphic::Colour::RED;
 	}
     } else if ( utilization >= 0.8 ) {
-	return Graphic::GREY_10;
+	return Graphic::Colour::GREY_10;
     } else {
-	return Graphic::DEFAULT_COLOUR;
+	return Graphic::Colour::DEFAULT;
     }
 }
 
@@ -376,28 +376,28 @@ Graphic::colour_type Element::colourForUtilization( double utilization ) const
  * Set colour based on difference (as a percentage).
  */
 
-Graphic::colour_type Element::colourForDifference( double difference ) const
+Graphic::Colour Element::colourForDifference( double difference ) const
 {
     if ( difference == 0.0 ) {
-	return Graphic::DEFAULT_COLOUR;
+	return Graphic::Colour::DEFAULT;
     } else if ( difference < 0.7813 ) {
-	return Graphic::BLUE;
+	return Graphic::Colour::BLUE;
     } else if ( difference < 1.5625 ) {
-	return Graphic::INDIGO;
+	return Graphic::Colour::INDIGO;
     } else if ( difference < 3.125 ) {
-	return Graphic::CYAN;
+	return Graphic::Colour::CYAN;
     } else if ( difference < 6.25 ) {
-	return Graphic::TURQUOISE;
+	return Graphic::Colour::TURQUOISE;
     } else if ( difference < 12.5 ) {
-	return Graphic::GREEN;
+	return Graphic::Colour::GREEN;
     } else if ( difference < 25.0 ) {
-	return Graphic::SPRINGGREEN;
+	return Graphic::Colour::SPRINGGREEN;
     } else if ( difference < 50.0 ) {
-	return Graphic::YELLOW;
+	return Graphic::Colour::YELLOW;
     } else if ( difference < 100. ) {
-	return Graphic::ORANGE;
+	return Graphic::Colour::ORANGE;
     } else { 
-	return Graphic::RED;
+	return Graphic::Colour::RED;
     }
 }
 

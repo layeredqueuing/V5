@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 15241 2021-12-18 13:36:50Z greg $
+ * $Id: lqn2ps.h 15256 2021-12-25 01:47:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,7 +20,7 @@
 #define BUG_270_DEBUG	1	/* Prune Null servers */
 #define BUG_299		0	/* Divide (y) by fan-out (load balance) */
 
-#if defined(HAVE_CONFIG_H)
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
 

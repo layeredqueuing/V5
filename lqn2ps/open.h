@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * open.h	-- Greg Franks
  *
- * $Id: open.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: open.h 15255 2021-12-24 17:42:46Z greg $
  */
 
 #ifndef _OPEN_H
@@ -54,7 +54,7 @@ public:
 
     virtual OpenArrivalSource& label();
 
-    virtual Graphic::colour_type colour() const;
+    virtual Graphic::Colour colour() const;
 
 
     virtual const OpenArrivalSource& draw( std::ostream& output ) const;

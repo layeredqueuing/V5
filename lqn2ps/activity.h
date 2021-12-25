@@ -1,6 +1,6 @@
 /* -*- c++ -*-  activity.h	-- Greg Franks
  *
- * $Id: activity.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: activity.h 15255 2021-12-24 17:42:46Z greg $
  */
 
 #ifndef _ACTIVITY_H
@@ -135,7 +135,7 @@ public:
     virtual Activity& depth( const unsigned );
     double align() const;
 
-    virtual Graphic::colour_type colour() const;
+    virtual Graphic::Colour colour() const;
 
     virtual const Activity& draw(std::ostream &) const;
 

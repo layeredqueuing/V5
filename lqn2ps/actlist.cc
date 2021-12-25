@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: actlist.cc 15255 2021-12-24 17:42:46Z greg $
  */
 
 
@@ -133,7 +133,7 @@ ActivityList::prev( ActivityList * )
 }
 
 
-Graphic::colour_type 
+Graphic::Colour 
 ActivityList::colour() const
 {
     return owner()->colour();
@@ -216,7 +216,7 @@ const SequentialActivityList&
 SequentialActivityList::draw( std::ostream& output ) const
 {
     if ( myActivity && myArc->srcPoint() != myArc->secondPoint() ) {
-	myArc->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() );
+	myArc->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() );
 	myArc->draw( output );
     }
     return *this;
@@ -582,8 +582,8 @@ ForkJoinActivityList::radius() const
 const ForkJoinActivityList& 
 ForkJoinActivityList::draw( std::ostream& output ) const
 {
-    const Graphic::colour_type pen_colour = colour() == Graphic::GREY_10 ? Graphic::BLACK : colour();
-    for_each( myArcList.begin(), myArcList.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,Graphic::colour_type>( &Graphic::penColour, pen_colour ) );
+    const Graphic::Colour pen_colour = colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour();
+    for_each( myArcList.begin(), myArcList.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,Graphic::Colour>( &Graphic::penColour, pen_colour ) );
     const Point ctr( myNode->center() );
     myNode->penColour( pen_colour ).fillColour( colour() );
     myNode->circle( output, ctr, radius() );
@@ -1814,8 +1814,8 @@ RepeatActivityList::radius() const
 const RepeatActivityList&
 RepeatActivityList::draw( std::ostream& output ) const
 {
-    const Graphic::colour_type pen_colour = colour() == Graphic::GREY_10 ? Graphic::BLACK : colour();
-    for_each( myArcList.begin(), myArcList.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,Graphic::colour_type>( &Graphic::penColour, pen_colour ) );
+    const Graphic::Colour pen_colour = colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour();
+    for_each( myArcList.begin(), myArcList.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,Graphic::Colour>( &Graphic::penColour, pen_colour ) );
 
     ForkActivityList::draw( output );
     for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: entity.cc 15255 2021-12-24 17:42:46Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -330,11 +330,11 @@ Entity::radius() const
 
 
 
-Graphic::colour_type
+Graphic::Colour
 Entity::colour() const
 {
     if ( isSurrogate() ) {
-	return Graphic::GREY_10;
+	return Graphic::Colour::GREY_10;
     }
     switch ( Flags::colouring() ) {
     case Colouring::RESULTS:
@@ -350,12 +350,12 @@ Entity::colour() const
 	break;
 
     case Colouring::CLIENTS:
-	return (Graphic::colour_type)(*myPaths.begin() % 11 + 5);		// first element is smallest 
+	return (Graphic::Colour)(*myPaths.begin() % 11 + 5);		// first element is smallest 
 
     case Colouring::LAYERS:
-	return (Graphic::colour_type)(level() % 11 + 5);
+	return (Graphic::Colour)(level() % 11 + 5);
     }
-    return Graphic::DEFAULT_COLOUR;			// No colour.
+    return Graphic::Colour::DEFAULT;			// No colour.
 }
 
 
@@ -391,15 +391,15 @@ Entity::print( std::ostream& output ) const
 }
 
 
-Graphic::colour_type 
+Graphic::Colour 
 Entity::chainColour( unsigned int k ) const
 {
-    static Graphic::colour_type chain_colours[] = { Graphic::BLACK, Graphic::MAGENTA, Graphic::VIOLET, Graphic::BLUE, Graphic::INDIGO, Graphic::CYAN, Graphic::TURQUOISE, Graphic::GREEN, Graphic::SPRINGGREEN, Graphic::YELLOW, Graphic::ORANGE, Graphic::RED };
+    static Graphic::Colour chain_colours[] = { Graphic::Colour::BLACK, Graphic::Colour::MAGENTA, Graphic::Colour::VIOLET, Graphic::Colour::BLUE, Graphic::Colour::INDIGO, Graphic::Colour::CYAN, Graphic::Colour::TURQUOISE, Graphic::Colour::GREEN, Graphic::Colour::SPRINGGREEN, Graphic::Colour::YELLOW, Graphic::Colour::ORANGE, Graphic::Colour::RED };
 
     if ( Flags::colouring() == Colouring::CHAINS ) { 
 	return chain_colours[k%12];
-    } else if ( colour() == Graphic::GREY_10 || colour() == Graphic::DEFAULT_COLOUR ) {
-	return Graphic::BLACK;
+    } else if ( colour() == Graphic::Colour::GREY_10 || colour() == Graphic::Colour::DEFAULT ) {
+	return Graphic::Colour::BLACK;
     } else {
 	return colour();
     }
@@ -474,7 +474,7 @@ Entity::drawServer( std::ostream& output ) const
     aComment += name();
     aComment += " ==========";
     myNode->comment( output, aComment );
-    myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
+    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
 
     /* Draw the queue. */
 
@@ -556,7 +556,7 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
 	    outArc->moveDst( x, y );
 
 	    aLabel = Label::newLabel();
-	    aLabel->moveTo( outArc->pointAt(4) ).moveBy( 2.0 * offset, 0 ).backgroundColour( Graphic::DEFAULT_COLOUR );
+	    aLabel->moveTo( outArc->pointAt(4) ).moveBy( 2.0 * offset, 0 ).backgroundColour( Graphic::Colour::DEFAULT );
 	    (*aLabel) << k;
 	} else {
 	    outArc->arrowhead( Graphic::NO_ARROW );
@@ -646,7 +646,7 @@ Entity::drawClientToServer( std::ostream& output, const Entity * aClient, std::v
     inArc->pointAt(3).moveTo( x, y );
 
     Label * aLabel = Label::newLabel();
-    aLabel->moveTo( inArc->pointAt(2).x(), (inArc->pointAt(2).y() + inArc->pointAt(3).y()) / 2.0 ).backgroundColour( Graphic::DEFAULT_COLOUR );
+    aLabel->moveTo( inArc->pointAt(2).x(), (inArc->pointAt(2).y() + inArc->pointAt(3).y()) / 2.0 ).backgroundColour( Graphic::Colour::DEFAULT );
     (*aLabel) << k;
 
     if ( isInfinite() ) {

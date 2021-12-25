@@ -1,6 +1,6 @@
 /* -*- c++ -*- node.h	-- Greg Franks
  *
- * $Id: label.h 15179 2021-12-08 20:18:42Z greg $
+ * $Id: label.h 15255 2021-12-24 17:42:46Z greg $
  */
 
 #ifndef _LABEL_H
@@ -44,13 +44,13 @@ public:
 	Line& operator<<( const unsigned int u ) { _string << u; return *this; }
 	size_t width() const { return _string.str().length(); }
 	Line& setFont( const font_type font ) { _font = font; return *this; }
-	Line& setColour( const colour_type colour ) { _colour = colour; return *this; }
+	Line& setColour( const Colour colour ) { _colour = colour; return *this; }
 	const std::string getStr() const { return _string.str(); }
 	Graphic::font_type getFont() const { return _font; }
-	Graphic::colour_type getColour() const { return _colour; }
+	Graphic::Colour getColour() const { return _colour; }
     private:
 	Graphic::font_type _font;
-	Graphic::colour_type _colour;
+	Graphic::Colour _colour;
 	std::ostringstream _string;
     };
 
@@ -102,9 +102,9 @@ public:
     virtual Label& newLine();
 
     Label& font( const font_type );
-    Label& colour( const colour_type );
-    Label& backgroundColour( const colour_type aColour ) { _backgroundColour = aColour; return *this; }
-    colour_type backgroundColour() const { return _backgroundColour; }
+    Label& colour( const Colour );
+    Label& backgroundColour( const Colour aColour ) { _backgroundColour = aColour; return *this; }
+    Colour backgroundColour() const { return _backgroundColour; }
     Label& justification( const Justification justify ) { _justification = justify; return *this; }
     Justification justification() const { return _justification; }
 
@@ -145,7 +145,7 @@ protected:
 protected:
     Point _origin;
     std::vector<Line> _lines;
-    colour_type _backgroundColour;
+    Colour _backgroundColour;
     Justification _justification;
     bool _mathMode;
 };
@@ -398,7 +398,7 @@ protected:
 template <class Type1> class DrawText {
 public:
     typedef double (Type1::*textFPtr)( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-				       Justification justification, Graphic::colour_type colour, unsigned flags ) const;
+				       Justification justification, Graphic::Colour colour, unsigned flags ) const;
     DrawText( std::ostream& output, const Type1& self, const textFPtr text, Point point, const Justification j, unsigned flags=0 ) : _output(output), _self(self), _text(text), _point(point), _justification(j), _flags(flags) {}
     void operator()( const Label::Line& line ) {
 	const std::string& str = line.getStr();
@@ -419,7 +419,7 @@ private:
 template<> class DrawText<LabelGD> {
 public:
     typedef double (LabelGD::*textFPtr)( const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
-					 Justification justification, Graphic::colour_type colour  ) const;
+					 Justification justification, Graphic::Colour colour  ) const;
     DrawText<LabelGD>( std::ostream&, const LabelGD& self, const textFPtr text, Point point, const Justification j, unsigned flags=0 ) : _self(self), _text(text), _point(point), _justification(j) {}
     void operator()( const Label::Line& line ) {
 	const std::string& str = line.getStr();

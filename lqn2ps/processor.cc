@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: processor.cc 15255 2021-12-24 17:42:46Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -364,15 +364,15 @@ Processor::moveDst()
  * Colour the node.
  */
 
-Graphic::colour_type
+Graphic::Colour
 Processor::colour() const
 {
     if ( isSurrogate() ) {
-	return Graphic::GREY_10;
+	return Graphic::Colour::GREY_10;
     }
     switch ( Flags::colouring() ) {
     case Colouring::SERVER_TYPE:
-	return Graphic::BLUE;
+	return Graphic::Colour::BLUE;
     }
     return Entity::colour();
 }
@@ -424,7 +424,7 @@ Processor::label()
     if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
 	myLabel->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(utilization()) << end_math();
 	if ( hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
-	    myLabel->colour(Graphic::RED);
+	    myLabel->colour(Graphic::Colour::RED);
 	}
     }
     return *this;
@@ -547,7 +547,7 @@ Processor::draw( std::ostream& output ) const
 
     Point aPoint = center();
     double r = fabs( height() / 2.0 );
-    myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
+    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
     /* draw bottom first because we're going to overwrite */
     if ( isMultiServer() || isInfinite() || isReplicated() ) {
 	int aDepth = myNode->depth();

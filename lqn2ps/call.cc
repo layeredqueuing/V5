@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15241 2021-12-18 13:36:50Z greg $
+ * $Id: call.cc 15255 2021-12-24 17:42:46Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -102,10 +102,10 @@ GenericCall::hasForwardingLevel() const
 	&& !isLoopBack();
 }
 
-Graphic::colour_type
+Graphic::Colour
 GenericCall::colour() const
 {
-    return Graphic::DEFAULT_COLOUR;
+    return Graphic::Colour::DEFAULT;
 }
 
 GenericCall&
@@ -203,11 +203,11 @@ GenericCall::draw( std::ostream& output ) const
 	    aComment << " F (" << print_forwarding( *dynamic_cast<const Call *>(this) ) << ")";
 	}
     }
-    _arc->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() );
+    _arc->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() );
     _arc->comment( output, aComment.str() );
     output << *_arc;
 
-    _label->backgroundColour( Graphic::DEFAULT_COLOUR ).comment( output, aComment.str() );
+    _label->backgroundColour( Graphic::Colour::DEFAULT ).comment( output, aComment.str() );
     output << *_label;
     return *this;
 }
@@ -893,14 +893,14 @@ Call::hasSendNoReplyForPhase( const unsigned p ) const
 }
 
 
-Graphic::colour_type
+Graphic::Colour
 Call::colour() const
 {
     switch ( Flags::colouring() ) {
     case Colouring::RESULTS:
     case Colouring::DIFFERENCES:
 	if ( hasDropProbability() || hasInfiniteWait() ) {
-	    return Graphic::RED;
+	    return Graphic::Colour::RED;
 	} else {
 	    return dstTask()->colour();
 	}
@@ -911,7 +911,7 @@ Call::colour() const
     if ( hasAncestorLevel() || hasForwardingLevel() ) {
 	return dstEntry()->colour();
     } else {
-	return Graphic::RED;
+	return Graphic::Colour::RED;
     }
 }
 
@@ -963,7 +963,7 @@ Call::label()
 {
     if ( Flags::print_input_parameters() ) {
 	if ( hasNoCall() && Flags::colouring() != Colouring::NONE ) {
-	    _label->colour( Graphic::RED );
+	    _label->colour( Graphic::Colour::RED );
 	}
 	if ( Flags::aggregation() != Aggregate::ENTRIES ) {
 	    *_label << '(' << print_calls(*this) << ')';
@@ -978,7 +978,7 @@ Call::label()
 	}
     }
     if ( Flags::have_results ) {
-	Graphic::colour_type c = (hasDropProbability() || hasInfiniteWait()) ? Graphic::RED : Graphic::DEFAULT_COLOUR;
+	Graphic::Colour c = (hasDropProbability() || hasInfiniteWait()) ? Graphic::Colour::RED : Graphic::Colour::DEFAULT;
 	if ( Flags::print[WAITING].opts.value.b && hasWaiting() ) {
 	    _label->newLine().colour(c) << begin_math() << print_wait(*this) << end_math();
 	}
@@ -1298,7 +1298,7 @@ EntryCall::setChain( const unsigned k )
 }
 
 
-Graphic::colour_type
+Graphic::Colour
 EntryCall::colour() const
 {
     switch ( Flags::colouring() ) {
@@ -1435,7 +1435,7 @@ ActivityCall::addForwardingCall( Entry * toEntry, const double rate )
     return const_cast<Activity *>(srcActivity())->forwardingRendezvous( toEntry, rate * LQIO::DOM::to_double(rendezvous()) );
 }
 
-Graphic::colour_type
+Graphic::Colour
 ActivityCall::colour() const
 {
     switch ( Flags::colouring() ) {
@@ -1446,7 +1446,7 @@ ActivityCall::colour() const
     if ( hasAncestorLevel() || hasForwardingLevel() ) {
 	return dstEntry()->colour();
     } else {
-	return Graphic::RED;
+	return Graphic::Colour::RED;
     }
 }
 
@@ -1491,7 +1491,7 @@ Reply::~Reply()
 }
 
 
-Graphic::colour_type
+Graphic::Colour
 Reply::colour() const
 {
     return dstEntry()->colour();
@@ -1694,7 +1694,7 @@ TaskCall::setChain( const unsigned k )
 }
 
 
-Graphic::colour_type
+Graphic::Colour
 TaskCall::colour() const
 {
     switch ( Flags::colouring() ) {
@@ -1707,7 +1707,7 @@ TaskCall::colour() const
     if ( hasAncestorLevel() || hasForwardingLevel() ) {
 	return dstEntity()->colour();
     } else {
-	return Graphic::RED;
+	return Graphic::Colour::RED;
     }
 }
 
@@ -1938,7 +1938,7 @@ ProcessorCall::setChain( const unsigned k )
 }
 
 
-Graphic::colour_type
+Graphic::Colour
 ProcessorCall::colour() const
 {
     switch ( Flags::colouring() ) {
@@ -2245,12 +2245,12 @@ OpenArrival::setChain( const unsigned k )
     return *this;
 }
 
-Graphic::colour_type
+Graphic::Colour
 OpenArrival::colour() const
 {
     switch ( Flags::colouring() ) {
     case Colouring::SERVER_TYPE:
-	return Graphic::RED;
+	return Graphic::Colour::RED;
     }
 
     return dstTask()->colour();
@@ -2286,7 +2286,7 @@ OpenArrival::label()
 	 && Flags::have_results
 	 && Flags::print[OPEN_WAIT].opts.value.b ) {
 	if ( print ) _label->newLine();
-	Graphic::colour_type c = std::isfinite( _destination->openWait() ) ? Graphic::DEFAULT_COLOUR : Graphic::RED;
+	Graphic::Colour c = std::isfinite( _destination->openWait() ) ? Graphic::Colour::DEFAULT : Graphic::Colour::RED;
 	_label->colour(c) << begin_math() << _destination->openWait() << end_math();
 	print = true;
     }

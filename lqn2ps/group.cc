@@ -1,6 +1,6 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 15252 2021-12-24 02:56:59Z greg $
+ * $Id: group.cc 15255 2021-12-24 17:42:46Z greg $
  */
 
 #include <algorithm>
@@ -83,7 +83,7 @@ Group::populate()
 	(*processor)->hasGroup( true );
 
 	if ( Flags::layering() == Layering::PROCESSOR ) {
-	    penColour( (*processor)->colour() == Graphic::GREY_10 ? Graphic::BLACK : (*processor)->colour() );
+	    penColour( (*processor)->colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : (*processor)->colour() );
 	    fillColour( (*processor)->colour() );
 	}
 	if ( (*processor)->isSelected() ) {
@@ -213,8 +213,8 @@ std::ostream&
 Group::draw( std::ostream& output ) const
 {
     if ( isUsed() ) {
-	const colour_type colour = processor() ?  processor()->colour() : Graphic::BLACK;
-	myNode->penColour( colour == Graphic::GREY_10 ? Graphic::BLACK : colour ).fillColour( Graphic::WHITE ).linestyle( linestyle() ).depth( depth() + 1 );
+	const Colour colour = processor() ?  processor()->colour() : Graphic::Colour::DEFAULT;
+	myNode->penColour( colour == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour ).fillColour( colour ).linestyle( linestyle() ).depth( depth() + 1 );
 	myLabel->depth( depth() );
 
 	myNode->roundedRectangle( output );
@@ -265,7 +265,7 @@ GroupByProcessor::label()
     if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
 	myLabel->newLine() << begin_math( &Label::mu ) << "=" << myProcessor->utilization() << end_math();
 	if ( !myProcessor->hasBogusUtilization() ) {
-	    myLabel->colour(Graphic::RED);
+	    myLabel->colour(Graphic::Colour::RED);
 	}
     }
     return *this;
@@ -323,7 +323,7 @@ GroupByShareDefault::populate()
 	}
     }
 
-    penColour( processor()->colour() == Graphic::GREY_10 ? Graphic::BLACK : processor()->colour() );
+    penColour( processor()->colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : processor()->colour() );
     fillColour( processor()->colour() );
 
     return !empty;
@@ -428,8 +428,8 @@ GroupByShareGroup::label()
 GroupSquashed::GroupSquashed( unsigned int nLayers, const std::string& s, const Layer& layer1, const Layer& layer2 )
     : Group(nLayers, s), layer_1(layer1), layer_2(layer2)
 {
-    penColour( Graphic::DEFAULT_COLOUR );
-    fillColour( Graphic::DEFAULT_COLOUR );
+    penColour( Graphic::Colour::DEFAULT );
+    fillColour( Graphic::Colour::DEFAULT );
     isUsed( true );
 }
 

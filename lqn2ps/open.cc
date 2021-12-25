@@ -1,6 +1,6 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: open.cc 15255 2021-12-24 17:42:46Z greg $
  */
 
 #include "lqn2ps.h"
@@ -209,7 +209,7 @@ OpenArrivalSource::label()
 }
 
 
-Graphic::colour_type 
+Graphic::Colour 
 OpenArrivalSource::colour() const
 {
     return myEntry().colour();
@@ -232,7 +232,7 @@ OpenArrivalSource::draw( std::ostream& output ) const
     aComment += " ==========";
     myNode->comment( output, aComment );
 
-    myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
+    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
     myNode->circle( output, center(), radius() );
 
     for ( std::vector<OpenArrival *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
@@ -256,7 +256,7 @@ OpenArrivalSource::print( std::ostream& output ) const
 std::ostream&
 OpenArrivalSource::drawClient( std::ostream& output, const bool is_in_open_model, const bool is_in_closed_model ) const
 {
-    myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
+    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
     myNode->open_source( output, bottomCenter(), Entity::radius() );
     myLabel->moveTo( bottomCenter() ).justification( Justification::LEFT );
     myLabel->moveBy( Entity::radius() * 1, radius() * myNode->direction() );

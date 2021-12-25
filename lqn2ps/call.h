@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 14644 2021-05-14 15:09:03Z greg $
+ * $Id: call.h 15255 2021-12-24 17:42:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -102,7 +102,7 @@ public:
 
     virtual GenericCall& setChain( const unsigned ) = 0;
 
-    virtual Graphic::colour_type colour() const = 0;
+    virtual Graphic::Colour colour() const = 0;
     GenericCall& linestyle( Graphic::linestyle_type aLinestyle ) { _arc->linestyle( aLinestyle ); return *this; }
     
     unsigned int nPoints() const { return _arc->nPoints(); }
@@ -262,7 +262,7 @@ public:
     Call& updateRateFrom( const Call& client, const Call& server );
 #endif
     
-    virtual Graphic::colour_type colour() const;
+    virtual Graphic::Colour colour() const;
 
     virtual Call& moveDst( const Point& aPoint );
     virtual Call& label();
@@ -316,7 +316,7 @@ public:
 
     virtual Call * addForwardingCall( Entry * toEntry, const double );
 
-    virtual Graphic::colour_type colour() const;
+    virtual Graphic::Colour colour() const;
 
 private:
     const Entry* _source;		/* Calling entry.		*/
@@ -368,7 +368,7 @@ public:
 
     virtual Call * addForwardingCall( Entry * toEntry, const double );
 
-    virtual Graphic::colour_type colour() const;
+    virtual Graphic::Colour colour() const;
 
 protected:
     virtual std::ostream& printSRVNLine( std::ostream& output, char code, print_func_ptr func ) const;
@@ -397,7 +397,7 @@ public:
     Reply( const Activity * fromActivity, const Entry * toEntry );
     virtual ~Reply();
 
-    virtual Graphic::colour_type colour() const;
+    virtual Graphic::Colour colour() const;
     virtual bool isSelected() const { return true; }
 };
 
@@ -461,7 +461,7 @@ public:
 
     virtual TaskCall& setChain( const unsigned );
 
-    virtual Graphic::colour_type colour() const;
+    virtual Graphic::Colour colour() const;
 
     virtual bool isLoopBack() const;
 
@@ -538,7 +538,7 @@ public:
 
     virtual ProcessorCall& setChain( const unsigned );
 
-    virtual Graphic::colour_type colour() const;
+    virtual Graphic::Colour colour() const;
 
     virtual ProcessorCall& moveSrc( const Point& aPoint );
     virtual ProcessorCall& moveSrcBy( const double, const double );
@@ -604,7 +604,7 @@ public:
 
     virtual OpenArrival& setChain( const unsigned );
 
-    virtual Graphic::colour_type colour() const;
+    virtual Graphic::Colour colour() const;
 
     virtual OpenArrival& moveDst( const Point& aPoint );
     virtual OpenArrival& label();

@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 15184 2021-12-09 20:22:28Z greg $
+ * $Id: activity.cc 15255 2021-12-24 17:42:46Z greg $
  */
 
 #include "activity.h"
@@ -1028,17 +1028,17 @@ Activity::label()
 
 
 
-Graphic::colour_type
+Graphic::Colour
 Activity::colour() const
 {
     if ( !reachable() ) {
-	return Graphic::RED;
+	return Graphic::Colour::RED;
     } else switch ( Flags::colouring() ) {
 	case Colouring::RESULTS:
 	case Colouring::DIFFERENCES:
 	return owner()->colour();
     default:
-	return Graphic::DEFAULT_COLOUR;
+	return Graphic::Colour::DEFAULT;
     }
 }
 
@@ -1157,7 +1157,7 @@ Activity::draw( std::ostream & output ) const
     aComment << " level=" << level();
 
     myNode->comment( output, aComment.str() );
-    myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
+    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
     myNode->rectangle( output );
 
     for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,std::ostream&>( &GenericCall::draw, output ) );

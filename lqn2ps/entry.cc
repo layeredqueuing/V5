@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15251 2021-12-23 22:29:12Z greg $
+ * $Id: entry.cc 15255 2021-12-24 17:42:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1642,7 +1642,7 @@ Entry::span() const
 
 
 
-Graphic::colour_type
+Graphic::Colour
 Entry::colour() const
 {
     switch ( Flags::colouring() ) {
@@ -1650,7 +1650,7 @@ Entry::colour() const
 	if ( Flags::have_results && Flags::graphical_output_style == Output_Style::JLQNDEF && !owner()->isReferenceTask() ) {
 	    return colourForUtilization( owner()->isInfinite() ? 0.0 : utilization() / owner()->copiesValue() );
 	} else if ( serviceExceeded() > 0. ) {
-	    return Graphic::RED;
+	    return Graphic::Colour::RED;
 	}
 	break;
 
@@ -1662,9 +1662,9 @@ Entry::colour() const
 	
     case Colouring::CLIENTS:
 	if ( myPaths.size() ) {
-	    return (Graphic::colour_type)(*myPaths.begin() % 11 + 5);		// first element is smallest
+	    return (Graphic::Colour)(*myPaths.begin() % 11 + 5);		// first element is smallest
 	} else {
-	    return Graphic::DEFAULT_COLOUR;
+	    return Graphic::Colour::DEFAULT;
 	}
 
     }
@@ -2283,7 +2283,7 @@ Entry::draw( std::ostream& output ) const
 
     const double dx = adjustForSlope( fabs(height()) );
 
-    myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );	/* fillColour ignored since its a line. */
+    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );	/* fillColour ignored since its a line. */
     std::vector<Point> points;
     if ( Flags::graphical_output_style == Output_Style::JLQNDEF ) {
 	points.resize(4);

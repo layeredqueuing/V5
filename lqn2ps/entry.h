@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 15155 2021-12-06 18:54:53Z greg $
+ * $Id: entry.h 15255 2021-12-24 17:42:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -218,7 +218,7 @@ public:
     virtual double getIndex() const;
     virtual int span() const;
 
-    Graphic::colour_type colour() const;
+    Graphic::Colour colour() const;
 
     /* movement */
 

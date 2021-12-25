@@ -36,7 +36,7 @@
 static char RcsId[] = "$Header$";
 #endif /* LIBC_SCCS and not lint */
 
-#if defined(HAVE_CONFIG_H)
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
 #include <cstdio>

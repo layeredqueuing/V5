@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-# $Id: configure.ac 15206 2021-12-13 15:22:46Z greg $
+# $Id: configure.ac 15256 2021-12-25 01:47:40Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([lqns],[5.23],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([config])
@@ -55,6 +55,7 @@ AC_CHECK_HEADERS([glob.h errno.h getopt.h unistd.h libgen.h])
 AC_CHECK_HEADERS([sys/resource.h sys/utsname.h sys/times.h])
 AC_CHECK_HEADERS([fenv.h float.h ieeefp.h])
 AC_CHECK_HEADERS([expat.h])
+AC_CHECK_HEADERS([gd.h])
 
 # ----------------------------------------------------------------------
 # Checks for libraries.
