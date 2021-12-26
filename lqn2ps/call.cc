@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15255 2021-12-24 17:42:46Z greg $
+ * $Id: call.cc 15262 2021-12-26 18:55:49Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -452,11 +452,11 @@ Call::merge( Phase& phase, const unsigned int p, const Call& src, const double r
 
     if ( _arc ) {
 	if ( hasSendNoReply() ) {
-	    _arc->arrowhead(Graphic::OPEN_ARROW);
+	    _arc->arrowhead(Graphic::ArrowHead::OPEN);
 	} else {
-	    _arc->arrowhead(Graphic::CLOSED_ARROW);
+	    _arc->arrowhead(Graphic::ArrowHead::CLOSED);
 	    if ( hasForwarding() ) {
-		_arc->linestyle(Graphic::DASHED);
+		_arc->linestyle(Graphic::LineStyle::DASHED);
 	    }
 	}
     }
@@ -543,11 +543,11 @@ Call::setArcType()
 {
     if ( _arc ) {
 	if ( hasSendNoReply() ) {
-	    _arc->arrowhead(Graphic::OPEN_ARROW);
+	    _arc->arrowhead(Graphic::ArrowHead::OPEN);
 	} else {
-	    _arc->arrowhead(Graphic::CLOSED_ARROW);
+	    _arc->arrowhead(Graphic::ArrowHead::CLOSED);
 	    if ( hasForwarding() ) {
-		_arc->linestyle(Graphic::DASHED);
+		_arc->linestyle(Graphic::LineStyle::DASHED);
 	    }
 	}
     }
@@ -593,7 +593,7 @@ Call::rendezvous( const unsigned p, const LQIO::DOM::Call * value )
 	_callType = LQIO::DOM::Call::Type::RENDEZVOUS;
 	_calls[p-1] = value;
 	if ( _arc ) {
-	    _arc->arrowhead(Graphic::CLOSED_ARROW);
+	    _arc->arrowhead(Graphic::ArrowHead::CLOSED);
 	}
     }
     return *this;
@@ -608,7 +608,7 @@ Call::rendezvous( const unsigned p, const double value )
 	_callType = LQIO::DOM::Call::Type::RENDEZVOUS;
 	const_cast<LQIO::DOM::Call *>(_calls[p-1])->setCallMeanValue(value);
 	if ( _arc ) {
-	    _arc->arrowhead(Graphic::CLOSED_ARROW);
+	    _arc->arrowhead(Graphic::ArrowHead::CLOSED);
 	}
     }
     return *this;
@@ -641,7 +641,7 @@ Call::sendNoReply( const unsigned p, const LQIO::DOM::Call * value )
 	_callType = LQIO::DOM::Call::Type::SEND_NO_REPLY;
 	_calls[p-1] = value;
 	if ( _arc ) {
-	    _arc->arrowhead(Graphic::OPEN_ARROW);
+	    _arc->arrowhead(Graphic::ArrowHead::OPEN);
 	}
     }
     return *this;
@@ -656,7 +656,7 @@ Call::sendNoReply( const unsigned p, const double value )
 	_callType = LQIO::DOM::Call::Type::SEND_NO_REPLY;
 	const_cast<LQIO::DOM::Call *>(_calls[p-1])->setCallMeanValue(value);
 	if ( _arc ) {
-	    _arc->arrowhead(Graphic::OPEN_ARROW);
+	    _arc->arrowhead(Graphic::ArrowHead::OPEN);
 	}
     }
     return *this;
@@ -676,7 +676,7 @@ Call::forward( const LQIO::DOM::Call * value )
     if ( !hasSendNoReply() ) {
 	_forwarding = value;
 	if ( _arc ) {
-	    _arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DASHED);
+	    _arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DASHED);
 	    if ( !Flags::print_forwarding_by_depth && _arc->nPoints() == 2 ) {
 		_arc->resize( 4 );
 	    }
@@ -1313,7 +1313,7 @@ ProxyEntryCall::ProxyEntryCall( const Entry * fromEntry, const Entry * toEntry )
     : EntryCall( fromEntry, toEntry ), myProxy(0)
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DOTTED);
+	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DOTTED);
     }
 }
 
@@ -1321,7 +1321,7 @@ PseudoEntryCall::PseudoEntryCall( const Entry * fromEntry, const Entry * toEntry
     : EntryCall( fromEntry, toEntry )
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DASHED_DOTTED);
+	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DASHED_DOTTED);
     }
 }
 
@@ -1471,7 +1471,7 @@ ProxyActivityCall::ProxyActivityCall( const Activity * fromActivity, const Entry
     : ActivityCall( fromActivity, toEntry ), myProxy(0)
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DOTTED);
+	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DOTTED);
     }
 }
 
@@ -1479,7 +1479,7 @@ Reply::Reply( const Activity * fromActivity, const Entry * toEntry )
     : ActivityCall( fromActivity, toEntry )
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DOTTED);
+	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DOTTED);
     }
     const_cast<Entry *>(toEntry)->addActivityReplyArc( this );
 }
@@ -1577,7 +1577,7 @@ TaskCall::rendezvous( const LQIO::DOM::ConstantExternalVariable& value )
 {
     _rendezvous = value;
     if ( _arc ) {
-	_arc->arrowhead(Graphic::CLOSED_ARROW);
+	_arc->arrowhead(Graphic::ArrowHead::CLOSED);
     }
     return *this;
 }
@@ -1595,7 +1595,7 @@ TaskCall::sendNoReply( const LQIO::DOM::ConstantExternalVariable& value )
 {
     _sendNoReply = value;
     if ( !hasRendezvous() && !hasForwarding() && _arc ) {
-	_arc->arrowhead(Graphic::OPEN_ARROW);
+	_arc->arrowhead(Graphic::ArrowHead::OPEN);
     }
     return *this;
 }
@@ -1628,7 +1628,7 @@ TaskCall::taskForward( const LQIO::DOM::ConstantExternalVariable& value)
 {
     _forwarding = value;
     if ( !hasRendezvous() && _arc ) {
-	_arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DASHED);
+	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DASHED);
 	if ( !Flags::print_forwarding_by_depth && _arc->nPoints() == 2 ) {
 	    _arc->resize( 4 );
 	}
@@ -1794,7 +1794,7 @@ ProxyTaskCall::ProxyTaskCall( const Task * fromTask, const Task * toTask )
     : TaskCall( fromTask, toTask )
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DOTTED);
+	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DOTTED);
     }
 }
 
@@ -1803,7 +1803,7 @@ PseudoTaskCall::PseudoTaskCall( const Task * fromTask, const Task * toTask )
     : TaskCall( fromTask, toTask )
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DASHED_DOTTED);
+	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DASHED_DOTTED);
     }
 }
 
@@ -2097,7 +2097,7 @@ PseudoProcessorCall::PseudoProcessorCall( const Task * fromTask, const Processor
     : ProcessorCall( fromTask, toProcessor )
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DASHED_DOTTED);
+	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DASHED_DOTTED);
     }
 }
 
@@ -2108,7 +2108,7 @@ OpenArrival::OpenArrival( const OpenArrivalSource * from, const Entry * to )
       _source(from),
       _destination(to)
 {
-    _arc->arrowhead(Graphic::OPEN_ARROW);
+    _arc->arrowhead(Graphic::ArrowHead::OPEN);
 }
 
 

@@ -1,6 +1,6 @@
 /* graphic.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: graphic.cc 15256 2021-12-25 01:47:40Z greg $
+ * $Id: graphic.cc 15263 2021-12-26 19:06:26Z greg $
  */
 
 #include <cassert>
@@ -52,7 +52,7 @@ XMLString::xml_escape_str( std::ostream& output, const std::string& s, const std
 /* See http://astronomy.swin.edu.au/~pbourke/colour/colourramp/ for a good way to generate colours */
 /* See http://tex.loria.fr/graph-pack/grf/gr2.htm */
 
-const std::map<const Graphic::Colour,const RGB::colour_defn> RGB::colour_value =
+const std::map<const Graphic::Colour,const RGB::colour_defn> RGB::__value =
 {
     { Graphic::Colour::TRANSPARENT,     {0.000, 0.000, 0.000} },
     { Graphic::Colour::DEFAULT,         {0.000, 0.000, 0.000} },
@@ -74,7 +74,7 @@ const std::map<const Graphic::Colour,const RGB::colour_defn> RGB::colour_value =
 };
 
 
-const std::map<const Graphic::Colour, const std::string> RGB::colour_name =
+const std::map<const Graphic::Colour, const std::string> RGB::__name =
 {
     { Graphic::Colour::TRANSPARENT,     "White" },
     { Graphic::Colour::DEFAULT,         "black" },
@@ -165,10 +165,10 @@ long EMF::record_count = 0;
 Graphic::Colour EMF::last_pen_colour    = Graphic::Colour::BLACK;
 Graphic::Colour EMF::last_fill_colour   = Graphic::Colour::BLACK;
 Graphic::Colour EMF::last_arrow_colour  = Graphic::Colour::BLACK;
-Justification EMF::last_justification        = Justification::CENTER;
-Graphic::font_type EMF::last_font	     = Graphic::NORMAL_FONT;
-Graphic::linestyle_type EMF::last_line_style = Graphic::SOLID;
-int EMF::last_font_size			     = 0;
+Graphic::Font EMF::last_font		= Graphic::Font::NORMAL;
+Graphic::LineStyle EMF::last_line_style = Graphic::LineStyle::SOLID;
+Justification EMF::last_justification   = Justification::CENTER;
+int EMF::last_font_size			= 0;
 
 std::ostream&
 EMF::init( std::ostream& output, const double xmax, const double ymax, const std::string& command_line )
@@ -187,8 +187,8 @@ EMF::init( std::ostream& output, const double xmax, const double ymax, const std
     last_fill_colour  	= static_cast<Graphic::Colour>(-1);
     last_arrow_colour 	= static_cast<Graphic::Colour>(-1);
     last_justification  = Justification::CENTER;
-    last_line_style     = Graphic::SOLID;
-    last_font		= Graphic::NORMAL_FONT;
+    last_line_style     = Graphic::LineStyle::SOLID;
+    last_font		= Graphic::Font::NORMAL;
     last_font_size	= 0;
 
     output << start_record( EMR_HEADER, 100+((n+1)/2)*4 ) 		/* Record Type, size (bytes) */
@@ -245,7 +245,7 @@ EMF::init( std::ostream& output, const double xmax, const double ymax, const std
 	   << writel( 0 );		/* hatch */
     output << start_record( EMR_SELECTOBJECT, 12 )
 	   << writel( EMF_HANDLE_BRUSH );
-    output << setfont( Graphic::NORMAL_FONT );
+    output << setfont( Graphic::Font::NORMAL );
     return output;
 }
 
@@ -328,17 +328,17 @@ EMF::terminate( std::ostream& output )
 
 std::ostream&
 EMF::polyline( std::ostream& output, const std::vector<Point>& points,
-	       Graphic::Colour pen_colour, Graphic::linestyle_type line_style,
-	       Graphic::arrowhead_type arrowhead, double scale ) const
+	       Graphic::Colour pen_colour, Graphic::LineStyle line_style,
+	       Graphic::ArrowHead arrowhead, double scale ) const
 {
     const unsigned int n_points = points.size();
     if ( n_points > 1 ) {
 	output << setcolour( pen_colour );
 
 	switch( line_style ) {
-	case Graphic::DASHED:
-	case Graphic::DOTTED:
-	case Graphic::DASHED_DOTTED:
+	case Graphic::LineStyle::DASHED:
+	case Graphic::LineStyle::DOTTED:
+	case Graphic::LineStyle::DASHED_DOTTED:
 	    draw_dashed_line( output, line_style, points );
 	    break;
 	default:
@@ -349,10 +349,10 @@ EMF::polyline( std::ostream& output, const std::vector<Point>& points,
 	/* Now draw the arrowhead */
 
 	switch ( arrowhead ) {
-	case Graphic::CLOSED_ARROW:
+	case Graphic::ArrowHead::CLOSED:
 	    arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, pen_colour );
 	    break;
-	case Graphic::OPEN_ARROW:
+	case Graphic::ArrowHead::OPEN:
 	    arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, Graphic::Colour::WHITE );
 	    break;
 	}
@@ -401,7 +401,7 @@ EMF::draw_line( std::ostream& output, extended_meta_record emr_type, const std::
 
 
 std::ostream&
-EMF::draw_dashed_line( std::ostream& output, Graphic::linestyle_type line_style, const std::vector<Point>& points ) const
+EMF::draw_dashed_line( std::ostream& output, Graphic::LineStyle line_style, const std::vector<Point>& points ) const
 {
     const unsigned n_points = points.size();
     double delta[2];
@@ -412,11 +412,11 @@ EMF::draw_dashed_line( std::ostream& output, Graphic::linestyle_type line_style,
     delta[1] = EMF_SCALING * 2;
 
     switch( line_style ) {
-    case Graphic::DASHED:
+    case Graphic::LineStyle::DASHED:
 	delta[1] = DOT_GAP * EMF_SCALING;
 	break;
-    case Graphic::DOTTED:
-    case Graphic::DASHED_DOTTED:
+    case Graphic::LineStyle::DOTTED:
+    case Graphic::LineStyle::DASHED_DOTTED:
 	delta[0] = DASH_LENGTH * EMF_SCALING;
 	break;
     }
@@ -483,7 +483,7 @@ EMF::circle( std::ostream& output, const Point& c, const double r, Graphic::Colo
 
 std::ostream&
 EMF::rectangle( std::ostream& output, const Point& origin, const Point& extent, Graphic::Colour pen_colour,
-		Graphic::Colour fill_colour, Graphic::linestyle_type line_style ) const
+		Graphic::Colour fill_colour, Graphic::LineStyle line_style ) const
 {
     const unsigned n_points = 5;
     std::vector<Point> points(n_points);
@@ -491,9 +491,9 @@ EMF::rectangle( std::ostream& output, const Point& origin, const Point& extent, 
 
     output << setcolour( pen_colour ) << setfill( fill_colour );
     switch( line_style ) {
-    case Graphic::DASHED:
-    case Graphic::DOTTED:
-    case Graphic::DASHED_DOTTED:
+    case Graphic::LineStyle::DASHED:
+    case Graphic::LineStyle::DOTTED:
+    case Graphic::LineStyle::DASHED_DOTTED:
 	draw_dashed_line( output, line_style, points );
 	break;
     default:
@@ -510,7 +510,7 @@ EMF::rectangle( std::ostream& output, const Point& origin, const Point& extent, 
 
 
 double
-EMF::text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
+EMF::text( std::ostream& output, const Point& c, const std::string& s, Graphic::Font font, int fontsize,
 	   Justification justification, Graphic::Colour colour, unsigned ) const
 {
     Point origin(0,0);
@@ -533,7 +533,7 @@ EMF::text( std::ostream& output, const Point& c, const std::string& s, Graphic::
     }
     const unsigned int len_2 = ( len_1 & 0x03 ) == 0 ? len_1 : (len_1 & 0xfffc) + 4;
 
-    output << start_record( EMR_SETTEXTCOLOR, 12 ) << rgb( colour_value.at(colour).red, colour_value.at(colour).green, colour_value.at(colour).blue );
+    output << start_record( EMR_SETTEXTCOLOR, 12 ) << rgb( __value.at(colour).red, __value.at(colour).green, __value.at(colour).blue );
     output << setfont( font ) << justify( justification );
     output << start_record( EMR_EXTTEXTOUTW, 76 + len_2 )			/*  0 */
 	   << point( origin ) 		/* Bounding -- never used */		/*  8 */
@@ -571,9 +571,9 @@ EMF::arrowHead( std::ostream& output, const Point& head, const Point& tail, doub
 	output << start_record( EMR_CREATEBRUSHINDIRECT, 24 )
 	       << writel( EMF_HANDLE_BRUSH )
 	       << writel( 0 )		/* type */
-	       << rgb( colour_value.at(fill_colour).red,
-		       colour_value.at(fill_colour).green,
-		       colour_value.at(fill_colour).blue )
+	       << rgb( __value.at(fill_colour).red,
+		       __value.at(fill_colour).green,
+		       __value.at(fill_colour).blue )
 	       << writel( 0 );		/* hatch */
 	output << start_record( EMR_SELECTOBJECT, 12 )
 	       << writel( EMF_HANDLE_BRUSH );
@@ -662,7 +662,7 @@ EMF::setcolour_str( std::ostream& output, const Graphic::Colour pen_colour )
 	       << writel( PS_SOLID )
 	       << writel( static_cast<unsigned long>(EMF_SCALING*0.5) )	/* width (1/2 point) */
 	       << writel( 0 )
-	       << rgb( colour_value.at(pen_colour).red, colour_value.at(pen_colour).green, colour_value.at(pen_colour).blue );
+	       << rgb( __value.at(pen_colour).red, __value.at(pen_colour).green, __value.at(pen_colour).blue );
 	output << start_record( EMR_SELECTOBJECT, 12 )
 	       << writel( EMF_HANDLE_PEN );
 
@@ -714,9 +714,9 @@ EMF::setfill_str( std::ostream& output, const Graphic::Colour colour )
 	    output << start_record( EMR_CREATEBRUSHINDIRECT, 24 )
 		   << writel( EMF_HANDLE_BRUSH )
 		   << writel( 0 )		/* type */
-		   << rgb( tint( colour_value.at(colour).red, 0.9 ),
-			   tint( colour_value.at(colour).green, 0.9 ),
-			   tint( colour_value.at(colour).blue, 0.9 ) )
+		   << rgb( tint( __value.at(colour).red, 0.9 ),
+			   tint( __value.at(colour).green, 0.9 ),
+			   tint( __value.at(colour).blue, 0.9 ) )
 		   << writel( 0 );		/* hatch */
 	    break;
 	}
@@ -754,9 +754,9 @@ EMF::rgb( float red, float green, float blue )
 
 
 std::ostream&
-EMF::setfont_str( std::ostream& output, const Graphic::font_type aFont, const int fontSize )
+EMF::setfont_str( std::ostream& output, const Graphic::Font font, const int fontSize )
 {
-    if ( aFont != last_font || fontSize != last_font_size ) {
+    if ( font != last_font || fontSize != last_font_size ) {
 	const double EMF_PT2HM = 35.28/2;
 	output << start_record( EMR_SELECTOBJECT, 12 )
 	       << writel( EMF_STOCK_OBJECT_DEFAULT_FONT );
@@ -769,7 +769,7 @@ EMF::setfont_str( std::ostream& output, const Graphic::font_type aFont, const in
 	       << writel( 0 )	/* escapement */ 				/* 20 */
 	       << writel( 0 )	/* orientation */				/* 24 */
 	       << writel( 400 )	/* weight */					/* 28 */
-	       << static_cast<char>(aFont==Graphic::OBLIQUE_FONT) /* italic */  /* 32 */
+	       << static_cast<char>(font==Graphic::Font::OBLIQUE) /* italic */  /* 32 */
 	       << static_cast<char>(0)	/* underline */
 	       << static_cast<char>(0)	/* strikeout */
 	       << static_cast<char>(1)	/* charset */
@@ -783,7 +783,7 @@ EMF::setfont_str( std::ostream& output, const Graphic::font_type aFont, const in
 	output << start_record( EMR_SELECTOBJECT, 12 )
 	       << writel( EMF_HANDLE_FONT );
 
-	last_font = aFont;
+	last_font = font;
 	last_font_size = fontSize;
     }
     return output;
@@ -886,9 +886,9 @@ EMF::setcolour( const Graphic::Colour aColour )
 }
 
 RGB::FontManip
-EMF::setfont( const Graphic::font_type aFont )
+EMF::setfont( const Graphic::Font font )
 {
-    return RGB::FontManip( setfont_str, aFont, Flags::font_size() );
+    return RGB::FontManip( setfont_str, font, Flags::font_size() );
 }
 
 DoubleManip
@@ -933,7 +933,7 @@ EMF::start_record( const int rec, const int size )
 /* XFIG output								*/
 /* -------------------------------------------------------------------- */
 
-const std::map<const Graphic::Colour, const int> Fig::colour_index = 
+const std::map<const Graphic::Colour, const int> Fig::__colour = 
 {
         { Graphic::Colour::TRANSPARENT,     -1 },
         { Graphic::Colour::DEFAULT,         -1 },
@@ -954,54 +954,54 @@ const std::map<const Graphic::Colour, const int> Fig::colour_index =
         { Graphic::Colour::GOLD,            37 }
 };
 
-int Fig::linestyle_value[] =
+const std::map<const Graphic::LineStyle, const int> Fig::__linestyle =
 {
-    0,		/* DEFAULT_LINESTYLE */
-    0,		/* SOLID */
-    1,		/* DASHED */
-    2,		/* DOTTED */
-    4		/* DASHED_DOTTED */
+    { Graphic::LineStyle::DEFAULT,	    0 },
+    { Graphic::LineStyle::SOLID,	    0 },
+    { Graphic::LineStyle::DASHED,	    1 },
+    { Graphic::LineStyle::DOTTED,	    2 },
+    { Graphic::LineStyle::DASHED_DOTTED,    4 }	
 };
 
-Fig::arrowhead_defn Fig::arrowhead_value[] =
+const std::map<const Graphic::ArrowHead, const Fig::arrowhead_defn> Fig::__arrowhead =
 {
-    {0, 0},	/* NO_ARROW */
-    {2, 1},	/* CLOSED_ARROW */
-    {2, 0}	/* OPEN_ARROW */
+    { Graphic::ArrowHead::NONE,	    {0, 0} },
+    { Graphic::ArrowHead::CLOSED,   {2, 1} },
+    { Graphic::ArrowHead::OPEN,	    {2, 0} } 
 };
 
-int Fig::postscript_font_value[] =
+const std::map<const Graphic::Font, const int> Fig::__postscript_font =
 {
-    -1,		/* Default */
+    { Graphic::Font::DEFAULT ,	-1 },
 #if 1
-    0,		/* Times-Roman */
-    1,		/* Times-Italic */
-    2,		/* Times-Bold */
+    { Graphic::Font::NORMAL,	0 },
+    { Graphic::Font::OBLIQUE,	1 },
+    { Graphic::Font::BOLD,	2 },
 #else
-    20,		/* Helvetica-Narrow */
-    21,		/* Helvetica-Narrow Oblique */
-    22,		/* Helvetica-Narrow Bold */
+    { Graphic::Font::NORMAL ,	20 },
+    { Graphic::Font::OBLIQUE ,	21 },
+    { Graphic::Font::BOLD,	22 },
 #endif
-    32		/* Symbol */
+    { Graphic::Font::SPECIAL,	32 }
 };
 
-int Fig::tex_font_value[] =
+const std::map<const Graphic::Font, const int> Fig::__tex_font =
 {
-    0,		/* Default */
-    1,		/* Times-Roman */
-    3,		/* Times-Italic */
-    2,		/* Times-Bold */
-    0		/* Symbol */
+    { Graphic::Font::DEFAULT,	0 },
+    { Graphic::Font::NORMAL,   	1 },
+    { Graphic::Font::OBLIQUE,  	3 },
+    { Graphic::Font::BOLD,     	2 },
+    { Graphic::Font::SPECIAL,   0 }
 };
 
-int Fig::fill_value[] = 
+const std::map<const Graphic::Fill, const int> Fig::__fill =
 {
-    -1, 	/* no fill */
-    38,		/* Default (tint) */
-    0,		/* Zero */
-    18,		/* 90% */
-    20,		/* 100% */
-    38		/* Tint */
+    { Graphic::Fill::NONE,    	-1 },
+    { Graphic::Fill::DEFAULT,   38 },
+    { Graphic::Fill::ZERO,    	0 },
+    { Graphic::Fill::NINETY,    18 },
+    { Graphic::Fill::SOLID,    	20 },
+    { Graphic::Fill::TINT, 	38 }
 };
 
 /*
@@ -1013,9 +1013,9 @@ Fig::initColours( std::ostream& output )
 {
     static const std::set<Graphic::Colour> reject = { Graphic::Colour::TRANSPARENT, Graphic::Colour::DEFAULT, Graphic::Colour::BLACK, Graphic::Colour::WHITE };
     
-    for ( std::map<const Graphic::Colour, const RGB::colour_defn>::const_iterator i = colour_value.begin(); i != colour_value.end(); ++i ) {
-	if ( reject.find(i->first) != reject.end() || colour_index.at(i->first) < 32 ) continue;
-	output << "0 " << colour_name.at(i->first) << " " << rgb( i->second.red, i->second.green, i->second.blue ) << std::endl;
+    for ( std::map<const Graphic::Colour, const RGB::colour_defn>::const_iterator i = __value.begin(); i != __value.end(); ++i ) {
+	if ( reject.find(i->first) != reject.end() || __colour.at(i->first) < 32 ) continue;
+	output << "0 " << __name.at(i->first) << " " << rgb( i->second.red, i->second.green, i->second.blue ) << std::endl;
     }
     return output;
 }
@@ -1025,11 +1025,11 @@ Fig::initColours( std::ostream& output )
 std::ostream&
 Fig::init( std::ostream& output, int object_code, int sub_type,
 	   Graphic::Colour pen_colour, Graphic::Colour fill_colour,
-	   Graphic::linestyle_type line_style, Graphic::fill_type fill_style, int depth ) const
+	   Graphic::LineStyle line_style, Graphic::Fill fill_style, int depth ) const
 {
     output << object_code 				// int	object_code	(always 2)
 	   << ' ' << sub_type 				// int	sub_type	(3: polygon)
-	   << ' ' << linestyle_value[line_style]	// int	line_style	(enumeration type)
+	   << ' ' << __linestyle.at(line_style)		// int	line_style	(enumeration type)
 	   << ' ';
 
     /* Pen */
@@ -1038,44 +1038,44 @@ Fig::init( std::ostream& output, int object_code, int sub_type,
     } else {
 	output << "1";					// int	thickness	(1/80 inch)
     }
-    output << ' ' << colour_index.at(pen_colour);	// int	pen_color	(enumeration type, pen color)
+    output << ' ' << __colour.at(pen_colour);		// int	pen_color	(enumeration type, pen color)
 
     /* Fill colour */
     if ( fill_colour == Graphic::Colour::DEFAULT ) {
-	output << ' ' << colour_index.at(Graphic::Colour::WHITE); 	// int	fill_color	(enumeration type, fill color)
+	output << ' ' << __colour.at(Graphic::Colour::WHITE); 	// int	fill_color	(enumeration type, fill color)
     } else {
-	output << ' ' << colour_index.at(fill_colour); 	// int	fill_color	(enumeration type, fill color)
+	output << ' ' << __colour.at(fill_colour); 	// int	fill_color	(enumeration type, fill color)
     }
     output << ' ' << depth				// int	depth		(enumeration type)
 	   << " 0 ";					// int	pen_style	(pen style, not used)
 
     /* Area fill */
-    if ( fill_style == Graphic::DEFAULT_FILL ) {
+    if ( fill_style == Graphic::Fill::DEFAULT ) {
 	switch ( fill_colour ) {			// int	area_fill	(enumeration type, -1 = no fill)
 	case Graphic::Colour::TRANSPARENT:
-	    output << fill_value[Graphic::NO_FILL];	// No fill.
+	    output << __fill.at(Graphic::Fill::NONE);	// No fill.
 	    break;
 	case Graphic::Colour::DEFAULT:
 	case Graphic::Colour::BLACK:
-	    output << fill_value[Graphic::FILL_SOLID];
+	    output << __fill.at(Graphic::Fill::SOLID);
 	    break;
 	case Graphic::Colour::GREY_10:
-	    output << fill_value[Graphic::FILL_90];
+	    output << __fill.at(Graphic::Fill::NINETY);
 	    break;
 	default:
-	    output << fill_value[Graphic::DEFAULT_FILL];				// TINT.
+	    output << __fill.at(Graphic::Fill::DEFAULT);				// TINT.
 	    break;
 	}
     } else {
-	output << fill_value[fill_style];
+	output << __fill.at(fill_style);
     }
 
     switch ( line_style ) {
-    case Graphic::DASHED:
+    case Graphic::LineStyle::DASHED:
 	output << " " << static_cast<float>(DASH_LENGTH); // float style_val	(dash length/dot gap 1/80 inch)
 	break;
-    case Graphic::DASHED_DOTTED:
-    case Graphic::DOTTED:
+    case Graphic::LineStyle::DASHED_DOTTED:
+    case Graphic::LineStyle::DOTTED:
 	output << " " << static_cast<float>(DOT_GAP);	// float style_val	(dash length/dot gap 1/80 inch)
 	break;
     default:
@@ -1109,10 +1109,10 @@ Fig::endCompound( std::ostream& output ) const
 std::ostream&
 Fig::polyline( std::ostream& output, const std::vector<Point>& points,
 	       int sub_type, Graphic::Colour pen_colour, Graphic::Colour fill_colour, int depth,
-	       Graphic::linestyle_type line_style, Graphic::arrowhead_type arrowhead, double scaling ) const
+	       Graphic::LineStyle line_style, Graphic::ArrowHead arrowhead, double scaling ) const
 {
     const size_t n_points = points.size();
-    init( output, 2, sub_type, pen_colour, fill_colour, line_style, Graphic::DEFAULT_FILL, depth );
+    init( output, 2, sub_type, pen_colour, fill_colour, line_style, Graphic::Fill::DEFAULT, depth );
     output << " 0"					// int	join_style	(enumeration type)
 	   << " 0";					// int	cap_style	(enumeration type, only used for POLYLINE)
 
@@ -1123,15 +1123,15 @@ Fig::polyline( std::ostream& output, const std::vector<Point>& points,
     }
 
     switch ( arrowhead ) {
-    case Graphic::CLOSED_ARROW:
-    case Graphic::OPEN_ARROW:
+    case Graphic::ArrowHead::CLOSED:
+    case Graphic::ArrowHead::OPEN:
 	output << " 1"	// int	forward_arrow		(0: off, 1: on)
 	       << " 0 "	// int	backward_arrow		(0: off, 1: on)
 	       << (sub_type == POLYGON ? n_points + 1 : n_points )
 	       << std::endl;
 	arrowHead( output, arrowhead, scaling );
 	break;
-    case Graphic::NO_ARROW:
+    case Graphic::ArrowHead::NONE:
 	output << " 0"
 	       << " 0 "
 	       << (sub_type == POLYGON ? n_points + 1 : n_points )
@@ -1152,12 +1152,12 @@ Fig::polyline( std::ostream& output, const std::vector<Point>& points,
 
 std::ostream&
 Fig::circle( std::ostream& output, const Point& c, const double r,
-	     int sub_type, Graphic::Colour pen_colour, Graphic::Colour fill_colour, int depth, Graphic::fill_type fill_style ) const
+	     int sub_type, Graphic::Colour pen_colour, Graphic::Colour fill_colour, int depth, Graphic::Fill fill_style ) const
 {
     Point radius( r, r );
     Point top( c );
     top.moveBy( 0, r );
-    init( output, 1, sub_type, pen_colour, fill_colour, Graphic::DEFAULT_LINESTYLE, fill_style, depth );
+    init( output, 1, sub_type, pen_colour, fill_colour, Graphic::LineStyle::DEFAULT, fill_style, depth );
     output << " 1"	// int	direction
 	   << " 0 "	// float angle
 	   << moveto( c )
@@ -1171,7 +1171,7 @@ Fig::circle( std::ostream& output, const Point& c, const double r,
 
 std::ostream&
 Fig::rectangle( std::ostream& output, const Point& origin, const Point& extent, Graphic::Colour pen_colour,
-		Graphic::Colour fill_colour, int depth, Graphic::linestyle_type line_style ) const
+		Graphic::Colour fill_colour, int depth, Graphic::LineStyle line_style ) const
 {
     std::vector<Point> points(5);
     box_to_points( origin, extent, points );
@@ -1181,7 +1181,7 @@ Fig::rectangle( std::ostream& output, const Point& origin, const Point& extent, 
 
 std::ostream&
 Fig::roundedRectangle( std::ostream& output, const Point& origin, const Point& extent, Graphic::Colour pen_colour,
-		       Graphic::Colour fill_colour, int depth, Graphic::linestyle_type line_style ) const
+		       Graphic::Colour fill_colour, int depth, Graphic::LineStyle line_style ) const
 {
     std::vector<Point> points(5);
     box_to_points( origin, extent, points );
@@ -1190,7 +1190,7 @@ Fig::roundedRectangle( std::ostream& output, const Point& origin, const Point& e
 
 
 double
-Fig::text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
+Fig::text( std::ostream& output, const Point& c, const std::string& s, Graphic::Font font, int fontsize,
 	   Justification justification, Graphic::Colour colour, unsigned flags ) const
 {
     int sub_type = 1;
@@ -1201,18 +1201,18 @@ Fig::text( std::ostream& output, const Point& c, const std::string& s, Graphic::
     }
     output << "4 "		//int  	object 	     (always 4)
 	   << sub_type 		//int	sub_type     (1: Center justified)
-	   << " " << colour_index.at(colour)	//int	color	     (enumeration type)
+	   << " " << __colour.at(colour)	//int	color	     (enumeration type)
 	   << " 5"		//int	depth	     (enumeration type)
 	   << " 0 ";		//int	pen_style    (enumeration , not used)
     if ( flags & POSTSCRIPT ) {	//int	font 	     (enumeration type)
-	   output << postscript_font_value[font];
+	output << __postscript_font.at(font);
     } else {
-	   output << tex_font_value[font];
+	output << __tex_font.at(font);
     }
     output << " " << fontsize 	//float	font_size    (font size in points)
 	   << " 0.0000 "	//float	angle	     (radians, the angle of the text)
 	   << flags		//int	font_flags   (bit vector)
-	   << " " << static_cast<unsigned int>(fontsize * FIG_SCALING + 0.5)		//float	height	     (Fig units - ignored)
+	   << " " << static_cast<unsigned int>(fontsize * FIG_SCALING + 0.5)			//float	height	     (Fig units - ignored)
 	   << " " << static_cast<unsigned int>(s.length() * fontsize * FIG_SCALING + 0.5)	//float	length	     (Fig units - ignored)
 	   << " " << moveto( c )
 	   << s
@@ -1223,11 +1223,11 @@ Fig::text( std::ostream& output, const Point& c, const std::string& s, Graphic::
 
 
 std::ostream&
-Fig::arrowHead( std::ostream& output, Graphic::arrowhead_type style, const double scale )
+Fig::arrowHead( std::ostream& output, Graphic::ArrowHead style, const double scale )
 {
-    output << '\t' << arrowhead_value[style].arrow_type	// int 	arrow_type	(enumeration type)
-	   << ' '  << arrowhead_value[style].arrow_style// int	arrow_style	(enumeration type)
-	   << " 1.00"					// float arrow_thickness(1/80 inch)
+    output << '\t' << __arrowhead.at(style).type		// int 	arrow_type	(enumeration type)
+	   << ' '  << __arrowhead.at(style).style		// int	arrow_style	(enumeration type)
+	   << " 1.00"						// float arrow_thickness(1/80 inch)
 	   << " " << std::setprecision(2) << 3.0 * scale	// float arrow_width	(Fig units)
 	   << " " << std::setprecision(2) << 6.0 * scale	// float arrow_height	(Fig units)
 	   << std::endl;
@@ -1275,18 +1275,17 @@ Fig::moveto( const Point& aPoint )
 /* GD (Jpeg, PNG, GIF ) output						*/
 /* -------------------------------------------------------------------- */
 
-std::map<const Graphic::Colour,int> GD::pen_value;
-std::map<const Graphic::Colour,int> GD::fill_value;
+std::map<const Graphic::Colour,int> GD::__pen;
+std::map<const Graphic::Colour,int> GD::__fill;
 
 /* See http://fontconfig.org/fontconfig-user.html */
-const char * GD::font_value[] =
+std::map<const Graphic::Font,const std::string> GD::__font =
 {
-    "times-12",			/* Default */
-    "times-12",			/* Times-Roman */
-    "times-12:italic",		/* Italic */
-    "times-12:bold",		/* Bold */
-    "times-12"			/* Symbol */
-//    "symbol"
+    { Graphic::Font::DEFAULT,   "times-12" },
+    { Graphic::Font::NORMAL,    "times-12" },
+    { Graphic::Font::OBLIQUE,   "times-12:italic" },
+    { Graphic::Font::BOLD,      "times-12:bold" },
+    { Graphic::Font::SPECIAL,   "times-12" }
 };
 
 
@@ -1328,28 +1327,28 @@ GD::create( int x, int y )
     if ( im ) abort();		/* ONLY ONE can exist at a time. */
     im = gdImageCreate( x+1, y+1 );
 
-    pen_value[Graphic::Colour::TRANSPARENT] = gdTransparent;
-    fill_value[Graphic::Colour::TRANSPARENT] = gdTransparent;
+    __pen[Graphic::Colour::TRANSPARENT] = gdTransparent;
+    __fill[Graphic::Colour::TRANSPARENT] = gdTransparent;
 
     std::map<const Graphic::Colour, const RGB::colour_defn>::const_iterator i;
-    i = colour_value.find(Graphic::Colour::WHITE);
-    pen_value[Graphic::Colour::WHITE] = gdImageColorAllocate( im, to_byte( i->second.red ), to_byte( i->second.green ), to_byte( i->second.blue) );
-    fill_value[Graphic::Colour::WHITE] = pen_value.at(Graphic::Colour::WHITE);
+    i = __value.find(Graphic::Colour::WHITE);
+    __pen[Graphic::Colour::WHITE] = gdImageColorAllocate( im, to_byte( i->second.red ), to_byte( i->second.green ), to_byte( i->second.blue) );
+    __fill[Graphic::Colour::WHITE] = __pen.at(Graphic::Colour::WHITE);
 
-    i = colour_value.find(Graphic::Colour::BLACK);
-    pen_value[Graphic::Colour::BLACK] = gdImageColorAllocate( im, to_byte( i->second.red ), to_byte( i->second.green ), to_byte( i->second.blue) );
-    fill_value[Graphic::Colour::BLACK] = pen_value.at(Graphic::Colour::BLACK);
-    pen_value[Graphic::Colour::DEFAULT] = pen_value.at(Graphic::Colour::BLACK);
-    fill_value[Graphic::Colour::DEFAULT] = pen_value.at(Graphic::Colour::WHITE);
+    i = __value.find(Graphic::Colour::BLACK);
+    __pen[Graphic::Colour::BLACK] = gdImageColorAllocate( im, to_byte( i->second.red ), to_byte( i->second.green ), to_byte( i->second.blue) );
+    __fill[Graphic::Colour::BLACK] = __pen.at(Graphic::Colour::BLACK);
+    __pen[Graphic::Colour::DEFAULT] = __pen.at(Graphic::Colour::BLACK);
+    __fill[Graphic::Colour::DEFAULT] = __pen.at(Graphic::Colour::WHITE);
 
-    i = colour_value.find(Graphic::Colour::GREY_10);
-    pen_value[Graphic::Colour::GREY_10] = gdImageColorAllocate( im, to_byte( i->second.red ), to_byte( i->second.green ), to_byte( i->second.blue) );
-    fill_value[Graphic::Colour::GREY_10] = pen_value.at(Graphic::Colour::GREY_10);
+    i = __value.find(Graphic::Colour::GREY_10);
+    __pen[Graphic::Colour::GREY_10] = gdImageColorAllocate( im, to_byte( i->second.red ), to_byte( i->second.green ), to_byte( i->second.blue) );
+    __fill[Graphic::Colour::GREY_10] = __pen.at(Graphic::Colour::GREY_10);
 
-    for ( std::map<const Graphic::Colour, const RGB::colour_defn>::const_iterator i = colour_value.begin(); i != colour_value.end(); ++i ) {
-	if ( pen_value[i->first] != 0 ) continue;
-	pen_value[i->first] = gdImageColorAllocate( im, to_byte( i->second.red ), to_byte( i->second.green ), to_byte( i->second.blue ) );
-	fill_value[i->first] = gdImageColorAllocate( im, to_byte( tint( i->second.red, 0.9 ) ), to_byte( tint( i->second.green, 0.9 ) ), to_byte( tint( i->second.blue, 0.9 ) ) );
+    for ( std::map<const Graphic::Colour, const RGB::colour_defn>::const_iterator i = __value.begin(); i != __value.end(); ++i ) {
+	if ( __pen[i->first] != 0 ) continue;
+	__pen[i->first]  = gdImageColorAllocate( im, to_byte( i->second.red ), to_byte( i->second.green ), to_byte( i->second.blue ) );
+	__fill[i->first] = gdImageColorAllocate( im, to_byte( tint( i->second.red, 0.9 ) ), to_byte( tint( i->second.green, 0.9 ) ), to_byte( tint( i->second.blue, 0.9 ) ) );
     }
 }
 
@@ -1431,12 +1430,12 @@ GD::polygon( const std::vector<Point>& points, Graphic::Colour pen_colour,
 	gd_points[i] = moveto( points[i] );
     }
 
-    gdImageFilledPolygon( im, gd_points, n_points, fill_value.at(fill_colour) );
+    gdImageFilledPolygon( im, gd_points, n_points, __fill.at(fill_colour) );
 #if HAVE_GDIMAGESETANTIALIASED
-    gdImageSetAntiAliased( im, pen_value.at(pen_colour) );
+    gdImageSetAntiAliased( im, __pen.at(pen_colour) );
     gdImagePolygon( im, gd_points, n_points, gdAntiAliased );
 #else
-    gdImagePolygon( im, gd_points, n_points, pen_value.at(pen_colour) );
+    gdImagePolygon( im, gd_points, n_points, __pen.at(pen_colour) );
 #endif
     delete [] gd_points;
     return *this;
@@ -1445,16 +1444,16 @@ GD::polygon( const std::vector<Point>& points, Graphic::Colour pen_colour,
 
 
 GD const &
-GD::drawline( const Point &p1, const Point &p2, Graphic::Colour pen_colour, Graphic::linestyle_type line_style ) const
+GD::drawline( const Point &p1, const Point &p2, Graphic::Colour pen_colour, Graphic::LineStyle line_style ) const
 {
     static int styleDotted[2], styleDashed[6], styleDashedDotted[9];		/* Historical */
 
     switch ( line_style ) {
-    case Graphic::DASHED:
-	styleDashed[0] = pen_value[pen_colour];
-	styleDashed[1] = pen_value[pen_colour];
-	styleDashed[2] = pen_value[pen_colour];
-	styleDashed[3] = pen_value[pen_colour];
+    case Graphic::LineStyle::DASHED:
+	styleDashed[0] = __pen.at(pen_colour);
+	styleDashed[1] = __pen.at(pen_colour);
+	styleDashed[2] = __pen.at(pen_colour);
+	styleDashed[3] = __pen.at(pen_colour);
 	styleDashed[4] = gdTransparent;
 	styleDashed[5] = gdTransparent;
 	gdImageSetStyle(im, styleDashed, 6);
@@ -1462,22 +1461,22 @@ GD::drawline( const Point &p1, const Point &p2, Graphic::Colour pen_colour, Grap
 		     static_cast<int>(p2.x()), static_cast<int>(p2.y()), gdStyled );
 	break;
 
-    case Graphic::DASHED_DOTTED:
-	styleDashedDotted[0] = pen_value[pen_colour];
-	styleDashedDotted[1] = pen_value[pen_colour];
-	styleDashedDotted[2] = pen_value[pen_colour];
-	styleDashedDotted[3] = pen_value[pen_colour];
+    case Graphic::LineStyle::DASHED_DOTTED:
+	styleDashedDotted[0] = __pen.at(pen_colour);
+	styleDashedDotted[1] = __pen.at(pen_colour);
+	styleDashedDotted[2] = __pen.at(pen_colour);
+	styleDashedDotted[3] = __pen.at(pen_colour);
 	styleDashedDotted[4] = gdTransparent;
-	styleDashedDotted[5] = pen_value[pen_colour];
+	styleDashedDotted[5] = __pen.at(pen_colour);
 	styleDashedDotted[6] = gdTransparent;
-	styleDashedDotted[7] = pen_value[pen_colour];
+	styleDashedDotted[7] = __pen.at(pen_colour);
 	styleDashedDotted[8] = gdTransparent;
 	gdImageSetStyle(im, styleDashedDotted, 9);
 	gdImageLine( im, static_cast<int>(p1.x()), static_cast<int>(p1.y()),
 		     static_cast<int>(p2.x()), static_cast<int>(p2.y()), gdStyled );
 
-    case Graphic::DOTTED:
-	styleDotted[0] = pen_value[pen_colour];
+    case Graphic::LineStyle::DOTTED:
+	styleDotted[0] = __pen.at(pen_colour);
 	styleDotted[1] = gdTransparent;
 	gdImageSetStyle(im, styleDotted, 2);
 	gdImageLine( im, static_cast<int>(p1.x()), static_cast<int>(p1.y()),
@@ -1486,12 +1485,12 @@ GD::drawline( const Point &p1, const Point &p2, Graphic::Colour pen_colour, Grap
 
     default:
 #if HAVE_GDIMAGESETANTIALIASED
-	gdImageSetAntiAliased( im, pen_value[pen_colour]);
+	gdImageSetAntiAliased( im, __pen.at(pen_colour));
 	gdImageLine( im, static_cast<int>(p1.x()), static_cast<int>(p1.y()),
 		     static_cast<int>(p2.x()), static_cast<int>(p2.y()), gdAntiAliased );
 #else
 	gdImageLine( im, static_cast<int>(p1.x()), static_cast<int>(p1.y()),
-		     static_cast<int>(p2.x()), static_cast<int>(p2.y()), pen_value[pen_colour] );
+		     static_cast<int>(p2.x()), static_cast<int>(p2.y()), __pen.at(pen_colour) );
 #endif
 	break;
     }
@@ -1505,13 +1504,13 @@ GD::circle( const Point& c, const double r, Graphic::Colour pen_colour,
     const int d = static_cast<int>(r * 2.0);
 #if HAVE_GDIMAGEFILLEDARC
     gdImageFilledArc( im, static_cast<int>(c.x()), static_cast<int>(c.y()), d, d, 0, 360,
-		      fill_value.at(fill_colour), gdArc );
+		      __fill.at(fill_colour), gdArc );
 #endif
 #if HAVE_GDIMAGESETANTIALIASED
-    gdImageSetAntiAliased( im, pen_value[pen_colour] );
+    gdImageSetAntiAliased( im, __pen.at(pen_colour) );
     gdImageArc( im, static_cast<int>(c.x()), static_cast<int>(c.y()), d, d, 0, 360, gdAntiAliased );
 #else
-    gdImageArc( im, static_cast<int>(c.x()), static_cast<int>(c.y()), d, d, 0, 360, pen_value[pen_colour] );
+    gdImageArc( im, static_cast<int>(c.x()), static_cast<int>(c.y()), d, d, 0, 360, __pen.at(pen_colour) );
 #endif
 
     return *this;
@@ -1520,27 +1519,27 @@ GD::circle( const Point& c, const double r, Graphic::Colour pen_colour,
 
 GD const&
 GD::rectangle( const Point& origin, const Point& extent, Graphic::Colour pen_colour,
-	       Graphic::Colour fill_colour, Graphic::linestyle_type line_style ) const
+	       Graphic::Colour fill_colour, Graphic::LineStyle line_style ) const
 {
     std::vector<Point> points(5);
     box_to_points( origin, extent, points );
     gdPoint p1 = moveto( points[0] );
     gdPoint p2 = moveto( points[2] );
-    gdImageFilledRectangle( im, p1.x, p1.y, p2.x, p2.y, fill_value.at(fill_colour) );
+    gdImageFilledRectangle( im, p1.x, p1.y, p2.x, p2.y, __fill.at(fill_colour) );
     switch( line_style ) {
-    case Graphic::DASHED:
-    case Graphic::DASHED_DOTTED:
-    case Graphic::DOTTED:
+    case Graphic::LineStyle::DASHED:
+    case Graphic::LineStyle::DASHED_DOTTED:
+    case Graphic::LineStyle::DOTTED:
 	for ( unsigned i = 1; i < points.size(); ++i ) {
 	    drawline( points[i-1], points[i], pen_colour, line_style );
 	}
 	break;
     default:
 #if HAVE_GDIMAGESETANTIALIASED
-	gdImageSetAntiAliased( im, pen_value[pen_colour] );
+	gdImageSetAntiAliased( im, __pen.at(pen_colour) );
 	gdImageRectangle( im, p1.x, p1.y, p2.x, p2.y, gdAntiAliased );
 #else
-	gdImageRectangle( im, p1.x, p1.y, p2.x, p2.y, pen_value[pen_colour] );
+	gdImageRectangle( im, p1.x, p1.y, p2.x, p2.y, __pen.at(pen_colour) );
 #endif
 	break;
     }
@@ -1549,7 +1548,7 @@ GD::rectangle( const Point& origin, const Point& extent, Graphic::Colour pen_col
 
 
 double
-GD::text( const Point& p1, const std::string& aStr, Graphic::font_type font, int fontsize, Justification justification,
+GD::text( const Point& p1, const std::string& aStr, Graphic::Font font, int fontsize, Justification justification,
 	  Graphic::Colour pen_colour ) const
 {
     int x = static_cast<int>(p1.x());
@@ -1566,8 +1565,8 @@ GD::text( const Point& p1, const std::string& aStr, Graphic::font_type font, int
 	default:             break;
 	}
 
-	gdImageStringFT( im, brect,pen_value[pen_colour],
-			 const_cast<char *>(font_value[font]),
+	gdImageStringFT( im, brect,__pen.at(pen_colour),
+			 const_cast<char *>(__font.at(font).data()),
 			 fontsize,
 			 0.0, 		/* Angle */
 			 x, static_cast<int>(p1.y()),
@@ -1588,7 +1587,7 @@ GD::text( const Point& p1, const std::string& aStr, Graphic::font_type font, int
 
 	gdImageString( im, f, x, static_cast<int>(p1.y()),
 		       reinterpret_cast<unsigned char *>(const_cast<char *>(aStr.c_str())),
-		       pen_value[pen_colour] );
+		       __pen.at(pen_colour) );
 
 
 	return -f->h;
@@ -1616,7 +1615,7 @@ GD::getfont() const
 
 
 unsigned
-GD::width( const std::string& aStr, Graphic::font_type font, int fontsize ) const
+GD::width( const std::string& aStr, Graphic::Font font, int fontsize ) const
 {
 #if HAVE_GDFTUSEFONTCONFIG
     if ( haveTTF ) {
@@ -1624,8 +1623,8 @@ GD::width( const std::string& aStr, Graphic::font_type font, int fontsize ) cons
 
 	/* Compute bounding box */
 
-	gdImageStringFT( 0, brect, pen_value[Graphic::Colour::DEFAULT],
-			 const_cast<char *>(font_value[font]),
+	gdImageStringFT( 0, brect, __pen.at(Graphic::Colour::DEFAULT),
+			 const_cast<char *>(__font.at(font).data()),
 			 fontsize,
 			 0.0, 		/* Angle */
 			 0, 0,
@@ -1660,12 +1659,12 @@ GD::arrowHead( const Point& src, const Point& dst, const double scale,
 	arrow[i] = moveto( aPoint );
     }
 
-    gdImageFilledPolygon( im, arrow, n_points, pen_value.at(fill_colour) );
+    gdImageFilledPolygon( im, arrow, n_points, __pen.at(fill_colour) );
 #if HAVE_GDIMAGESETANTIALIASED
-    gdImageSetAntiAliased( im, pen_value[pen_colour] );
+    gdImageSetAntiAliased( im, __pen.at(pen_colour) );
     gdImagePolygon( im, arrow, n_points, gdAntiAliased );
 #else
-    gdImagePolygon( im, arrow, n_points, pen_value[pen_colour] );
+    gdImagePolygon( im, arrow, n_points, __pen.at(pen_colour) );
 #endif
     return *this;
 }
@@ -1686,13 +1685,13 @@ GD::moveto( const Point& aPoint )
 /* PostScript output							*/
 /* -------------------------------------------------------------------- */
 
-const char * PostScript::font_value[] =
+const std::map<const Graphic::Font, const std::string> PostScript::__font =
 {
-    "/Times-Roman",		/* Default */
-    "/Times-Roman",		/* Times-Roman */
-    "/Times-Italic",		/* Italic */
-    "/Times-Bold",		/* Bold */
-    "/Symbol"			/* Symbol */
+    { Graphic::Font::DEFAULT,       "/Times-Roman" },
+    { Graphic::Font::NORMAL,        "/Times-Roman" },
+    { Graphic::Font::OBLIQUE,       "/Times-Italic" },
+    { Graphic::Font::BOLD,          "/Times-Bold" },
+    { Graphic::Font::SPECIAL,        "/Symbol" }
 };
 
 /*
@@ -1749,8 +1748,8 @@ PostScript::init( std::ostream& output )
 
 std::ostream&
 PostScript::polyline( std::ostream& output, const std::vector<Point>& points,
-		      Graphic::Colour pen_colour, Graphic::linestyle_type line_style,
-		      Graphic::arrowhead_type arrowhead, double scale ) const
+		      Graphic::Colour pen_colour, Graphic::LineStyle line_style,
+		      Graphic::ArrowHead arrowhead, double scale ) const
 {
     const size_t n_points = points.size();
     output << linestyle( line_style )
@@ -1765,10 +1764,10 @@ PostScript::polyline( std::ostream& output, const std::vector<Point>& points,
     /* Now draw the arrowhead */
 
     switch ( arrowhead ) {
-    case Graphic::CLOSED_ARROW:
+    case Graphic::ArrowHead::CLOSED:
 	arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, pen_colour );
 	break;
-    case Graphic::OPEN_ARROW:
+    case Graphic::ArrowHead::OPEN:
 	arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, Graphic::Colour::WHITE );
 	break;
     }
@@ -1783,7 +1782,7 @@ PostScript::polygon( std::ostream& output, const std::vector<Point>& points,
 		     Graphic::Colour pen_colour, Graphic::Colour fill_colour ) const
 {
     const size_t n_points = points.size();
-    output << linestyle( Graphic::SOLID )
+    output << linestyle( Graphic::LineStyle::SOLID )
 	   << "gsave newpath "
 	   << moveto( points[0] ) << "moveto ";
     for ( unsigned i = 1; i < n_points; ++i ) {
@@ -1801,7 +1800,7 @@ PostScript::polygon( std::ostream& output, const std::vector<Point>& points,
 std::ostream&
 PostScript::circle( std::ostream& output, const Point& c, const double r, Graphic::Colour pen_colour, Graphic::Colour fill_colour ) const
 {
-    output << linestyle( Graphic::SOLID )
+    output << linestyle( Graphic::LineStyle::SOLID )
 	   << "gsave newpath "
 	   << moveto( c ) << r << " 0 360 arc "
 	   << "closepath " << std::endl
@@ -1813,7 +1812,7 @@ PostScript::circle( std::ostream& output, const Point& c, const double r, Graphi
 
 std::ostream&
 PostScript::rectangle( std::ostream& output, const Point& origin, const Point& extent, Graphic::Colour pen_colour,
-		       Graphic::Colour fill_colour, Graphic::linestyle_type line_style ) const
+		       Graphic::Colour fill_colour, Graphic::LineStyle line_style ) const
 {
     const unsigned n_points = 5;
     std::vector<Point> points(n_points);
@@ -1837,7 +1836,7 @@ PostScript::rectangle( std::ostream& output, const Point& origin, const Point& e
 
 std::ostream&
 PostScript::roundedRectangle( std::ostream& output, const Point& origin, const Point& extent, Graphic::Colour pen_colour,
-			      Graphic::Colour fill_colour, Graphic::linestyle_type line_style ) const
+			      Graphic::Colour fill_colour, Graphic::LineStyle line_style ) const
 {
     const unsigned n_points = 5;
     std::vector<Point> points(n_points);
@@ -1873,7 +1872,7 @@ PostScript::roundedRectangle( std::ostream& output, const Point& origin, const P
 
 
 double
-PostScript::text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
+PostScript::text( std::ostream& output, const Point& c, const std::string& s, Graphic::Font font, int fontsize,
 		  Justification justification, Graphic::Colour colour, unsigned ) const
 {
     output << "gsave "
@@ -1902,7 +1901,7 @@ PostScript::point( std::ostream& output, const Point& aPoint )
 
 
 std::ostream&
-PostScript::linestyle_str( std::ostream& output, Graphic::linestyle_type aStyle )
+PostScript::linestyle_str( std::ostream& output, Graphic::LineStyle aStyle )
 {
 //    if ( myOldLineStyle == aStyle ) return output;
 //    myOldLineStyle = style;
@@ -1911,13 +1910,13 @@ PostScript::linestyle_str( std::ostream& output, Graphic::linestyle_type aStyle 
     default:
 	output << "[] 0";
 	break;
-    case Graphic::DASHED:
+    case Graphic::LineStyle::DASHED:
 	output << "[" << DASH_LENGTH << "] 0";
 	break;
-    case Graphic::DASHED_DOTTED:
+    case Graphic::LineStyle::DASHED_DOTTED:
 	output << "[" << DASH_LENGTH  << " " << DOT_GAP  << " 1 " << DOT_GAP << "] 0";
 	break;
-    case Graphic::DOTTED:
+    case Graphic::LineStyle::DOTTED:
 	output << "[1 " << DOT_GAP <<"] " << DOT_GAP;
 	break;
     }
@@ -1933,9 +1932,9 @@ PostScript::setcolour_str( std::ostream& output, Graphic::Colour colour )
 //    if ( myOldColour == colour ) return output;
 //    myOldColour = colour;
 
-    output << colour_value.at(colour).red << ' '
-	   << colour_value.at(colour).green << ' '
-	   << colour_value.at(colour).blue << ' '
+    output << __value.at(colour).red << ' '
+	   << __value.at(colour).green << ' '
+	   << __value.at(colour).blue << ' '
 	   << "setrgbcolor ";
     return output;
 }
@@ -1961,9 +1960,9 @@ PostScript::setfill_str( std::ostream& output, Graphic::Colour aColour )
 }
 
 std::ostream&
-PostScript::setfont_str( std::ostream& output, const Graphic::font_type aFont, const int fontSize )
+PostScript::setfont_str( std::ostream& output, const Graphic::Font font, const int fontSize )
 {
-    output << font_value[aFont] << " findfont ["
+    output << __font.at(font) << " findfont ["
 	   << fontSize
 	   << " 0 0 "
 	   << fontSize
@@ -2036,9 +2035,9 @@ PostScript::moveto( const Point& aPoint )
 
 
 RGB::FontManip
-PostScript::setfont( const Graphic::font_type aFont )
+PostScript::setfont( const Graphic::Font font )
 {
-    return RGB::FontManip( setfont_str, aFont, Flags::font_size() );
+    return RGB::FontManip( setfont_str, font, Flags::font_size() );
 }
 
 RGB::JustificationManip
@@ -2049,7 +2048,7 @@ PostScript::justify( const Justification justification )
 
 
 RGB::LineStyleManip
-PostScript::linestyle( const Graphic::linestyle_type aStyle )
+PostScript::linestyle( const Graphic::LineStyle aStyle )
 {
     return RGB::LineStyleManip( PostScript::linestyle_str, aStyle );
 }
@@ -2058,13 +2057,13 @@ PostScript::linestyle( const Graphic::linestyle_type aStyle )
 /* Scalable Vector Grahpics Ouptut					*/
 /* -------------------------------------------------------------------- */
 
-SVG::font_defn SVG::font_value[] =
+const std::map<const Graphic::Font, const SVG::font_defn> SVG::__font =
 {
-    { "Times", "Roman" },	/* Default */
-    { "Times", "Roman" },	/* Times-Roman */
-    { "Times", "Italic" },	/* Italic */
-    { "Times", "Bold" },
-    { "Times", "Roman" }	/* Symbol */
+    { Graphic::Font::DEFAULT,       { "Times", "Roman" } },
+    { Graphic::Font::NORMAL,        { "Times", "Roman" } },
+    { Graphic::Font::OBLIQUE,       { "Times", "Italic" } },
+    { Graphic::Font::BOLD,          { "Times", "Bold" } },
+    { Graphic::Font::SPECIAL,       { "Times", "Roman" } }
 };
 
 /*
@@ -2084,8 +2083,8 @@ SVG::init( std::ostream& output )
 
 std::ostream&
 SVG::polyline( std::ostream& output, const std::vector<Point>& points,
-		      Graphic::Colour pen_colour, Graphic::linestyle_type line_style,
-		      Graphic::arrowhead_type arrowhead, double scale ) const
+		      Graphic::Colour pen_colour, Graphic::LineStyle line_style,
+		      Graphic::ArrowHead arrowhead, double scale ) const
 {
     /* sodipodi doesn't like polylines of 2 points */
     const size_t n_points = points.size();
@@ -2113,10 +2112,10 @@ SVG::polyline( std::ostream& output, const std::vector<Point>& points,
     /* Now draw the arrowhead */
 
     switch ( arrowhead ) {
-    case Graphic::CLOSED_ARROW:
+    case Graphic::ArrowHead::CLOSED:
 	arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, pen_colour );
 	break;
-    case Graphic::OPEN_ARROW:
+    case Graphic::ArrowHead::OPEN:
 	arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, Graphic::Colour::WHITE );
 	break;
     }
@@ -2165,7 +2164,7 @@ SVG::circle( std::ostream& output, const Point& c, const double r, Graphic::Colo
 
 std::ostream&
 SVG::rectangle( std::ostream& output, const Point& origin, const Point& extent, Graphic::Colour pen_colour,
-		Graphic::Colour fill_colour, Graphic::linestyle_type line_style ) const
+		Graphic::Colour fill_colour, Graphic::LineStyle line_style ) const
 {
     const unsigned n_points = 5;
     std::vector<Point> points(n_points);
@@ -2189,7 +2188,7 @@ SVG::rectangle( std::ostream& output, const Point& origin, const Point& extent, 
 // 0,0.441,0</text>
 
 double
-SVG::text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
+SVG::text( std::ostream& output, const Point& c, const std::string& s, Graphic::Font font, int fontsize,
 	   Justification justification, Graphic::Colour colour, unsigned ) const
 {
     output << "<text x=\"" << static_cast<int>(c.x() + 0.5)
@@ -2218,16 +2217,16 @@ SVG::point( std::ostream& output, const Point& aPoint )
 
 
 std::ostream&
-SVG::linestyle_str( std::ostream& output, Graphic::linestyle_type aStyle )
+SVG::linestyle_str( std::ostream& output, Graphic::LineStyle aStyle )
 {
     switch( aStyle ) {
-    case Graphic::DASHED:
+    case Graphic::LineStyle::DASHED:
 	output << " stroke-dasharray=\""
 	       << DASH_LENGTH * SVG_SCALING << ","
 	       << DOT_GAP * SVG_SCALING
 	       << "\"";
 	break;
-    case Graphic::DASHED_DOTTED:
+    case Graphic::LineStyle::DASHED_DOTTED:
 	output << " stroke-dasharray=\""
 	       << DASH_LENGTH * SVG_SCALING << ","
 	       << DOT_GAP * SVG_SCALING << ","
@@ -2235,7 +2234,7 @@ SVG::linestyle_str( std::ostream& output, Graphic::linestyle_type aStyle )
 	       << DOT_GAP * SVG_SCALING 
 	       << "\"";
 
-    case Graphic::DOTTED:
+    case Graphic::LineStyle::DOTTED:
 	output << " stroke-dasharray=\""
 	       << DOT_GAP * SVG_SCALING
 	       << "\"";
@@ -2250,11 +2249,11 @@ SVG::linestyle_str( std::ostream& output, Graphic::linestyle_type aStyle )
 
 
 std::ostream&
-SVG::setfont_str( std::ostream& output, const Graphic::font_type aFont, const int fontSize )
+SVG::setfont_str( std::ostream& output, const Graphic::Font font, const int fontSize )
 {
-    output << " font-family=\"" << font_value[aFont].family
-	   << "\" font-style=\""  << font_value[aFont].style
-	   << "\" font-size=\"" << fontSize * SVG_SCALING << "\"";
+    output << " font-family=\""  << __font.at(font).family
+	   << "\" font-style=\"" << __font.at(font).style
+	   << "\" font-size=\""  << fontSize * SVG_SCALING << "\"";
     return output;
 }
 
@@ -2280,7 +2279,7 @@ SVG::justify_str( std::ostream& output, const Justification justification )
 std::ostream&
 SVG::setcolour_str( std::ostream& output, Graphic::Colour colour )
 {
-    output << colour_name.at(colour);
+    output << __name.at(colour);
     return output;
 }
 
@@ -2308,9 +2307,9 @@ SVG::setfill_str( std::ostream& output, Graphic::Colour aColour )
 	break;
 
     default:
-	output << rgb( tint( colour_value.at(aColour).red, 0.9 ),
-		       tint( colour_value.at(aColour).green, 0.9 ),
-		       tint( colour_value.at(aColour).blue, 0.9 ) );
+	output << rgb( tint( __value.at(aColour).red, 0.9 ),
+		       tint( __value.at(aColour).green, 0.9 ),
+		       tint( __value.at(aColour).blue, 0.9 ) );
 	break;
     }
     output << "\"";
@@ -2534,110 +2533,110 @@ SXD::init( std::ostream& output )
 
     output << start_style( "gr15", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLACK ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr16", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLUE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr17", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::GREEN ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr18", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::ORANGE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr19", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::RED ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << std::endl;
 
     output << start_style( "gr20", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLACK ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::OPEN_ARROW ) << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::OPEN ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr21", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLUE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::OPEN_ARROW ) << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::OPEN ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr22", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::GREEN ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::OPEN_ARROW ) << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::OPEN ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr23", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::ORANGE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::OPEN_ARROW ) << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::OPEN ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr24", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::RED ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::OPEN_ARROW ) << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::OPEN ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << std::endl;
 
     output << start_style( "gr25", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLACK ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << draw_dashed << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dashed << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr26", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLUE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << draw_dashed << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dashed << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr27", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::GREEN ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << draw_dashed << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dashed << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr28", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::ORANGE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << draw_dashed << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dashed << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr29", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::RED ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << draw_dashed << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dashed << "/>" << std::endl
 	   << end_style() << std::endl;
     output << std::endl;
 
     output << start_style( "gr30", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLACK ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << draw_dotted << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dotted << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr31", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLUE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << draw_dotted << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dotted << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr32", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::GREEN ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << draw_dotted << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dotted << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr33", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::ORANGE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << draw_dotted << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dotted << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr34", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::RED ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::CLOSED_ARROW ) << draw_dotted << "/>" << std::endl
+	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dotted << "/>" << std::endl
 	   << end_style() << std::endl;
     output << std::endl;
 
     output << start_style( "P1", paragraph_family ) << std::endl
-           << style_properties( 0 ) << setfont( Graphic::DEFAULT_FONT ) << "fo:text-align=\"center\"/>" << std::endl
+           << style_properties( 0 ) << setfont( Graphic::Font::DEFAULT ) << "fo:text-align=\"center\"/>" << std::endl
            << end_style() << std::endl;
     output << start_style( "P2", paragraph_family ) << std::endl
-           << style_properties( 0 ) << text_style << setfont( Graphic::DEFAULT_FONT ) << " fo:text-align=\"center\"/>" << std::endl
+           << style_properties( 0 ) << text_style << setfont( Graphic::Font::DEFAULT ) << " fo:text-align=\"center\"/>" << std::endl
            << end_style() << std::endl;
     output << start_style( "P3", paragraph_family ) << std::endl
-           << style_properties( 0 ) << text_style << setfont( Graphic::DEFAULT_FONT ) << " fo:text-align=\"left\"  />" << std::endl
+           << style_properties( 0 ) << text_style << setfont( Graphic::Font::DEFAULT ) << " fo:text-align=\"left\"  />" << std::endl
            << end_style() << std::endl;
     output << start_style( "P4", paragraph_family ) << std::endl
-           << style_properties( 0 ) << text_style << setfont( Graphic::DEFAULT_FONT ) << " fo:text-align=\"right\" />" << std::endl
+           << style_properties( 0 ) << text_style << setfont( Graphic::Font::DEFAULT ) << " fo:text-align=\"right\" />" << std::endl
            << end_style() << std::endl;
     output << start_style( "P5", paragraph_family ) << std::endl
-           << style_properties( 0 ) << setfont( Graphic::DEFAULT_FONT ) << "/>" << std::endl
+           << style_properties( 0 ) << setfont( Graphic::Font::DEFAULT ) << "/>" << std::endl
            << end_style() << std::endl;
     output << std::endl;
     output << start_style( "T1", text_family ) << std::endl
-           << style_properties( 0 ) << setfont( Graphic::DEFAULT_FONT ) << "/>" << std::endl
+           << style_properties( 0 ) << setfont( Graphic::Font::DEFAULT ) << "/>" << std::endl
            << end_style() << std::endl;
     output << indent( -1 ) << "</office:automatic-styles>" << std::endl;
     return output;
@@ -2647,7 +2646,7 @@ SXD::init( std::ostream& output )
 std::ostream&
 SXD::init( std::ostream& output, const char * object_name,
 	   Graphic::Colour pen_colour, Graphic::Colour fill_colour,
-	   Graphic::linestyle_type line_style, Graphic::arrowhead_type arrow ) const
+	   Graphic::LineStyle line_style, Graphic::ArrowHead arrow ) const
 {
     output << indent( 0 ) << "<draw:" << object_name << " draw:style-name=\"";
     if ( fill_colour != Graphic::Colour::TRANSPARENT ) {
@@ -2672,7 +2671,7 @@ SXD::init( std::ostream& output, const char * object_name,
 	    }
 	    break;
 
-	case Graphic::CLOSED_ARROW:
+	case Graphic::ArrowHead::CLOSED:
 	    switch ( pen_colour ) {
 	    default:              	    output << "gr15"; break;
 	    case Graphic::Colour::BLUE:     output << "gr16"; break;
@@ -2682,7 +2681,7 @@ SXD::init( std::ostream& output, const char * object_name,
 	    }
 	    break;
 
-	case Graphic::OPEN_ARROW:
+	case Graphic::ArrowHead::OPEN:
 	    switch ( pen_colour ) {
 	    default:                	    output << "gr20"; break;
 	    case Graphic::Colour::BLUE:     output << "gr21"; break;
@@ -2695,7 +2694,7 @@ SXD::init( std::ostream& output, const char * object_name,
 	}
 	break;
 
-    case Graphic::DASHED:		/* Forwarding uses closed arrows. */
+    case Graphic::LineStyle::DASHED:		/* Forwarding uses closed arrows. */
 	switch ( pen_colour ) {
 	default:                	output << "gr25"; break;
 	case Graphic::Colour::BLUE:     output << "gr26"; break;
@@ -2705,8 +2704,8 @@ SXD::init( std::ostream& output, const char * object_name,
 	}
 	break;
 
-    case Graphic::DASHED_DOTTED:
-    case Graphic::DOTTED:	/* Replies use closed arrows. */
+    case Graphic::LineStyle::DASHED_DOTTED:
+    case Graphic::LineStyle::DOTTED:	/* Replies use closed arrows. */
 	switch ( pen_colour ) {
 	default:               		output << "gr30"; break;
 	case Graphic::Colour::BLUE:     output << "gr31"; break;
@@ -2734,8 +2733,8 @@ SXD::init( std::ostream& output, const char * object_name,
 
 std::ostream&
 SXD::polyline( std::ostream& output, const std::vector<Point>& points,
-		      Graphic::Colour pen_colour, Graphic::linestyle_type line_style,
-		      Graphic::arrowhead_type arrowhead, double scale ) const
+		      Graphic::Colour pen_colour, Graphic::LineStyle line_style,
+		      Graphic::ArrowHead arrowhead, double scale ) const
 {
     const size_t n_points = points.size();
     /* OpenOffice doesn't like polylines of 2 points */
@@ -2763,7 +2762,7 @@ std::ostream&
 SXD::polygon( std::ostream& output, const std::vector<Point>& points,
 	      Graphic::Colour pen_colour, Graphic::Colour fill_colour ) const
 {
-    init( output, "polygon", pen_colour, fill_colour, Graphic::SOLID, Graphic::NO_ARROW );
+    init( output, "polygon", pen_colour, fill_colour, Graphic::LineStyle::SOLID, Graphic::ArrowHead::NONE );
     return drawline( output, points );
 }
 
@@ -2804,7 +2803,7 @@ SXD::drawline( std::ostream& output, const std::vector<Point>& points ) const
 std::ostream&
 SXD::circle( std::ostream& output, const Point& c, const double r, Graphic::Colour pen_colour, Graphic::Colour fill_colour ) const
 {
-    init( output, "circle", pen_colour, fill_colour, Graphic::SOLID );
+    init( output, "circle", pen_colour, fill_colour, Graphic::LineStyle::SOLID );
     Point origin = c;
     Point extent( r, r );
     origin -= extent;
@@ -2815,12 +2814,12 @@ SXD::circle( std::ostream& output, const Point& c, const double r, Graphic::Colo
 
 std::ostream&
 SXD::rectangle( std::ostream& output, const Point& origin, const Point& extent, Graphic::Colour pen_colour,
-		Graphic::Colour fill_colour, Graphic::linestyle_type line_style ) const
+		Graphic::Colour fill_colour, Graphic::LineStyle line_style ) const
 {
     const unsigned n_points = 5;
     std::vector<Point> points(n_points);
     box_to_points( origin, extent, points );
-    init( output, "polygon", pen_colour, fill_colour, line_style, Graphic::NO_ARROW );
+    init( output, "polygon", pen_colour, fill_colour, line_style, Graphic::ArrowHead::NONE );
     return drawline( output, points );
 }
 
@@ -2848,7 +2847,7 @@ SXD::begin_paragraph( std::ostream& output, const Point& origin, const Point& ex
 // </draw:text-box>
 
 double
-SXD::text( std::ostream& output, const Point&, const std::string& s, Graphic::font_type font, int fontsize,
+SXD::text( std::ostream& output, const Point&, const std::string& s, Graphic::Font font, int fontsize,
 	   Justification justification, Graphic::Colour colour, unsigned ) const
 {
     output << indent( 1 )  << "<text:p text:style-name=\"";
@@ -2869,13 +2868,13 @@ SXD::text( std::ostream& output, const Point&, const std::string& s, Graphic::fo
  */
 
 std::ostream&
-SXD::arrow_style_str( std::ostream& output, Graphic::arrowhead_type arrowhead )
+SXD::arrow_style_str( std::ostream& output, Graphic::ArrowHead arrowhead )
 {
     switch ( arrowhead ) {
-    case Graphic::CLOSED_ARROW:
+    case Graphic::ArrowHead::CLOSED:
 	output << "draw:marker-end=\"Arrow concave\" draw:marker-end-width=\"0.2cm\" ";
 	break;
-    case Graphic::OPEN_ARROW:
+    case Graphic::ArrowHead::OPEN:
 	output << "draw:marker-end=\"Line Arrow\" draw:marker-end-width=\"0.2cm\" ";
 	break;
     }
@@ -2928,21 +2927,21 @@ SXD::setfill_str( std::ostream& output, const Graphic::Colour colour )
 	break;
 
     case Graphic::Colour::WHITE:
-	output << "draw:fill-color=\"" << rgb( colour_value.at(colour).red,
-					       colour_value.at(colour).green,
-					       colour_value.at(colour).blue ) << "\" ";
+	output << "draw:fill-color=\"" << rgb( __value.at(colour).red,
+					       __value.at(colour).green,
+					       __value.at(colour).blue ) << "\" ";
 	break;
 
     case Graphic::Colour::BLACK:
-	output << "draw:fill-color=\"" << rgb( colour_value.at(colour).red,
-					       colour_value.at(colour).green,
-					       colour_value.at(colour).blue ) << "\" ";
+	output << "draw:fill-color=\"" << rgb( __value.at(colour).red,
+					       __value.at(colour).green,
+					       __value.at(colour).blue ) << "\" ";
 	break;
 
     default:
-	output << "draw:fill-color=\"" << rgb( tint( colour_value.at(colour).red,   0.9 ),
-					       tint( colour_value.at(colour).green, 0.9 ),
-					       tint( colour_value.at(colour).blue,  0.9 ) ) << "\" ";
+	output << "draw:fill-color=\"" << rgb( tint( __value.at(colour).red,   0.9 ),
+					       tint( __value.at(colour).green, 0.9 ),
+					       tint( __value.at(colour).blue,  0.9 ) ) << "\" ";
 	break;
     }
     return output;
@@ -2987,16 +2986,16 @@ std::ostream&
 SXD::stroke_colour_str( std::ostream& output, const Graphic::Colour colour )
 {
     output << "svg:stroke-color=\""
-	   << rgb( colour_value.at(colour).red,
-		   colour_value.at(colour).green,
-		   colour_value.at(colour).blue )
+	   << rgb( __value.at(colour).red,
+		   __value.at(colour).green,
+		   __value.at(colour).blue )
 	   << "\" ";
     return output;
 }
 
 
 std::ostream&
-SXD::setfont_str( std::ostream& output, const Graphic::font_type aFont, const int fontSize )
+SXD::setfont_str( std::ostream& output, const Graphic::Font font, const int fontSize )
 {
     output << "fo:font-size=\"" << fontSize << "\" ";
     return output;
@@ -3016,7 +3015,7 @@ SXD::style_properties_str( std::ostream& output, const unsigned int j )
 
 
 RGB::ArrowManip
-SXD::arrow_style( const Graphic::arrowhead_type arrow )
+SXD::arrow_style( const Graphic::ArrowHead arrow )
 {
     return RGB::ArrowManip( arrow_style_str, arrow );
 }
@@ -3040,9 +3039,9 @@ SXD::stroke_colour( const Graphic::Colour colour )
 }
 
 RGB::FontManip
-SXD::setfont( const Graphic::font_type aFont )
+SXD::setfont( const Graphic::Font font )
 {
-    return RGB::FontManip( setfont_str, aFont, Flags::font_size() );
+    return RGB::FontManip( setfont_str, font, Flags::font_size() );
 }
 
 UnsignedManip
@@ -3094,17 +3093,17 @@ SXD::start_style( const std::string& name, const std::string& family )
 
 std::ostream&
 TeX::polyline( std::ostream& output, const std::vector<Point>& points,
-		      Graphic::Colour pen_colour, Graphic::linestyle_type line_style,
-		      Graphic::arrowhead_type arrowhead, double scale ) const
+		      Graphic::Colour pen_colour, Graphic::LineStyle line_style,
+		      Graphic::ArrowHead arrowhead, double scale ) const
 {
     const size_t n_points = points.size();
     output << setcolour( pen_colour );
     switch( line_style ) {
-    case Graphic::DASHED:
+    case Graphic::LineStyle::DASHED:
 	output << "\\dashline{" << DASH_LENGTH << "}";
 	break;
-    case Graphic::DASHED_DOTTED:
-    case Graphic::DOTTED:
+    case Graphic::LineStyle::DASHED_DOTTED:
+    case Graphic::LineStyle::DOTTED:
 	output << "\\dottedline{" << DOT_GAP << "}";
 	break;
     default:
@@ -3119,10 +3118,10 @@ TeX::polyline( std::ostream& output, const std::vector<Point>& points,
     /* Now draw the arrowhead */
 
     switch ( arrowhead ) {
-    case Graphic::CLOSED_ARROW:
+    case Graphic::ArrowHead::CLOSED:
 	arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, pen_colour );
 	break;
-    case Graphic::OPEN_ARROW:
+    case Graphic::ArrowHead::OPEN:
 	arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, Graphic::Colour::WHITE );
 	break;
     }
@@ -3169,7 +3168,7 @@ TeX::circle( std::ostream& output, const Point& c, const double r, Graphic::Colo
 
 std::ostream&
 TeX::rectangle( std::ostream& output, const Point& origin, const Point& extent, Graphic::Colour pen_colour,
-		Graphic::Colour fill_colour, Graphic::linestyle_type line_style ) const
+		Graphic::Colour fill_colour, Graphic::LineStyle line_style ) const
 {
     std::vector<Point> points(5);
     box_to_points( origin, extent, points );
@@ -3179,7 +3178,7 @@ TeX::rectangle( std::ostream& output, const Point& origin, const Point& extent, 
 
 
 double
-TeX::text( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
+TeX::text( std::ostream& output, const Point& c, const std::string& s, Graphic::Font font, int fontsize,
 	   Justification justification, Graphic::Colour pen_colour, unsigned ) const
 {
     output << "\\put" << moveto( c )
@@ -3210,7 +3209,7 @@ TeX::point( std::ostream& output, const Point& aPoint )
 std::ostream&
 TeX::setcolour_str( std::ostream& output, const Graphic::Colour colour )
 {
-    output << "\\color{" << colour_name.at(colour) << "}";
+    output << "\\color{" << __name.at(colour) << "}";
     return output;
 }
 
@@ -3237,7 +3236,7 @@ TeX::justify_str( std::ostream& output, const Justification justification )
 }
 
 std::ostream&
-TeX::setfont_str( std::ostream& output, const Graphic::font_type aFont, const int fontSize )
+TeX::setfont_str( std::ostream& output, const Graphic::Font font, const int fontSize )
 {
     if ( fontSize  <= 5 ) {
 	output << "\\tiny";
@@ -3319,9 +3318,9 @@ TeX::justify( const Justification justification )
 }
 
 RGB::FontManip
-TeX::setfont( const Graphic::font_type aFont )
+TeX::setfont( const Graphic::Font font )
 {
-    return RGB::FontManip( setfont_str, aFont, Flags::font_size() );
+    return RGB::FontManip( setfont_str, font, Flags::font_size() );
 }
 
 Graphic::Colour

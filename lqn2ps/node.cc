@@ -1,6 +1,6 @@
 /* node.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: node.cc 15255 2021-12-24 17:42:46Z greg $
+ * $Id: node.cc 15262 2021-12-26 18:55:49Z greg $
  */
 
 #include "lqn2ps.h"
@@ -104,7 +104,7 @@ Node::draw_queue( std::ostream& output, const Point& aPoint, const double radius
 std::ostream&
 Node::multi_server( std::ostream& output, const Point& centerBottom, const double radius ) const
 {
-    Arc * anArc = Arc::newArc( 3, Graphic::NO_ARROW );
+    Arc * anArc = Arc::newArc( 3, Graphic::ArrowHead::NONE );
     const double offset = radius * 14.0 / 9.0;
 
     anArc->penColour( penColour() );
@@ -215,7 +215,7 @@ std::ostream&
 NodeEMF::text( std::ostream& output, const Point& c, const char * s ) const
 {
     std::string aStr = unicode_string( s );
-    EMF::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour() );
+    EMF::text( output, c, aStr, Graphic::Font::NORMAL, Flags::font_size(), Justification::CENTER, penColour() );
     return output;
 }
 
@@ -272,7 +272,7 @@ NodeFig::roundedRectangle( std::ostream& output ) const
 std::ostream&
 NodeFig::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    Fig::text( output, c, s, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour(), Fig::POSTSCRIPT );
+    Fig::text( output, c, s, Graphic::Font::NORMAL, Flags::font_size(), Justification::CENTER, penColour(), Fig::POSTSCRIPT );
     return output;
 }
 
@@ -335,7 +335,7 @@ NodeGD::text( std::ostream& output, const Point& c, const char * s ) const
     Point aPoint( c );
     gdFont * font = GD::getfont();
     aPoint.moveBy( 0, -font->h );
-    GD::text( aPoint, s, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour() );
+    GD::text( aPoint, s, Graphic::Font::NORMAL, Flags::font_size(), Justification::CENTER, penColour() );
     return output;
 }
 
@@ -396,7 +396,7 @@ NodePostScript::roundedRectangle( std::ostream& output ) const
 std::ostream&
 NodePostScript::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    PostScript::text( output, c, s, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour() );
+    PostScript::text( output, c, s, Graphic::Font::NORMAL, Flags::font_size(), Justification::CENTER, penColour() );
     return output;
 }
 
@@ -412,7 +412,7 @@ std::ostream&
 NodePsTeX::text( std::ostream& output, const Point& c, const char * s ) const
 {
     std::string aStr = tex_string( s );
-    Fig::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour(), 
+    Fig::text( output, c, aStr, Graphic::Font::NORMAL, Flags::font_size(), Justification::CENTER, penColour(), 
 	       Fig::SPECIAL );
     return output;
 }
@@ -463,7 +463,7 @@ NodeSVG::roundedRectangle( std::ostream& output ) const
 std::ostream&
 NodeSVG::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    SVG::text( output, c, s, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour() );
+    SVG::text( output, c, s, Graphic::Font::NORMAL, Flags::font_size(), Justification::CENTER, penColour() );
     return output;
 }
 
@@ -526,7 +526,7 @@ NodeSXD::text( std::ostream& output, const Point& c, const char * s ) const
     boxExtent *= SXD_SCALING;
     boxOrigin.moveBy( 0, -boxExtent.y() / 2.0 );
     SXD::begin_paragraph( output, boxOrigin, boxExtent, Justification::CENTER );
-    SXD::text( output, c, s, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour() );
+    SXD::text( output, c, s, Graphic::Font::NORMAL, Flags::font_size(), Justification::CENTER, penColour() );
     SXD::end_paragraph( output );
     return output;
 }
@@ -585,7 +585,7 @@ std::ostream&
 NodeTeX::text( std::ostream& output, const Point& c, const char * s ) const
 {
     std::string aStr = tex_string( s );
-    TeX::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::font_size(), Justification::CENTER, penColour() );
+    TeX::text( output, c, aStr, Graphic::Font::NORMAL, Flags::font_size(), Justification::CENTER, penColour() );
     return output;
 }
 

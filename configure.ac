@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-# $Id: configure.ac 15256 2021-12-25 01:47:40Z greg $
+# $Id: configure.ac 15261 2021-12-25 19:29:06Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([lqns],[5.23],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([config])
@@ -45,7 +45,8 @@ if test -z "$XPS2PDF"; then
   AC_MSG_NOTICE([Ps2pdf not found - Unable to create PDF version of the user manual])
 fi
 AM_CONDITIONAL([HAVE_PS2PDF], test -n "$XPS2PDF")
-
+AC_CHECK_PROGS(XSVN, svn)
+AM_CONDITIONAL([HAVE_SVN], test -n "$XSVN")
 # ----------------------------------------------------------------------
 # Checks for header files.
 #

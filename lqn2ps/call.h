@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 15255 2021-12-24 17:42:46Z greg $
+ * $Id: call.h 15262 2021-12-26 18:55:49Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -103,7 +103,7 @@ public:
     virtual GenericCall& setChain( const unsigned ) = 0;
 
     virtual Graphic::Colour colour() const = 0;
-    GenericCall& linestyle( Graphic::linestyle_type aLinestyle ) { _arc->linestyle( aLinestyle ); return *this; }
+    GenericCall& linestyle( Graphic::LineStyle linestyle ) { _arc->linestyle( linestyle ); return *this; }
     
     unsigned int nPoints() const { return _arc->nPoints(); }
     Point& pointAt( const unsigned i ) const { return _arc->pointAt(i); }

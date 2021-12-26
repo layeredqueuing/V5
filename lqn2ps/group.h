@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * group.h	-- Greg Franks
  *
- * $Id: group.h 14192 2020-12-09 20:18:06Z greg $
+ * $Id: group.h 15262 2021-12-26 18:55:49Z greg $
  */
 
 #ifndef _GROUP_H
@@ -56,7 +56,7 @@ public:
     virtual std::ostream& comment( std::ostream& output, const std::string& ) const { return output; }
 
 protected:
-    virtual linestyle_type linestyle() const { return Graphic::DASHED; }
+    virtual LineStyle linestyle() const { return Graphic::LineStyle::DASHED; }
     Group& isUsed( const bool yes_or_no ) { used = yes_or_no; return *this; }
     bool isUsed() const { return used; }
 
@@ -142,7 +142,7 @@ public:
 
 protected:
     const Share * share() const { return myShare; }
-    virtual linestyle_type linestyle() const { return Graphic::DASHED_DOTTED; }	/* Draw a different box style */
+    virtual LineStyle linestyle() const { return Graphic::LineStyle::DASHED_DOTTED; }	/* Draw a different box style */
 
     virtual bool populate();
     virtual GroupByShareGroup& label();

@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: key.cc 15170 2021-12-07 23:33:05Z greg $
+ * $Id: key.cc 15262 2021-12-26 18:55:49Z greg $
  */
 
 #include "key.h"
@@ -47,7 +47,7 @@ Key::label()
     unsigned int i = 0;
     if ( Model::rendezvousCount[0] > 0 ) {
 	Arc * arc = Arc::newArc();
-	arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::SOLID);
+	arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::SOLID);
 	Label * label = Label::newLabel();
 	label->justification( Justification::LEFT );
 	*label << "Synchronous request";
@@ -57,7 +57,7 @@ Key::label()
     }
     if ( Model::sendNoReplyCount[0] > 0 ) {
 	Arc * arc = Arc::newArc();
-	arc->arrowhead(Graphic::OPEN_ARROW).linestyle(Graphic::SOLID);
+	arc->arrowhead(Graphic::ArrowHead::OPEN).linestyle(Graphic::LineStyle::SOLID);
 	Label * label = Label::newLabel();
 	label->justification( Justification::LEFT );
 	*label << "Asynchronous request";
@@ -67,7 +67,7 @@ Key::label()
     }
     if ( Model::forwardingCount > 0 ) {
 	Arc * arc = Arc::newArc();
-	arc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DASHED);
+	arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DASHED);
 	Label * label = Label::newLabel();
 	label->justification( Justification::LEFT );
 	*label << "Forwarded request";

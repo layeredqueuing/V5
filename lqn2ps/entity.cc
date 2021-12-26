@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15255 2021-12-24 17:42:46Z greg $
+ * $Id: entity.cc 15262 2021-12-26 18:55:49Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -535,7 +535,7 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
 
 	Label * aLabel = 0;
 	if ( !chain[k] ) {
-	    outArc->arrowhead( Graphic::CLOSED_ARROW );
+	    outArc->arrowhead( Graphic::ArrowHead::CLOSED );
 	    x = max_x + offset * (max_k - k);
 	    outArc->pointAt(2).moveTo( x, y );
 
@@ -559,10 +559,10 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
 	    aLabel->moveTo( outArc->pointAt(4) ).moveBy( 2.0 * offset, 0 ).backgroundColour( Graphic::Colour::DEFAULT );
 	    (*aLabel) << k;
 	} else {
-	    outArc->arrowhead( Graphic::NO_ARROW );
+	    outArc->arrowhead( Graphic::ArrowHead::NONE );
 	    Node * aNode = Node::newNode( 0, 0 );
 
-	    aNode->penColour( chainColour( k ) ).fillColour( chainColour( k ) ).fillStyle( Graphic::FILL_SOLID );
+	    aNode->penColour( chainColour( k ) ).fillColour( chainColour( k ) ).fillStyle( Graphic::Fill::SOLID );
 	    aNode->circle( output, outArc->pointAt(1), Model::scaling() );
 
 	    delete aNode;
@@ -660,7 +660,7 @@ Entity::drawClientToServer( std::ostream& output, const Entity * aClient, std::v
     /* Frobnicate -- chain already exists, so join this chain to that chain. */
     if ( chain[k] ) {
 	Node * aNode = Node::newNode( 0, 0 );
-	aNode->penColour( chainColour( k ) ).fillColour( chainColour( k ) ).fillStyle( Graphic::FILL_SOLID );
+	aNode->penColour( chainColour( k ) ).fillColour( chainColour( k ) ).fillStyle( Graphic::Fill::SOLID );
 
 	if ( inArc->pointAt(2).x() <= lastArc[k]->pointAt(2).x() ) {
 	    inArc->pointAt(0) = inArc->pointAt(1);

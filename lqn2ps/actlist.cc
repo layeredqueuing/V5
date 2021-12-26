@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 15255 2021-12-24 17:42:46Z greg $
+ * $Id: actlist.cc 15262 2021-12-26 18:55:49Z greg $
  */
 
 
@@ -473,7 +473,7 @@ JoinActivityList::moveSrcTo( const Point& src, Activity * )
 { 
     if ( next() ) {
 	if ( dynamic_cast<ForkActivityList *>(next()) ) {
-	    myArc->arrowhead( Graphic::NO_ARROW );
+	    myArc->arrowhead( Graphic::ArrowHead::NONE );
 	}
 	myArc->moveSrc( src ); 
 	const Point dst( next()->findSrcPoint() );
@@ -1639,7 +1639,7 @@ RepeatActivityList::add( Activity * anActivity )
 
 	Arc * anArc = Arc::newArc();
 	if ( anArc ) {
-	    anArc->linestyle( Graphic::DASHED );
+	    anArc->linestyle( Graphic::LineStyle::DASHED );
 	    myArcList[anActivity] = anArc;
 	}
 

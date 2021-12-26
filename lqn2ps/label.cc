@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: label.cc 15255 2021-12-24 17:42:46Z greg $
+ * $Id: label.cc 15262 2021-12-26 18:55:49Z greg $
  */
 
 #include "lqn2ps.h"
@@ -35,7 +35,7 @@ private:
 	{ return m.f(os,m.myStr); }
 };
 
-Label::Line::Line() : _font(NORMAL_FONT), _colour(Colour::DEFAULT), _string()
+Label::Line::Line() : _font(Graphic::Font::NORMAL), _colour(Colour::DEFAULT), _string()
 {
     if ( Flags::precision() > 0 ) {
 	_string.precision( Flags::precision() );
@@ -152,7 +152,7 @@ Label::newLine()
 
 
 Label&
-Label::font( const font_type font )
+Label::font( const Font font )
 {
     _lines.back().setFont(font);
     return *this;
@@ -253,7 +253,7 @@ Label&
 Label::beginMath()
 {
     if ( !_mathMode ) {
-	font(Graphic::SYMBOL_FONT);
+	font(Graphic::Font::SPECIAL);
 	_mathMode = true;
     }
     return *this;
@@ -270,7 +270,7 @@ Label::endMath()
 Label&
 Label::epsilon()
 {
-    font(Graphic::SYMBOL_FONT) << "e";
+    font(Graphic::Font::SPECIAL) << "e";
     return *this;
 }
 
@@ -286,7 +286,7 @@ Label::infty()
 Label&
 Label::lambda()
 {
-    font(Graphic::SYMBOL_FONT) << "l";
+    font(Graphic::Font::SPECIAL) << "l";
     return *this;
 }
 
@@ -294,7 +294,7 @@ Label::lambda()
 Label&
 Label::mu()
 {
-    font(Graphic::SYMBOL_FONT) << "m";
+    font(Graphic::Font::SPECIAL) << "m";
     return *this;
 }
 
@@ -302,7 +302,7 @@ Label::mu()
 Label&
 Label::rho()
 {
-    font(Graphic::SYMBOL_FONT) << "r";
+    font(Graphic::Font::SPECIAL) << "r";
     return *this;
 }
 
