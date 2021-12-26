@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 15252 2021-12-24 02:56:59Z greg $
+ * $Id: lqn2ps.cc 15268 2021-12-26 21:34:29Z greg $
  *
  * Command line processing.
  *
@@ -205,7 +205,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-12-23 21:56:59 -0500 (Thu, 23 Dec 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-12-26 16:34:29 -0500 (Sun, 26 Dec 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -429,29 +429,28 @@ main(int argc, char *argv[])
 		case Layering::MOL:
 		case Layering::SQUASHED:
 		case Layering::SRVN:
-		    pragmas.insert(LQIO::DOM::Pragma::_layering_,Options::layering.at(l));
 		    Flags::set_processors( Processors::ALL );
-		    break;
-
+		    /* Fall through */
 		case Layering::BATCH:
+		    if ( !values.empty() ) throw std::invalid_argument( optarg );
 		    pragmas.insert(LQIO::DOM::Pragma::_layering_,Options::layering.at(l));
 		    break;
 
 		    /* Non-pragma layering */
 		case Layering::PROCESSOR_TASK:
 		case Layering::TASK_PROCESSOR:
+		    if ( !values.empty() ) throw std::invalid_argument( optarg );
 		    Flags::set_processors( Processors::ALL );
 		    break;
 
 		case Layering::PROCESSOR:
 		case Layering::SHARE:
+		    if ( !values.empty() ) throw std::invalid_argument( optarg );
 		    Flags::set_processors( Processors::NONE );
 		    break;
 
 		case Layering::GROUP:
-		    if ( !values.empty() ) {
-			Model::setGroupList( values );
-		    }
+		    Model::setGroupList( values );
 		    Flags::set_processors( Processors::ALL );
 		    break;
 
@@ -942,4 +941,111 @@ setOutputFormat( const File_Format f )
 	break;
 #endif
     }
+}
+
+#if REP2FLAT
+void
+update_mean( LQIO::DOM::DocumentObject * dst, set_function set, const LQIO::DOM::DocumentObject * src, get_function get, unsigned int replica )
+{
+    (dst->*set)( ((dst->*get)() * static_cast<double>(replica - 1) + (src->*get)()) / static_cast<double>(replica) );
+}
+
+
+void
+update_variance( LQIO::DOM::DocumentObject * dst, set_function set, const LQIO::DOM::DocumentObject * src, get_function get )
+{
+    (dst->*set)( (dst->*get)() + (src->*get)() );
+}
+#endif
+
+static int current_indent = 1;
+
+int
+set_indent( const int anInt )
+{
+    const int old_indent = current_indent;
+    current_indent = anInt;
+    return old_indent;
+}
+
+std::ostream&
+pluralize( std::ostream& output, const std::string& aStr, const unsigned int i )
+{
+    output << aStr;
+    if ( i != 1 ) output << "s";
+    return output;
+}
+
+std::ostream&
+indent_str( std::ostream& output, const int anInt )
+{
+    if ( anInt < 0 ) {
+	if ( current_indent + anInt < 0 ) {
+	    current_indent = 0;
+	} else {
+	    current_indent += anInt;
+	}
+    }
+    if ( current_indent != 0 ) {
+	output << std::setw( current_indent * 3 ) << " ";
+    }
+    if ( anInt > 0 ) {
+	current_indent += anInt;
+    }
+    return output;
+}
+
+std::ostream&
+temp_indent_str( std::ostream& output, const int anInt )
+{
+    output << std::setw( (current_indent + anInt) * 3 ) << " ";
+    return output;
+}
+
+std::ostream&
+opt_pct_str( std::ostream& output, const double aDouble )
+{
+    output << aDouble;
+    if ( difference_output() ) {
+	output << "%";
+    }
+    return output;
+}
+
+
+static std::ostream&
+conf_level_str( std::ostream& output, const int fill, const int level )
+{
+    std::ios_base::fmtflags flags = output.setf( std::ios::right, std::ios::adjustfield );
+    output << std::setw( fill-4 ) << "+/- " << std::setw(2) << level << "% ";
+    output.flags( flags );
+    return output;
+}
+
+IntegerManip indent( const int i ) { return IntegerManip( &indent_str, i ); }
+IntegerManip temp_indent( const int i ) { return IntegerManip( &temp_indent_str, i ); }
+Integer2Manip conf_level( const int fill, const int level ) { return Integer2Manip( &conf_level_str, fill, level ); }
+StringPlural plural( const std::string& s, const unsigned i ) { return StringPlural( &pluralize, s, i ); }
+DoubleManip opt_pct( const double aDouble ) { return DoubleManip( &opt_pct_str, aDouble ); }
+
+/*
+ * construct the error message.
+ */
+
+class_error::class_error( const std::string& method, const char * file, const unsigned line, const std::string& error )
+    : logic_error( message( method, file, line, error ) )
+{
+}
+
+
+class_error::~class_error() throw()
+{
+}
+
+std::string
+class_error::message( const std::string& method, const char * file, const unsigned line, const std::string& error )
+{
+    std::ostringstream ss;
+    ss << method << ": " << file << " " << line << ": " << error;
+    return ss.str();
 }

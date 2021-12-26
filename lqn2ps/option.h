@@ -1,12 +1,18 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: option.h 15252 2021-12-24 02:56:59Z greg $
+ * $Id: option.h 15268 2021-12-26 21:34:29Z greg $
  * ------------------------------------------------------------------------
  */
 
 #ifndef LQN2PS_OPTION_H
 #define LQN2PS_OPTION_H
+
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+#include <map>
+#include <string>
 
 enum class Aggregate {
     NONE,
@@ -233,6 +239,7 @@ public:
     };
 
 public:
+    /* Used to search the Flags::print table for a matching option */
     class find_option {
     public:
 	find_option( const int c ) : _c(c) {}
@@ -276,6 +283,5 @@ public:
     static Replication get_replication( const std::string& );
     static Sorting get_sorting( const std::string& );
     static Special get_special( const std::string& );
-    static size_t find_if( const char**, const std::string& );
 };
 #endif

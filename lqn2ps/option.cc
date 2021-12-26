@@ -1,20 +1,13 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: option.cc 15252 2021-12-24 02:56:59Z greg $
+ * $Id: option.cc 15268 2021-12-26 21:34:29Z greg $
  */
 
 #include "lqn2ps.h"
 #include <algorithm>
-#include <cstdlib>
-#include <cstring>
-#include <cmath>
-#include <cstring>
-#include <sstream>
-#include <lqio/dom_object.h>
-#include <lqio/json_document.h>
 #include <lqio/dom_pragma.h>
-#include "layer.h"
 #include "model.h"
+#include "option.h"
 #include "errmsg.h"
 
 static double DEFAULT_ICON_HEIGHT = 45;	/* multiple of 9 works well with xfig. */
@@ -236,40 +229,6 @@ const std::string Options::string = "string";
 
 static bool get_bool( const std::string&, bool default_value );
 
-/*
- * construct the error message.
- */
-
-class_error::class_error( const std::string& method, const char * file, const unsigned line, const std::string& error )
-    : logic_error( message( method, file, line, error ) )
-{
-}
-
-
-class_error::~class_error() throw()
-{
-}
-
-std::string
-class_error::message( const std::string& method, const char * file, const unsigned line, const std::string& error )
-{
-    std::ostringstream ss;
-    ss << method << ": " << file << " " << line << ": " << error;
-    return ss.str();
-}
-
-
-size_t
-Options::find_if( const char** values, const std::string& s )
-{
-    size_t i = 0;
-    for ( ; values[i] != nullptr; ++i ) {
-	if ( s == values[i] ) return i;
-    }
-    return i+1;
-}
-
-
 Aggregate
 Options::get_aggregate( const std::string& value )
 {
@@ -463,7 +422,7 @@ special( const std::string& parameter, const std::string& value, LQIO::DOM::Prag
 	    break;
 
 	case Special::TASKS_ONLY:
-	    Flags::print[AGGREGATION].opts.value.a = Aggregate::ENTRIES;
+	    Flags::set_aggregation( Aggregate::ENTRIES );
 	    if ( Flags::icon_height == DEFAULT_ICON_HEIGHT ) {
 		if ( processor_output() || share_output() ) {
 		    Flags::set_y_spacing(45);
@@ -632,88 +591,3 @@ difference_output()
 {
     return Flags::colouring() == Colouring::DIFFERENCES;
 }
-
-#if REP2FLAT
-void
-update_mean( LQIO::DOM::DocumentObject * dst, set_function set, const LQIO::DOM::DocumentObject * src, get_function get, unsigned int replica )
-{
-    (dst->*set)( ((dst->*get)() * static_cast<double>(replica - 1) + (src->*get)()) / static_cast<double>(replica) );
-}
-
-
-void
-update_variance( LQIO::DOM::DocumentObject * dst, set_function set, const LQIO::DOM::DocumentObject * src, get_function get )
-{
-    (dst->*set)( (dst->*get)() + (src->*get)() );
-}
-#endif
-
-static int current_indent = 1;
-
-int
-set_indent( const int anInt )
-{
-    const int old_indent = current_indent;
-    current_indent = anInt;
-    return old_indent;
-}
-
-std::ostream&
-pluralize( std::ostream& output, const std::string& aStr, const unsigned int i )
-{
-    output << aStr;
-    if ( i != 1 ) output << "s";
-    return output;
-}
-
-std::ostream&
-indent_str( std::ostream& output, const int anInt )
-{
-    if ( anInt < 0 ) {
-	if ( current_indent + anInt < 0 ) {
-	    current_indent = 0;
-	} else {
-	    current_indent += anInt;
-	}
-    }
-    if ( current_indent != 0 ) {
-	output << std::setw( current_indent * 3 ) << " ";
-    }
-    if ( anInt > 0 ) {
-	current_indent += anInt;
-    }
-    return output;
-}
-
-std::ostream&
-temp_indent_str( std::ostream& output, const int anInt )
-{
-    output << std::setw( (current_indent + anInt) * 3 ) << " ";
-    return output;
-}
-
-std::ostream&
-opt_pct_str( std::ostream& output, const double aDouble )
-{
-    output << aDouble;
-    if ( difference_output() ) {
-	output << "%";
-    }
-    return output;
-}
-
-
-static std::ostream&
-conf_level_str( std::ostream& output, const int fill, const int level )
-{
-    std::ios_base::fmtflags flags = output.setf( std::ios::right, std::ios::adjustfield );
-    output << std::setw( fill-4 ) << "+/- " << std::setw(2) << level << "% ";
-    output.flags( flags );
-    return output;
-}
-
-IntegerManip indent( const int i ) { return IntegerManip( &indent_str, i ); }
-IntegerManip temp_indent( const int i ) { return IntegerManip( &temp_indent_str, i ); }
-Integer2Manip conf_level( const int fill, const int level ) { return Integer2Manip( &conf_level_str, fill, level ); }
-StringPlural plural( const std::string& s, const unsigned i ) { return StringPlural( &pluralize, s, i ); }
-DoubleManip opt_pct( const double aDouble ) { return DoubleManip( &opt_pct_str, aDouble ); }
