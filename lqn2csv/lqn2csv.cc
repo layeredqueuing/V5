@@ -364,7 +364,7 @@ fetch_arguments( const std::string& filename, std::vector<Model::Result::result_
 	/* Get pointers to tokens for longopt */
 	std::vector<char *> argv( argc );
 	argv.at(0) = const_cast<char *>(filename.c_str());
-	for ( size_t i = 1; i < argc; ++i ) {
+	for ( int i = 1; i < argc; ++i ) {
 	    argv.at(i) = const_cast<char *>(tokens.at(i-1).c_str());
 	}
 

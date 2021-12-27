@@ -3,7 +3,7 @@
 #----------------------------------------------------------------------
 
 AM_CPPFLAGS	= -I..  -I../lqiolib/src/headers -I../lqx/libsrc/headers
-lqn2csv_CXXFLAGS = -std=c++11 -Wall 
+lqn2csv_CXXFLAGS = -std=c++11 -Wall -Wno-unknown-pragmas
 bin_PROGRAMS 	= lqn2csv
 lqn2csv_SOURCES = gnuplot.cc lqn2csv.cc model.cc
 noinst_HEADERS  = gnuplot.h lqn2csv.h model.h
