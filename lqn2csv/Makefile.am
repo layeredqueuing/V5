@@ -1,9 +1,7 @@
-#
-# $Id: Makefile.am 15072 2021-10-15 13:06:06Z greg $
+#----------------------------------------------------------------------
+# $Id: Makefile.am 15273 2021-12-27 12:53:44Z greg $
 #----------------------------------------------------------------------
 
-AUTOMAKE_OPTIONS = foreign
-ACLOCAL_AMFLAGS = -I../config
 AM_CPPFLAGS	= -I..  -I../lqiolib/src/headers -I../lqx/libsrc/headers
 lqn2csv_CXXFLAGS = -std=c++11 -Wall 
 bin_PROGRAMS 	= lqn2csv
@@ -19,14 +17,10 @@ man1_MANS	= lqn2csv.1
 
 if HAVE_PS2PDF
 install-data-local:	lqn2csv.pdf
-endif
 
-lqn2csv.ps:	$(man1_MANS)
-		cat $(man1_MANS) | groff -man  > lqn2csv.ps
+lqn2csv.pdf:	$(man1_MANS)
+		groff -man $< | ps2pdf - $@
 
-if HAVE_PS2PDF
-lqn2csv.pdf:	lqn2csv.ps
-		ps2pdf lqn2csv.ps
 endif
 
 lqn2csv.txt:	$(man1_MANS)

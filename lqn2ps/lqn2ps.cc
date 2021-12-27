@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 15268 2021-12-26 21:34:29Z greg $
+ * $Id: lqn2ps.cc 15271 2021-12-27 12:36:48Z greg $
  *
  * Command line processing.
  *
@@ -102,7 +102,6 @@ std::vector<Options::Type> Flags::print = {
     { "service-exceeded",      'x', nullptr,               {&Options::result,       false},             "Print maximum execution time exceeded." },
     { "comment",         0x300+'#', nullptr,               {&Options::result,       false},             "Print model comment." },
     { "solver-info",     0x300+'!', nullptr,               {&Options::none,         0},                 "Print solver information." },
-    { "verbose",         0x200+'V', nullptr,               {&Options::none,         0},                 "Verbose output." },
     { "ignore-errors",   0x200+'E', nullptr,               {&Options::none,         0},                 "Ignore errors during model checking phase." },
     { "task-service-time", 512+'P', nullptr,               {&Options::none,         0},                 "Print task service times (for --tasks-only)." },
     { "run-lqx",         0x200+'l', nullptr,               {&Options::none,         0},                 "\"Run\" the LQX program instantiating variables and generating model files." },
@@ -205,7 +204,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-12-26 16:34:29 -0500 (Sun, 26 Dec 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-12-27 07:36:48 -0500 (Mon, 27 Dec 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -450,6 +449,7 @@ main(int argc, char *argv[])
 		    break;
 
 		case Layering::GROUP:
+		    if ( values.empty() ) throw std::invalid_argument( optarg );
 		    Model::setGroupList( values );
 		    Flags::set_processors( Processors::ALL );
 		    break;
@@ -516,7 +516,6 @@ main(int argc, char *argv[])
 		break;
 
 	    case 0x200+'P':
-//	    pragma( "tasks-only", "" );
 		Flags::set_aggregation( Aggregate::ENTRIES );
 		Flags::print[PRINT_AGGREGATE].opts.value.b = true;
 		break;
@@ -568,7 +567,6 @@ main(int argc, char *argv[])
 		break;
 
 	    case 0x200+'S':
-	    case 0x200+'V':	/* Always set... :-) */
 		Flags::print[SUMMARY].opts.value.b = true;
 		break;
 

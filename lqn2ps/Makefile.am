@@ -1,8 +1,7 @@
-# Makefile for .
-# Copyright (C) 2003 Greg Franks <rgfranks@alumni.uwaterloo.ca>
-# $Id: Makefile.am 15161 2021-12-06 19:56:46Z greg $
 # ----------------------------------------------------------------------
-ACLOCAL_AMFLAGS=-I ../config 
+# $Id: Makefile.am 15273 2021-12-27 12:53:44Z greg $
+# ----------------------------------------------------------------------
+
 SUBDIRS		= 
 if COND_PNG
   MAYBE_PNG = lqn2png
@@ -31,7 +30,7 @@ lqn2ps_CXXFLAGS = -std=c++11 -Wall -Wno-parentheses -Wno-switch -Wno-unknown-pra
 lqn2ps_LDADD	= -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio 
 lqn2ps_LDFLAGS	= @STATIC@
 
-man1_MANS	= lqn2ps.1 
+man1_MANS	= lqn2ps.1
 
 clean-local:
 
@@ -47,21 +46,16 @@ install-exec-hook:
 install-data-hook:
 	for i in $(OTHEREXE); do \
 	  $(RM) $(DESTDIR)$(mandir)/man1/$$i.1; \
-	  (cd $(DESTDIR)$(mandir)/man1; $(LN_S) lqn2ps.1 $$i.1); \
+	  (cd $(DESTDIR)$(mandir)/man1; $(LN_S) $(man1_MANS) $$i.1); \
 	done
 
 if HAVE_PS2PDF
 install-data-local: lqn2ps.pdf 
+
+lqn2ps.pdf: $(man1_MANS)
+	groff -man $< | ps2pdf - $@
 endif
 
-lqn2ps.ps: lqn2ps.1
-	cat lqn2ps.1 | groff -man > lqn2ps.ps
-
-if HAVE_PS2PDF
-lqn2ps.pdf: lqn2ps.ps
-	ps2pdf lqn2ps.ps
-endif
-
-lqn2ps.txt: lqn2ps.1
-	nroff -man lqn2ps.1 | col -b > lqn2ps.txt
+lqn2ps.txt: $(man1_MANS)
+	nroff -man $(man1_MANS) | col -b > lqn2ps.txt
 

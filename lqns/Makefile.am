@@ -1,9 +1,7 @@
-# 
-# $Id: Makefile.am 14951 2021-08-20 22:09:58Z greg $
-#
+#----------------------------------------------------------------------
+# $Id: Makefile.am 15273 2021-12-27 12:53:44Z greg $
 #----------------------------------------------------------------------
 
-ACLOCAL_AMFLAGS=-I ../config
 SUBDIRS		= regression 
 AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers -I../libmva/src/headers
 bin_PROGRAMS 	= lqns
@@ -27,19 +25,14 @@ man1_MANS	= lqns.1
 
 clean-local:
 
-if HAVE_PS2PDF
-install-data-local:	lqns.pdf
-endif
-
 distclean-local:
 		rm -f config.cache
 
-lqns.ps:	$(man1_MANS)
-		groff -t -man  $(man1_MANS) > lqns.ps
-
 if HAVE_PS2PDF
-lqns.pdf:	lqns.ps
-		ps2pdf lqns.ps
+install-data-local:	lqns.pdf
+
+lqns.pdf:	$(man1_MANS)
+		groff -t -man  $< | ps2pdf - $@
 endif
 
 lqns.html:	$(man1_MANS)

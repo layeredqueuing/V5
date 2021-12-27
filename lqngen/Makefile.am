@@ -1,9 +1,7 @@
 # Makefile for .
 # Copyright (C) 2003 Greg Franks <rgfranks@alumni.uwaterloo.ca>
-# $Id: Makefile.am 14429 2021-01-29 20:49:19Z greg $
+# $Id: Makefile.am 15273 2021-12-27 12:53:44Z greg $
 # ----------------------------------------------------------------------
-ACLOCAL_AMFLAGS=-I ../config
-SUBDIRS		= 
 
 AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers 
 bin_PROGRAMS 	= lqngen
@@ -32,18 +30,10 @@ install-exec-hook:
 
 if HAVE_PS2PDF
 install-data-local: lqngen.pdf lqn2lqx.pdf
-endif
 
-lqngen.ps: lqngen.1
-	cat lqngen.1  | groff -man > lqngen.ps
+lqngen.pdf: lqngen.1
+	groff -man $< | ps2pdf - $@
 
-lqn2lqx.ps: lqn2lqx.1
-	cat lqn2lqx.1  | groff -man > lqn2lqx.ps
-
-if HAVE_PS2PDF
-lqngen.pdf: lqngen.ps
-	ps2pdf lqngen.ps
-
-lqn2lqx.pdf: lqn2lqx.ps
-	ps2pdf lqn2lqx.ps
+lqn2lqx.pdf: lqn2lqx.1
+	groff -man $< | ps2pdf - $@
 endif

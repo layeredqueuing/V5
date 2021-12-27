@@ -1,9 +1,7 @@
-#
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15207 2021-12-13 15:50:07Z greg $
+# $Id: Makefile.am 15273 2021-12-27 12:53:44Z greg $
 #----------------------------------------------------------------------
 
-ACLOCAL_AMFLAGS=-I ../config
 SUBDIRS=	wspnlib regression
 AM_CPPFLAGS =	-I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers/
 bin_PROGRAMS=	petrisrvn

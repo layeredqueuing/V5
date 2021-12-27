@@ -1,6 +1,6 @@
 .\" -*- nroff -*-
-.TH lqn2ps 1 "07 December 2021"  "5.22"
-.\" $Id: lqn2ps.1 15170 2021-12-07 23:33:05Z greg $
+.TH lqn2ps 1 "27 December 2021"  "5.23"
+.\" $Id: lqn2ps.1 15271 2021-12-27 12:36:48Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -106,7 +106,9 @@ then the JSON parser will be used.  Otherwise, input is assumed to be XML.
 Print help.
 .TP
 \fB\-J\fR, \fB\-\-justification=\fIobject=ARG\fR
-The \fB\-J\fI object=ARG\fR option is used to set the justification for \fIobject\fP.	 \fIObject\fR is one of:\fBnodes\fR, \fBlabels\fR, or \fBactivitiesR.\fIJustification\fR is one of \fBleft\fR,\fBcenter\fR,\fBright\fR,\fBalign (for nodes)\fR, or\fBabove (for activities)\fR.
+The \fB\-J\fI object=ARG\fR option is used to set the justification for \fIobject\fP.	 \fIObject\fR is one of:
+\fBnodes\fR, \fBlabels\fR, or \fBactivities\fR.
+\fIJustification\fR is one of \fBleft\fR,\fBcenter\fR,\fBright\fR,\fBalign (for nodes)\fR, or\fBabove (for activities)\fR.
 The default is center justifcation for all objects.
 .TP
 \fB\-K\fR, \fB\-\-key=\fIkey\fR
@@ -119,11 +121,9 @@ The \fB\-L\fI layering\fR option is used to choose the layering strategy for out
 \fBbatched\fR
 Batch layering (default for lqns(1))
 .TP
-\fBgroup=\fIregexp\fR\fR
-Batch layering, but tasks are grouped by the processors identified by \fIregexp\fP.
-Multiple occurances of this option can be used to specify multiple groups.
+\fBgroup=\fIregexp\fR[,\fIregexp\fR]\fR
+Batch layering, but tasks are grouped by the processors identified by a list of \fIregexp\fP.
 Processors not matching any group expression are assigned to the last "default" group.
-Groups may also be identified in the input file using the \fIgroup\fP pragma.
 .TP
 \fBhwsw\fR
 Hardware-Software layering (Clients and software servers in one layer,
@@ -179,13 +179,13 @@ Generate input for xfig(1).
 .TP
 \fBjson\fR
 Generate an JSON input file.  If results are available, they are included.
-The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
+The \fB\-h\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.
 New input files are always "cleaned up".
 .TP
 \fBlqx\fR
 Generate an XML input file.  If results are available, they are included.
-The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
+The \fB\-h\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.  If SPEX is present, it will be converted to LQX.
 New input files are always "cleaned up".
 .TP
@@ -203,7 +203,7 @@ Generate a new output file in Rich Text Format using the results from a parseabl
 .TP
 \fBlqn\fR
 Generate a new input file.	 Results are ignored unless a subset of the input file is being generated.
-The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
+The \fB\-h\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.
 If a parseable output file is available, the transformed subset will derive service times based on results. 
 Refer to \fI``SRVN Input File Format''\fR for a complete
@@ -225,7 +225,7 @@ The output file must be a regular file.  Output to special files is not supporte
 .TP
 \fBxml\fR
 Generate an XML input file.  If results are available, they are included.
-The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
+The \fB\-h\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.
 New input files are always "cleaned up".
 .RE
@@ -278,7 +278,7 @@ If this option is used with \fBlqn2lqn\fP, parameters will be derived to approxi
 \fB\-V\fR, \fB\-\-version\fR
 Tool version.
 .TP
-\fB\-W\fR, \fB\-\-warnings\fR
+\fB\-W\fR, \fB\-\-no-warnings\fR
 Suppress warnings.
 .TP
 \fB\-X\fR, \fB\-\-x-spacing=\fIspacing[,width]\fR
@@ -431,9 +431,6 @@ Print model comment.
 .TP
 \fB\-\-solver-info\fR
 Print solver information.
-.TP
-\fB\-\-verbose\fR
-Verbose output.
 .TP
 \fB\-\-ignore-errors\fR
 Ignore errors during model checking phase.

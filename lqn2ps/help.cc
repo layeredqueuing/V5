@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 15175 2021-12-08 12:40:31Z greg $
+ * $Id: help.cc 15271 2021-12-27 12:36:48Z greg $
  */
 
 #include "lqn2ps.h"
@@ -122,6 +122,7 @@ invalid_option( char c, char * optarg )
 	if ( f->c == c ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid argument to --" << f->name << ", ARG=" << optarg << std::endl;
 	    std::cerr << "    " << print_args( f - Flags::print.begin() ) << std::endl;
+	    break;
 	}
     }
 #else
@@ -151,7 +152,7 @@ man()
 	      << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 15175 2021-12-08 12:40:31Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 15271 2021-12-27 12:36:48Z greg $" << std::endl
 	      << comm << std::endl
 	      << comm << " --------------------------------" << std::endl;
 
@@ -350,7 +351,7 @@ man()
 		std::cout << ".TP" << std::endl
 			  << "\\fB" << j->second;
 		if ( j->first == Layering::GROUP ) {
-		    std::cout << "=\\fIregexp\\fR";
+		    std::cout << "=\\fIregexp\\fR[,\\fIregexp\\fR]";
 		}
 		std::cout << "\\fR" << std::endl;
 
@@ -383,10 +384,8 @@ man()
 		    break;
 #endif
 		case Layering::GROUP:
-		    std::cout << "Batch layering, but tasks are grouped by the processors identified by \\fIregexp\\fP." << std::endl
-			      << "Multiple occurances of this option can be used to specify multiple groups." << std::endl
-			      << "Processors not matching any group expression are assigned to the last \"default\" group." << std::endl
-			      << "Groups may also be identified in the input file using the \\fIgroup\\fP pragma." << std::endl;
+		    std::cout << "Batch layering, but tasks are grouped by the processors identified by a list of \\fIregexp\\fP." << std::endl
+			      << "Processors not matching any group expression are assigned to the last \"default\" group." << std::endl;
 		    break;
 		case Layering::SHARE:
 		    std::cout << "Batch layering, but tasks are grouped by their processor share." << std::endl
