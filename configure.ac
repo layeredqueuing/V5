@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-# $Id: configure.ac 15261 2021-12-25 19:29:06Z greg $
+# $Id: configure.ac 15279 2021-12-28 13:09:22Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([lqns],[5.23],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([config])
@@ -47,11 +47,19 @@ fi
 AM_CONDITIONAL([HAVE_PS2PDF], test -n "$XPS2PDF")
 AC_CHECK_PROGS(XSVN, svn)
 AM_CONDITIONAL([HAVE_SVN], test -n "$XSVN")
+
 # ----------------------------------------------------------------------
-# Checks for header files.
+# Checks for typedefs, structures, and compiler characteristics.
 #
 AC_HEADER_SYS_WAIT
 AC_TYPE_SIZE_T
+AC_TYPE_MODE_T
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+AC_STRUCT_TM
+
+# ----------------------------------------------------------------------
+# Checks for header files.
+#
 AC_CHECK_HEADERS([glob.h errno.h getopt.h unistd.h libgen.h])
 AC_CHECK_HEADERS([sys/resource.h sys/utsname.h sys/times.h])
 AC_CHECK_HEADERS([fenv.h float.h ieeefp.h])
@@ -88,21 +96,14 @@ AC_CHECK_LIB([expat], [XML_ParserCreateNS])
 AM_CONDITIONAL([EXPAT], [test "x${ac_cv_lib_expat_XML_ParserCreateNS}" = "xyes"] )
 
 # ----------------------------------------------------------------------
-# Checks for typedefs, structures, and compiler characteristics.
-#
-
-AC_TYPE_MODE_T
-AC_CHECK_HEADERS_ONCE([sys/time.h])
-AC_STRUCT_TM
-
-# ----------------------------------------------------------------------
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_SELECT_ARGTYPES 
 AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
-AC_STRUCT_TM
+AC_FUNC_FORK
+AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([ctime getopt_long getsubopt getrusage glob])
 AC_CHECK_FUNCS([lgamma])
 AC_CHECK_FUNCS([drand48])
@@ -123,9 +124,9 @@ fi
 
 # ------------------------------------------------------------------------
 AC_CONFIG_SUBDIRS([lqiolib lqx libmva parasol lqsim doc])
-AC_PROG_MAKE_SET
 AC_CONFIG_FILES([Makefile lqns/Makefile lqns/regression/Makefile qnsolver/Makefile])
 AC_CONFIG_FILES([lqn2csv/Makefile lqngen/Makefile lqn2ps/Makefile srvndiff/Makefile])
+AC_CONFIG_FILES([lqsim/Makefile lqsim/regression/Makefile])
 AC_CONFIG_FILES([petrisrvn/Makefile petrisrvn/wspnlib/Makefile petrisrvn/regression/Makefile])
 AC_CONFIG_FILES([xml/Makefile dist/Makefile dist/examples/Makefile dist/win-nt/Makefile])
 AC_OUTPUT

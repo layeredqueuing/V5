@@ -1,14 +1,14 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 15194 2021-12-10 12:01:01Z greg $
+ * $Id: option.cc 15277 2021-12-27 21:09:31Z greg $
  */
 
 #include "lqns.h"
 #include <fstream>
 #include <sstream>
-#include <errno.h>
-#include <ctype.h>
+#include <cctype>
 #include <cstdlib>
+#include <errno.h>
 #include <lqio/error.h>
 #include <lqio/dom_document.h>
 #include "generate.h"
@@ -132,13 +132,12 @@ std::vector<char *> Options::Trace::__options;
 void
 Options::Trace::initialize()
 {
-    if ( __options.empty() ) {
-	/* Populate for getsubopt */
-	for ( std::map<const std::string, const Options::Trace>::const_iterator next_opt = __table.begin(); next_opt != __table.end(); ++next_opt ) {
-	    __options.push_back( const_cast<char *>(next_opt->first.data()) );
-	}
-	__options.push_back( nullptr );
+    if ( !__options.empty() ) return;
+    /* Populate for getsubopt */
+    for ( std::map<const std::string, const Options::Trace>::const_iterator next_opt = __table.begin(); next_opt != __table.end(); ++next_opt ) {
+	__options.push_back( const_cast<char *>(next_opt->first.data()) );
     }
+    __options.push_back( nullptr );
 }
 
 
@@ -256,115 +255,88 @@ Options::Trace::exec( const int ix, const std::string& arg )
 
 std::map<const std::string, const Options::Special> Options::Special::__table =
 {
-    { "iteration-limit",                        Special( &Special::iteration_limit,             true,  &Help::specialIterationLimit ) },
-    { "print-interval",                         Special( &Special::print_interval,              true,  &Help::specialPrintInterval ) },
-    { "overtaking",                             Special( &Special::overtaking,                  false, &Help::specialOvertaking ) },
-    { "convergence-value",                      Special( &Special::convergence_value,           true,  &Help::specialConvergenceValue ) },
-    { "single-step",                            Special( &Special::single_step,                 false, &Help::specialSingleStep ) },
-    { "underrelaxation",                        Special( &Special::underrelaxation,             true,  &Help::specialUnderrelaxation ) },
+    { LQIO::DOM::Pragma::_convergence_value_,   Special( &Special::convergence_value,           true,  &Help::specialConvergenceValue ) },
+    { "full-reinitialize",                      Special( &Special::full_reinitialize,           false, &Help::specialFullReinitialize ) },
     { "generate",                               Special( &Special::generate_queueing_model,     true,  &Help::specialGenerateQueueingModel ) },
-    { LQIO::DOM::Pragma::_mol_underrelaxation_, Special( &Special::mol_ms_underrelaxation,      true,  &Help::specialMolMSUnderrelaxation ) },
-    { "man",                                    Special( &Special::make_man,                    true,  &Help::specialMakeMan ) },
-    { "tex",                                    Special( &Special::make_tex,                    true,  &Help::specialMakeTex ) },
-    { "min-steps",                              Special( &Special::min_steps,                   true,  &Help::specialMinSteps ) },
 #if HAVE_LIBGSL
     { "ignore-overhanging-threads",             Special( &Special::ignore_overhanging_threads,  false, &Help::specialIgnoreOverhangingThreads ) },
 #endif
-    { "full-reinitialize",                      Special( &Special::full_reinitialize,           false, &Help::specialFullReinitialize ) }
+    { LQIO::DOM::Pragma::_iteration_limit_,     Special( &Special::iteration_limit,             true,  &Help::specialIterationLimit ) },
+    { "man",                                    Special( &Special::make_man,                    true,  &Help::specialMakeMan ) },
+    { "min-steps",                              Special( &Special::min_steps,                   true,  &Help::specialMinSteps ) },
+    { LQIO::DOM::Pragma::_mol_underrelaxation_, Special( &Special::mol_ms_underrelaxation,      true,  &Help::specialMolMSUnderrelaxation ) },
+    { "print-interval",                         Special( &Special::print_interval,              true,  &Help::specialPrintInterval ) },
+    { "overtaking",                             Special( &Special::overtaking,                  false, &Help::specialOvertaking ) },
+    { "single-step",                            Special( &Special::single_step,                 false, &Help::specialSingleStep ) },
+    { "tex",                                    Special( &Special::make_tex,                    true,  &Help::specialMakeTex ) },
+    { LQIO::DOM::Pragma::_underrelaxation_,     Special( &Special::underrelaxation,             true,  &Help::specialUnderrelaxation ) }
 };
 
 std::vector<char *> Options::Special::__options;
 
-
 void
 Options::Special::initialize()
 {
-    if ( __options.empty() ) {
-	for ( std::map<const std::string, const Options::Special>::const_iterator next_opt = __table.begin(); next_opt != __table.end(); ++next_opt ) {
-	    __options.push_back( const_cast<char *>(next_opt->first.c_str()) );
-	}
-	__options.push_back( nullptr );
+    if ( !__options.empty() ) return;
+    for ( std::map<const std::string, const Options::Special>::const_iterator next_opt = __table.begin(); next_opt != __table.end(); ++next_opt ) {
+	__options.push_back( const_cast<char *>(next_opt->first.c_str()) );
     }
-}
-
-
-
-void
-Options::Special::iteration_limit( const std::string& arg )
-{
-    if ( arg.empty() || (Model::__iteration_limit = (unsigned)strtol( arg.c_str(), 0, 10 )) == 0 ) {
-	std::cerr << LQIO::io_vars.lq_toolname << "iteration-limit=" << arg << " is invalid, choose non-negative integer." << std::endl;
-	(void) exit( INVALID_ARGUMENT );
-    }
+    __options.push_back( nullptr );
 }
 
 void
-Options::Special::print_interval( const std::string& arg )
+Options::Special::exec( const int ix, const std::string& arg )
 {
-    if ( arg.empty() && (Model::__print_interval = (unsigned)strtol( arg.c_str(), 0, 10 )) == 0 ) {
-	std::cerr << LQIO::io_vars.lq_toolname << "print-interval=" << arg << " is invalid, choose non-negative integer." << std::endl;
-	(void) exit( INVALID_ARGUMENT );
-    } else {
-	flags.trace_intermediate = true;
-    }
+    (*__table.at(std::string(__options.at(ix))).func())( arg );
 }
 
-void
-Options::Special::overtaking( const std::string& )
-{
-    flags.print_overtaking = true;
-}
 
 void
 Options::Special::convergence_value( const std::string& arg )
 {
-    if ( arg.empty() || (Model::__convergence_value = strtod( arg.c_str(), 0 )) == 0 ) {
-	std::cerr << LQIO::io_vars.lq_toolname << "convergence=" << arg << " is invalid, choose non-negative real." << std::endl;
-	(void) exit( INVALID_ARGUMENT );
+    try {
+	pragmas.insert(LQIO::DOM::Pragma::_convergence_value_,arg);
+    }
+    catch ( std::domain_error& e ) {
+	throw std::invalid_argument( std::string( "--convergence=" ) + arg + ", choose a non-negative real." );
     }
 }
 
-void
-Options::Special::single_step( const std::string& arg )
-{
-    if ( arg.empty() ) {
-	flags.single_step = true;
-    } else if ( (flags.single_step = atol( arg.c_str() )) <= 0 ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": step=" << arg << " is invalid, choose non-negative integer." << std::endl;
-	(void) exit( INVALID_ARGUMENT );
-    }
-}
 
 void
-Options::Special::underrelaxation( const std::string& arg )
+Options::Special::full_reinitialize( const std::string& )
 {
-    if ( arg.empty() || (Model::__underrelaxation = strtod( arg.c_str(), 0 )) <= 0.0 || 2.0 < Model::__underrelaxation ) {
-	std::cerr << LQIO::io_vars.lq_toolname << "underrelaxation=" << arg << " is invalid, choose a value between 0.0 and 2.0." << std::endl;
-	(void) exit( INVALID_ARGUMENT );
-    }
+    flags.full_reinitialize = true;
 }
+
 
 void
 Options::Special::generate_queueing_model( const std::string& arg )
 {
     if ( arg.empty() ) {
-	std::cerr << LQIO::io_vars.lq_toolname << "generate: missing filename argument.." << std::endl;
-	(void) exit( INVALID_ARGUMENT );
+	throw std::invalid_argument( "--generate, requires a filename argument." );
     } else {
 	flags.generate = true;
 	Generate::file_name = const_cast<char *>(arg.c_str());
     }
 }
 
+#if HAVE_LIBGSL
 void
-Options::Special::mol_ms_underrelaxation( const std::string& arg )
+Options::Special::ignore_overhanging_threads( const std::string& )
+{
+    flags.ignore_overhanging_threads = true;
+}
+#endif
+
+void
+Options::Special::iteration_limit( const std::string& arg )
 {
     try {
-	pragmas.insert(LQIO::DOM::Pragma::_mol_underrelaxation_,arg);
+	pragmas.insert(LQIO::DOM::Pragma::_iteration_limit_,arg);
     }
     catch ( std::domain_error& e ) {
-	std::cerr << LQIO::io_vars.lq_toolname << "underrelaxation=" << arg << " is invalid, choose real between 0.0 and 1.0." << std::endl;
-	(void) exit( INVALID_ARGUMENT );
+	throw std::invalid_argument( std::string( "--iteration-limit=" ) + arg + ", choose a non-negative integer." );
     }
 }
 
@@ -376,9 +348,7 @@ Options::Special::make_man( const std::string& arg )
 	std::ofstream output;
 	output.open( arg, std::ios::out );	/* NO \r's in output for windoze */
 	if ( !output ) {
-	    std::ostringstream msg; 
-	    msg << "Cannot open output file " << arg << " - " << strerror( errno );
-	    throw std::runtime_error( msg.str() );
+	    throw std::runtime_error( std::string( "Cannot open output file " ) + arg + " - " + strerror( errno ) );
 	} else {
 	    output << man;
 	}
@@ -397,9 +367,7 @@ Options::Special::make_tex( const std::string& arg )
 	std::ofstream output;
 	output.open( arg, std::ios::out );	/* NO \r's in output for windoze */
 	if ( !output ) {
-	    std::ostringstream msg; 
-	    msg << "Cannot open output file " << arg << " - " << strerror( errno );
-	    throw std::runtime_error( msg.str() );
+	    throw std::runtime_error( std::string( "Cannot open output file " ) + arg + " - " + strerror( errno ) );
 	} else {
 	    output << man;
 	}
@@ -413,30 +381,57 @@ Options::Special::make_tex( const std::string& arg )
 void
 Options::Special::min_steps( const std::string& arg )
 {
-    if ( arg.empty() ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": no value supplied to -zmin-steps." << std::endl;
-    } else if ( (flags.min_steps = atoi( arg.c_str() )) < 1 ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": min-steps=" << arg << " is invalid, choose value greater than 1." << std::endl;
-	(void) exit( INVALID_ARGUMENT );
+    char * endptr = nullptr;
+    if ( arg.empty() || (flags.min_steps = (unsigned)strtol( arg.c_str(), &endptr, 10 )) == 0 || *endptr != '\0' ) {
+	throw std::runtime_error( std::string( "min-steps=" ) + arg + ", choose an integer greater than 0." );
     }
 }
 
-#if HAVE_LIBGSL
 void
-Options::Special::ignore_overhanging_threads( const std::string& )
+Options::Special::mol_ms_underrelaxation( const std::string& arg )
 {
-    flags.ignore_overhanging_threads = true;
-}
-#endif
-
-void
-Options::Special::full_reinitialize( const std::string& )
-{
-    flags.full_reinitialize = true;
+    try {
+	pragmas.insert(LQIO::DOM::Pragma::_mol_underrelaxation_,arg);
+    }
+    catch ( std::domain_error& e ) {
+	throw std::invalid_argument ( std::string( "--mol-underrelaxation=" ) + arg + ", choose a real between 0.0 and 1.0." );
+    }
 }
 
 void
-Options::Special::exec( const int ix, const std::string& arg )
+Options::Special::overtaking( const std::string& )
 {
-    (*__table.at(std::string(__options.at(ix))).func())( arg );
+    flags.print_overtaking = true;
+}
+
+void
+Options::Special::print_interval( const std::string& arg )
+{
+    char * endptr = nullptr;
+    if ( arg.empty() && (Model::__print_interval = (unsigned)strtol( arg.c_str(), &endptr, 10 )) == 0 || *endptr != '\0' ) {
+	throw std::invalid_argument( std::string( "--print-interval=" ) + arg + "choose an integer greater than 0." );
+    } 
+    flags.trace_intermediate = true;
+}
+
+void
+Options::Special::single_step( const std::string& arg )
+{
+    char * endptr = nullptr;
+    if ( arg.empty() ) {
+	flags.single_step = 1;
+    } else if ( (flags.single_step = (unsigned)strtol( arg.c_str(), &endptr, 10 )) == 0 || *endptr != '\0' ) {
+	throw std::invalid_argument( std::string( "--step=" ) + arg + "choose a non-negative integer." );
+    }
+}
+
+void
+Options::Special::underrelaxation( const std::string& arg )
+{
+    try {
+	pragmas.insert(LQIO::DOM::Pragma::_underrelaxation_,arg);
+    }
+    catch ( std::domain_error& e ) {
+	throw std::invalid_argument( std::string( "--underrelaxation=" ) + arg + "choose a number between 0 and 2." );
+    }
 }

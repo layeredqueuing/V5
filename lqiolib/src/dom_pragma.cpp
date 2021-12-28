@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 15231 2021-12-17 14:22:39Z greg $
+ *  $Id: dom_pragma.cpp 15277 2021-12-27 21:09:31Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -184,6 +184,7 @@ namespace LQIO {
 	const char * Pragma::_block_period_ =			"block-period";
 	const char * Pragma::_bruell_ =				"bruell";		// multiserver
 	const char * Pragma::_conway_ =				"conway";		// multiserver
+	const char * Pragma::_convergence_value_ = 		"convergence-value";
 	const char * Pragma::_custom_ = 		    	"custom";		// multiserver
 	const char * Pragma::_custom_natural_ =		    	"custom-natural";
 	const char * Pragma::_cycles_ =				"cycles";
@@ -207,6 +208,7 @@ namespace LQIO {
 	const char * Pragma::_init_only_ =			"init-only";
 	const char * Pragma::_initial_delay_ =			"initial-delay";
 	const char * Pragma::_initial_loops_ =			"initial-loops";
+	const char * Pragma::_iteration_limit_ = 		"iteration-limit";
 	const char * Pragma::_interlocking_ =			"interlocking";
 	const char * Pragma::_join_delay_ =			"join-delay";		// Quorum
 	const char * Pragma::_keep_all_ = 			"keep-all";		// Quorum
@@ -299,12 +301,14 @@ namespace LQIO {
 	const std::map<const std::string,const std::set<std::string>*> Pragma::__pragmas = {
 	    { _bcmp_,			    &__true_false_arg },	    /* lqns */
 	    { _block_period_,      	    nullptr },			    /* lqsim */
+	    { _convergence_value_,	    nullptr },			    /* lqns */
 	    { _cycles_,  	    	    &__true_false_arg },	    /* lqns */
 	    { _force_infinite_,		    &__force_infinite_args },	    /* */
 	    { _force_multiserver_, 	    &__force_multiserver_args },    /* lqns */
 	    { _force_random_queueing_,	    &__true_false_arg },	    /* petrisrvn */
 	    { _initial_delay_,     	    nullptr },			    /* lqsim */
 	    { _initial_loops_,     	    nullptr },			    /* lqsim */
+	    { _iteration_limit_,	    nullptr },			    /* lqns */
 	    { _interlocking_,      	    &__true_false_arg },	    /* lqns */
 	    { _layering_,     	    	    &__layering_args },		    /* lqns */
 	    { _max_blocks_,  	    	    nullptr },			    /* lqsim */

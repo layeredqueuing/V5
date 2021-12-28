@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15192 2021-12-10 11:53:33Z greg $ *
+ * $Id: pragma.cc 15277 2021-12-27 21:09:31Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -23,9 +23,11 @@ Pragma * Pragma::__cache = nullptr;
 const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
 {
     { LQIO::DOM::Pragma::_cycles_,			&Pragma::setAllowCycles },
+    { LQIO::DOM::Pragma::_convergence_value_,		&Pragma::setConvergenceValue },
     { LQIO::DOM::Pragma::_force_infinite_,		&Pragma::setForceInfinite },
     { LQIO::DOM::Pragma::_force_multiserver_,		&Pragma::setForceMultiserver },
     { LQIO::DOM::Pragma::_interlocking_,		&Pragma::setInterlock },
+    { LQIO::DOM::Pragma::_iteration_limit_,		&Pragma::setIterationLimit },
     { LQIO::DOM::Pragma::_layering_,			&Pragma::setLayering },
     { LQIO::DOM::Pragma::_multiserver_,			&Pragma::setMultiserver },
     { LQIO::DOM::Pragma::_mol_underrelaxation_,		&Pragma::setMOLUnderrelaxation },
@@ -58,10 +60,12 @@ const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
 
 Pragma::Pragma() :
     _allow_cycles(false),
+    _convergence_value(0.00001),
     _exponential_paths(false),
     _force_infinite(ForceInfinite::NONE),
     _force_multiserver(ForceMultiserver::NONE),
     _interlock(true),
+    _iteration_limit(50),
     _layering(Layering::BATCHED),
     _mol_underrelaxation(0.5),
     _multiserver(Multiserver::DEFAULT),
@@ -117,11 +121,26 @@ Pragma::set( const std::map<std::string,std::string>& list )
 }
 
 
+bool
+Pragma::has( const std::string& param )
+{
+    if ( __cache == nullptr ) return false;
+    return __set_pragma.find(param) != __set_pragma.end();
+}
+
+
 void Pragma::setAllowCycles(const std::string& value)
 {
     _allow_cycles = LQIO::DOM::Pragma::isTrue(value);
 }
 
+
+void Pragma::setConvergenceValue(const std::string& value)
+{
+    char * endptr = nullptr;
+    _convergence_value = std::strtod( value.c_str(), &endptr );
+    if ( (_convergence_value <= 0 || 1 < _convergence_value) || *endptr != '\0' ) throw std::domain_error( value );
+}
 
 void Pragma::setForceInfinite(const std::string& value)
 {
@@ -166,8 +185,14 @@ void Pragma::setInterlock(const std::string& value)
 }
 
 
-/* static */
+void Pragma::setIterationLimit(const std::string& value)
+{
+    char * endptr = nullptr;
+    _iteration_limit = std::strtol( value.c_str(), &endptr, 10 );
+    if ( (_iteration_limit <= 0 || 1 < _iteration_limit) || *endptr != '\0' ) throw std::domain_error( value );
+}
 
+/* static */
 const std::map<const std::string,const Pragma::Layering> Pragma::__layering_pragma = {
     { LQIO::DOM::Pragma::_batched_,		Pragma::Layering::BATCHED },
     { LQIO::DOM::Pragma::_batched_back_,	Pragma::Layering::BACKPROPOGATE_BATCHED },
@@ -205,9 +230,8 @@ void Pragma::setLayering(const std::string& value)
 void Pragma::setMOLUnderrelaxation(const std::string& value)
 {
     char * endptr = nullptr;
-    const double temp = std::strtod( value.c_str(), &endptr );
-    if ( (temp <= 0 || 1 < temp) || *endptr != '\0' ) throw std::domain_error( value );
-    _mol_underrelaxation = temp;
+    _mol_underrelaxation = std::strtod( value.c_str(), &endptr );
+    if ( (_mol_underrelaxation <= 0 || 1 < _mol_underrelaxation) || *endptr != '\0' ) throw std::domain_error( value );
 }
 
 void Pragma::setMultiserver(const std::string& value)
@@ -433,11 +457,17 @@ void Pragma::setTaskScheduling(const std::string& value)
 void Pragma::setTau(const std::string& value)
 {
     char * endptr = nullptr;
-    const unsigned int temp = std::strtoul( value.c_str(), &endptr, 10 );
-    if ( temp > 20 || *endptr != '\0' ) throw std::domain_error( value );
-    _tau = temp;
+    const unsigned int _tau = std::strtoul( value.c_str(), &endptr, 10 );
+    if ( _tau > 20 || *endptr != '\0' ) throw std::domain_error( value );
 }
 
+
+void Pragma::setUnderrelaxation(const std::string& value)
+{
+    char * endptr = nullptr;
+    _underrelaxation = std::strtod( value.c_str(), &endptr );
+    if ( (_underrelaxation <= 0 || 1 < _underrelaxation) || *endptr != '\0' ) throw std::domain_error( value );
+}
 
 void Pragma::setThreads(const std::string& value)
 {

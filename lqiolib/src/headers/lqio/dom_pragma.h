@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 15220 2021-12-15 15:18:47Z greg $
+ * $Id: dom_pragma.h 15277 2021-12-27 21:09:31Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -83,6 +83,7 @@ namespace LQIO {
 	    static const char * _block_period_;
 	    static const char * _bruell_;		// multiserver
 	    static const char * _conway_;		// multiserver
+	    static const char * _convergence_value_;
 	    static const char * _custom_;
 	    static const char * _custom_natural_;
 	    static const char * _cycles_;
@@ -106,6 +107,7 @@ namespace LQIO {
 	    static const char * _init_only_;
 	    static const char * _initial_delay_;
 	    static const char * _initial_loops_;
+	    static const char * _iteration_limit_;
 	    static const char * _interlocking_;
 	    static const char * _join_delay_;		// Quorum
 	    static const char * _keep_all_;		// Quorum

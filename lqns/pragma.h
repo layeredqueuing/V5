@@ -10,7 +10,7 @@
  * November, 1994
  * December, 2020
  *
- * $Id: pragma.h 15191 2021-12-10 04:12:37Z greg $
+ * $Id: pragma.h 15277 2021-12-27 21:09:31Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -61,6 +61,12 @@ public:
 	    return __cache->_allow_cycles;
 	}
 
+    static unsigned int convergenceValue()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_convergence_value;
+	}
+
     static bool exponential_paths()
 	{
 	    assert( __cache != nullptr );
@@ -87,6 +93,12 @@ public:
 	    return __cache->_interlock;
 	}
 
+    static unsigned int iterationLimit()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_iteration_limit;
+	}
+    
     static const std::string& getLayeringStr();
     
     static Layering layering()
@@ -230,6 +242,12 @@ public:
 	    return threads() == arg;
 	}
 
+    static double underrelaxation()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_underrelaxation;
+	}
+    
     static Variance variance()
 	{
 	    assert( __cache != nullptr );
@@ -256,10 +274,12 @@ public:
 
 private:
     void setAllowCycles(const std::string&);
+    void setConvergenceValue(const std::string&);
     void setExponential_paths(const std::string&);
     void setForceInfinite(const std::string&);
     void setForceMultiserver(const std::string&);
     void setInterlock(const std::string&);
+    void setIterationLimit(const std::string&);
     void setLayering(const std::string&);
     void setMOLUnderrelaxation(const std::string&);
     void setMultiserver(const std::string&);
@@ -283,19 +303,23 @@ private:
     void setTaskScheduling(const std::string&);
     void setTau(const std::string&);
     void setThreads(const std::string&);
+    void setUnderrelaxation(const std::string&);
     void setVariance(const std::string&);
 
 public:
     static void set( const std::map<std::string,std::string>& );
+    static bool has( const std::string& );
     static std::ostream& usage( std::ostream&  );
     static const std::map<const std::string,const Pragma::fptr>& getPragmas() { return __set_pragma; }
 
 private:
     bool _allow_cycles;
+    double _convergence_value;
     bool _exponential_paths;
     ForceInfinite _force_infinite;
     ForceMultiserver _force_multiserver;
     bool _interlock;
+    unsigned int _iteration_limit;
     Layering  _layering;
     double _mol_underrelaxation;
     Multiserver _multiserver;
@@ -319,6 +343,7 @@ private:
     scheduling_type _task_scheduling;
     unsigned  _tau;
     Threads _threads;
+    double _underrelaxation;
     Variance _variance;
     /* bonus */
     bool _default_processor_scheduling;
