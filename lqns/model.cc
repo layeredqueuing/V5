@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 15278 2021-12-27 21:52:20Z greg $
+ * $Id: model.cc 15294 2021-12-29 16:06:42Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -31,14 +31,6 @@
  * November, 1994
  * ------------------------------------------------------------------------
  */
-
-/* Debug Messages for Loading */
-#if defined(DEBUG_MESSAGES)
-#define DEBUG(x) cout << x
-#else
-#define DEBUG(X)
-#endif
-
 
 #include "lqns.h"
 #if HAVE_UNISTD_H
@@ -281,7 +273,6 @@ Model::prepare(const LQIO::DOM::Document* document)
 {
     /* Tell the user that we are starting to load up */
     if ( flags.verbose ) std::cerr << "Prepare: ..." << std::endl;
-    DEBUG(std::endl << "[0]: Beginning model load, setting parameters." << std::endl);
 
     /* Update the pragma list from the document (merge), then set globals here as this has to be done prior to runlqx() */
     Pragma::set( document->getPragmaList() );
@@ -312,9 +303,6 @@ Model::prepare(const LQIO::DOM::Document* document)
     for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator nextTask = taskList.begin(); nextTask != taskList.end(); ++nextTask ) {
 	LQIO::DOM::Task* task = nextTask->second;
 
-	/* Before we can add a task we have to add all of its entries */
-	DEBUG("[2]: Preparing to add entries for Task (" << task->name() << ")" << std::endl);
-
 	/* Prepare to iterate over all of the entries */
 	std::vector<Entry*> entries;
 	std::vector<LQIO::DOM::Entry*> activityEntries;
@@ -328,8 +316,6 @@ Model::prepare(const LQIO::DOM::Document* document)
 	}
 
 	/* Now we can go ahead and add the task */
-	DEBUG("[3]: Adding Task (" << name << ")" << std::endl);
-
 	Task* newTask = Task::create(task, entries);
 
 	/* Add activities for the task (all of them) */
@@ -337,16 +323,12 @@ Model::prepare(const LQIO::DOM::Document* document)
 	std::map<std::string,LQIO::DOM::Activity*>::const_iterator iter;
 	for (iter = activities.begin(); iter != activities.end(); ++iter) {
 	    const LQIO::DOM::Activity* activity = iter->second;
-	    DEBUG("[3][a]: Adding Activity (" << activity->getName() << ") to Task." << std::endl);
 	    activityList.push_back(add_activity(newTask, const_cast<LQIO::DOM::Activity*>(activity)));
 	}
 
 	/* Set all the start activities */
 	for ( std::vector<LQIO::DOM::Entry*>::const_iterator nextEntry = activityEntries.begin(); nextEntry != activityEntries.end(); ++nextEntry) {
-	    LQIO::DOM::Entry* theDOMEntry = *nextEntry;
-	    DEBUG("[3][b]: Setting Start Activity (" << theDOMEntry->getStartActivity()->getName().c_str()
-		  << ") for Entry (" << theDOMEntry->getName().c_str() << ")" << std::endl);
-	    set_start_activity(newTask, theDOMEntry);
+	    set_start_activity(newTask, *nextEntry);
 	}
     }
 
@@ -389,21 +371,16 @@ Model::prepare(const LQIO::DOM::Document* document)
     std::vector<Activity*>::iterator actIter;
     for (actIter = activityList.begin(); actIter != activityList.end(); ++actIter) {
 	Activity* activity = *actIter;
-	DEBUG("[4]: Adding Task (" << theTask->name() << ") Activity (" << activity->name() << ") Calls and Lists." << std::endl);
 	activity->add_calls()
 	    .add_reply_list()
 	    .add_activity_lists();
     }
 
     /* Use the generated connections list to finish up */
-    DEBUG("[5]: Adding connections." << std::endl);
     Activity::completeConnections();
-
     std::for_each( __task.begin(), __task.end(), Exec<Task>( &Task::linkForkToJoin ) );	/* Link forks to joins		*/
 
     /* Tell the user that we have finished */
-    DEBUG("[0]: Finished loading the model" << std::endl << std::endl);
-
     return true;
 }
 

@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 15089 2021-10-22 16:14:46Z greg $
+ * $Id: model.h 15293 2021-12-28 22:12:27Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -18,14 +18,13 @@
 
 #include <lqsim.h>
 #include <lqio/dom_document.h>
-#if HAVE_REGEX_H
-#include <regex.h>
-#endif
+#include <lqio/common_io.h>
+#include <regex>
 #include "result.h"
-#if defined(HAVE_SYS_TYPES_H)
+#if HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
-#if defined(HAVE_SYS_TIMES_H)
+#if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
 #include <time.h>
@@ -36,17 +35,11 @@ namespace LQIO {
     }
 }
 
-#if	defined(MSDOS)
-#define	clock_t time_t 
-#endif
-
-extern matherr_type matherr_disposition;    /* What to do on math fault     */
+extern matherr_type matherr_disposition;    	/* What to do on math fault     */
 extern FILE * stddbg;
 
-#if HAVE_REGEX_H
-extern regex_t * processor_match_pattern;   /* Pattern to match.	    */
-extern regex_t * task_match_pattern;	    /* Pattern to match.	    */
-#endif
+extern std::regex processor_match_pattern;	/* Pattern to match.	    */
+extern std::regex task_match_pattern;		/* Pattern to match.	    */
 
 /*
  * Information unique to a particular instance of a task.
@@ -56,7 +49,7 @@ extern bool abort_on_dropped_message;
 extern bool reschedule_on_async_send;
 extern bool messages_lost;
 
-extern "C" void ps_genesis (void *);
+extern "C" void ps_genesis(void *);
 
 class Model {
     friend void ps_genesis(void *);
@@ -67,7 +60,8 @@ public:
 	
 	static const double DEFAULT_TIME;
 
-    simulation_parameters() : _seed(123456),
+	simulation_parameters() :
+	    _seed(123456),
 	    _run_time(50000),
 	    _precision(0),
 	    _max_blocks(1),
@@ -101,39 +95,36 @@ public:
 
 
 private:
+    Model( LQIO::DOM::Document* document, const std::string&, const std::string& );
     Model( const Model& );
     Model& operator=( const Model& );
 
 public:
-    Model( LQIO::DOM::Document* document, const std::string&, const std::string& );
     virtual ~Model();
     
-    bool operator!() const { return _document == nullptr; }
-    
-    bool construct();	/* Step 1 */
-    void add_communication_delay( const char * from_proc_name, const char * to_proc_name, double delay );
+    static int create( const std::string&, const std::string&, const LQIO::DOM::Pragma& pragmas );
 
+    bool operator!() const { return _document == nullptr; }
     bool hasVariables() const;
 
-    bool start();
-    bool reload();		/* Load results from LQX */
-    bool restart();
-    
-    static LQIO::DOM::Document* load( const std::string&, const std::string& );
     static int genesis_task_id() { return __genesis_task_id; }
     static double block_period() { return __model->_parameters._block_period; }
     static void set_block_period( double block_period ) { __model->_parameters._block_period = block_period; }
 
 private:
-    void initialize_globals();
+    bool prepare();		/* Step 1 */
+    bool construct();		/* Step 2 */
+
+    bool start();
+    bool reload();		/* Load results from LQX */
+    bool restart();
+    
     void reset_stats();
     void accumulate_data();
     void insertDOMResults();
 
     bool hasOutputFileName() const { return _output_file_name.size() > 0 && _output_file_name != "="; }
     
-    bool create();		/* Step 2 */
-
     void print();
     void print_intermediate();
     void print_raw_stats( FILE * output ) const;
@@ -147,10 +138,7 @@ private:
     LQIO::DOM::Document* _document;
     std::string _input_file_name;
     std::string _output_file_name;
-    clock_t _start_clock;
-#if defined(HAVE_SYS_TIMES_H)
-    struct tms _start_times;
-#endif
+    LQIO::DOM::CPUTime _start_time;
     simulation_parameters _parameters;
     double _confidence;
     static int __genesis_task_id;

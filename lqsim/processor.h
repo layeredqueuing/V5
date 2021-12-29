@@ -11,7 +11,7 @@
  *
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/processor.h $
  *
- * $Id: processor.h 14997 2021-09-27 18:13:17Z greg $
+ * $Id: processor.h 15293 2021-12-28 22:12:27Z greg $
  */
 
 #ifndef	PROCESSOR_H
@@ -51,7 +51,7 @@ private:
 public:
     Processor( LQIO::DOM::Processor * );
     virtual ~Processor() {}
-    Processor& create();
+    Processor& construct();
 
     LQIO::DOM::Processor * getDOM() const { return _dom; }
 
@@ -106,7 +106,7 @@ public:
     Custom_Processor( LQIO::DOM::Processor * );
     virtual ~Custom_Processor();
 
-    virtual Custom_Processor& create();
+    virtual Custom_Processor& construct();
     long scheduler() const { return _scheduler; }
 
 private:

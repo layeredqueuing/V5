@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15000 2021-09-27 18:48:30Z greg $
+ * $Id: task.cc 15293 2021-12-28 22:12:27Z greg $
  */
 
 #include <iostream>
@@ -22,9 +22,6 @@
 #include <algorithm>
 #include <parasol.h>
 #include "lqsim.h"
-#if defined(HAVE_REGEX_H)
-#include <regex.h>
-#endif
 #include <lqio/input.h>
 #include <lqio/labels.h>
 #include <lqio/error.h>
@@ -164,16 +161,16 @@ Task::configure()
 }
 
 
+/*
+ * Construct the parasol entity.
+ */
+
 Task&
-Task::create()
+Task::construct()
 {
     /* JOIN Stuff -- All entries are free. */
 
-#if HAVE_REGCOMP
-    trace_flag	= (bool)(task_match_pattern != 0 && regexec( task_match_pattern, (char *)name(), 0, 0, 0 ) != REG_NOMATCH );
-#else
-    trace_flag = false;
-#endif
+    trace_flag	= std::regex_match( name(), task_match_pattern );
 
     if ( debug_flag ){
 	(void) fprintf( stddbg, "\n-+++++---- %s task %s", type_name().c_str(), name() );
@@ -887,9 +884,9 @@ Semaphore_Task::Semaphore_Task( const Task::Type type, LQIO::DOM::Task* domTask,
 
 
 Semaphore_Task&
-Semaphore_Task::create()
+Semaphore_Task::construct()
 {
-    Task::create();
+    Task::construct();
 
     r_hold.init( SAMPLE,         "%s %-11.11s - Hold Time         ", type_name().c_str(), name() );
     r_hold_sqr.init( SAMPLE,     "%s %-11.11s - Hold Time Sq      ", type_name().c_str(), name() );
@@ -1112,9 +1109,9 @@ ReadWriteLock_Task::create_instance()
 
 
 ReadWriteLock_Task&
-ReadWriteLock_Task::create()
+ReadWriteLock_Task::construct()
 {
-    Semaphore_Task::create();
+    Semaphore_Task::construct();
 
     r_reader_hold.init( SAMPLE,         "%s %-11.11s - Reader Hold Time         ", type_name().c_str(), name() );
     r_reader_hold_sqr.init( SAMPLE,     "%s %-11.11s - Reader Hold Time sq      ", type_name().c_str(), name() );

@@ -9,7 +9,7 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 14997 2021-09-27 18:13:17Z greg $
+ * $Id: group.cc 15293 2021-12-28 22:12:27Z greg $
  */
 #include <algorithm>
 #include <cmath>
@@ -38,11 +38,12 @@ Group::Group( LQIO::DOM::Group * group, const Processor& processor )
 
 
 /*
- * Called from Model::create to create ALL groups.  IFF a group has a multiserver, then we re-assign that task to a new sub-group
+ * Called from Model::construct to create ALL groups.  IFF a group has
+ * a multiserver, then we re-assign that task to a new sub-group
  */
 
 Group&
-Group::create() 
+Group::construct() 
 {	
     double share = 0.;
     double share_sum = 0.0;

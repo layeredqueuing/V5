@@ -6,18 +6,16 @@
 /* 									*/
 /* September 1991.							*/
 /************************************************************************/
-#ifndef _PARASRVN_H
-#define _PARASRVN_H
+#ifndef _LQSIM_LQSIM_H
+#define _LQSIM_LQSIM_H
 
 /*
  * Global vars for setting up simulation.
  *
- * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/lqsim.h $
- *
- * $Id: lqsim.h 14995 2021-09-27 14:01:46Z greg $
+ * $Id: lqsim.h 15287 2021-12-28 20:23:59Z greg $
  */
 
-#if defined(HAVE_CONFIG_H)
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
 #include <cstdio>
@@ -55,6 +53,7 @@ extern bool debug_interactive_stepping;
 extern bool global_parse_flag;		/* Parsable output desired? 	*/
 extern bool global_xml_flag;	      	/* Output XML results.		*/
 extern bool global_rtf_flag;		/* Output in RTF.		*/
+extern bool global_json_flag;		/* Output in JSON.		*/
 extern bool raw_stat_flag;		/* Verbose text output?	    	*/
 extern bool verbose_flag;		/* Verbose text output?	    	*/
 extern bool no_execute_flag;		/* Run simulation if false	*/
@@ -134,7 +133,10 @@ typedef enum
     DEQUEUE_READER,
     DEQUEUE_WRITER,
     ENQUEUE_READER,
-    ENQUEUE_WRITER
+    ENQUEUE_WRITER,
+    QUEUE_TIMEOUT,
+    MSG_RETRY,
+    MSG_ABORT
 } trace_events;
 
 #define ASYNC_INTERACTION_INITIATED_BIT (1<<ASYNC_INTERACTION_INITIATED)
@@ -166,7 +168,6 @@ typedef enum
 #if defined(__cplusplus)
 }
 #endif
-
 
 template <class Type> struct Exec
 {

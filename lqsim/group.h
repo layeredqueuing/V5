@@ -2,7 +2,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/group.h $
  * Global vars for simulation.
  *
- * $Id: group.h 14997 2021-09-27 18:13:17Z greg $
+ * $Id: group.h 15293 2021-12-28 22:12:27Z greg $
  */
 
 /************************************************************************/
@@ -32,7 +32,7 @@ public:
     const char * name() const { return _domGroup->getName().c_str(); }
     bool cap() const { return _domGroup->getCap(); }		/* Cap share		*/
     const Processor& processor() const { return _processor; }
-    Group& create();
+    Group& construct();
 
     Group& reset_stats() { r_util.reset(); return *this; }
     Group& accumulate_data() { r_util.accumulate(); return *this; }

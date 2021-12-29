@@ -11,7 +11,7 @@
  *
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/processor.cc $
  *
- * $Id: processor.cc 14997 2021-09-27 18:13:17Z greg $
+ * $Id: processor.cc 15293 2021-12-28 22:12:27Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -82,12 +82,7 @@ Processor::Processor( LQIO::DOM::Processor* domProcessor )
       _node_id(0),
       _dom( domProcessor )
 {
-#if HAVE_REGCOMP
-    trace_flag = (bool)(processor_match_pattern != 0
-			&& regexec( processor_match_pattern, name(), 0, 0, 0 ) != REG_NOMATCH );
-#else
-    trace_flag = false;
-#endif
+    trace_flag = std::regex_match( name(), processor_match_pattern );
 }
 
 
@@ -96,7 +91,7 @@ Processor::Processor( LQIO::DOM::Processor* domProcessor )
  */
 
 Processor&
-Processor::create()
+Processor::construct()
 {
     assert( scheduling_types[static_cast<unsigned int>(discipline())] >= 0 );
     _node_id = ps_build_node( name(), multiplicity(), cpu_rate(), quantum(),
@@ -193,7 +188,7 @@ Custom_Processor::~Custom_Processor()
  */
 
 Custom_Processor&
-Custom_Processor::create()
+Custom_Processor::construct()
 {
     _node_id = ps_build_node2( name(), multiplicity(), cpu_rate(), cpu_scheduler_task, SF_PER_NODE|SF_PER_HOST );
 

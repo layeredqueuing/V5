@@ -9,18 +9,10 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15000 2021-09-27 18:48:30Z greg $
+ * $Id: model.cc 15294 2021-12-29 16:06:42Z greg $
  */
 
-/* Debug Messages for Loading */
-#if defined(DEBUG_MESSAGES)
-#define DEBUG(x) cout << x
-#else
-#define DEBUG(X) 
-#endif
-
 #include "lqsim.h"
-#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstdarg>
@@ -28,50 +20,42 @@
 #include <fstream>
 #include <sstream>
 #include <errno.h>
-#include <time.h>
 #include <unistd.h>
-#if HAVE_SYS_TIMES_H
-#include <sys/times.h>
-#endif
 #if HAVE_SYS_UTSNAME_H
 #include <sys/utsname.h>
-#endif
-#if HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
 #endif
 #if HAVE_VALUES_H
 #include <values.h>
 #endif
-#if HAVE_UNISTD_H
 #include <sys/stat.h>
-#include <unistd.h>
-#endif
 #if HAVE_SYS_WAIT_H
-#include <sys/wait.h>
 #endif
-#include <lqio/input.h>
+#if HAVE_MCHECK_H
+#include <mcheck.h>
+#endif
+#if HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+#include <lqio/dom_bindings.h>
 #include <lqio/error.h>
 #include <lqio/filename.h>
+#include <lqio/input.h>
+#include <lqio/json_document.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
 #include <parasol.h>
 #include <para_internals.h>
-#include "runlqx.h"
-#include "errmsg.h"
-#include "model.h"
 #include "activity.h"
 #include "entry.h"
-#include "task.h"
-#include "instance.h"
-#include "processor.h"
+#include "errmsg.h"
 #include "group.h"
+#include "instance.h"
+#include "model.h"
 #include "pragma.h"
+#include "processor.h"
+#include "runlqx.h"		// Coupling here is ugly at the moment
+#include "task.h"
 
-#if HAVE_SYS_TIMES_H
-typedef struct tms tms_t;
-#else
-typedef clock_t tms_t;
-#endif
 #if !defined(MAXDOUBLE)
 #define MAXDOUBLE FLT_MAX
 #endif
@@ -95,16 +79,14 @@ bool deferred_exception = false;	/* domain error detected during run.. throw aft
  * Initialize input parser parameters.
  */
 
-Model::Model( LQIO::DOM::Document* document, const std::string& input_file_name, const std::string& output_file_name ) 
+Model::Model( LQIO::DOM::Document* document, const std::string& input_file_name, const std::string& output_file_name )
     : _document(document), _input_file_name(input_file_name), _output_file_name(output_file_name), _parameters(), _confidence(0.0)
 {
     __model = this;
 
     /* Initialize globals */
-    
+
     open_arrival_count		= 0;
-    join_count			= 0;
-    fork_count			= 0;
     max_service    		= 0.0;
     total_tasks    		= 0;
     client_init_count 		= 0;	/* For auto blocking (-C)	*/
@@ -127,7 +109,7 @@ Model::~Model()
 	delete *nextTask;
     }
     task.clear();
-	
+
     for ( std::set<Entry *,ltEntry>::const_iterator nextEntry = entry.begin(); nextEntry != entry.end(); ++nextEntry ) {
 	delete *nextEntry;
     }
@@ -143,23 +125,111 @@ Model::~Model()
 }
 
 
-LQIO::DOM::Document* 
-Model::load( const std::string& input_filename, const std::string& output_filename )
+/*
+ * PARASOL mainline - initializes the simulation, processes command line
+ * arguments, kick starts genesis, & drives the simulation.
+ * The simulation itself runs as a child to simplify exit processing by
+ * the simulator, redirection of input and output, and a host of other
+ * things.
+ */
+
+int
+Model::create( const std::string& input_filename, const std::string& output_filename, const LQIO::DOM::Pragma& pragmas )
 {
     LQIO::io_vars.reset();
 
-    /* This is a departure from before -- we begin by loading a model */
+    /* load the model into the DOM document.  */
 
-    unsigned errorCode = 0;
-    return  LQIO::DOM::Document::load( input_filename, input_format, errorCode, false );
+    unsigned int status = 0;
+    LQIO::DOM::Document* document = LQIO::DOM::Document::load( input_filename, input_format, status, false );
+
+    /* Make sure we got a document */
+    if ( document == nullptr || LQIO::io_vars.anError() ) return INVALID_INPUT;
+
+    Model model( document, input_filename, output_filename );
+
+    FILE * output = nullptr;
+    LQX::Program * program = nullptr;
+    try { 
+
+	if( !model.prepare() ) throw std::runtime_error( "Model::prepare" );
+
+	document->mergePragmas( pragmas.getList() );       /* Save pragmas */
+
+	/* We can simply run if there's no control program */
+
+	program = document->getLQXProgram();
+	if ( program ) {
+	    /* Attempt to run the program */
+	    document->registerExternalSymbolsWithProgram(program);
+	    if ( restart_flag ) {
+		program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::restart, &model));
+	    } else if ( reload_flag ) {
+		program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::reload, &model));
+	    } else {
+		program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::start, &model));
+	    }
+
+	    LQIO::RegisterBindings(program->getEnvironment(), document);
+	
+	    if ( !output_filename.empty() && output_filename != "-" && LQIO::Filename::isRegularFile(output_filename) ) {
+		output = fopen( output_filename.c_str(), "w" );
+		if ( !output ) {
+		    solution_error( LQIO::ERR_CANT_OPEN_FILE, output_filename.c_str(), strerror( errno ) );
+		    status = FILEIO_ERROR;
+		} else {
+		    program->getEnvironment()->setDefaultOutput( output );	/* Default is stdout */
+		}
+	    }
+
+	    if ( status == 0 ) {
+		/* Invoke the LQX program itself */
+		if ( !program->invoke() ) {		/* Run simulation	*/
+		    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, input_filename.c_str() );
+		    status = INVALID_INPUT;
+		} else if ( !SolverInterface::Solve::solveCallViaLQX ) {
+		    /* There was no call to solve the LQX */
+		    LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, input_filename.c_str() );
+		    std::vector<LQX::SymbolAutoRef> args;
+		    SolverInterface::Solve::implicitSolve = true;
+		    program->getEnvironment()->invokeGlobalMethod("solve", &args);
+		}
+	    }
+	
+	} else {
+	    /* There is no control flow program, check for $-variables */
+	    if ( model.hasVariables() ) {
+		LQIO::solution_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, input_filename.c_str() );
+		status = INVALID_INPUT;
+	    } else if ( !model.start() ) {		/* Run simulation	*/
+		status = INVALID_OUTPUT;
+	    }
+	}
+    }
+    catch ( const std::domain_error& e ) {
+	status = INVALID_INPUT;
+    }
+    catch ( const std::runtime_error& e ) {
+	status = INVALID_INPUT;
+    }
+
+    /* Clean up */
+    
+    if ( output ) fclose( output );
+    if ( program ) delete program;
+    if ( document ) delete document;
+    
+    return status;
 }
 
 
-bool 
-Model::construct()
+/*
+ * Step 2: convert DOM into lqn entities.
+ */
+
+bool
+Model::prepare()
 {
-    /* Tell the user that we are starting to load up */
-    DEBUG(endl << "[0]: Beginning model load, setting parameters." << endl);
     if ( !override_print_int ) {
 	print_interval = _document->getModelPrintIntervalValue();
     }
@@ -167,36 +237,32 @@ Model::construct()
     LQIO::io_vars.severity_level = Pragma::__pragmas->severity_level();
     LQIO::Spex::__print_comment = !Pragma::__pragmas->spex_comment();
     LQIO::Spex::__no_header = !Pragma::__pragmas->spex_header();
-    
-	
+
+
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
-	
+
     const std::map<std::string,LQIO::DOM::Processor*>& processorList = _document->getProcessors();
     for_each( processorList.begin(), processorList.end(), Processor::add );
-	
+
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1.5: Add Groups] */
-	
+
     const std::map<std::string,LQIO::DOM::Group*>& groups = _document->getGroups();
     for_each( groups.begin(), groups.end(), Group::add );
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 2: Add Tasks/Entries] */
-	
+
     /* In the DOM, tasks have entries, but here entries need to go first */
     const std::map<std::string,LQIO::DOM::Task*>& taskList = _document->getTasks();
-	
+
     /* Add all of the tasks we will be needing */
     for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator nextTask = taskList.begin(); nextTask != taskList.end(); ++nextTask ) {
 	LQIO::DOM::Task* task = nextTask->second;
 	std::vector<LQIO::DOM::Entry*>::const_iterator nextEntry;
 	std::vector<LQIO::DOM::Entry*> activityEntries;
-		
-	/* Before we can add a task we have to add all of its entries */
-	DEBUG("[2]: Preparing to add entries for Task (" << task->getName() << ")" << endl);
-		
+
 	/* Now we can go ahead and add the task */
-	DEBUG("[3]: Adding Task (" << name << ")" << endl);
 	Task* newTask = Task::add(task);
-		
+
 	/* Add the entries so we can reverse them */
 	for ( nextEntry = task->getEntryList().begin(); nextEntry != task->getEntryList().end(); ++nextEntry ) {
 	    newTask->_entry.push_back( Entry::add( *nextEntry, newTask ) );
@@ -204,28 +270,25 @@ Model::construct()
 		activityEntries.push_back(*nextEntry);
 	    }
 	}
-		
+
 	/* Add activities for the task (all of them) */
 	const std::map<std::string,LQIO::DOM::Activity*>& activities = task->getActivities();
 	std::map<std::string,LQIO::DOM::Activity*>::const_iterator iter;
 	for (iter = activities.begin(); iter != activities.end(); ++iter) {
 	    const LQIO::DOM::Activity* activity = iter->second;
-	    DEBUG("[3][a]: Adding Activity (" << activity->getName() << ") to Task." << endl);
 	    newTask->add_activity(const_cast<LQIO::DOM::Activity*>(activity));
 	}
-		
+
 	/* Set all the start activities */
 	std::vector<LQIO::DOM::Entry*>::iterator entryIter;
 	for (entryIter = activityEntries.begin(); entryIter != activityEntries.end(); ++entryIter) {
 	    LQIO::DOM::Entry* theDOMEntry = *entryIter;
-	    DEBUG("[3][b]: Setting Start Activity (" << theDOMEntry->getStartActivity()->getName().c_str() 
-		  << ") for Entry (" << theDOMEntry->getName().c_str() << ")" << endl);
 	    newTask->set_start_activity(theDOMEntry);
 	}
     }
-	
+
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 3: Add Calls/Phase Parameters] */
-	
+
     /* Add all of the calls for all phases to the system */
     const std::map<std::string,LQIO::DOM::Entry*>& allEntries = _document->getEntries();
     for ( std::map<std::string,LQIO::DOM::Entry*>::const_iterator nextEntry = allEntries.begin(); nextEntry != allEntries.end(); ++nextEntry ) {
@@ -239,23 +302,15 @@ Model::construct()
 	for (unsigned p = 1; p <= entry->getMaximumPhase(); ++p) {
 	    LQIO::DOM::Phase* phase = entry->getPhase(p);
 	    const std::vector<LQIO::DOM::Call*>& originatingCalls = phase->getCalls();
-	    std::vector<LQIO::DOM::Call*>::const_iterator iter;
-			
+
 	    /* Add all of the calls to the system */
-	    for (iter = originatingCalls.begin(); iter != originatingCalls.end(); ++iter) {
-		LQIO::DOM::Call* call = *iter;
-				
-#if defined(DEBUG_MESSAGES)
-		LQIO::DOM::Entry* src = const_cast<LQIO::DOM::Entry*>(call->getSourceEntry());
-		LQIO::DOM::Entry* dst = const_cast<LQIO::DOM::Entry*>(call->getDestinationEntry());
-		DEBUG("[4]: Phase " << call->getPhase() << " Call (" << src->getName() << ") -> (" << dst->getName() << ")" << endl);
-#endif
-		newEntry->add_call( p, call );			/* Add the call to the system */
+	    for (std::vector<LQIO::DOM::Call*>::const_iterator call = originatingCalls.begin(); call != originatingCalls.end(); ++call) {
+		newEntry->add_call( p, *call );			/* Add the call to the system */
 	    }
-			
+
 	    newEntry->set_DOM(p, phase);    	/* Set the phase information for the entry */
 	}
-		
+
 	/* Add in all of the P(frwd) calls */
 	const std::vector<LQIO::DOM::Call*>& forwarding = entry->getForwarding();
 	std::vector<LQIO::DOM::Call*>::const_iterator nextFwd;
@@ -269,58 +324,54 @@ Model::construct()
 	if ( newEntry->is_regular() ) {
 	    const Task * aTask = newEntry->task();
 	    if ( aTask->type() != Task::Type::CLIENT && aTask->type() != Task::Type::OPEN_ARRIVAL_SOURCE ) {
-		newEntry->_phase[0].act_add_reply( newEntry );	
+		newEntry->_phase[0].act_add_reply( newEntry );
 	    }
 	}
 
     }
-	
+
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 4: Add Calls/Lists for Activities] */
-	
+
     /* Go back and add all of the lists and calls now that activities all exist */
     for ( std::set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
 	const Task * aTask = *nextTask;
 	for ( std::vector<Activity*>::const_iterator ap = aTask->_activity.begin(); ap != aTask->_activity.end(); ++ap) {
 	    Activity* activity = *ap;
-	    DEBUG("[4]: Adding Task (" << theTask->name() << ") Activity (" << activity->name() << ") Calls and Lists." << endl);
 	    activity->add_calls()
 		.add_reply_list()
 		.add_activity_lists();
 	}
     }
-	
-    /* Use the generated connections list to finish up */
-    DEBUG("[5]: Adding connections." << endl);
-    complete_activity_connections();
-	
-    /* Tell the user that we have finished */
-    DEBUG("[0]: Finished loading the model" << endl << endl);
 
+    /* Use the generated connections list to finish up */
+    complete_activity_connections();
+
+    /* Tell the user that we have finished */
     return !LQIO::io_vars.anError();
 }
 
 
 
 /*
- * Construct all of the parasol tasks instances and then start them
- * up.  Some construction is needed after the simulation has
+ * Construct all of the parasol tasks instances after the simulation
+ * has started.  Some construction is needed after the simulation has
  * initialized and started simply because we need run-time
  * info. Called from ps_genesis() by ps_run_parasol().
- * Model::create() will call Task::initialize() which will call
+ * Model::construct() will call Task::initialize() which will call
  * XXX::initialize(). XXX:configure() is called from ::start() which
  * is called before ps_run_parasol().
  */
 
 bool
-Model::create()
+Model::construct()
 {
     for ( unsigned j = 0; j < MAX_NODES; ++j ) {
 	link_tab[j] = -1;		/* Reset link table.	*/
     }
 
-    for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::create ) );
-    for_each( ::group.begin(), ::group.end(), Exec<Group>( &Group::create ) );
-    for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::create ) );
+    for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::construct ) );
+    for_each( ::group.begin(), ::group.end(), Exec<Group>( &Group::construct ) );
+    for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::construct ) );
 
     if ( count_if( ::task.begin(), ::task.end(), Predicate<Task>( &Task::is_reference_task ) ) == 0 && open_arrival_count == 0 ) {
 	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
@@ -363,10 +414,10 @@ Model::print()
     const std::string suffix = lqx_output ? SolverInterface::Solve::customSuffix : "";
 
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
- 
+
     bool override = false;
     if ( hasOutputFileName() && LQIO::Filename::isRegularFile( _output_file_name ) != 0 ) {
-	LQIO::Filename filename( _input_file_name.c_str(), global_rtf_flag ? "rtf" : "out" );
+	LQIO::Filename filename( _input_file_name, global_rtf_flag ? "rtf" : "out" );
 	override = filename() == _output_file_name;
     }
 
@@ -386,7 +437,19 @@ Model::print()
 		output.close();
 	    }
 	}
-    
+
+	if ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::JSON || global_json_flag ) {
+	    std::ofstream output;
+	    LQIO::Filename filename( _input_file_name, "lqjo", directory_name, suffix );
+	    output.open( filename().c_str(), std::ios::out );
+	    if ( !output ) {
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
+	    } else {
+		_document->print( output, LQIO::DOM::Document::OutputFormat::JSON );		// don't save LQX
+		output.close();
+	    }
+	}
+
 	/* Parseable output. */
 
 	if ( ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::LQN && lqx_output && !global_xml_flag ) || global_parse_flag ) {
@@ -433,6 +496,8 @@ Model::print()
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 	} else if ( global_xml_flag ) {
 	    _document->print( output, LQIO::DOM::Document::OutputFormat::XML );
+	} else if ( global_json_flag ) {
+	    _document->print( output, LQIO::DOM::Document::OutputFormat::JSON );
 	} else if ( global_parse_flag ) {
 	    _document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
 	} else if ( global_rtf_flag ) {
@@ -465,6 +530,8 @@ Model::print_intermediate()
 	extension = "p";
     } else if ( global_xml_flag ) {
 	extension = "lqxo";
+    } else if ( global_json_flag ) {
+	extension = "json";
     } else if ( global_rtf_flag ) {
 	extension = "rtf";
     } else {
@@ -483,6 +550,8 @@ Model::print_intermediate()
 	return;			/* Ignore errors */
     } else if ( global_xml_flag ) {
 	_document->print( output, LQIO::DOM::Document::OutputFormat::XML );
+    } else if ( global_json_flag ) {
+	_document->print( output, LQIO::DOM::Document::OutputFormat::JSON );
     } else if ( global_parse_flag ) {
 	_document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
     } else {
@@ -499,9 +568,8 @@ Model::print_intermediate()
 void
 Model::print_raw_stats( FILE * output ) const
 {
-    const int long_width	= 99;
-    const int short_width	= 69;
-
+    static const unsigned int long_width = 99;
+    static const unsigned int short_width = 69;
     static const char * dashes = "--------------------------------------------------------------------------------------------";
 
 /*
@@ -552,7 +620,7 @@ Model::print_raw_stats( FILE * output ) const
  * Go through data structures and insert results into the DOM
  */
 
-void 
+void
 Model::insertDOMResults()
 {
     /* Insert general information about simulation run */
@@ -561,16 +629,10 @@ Model::insertDOMResults()
 	.setResultValid( _confidence <= _parameters._precision || _parameters._precision == 0.0 )
 	.setResultIterations(number_blocks);
 
-#if HAVE_SYS_TIMES_H
-    tms_t time_buf;
-
-    clock_t stop_time = times( &time_buf );
-    _document->setResultUserTime( time_buf.tms_utime - _start_times.tms_utime );
-    _document->setResultSysTime( time_buf.tms_stime - _start_times.tms_stime  );
-#else
-    clock_t stop_time = time( NULL );
-#endif
-    _document->setResultElapsedTime(stop_time - _start_clock);
+    LQIO::DOM::CPUTime stop_time;
+    stop_time.init();
+    stop_time -= _start_time;
+    stop_time.insertDOMResults( *_document );
 
 #if HAVE_SYS_RESOURCE_H && HAVE_GETRUSAGE
     struct rusage r_usage;
@@ -659,24 +721,26 @@ Model::hasVariables() const
 /* Stuff called from runlqx.cc						*/
 /* -------------------------------------------------------------------- */
 
-/* 
- * Solve the model. 
+/*
+ * Solve the model.
  */
 
 bool
 Model::start()
 {
     int simulation_flags= 0x00;
-    
+
     /* This will compute the minimum service time for each entry.  Note thate XXX::initialize() is called
      * through Model::run() */
-    
+
     for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::configure ) );
     const double client_cycle_time = for_each( ::entry.begin(), ::entry.end(), ExecSum<Entry,double>( &Entry::compute_minimum_service_time ) ).sum();
-    
+
     /* Which we can use here... */
-    
+
     _parameters.set( _document->getPragmaList(), client_cycle_time );
+
+    _start_time.init();
 
     if (debug_interactive_stepping) {
 	simulation_flags = RPF_STEP; 	/* tomari quorum */
@@ -686,12 +750,6 @@ Model::start()
     } else {
 	simulation_flags = simulation_flags | RPF_WARNING;
     }
-
-#if defined(HAVE_SYS_TIMES_H)
-    _start_clock = times( &_start_times );
-#else
-    _start_clock = time( 0 );
-#endif
 
     deferred_exception = false;
     ps_run_parasol( _parameters._run_time+1.0, _parameters._seed, simulation_flags );	/* Calls ps_genesis */
@@ -713,7 +771,7 @@ Model::start()
 	    }
 	}
     }
-    
+
     if ( check_stacks ) {
 #if HAVE_MCHECK
 	mcheck_check_all();
@@ -754,7 +812,7 @@ Model::reload()
     }
 
     unsigned int errorCode = 0;
-    if ( !_document->loadResults( directory_name(), _input_file_name, 
+    if ( !_document->loadResults( directory_name(), _input_file_name,
 				  SolverInterface::Solve::customSuffix, errorCode ) ) {
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     } else {
@@ -763,7 +821,7 @@ Model::reload()
 }
 
 
-/* 
+/*
  * Run the simulation for invalid or missing results.  Otherwise, reload existing results.
  */
 
@@ -775,7 +833,7 @@ Model::restart()
 	    return true;
 	} else {
 	    return start();
-	} 
+	}
     }
     catch ( const LQX::RuntimeException& e ) {
 	return start();
@@ -804,7 +862,7 @@ Model::run( int task_id )
 #endif
 
     try {
-	if ( !create() ) {
+	if ( !construct() ) {
 	    rc = false;
 	} else if ( no_execute_flag ) {
 	    rc = true;
@@ -841,7 +899,7 @@ Model::run( int task_id )
 
 	    bool valid = false;
 	    for ( number_blocks = 1; !valid && number_blocks <= _parameters._max_blocks; number_blocks += 1 ) {
-	    
+
 		if ( verbose_flag ) {
 		    (void) fprintf( stderr, " %c", "0123456789"[number_blocks%10] );
 		}
@@ -949,7 +1007,7 @@ Model::rms_confidence()
 {
     double sum_sqr = 0.0;
     double n = 0;
-    
+
     for ( std::set<Task *,ltTask>::const_iterator nextTask = ::task.begin(); nextTask != ::task.end(); ++nextTask ) {
 	const Task * aTask = *nextTask;
 	if ( aTask->type() == Task::Type::OPEN_ARRIVAL_SOURCE ) continue;		/* Skip. */
@@ -981,7 +1039,7 @@ Model::normalized_conf95( const result_t& stat )
  */
 
 void
-ps_genesis (void *)
+ps_genesis(void *)
 {
     if (!Model::__model->run( ps_myself ) ) {
 	LQIO::solution_error( ERR_INITIALIZATION_FAILED );
@@ -989,8 +1047,8 @@ ps_genesis (void *)
     ps_suspend( ps_myself );
 }
 
-/* 
- * set the simulation run time parameters.  
+/*
+ * set the simulation run time parameters.
  * Full auto will derive based on service times of tasks.
  */
 
@@ -1021,7 +1079,7 @@ void Model::simulation_parameters::set( const std::map<std::string,std::string>&
 	    } else {
 		_block_period = (_run_time - _initial_delay) / _max_blocks;
 	    }
-	
+
 	} else if ( set( _max_blocks, pragmas, LQIO::DOM::Pragma::_max_blocks_ ) ) {
 	    /* -B */
 	    if ( !set( _block_period, pragmas, LQIO::DOM::Pragma::_block_period_ ) ) {

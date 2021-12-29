@@ -2,7 +2,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/task.h $
  * Global vars for simulation.
  *
- * $Id: task.h 15000 2021-09-27 18:48:30Z greg $
+ * $Id: task.h 15293 2021-12-28 22:12:27Z greg $
  */
 
 /************************************************************************/
@@ -126,9 +126,9 @@ public:
     void add_fork( ActivityList * list ) { _forks.push_back( list ); }
     void add_join( ActivityList * list ) { _joins.push_back( list ); }
 
-    virtual Task& configure();		/* Called after recalulateDynamicVariables but before create */
-    virtual Task& create();
-    Task& initialize();			/* Called after create() and start()	*/
+    virtual Task& configure();		/* Called after recalulateDynamicVariables but before construct */
+    virtual Task& construct();
+    Task& initialize();			/* Called after construct() and start()	*/
     virtual bool start() = 0;
     virtual Task& kill() = 0;
 
@@ -237,7 +237,7 @@ public:
     int signal_port() const { return _signal_port; }
     Instance * signal_task() const { return _signal_task; }
 
-    virtual Semaphore_Task& create();
+    virtual Semaphore_Task& construct();
     virtual bool start();
     virtual Semaphore_Task& kill();
 
@@ -272,7 +272,7 @@ public:
     int readerQ_port() const { return _readerQ_port; }
     int signal_port2() const { return _signal_port2; }
 
-    virtual ReadWriteLock_Task& create();
+    virtual ReadWriteLock_Task& construct();
     virtual bool start();
     virtual ReadWriteLock_Task& kill();
 
