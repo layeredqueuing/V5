@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15255 2021-12-24 17:42:46Z greg $
+ * $Id: model.cc 15299 2021-12-30 21:36:22Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -16,8 +16,6 @@
 #include <limits>
 #include <sstream>
 #include <stdexcept>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <time.h>
 #if HAVE_UNISTD_H
 #include <unistd.h>
@@ -25,9 +23,8 @@
 #if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
-#if X11_OUTPUT
 #include <sys/stat.h>
-#endif
+#include <sys/types.h>
 #include <lqio/dom_document.h>
 #include <lqio/srvn_results.h>
 #include <lqio/srvn_output.h>
@@ -848,36 +845,11 @@ Model::store()
 
 	/* Default mapping */
 
-	std::string directory_name;
 	std::string suffix = "";
-
-	if ( hasOutputFileName() && LQIO::Filename::isDirectory( _outputFileName ) > 0 ) {
-	    directory_name = _outputFileName;
-	}
-
-	if ( _document->getResultInvocationNumber() > 0 ) {
-	    suffix = SolverInterface::Solve::customSuffix;
-	    if ( directory_name.size() == 0 ) {
-		/* We need to create a directory to store output. */
-		LQIO::Filename filename( hasOutputFileName() ? _outputFileName : _inputFileName, "d" );		/* Get the base file name */
-		directory_name = filename();
-		int rc = access( directory_name.c_str(), R_OK|W_OK|X_OK );
-		if ( rc < 0 ) {
-#if defined(__WINNT__)
-		    rc = mkdir( directory_name.c_str() );
-#else
-		    rc = mkdir( directory_name.c_str(), S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );
-#endif
-		    if ( rc < 0 ) {
-			solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
-		    }
-		}
-	    }
-	}
-
+	std::string directory_name = LQIO::Filename::createDirectory( hasOutputFileName() ? _outputFileName : _inputFileName, _document->getResultInvocationNumber() > 0 );
 	LQIO::Filename filename;
 	std::string extension = getExtension();
-	if ( !hasOutputFileName() || directory_name.size() > 0 ) {
+	if ( !hasOutputFileName() || !directory_name.empty() ) {
 	    filename.generate( _inputFileName, extension, directory_name, suffix );
 	} else {
 	    filename = _outputFileName;
@@ -2174,7 +2146,7 @@ Model::printPostScriptPrologue( std::ostream& output, const std::string& title,
     return output;
 }
 
-#if defined(SXD_OUTPUT)
+#if SXD_OUTPUT
 /* Open Office output...
  * The output is somewhat more complicated because we have to write out a pile of crap.
  */

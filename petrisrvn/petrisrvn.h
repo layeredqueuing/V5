@@ -12,7 +12,7 @@
 #define _PETRISRVN_H
 
 /*
- * $Id: petrisrvn.h 15113 2021-11-18 14:59:45Z greg $
+ * $Id: petrisrvn.h 15299 2021-12-30 21:36:22Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -91,6 +91,7 @@ extern bool debug_flag;			/* Spew out all calls to get data.	*/
 extern bool keep_flag;                  /* Keep result files?          		*/
 extern bool no_execute_flag;		/* Don't call solver.			*/
 extern bool parse_flag;                 /* Parsable output desired?    		*/
+extern bool json_flag;                 	/* JSON output desired?    		*/
 extern bool reload_net_flag;		/* Reload result values and print.	*/
 extern bool rtf_flag;                   /* Parsable output desired?    		*/
 extern bool trace_flag;			/* Trace greatspn execution.		*/

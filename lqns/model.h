@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 15149 2021-12-03 16:29:26Z greg $
+ * $Id: model.h 15299 2021-12-30 21:36:22Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -112,7 +112,6 @@ private:
     void configure();
 
     bool hasOutputFileName() const { return _output_file_name.size() > 0 && _output_file_name != "-"; }
-    std::string createDirectory() const;
 
     std::ostream& printOvertaking( std::ostream& ) const;
 

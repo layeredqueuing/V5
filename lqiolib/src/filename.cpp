@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: filename.cpp 14789 2021-06-10 14:43:04Z greg $
+ * $Id: filename.cpp 15299 2021-12-30 21:36:22Z greg $
  *
  * File name generation.
  *
@@ -12,14 +12,17 @@
  * ------------------------------------------------------------------------
  */
 
-#include "filename.h"
+#include <config.h>
 #include <iostream>
 #include <cstdio>
 #include <cstring>
-#if HAVE_MALLOC_H
-#include <malloc.h>
+#if HAVE_UNISTD_H
+#include <unistd.h>
 #endif
 #include <sys/stat.h>
+#include <sys/types.h>
+#include "filename.h"
+#include "glblerr.h"
 
 namespace LQIO {
 
@@ -259,4 +262,39 @@ namespace LQIO {
 	    rename( filename.c_str(), backup.c_str() );
 	}
     }
+
+    /*
+     * Create a directory (if needed)
+     */
+
+    std::string
+    Filename::createDirectory( const std::string& file_name, bool lqx_output ) 
+    {
+	std::string directory_name;
+	if ( isDirectory( file_name ) > 0 ) {
+	    directory_name = file_name;
+	} else if ( lqx_output ) {
+	    /* We need to create a directory to store output. */
+	    directory_name = LQIO::Filename( file_name, "d" )();		/* Get the base file name */
+	}
+
+	if ( !directory_name.empty() ) {
+	    int rc = access( directory_name.c_str(), R_OK|W_OK|X_OK );
+	    if ( rc < 0 ) {
+		if ( errno == ENOENT ) {
+#if defined(__WINNT__)
+		    rc = mkdir( directory_name.c_str() );
+#else
+		    rc = mkdir( directory_name.c_str(), S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );
+#endif
+		}
+		if ( rc < 0 ) {
+		    solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
+		}
+	    }
+	}
+	return directory_name;
+    }
+
+    
 }

@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 15297 2021-12-30 16:21:19Z greg $
+ * $Id: model.h 15299 2021-12-30 21:36:22Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -108,7 +108,6 @@ public:
     static int solve( const std::string&, LQIO::DOM::Document::InputFormat, const std::string&, const LQIO::DOM::Pragma& pragmas );
 
     bool operator!() const { return _document == nullptr; }
-    bool hasVariables() const;
 
     static int genesis_task_id() { return __genesis_task_id; }
     static double block_period() { return __model->_parameters._block_period; }
@@ -131,7 +130,6 @@ private:
     void print();
     void print_intermediate();
     void print_raw_stats( FILE * output ) const;
-    std::string createDirectory() const;
     
     bool run( int );
     static void start_task( Task * );

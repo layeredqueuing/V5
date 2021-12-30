@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 15294 2021-12-29 16:06:42Z greg $
+ * $Id: model.cc 15299 2021-12-30 21:36:22Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -33,16 +33,14 @@
  */
 
 #include "lqns.h"
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#endif
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
 #include <cmath>
 #include <errno.h>
-#include <sys/stat.h>
-#include <sys/types.h>
+#if HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 #include <lqio/dom_bindings.h>
 #include <lqio/dom_document.h>
 #include <lqio/error.h>
@@ -834,7 +832,7 @@ Model::solve()
     }
 
     const bool lqx_output = _document->getResultInvocationNumber() > 0;
-    const std::string directoryName = createDirectory();
+    const std::string directory_name = LQIO::Filename::createDirectory( hasOutputFileName() ? _output_file_name : _input_file_name, lqx_output );
     const std::string suffix = lqx_output ? SolverInterface::Solve::customSuffix : "";
 
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
@@ -845,9 +843,9 @@ Model::solve()
 	override = filename() == _output_file_name;
     }
 
-    if ( override || ((!hasOutputFileName() || directoryName.size() > 0 ) && _input_file_name != "-" )) {
+    if ( override || ((!hasOutputFileName() || !directory_name.empty()) && _input_file_name != "-" )) {
 	if ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::XML || flags.xml_output ) {	/* No parseable/json output, so create XML */
-	    LQIO::Filename filename( _input_file_name, "lqxo", directoryName, suffix );
+	    LQIO::Filename filename( _input_file_name, "lqxo", directory_name, suffix );
 	    std::ofstream output;
 	    filename.backup();
 	    output.open( filename().c_str(), std::ios::out );
@@ -860,7 +858,7 @@ Model::solve()
 	}
 
 	if ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::JSON || flags.json_output ) {
-	    LQIO::Filename filename( _input_file_name, "lqjo", directoryName, suffix );
+	    LQIO::Filename filename( _input_file_name, "lqjo", directory_name, suffix );
 	    std::ofstream output;
 	    output.open( filename().c_str(), std::ios::out );
 	    if ( !output ) {
@@ -874,7 +872,7 @@ Model::solve()
 	/* Parseable output. */
 
 	if ( ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::LQN && lqx_output && !flags.xml_output ) || flags.parseable_output ) {
-	    LQIO::Filename filename( _input_file_name, "p", directoryName, suffix );
+	    LQIO::Filename filename( _input_file_name, "p", directory_name, suffix );
 	    std::ofstream output;
 	    output.open( filename().c_str(), std::ios::out );
 	    if ( !output ) {
@@ -887,7 +885,7 @@ Model::solve()
 
 	/* Regular output */
 
-	LQIO::Filename filename( _input_file_name, flags.rtf_output ? "rtf" : "out", directoryName, suffix );
+	LQIO::Filename filename( _input_file_name, flags.rtf_output ? "rtf" : "out", directory_name, suffix );
 
 	std::ofstream output;
 	output.open( filename().c_str(), std::ios::out );
@@ -1042,15 +1040,18 @@ Model::printIntermediate( const double convergence ) const
 {
     SolverReport report( const_cast<LQIO::DOM::Document *>(_document), _MVAStats );
 
-    const std::string directoryName = createDirectory();
-    const std::string suffix = _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : "";
-
     report.insertDOMResults();
     insertDOMResults();
+
+    const bool lqx_output = _document->getResultInvocationNumber() > 0;
+    const std::string suffix = lqx_output ? SolverInterface::Solve::customSuffix : "";
+    const std::string directory_name = LQIO::Filename::createDirectory( hasOutputFileName() ? _output_file_name : _input_file_name, lqx_output );
 
     std::string extension;
     if ( flags.parseable_output ) {
     	extension = "p";
+    } else if ( flags.json_output ) {
+    	extension = "lqjo";
     } else if ( flags.xml_output ) {
     	extension = "lqxo";
     } else if ( flags.rtf_output ) {
@@ -1059,7 +1060,7 @@ Model::printIntermediate( const double convergence ) const
     	extension = "out";
     }
 
-    LQIO::Filename filename( _input_file_name, extension, directoryName, suffix );
+    LQIO::Filename filename( _input_file_name, extension, directory_name, suffix );
 
     /* Make filename look like an emacs autosave file. */
     filename << "~" << _iterations << "~";
@@ -1136,44 +1137,6 @@ Model::printOvertaking( std::ostream& output ) const
 }
 
 
-
-/*
- * Create a directory (if needed)
- */
-
-std::string
-Model::createDirectory() const
-{
-    std::string directoryName;
-    if ( hasOutputFileName() && LQIO::Filename::isDirectory( _output_file_name ) > 0 ) {
-	directoryName = _output_file_name;
-    }
-
-    if ( _document->getResultInvocationNumber() > 0 ) {
-	if ( directoryName.empty() ) {
-	    /* We need to create a directory to store output. */
-	    LQIO::Filename filename( hasOutputFileName() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
-	    directoryName = filename();
-	}
-    }
-
-    if ( directoryName.size() > 0 ) {
-	int rc = access( directoryName.c_str(), R_OK|W_OK|X_OK );
-	if ( rc < 0 ) {
-	    if ( errno == ENOENT ) {
-#if defined(__WINNT__)
-		rc = mkdir( directoryName.c_str() );
-#else
-		rc = mkdir( directoryName.c_str(), S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );
-#endif
-	    }
-	    if ( rc < 0 ) {
-		solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directoryName.c_str(), strerror( errno ) );
-	    }
-	}
-    }
-    return directoryName;
-}
 
 /*
  * Sort tasks into layers.  Start from reference tasks and tasks

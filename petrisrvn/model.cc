@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 14959 2021-09-08 14:48:54Z greg $
+ * $Id: model.cc 15299 2021-12-30 21:36:22Z greg $
  *
  * Load the SRVN model.
  */
@@ -1541,8 +1541,8 @@ Model::print() const
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
 
     const bool lqx_output = _document->getResultInvocationNumber() > 0;
-    const std::string directory_name = createDirectory();
-    const string suffix = _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : "";
+    const std::string directory_name = LQIO::Filename::createDirectory( has_output_file_name() ? _output_file_name : _input_file_name, lqx_output );
+    const string suffix = lqx_output ? SolverInterface::Solve::customSuffix : "";
 
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
     bool override = false;
@@ -1564,6 +1564,17 @@ Model::print() const
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
 		_document->print( output, LQIO::DOM::Document::OutputFormat::XML );
+	    }
+	    output.close();
+	}
+
+	if ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::JSON || json_flag ) {
+	    LQIO::Filename filename( _input_file_name, "jqjo", directory_name, suffix );
+	    output.open( filename().c_str(), ios::out );
+	    if ( !output ) {
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
+	    } else {
+		_document->print( output, LQIO::DOM::Document::OutputFormat::JSON );
 	    }
 	    output.close();
 	}
@@ -1618,6 +1629,8 @@ Model::print() const
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 	} else if ( xml_flag ) {
 	    _document->print( output, LQIO::DOM::Document::OutputFormat::XML );
+	} else if ( json_flag ) {
+	    _document->print( output, LQIO::DOM::Document::OutputFormat::JSON );
 	} else if ( parse_flag ) {
 	    _document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
 	} else {
@@ -1680,44 +1693,6 @@ Model::insert_DOM_results( const bool valid, const solution_stats_t& stats )
 /* 			  Utility routines.				*/
 /*----------------------------------------------------------------------*/
 
-/*
- * Create a directory (if needed)
- */
-
-string
-Model::createDirectory() const
-{
-    string directory_name;
-    if ( has_output_file_name() && LQIO::Filename::isDirectory( _output_file_name ) > 0 ) {
-	directory_name = _output_file_name;
-    }
-
-    if ( _document->getResultInvocationNumber() > 0 ) {
-	if ( directory_name.size() == 0 ) {
-	    /* We need to create a directory to store output. */
-	    LQIO::Filename filename( has_output_file_name() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
-	    directory_name = filename();
-	}
-    }
-
-    if ( directory_name.size() > 0 ) {
-	int rc = access( directory_name.c_str(), R_OK|W_OK|X_OK );
-	if ( rc < 0 ) {
-	    if ( errno == ENOENT ) {
-#if defined(__WINNT__)
-		rc = mkdir( directory_name.c_str() );
-#else
-		rc = mkdir( directory_name.c_str(), S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );
-#endif
-	    }
-	    if ( rc < 0 ) {
-		solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
-	    }
-	}
-    }
-    return directory_name;
-}
-
 /*
  * Print out inservice probabilities Pr{InService(a,p_a,b,c,d,p_d)}.
  */

@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.h 14925 2021-07-19 20:38:20Z greg $
+ * $Id: model.h 15299 2021-12-30 21:36:22Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -172,7 +172,6 @@ private:
     void build_open_arrivals ();
 
     void print() const;
-    std::string createDirectory() const;
     void print_inservice_probability( std::ostream& output ) const;
     unsigned print_inservice_cd( std::ostream& output, const Entry * a, const Entry * b, const Task * j, double tot_tput[], double col_sum[DIMPH+1] ) const;
 

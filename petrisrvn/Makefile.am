@@ -1,9 +1,9 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15273 2021-12-27 12:53:44Z greg $
+# $Id: Makefile.am 15299 2021-12-30 21:36:22Z greg $
 #----------------------------------------------------------------------
 
 SUBDIRS=	wspnlib regression
-AM_CPPFLAGS =	-I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers/
+AM_CPPFLAGS =	-I../lqiolib/src/headers -I../lqx/libsrc/headers/
 bin_PROGRAMS=	petrisrvn
 petrisrvn_SOURCES = actlist.cc \
 	activity.cc \

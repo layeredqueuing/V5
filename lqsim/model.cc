@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15297 2021-12-30 16:21:19Z greg $
+ * $Id: model.cc 15299 2021-12-30 21:36:22Z greg $
  */
 
 #include "lqsim.h"
@@ -186,7 +186,7 @@ Model::solve( const std::string& input_filename, LQIO::DOM::Document::InputForma
 	
 	} else {
 	    /* There is no control flow program, check for $-variables */
-	    if ( model.hasVariables() ) {
+	    if ( document->getSymbolExternalVariableCount() != 0 ) {
 		LQIO::solution_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, input_filename.c_str() );
 		status = INVALID_INPUT;
 	    } else if ( !model.start() ) {		/* Run simulation	*/
@@ -397,7 +397,7 @@ Model::print()
     }
 
     const bool lqx_output = _document->getResultInvocationNumber() > 0;
-    const std::string directory_name = createDirectory();
+    const std::string directory_name = LQIO::Filename::createDirectory( hasOutputFileName() ? _output_file_name : _input_file_name, lqx_output );
     const std::string suffix = lqx_output ? SolverInterface::Solve::customSuffix : "";
 
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
@@ -509,8 +509,9 @@ Model::print_intermediate()
 	.setResultValid(_confidence <= _parameters._precision)
 	.setResultIterations(number_blocks);
 
-    const std::string directoryName = createDirectory();
-    const std::string suffix = _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : "";
+    const bool lqx_output = _document->getResultInvocationNumber() > 0;
+    const std::string directory_name = LQIO::Filename::createDirectory( hasOutputFileName() ? _output_file_name : _input_file_name, lqx_output );
+    const std::string suffix = lqx_output ? SolverInterface::Solve::customSuffix : "";
 
     std::string extension;
     if ( global_parse_flag ) {
@@ -525,7 +526,7 @@ Model::print_intermediate()
 	extension = "out";
     }
 
-    LQIO::Filename filename( _input_file_name, extension, directoryName, suffix );
+    LQIO::Filename filename( _input_file_name, extension, directory_name, suffix );
 
     /* Make filename look like an emacs autosave file. */
     filename << "~" << number_blocks << "~";
@@ -649,58 +650,6 @@ Model::insertDOMResults()
     for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::insertDOMResults ) );
     for_each( Group::__groups.begin(), Group::__groups.end(), Exec<Group>( &Group::insertDOMResults ) );
     for_each( Processor::__processors.begin(), Processor::__processors.end(), Exec<Processor>( &Processor::insertDOMResults ) );
-}
-
-
-
-/*----------------------------------------------------------------------*/
-/* 			  Utility routines.				*/
-/*----------------------------------------------------------------------*/
-
-/*
- * Create a directory (if needed)
- */
-
-std::string
-Model::createDirectory() const
-{
-    std::string directoryName;
-    if ( hasOutputFileName() && LQIO::Filename::isDirectory( _output_file_name ) > 0 ) {
-	directoryName = _output_file_name;
-    }
-
-    if ( _document->getResultInvocationNumber() > 0 ) {
-	if ( directoryName.size() == 0 ) {
-	    /* We need to create a directory to store output. */
-	    LQIO::Filename filename( hasOutputFileName() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
-	    directoryName = filename();
-	}
-    }
-
-    if ( directoryName.size() > 0 ) {
-	int rc = access( directoryName.c_str(), R_OK|W_OK|X_OK );
-	if ( rc < 0 ) {
-	    if ( errno == ENOENT ) {
-#if defined(__WINNT__)
-		rc = mkdir( directoryName.c_str() );
-#else
-		rc = mkdir( directoryName.c_str(), S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );
-#endif
-	    }
-	    if ( rc < 0 ) {
-		solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directoryName.c_str(), strerror( errno ) );
-	    }
-	}
-    }
-    return directoryName;
-}
-
-
-
-bool
-Model::hasVariables() const
-{
-    return _document->getSymbolExternalVariableCount() != 0;
 }
 
 /* -------------------------------------------------------------------- */
