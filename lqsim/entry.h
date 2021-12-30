@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: entry.h 14997 2021-09-27 18:13:17Z greg $
+ * $Id: entry.h 15295 2021-12-30 00:16:23Z greg $
  */
 
 #ifndef ENTRY_H
@@ -41,6 +41,30 @@ class Entry {				/* task entry struct	        */
 	fptr _f;
     };
 	
+    /*
+     * Compare to entrys by their name.  Used by the set class to
+     * insert items
+     */
+
+    struct ltEntry
+    {
+	bool operator()(const Entry * p1, const Entry * p2) const { return strcmp( p1->name(), p2->name() ) < 0; }
+    };
+
+    /*
+     * Compare a entry name to a string.  Used by the find_if (and
+     * other algorithm type things).
+     */
+
+    struct eqEntryStr 
+    {
+    eqEntryStr( const char * s ) : _s(s) {}
+	bool operator()(const Entry * p1 ) const { return strcmp( p1->name(), _s ) == 0; }
+
+    private:
+	const char * _s;
+    };
+
 private:
     Entry( const Entry& );
     Entry& operator=( const Entry& );
@@ -54,6 +78,8 @@ public:
 
     static Entry * find( const char * entry_name );
     static bool find( const char * from_entry_name, Entry *&from_entry, const char * to_entry_name, Entry *&to_entry );
+
+    static std::set<Entry *, ltEntry> __entries;	/* Entry table.	*/
 
     Entry( LQIO::DOM::Entry*, Task * task );
     virtual ~Entry();
@@ -176,30 +202,4 @@ extern unsigned open_arrival_count;	/* non-zero if any open arrivals*/
 typedef double (*entry_func_ptr)( const Entry * ep );
 
 void build_links( class Task * cp, unsigned link_tab[] );
-
-/* ------------------------------------------------------------------------ */
-/*
- * Compare to entrys by their name.  Used by the set class to insert items
- */
-
-struct ltEntry
-{
-    bool operator()(const Entry * p1, const Entry * p2) const { return strcmp( p1->name(), p2->name() ) < 0; }
-};
-
-
-/*
- * Compare a entry name to a string.  Used by the find_if (and other algorithm type things).
- */
-
-struct eqEntryStr 
-{
-eqEntryStr( const char * s ) : _s(s) {}
-    bool operator()(const Entry * p1 ) const { return strcmp( p1->name(), _s ) == 0; }
-
-private:
-    const char * _s;
-};
-
-extern std::set <Entry *, ltEntry> entry;	/* Entry table.	*/
 #endif

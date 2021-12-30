@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15294 2021-12-29 16:06:42Z greg $
+ * $Id: model.cc 15297 2021-12-30 16:21:19Z greg $
  */
 
 #include "lqsim.h"
@@ -68,7 +68,6 @@ int Model::__genesis_task_id = 0;
 Model * Model::__model = nullptr;
 double Model::max_service = 0.0;
 const double Model::simulation_parameters::DEFAULT_TIME = 1e5;
-LQIO::DOM::Document::InputFormat Model::input_format = LQIO::DOM::Document::InputFormat::AUTOMATIC;
 bool deferred_exception = false;	/* domain error detected during run.. throw after parasol stops. */
 
 /*----------------------------------------------------------------------*/
@@ -95,32 +94,21 @@ Model::Model( LQIO::DOM::Document* document, const std::string& input_file_name,
 
 Model::~Model()
 {
-    for ( std::set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	delete *nextProcessor;
-    }
-    processor.clear();
+    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), Model::Delete<Processor*> );
+    Processor::__processors.clear();
 
-    for ( std::set<Group *,ltGroup>::const_iterator nextGroup = group.begin(); nextGroup != group.end(); ++nextGroup ) {
-	delete *nextGroup;
-    }
-    group.clear();
+    std::for_each( Group::__groups.begin(), Group::__groups.end(), Model::Delete<Group *> );
+    Group::__groups.clear();
 
-    for ( std::set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	delete *nextTask;
-    }
-    task.clear();
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), Model::Delete<Task *> );
+    Task::__tasks.clear();
 
-    for ( std::set<Entry *,ltEntry>::const_iterator nextEntry = entry.begin(); nextEntry != entry.end(); ++nextEntry ) {
-	delete *nextEntry;
-    }
-    entry.clear();
+    std::for_each( Entry::__entries.begin(), Entry::__entries.end(), Model::Delete<Entry *> );
+    Entry::__entries.clear();
 
     Activity::actConnections.clear();
     Activity::domToNative.clear();
 
-    if ( _document ) {
-	delete _document;
-    }
     __model = nullptr;
 }
 
@@ -134,7 +122,7 @@ Model::~Model()
  */
 
 int
-Model::create( const std::string& input_filename, const std::string& output_filename, const LQIO::DOM::Pragma& pragmas )
+Model::solve( const std::string& input_filename, LQIO::DOM::Document::InputFormat input_format, const std::string& output_filename, const LQIO::DOM::Pragma& pragmas )
 {
     LQIO::io_vars.reset();
 
@@ -242,12 +230,12 @@ Model::prepare()
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
 
     const std::map<std::string,LQIO::DOM::Processor*>& processorList = _document->getProcessors();
-    for_each( processorList.begin(), processorList.end(), Processor::add );
+    std::for_each( processorList.begin(), processorList.end(), Processor::add );
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1.5: Add Groups] */
 
     const std::map<std::string,LQIO::DOM::Group*>& groups = _document->getGroups();
-    for_each( groups.begin(), groups.end(), Group::add );
+    std::for_each( groups.begin(), groups.end(), Group::add );
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 2: Add Tasks/Entries] */
 
@@ -333,9 +321,8 @@ Model::prepare()
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 4: Add Calls/Lists for Activities] */
 
     /* Go back and add all of the lists and calls now that activities all exist */
-    for ( std::set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	const Task * aTask = *nextTask;
-	for ( std::vector<Activity*>::const_iterator ap = aTask->_activity.begin(); ap != aTask->_activity.end(); ++ap) {
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	for ( std::vector<Activity*>::const_iterator ap = (*task)->_activity.begin(); ap != (*task)->_activity.end(); ++ap) {
 	    Activity* activity = *ap;
 	    activity->add_calls()
 		.add_reply_list()
@@ -353,27 +340,27 @@ Model::prepare()
 
 
 /*
- * Construct all of the parasol tasks instances after the simulation
- * has started.  Some construction is needed after the simulation has
+ * Create all of the parasol tasks instances after the simulation has
+ * started.  Some construction is needed after the simulation has
  * initialized and started simply because we need run-time
  * info. Called from ps_genesis() by ps_run_parasol().
- * Model::construct() will call Task::initialize() which will call
+ * Model::create() will call Task::initialize() which will call
  * XXX::initialize(). XXX:configure() is called from ::start() which
  * is called before ps_run_parasol().
  */
 
 bool
-Model::construct()
+Model::create()
 {
     for ( unsigned j = 0; j < MAX_NODES; ++j ) {
 	link_tab[j] = -1;		/* Reset link table.	*/
     }
 
-    for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::construct ) );
-    for_each( ::group.begin(), ::group.end(), Exec<Group>( &Group::construct ) );
-    for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::construct ) );
+    for_each( Processor::__processors.begin(), Processor::__processors.end(), Exec<Processor>( &Processor::create ) );
+    for_each( Group::__groups.begin(), Group::__groups.end(), Exec<Group>( &Group::create ) );
+    for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::create ) );
 
-    if ( count_if( ::task.begin(), ::task.end(), Predicate<Task>( &Task::is_reference_task ) ) == 0 && open_arrival_count == 0 ) {
+    if ( std::none_of( Task::__tasks.begin(), Task::__tasks.end(), Predicate<Task>( &Task::is_reference_task ) ) && open_arrival_count == 0 ) {
 	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
     }
 
@@ -589,8 +576,8 @@ Model::print_raw_stats( FILE * output ) const
 	(void) fprintf( output, "%.*s\n", short_width, dashes );
     }
 
-    for ( std::set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-    	const Task * cp = *nextTask;
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+    	const Task * cp = *task;
     	cp->print( output );
     }
 //    for_each ( task.begin(), task.end(), ConstExec1<Task,FILE *>( &Task::print ) );
@@ -598,9 +585,8 @@ Model::print_raw_stats( FILE * output ) const
     (void) fprintf( output, "\n%.*s Processor Information %.*s\n",
 		    (((number_blocks > 2) ? long_width : short_width) - 23) / 2, dashes,
 		    (((number_blocks > 2) ? long_width : short_width) - 23) / 2, dashes );
-    for ( std::set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	aProcessor->r_util.print_raw( output, "Processor %-11.11s - Utilization", aProcessor->name() );
+    for ( std::set<Processor *>::const_iterator processor = Processor::__processors.begin(); processor != Processor::__processors.end(); ++processor ) {
+	(*processor)->r_util.print_raw( output, "Processor %-11.11s - Utilization", (*processor)->name() );
     }
 
 #ifdef	NOTDEF
@@ -660,9 +646,9 @@ Model::insertDOMResults()
     _document->setResultSolverInformation(buf);
 
 
-    for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::insertDOMResults ) );
-    for_each( ::group.begin(), ::group.end(), Exec<Group>( &Group::insertDOMResults ) );
-    for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::insertDOMResults ) );
+    for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::insertDOMResults ) );
+    for_each( Group::__groups.begin(), Group::__groups.end(), Exec<Group>( &Group::insertDOMResults ) );
+    for_each( Processor::__processors.begin(), Processor::__processors.end(), Exec<Processor>( &Processor::insertDOMResults ) );
 }
 
 
@@ -733,8 +719,8 @@ Model::start()
     /* This will compute the minimum service time for each entry.  Note thate XXX::initialize() is called
      * through Model::run() */
 
-    for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::configure ) );
-    const double client_cycle_time = for_each( ::entry.begin(), ::entry.end(), ExecSum<Entry,double>( &Entry::compute_minimum_service_time ) ).sum();
+    for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::configure ) );
+    const double client_cycle_time = for_each( Entry::__entries.begin(), Entry::__entries.end(), ExecSum<Entry,double>( &Entry::compute_minimum_service_time ) ).sum();
 
     /* Which we can use here... */
 
@@ -764,8 +750,8 @@ Model::start()
 	LQIO::solution_error( ADV_PRECISION, _parameters._precision, _parameters._block_period * number_blocks + _parameters._initial_delay, _confidence );
     }
     if ( messages_lost ) {
-	for ( std::set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	    const Task * cp = *nextTask;
+	for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	    const Task * cp = *task;
 	    if ( cp->has_lost_messages() )  {
 		LQIO::solution_error( LQIO::ADV_MESSAGES_DROPPED, cp->name() );
 	    }
@@ -843,7 +829,9 @@ Model::restart()
 /* ------------------------------------------------------------------------ */
 
 /*
- *  Run the simulation.  Called from ps_genesis.
+ *  Run the simulation.  Called from ps_genesis.  Create all parasol
+ *  processors and tasks (instances) through Model::create(), then
+ *  start all the tasks.
  */
 
 bool
@@ -862,7 +850,7 @@ Model::run( int task_id )
 #endif
 
     try {
-	if ( !construct() ) {
+	if ( !create() ) {
 	    rc = false;
 	} else if ( no_execute_flag ) {
 	    rc = true;
@@ -872,12 +860,7 @@ Model::run( int task_id )
 	     * Start all of the tasks.
 	     */
 
-	    for ( std::set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-		Task * aTask = *nextTask;
-		if ( !aTask->start() ) {
-		    abort();
-		}
-	    }
+	    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), &Model::start_task );
 
 	    if ( _parameters._initial_delay ) {
 		if ( verbose_flag ) {
@@ -937,6 +920,7 @@ Model::run( int task_id )
 	deferred_exception = true;
     }
     catch ( const std::runtime_error& e ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": runtime error: " << e.what() << std::endl;
 	rc = false;
 	deferred_exception = true;
     }
@@ -948,10 +932,20 @@ Model::run( int task_id )
 
     /* Remove instances */
 
-    for_each( task.begin(), task.end(), Exec<Task>( &Task::kill ) );
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::kill ) );
 
     return rc;
 }
+
+
+void
+Model::start_task( Task * task )
+{
+    if ( !task->start() ) {
+	throw std::runtime_error( std::string("Failed to start task '") + task->name() + "'." );
+    }
+}
+
 
 /*
  * Accumulate data from this run.
@@ -960,9 +954,9 @@ Model::run( int task_id )
 void
 Model::accumulate_data()
 {
-    for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::accumulate_data ) );
-    for_each( ::group.begin(), ::group.end(), Exec<Group>( &Group::accumulate_data ) );
-    for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::accumulate_data ) );
+    for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::accumulate_data ) );
+    for_each( Group::__groups.begin(), Group::__groups.end(), Exec<Group>( &Group::accumulate_data ) );
+    for_each( Processor::__processors.begin(), Processor::__processors.end(), Exec<Processor>( &Processor::accumulate_data ) );
 
 #ifdef	NOTDEF
     /* Link utilization. */
@@ -982,9 +976,9 @@ Model::accumulate_data()
 void
 Model::reset_stats()
 {
-    for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::reset_stats ) );
-    for_each( ::group.begin(), ::group.end(), Exec<Group>( &Group::reset_stats ) );
-    for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::reset_stats ) );
+    for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::reset_stats ) );
+    for_each( Group::__groups.begin(), Group::__groups.end(), Exec<Group>( &Group::reset_stats ) );
+    for_each( Processor::__processors.begin(), Processor::__processors.end(), Exec<Processor>( &Processor::reset_stats ) );
 
 #ifdef	NOTDEF
     /* Link utilization. */
@@ -1008,11 +1002,10 @@ Model::rms_confidence()
     double sum_sqr = 0.0;
     double n = 0;
 
-    for ( std::set<Task *,ltTask>::const_iterator nextTask = ::task.begin(); nextTask != ::task.end(); ++nextTask ) {
-	const Task * aTask = *nextTask;
-	if ( aTask->type() == Task::Type::OPEN_ARRIVAL_SOURCE ) continue;		/* Skip. */
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	if ( (*task)->type() == Task::Type::OPEN_ARRIVAL_SOURCE ) continue;		/* Skip. */
 
-	for ( std::vector<Entry *>::const_iterator nextEntry = aTask->_entry.begin(); nextEntry != aTask->_entry.end(); ++nextEntry ) {
+	for ( std::vector<Entry *>::const_iterator nextEntry = (*task)->_entry.begin(); nextEntry != (*task)->_entry.end(); ++nextEntry ) {
 	    double temp = normalized_conf95( (*nextEntry)->r_cycle );
 	    if ( temp > 0 ) {
 		sum_sqr += ( temp * temp );

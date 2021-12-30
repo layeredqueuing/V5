@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 15293 2021-12-28 22:12:27Z greg $
+ * $Id: model.h 15297 2021-12-30 16:21:19Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -50,6 +50,8 @@ extern bool reschedule_on_async_send;
 extern bool messages_lost;
 
 extern "C" void ps_genesis(void *);
+
+class Task;
 
 class Model {
     friend void ps_genesis(void *);
@@ -93,8 +95,9 @@ public:
 	double _confidence;
     };
 
-
 private:
+    template <typename Type> inline static void Delete( Type x ) { delete x; }
+
     Model( LQIO::DOM::Document* document, const std::string&, const std::string& );
     Model( const Model& );
     Model& operator=( const Model& );
@@ -102,7 +105,7 @@ private:
 public:
     virtual ~Model();
     
-    static int create( const std::string&, const std::string&, const LQIO::DOM::Pragma& pragmas );
+    static int solve( const std::string&, LQIO::DOM::Document::InputFormat, const std::string&, const LQIO::DOM::Pragma& pragmas );
 
     bool operator!() const { return _document == nullptr; }
     bool hasVariables() const;
@@ -112,8 +115,8 @@ public:
     static void set_block_period( double block_period ) { __model->_parameters._block_period = block_period; }
 
 private:
-    bool prepare();		/* Step 1 */
-    bool construct();		/* Step 2 */
+    bool prepare();		/* Step 1 -- outside of parasol */
+    bool create();		/* Step 2 -- inside of parasol	*/
 
     bool start();
     bool reload();		/* Load results from LQX */
@@ -123,7 +126,7 @@ private:
     void accumulate_data();
     void insertDOMResults();
 
-    bool hasOutputFileName() const { return _output_file_name.size() > 0 && _output_file_name != "="; }
+    bool hasOutputFileName() const { return _output_file_name.size() > 0 && _output_file_name != "-"; }
     
     void print();
     void print_intermediate();
@@ -131,6 +134,8 @@ private:
     std::string createDirectory() const;
     
     bool run( int );
+    static void start_task( Task * );
+
     static double rms_confidence();
     static double normalized_conf95( const result_t& stat );
 
@@ -146,7 +151,6 @@ private:
 
 public:
     static double max_service;	/* Max service time found.	*/
-    static LQIO::DOM::Document::InputFormat input_format;
 };
 
 double square( const double arg );

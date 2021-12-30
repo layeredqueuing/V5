@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 15292 2021-12-28 21:48:35Z greg $
+ * $Id: lqsim.cc 15297 2021-12-30 16:21:19Z greg $
  */
 
 #define STACK_TESTING
@@ -309,6 +309,7 @@ main( int argc, char * argv[] )
 {   				
     int global_error_flag	= 0;
     std::string output_file;		/* Command line filename?   	*/
+    LQIO::DOM::Document::InputFormat input_format = LQIO::DOM::Document::InputFormat::AUTOMATIC;
 	
     /* optarg(3) stuff */
 	
@@ -325,7 +326,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2021-12-28 16:48:35 -0500 (Tue, 28 Dec 2021) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2021-12-30 11:21:19 -0500 (Thu, 30 Dec 2021) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -442,9 +443,9 @@ main( int argc, char * argv[] )
 
 	    case 'I':
 		if ( strcasecmp( optarg, "xml" ) == 0 ) {
-		    Model::input_format = LQIO::DOM::Document::InputFormat::XML;
+		    input_format = LQIO::DOM::Document::InputFormat::XML;
 		} else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
-		    Model::input_format = LQIO::DOM::Document::InputFormat::LQN;
+		    input_format = LQIO::DOM::Document::InputFormat::LQN;
 		} else {
 		    throw std::invalid_argument( optarg );
 		}
@@ -659,7 +660,7 @@ main( int argc, char * argv[] )
 	}
 	
 	try {
-	    global_error_flag |= Model::create( "-", output_file, pragmas );
+	    global_error_flag |= Model::solve( "-", input_format, output_file, pragmas );
 	}
 	catch ( const std::runtime_error &e ) {
 	    fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), e.what() );
@@ -686,7 +687,7 @@ main( int argc, char * argv[] )
 		(void) printf( "%s:\n", argv[optind] );
 	    }
 	    try {
-		global_error_flag |= Model::create( argv[optind], output_file, pragmas );
+		global_error_flag |= Model::solve( argv[optind], input_format, output_file, pragmas );
 	    }
 	    catch ( const std::runtime_error &e ) {
 		fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), e.what() );

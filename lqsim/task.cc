@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15293 2021-12-28 22:12:27Z greg $
+ * $Id: task.cc 15297 2021-12-30 16:21:19Z greg $
  */
 
 #include <iostream>
@@ -38,7 +38,7 @@
 #define N_SEMAPHORE_ENTRIES 2
 #define N_RWLOCK_ENTRIES 4
 
-std::set <Task *, ltTask> task;	/* Task table.	*/
+std::set<Task *, Task::ltTask> Task::__tasks;	/* Task table.	*/
 
 const std::map<const Task::Type,const std::string> Task::type_strings =  {
     { Task::Type::UNDEFINED,              "Undefined" },
@@ -166,7 +166,7 @@ Task::configure()
  */
 
 Task&
-Task::construct()
+Task::create()
 {
     /* JOIN Stuff -- All entries are free. */
 
@@ -688,7 +688,7 @@ Task::add( LQIO::DOM::Task* domTask )
 	break;
     }
 
-    ::task.insert( cp );
+    Task::__tasks.insert( cp );
 
     return cp;
 }
@@ -701,8 +701,8 @@ Task::add( LQIO::DOM::Task* domTask )
 Task *
 Task::find( const char * task_name )
 {
-    std::set<Task *,ltTask>::const_iterator nextTask = find_if( ::task.begin(), ::task.end(), eqTaskStr( task_name ) );
-    if ( nextTask == ::task.end() ) {
+    std::set<Task *>::const_iterator nextTask = find_if( Task::__tasks.begin(), Task::__tasks.end(), eqTaskStr( task_name ) );
+    if ( nextTask == Task::__tasks.end() ) {
 	return nullptr;
     } else {
 	return *nextTask;
@@ -884,9 +884,9 @@ Semaphore_Task::Semaphore_Task( const Task::Type type, LQIO::DOM::Task* domTask,
 
 
 Semaphore_Task&
-Semaphore_Task::construct()
+Semaphore_Task::create()
 {
-    Task::construct();
+    Task::create();
 
     r_hold.init( SAMPLE,         "%s %-11.11s - Hold Time         ", type_name().c_str(), name() );
     r_hold_sqr.init( SAMPLE,     "%s %-11.11s - Hold Time Sq      ", type_name().c_str(), name() );
@@ -1109,9 +1109,9 @@ ReadWriteLock_Task::create_instance()
 
 
 ReadWriteLock_Task&
-ReadWriteLock_Task::construct()
+ReadWriteLock_Task::create()
 {
-    Semaphore_Task::construct();
+    Semaphore_Task::create();
 
     r_reader_hold.init( SAMPLE,         "%s %-11.11s - Reader Hold Time         ", type_name().c_str(), name() );
     r_reader_hold_sqr.init( SAMPLE,     "%s %-11.11s - Reader Hold Time sq      ", type_name().c_str(), name() );

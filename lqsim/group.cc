@@ -9,7 +9,7 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 15293 2021-12-28 22:12:27Z greg $
+ * $Id: group.cc 15297 2021-12-30 16:21:19Z greg $
  */
 #include <algorithm>
 #include <cmath>
@@ -25,7 +25,7 @@
 #include "processor.h"
 #include "group.h"
 
-std::set<Group *, ltGroup> group;
+std::set<Group *, Group::ltGroup> Group::__groups;
 
 
 Group::Group( LQIO::DOM::Group * group, const Processor& processor ) 
@@ -38,12 +38,12 @@ Group::Group( LQIO::DOM::Group * group, const Processor& processor )
 
 
 /*
- * Called from Model::construct to create ALL groups.  IFF a group has
- * a multiserver, then we re-assign that task to a new sub-group
+ * Called from Model::create to create ALL groups.  IFF a group has a
+ * multiserver, then we re-assign that task to a new sub-group
  */
 
 Group&
-Group::construct() 
+Group::create() 
 {	
     double share = 0.;
     double share_sum = 0.0;
@@ -116,11 +116,11 @@ Group *
 Group::find( const std::string& group_name  )
 {
     if ( group_name.empty() ) return nullptr;
-    std::set<Group *,ltGroup>::const_iterator nextGroup = find_if( ::group.begin(), ::group.end(), eqGroupStr( group_name ) );
-    if ( nextGroup == group.end() ) {
+    std::set<Group *>::const_iterator group = find_if( Group::__groups.begin(), Group::__groups.end(), eqGroupStr( group_name ) );
+    if ( group == Group::__groups.end() ) {
 	return nullptr;
     } else {
-	return *nextGroup;
+	return *group;
     }
 }
 
@@ -156,7 +156,7 @@ Group::add( const std::pair<std::string,LQIO::DOM::Group*>& p )
 
     Group * aGroup = new Group( domGroup, *aProcessor );
 //    aGroup->set_share( domGroup->getGroupShareValue() );		// set local copy. May update with multiserver.
-    group.insert( aGroup );
+    __groups.insert( aGroup );
 }
 
 

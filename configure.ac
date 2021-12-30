@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-# $Id: configure.ac 15279 2021-12-28 13:09:22Z greg $
+# $Id: configure.ac 15283 2021-12-28 16:01:25Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([lqns],[5.23],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([config])
@@ -123,7 +123,7 @@ if test "${ac_cv_lib_gd_gdMalloc}" = "no"; then
 fi
 
 # ------------------------------------------------------------------------
-AC_CONFIG_SUBDIRS([lqiolib lqx libmva parasol lqsim doc])
+AC_CONFIG_SUBDIRS([lqiolib lqx libmva parasol doc])
 AC_CONFIG_FILES([Makefile lqns/Makefile lqns/regression/Makefile qnsolver/Makefile])
 AC_CONFIG_FILES([lqn2csv/Makefile lqngen/Makefile lqn2ps/Makefile srvndiff/Makefile])
 AC_CONFIG_FILES([lqsim/Makefile lqsim/regression/Makefile])

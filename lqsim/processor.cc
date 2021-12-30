@@ -11,7 +11,7 @@
  *
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/processor.cc $
  *
- * $Id: processor.cc 15293 2021-12-28 22:12:27Z greg $
+ * $Id: processor.cc 15297 2021-12-30 16:21:19Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,7 +20,7 @@
 #include <cassert>
 #include <cstdarg>
 #include <cstdlib>
-#include <iomanip> 
+#include <iomanip>
 #include <sstream>
 #include "lqsim.h"
 #include <lqio/input.h>
@@ -36,7 +36,7 @@
 
 #define	SN_PREEMPT	100			/* Message.			*/
 
-std::set<Processor *, ltProcessor> processor;	/* Processor table.		*/
+std::set<Processor *, Processor::ltProcessor> Processor::__processors;	/* Processor table.		*/
 Processor *Processor::processor_table[MAX_NODES+1];	/* NodeId to processor		*/
 
 int Processor::scheduling_types[N_SCHEDULING_TYPES] =
@@ -56,22 +56,22 @@ int Processor::scheduling_types[N_SCHEDULING_TYPES] =
     -1,		/* SCHEDULE_SEMAPHORE	*/
     CFS,	/* SCHEDULE_CFS		*/
     -1		/* SCHEDULE_RWLOCK 	*/
-};		   
+};
 
 
 /*
- * Find the processor and return it.  
+ * Find the processor and return it.
  */
 
 Processor *
 Processor::find( const std::string& processor_name  )
 {
-    if ( processor_name.size() == 0 ) return nullptr;
-    std::set<Processor *,ltProcessor>::const_iterator nextProcessor = find_if( ::processor.begin(), ::processor.end(), eqProcStr( processor_name ) );
-    if ( nextProcessor == processor.end() ) {
+    if ( processor_name.empty() ) return nullptr;
+    std::set<Processor *>::const_iterator processor = find_if( Processor::__processors.begin(), Processor::__processors.end(), eqProcStr( processor_name ) );
+    if ( processor == Processor::__processors.end() ) {
 	return nullptr;
     } else {
-	return *nextProcessor;
+	return *processor;
     }
 }
 
@@ -91,13 +91,13 @@ Processor::Processor( LQIO::DOM::Processor* domProcessor )
  */
 
 Processor&
-Processor::construct()
+Processor::create()
 {
     assert( scheduling_types[static_cast<unsigned int>(discipline())] >= 0 );
     _node_id = ps_build_node( name(), multiplicity(), cpu_rate(), quantum(),
-				 scheduling_types[static_cast<unsigned int>(discipline())],
-				 SF_PER_NODE|SF_PER_HOST );
-	
+			      scheduling_types[static_cast<unsigned int>(discipline())],
+			      SF_PER_NODE|SF_PER_HOST );
+
     if ( _node_id < 0 || MAX_NODES < _node_id ) {
 	LQIO::input_error2( ERR_CANNOT_CREATE_X, "processor", name() );
     } else {
@@ -131,7 +131,7 @@ Processor::multiplicity() const
 
 
 
-bool 
+bool
 Processor::is_infinite() const
 {
     return getDOM()->isInfinite();
@@ -147,7 +147,7 @@ void
 Processor::reschedule( Instance * ip )
 {
     ps_my_schedule_time = ps_now;
-    if ( (Pragma::__pragmas->scheduling_model() & SCHEDULE_NATURAL) == 0 ) { 
+    if ( (Pragma::__pragmas->scheduling_model() & SCHEDULE_NATURAL) == 0 ) {
 	Custom_Processor * pp = dynamic_cast<Custom_Processor *>(find(ps_my_node));
 	if ( pp ) {
 	    static char nullstr[] = "";		/* C++ 11 */
@@ -169,7 +169,7 @@ Custom_Processor::Custom_Processor( LQIO::DOM::Processor * domProcessor )
 {
     if ( !is_infinite() ) {
 	_active_task  = new Instance * [multiplicity()];
-    } 
+    }
 }
 
 
@@ -188,7 +188,7 @@ Custom_Processor::~Custom_Processor()
  */
 
 Custom_Processor&
-Custom_Processor::construct()
+Custom_Processor::create()
 {
     _node_id = ps_build_node2( name(), multiplicity(), cpu_rate(), cpu_scheduler_task, SF_PER_NODE|SF_PER_HOST );
 
@@ -215,16 +215,16 @@ Custom_Processor::cpu_scheduler_task ( void * )
     Custom_Processor * pp = dynamic_cast<Custom_Processor *>(Processor::find(ps_my_node));
     pp->main();
 }
-	
+
 
 void
-Custom_Processor::main() 
+Custom_Processor::main()
 {
     long * rtrq = static_cast<long *>(calloc( MAX_TASKS, sizeof(long) ));
 
     _active_task[ps_my_host] = nullptr;
     _scheduler = ps_std_port(ps_myself);
-	
+
     for ( ;; ) {
 	long type;
 	long task_id;
@@ -244,13 +244,13 @@ Custom_Processor::main()
 	switch ( type ) {
 
 	case SN_PREEMPT:
-			
+
 	    /* Quantum expired -- round robin schedule */
-			
+
 	    if ( object_tab[task_id] ) {
 		ps_schedule_time(task_id) = ps_now;
 	    }
-			
+
 	    if ( ( discipline() == SCHEDULE_FIFO
 		   || (discipline() == SCHEDULE_HOL
 		       && ps_task_priority(rtrq[0]) >= ip->priority() ))
@@ -278,7 +278,7 @@ Custom_Processor::main()
 	    } else {
 
 		/* No tasks.			*/
-				
+
 		trace( PROC_IDLE );
 		quantum = NEVER;
 
@@ -288,7 +288,7 @@ Custom_Processor::main()
 		ps_schedule( NULL_TASK, ps_my_host );
 	    }
 	    break;
-			
+
 	case SN_READY:
 
 	    /* New task has arrived, but not scheduled. */
@@ -320,7 +320,7 @@ Custom_Processor::main()
 		quantum = quantum - ps_now + start_time;
 	    }
 	    break;
-			
+
 	default:
 	    abort();
 	    break;
@@ -373,18 +373,18 @@ Custom_Processor::trace( const processor_events event, ... )
     Instance * ip2;
     unsigned type;
     unsigned task_id;
-	
+
     va_start( args, event );
 
     if ( trace_flag ) {
 	double quantum;
-		
+
 	if ( trace_driver ) {
 	    (void) fprintf( stddbg, "\nTime* %8g P %s: ", ps_now, name() );
 	} else {
 	    (void) fprintf( stddbg, "%8g P %s: ", ps_now, name() );
 	}
-		
+
 	switch ( event ) {
 	case PROC_PRIO_PREEMPTING_TASK:
 	    ip  = va_arg( args, Instance * );
@@ -393,7 +393,7 @@ Custom_Processor::trace( const processor_events event, ... )
 			    ip->name(),  ip->task_id(),
 			    ip2->name(), ip2->task_id() );
 	    break;
-			
+
 	case PROC_PREEMPTING_TASK:
 	    ip      = va_arg( args, Instance * );
 	    quantum = va_arg( args, double );
@@ -401,7 +401,7 @@ Custom_Processor::trace( const processor_events event, ... )
 			    ip->name(), ip->task_id(),
 			    quantum );
 	    break;
-			
+
 	case PROC_RUNNING_TASK:
 	    ip = va_arg( args, Instance * );
 	    quantum = va_arg( args, double );
@@ -409,7 +409,7 @@ Custom_Processor::trace( const processor_events event, ... )
 			    ip->name(), ip->task_id(),
 			    ps_now - ps_schedule_time(ip->task_id()) );
 	    break;
-			
+
 	case PROC_IDLE:
 	    (void) fprintf( stddbg, "IDLE." );
 	    break;
@@ -438,12 +438,12 @@ Custom_Processor::trace( const processor_events event, ... )
 		break;
 	    }
 	    break;
-			
+
 
 	}
 	if ( !trace_driver ) {
 	    fprintf( stddbg, "\n" );
-	} 
+	}
 	fflush( stddbg );
     }
 
@@ -451,11 +451,11 @@ Custom_Processor::trace( const processor_events event, ... )
 }
 
 
-bool 
-Processor::derive_utilization() const { 
+bool
+Processor::derive_utilization() const {
     return discipline() != SCHEDULE_FIFO
 	&& discipline() != SCHEDULE_DELAY
-	&& (Pragma::__pragmas->scheduling_model() & SCHEDULE_CUSTOM) == 0; 
+	&& (Pragma::__pragmas->scheduling_model() & SCHEDULE_CUSTOM) == 0;
 }
 
 
@@ -464,7 +464,7 @@ Processor::derive_utilization() const {
  */
 
 void
-Processor::add_task( Task * task ) 
+Processor::add_task( Task * task )
 {
     _tasks.push_back( task );
 }
@@ -484,7 +484,7 @@ Processor::insertDOMResults()
     std::vector<Task *>::const_iterator next_task;
     for ( next_task = _tasks.begin(); next_task != _tasks.end(); ++next_task ) {
 	Task * cp = *next_task;
-	
+
 	for ( std::vector<Entry *>::const_iterator next_entry = cp->_entry.begin(); next_entry != cp->_entry.end(); ++next_entry ) {
 	    Entry * ep = *next_entry;
 	    for ( unsigned p = 0; p < cp->max_phases(); ++p ) {
@@ -518,7 +518,7 @@ Processor::add( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 
     /* Unroll some of the encapsulated information */
 
-    assert( processor_name.size() >  0 );
+    assert( !processor_name.empty() );
 
     if ( Processor::find( processor_name ) ) {
 	input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Processor", processor_name.c_str() );
@@ -549,7 +549,7 @@ Processor::add( const std::pair<std::string,LQIO::DOM::Processor*>& p )
     case SCHEDULE_PS:
     case SCHEDULE_PS_HOL:
     case SCHEDULE_PS_PPR:
-    case SCHEDULE_CFS:		
+    case SCHEDULE_CFS:
 	if ( !domProcessor->hasQuantum() ) {
 	    input_error2( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name.c_str(), scheduling_label[(unsigned)scheduling_flag].str );
 	}
@@ -563,13 +563,13 @@ Processor::add( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 	break;
     }
 
-    Processor * aProcessor = nullptr;
+    Processor * processor = nullptr;
     if ( Pragma::__pragmas->scheduling_model() & SCHEDULE_CUSTOM ) {
-	aProcessor = new Custom_Processor( domProcessor );
+	processor = new Custom_Processor( domProcessor );
     } else {
-	aProcessor = new Processor( domProcessor );
+	processor = new Processor( domProcessor );
     }
-    processor.insert( aProcessor );
+    Processor::__processors.insert( processor );
 }
 
 /*
@@ -600,11 +600,11 @@ add_communication_delay( const char * from_proc_name, const char * to_proc_name,
  */
 
 extern "C" {
-void bus_failure_handler( ps_event_t *ep ) {}
-void bus_repair_handler( ps_event_t *ep ) {}
-void link_failure_handler( ps_event_t *ep ) {}
-void link_repair_handler( ps_event_t *ep ) {}
-void node_failure_handler( ps_event_t *ep ) {}
-void node_repair_handler( ps_event_t *ep ) {}
-void user_event_handler( ps_event_t *ep ) {}
+    void bus_failure_handler( ps_event_t *ep ) {}
+    void bus_repair_handler( ps_event_t *ep ) {}
+    void link_failure_handler( ps_event_t *ep ) {}
+    void link_repair_handler( ps_event_t *ep ) {}
+    void node_failure_handler( ps_event_t *ep ) {}
+    void node_repair_handler( ps_event_t *ep ) {}
+    void user_event_handler( ps_event_t *ep ) {}
 }

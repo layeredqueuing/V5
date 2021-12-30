@@ -2,7 +2,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/group.h $
  * Global vars for simulation.
  *
- * $Id: group.h 15293 2021-12-28 22:12:27Z greg $
+ * $Id: group.h 15297 2021-12-30 16:21:19Z greg $
  */
 
 /************************************************************************/
@@ -21,7 +21,32 @@
 
 class Group 
 {
+    /*
+     * Compare to processors by their name.  Used by the set class to insert items
+     */
+
+    struct ltGroup
+    {
+	bool operator()(const Group * p1, const Group * p2) const { return strcmp( p1->name(), p2->name() ) < 0; }
+    };
+
+
+    /*
+     * Compare a group name to a string.  Used by the find_if (and other algorithm type things.
+     */
+
+    struct eqGroupStr 
+    {
+	eqGroupStr( const std::string& s ) : _s(s) {}
+	bool operator()(const Group * p1 ) const { return _s == p1->name(); }
+
+    private:
+	const std::string _s;
+    };
+
 public:
+    static std::set<Group *, ltGroup> __groups;
+
     static Group * find( const std::string& );
     static void add( const std::pair<std::string,LQIO::DOM::Group*>& );
 
@@ -32,7 +57,7 @@ public:
     const char * name() const { return _domGroup->getName().c_str(); }
     bool cap() const { return _domGroup->getCap(); }		/* Cap share		*/
     const Processor& processor() const { return _processor; }
-    Group& construct();
+    Group& create();
 
     Group& reset_stats() { r_util.reset(); return *this; }
     Group& accumulate_data() { r_util.accumulate(); return *this; }
@@ -49,29 +74,4 @@ private:
 
     std::set<Task*> _task_list;
 };
-
-/*
- * Compare to processors by their name.  Used by the set class to insert items
- */
-
-struct ltGroup
-{
-    bool operator()(const Group * p1, const Group * p2) const { return strcmp( p1->name(), p2->name() ) < 0; }
-};
-
-
-/*
- * Compare a group name to a string.  Used by the find_if (and other algorithm type things.
- */
-
-struct eqGroupStr 
-{
-    eqGroupStr( const std::string& s ) : _s(s) {}
-    bool operator()(const Group * p1 ) const { return _s == p1->name(); }
-
-private:
-    const std::string _s;
-};
-
-extern std::set<Group *, ltGroup> group;
 #endif
