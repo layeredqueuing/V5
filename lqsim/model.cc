@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15302 2021-12-31 14:19:34Z greg $
+ * $Id: model.cc 15309 2021-12-31 22:18:21Z greg $
  */
 
 #include "lqsim.h"
@@ -120,50 +120,32 @@ Model::~Model()
 int
 Model::solve( solve_using run_function, const std::string& input_file_name, LQIO::DOM::Document::InputFormat input_format, const std::string& output_file_name, LQIO::DOM::Document::OutputFormat output_format, const LQIO::DOM::Pragma& pragmas )
 {
-    static const std::map<const LQIO::DOM::Document::InputFormat,const LQIO::DOM::Document::OutputFormat> input_to_output_format = {
-	{ LQIO::DOM::Document::InputFormat::XML,	LQIO::DOM::Document::OutputFormat::XML },
-	{ LQIO::DOM::Document::InputFormat::JSON,	LQIO::DOM::Document::OutputFormat::JSON },
-	{ LQIO::DOM::Document::InputFormat::LQN,	LQIO::DOM::Document::OutputFormat::XML },
-    };
-
     LQIO::io_vars.reset();
 
     /* load the model into the DOM document.  */
 
     unsigned int status = 0;
     LQIO::DOM::Document* document = LQIO::DOM::Document::load( input_file_name, input_format, status, false );
-    LQX::Program * program = nullptr;
 
     /* Make sure we got a document */
+
     if ( document == nullptr || LQIO::io_vars.anError() ) return INVALID_INPUT;
 
-    switch ( document->getInputFormat() ) {
-    case LQIO::DOM::Document::InputFormat::JSON:
-    case LQIO::DOM::Document::InputFormat::XML:
+    if ( LQIO::Spex::numberOfInputVariables() == 0 ) {
 	if ( LQIO::Spex::__no_header ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << input_file_name << "." << std::endl;
 	}
 	if ( LQIO::Spex::__print_comment ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": --print-comment is ignored for " << input_file_name << "." << std::endl;
 	}
-	break;
-    default:;
-    }
-
-    /*
-     * Set output format from input, or if LQN and LQX then force to XML.
-     */
-    
-    if ( output_format == LQIO::DOM::Document::OutputFormat::DEFAULT && (document->getInputFormat() != LQIO::DOM::Document::InputFormat::LQN || program != nullptr) ) {
-	output_format = input_to_output_format.at( document->getInputFormat() );
     }
 
     Model model( document, input_file_name, output_file_name, output_format );
-
+    LQX::Program * program = nullptr;
     FILE * output = nullptr;
     try { 
 
-	if( !model.prepare() ) throw std::runtime_error( "Model::prepare" );
+	if ( !model.prepare() ) throw std::runtime_error( "Model::prepare" );
 
 	document->mergePragmas( pragmas.getList() );       /* Save pragmas */
 
@@ -410,38 +392,7 @@ Model::print_intermediate()
 	.setResultValid(_confidence <= _parameters._precision)
 	.setResultIterations(number_blocks);
 
-    const bool lqx_output = _document->getResultInvocationNumber() > 0;
-    const std::string directory_name = LQIO::Filename::createDirectory( hasOutputFileName() ? _output_file_name : _input_file_name, lqx_output );
-    const std::string suffix = lqx_output ? SolverInterface::Solve::customSuffix : "";
-
-    std::string extension;
-    const std::map<const LQIO::DOM::Document::OutputFormat,const std::string>::const_iterator ext_iter =  LQIO::DOM::Document::__output_extensions.find( _output_format );
-    if ( ext_iter != LQIO::DOM::Document::__output_extensions.end() ) {
-	extension = ext_iter->second;
-    } else if ( rtf_flag ) {
-	extension = "rtf";
-    } else {
-	extension = "out";
-    }
-
-    LQIO::Filename filename( _input_file_name, extension, directory_name, suffix );
-
-    /* Make filename look like an emacs autosave file. */
-    filename << "~" << number_blocks << "~";
-
-    std::ofstream output;
-    output.open( filename(), std::ios::out );
-
-    if ( !output ) {
-	return;			/* Ignore errors */
-    } else if ( ext_iter != LQIO::DOM::Document::__output_extensions.end() ) {
-	_document->print( std::cout, ext_iter->first );
-    } else if ( rtf_flag ) {
-	_document->print( output, LQIO::DOM::Document::OutputFormat::RTF );
-    } else {
-	_document->print( output );
-    }
-    output.close();
+    _document->print( _output_file_name, SolverInterface::Solve::customSuffix, _output_format, rtf_flag, number_blocks );
 }
 
 

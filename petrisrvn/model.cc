@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 15304 2021-12-31 15:51:38Z greg $
+ * $Id: model.cc 15308 2021-12-31 17:19:15Z greg $
  *
  * Load the SRVN model.
  */
@@ -101,23 +101,17 @@ Model::Model( LQIO::DOM::Document * document, const string& input_file_name, con
 
 Model::~Model()
 {
-    for ( vector<Processor *>::const_iterator h = processor.begin(); h != processor.end(); ++h ) {
-	Processor * aProcessor = *h;
-	delete aProcessor;
-    }
+    std::for_each( processor.begin(), processor.end(), Model::Delete<Processor *> );
     processor.clear();
 
-    for ( vector<Task *>::const_iterator t = task.begin(); t != task.end(); ++t ) {
-	const Task * aTask = *t;
-	delete aTask;
-    }
+    std::for_each( task.begin(), task.end(), Model::Delete<Task *> );
     task.clear();
     entry.clear();
 
     for ( int i = 0; i <= layer_num; ++i) {
 	if ( layer_name[i] ) {
 	    free( layer_name[i] );
-	    layer_name[i] = 0;
+	    layer_name[i] = nullptr;
 	}
     }
     layer_num = 0;
@@ -221,7 +215,9 @@ Model::solve( solve_using solver_function, const std::string& inputFileName, LQI
 	    status = FILEIO_ERROR;
 	} else {
 	    try {
-		status = model.compute();		/* Simply invoke the solver for the current DOM state */
+		if ( !model.compute() ) {
+		    status = FILEIO_ERROR;		/* Simply invoke the solver for the current DOM state */
+		}
 	    }
 	    catch ( const std::runtime_error & error ) {
 		std::cerr << LQIO::io_vars.lq_toolname << ": runtime error - " << error.what() << std::endl;
@@ -648,7 +644,7 @@ Model::remove_netobj()
 bool
 Model::compute()
 {
-    int rc = 0;
+    bool rc = true;
 
     initialize();
     if ( !transform() ) {
@@ -687,7 +683,7 @@ Model::compute()
 	cerr << "Done: " << endl;
     }
 
-    if ( rc ) {
+    if ( rc == true ) {
 	solution_stats_t stats;
 	if ( !solution_stats( &stats.tangible, &stats.vanishing, &stats.precision )
 	     || !collect_res( FALSE, LQIO::io_vars.toolname() ) ) {
@@ -700,7 +696,7 @@ Model::compute()
 	    for ( vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
 		(*t)->get_results();		/* Read net to get tokens. */
 	    }
-	    insert_DOM_results( rc == 0, stats );	/* Save results */
+	    insert_DOM_results( rc == true, stats );	/* Save results */
 
 	    _document->print( _output_file_name, suffix, _output_format, rtf_flag );
 

@@ -31,6 +31,7 @@
 *.ps
 *.spex
 *.svg
+*.tmp
 *.toc
 *~
 .DS_Store

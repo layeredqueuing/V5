@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 15304 2021-12-31 15:51:38Z greg $
+ *  $Id: dom_document.h 15309 2021-12-31 22:18:21Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -199,7 +199,8 @@ namespace LQIO {
 	    static InputFormat getInputFormatFromFilename( const std::string&, const InputFormat=InputFormat::AUTOMATIC );
 	    static Document* load(const std::string&, InputFormat format, unsigned& errorCode, bool load_results );
 	    virtual bool loadResults( const std::string&, const std::string&, const std::string&, unsigned& errorCode );
-	    void print( const std::string& output_file_name, const std::string& suffix , const OutputFormat format, bool rtf_output ) const;
+	    void print( const std::string& output_file_name, const std::string& suffix, OutputFormat format, bool rtf_output ) const;
+	    void print( const std::string& output_file_name, const std::string& suffix, OutputFormat format, bool rtf_output, unsigned int iteration ) const;
 	    std::ostream& print( std::ostream& ouptut, const OutputFormat format=OutputFormat::LQN ) const;
 	    std::ostream& printExternalVariables( std::ostream& ouptut ) const;
 

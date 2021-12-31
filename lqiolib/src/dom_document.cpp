@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 15304 2021-12-31 15:51:38Z greg $
+ *  $Id: dom_document.cpp 15309 2021-12-31 22:18:21Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -839,10 +839,22 @@ namespace LQIO {
 	 */
 
 	void
-	Document::print( const std::string& output_file_name, const std::string& suffix, const OutputFormat output_format, bool rtf_output ) const
+	Document::print( const std::string& output_file_name, const std::string& suffix, OutputFormat output_format, bool rtf_output ) const
 	{
+	    static const std::map<const LQIO::DOM::Document::InputFormat,const LQIO::DOM::Document::OutputFormat> input_to_output_format = {
+		{ InputFormat::XML,	OutputFormat::XML },
+		{ InputFormat::JSON,	OutputFormat::JSON },
+		{ InputFormat::LQN,	OutputFormat::XML },
+	    };
+    
 	    const bool lqx_output = getResultInvocationNumber() > 0;
 	    const std::string directory_name = LQIO::Filename::createDirectory( isOutputFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
+
+	    /* Set output format from input, or if LQN and LQX then force to XML. */
+    
+	    if ( output_format == OutputFormat::DEFAULT && (getInputFormat() != InputFormat::LQN || getLQXProgram() != nullptr) ) {
+		output_format = input_to_output_format.at( getInputFormat() );
+	    }
 
 	    /* override is true for '-p -o filename.out when filename.in' == '-p filename.in' */
 
@@ -919,6 +931,48 @@ namespace LQIO {
 		}
 		output.close();
 	    }
+	}
+
+
+
+	/*
+	 * Print output 
+	 */
+
+	void
+	Document::print( const std::string& output_file_name, const std::string& suffix, OutputFormat output_format, bool rtf_output, unsigned int iteration ) const
+	{
+	    const bool lqx_output = getResultInvocationNumber() > 0;
+	    const std::string directory_name = LQIO::Filename::createDirectory( isOutputFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
+	    std::string extension;
+
+	    const std::map<const LQIO::DOM::Document::OutputFormat,const std::string>::const_iterator ext_iter = __output_extensions.find( output_format );
+	    if ( ext_iter != __output_extensions.end() ) {
+		extension = ext_iter->second;
+	    } else if ( rtf_output ) {
+		extension = "rtf";
+	    } else {
+		extension = "out";
+	    }
+
+	    LQIO::Filename filename( __input_file_name, extension, directory_name, lqx_output ? suffix : std::string("") );
+
+	    /* Make filename look like an emacs autosave file. */
+	    filename << "~" << iteration << "~";
+
+	    std::ofstream output;
+	    output.open( filename(), std::ios::out );
+
+	    if ( !output ) return;			/* Ignore errors */
+
+	    if ( ext_iter != LQIO::DOM::Document::__output_extensions.end() ) {
+		print( std::cout, ext_iter->first );
+	    } else if ( rtf_output ) {
+		print( output, LQIO::DOM::Document::OutputFormat::RTF );
+	    } else {
+		print( output );
+	    }
+	    output.close();
 	}
 
 
