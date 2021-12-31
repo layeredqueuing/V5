@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 15241 2021-12-18 13:36:50Z greg $
+ *  $Id: srvn_spex.cpp 15304 2021-12-31 15:51:38Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -7,6 +7,9 @@
  * Note: Be careful with static casts because of lists and nodes.
  */
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include <vector>
 #include <algorithm>
 #include <map>
@@ -18,13 +21,18 @@
 #include <iomanip>
 #include <lqx/SyntaxTree.h>
 #include <lqx/Program.h>
-#include "dom_document.h"
+#include "dom_activity.h"
+#include "dom_actlist.h"
 #include "dom_bindings.h"
+#include "dom_document.h"
+#include "dom_group.h"
 #include "dom_phase.h"
+#include "dom_processor.h"
+#include "dom_task.h"
 #include "filename.h"
+#include "glblerr.h"
 #include "srvn_input.h"
 #include "srvn_spex.h"
-#include "glblerr.h"
 
 extern "C" {
 #include "srvn_gram.h"

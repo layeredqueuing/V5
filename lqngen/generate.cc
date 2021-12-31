@@ -7,22 +7,22 @@
  * However, to eliminate code here, the spex construction functions will have to save the
  * LQX expressions and then construct the program.
  * ------------------------------------------------------------------------
- * $Id: generate.cc 14794 2021-06-11 12:13:01Z greg $
+ * $Id: generate.cc 15304 2021-12-31 15:51:38Z greg $
  */
 
 #include "lqngen.h"
-#include "generate.h"
-#include <cstdlib>
-#include <assert.h>
-#include <cstring>
 #include <algorithm>
-#include <lqio/input.h>
-#include <lqio/dom_task.h>
-#include <lqio/dom_entry.h>
+#include <assert.h>
+#include <cstdlib>
+#include <cstring>
 #include <lqio/dom_activity.h>
-#include <lqio/dom_processor.h>
-#include <lqio/dom_extvar.h>
 #include <lqio/dom_document.h>
+#include <lqio/dom_entry.h>
+#include <lqio/dom_extvar.h>
+#include <lqio/dom_group.h>
+#include <lqio/dom_processor.h>
+#include <lqio/dom_task.h>
+#include <lqio/input.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
 #include <lqx/SyntaxTree.h>
@@ -30,6 +30,7 @@
 #if !HAVE_GETSUBOPT
 #include <lqio/getsbopt.h>
 #endif
+#include "generate.h"
 #include "randomvar.h"
 
 unsigned Generate::__iteration_limit    = 50;

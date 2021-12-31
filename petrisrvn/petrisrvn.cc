@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 15299 2021-12-30 21:36:22Z greg $
+ * $Id: petrisrvn.cc 15302 2021-12-31 14:19:34Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -47,7 +47,6 @@
 #include <lqio/glblerr.h>
 #include <lqio/commandline.h>
 #include <lqio/dom_document.h>
-#include <lqio/dom_bindings.h>
 #include <lqio/srvn_spex.h>
 #include <lqio/filename.h>
 #if !defined(HAVE_GETSUBOPT)
@@ -57,7 +56,6 @@
 #include <wspnlib/wspn.h>
 #include "errmsg.h"
 #include "model.h"
-#include "runlqx.h"		// Coupling here is ugly at the moment
 #include "pragma.h"
 
 static bool copyright_flag	= false; /* Print copyright notice	*/
@@ -65,15 +63,11 @@ static bool copyright_flag	= false; /* Print copyright notice	*/
 bool debug_flag                 = false; /* Debugging flag set?         */
 bool keep_flag                  = false; /* Keep result files?          */
 bool no_execute_flag            = false; /* Don't solve model if true   */
-bool parse_flag                 = false; /* Parsable output desired?    */
-bool json_flag  	        = false; /* JSON output desired?    	*/
 bool reload_net_flag            = false; /* Reload results and print.   */
-Mode mode			= Mode::SOLVE;
 bool rtf_flag                   = false; /* Parsable output desired?    */
 bool trace_flag			= false; /* Output execution of greatspn*/
 bool uncondition_flag           = false; /* Uncondition in-service      */
 bool verbose_flag               = false; /* Verbose text output?        */
-bool xml_flag 			= false; /* XML Output desired ?	*/
 
 bool customers_flag 		= true;	 /* Smash customers together.	*/
 bool distinguish_join_customers = true;	 /* unique cust at join for mult*/
@@ -84,8 +78,6 @@ unsigned open_model_tokens	= OPEN_MODEL_TOKENS;	/* Default val.	*/
 
 static const char * net_dir_name	= "nets";
 static void my_handler (int);
-
-static LQIO::DOM::Pragma pragmas;
 
 /*
  * Command options.
@@ -169,14 +161,17 @@ std::regex * inservice_match_pattern	= nullptr;
 
 FILE * stddbg;				/* debugging output goes here.	*/
 
-static int process ( const std::string& inputFileName, const std::string& outputFileName );
 static void usage( void );
  
 int
 main (int argc, char *argv[])
 {
     std::string output_file = "";
+    LQIO::DOM::Document::InputFormat input_format = LQIO::DOM::Document::InputFormat::AUTOMATIC;
+    LQIO::DOM::Document::OutputFormat output_format = LQIO::DOM::Document::OutputFormat::DEFAULT;
     LQIO::CommandLine command_line;
+    LQIO::DOM::Pragma pragmas;
+    Model::solve_using solve_function = &Model::compute;
 
     extern char *optarg;
     extern int optind;
@@ -251,14 +246,16 @@ main (int argc, char *argv[])
 	    exit( 0 );
 
 	case 'j':
-	    json_flag = true;
+	    output_format = LQIO::DOM::Document::OutputFormat::JSON;
 	    break;
 
 	case 'I':
 	    if ( strcasecmp( optarg, "xml" ) == 0 ) {
-		Model::__input_format = LQIO::DOM::Document::InputFormat::XML;
+		input_format = LQIO::DOM::Document::InputFormat::XML;
+	    } else if ( strcasecmp( optarg, "json" ) == 0 ) {
+		input_format = LQIO::DOM::Document::InputFormat::JSON;
 	    } else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
-		Model::__input_format = LQIO::DOM::Document::InputFormat::LQN;
+		input_format = LQIO::DOM::Document::InputFormat::LQN;
 	    } else {
 		fprintf( stderr, "%s: invalid argument to -I -- %s\n", LQIO::io_vars.toolname(), optarg );
 	    }
@@ -289,7 +286,7 @@ main (int argc, char *argv[])
 	    break;
 
 	case 'p':
-	    parse_flag = true;
+	    output_format = LQIO::DOM::Document::OutputFormat::PARSEABLE;
 	    break;
 
 	case 'P':
@@ -326,11 +323,11 @@ main (int argc, char *argv[])
 	    break;
 
 	case 256+'r':
-	    mode = Mode::RELOAD;
+	    solve_function = &Model::reload;
 	    break;
 
 	case 256+'R':
-	    mode = Mode::RESTART;
+	    solve_function = &Model::restart;
 	    break;
 
 	case 256+'S':
@@ -361,7 +358,7 @@ main (int argc, char *argv[])
 	    break;
 
 	case 'x':
-	    xml_flag = true;
+	    output_format = LQIO::DOM::Document::OutputFormat::XML;
 	    break;
 
         case (256+'x'):
@@ -418,7 +415,7 @@ main (int argc, char *argv[])
 	    output_file = "-";
 	}
 
-	global_error_flag |= process( "-", output_file );
+	global_error_flag |= Model::solve( solve_function, "-", input_format, output_file, output_format, pragmas );
 
     } else {
 	unsigned int file_count = argc - optind;			/* Number of files on cmd line	*/
@@ -434,7 +431,7 @@ main (int argc, char *argv[])
 		(void) printf( "%s:\n", argv[optind] );
 	    }
 
-	    global_error_flag |= process( argv[optind], output_file );
+	    global_error_flag |= Model::solve( solve_function, argv[optind], input_format, output_file, output_format, pragmas );
 	}
 
     }
@@ -442,107 +439,6 @@ main (int argc, char *argv[])
     unlink( "empty" );		/* Clean up after GreatSPN. */
 
     return global_error_flag;
-}
-
-
-/*
- * Process input and save.
- */
-
-static int
-process( const std::string& inputFileName, const std::string& outputFileName )
-{
-    LQIO::DOM::Document* document = Model::load( inputFileName, outputFileName );
-
-    Model aModel( document, inputFileName, outputFileName );
-
-    int status = 0;
-
-    /* Make sure we got a document */
-    if ( document == NULL || LQIO::io_vars.anError() ) return FILEIO_ERROR;
-    document->mergePragmas( pragmas.getList() );       /* Save pragmas -- prepare will process */
-
-    if ( !aModel.construct() ) return FILEIO_ERROR;
-
-    if ( document->getInputFormat() != LQIO::DOM::Document::InputFormat::LQN && LQIO::Spex::__no_header ) {
-        std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
-    }
-
-    /* declare Model * at this scope but don't instantiate due to problems with LQX programs and registering external symbols*/
-
-    /* We can simply run if there's no control program */
-    LQX::Program * program = document->getLQXProgram();
-    if ( program ) {
-	if (program == NULL) {
-	    LQIO::solution_error( LQIO::ERR_LQX_COMPILATION, inputFileName.c_str() );
-	    status = FILEIO_ERROR;
-	} else {
-	    document->registerExternalSymbolsWithProgram(program);
-	    switch ( mode ) {
-	    case Mode::RESTART:
-		program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::restart, &aModel));
-		break;
-	    case Mode::RELOAD:
-		program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::reload, &aModel));
-		break;
-	    case Mode::SOLVE:
-		program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::solve, &aModel));
-		break;
-	    }
-
-	    LQIO::RegisterBindings(program->getEnvironment(), document);
-
-	    FILE * output = 0;
-	    if ( outputFileName.size() > 0 && outputFileName != "-" && LQIO::Filename::isRegularFile(outputFileName) ) {
-		output = fopen( outputFileName.c_str(), "w" );
-		if ( !output ) {
-		    LQIO::solution_error( LQIO::ERR_CANT_OPEN_FILE, outputFileName.c_str(), strerror( errno ) );
-		    status = FILEIO_ERROR;
-		} else {
-		    program->getEnvironment()->setDefaultOutput( output );	/* Default is stdout */
-		}
-	    }
-
-	    if ( status == 0 ) {
-		/* Invoke the LQX program itself */
-		if ( !program->invoke() ) {
-		    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, inputFileName.c_str() );
-		    status = FILEIO_ERROR;
-		} else if ( !SolverInterface::Solve::solveCallViaLQX ) {
-		    /* There was no call to solve the LQX */
-		    LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, inputFileName.c_str() );
-		    std::vector<LQX::SymbolAutoRef> args;
-		    program->getEnvironment()->invokeGlobalMethod("solve", &args);
-		}
-	    }
-	    if ( output ) {
-		fclose( output );
-	    }
-	}
-	delete program;
-
-    } else {
-	/* There is no control flow program, check for $-variables */
-	if (document->getSymbolExternalVariableCount() != 0) {
-	    LQIO::solution_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, inputFileName.c_str() );
-	    status = FILEIO_ERROR;
-	} else {
-	    try {
-		status = aModel.solve();		/* Simply invoke the solver for the current DOM state */
-	    }
-	    catch ( const std::runtime_error & error ) {
-		std::cerr << LQIO::io_vars.lq_toolname << ": runtime error - " << error.what() << std::endl;
-		LQIO::io_vars.error_count += 1;
-		status = EXCEPTION_EXIT;
-	    }
-	    catch ( const std::logic_error& error ) {
-		std::cerr << LQIO::io_vars.lq_toolname << ": logic error - " << error.what() << std::endl;
-		LQIO::io_vars.error_count += 1;
-		status = EXCEPTION_EXIT;
-	    }
-	}
-    }
-    return status;
 }
 
 static void

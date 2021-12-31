@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 15255 2021-12-24 17:42:46Z greg $
+ * $Id: processor.cc 15304 2021-12-31 15:51:38Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -18,6 +18,7 @@
 #include <limits>
 #include <lqio/dom_document.h>
 #include <lqio/dom_processor.h>
+#include <lqio/dom_task.h>
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/labels.h>

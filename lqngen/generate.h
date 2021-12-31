@@ -1,14 +1,14 @@
 /* -*- c++ -*-
  * generate.h	-- Greg Franks
  *
- * $Id: generate.h 14794 2021-06-11 12:13:01Z greg $
+ * $Id: generate.h 15304 2021-12-31 15:51:38Z greg $
  *
  */
 
 #if !defined(GENERATE_H)
 #define GENERATE_H
 
-#if defined(HAVE_CONFIG_H)
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
 #include <string>
@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <lqio/dom_document.h>
 #include <lqio/dom_extvar.h>
+#include <lqio/dom_activity.h>
 #include "lqngen.h"
 #include "randomvar.h"
 

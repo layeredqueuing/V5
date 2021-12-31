@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 15088 2021-10-22 16:14:35Z greg $
+ *  $Id: dom_document.cpp 15304 2021-12-31 15:51:38Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -10,7 +10,7 @@
 #include <config.h>
 #endif
 #include "dom_document.h"
-#include <iostream>
+#include <fstream>
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
@@ -21,19 +21,26 @@
 #include "expat_document.h"
 #include "jmva_document.h"
 #endif
+#include "dom_activity.h"
+#include "dom_actlist.h"
+#include "dom_call.h"
+#include "dom_entry.h"
+#include "dom_group.h"
+#include "dom_processor.h"
+#include "dom_task.h"
+#include "filename.h"
 #include "json_document.h"
 #include "srvn_input.h"
-#include "srvn_results.h"
 #include "srvn_output.h"
+#include "srvn_results.h"
 #include "srvn_spex.h"
-#include "filename.h"
-#include "dom_processor.h"
 
 extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
 
+
 namespace LQIO {
     lqio_params_stats io_vars(VERSION,nullptr);
-    
+
     namespace DOM {
 	Document* __document = nullptr;
 	bool Document::__debugXML = false;
@@ -47,12 +54,18 @@ namespace LQIO {
 	const char * Document::XUnderrelaxationCoefficient = "underrelax_coeff";/* Matches schema.	*/
 	const char * Document::XSpexIterationLimit = "spex_it_limit";
 	const char * Document::XSpexUnderrelaxation = "spex_underrelax_coeff";
-    
-	Document::Document( InputFormat format ) 
+
+	const std::map<const LQIO::DOM::Document::OutputFormat,const std::string> Document::__output_extensions = {
+	    { LQIO::DOM::Document::OutputFormat::XML, "lqxo" },
+	    { LQIO::DOM::Document::OutputFormat::JSON, "lqjo" },
+	    { LQIO::DOM::Document::OutputFormat::PARSEABLE, "p" }
+	};
+
+	Document::Document( InputFormat format )
 	    : _extraComment(),
-	      _processors(), _groups(), _tasks(), _entries(), 
-	      _entities(), _variables(), _controlVariables(), _nextEntityId(0), 
-	      _format(format), 
+	      _processors(), _groups(), _tasks(), _entries(),
+	      _entities(), _variables(), _controlVariables(), _nextEntityId(0),
+	      _format(format),
 	      _lqxProgram(""), _lqxProgramLineNumber(0), _parsedLQXProgram(nullptr), _instantiated(false), _pragmas(),
 	      _maximumPhase(0), _hasResults(false),
 	      _hasRendezvous(cached::NOT_SET), _hasSendNoReply(cached::NOT_SET), _taskHasAndJoin(cached::NOT_SET),		/* Cached valuess */
@@ -74,23 +87,23 @@ namespace LQIO {
 	    __initialValues[XSpexIterationLimit] =          50.;
 	    __initialValues[XSpexUnderrelaxation] =         0.9;
 	}
-    
 
-	Document::~Document() 
+
+	Document::~Document()
 	{
 	    /* Delete all of the processors (deletes tasks) */
 
 	    for ( std::map<std::string, Processor*>::iterator proc = _processors.begin(); proc != _processors.end(); ++proc ) {
 		delete proc->second;
 	    }
-      
+
 	    /* Make sure that we only delete entries once */
 	    for ( std::map<std::string, Entry*>::iterator entry = _entries.begin(); entry != _entries.end(); ++entry ) {
 		delete entry->second;
 	    }
-      
+
 	    /* Now, delete all of the groups */
-	    
+
 	    for ( std::map<std::string, Group*>::iterator group = _groups.begin(); group != _groups.end(); ++group ) {
 		delete group->second;
 	    }
@@ -104,13 +117,13 @@ namespace LQIO {
 	    for ( std::map<std::string, SymbolExternalVariable*>::const_iterator var = _variables.begin(); var != _variables.end(); ++var ) {
 		delete var->second;
 	    }
-	    
+
 	    LQIO::Spex::clear();
 
 	    __document = nullptr;
 	    __input_file_name = "";
 	}
-    
+
 	void Document::setModelParameters(const std::string& comment, LQIO::DOM::ExternalVariable* conv_val, LQIO::DOM::ExternalVariable* it_limit, LQIO::DOM::ExternalVariable* print_int, LQIO::DOM::ExternalVariable* underrelax_coeff, const void * element )
 	{
 	    /* Set up initial model parameters, but only if they were not set using SPEX variables */
@@ -137,58 +150,58 @@ namespace LQIO {
 	    }
 	}
 
-	std::string Document::getModelCommentString() const 
+	std::string Document::getModelCommentString() const
 	{
 	    const char * s;
 	    const std::map<const char *, const ExternalVariable *>::const_iterator iter = _controlVariables.find(XComment);
 	    if ( iter != _controlVariables.end() && iter->second != nullptr && iter->second->wasSet() ) {
 		if ( iter->second->getString( s ) ) return std::string(s);
-	    } 
+	    }
 	    return std::string("");
 	}
 
 	Document& Document::setModelComment( const ExternalVariable * comment )
-	{	
+	{
 	    _controlVariables[XComment] = comment;
 	    return *this;
 	}
 
 	Document& Document::setModelCommentString( const std::string& comment )
-	{	
+	{
 	    _controlVariables[XComment] = new ConstantExternalVariable( comment.c_str() );
 	    return *this;
 	}
 
-	const std::string& Document::getExtraComment() const 
+	const std::string& Document::getExtraComment() const
 	{
 	    return _extraComment;
 	}
 
 	Document& Document::setExtraComment( const std::string& value )
-	{	
+	{
 	    _extraComment = value;
 	    return *this;
 	}
 
 	Document& Document::setModelConvergence( const ExternalVariable * value )
-	{	
+	{
 	    _controlVariables[XConvergence] = value;
 	    return *this;
 	}
 
-	Document& Document::setModelIterationLimit( const ExternalVariable * value ) 
+	Document& Document::setModelIterationLimit( const ExternalVariable * value )
 	{
 	    _controlVariables[XIterationLimit] = value;
 	    return *this;
 	}
 
-	Document& Document::setModelPrintInterval( const ExternalVariable * value ) 
+	Document& Document::setModelPrintInterval( const ExternalVariable * value )
 	{
 	    _controlVariables[XPrintInterval] = value;
 	    return *this;
 	}
 
-	Document& Document::setModelUnderrelaxationCoefficient( const ExternalVariable * value ) 
+	Document& Document::setModelUnderrelaxationCoefficient( const ExternalVariable * value )
 	{
 	    _controlVariables[XUnderrelaxationCoefficient] = value;
 	    return *this;
@@ -232,25 +245,25 @@ namespace LQIO {
 	    return new ConstantExternalVariable( __initialValues[index] );
 	}
 
-	void 
+	void
 	Document::setMVAStatistics( const unsigned int submodels, const unsigned long core, const double step, const double step_squared, const double wait, const double wait_squared, const unsigned int faults )
 	{
 	    _mvaStatistics.set( submodels, core, step, step_squared, wait, wait_squared, faults );
 	}
-    
+
 	unsigned Document::getNextEntityId()
 	{
 	    /* Obtain the next valid identifier */
 	    return _nextEntityId++;
 	}
-    
+
 	void Document::addProcessorEntity(Processor* processor)
 	{
 	    /* Map in the processor entity */
 	    _entities[processor->getId()] = processor;
 	    _processors[processor->getName()] = processor;
 	}
-    
+
 	Processor* Document::getProcessorByName(const std::string& name) const
 	{
 	    /* Return the processor by name */
@@ -261,20 +274,20 @@ namespace LQIO {
 		return nullptr;
 	    }
 	}
-    
+
 	const std::map<std::string,Processor*>& Document::getProcessors() const
 	{
 	    /* Return the pointer */
 	    return _processors;
 	}
-    
+
 	void Document::addTaskEntity(Task* task)
 	{
 	    /* Map in the task entity */
 	    _entities[task->getId()] = task;
 	    _tasks[task->getName()] = task;
 	}
-    
+
 	Task* Document::getTaskByName(const std::string& name) const
 	{
 	    /* Return the task by name */
@@ -285,19 +298,19 @@ namespace LQIO {
 		return nullptr;
 	    }
 	}
-    
+
 	const std::map<std::string,Task*>& Document::getTasks() const
 	{
 	    /* Return the pointer */
 	    return _tasks;
 	}
-    
+
 	void Document::addEntry(Entry* entry)
 	{
 	    /* Store the entry in the table */
 	    _entries[entry->getName()] = entry;
 	}
-    
+
 	Entry* Document::getEntryByName(const std::string& name) const
 	{
 	    std::map<std::string, Entry*>::const_iterator entry = _entries.find(name);
@@ -308,19 +321,19 @@ namespace LQIO {
 		return entry->second;
 	    }
 	}
-    
+
 	const std::map<std::string,Entry*>& Document::getEntries() const
 	{
 	    /* Return the pointer */
 	    return _entries;
 	}
-    
+
 	void Document::addGroup(Group* group)
 	{
 	    /* Store the group in the map regarless of existence */
 	    _groups[group->getName()] = group;
 	}
-    
+
 	Group* Document::getGroupByName(const std::string& name) const
 	{
 	    std::map<std::string,Group*>::const_iterator group = _groups.find(name);
@@ -331,19 +344,19 @@ namespace LQIO {
 		return nullptr;
 	    }
 	}
-    
+
 	const std::map<std::string,Group*>& Document::getGroups() const
 	{
 	    /* Return the pointer */
 	    return _groups;
 	}
-    
+
 	const std::map<unsigned,Entity*>& Document::getEntities() const
 	{
 	    /* Return the pointer */
 	    return _entities;
 	}
-    
+
 	void Document::clearAllMaps()
 	{
 	    _processors.clear();
@@ -353,7 +366,7 @@ namespace LQIO {
 	    _entities.clear();
 	}
 
-	SymbolExternalVariable* Document::getSymbolExternalVariable(const std::string& name) 
+	SymbolExternalVariable* Document::getSymbolExternalVariable(const std::string& name)
 	{
 	    /* Link the variable into the list */
 	    if (_variables.find(name) != _variables.end()) {
@@ -375,33 +388,33 @@ namespace LQIO {
 	    /* Return the number of variables */
 	    return _variables.size();
 	}
-    
+
 	bool Document::areAllExternalVariablesAssigned() const
 	{
 	    /* Check to make sure all external variables were set */
 	    return std::all_of( _variables.begin(), _variables.end(), &wasSet );
 	}
-    
+
 	std::vector<std::string> Document::getUndefinedExternalVariables() const
 	{
 	    std::vector<std::string> names;
 	    std::for_each( _variables.begin(), _variables.end(), notSet(names) );
 	    return names;
 	}
-	
-    
+
+
 	void Document::setLQXProgramText(const std::string& program)
 	{
 	    /* Copies the LQX program body */
 	    _lqxProgram = program;
 	}
-    
+
 	void Document::setLQXProgramText(const char * program)
 	{
 	    /* Copies the LQX program body */
 	    _lqxProgram = program;
 	}
-    
+
 	const std::string& Document::getLQXProgramText() const
 	{
 	    /* Return a reference to the program text */
@@ -412,7 +425,7 @@ namespace LQIO {
 	{
 	    return _parsedLQXProgram;
 	}
-    
+
 	void Document::registerExternalSymbolsWithProgram(LQX::Program* program)
 	{
 	    if ( _instantiated ) return;			// Done already.
@@ -438,7 +451,7 @@ namespace LQIO {
 		if ( constant ) {
 		    constant->getValue( value );
 		    delete constant;
-		} 
+		}
 		/* Now make it a variable */
 		current = new SymbolExternalVariable(name);
 		current->registerInEnvironment(program);	// This assigns _externalSymbol
@@ -457,7 +470,7 @@ namespace LQIO {
 		delete constant;
 	    }
 	}
-    
+
 	void Document::addPragma(const std::string& param, const std::string& value )
 	{
 	    _pragmas.insert( param, value );
@@ -467,13 +480,13 @@ namespace LQIO {
 	{
 	    _pragmas.merge( list );
 	}
-	
+
 	const std::map<std::string,std::string>& Document::getPragmaList() const
 	{
 	    return _pragmas.getList();
 	}
 
-	void Document::clearPragmaList() 
+	void Document::clearPragmaList()
 	{
 	    _pragmas.clear();
 	}
@@ -485,57 +498,57 @@ namespace LQIO {
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-	Document& Document::setResultValid(bool resultValid) 
-	{ 
+	Document& Document::setResultValid(bool resultValid)
+	{
 	    _hasResults = true;
 	    _resultValid = resultValid;
 	    return *this;
 	}
 
-	Document& Document::setResultConvergenceValue(double resultConvergenceValue) 
-	{ 
+	Document& Document::setResultConvergenceValue(double resultConvergenceValue)
+	{
 	    _hasResults = true;
 	    _resultConvergenceValue = resultConvergenceValue;
 	    return *this;
 	}
 
-	Document& Document::setResultIterations(unsigned int resultIterations) 
-	{ 
+	Document& Document::setResultIterations(unsigned int resultIterations)
+	{
 	    _hasResults = true;
 	    _resultIterations = resultIterations;
 	    return *this;
 	}
 
-	Document& Document::setResultPlatformInformation(const std::string& resultPlatformInformation) 
-	{ 
+	Document& Document::setResultPlatformInformation(const std::string& resultPlatformInformation)
+	{
 	    _hasResults = true;
 	    _resultPlatformInformation = resultPlatformInformation;
 	    return *this;
 	}
 
-	Document& Document::setResultSolverInformation(const std::string& resultSolverInformation) 
-	{ 
+	Document& Document::setResultSolverInformation(const std::string& resultSolverInformation)
+	{
 	    _hasResults = true;
 	    _resultSolverInformation = resultSolverInformation;
 	    return *this;
 	}
 
-	Document& Document::setResultUserTime(double resultUserTime) 
-	{ 
+	Document& Document::setResultUserTime(double resultUserTime)
+	{
 	    _hasResults = true;
 	    _resultUserTime = resultUserTime;
 	    return *this;
 	}
 
-	Document& Document::setResultSysTime(double resultSysTime) 
-	{ 
+	Document& Document::setResultSysTime(double resultSysTime)
+	{
 	    _hasResults = true;
 	    _resultSysTime = resultSysTime;
 	    return *this;
 	}
 
-	Document& Document::setResultElapsedTime(double resultElapsedTime) 
-	{ 
+	Document& Document::setResultElapsedTime(double resultElapsedTime)
+	{
 	    _hasResults = true;
 	    _resultElapsedTime = resultElapsedTime;
 	    return *this;
@@ -549,7 +562,7 @@ namespace LQIO {
 	    }
 	    return *this;
 	}
-	
+
 
 	bool Document::hasResults() const
 	{
@@ -652,7 +665,7 @@ namespace LQIO {
 	    return std::any_of( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasOpenArrivalRate ) );
 	}
 
-	bool Document::entryHasThroughputBound() const 
+	bool Document::entryHasThroughputBound() const
 	{
 	    return std::any_of( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasResultsForThroughputBound ) );
 	}
@@ -664,7 +677,7 @@ namespace LQIO {
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Dom builder ] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-	ExternalVariable* 
+	ExternalVariable*
 	Document::db_build_parameter_variable(const char* input, bool* isSymbol)
 	{
 	    if (isSymbol) { *isSymbol = false; }
@@ -691,8 +704,8 @@ namespace LQIO {
 		return new ConstantExternalVariable(result);
 	    }
 	}
-	
-	void 
+
+	void
 	Document::db_check_set_entry(Entry* entry, const std::string& entry_name, Entry::Type requisiteType)
 	{
 	    if ( !entry ) {
@@ -716,7 +729,7 @@ namespace LQIO {
 	 * try to load the latter if load_results == false
 	 */
 
-	/* static */ Document* 
+	/* static */ Document*
 	Document::load(const std::string& input_filename, InputFormat format, unsigned& errorCode, bool load_results )
 	{
 	    __input_file_name = input_filename;
@@ -729,7 +742,7 @@ namespace LQIO {
 	    }
 
 	    /* Create a document to store the product */
-	
+
 	    bool rc = true;
 	    Document * document = new Document( format );
 	    LQIO::Spex::__global_variables = &document->_variables;	/* For SPEX */
@@ -747,7 +760,7 @@ namespace LQIO {
 	    case InputFormat::XML:
 		rc = Expat_Document::load( *document, input_filename, load_results );
 		break;
-		
+
 	    case InputFormat::JMVA:
 		rc = BCMP::JMVA_Document::load( *document, input_filename );
 		break;
@@ -794,7 +807,7 @@ namespace LQIO {
 	    case InputFormat::JSON:
 //		return Json_Document::loadResults( LQIO::Filename( file_name, "lqxo", directory_name, suffix )() );
 		return false;
-		
+
 	    default:
 		return false;
 	    }
@@ -820,6 +833,95 @@ namespace LQIO {
 		}
 	    }
 	}
+
+	/*
+	 * All the gobbly gook to print out the model.
+	 */
+
+	void
+	Document::print( const std::string& output_file_name, const std::string& suffix, const OutputFormat output_format, bool rtf_output ) const
+	{
+	    const bool lqx_output = getResultInvocationNumber() > 0;
+	    const std::string directory_name = LQIO::Filename::createDirectory( isOutputFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
+
+	    /* override is true for '-p -o filename.out when filename.in' == '-p filename.in' */
+
+	    bool override = false;
+	    if ( isOutputFileName( output_file_name ) && LQIO::Filename::isRegularFile( output_file_name ) > 0 ) {
+		LQIO::Filename filename( __input_file_name, rtf_output ? "rtf" : "out" );
+		override = filename() == output_file_name;
+	    }
+
+	    if ( override || ((!isOutputFileName( output_file_name ) || !directory_name.empty()) && __input_file_name != "-" )) {
+
+		/* Case for "-o <dir>" or "[-o xxx.out] -{p,j,x}" when xxx.out == xxx.in if -o xxx.out is present */
+
+		std::ofstream output;
+
+		/* Parseable output. {.p, .lqxo, .lqjo} */
+
+		const std::map<const LQIO::DOM::Document::OutputFormat,const std::string>::const_iterator extension =  __output_extensions.find( output_format );
+		if ( extension != __output_extensions.end() ) {
+		    LQIO::Filename filename( __input_file_name, extension->second, directory_name, suffix );
+		    filename.backup();
+		    output.open( filename(), std::ios::out );
+		    if ( !output ) {
+			solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
+		    } else {
+			print( output, extension->first );
+			output.close();
+		    }
+		}
+
+		/* Regular output */
+
+		LQIO::Filename filename( __input_file_name, rtf_output ? "rtf" : "out", directory_name, suffix );
+
+		output.open( filename(), std::ios::out );
+		if ( !output ) {
+		    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
+		} else if ( rtf_output ) {
+		    print( output, LQIO::DOM::Document::OutputFormat::RTF );
+		} else {
+		    print( output );
+		}
+		output.close();
+
+	    } else if ( output_file_name == "-" || __input_file_name == "-" ) {
+
+		/* case for pipeines: ... | lqns ... */
+
+		const std::map<const LQIO::DOM::Document::OutputFormat,const std::string>::const_iterator extension =  __output_extensions.find( output_format );
+		if ( extension != __output_extensions.end() ) {
+		    print( std::cout, extension->first );
+		} else if ( rtf_output ) {
+		    print( std::cout, LQIO::DOM::Document::OutputFormat::RTF );
+		} else {
+		    print( std::cout );
+		}
+
+	    } else {
+
+		/* case for -o xxx, do not map filename. */
+
+		LQIO::Filename::backup( output_file_name );
+		std::ofstream output;
+
+		output.open( output_file_name, std::ios::out );
+		if ( !output ) {
+		    solution_error( LQIO::ERR_CANT_OPEN_FILE, output_file_name.c_str(), strerror( errno ) );
+		} else if ( __output_extensions.find( output_format ) != __output_extensions.end() ) {
+		    print( output, output_format );
+		} else if ( rtf_output ) {
+		    print( output, LQIO::DOM::Document::OutputFormat::RTF );
+		} else {
+		    print( output );
+		}
+		output.close();
+	    }
+	}
+
+
 
 	/*
 	 * Print in input order.
@@ -838,8 +940,8 @@ namespace LQIO {
 	    case OutputFormat::PARSEABLE:{
 		SRVN::Parseable srvn( *this, _entities );
 		srvn.print( output );
-		break;		
-	    } 
+		break;
+	    }
 	    case OutputFormat::RTF: {
 		SRVN::RTF srvn( *this, _entities );
 		srvn.print( output );
@@ -883,7 +985,7 @@ namespace LQIO {
 	    return output;
 	}
     }
-
+    
     lqio_params_stats::lqio_params_stats( const char * version, void (*action)(unsigned) ) :
 	lq_toolname(),
 	lq_version(version),

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15277 2021-12-27 21:09:31Z greg $ *
+ * $Id: pragma.cc 15300 2021-12-30 23:41:01Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -60,12 +60,12 @@ const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
 
 Pragma::Pragma() :
     _allow_cycles(false),
-    _convergence_value(0.00001),
+    _convergence_value(0.0),
     _exponential_paths(false),
     _force_infinite(ForceInfinite::NONE),
     _force_multiserver(ForceMultiserver::NONE),
     _interlock(true),
-    _iteration_limit(50),
+    _iteration_limit(0),
     _layering(Layering::BATCHED),
     _mol_underrelaxation(0.5),
     _multiserver(Multiserver::DEFAULT),
@@ -89,6 +89,7 @@ Pragma::Pragma() :
     _task_scheduling(SCHEDULE_FIFO),
     _tau(8),
     _threads(Threads::HYPER),
+    _underrelaxation(0.),
     _variance(Variance::DEFAULT),
     /* Bonus */
     _default_processor_scheduling(true),
@@ -120,13 +121,6 @@ Pragma::set( const std::map<std::string,std::string>& list )
     }
 }
 
-
-bool
-Pragma::has( const std::string& param )
-{
-    if ( __cache == nullptr ) return false;
-    return __set_pragma.find(param) != __set_pragma.end();
-}
 
 
 void Pragma::setAllowCycles(const std::string& value)

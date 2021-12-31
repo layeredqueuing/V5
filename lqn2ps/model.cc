@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15299 2021-12-30 21:36:22Z greg $
+ * $Id: model.cc 15304 2021-12-31 15:51:38Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -24,8 +24,11 @@
 #include <sys/times.h>
 #endif
 #include <sys/stat.h>
+#if HAVE_SYS_TYPES_H
 #include <sys/types.h>
+#endif
 #include <lqio/dom_document.h>
+#include <lqio/dom_activity.h>
 #include <lqio/srvn_results.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>

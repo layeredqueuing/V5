@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 15297 2021-12-30 16:21:19Z greg $
+ * $Id: lqsim.cc 15302 2021-12-31 14:19:34Z greg $
  */
 
 #define STACK_TESTING
@@ -77,17 +77,12 @@ typedef	int fp_bit_type;
 /*----------------------------------------------------------------------*/
 
 bool debug_flag	       	      = false;	/* Debugging flag set?      	*/
-bool global_parse_flag	      = false;	/* Parsable output desired? 	*/
-bool global_xml_flag	      = false;	/* Output XML results.		*/
-bool global_rtf_flag	      = false;	/* Output RTF			*/
-bool global_json_flag	      = false;	/* Output JSON			*/
+bool rtf_flag		      = false;	/* Output RTF			*/
 bool raw_stat_flag 	      = false;	/* Verbose text output?	    	*/
 bool verbose_flag 	      = false;	/* Verbose text output?	    	*/
 bool no_execute_flag	      = false;	/* Run simulation if false	*/
 bool timeline_flag	      = false;	/* Generate output for timeline	*/
 bool trace_msgbuf_flag        = false;	/* Observe msg buffer operation	*/
-bool reload_flag	      = false;	/* Reload results from LQX run.	*/
-bool restart_flag	      = false;	/* Re-run any missing results	*/
 bool override_print_int       = false;	/* Override input file.		*/
 bool check_stacks	      = false;	/* Enable parasol stack check.	*/
 
@@ -310,6 +305,8 @@ main( int argc, char * argv[] )
     int global_error_flag	= 0;
     std::string output_file;		/* Command line filename?   	*/
     LQIO::DOM::Document::InputFormat input_format = LQIO::DOM::Document::InputFormat::AUTOMATIC;
+    LQIO::DOM::Document::OutputFormat output_format = LQIO::DOM::Document::OutputFormat::DEFAULT;
+    Model::solve_using solve_function = &Model::start;
 	
     /* optarg(3) stuff */
 	
@@ -326,7 +323,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2021-12-30 11:21:19 -0500 (Thu, 30 Dec 2021) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2021-12-31 09:19:34 -0500 (Fri, 31 Dec 2021) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -444,6 +441,8 @@ main( int argc, char * argv[] )
 	    case 'I':
 		if ( strcasecmp( optarg, "xml" ) == 0 ) {
 		    input_format = LQIO::DOM::Document::InputFormat::XML;
+		} else if ( strcasecmp( optarg, "json" ) == 0 ) {
+		    input_format = LQIO::DOM::Document::InputFormat::JSON;
 		} else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
 		    input_format = LQIO::DOM::Document::InputFormat::LQN;
 		} else {
@@ -452,7 +451,7 @@ main( int argc, char * argv[] )
 		break;
 
 	    case 'j':
-		global_json_flag = true;
+		output_format = LQIO::DOM::Document::OutputFormat::JSON;
 		break;
 
 	    case 256+'j':
@@ -499,7 +498,7 @@ main( int argc, char * argv[] )
 		break;
 
 	    case 'p':
-		global_parse_flag = true;
+		output_format = LQIO::DOM::Document::OutputFormat::PARSEABLE;
 		break;
 
 	    case 'P':
@@ -519,11 +518,11 @@ main( int argc, char * argv[] )
 		break;
 				
 	    case 'r':
-		global_rtf_flag = true;
+		rtf_flag = true;
 		break;
 
 	    case 256+'r':
-		reload_flag = true;
+		solve_function = &Model::reload;
 		break;
 
 	    case 'R':
@@ -531,7 +530,7 @@ main( int argc, char * argv[] )
 		break;
 			
 	    case 256+'R':
-		restart_flag = true;
+		solve_function = &Model::restart;
 		break;
 
 	    case 'S':
@@ -603,7 +602,7 @@ main( int argc, char * argv[] )
 		break;
 			
 	    case 'x':
-		global_xml_flag = true;
+		output_format = LQIO::DOM::Document::OutputFormat::XML;
 		break;
 
 	    case (256+'x'):
@@ -633,11 +632,6 @@ main( int argc, char * argv[] )
 
     LQIO::io_vars.lq_command_line = command_line.c_str();
 
-    if ( reload_flag && restart_flag ) {
-	(void) fprintf( stderr, "%s: --reload-lqx and --restart are mutually exclusive: --restart assumed.\n", LQIO::io_vars.toolname() );
-	reload_flag = false;
-    }
-	
 #if !defined(__WINNT__)
     if ( nice_value != 10 ) {
 	errno = 0;	/* Lower nice level for run */
@@ -660,7 +654,7 @@ main( int argc, char * argv[] )
 	}
 	
 	try {
-	    global_error_flag |= Model::solve( "-", input_format, output_file, pragmas );
+	    global_error_flag |= Model::solve( solve_function, "-", input_format, output_file, output_format, pragmas );
 	}
 	catch ( const std::runtime_error &e ) {
 	    fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), e.what() );
@@ -687,7 +681,7 @@ main( int argc, char * argv[] )
 		(void) printf( "%s:\n", argv[optind] );
 	    }
 	    try {
-		global_error_flag |= Model::solve( argv[optind], input_format, output_file, pragmas );
+		global_error_flag |= Model::solve( solve_function, argv[optind], input_format, output_file, output_format, pragmas );
 	    }
 	    catch ( const std::runtime_error &e ) {
 		fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), e.what() );

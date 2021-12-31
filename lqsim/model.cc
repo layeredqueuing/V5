@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15299 2021-12-30 21:36:22Z greg $
+ * $Id: model.cc 15302 2021-12-31 14:19:34Z greg $
  */
 
 #include "lqsim.h"
@@ -56,10 +56,6 @@
 #include "runlqx.h"		// Coupling here is ugly at the moment
 #include "task.h"
 
-#if !defined(MAXDOUBLE)
-#define MAXDOUBLE FLT_MAX
-#endif
-
 extern "C" {
     extern void test_all_stacks();
 }
@@ -78,8 +74,8 @@ bool deferred_exception = false;	/* domain error detected during run.. throw aft
  * Initialize input parser parameters.
  */
 
-Model::Model( LQIO::DOM::Document* document, const std::string& input_file_name, const std::string& output_file_name )
-    : _document(document), _input_file_name(input_file_name), _output_file_name(output_file_name), _parameters(), _confidence(0.0)
+Model::Model( LQIO::DOM::Document* document, const std::string& input_file_name, const std::string& output_file_name, LQIO::DOM::Document::OutputFormat output_format )
+    : _document(document), _input_file_name(input_file_name), _output_file_name(output_file_name), _output_format(output_format), _parameters(), _confidence(0.0)
 {
     __model = this;
 
@@ -122,22 +118,49 @@ Model::~Model()
  */
 
 int
-Model::solve( const std::string& input_filename, LQIO::DOM::Document::InputFormat input_format, const std::string& output_filename, const LQIO::DOM::Pragma& pragmas )
+Model::solve( solve_using run_function, const std::string& input_file_name, LQIO::DOM::Document::InputFormat input_format, const std::string& output_file_name, LQIO::DOM::Document::OutputFormat output_format, const LQIO::DOM::Pragma& pragmas )
 {
+    static const std::map<const LQIO::DOM::Document::InputFormat,const LQIO::DOM::Document::OutputFormat> input_to_output_format = {
+	{ LQIO::DOM::Document::InputFormat::XML,	LQIO::DOM::Document::OutputFormat::XML },
+	{ LQIO::DOM::Document::InputFormat::JSON,	LQIO::DOM::Document::OutputFormat::JSON },
+	{ LQIO::DOM::Document::InputFormat::LQN,	LQIO::DOM::Document::OutputFormat::XML },
+    };
+
     LQIO::io_vars.reset();
 
     /* load the model into the DOM document.  */
 
     unsigned int status = 0;
-    LQIO::DOM::Document* document = LQIO::DOM::Document::load( input_filename, input_format, status, false );
+    LQIO::DOM::Document* document = LQIO::DOM::Document::load( input_file_name, input_format, status, false );
+    LQX::Program * program = nullptr;
 
     /* Make sure we got a document */
     if ( document == nullptr || LQIO::io_vars.anError() ) return INVALID_INPUT;
 
-    Model model( document, input_filename, output_filename );
+    switch ( document->getInputFormat() ) {
+    case LQIO::DOM::Document::InputFormat::JSON:
+    case LQIO::DOM::Document::InputFormat::XML:
+	if ( LQIO::Spex::__no_header ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << input_file_name << "." << std::endl;
+	}
+	if ( LQIO::Spex::__print_comment ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": --print-comment is ignored for " << input_file_name << "." << std::endl;
+	}
+	break;
+    default:;
+    }
+
+    /*
+     * Set output format from input, or if LQN and LQX then force to XML.
+     */
+    
+    if ( output_format == LQIO::DOM::Document::OutputFormat::DEFAULT && (document->getInputFormat() != LQIO::DOM::Document::InputFormat::LQN || program != nullptr) ) {
+	output_format = input_to_output_format.at( document->getInputFormat() );
+    }
+
+    Model model( document, input_file_name, output_file_name, output_format );
 
     FILE * output = nullptr;
-    LQX::Program * program = nullptr;
     try { 
 
 	if( !model.prepare() ) throw std::runtime_error( "Model::prepare" );
@@ -150,20 +173,13 @@ Model::solve( const std::string& input_filename, LQIO::DOM::Document::InputForma
 	if ( program ) {
 	    /* Attempt to run the program */
 	    document->registerExternalSymbolsWithProgram(program);
-	    if ( restart_flag ) {
-		program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::restart, &model));
-	    } else if ( reload_flag ) {
-		program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::reload, &model));
-	    } else {
-		program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::start, &model));
-	    }
-
+	    program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, run_function, &model));
 	    LQIO::RegisterBindings(program->getEnvironment(), document);
 	
-	    if ( !output_filename.empty() && output_filename != "-" && LQIO::Filename::isRegularFile(output_filename) ) {
-		output = fopen( output_filename.c_str(), "w" );
+	    if ( !output_file_name.empty() && output_file_name != "-" && LQIO::Filename::isRegularFile(output_file_name) ) {
+		output = fopen( output_file_name.c_str(), "w" );
 		if ( !output ) {
-		    solution_error( LQIO::ERR_CANT_OPEN_FILE, output_filename.c_str(), strerror( errno ) );
+		    solution_error( LQIO::ERR_CANT_OPEN_FILE, output_file_name.c_str(), strerror( errno ) );
 		    status = FILEIO_ERROR;
 		} else {
 		    program->getEnvironment()->setDefaultOutput( output );	/* Default is stdout */
@@ -173,11 +189,11 @@ Model::solve( const std::string& input_filename, LQIO::DOM::Document::InputForma
 	    if ( status == 0 ) {
 		/* Invoke the LQX program itself */
 		if ( !program->invoke() ) {		/* Run simulation	*/
-		    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, input_filename.c_str() );
+		    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, input_file_name.c_str() );
 		    status = INVALID_INPUT;
 		} else if ( !SolverInterface::Solve::solveCallViaLQX ) {
 		    /* There was no call to solve the LQX */
-		    LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, input_filename.c_str() );
+		    LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, input_file_name.c_str() );
 		    std::vector<LQX::SymbolAutoRef> args;
 		    SolverInterface::Solve::implicitSolve = true;
 		    program->getEnvironment()->invokeGlobalMethod("solve", &args);
@@ -187,7 +203,7 @@ Model::solve( const std::string& input_filename, LQIO::DOM::Document::InputForma
 	} else {
 	    /* There is no control flow program, check for $-variables */
 	    if ( document->getSymbolExternalVariableCount() != 0 ) {
-		LQIO::solution_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, input_filename.c_str() );
+		LQIO::solution_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, input_file_name.c_str() );
 		status = INVALID_INPUT;
 	    } else if ( !model.start() ) {		/* Run simulation	*/
 		status = INVALID_OUTPUT;
@@ -388,121 +404,6 @@ Model::create()
  */
 
 void
-Model::print()
-{
-    /* Parasol statistics if desired */
-
-    if ( raw_stat_flag ) {
-	print_raw_stats( stddbg );
-    }
-
-    const bool lqx_output = _document->getResultInvocationNumber() > 0;
-    const std::string directory_name = LQIO::Filename::createDirectory( hasOutputFileName() ? _output_file_name : _input_file_name, lqx_output );
-    const std::string suffix = lqx_output ? SolverInterface::Solve::customSuffix : "";
-
-    /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
-
-    bool override = false;
-    if ( hasOutputFileName() && LQIO::Filename::isRegularFile( _output_file_name ) != 0 ) {
-	LQIO::Filename filename( _input_file_name, global_rtf_flag ? "rtf" : "out" );
-	override = filename() == _output_file_name;
-    }
-
-    /* SRVN type statistics */
-
-    if ( override || ((!hasOutputFileName() || directory_name.size() > 0 ) && _input_file_name != "-" ) ) {
-
-	if ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::XML || global_xml_flag ) {	/* No parseable/json output, so create XML */
-	    std::ofstream output;
-	    LQIO::Filename filename( _input_file_name, "lqxo", directory_name, suffix );
-	    filename.backup();
-	    output.open( filename(), std::ios::out );
-	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
-	    } else {
-		_document->print( output, LQIO::DOM::Document::OutputFormat::XML );		// don't save LQX
-		output.close();
-	    }
-	}
-
-	if ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::JSON || global_json_flag ) {
-	    std::ofstream output;
-	    LQIO::Filename filename( _input_file_name, "lqjo", directory_name, suffix );
-	    output.open( filename().c_str(), std::ios::out );
-	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
-	    } else {
-		_document->print( output, LQIO::DOM::Document::OutputFormat::JSON );		// don't save LQX
-		output.close();
-	    }
-	}
-
-	/* Parseable output. */
-
-	if ( ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::LQN && lqx_output && !global_xml_flag ) || global_parse_flag ) {
-	    std::ofstream output;
-	    LQIO::Filename filename( _input_file_name, "p", directory_name, suffix );
-	    output.open( filename(), std::ios::out );
-	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
-	    } else {
-		_document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
-		output.close();
-	    }
-	}
-
-	/* Regular output */
-
-	std::ofstream output;
-	LQIO::Filename filename( _input_file_name, global_rtf_flag ? "rtf" : "out", directory_name, suffix );
-	output.open( filename(), std::ios::out );
-	if ( !output ) {
-	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
-	} else {
-	    _document->print( output, global_rtf_flag ? LQIO::DOM::Document::OutputFormat::RTF : LQIO::DOM::Document::OutputFormat::LQN );
-	    output.close();
-	}
-
-    } else if ( _output_file_name == "-" || _input_file_name == "-" ) {
-
-	if ( global_parse_flag ) {
-	    _document->print( std::cout, LQIO::DOM::Document::OutputFormat::PARSEABLE );
-	} else {
-	    _document->print( std::cout, global_rtf_flag ? LQIO::DOM::Document::OutputFormat::RTF : LQIO::DOM::Document::OutputFormat::LQN );
-	}
-
-    } else {
-
-	/* Do not map filename. */
-
-	LQIO::Filename::backup( _output_file_name );
-
-	std::ofstream output;
-	output.open( _output_file_name.c_str(), std::ios::out );
-	if ( !output ) {
-	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
-	} else if ( global_xml_flag ) {
-	    _document->print( output, LQIO::DOM::Document::OutputFormat::XML );
-	} else if ( global_json_flag ) {
-	    _document->print( output, LQIO::DOM::Document::OutputFormat::JSON );
-	} else if ( global_parse_flag ) {
-	    _document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
-	} else if ( global_rtf_flag ) {
-	    _document->print( output, LQIO::DOM::Document::OutputFormat::RTF );
-	} else {
-	    _document->print( output );
-	}
-	output.close();
-    }
-}
-
-
-
-/*
- * Set up file descriptors and call proper output routine.
- */
-
-void
 Model::print_intermediate()
 {
     _document->setResultConvergenceValue(_confidence)
@@ -514,13 +415,10 @@ Model::print_intermediate()
     const std::string suffix = lqx_output ? SolverInterface::Solve::customSuffix : "";
 
     std::string extension;
-    if ( global_parse_flag ) {
-	extension = "p";
-    } else if ( global_xml_flag ) {
-	extension = "lqxo";
-    } else if ( global_json_flag ) {
-	extension = "json";
-    } else if ( global_rtf_flag ) {
+    const std::map<const LQIO::DOM::Document::OutputFormat,const std::string>::const_iterator ext_iter =  LQIO::DOM::Document::__output_extensions.find( _output_format );
+    if ( ext_iter != LQIO::DOM::Document::__output_extensions.end() ) {
+	extension = ext_iter->second;
+    } else if ( rtf_flag ) {
 	extension = "rtf";
     } else {
 	extension = "out";
@@ -536,12 +434,10 @@ Model::print_intermediate()
 
     if ( !output ) {
 	return;			/* Ignore errors */
-    } else if ( global_xml_flag ) {
-	_document->print( output, LQIO::DOM::Document::OutputFormat::XML );
-    } else if ( global_json_flag ) {
-	_document->print( output, LQIO::DOM::Document::OutputFormat::JSON );
-    } else if ( global_parse_flag ) {
-	_document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
+    } else if ( ext_iter != LQIO::DOM::Document::__output_extensions.end() ) {
+	_document->print( std::cout, ext_iter->first );
+    } else if ( rtf_flag ) {
+	_document->print( output, LQIO::DOM::Document::OutputFormat::RTF );
     } else {
 	_document->print( output );
     }
@@ -694,7 +590,14 @@ Model::start()
      * Print final results
      */
 
-    print();
+    /* Parasol statistics if desired */
+
+    if ( raw_stat_flag ) {
+	print_raw_stats( stddbg );
+    }
+
+    _document->print( _output_file_name, _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : std::string(""), _output_format, rtf_flag );
+
     if ( _confidence > _parameters._precision && _parameters._precision > 0.0 ) {
 	LQIO::solution_error( ADV_PRECISION, _parameters._precision, _parameters._block_period * number_blocks + _parameters._initial_delay, _confidence );
     }

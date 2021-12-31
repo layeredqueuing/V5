@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 14900 2021-07-14 21:32:58Z greg $
+ * $Id: expat_document.cpp 15304 2021-12-31 15:51:38Z greg $
  *
  * Read in XML input files.
  *
@@ -32,8 +32,10 @@
 #include <cmath>
 #include <fcntl.h>
 #include <sys/stat.h>
-#if HAVE_SYS_MMAN_H
+#if HAVE_SYS_TYPES_H
 #include <sys/types.h>
+#endif
+#if HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
 #if HAVE_UNISTD_H
@@ -47,6 +49,7 @@
 #include "dom_actlist.h"
 #include "dom_call.h"
 #include "dom_entry.h"
+#include "dom_group.h"
 #include "dom_histogram.h"
 #include "dom_object.h"
 #include "dom_phase.h"

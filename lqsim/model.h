@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 15299 2021-12-30 21:36:22Z greg $
+ * $Id: model.h 15302 2021-12-31 14:19:34Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -98,14 +98,15 @@ public:
 private:
     template <typename Type> inline static void Delete( Type x ) { delete x; }
 
-    Model( LQIO::DOM::Document* document, const std::string&, const std::string& );
+    Model( LQIO::DOM::Document* document, const std::string&, const std::string&, LQIO::DOM::Document::OutputFormat );
     Model( const Model& );
     Model& operator=( const Model& );
 
 public:
+    typedef bool (Model::*solve_using)();
     virtual ~Model();
     
-    static int solve( const std::string&, LQIO::DOM::Document::InputFormat, const std::string&, const LQIO::DOM::Pragma& pragmas );
+    static int solve( solve_using, const std::string&, LQIO::DOM::Document::InputFormat, const std::string&, LQIO::DOM::Document::OutputFormat, const LQIO::DOM::Pragma& );
 
     bool operator!() const { return _document == nullptr; }
 
@@ -113,21 +114,20 @@ public:
     static double block_period() { return __model->_parameters._block_period; }
     static void set_block_period( double block_period ) { __model->_parameters._block_period = block_period; }
 
-private:
-    bool prepare();		/* Step 1 -- outside of parasol */
-    bool create();		/* Step 2 -- inside of parasol	*/
-
     bool start();
     bool reload();		/* Load results from LQX */
     bool restart();
     
+private:
+    bool prepare();		/* Step 1 -- outside of parasol */
+    bool create();		/* Step 2 -- inside of parasol	*/
+
     void reset_stats();
     void accumulate_data();
     void insertDOMResults();
 
     bool hasOutputFileName() const { return _output_file_name.size() > 0 && _output_file_name != "-"; }
     
-    void print();
     void print_intermediate();
     void print_raw_stats( FILE * output ) const;
     
@@ -141,11 +141,13 @@ private:
     LQIO::DOM::Document* _document;
     std::string _input_file_name;
     std::string _output_file_name;
+    const LQIO::DOM::Document::OutputFormat _output_format;
     LQIO::DOM::CPUTime _start_time;
     simulation_parameters _parameters;
     double _confidence;
     static int __genesis_task_id;
     static Model * __model;
+    static const std::map<const LQIO::DOM::Document::OutputFormat,const std::string> __parseable_output;
 
 public:
     static double max_service;	/* Max service time found.	*/

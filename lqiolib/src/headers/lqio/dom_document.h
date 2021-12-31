@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: dom_document.h 15304 2021-12-31 15:51:38Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -9,17 +9,11 @@
 #ifndef __LQIO_DOM_DOCUMENT__
 #define __LQIO_DOM_DOCUMENT__
 
-#include <sys/time.h>
 #include <map>
-#include "dom_processor.h"
-#include "dom_group.h"
-#include "dom_task.h"
-#include "dom_entry.h"
-#include "dom_activity.h"
-#include "dom_actlist.h"
-#include "dom_call.h"
-#include "dom_extvar.h"
+#include <string>
 #include "dom_pragma.h"
+#include "dom_entry.h"
+#include "dom_extvar.h"
 #include "submodel_info.h"
 
 namespace LQX {
@@ -28,6 +22,14 @@ namespace LQX {
 
 namespace LQIO {
     namespace DOM {
+	class Processor;
+	class Task;
+	class Group;
+	class Entity;
+	class Activity;
+	class Call;
+	class ActivityList;
+	
 	class Document {
 
 	public:
@@ -197,6 +199,7 @@ namespace LQIO {
 	    static InputFormat getInputFormatFromFilename( const std::string&, const InputFormat=InputFormat::AUTOMATIC );
 	    static Document* load(const std::string&, InputFormat format, unsigned& errorCode, bool load_results );
 	    virtual bool loadResults( const std::string&, const std::string&, const std::string&, unsigned& errorCode );
+	    void print( const std::string& output_file_name, const std::string& suffix , const OutputFormat format, bool rtf_output ) const;
 	    std::ostream& print( std::ostream& ouptut, const OutputFormat format=OutputFormat::LQN ) const;
 	    std::ostream& printExternalVariables( std::ostream& ouptut ) const;
 
@@ -220,6 +223,7 @@ namespace LQIO {
 	    private:
 		std::vector<std::string>& _list;
 	    };
+	    static inline bool isOutputFileName( const std::string& name ) { return !name.empty() && name != "-"; }
 
 	public:
 	    /* Names of document attributes */
@@ -230,6 +234,9 @@ namespace LQIO {
 	    static const char * XUnderrelaxationCoefficient;
 	    static const char * XSpexIterationLimit;
 	    static const char * XSpexUnderrelaxation;
+
+	    /* Output extensions */
+	    static const std::map<const LQIO::DOM::Document::OutputFormat,const std::string> __output_extensions;
 
 	private:
 	    /* Parameter Information */

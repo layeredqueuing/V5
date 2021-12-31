@@ -1,35 +1,39 @@
 /*
- *  $Id: srvn_results.cpp 14605 2021-04-16 18:01:04Z greg $
+ *  $Id: srvn_results.cpp 15304 2021-12-31 15:51:38Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
 
-#if defined(HAVE_CONFIG_H)
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
 
 #include <sys/stat.h>
-#if HAVE_SYS_MMAN_H
+#if HAVE_SYS_TYPES_H
 #include <sys/types.h>
+#endif
+#if HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
 #include <cstdarg>
 #include <cstring>
 #include <errno.h>
 #include <algorithm>
+#include "confidence_intervals.h"
+#include "dom_activity.h"
+#include "dom_actlist.h"
 #include "dom_document.h"
+#include "dom_entry.h"
+#include "dom_group.h"
 #include "dom_processor.h"
 #include "dom_task.h"
-#include "dom_entry.h"
-#include "dom_activity.h"
-#include "filename.h"
-#include "confidence_intervals.h"
-#include "srvn_results.h"
-#include "srvn_input.h"
-#include "glblerr.h"
 #include "error.h"
+#include "filename.h"
+#include "glblerr.h"
+#include "srvn_input.h"
+#include "srvn_results.h"
 
 static const char * results_file_name;	/* Filename for the parser's input file */
 static unsigned int n_phases = 0;

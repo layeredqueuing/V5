@@ -9,13 +9,13 @@
  *
  * November, 1994
  *
- * $Id: flags.h 15149 2021-12-03 16:29:26Z greg $
+ * $Id: flags.h 15302 2021-12-31 14:19:34Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if !defined(LQNS_H)
-#define LQNS_H
+#if !defined(LQNS_FLAGS_H)
+#define LQNS_FLAGS_H
 
 extern char * generate_file_name;
 
@@ -24,12 +24,9 @@ extern struct FLAGS {
     unsigned deprecate_merge:1;			/* -M: merge SNR and RNV waits.		*/
     unsigned generate:1;			/* -zgenerate=xx: Generate MVA program.	*/
     unsigned no_execute:1;			/* -n: Load, but do not solve model.	*/
-    unsigned parseable_output:1;		/* -p: Generate parseable output file	*/
     unsigned reset_mva:1;			/* --reset-mva (reset mva each iter.)	*/
     unsigned rtf_output:1;			/* -r: Generate RTF output file.	*/
     unsigned verbose:1;				/* -v: Be chatty.			*/
-    unsigned json_output:1;			/* -j: Ouptut JSON output		*/
-    unsigned xml_output:1;			/* -x: Ouptut XML output		*/
     unsigned print_lqx:1;			/* --debug-spex: Ouptut LQX		*/
     
     unsigned average_variance:1;		/* Use average variance values.		*/
@@ -58,8 +55,6 @@ extern struct FLAGS {
     unsigned disable_expanding_quorum_tree:1;
     unsigned ignore_overhanging_threads:1;
     unsigned full_reinitialize:1;		/* Maybe a pragma?			*/
-    unsigned reload_only:1;			/* Reload lqx.				*/
-    unsigned restart:1;				/* Restart reusing valid results.	*/
 	
     unsigned long single_step;			/* Stop after each major iteration	*/
     unsigned int min_steps;			/* Minimum number of iterations.	*/

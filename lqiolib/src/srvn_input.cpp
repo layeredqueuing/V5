@@ -1,12 +1,12 @@
 /*
- *  $Id: srvn_input.cpp 15095 2021-10-23 23:58:24Z greg $
+ *  $Id: srvn_input.cpp 15304 2021-12-31 15:51:38Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
 
-#if defined(HAVE_CONFIG_H)
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
 
@@ -30,17 +30,22 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #endif
-
-#include "dom_document.h"
 #include "common_io.h"
+#include "dom_activity.h"
+#include "dom_actlist.h"
+#include "dom_document.h"
+#include "dom_entry.h"
+#include "dom_group.h"
+#include "dom_histogram.h"
+#include "dom_phase.h"
+#include "dom_processor.h"
+#include "dom_task.h"
+#include "error.h"
+#include "filename.h"
+#include "glblerr.h"
+#include "input.h"
 #include "srvn_input.h"
 #include "srvn_results.h"
-#include "dom_histogram.h"
-#include "input.h"
-#include "error.h"
-#include "glblerr.h"
-#include "filename.h"
-#include "dom_phase.h"
 
 extern "C" {
 struct yy_buffer_state;

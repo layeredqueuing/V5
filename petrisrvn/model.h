@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.h 15299 2021-12-30 21:36:22Z greg $
+ * $Id: model.h 15302 2021-12-31 14:19:34Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -50,6 +50,8 @@ struct debug_place_info {
 #define	DIMDBGPLC	(DIME+1)*2
 
 class Model {
+public:
+    typedef bool (Model::*solve_using)();
     typedef void (Model::*queue_fnptr)( double x_pos,		/* x coordinate.		*/
 					double y_pos,		/* y coordinate.		*/
 					double idle_x,
@@ -64,22 +66,27 @@ class Model {
 					const bool async_call,
 					struct debug_place_info ins_place[DIMPH+1][DIMDBGPLC][MAX_MULT] );
 
+private:
+    explicit Model( LQIO::DOM::Document *, const std::string&, const std::string&, LQIO::DOM::Document::OutputFormat );
+
 public:
-    static LQIO::DOM::Document* load( const std::string& inputFileName, const std::string& outputFileName );
-    explicit Model( LQIO::DOM::Document *, const std::string&, const std::string& );
     virtual  ~Model();
 
     bool operator!() const { return _document == 0; }
 
     unsigned int n_phases() const { return _n_phases; }
     
-    bool construct();
+    static int solve( solve_using, const std::string&, LQIO::DOM::Document::InputFormat, const std::string&, LQIO::DOM::Document::OutputFormat, const LQIO::DOM::Pragma& );
     static void recalculateDynamicValues( const LQIO::DOM::Document* );
-    void initialize();
 
-    int solve();
-    int restart();
-    int reload();		/* Load results from LQX */
+    bool compute();
+    bool restart();
+    bool reload();		/* Load results from LQX */
+
+private:
+    static LQIO::DOM::Document* load( const std::string& inputFileName, LQIO::DOM::Document::InputFormat input_format );
+    bool construct();
+    void initialize();
 
     unsigned int set_queue_length() const;
 
@@ -177,14 +184,17 @@ private:
 
 private:
     LQIO::DOM::Document * _document;
-    std::string _input_file_name;
-    std::string _output_file_name;
-    static LQIO::DOM::CPUTime __start_time;
+    const std::string _input_file_name;
+    const std::string _output_file_name;
+    const LQIO::DOM::Document::OutputFormat _output_format;
     unsigned int _n_phases;
 
 public:
     static bool __forwarding_present;
     static bool __open_class_error;
-    static LQIO::DOM::Document::InputFormat __input_format;
+
+private:
+    static LQIO::DOM::CPUTime __start_time;
+    static const std::map<const LQIO::DOM::Document::OutputFormat,const std::string> __parseable_output;
 };
 #endif

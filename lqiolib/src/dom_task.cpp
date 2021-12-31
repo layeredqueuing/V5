@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_task.cpp 14955 2021-09-07 16:52:38Z greg $
+ *  $Id: dom_task.cpp 15304 2021-12-31 15:51:38Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -11,6 +11,8 @@
 #include <numeric>
 #include <iostream>
 #include <cmath>
+#include "dom_activity.h"
+#include "dom_actlist.h"
 #include "dom_document.h"
 #include "dom_task.h"
 #include "dom_entry.h"

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: expat_document.h 15304 2021-12-31 15:51:38Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -19,6 +19,9 @@
 #include "common_io.h"
 #include "dom_document.h"
 #include "dom_histogram.h"
+#include "dom_task.h"
+#include "dom_processor.h"
+#include "dom_actlist.h"
 #include "srvn_spex.h"
 
 namespace LQIO {

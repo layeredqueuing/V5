@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 15094 2021-10-22 17:20:56Z greg $
+ *  $Id: srvn_output.cpp 15304 2021-12-31 15:51:38Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -23,22 +23,22 @@
 #include <pwd.h>
 #endif
 #include <lqx/SyntaxTree.h>
-#include "srvn_output.h"
 #include "common_io.h"
-#include "srvn_spex.h"
-#include "glblerr.h"
-#include "dom_extvar.h"
-#include "dom_document.h"
-#include "dom_processor.h"
-#include "dom_histogram.h"
-#include "dom_task.h"
-#include "dom_entry.h"
-#include "dom_phase.h"
-#include "dom_call.h"
 #include "dom_activity.h"
 #include "dom_actlist.h"
+#include "dom_call.h"
+#include "dom_document.h"
+#include "dom_entry.h"
+#include "dom_group.h"
+#include "dom_histogram.h"
+#include "dom_phase.h"
+#include "dom_processor.h"
+#include "dom_task.h"
+#include "glblerr.h"
 #include "input.h"
 #include "labels.h"
+#include "srvn_output.h"
+#include "srvn_spex.h"
 
 namespace LQIO {
     unsigned int SRVN::ObjectOutput::__maxPhase = 0;

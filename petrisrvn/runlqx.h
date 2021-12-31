@@ -2,7 +2,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: runlqx.h 13200 2018-03-05 22:48:55Z greg $
+ * $Id: runlqx.h 15302 2021-12-31 14:19:34Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,10 +20,10 @@ namespace SolverInterface {
 	
     class Solve : public LQX::Method {
     public: 
-	typedef int (Model::*solve_fptr)();
+	typedef bool (Model::*solve_using)();
 		
 	/* Parameters necessary to call runSolverOnCurrentDOM() */
-	Solve(LQIO::DOM::Document* document, solve_fptr solve, Model* aModel) :
+	Solve(LQIO::DOM::Document* document, solve_using solve, Model* aModel) :
 	    _aModel(aModel), _solve(solve), _document(document) {}
 	virtual ~Solve() {}
 		
@@ -39,7 +39,7 @@ namespace SolverInterface {
 	
     private:
 	Model * _aModel;
-	solve_fptr _solve;
+	solve_using _solve;
 	LQIO::DOM::Document* _document;
 
 	static unsigned int invocationCount;

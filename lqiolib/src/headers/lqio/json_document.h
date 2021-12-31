@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: json_document.h 14903 2021-07-14 21:55:07Z greg $
+ *  $Id: json_document.h 15304 2021-12-31 15:51:38Z greg $
  *
  *  Created by Greg Franks.
  */
@@ -10,6 +10,7 @@
 #include <cmath>
 #include "picojson.h"
 #include "dom_document.h"
+#include "dom_actlist.h"
 #include "dom_call.h"
 #include "common_io.h"
 #include "input.h"

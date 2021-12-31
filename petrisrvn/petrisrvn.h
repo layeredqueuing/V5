@@ -12,7 +12,7 @@
 #define _PETRISRVN_H
 
 /*
- * $Id: petrisrvn.h 15299 2021-12-30 21:36:22Z greg $
+ * $Id: petrisrvn.h 15302 2021-12-31 14:19:34Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -38,8 +38,6 @@
 #define BUG_263			/* Quroum delay				*/
 
 extern struct lqio_params_stats io_vars;
-
-enum class Mode { SOLVE, RELOAD, RESTART };
 
 /*
  * Layers in the petrinet.
@@ -90,23 +88,16 @@ extern std::regex * inservice_match_pattern;
 extern bool debug_flag;			/* Spew out all calls to get data.	*/
 extern bool keep_flag;                  /* Keep result files?          		*/
 extern bool no_execute_flag;		/* Don't call solver.			*/
-extern bool parse_flag;                 /* Parsable output desired?    		*/
-extern bool json_flag;                 	/* JSON output desired?    		*/
 extern bool reload_net_flag;		/* Reload result values and print.	*/
 extern bool rtf_flag;                   /* Parsable output desired?    		*/
 extern bool trace_flag;			/* Trace greatspn execution.		*/
 extern bool uncondition_flag;		/* Uncodition pr{inservice|}		*/
 extern bool verbose_flag;		/* Spew out GreatSPN noise.		*/
-extern bool xml_flag;			/* XML Output desired  ?		*/
 
 extern bool customers_flag;		/* Smash customers together.		*/
 extern bool distinguish_join_customers;	/* Cust at join multi-server are unique	*/ 
 extern bool simplify_network;		/* Delete single place processors	*/
 
-#if 0
-extern bool comm_delay_flag;		/* Communication delays present		*/
-extern double inter_proc_delay;		/* Initial value;			*/
-#endif
 extern double x_scaling;		/* Auto-squish if val == 0.		*/
 
 extern unsigned open_model_tokens;	/* Default global open queue max size	*/

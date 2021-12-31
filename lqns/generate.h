@@ -1,6 +1,4 @@
 /* -*- c++ -*-
-double  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/generate.h $
- *
  * Generate MVA program for given layer.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -9,7 +7,7 @@ double  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/g
  *
  * November, 1994
  *
- * $Id: generate.h 14817 2021-06-15 16:51:27Z greg $
+ * $Id: generate.h 15304 2021-12-31 15:51:38Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,6 +15,9 @@ double  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/g
 class Entity;
 class Task;
 class MVASubmodel;
+
+#include <map>
+#include <lqio/dom_phase.h>
 
 /* -------------------------------------------------------------------- */
 /* Funky Formatting functions for inline with <<.			*/
