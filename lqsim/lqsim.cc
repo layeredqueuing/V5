@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 15302 2021-12-31 14:19:34Z greg $
+ * $Id: lqsim.cc 15317 2022-01-01 16:44:56Z greg $
  */
 
 #define STACK_TESTING
@@ -323,7 +323,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2021-12-31 09:19:34 -0500 (Fri, 31 Dec 2021) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2022-01-01 11:44:56 -0500 (Sat, 01 Jan 2022) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -840,27 +840,6 @@ my_malloc( size_t size )
     }
     return p;
 }
-
-void *
-my_realloc( void * ptr, size_t size )
-{
-    void * p = (void *)realloc( ptr, size );
-
-    if ( !p ) {
-#if HAVE_GETRUSAGE
-	struct rusage r;
-#endif
-	(void) fprintf( stderr, "%s: Out of memory!\n", LQIO::io_vars.toolname() );
-#if HAVE_GETRUSAGE
-	getrusage( RUSAGE_SELF, &r );
-	(void) fprintf( stderr, "\tmaxrss=%ld, idrss=%ld\n", r.ru_maxrss, r.ru_idrss );
-#endif
-	exit( EXCEPTION_EXIT );
-    }
-    return p;
-}
-
-
 
 static void
 set_fp_abort()

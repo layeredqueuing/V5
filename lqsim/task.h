@@ -1,7 +1,7 @@
 /* -*- c++ -*-
- * Global vars for simulation.
+ * Lqsim-parasol task interface.
  *
- * $Id: task.h 15314 2022-01-01 15:11:20Z greg $
+ * $Id: task.h 15317 2022-01-01 16:44:56Z greg $
  */
 
 /************************************************************************/
@@ -105,8 +105,8 @@ public:
     static Task * add( LQIO::DOM::Task* domTask );
 
 private:
-    Task( const Task& );
-    Task& operator=( const Task& );
+    Task( const Task& ) = delete;
+    Task& operator=( const Task& ) = delete;
 
 public:
     Task( const Type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
@@ -146,8 +146,8 @@ public:
     bool has_activities() const { return _activity.size() > 0; }	/* True if activities present.	*/
     bool has_threads() const { return _forks.size() > 0; }
     bool has_think_time() const;
-    virtual bool derive_utilization() const;
     bool has_lost_messages() const;
+    virtual bool derive_utilization() const;
 
     void set_start_activity( LQIO::DOM::Entry* theDOMEntry );
     Activity * add_activity( LQIO::DOM::Activity * activity );

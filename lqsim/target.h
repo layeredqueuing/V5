@@ -1,7 +1,7 @@
-/*  -*- c++ -*- 
- * 
+/*  -*- c++ -*-
+ *
  * ------------------------------------------------------------------------
- * $Id: target.h 15314 2022-01-01 15:11:20Z greg $
+ * $Id: target.h 15317 2022-01-01 16:44:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,7 +22,7 @@ class Activity;
 class tar_t {				/* send target struct		*/
     friend class Targets;
     enum class Type { undefined, call, constant };
-    
+
 public:
     tar_t() : _entry(nullptr), _link(-1), _tprob(0.0), _calls(0.0), _reply(false), _type(Type::undefined) {}
 
@@ -51,9 +51,9 @@ public:
 
 
 private:
-//    tar_t( const tar_t& );
-//    tar_t& operator=( const tar_t& );		/* need for realloc */
-    
+//    tar_t( const tar_t& ) = delete;
+//    tar_t& operator=( const tar_t& ) = delete;		/* need for realloc */
+
     void initialize( Entry * to_entry, LQIO::DOM::Call* domCall ) { _entry = to_entry; _type = Type::call; _dom._call = domCall; }
     void initialize( Entry * to_entry, double value, bool reply=false ) { _entry = to_entry; _type = Type::constant; _calls = value; _reply = reply; }
 
@@ -101,6 +101,4 @@ private:
 private:
     LQIO::DOM::Phase::Type _type;			/* 				*/
 };
-
-
 #endif

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: xml_output.cpp 15220 2021-12-15 15:18:47Z greg $
+ * $Id: xml_output.cpp 15317 2022-01-01 16:44:56Z greg $
  *
  * Read in XML input files.
  *
@@ -135,9 +135,9 @@ namespace XML {
 	return output;
     }
     
-    static std::ostream& printAttribute( std::ostream& output, const std::string&  a, unsigned int v )
+    static std::ostream& printAttribute( std::ostream& output, const std::string&  a, bool v )
     {
-	output << " " << a << "=\"" << v << "\"";
+	output << " " << a << "=\"" << (v ? "true" : "false") << "\"";
 	return output;
     }
 
@@ -147,15 +147,21 @@ namespace XML {
 	return output;
     }
 
+    static std::ostream& printAttribute( std::ostream& output, const std::string&  a, long v )
+    {
+	output << " " << a << "=\"" << v << "\"";
+	return output;
+    }
+
+    static std::ostream& printAttribute( std::ostream& output, const std::string&  a, unsigned int v )
+    {
+	output << " " << a << "=\"" << v << "\"";
+	return output;
+    }
+
     static std::ostream& printAttribute( std::ostream& output, const std::string& a, const char * v )
     {
 	return printAttribute( output, a, std::string(v) );
-    }
-
-    static std::ostream& printAttribute( std::ostream& output, const std::string&  a, bool v )
-    {
-	output << " " << a << "=\"" << (v ? "true" : "false") << "\"";
-	return output;
     }
 
     static std::ostream& printTime( std::ostream& output, const std::string& a, const double v )
@@ -179,6 +185,7 @@ namespace XML {
     StringManip attribute( const std::string& a, const std::string& v ) { return StringManip( &printAttribute, a, v ); }
     CharPtrManip attribute( const std::string& a, const char * v ) { return CharPtrManip( &printAttribute, a, v ); }
     DoubleManip attribute( const std::string& a, double v ) { return DoubleManip( &printAttribute, a, v ); }
+    LongManip attribute( const std::string& a, long v ) { return LongManip( &printAttribute, a, v ); }
     UnsignedManip attribute( const std::string& a, unsigned v ) { return UnsignedManip( &printAttribute, a, v ); }
     BooleanManip attribute( const std::string& a, bool v ) { return BooleanManip( &printAttribute, a, v ); }
     ExternalVariableManip attribute( const std::string& a, const LQIO::DOM::ExternalVariable& v ) { return ExternalVariableManip( &printAttribute, a, v ); }

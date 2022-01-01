@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 15271 2021-12-27 12:36:48Z greg $
+ * $Id: lqn2ps.cc 15315 2022-01-01 16:35:32Z greg $
  *
  * Command line processing.
  *
@@ -107,7 +107,7 @@ std::vector<Options::Type> Flags::print = {
     { "run-lqx",         0x200+'l', nullptr,               {&Options::none,         0},                 "\"Run\" the LQX program instantiating variables and generating model files." },
     { "reload-lqx",      0x200+'r', nullptr,               {&Options::none,         0},                 "\"Run\" the LQX program reloading results generated earlier." },
     { "output-lqx",      0x200+'o', nullptr,               {&Options::none,         0},                 "Convert SPEX to LQX for XML output." },
-    { "include-only",    0x200+'I', "regexp",              {&Options::string,       static_cast<std::string *>(nullptr)},       "Include only objects with name matching <regexp>" },
+    { "include-only",    0x200+'I', "regexp",              {&Options::string,       static_cast<std::regex *>(nullptr)},       "Include only objects with name matching <regexp>" },
 
     /* -- below here is not stored in flag_values enumeration -- */
 
@@ -172,6 +172,8 @@ main(int argc, char *argv[])
     Flags::set_border(18.0);
     Flags::set_x_spacing(DEFAULT_X_SPACING);
     Flags::set_y_spacing(DEFAULT_Y_SPACING);
+    Flags::set_submodel(0);
+    Flags::set_include_only( nullptr );
 
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
@@ -204,7 +206,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-12-27 07:36:48 -0500 (Mon, 27 Dec 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-01-01 11:35:32 -0500 (Sat, 01 Jan 2022) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H

@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: option.cc 15268 2021-12-26 21:34:29Z greg $
+ * $Id: option.cc 15315 2022-01-01 16:35:32Z greg $
  */
 
 #include "lqn2ps.h"
@@ -481,9 +481,8 @@ bool
 Options::set_all_result_options( const bool yesOrNo )
 {
     for ( unsigned i = 0; i < SERVICE_EXCEEDED; ++i ) {
-	if ( Flags::print[i].opts.param.s = &Options::result ) {
-	    Flags::print[i].opts.value.b = yesOrNo;     /* Print entry throughput. */
-	}
+        if ( Flags::print[i].opts.param.s != &Options::result ) continue;	/* Skip non-result */
+	Flags::print[i].opts.value.b = yesOrNo;
     }
 
     return yesOrNo;

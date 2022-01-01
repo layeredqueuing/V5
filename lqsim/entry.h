@@ -1,3 +1,5 @@
+/* -*- c++ -*- */
+
 /************************************************************************/
 /* Copyright the Real-Time and Distributed Systems Group,		*/
 /* Department of Systems and Computer Engineering,			*/
@@ -7,9 +9,9 @@
 /************************************************************************/
 
 /*
- * Global vars for simulation.
+ * Lqsim-parasol entry interface.
  *
- * $Id: entry.h 15312 2022-01-01 14:19:39Z greg $
+ * $Id: entry.h 15317 2022-01-01 16:44:56Z greg $
  */
 
 #ifndef ENTRY_H
@@ -66,8 +68,8 @@ class Entry {				/* task entry struct	        */
     };
 
 private:
-    Entry( const Entry& );
-    Entry& operator=( const Entry& );
+    Entry( const Entry& ) = delete;
+    Entry& operator=( const Entry& ) = delete;
     
 public:
     enum class Type {

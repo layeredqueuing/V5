@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  *
  * ------------------------------------------------------------------------
- * $Id: result.h 15312 2022-01-01 14:19:39Z greg $
+ * $Id: result.h 15317 2022-01-01 16:44:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -10,10 +10,10 @@
 
 extern unsigned number_blocks;	/* For block statistics. 	*/
 
-/* Can't be class (because constructors NOT allowed in actlist union */
 
-struct result_t {
-//    result_t() : raw(0), _sum(0), _sum_sqr(0), _count(0), _count_sqr(0), _avg_count(0), _n(0), _type(0) {}
+class result_t {
+public:
+    result_t() : raw(0), _sum(0), _sum_sqr(0), _count(0), _count_sqr(0), _avg_count(0), _n(0), _type(0) {}
     void init( int type, const char * format, ... );
     void init( const long stat_id );
     double accumulate();

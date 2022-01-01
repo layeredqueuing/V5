@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 15314 2022-01-01 15:11:20Z greg $
+ * $Id: instance.cc 15318 2022-01-01 17:09:35Z greg $
  */
 
 /*
@@ -249,7 +249,11 @@ Real_Instance::Real_Instance( Task * cp, const char * task_name )
 int
 Real_Instance::create_task( Task * cp, const char * task_name )
 {
-    return ps_create( task_name, cp->node_id(), ANY_HOST, Instance::start, cp->priority() );
+    if ( cp->group_id() != -1 ) {
+	return ps_create_group( task_name, cp->node_id(), ANY_HOST, Instance::start, cp->priority(), cp->group_id() );
+    } else {
+	return ps_create( task_name, cp->node_id(), ANY_HOST, Instance::start, cp->priority() );
+    }
 }
 
 

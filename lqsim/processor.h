@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.h 15314 2022-01-01 15:11:20Z greg $
+ * $Id: processor.h 15317 2022-01-01 16:44:56Z greg $
  */
 
 #ifndef	PROCESSOR_H
@@ -73,8 +73,8 @@ public:
     static void add( const std::pair<std::string,LQIO::DOM::Processor*>& );
 
 private:
-    Processor( const Processor& );
-    Processor& operator=( const Processor& );
+    Processor( const Processor& ) = delete;
+    Processor& operator=( const Processor& ) = delete;
 
 public:
     Processor( LQIO::DOM::Processor * );

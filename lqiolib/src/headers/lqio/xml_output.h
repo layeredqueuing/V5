@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: xml_output.h 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: xml_output.h 15317 2022-01-01 16:44:56Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -67,6 +67,16 @@ namespace XML {
 	friend std::ostream& operator<<(std::ostream & os, const IntegerManip& m ) { return m._f(os,m._i); }
     };
 
+    class LongManip {
+    public:
+    LongManip( std::ostream& (*f)(std::ostream&, const std::string&, const long ), const std::string& a, const long l ) : _f(f), _a(a), _l(l) {}
+    private:
+	std::ostream& (*_f)( std::ostream&, const std::string&, const long );
+	const std::string& _a;
+	const long _l;
+	friend std::ostream& operator<<(std::ostream & os, const LongManip& m ) { return m._f(os,m._a,m._l); }
+    };
+
     class StringManip {
     public:
     StringManip( std::ostream& (*f)(std::ostream&, const std::string&, const std::string& ), const std::string& a, const std::string& v ) : _f(f), _a(a), _v(v) {}
@@ -115,6 +125,7 @@ namespace XML {
     DoubleManip attribute( const std::string& a, double v );
     UnsignedManip attribute( const std::string& a, unsigned int v );
     BooleanManip  attribute( const std::string& a, bool v );
+    LongManip attribute( const std::string& a, long v );
     ExternalVariableManip attribute( const std::string& a, const LQIO::DOM::ExternalVariable& v );
     DoubleManip time_attribute( const std::string& a, const double v );
     StringManip comment( const std::string& s );

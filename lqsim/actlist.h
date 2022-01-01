@@ -10,7 +10,7 @@
  * November 2020.
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.h 15314 2022-01-01 15:11:20Z greg $
+ * $Id: actlist.h 15317 2022-01-01 16:44:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -41,6 +41,10 @@ private:
     private:
 	const std::string& _op;
     };
+
+private:
+    ActivityList( const ActivityList& ) = delete;
+    ActivityList& operator=( const ActivityList& ) = delete;
 
 public:
     enum class Type
@@ -191,7 +195,7 @@ public:
     double get_count_at( size_t ix ) const { return _count[ix]; }
     
     virtual LoopActivityList& push_back( Activity * activity );
-    LoopActivityList end_list( Activity * activity ) { _exit = activity; return *this; }
+    LoopActivityList& end_list( Activity * activity ) { _exit = activity; return *this; }
     virtual LoopActivityList& configure();
     virtual double find_children( std::deque<Activity *>& activity_stack, std::deque<AndForkActivityList *>& fork_stack, const Entry * ep );
     virtual double collect( std::deque<Activity *>& activity_stack, ActivityList::Collect& data ) const;

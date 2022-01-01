@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15314 2022-01-01 15:11:20Z greg $
+ * $Id: task.cc 15317 2022-01-01 16:44:56Z greg $
  */
 
 #include "lqsim.h"
@@ -323,7 +323,7 @@ Task::find_activity( const char * activity_name ) const
     if ( ap != _activity.end() ) {
 	return *ap;
     } else {
-	return 0;
+	return nullptr;
     }
 }
 
@@ -727,16 +727,17 @@ Task::has_think_time() const
 
 
 bool
-Task::derive_utilization() const
-{
-    return processor()->derive_utilization();
-}
-
-
-bool
 Task::has_lost_messages() const
 {
     return std::any_of( _entry.begin(), _entry.end(), Predicate<Entry>( &Entry::has_lost_messages ) );
+}
+
+
+
+bool
+Task::derive_utilization() const
+{
+    return processor()->derive_utilization();
 }
 
 /* ------------------------------------------------------------------------ */

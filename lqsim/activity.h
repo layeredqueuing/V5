@@ -9,7 +9,7 @@
 /*
  * Activities (and phases).
  *
- * $Id: activity.h 15314 2022-01-01 15:11:20Z greg $
+ * $Id: activity.h 15317 2022-01-01 16:44:56Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -32,6 +32,10 @@ typedef double (*distribution_func_ptr)( double, double );
 class Activity {
     friend class Instance;
 
+private:
+    Activity( const Activity& ) = delete;
+    Activity& operator=( const Activity& ) = delete;
+    
 public:
     Activity( Task * cp=NULL, LQIO::DOM::Phase * dom=NULL );
     virtual ~Activity();

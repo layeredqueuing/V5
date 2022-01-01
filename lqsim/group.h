@@ -2,7 +2,7 @@
  *
  * Processor Group handling.
  *
- * $Id: group.h 15312 2022-01-01 14:19:39Z greg $
+ * $Id: group.h 15317 2022-01-01 16:44:56Z greg $
  */
 
 /************************************************************************/
@@ -44,6 +44,10 @@ class Group
 	const std::string _s;
     };
 
+private:
+    Group( const Group& ) = delete;
+    Group operator=( const Group& ) = delete;
+    
 public:
     static std::set<Group *, ltGroup> __groups;
 

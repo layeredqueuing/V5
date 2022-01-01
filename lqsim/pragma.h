@@ -1,16 +1,15 @@
 /* -*- C++ -*-
  * pragma.h	-- Greg Franks
  *
- * $URL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 14959 2021-09-08 14:48:54Z greg $
+ * $Id: pragma.h 15317 2022-01-01 16:44:56Z greg $
  * ------------------------------------------------------------------------
  */
 
-#ifndef _PRAGMA_H
-#define _PRAGMA_H
+#ifndef _LQSIM_PRAGMA_H
+#define _LQSIM_PRAGMA_H
 
-#if defined(HAVE_CONFIG_H)
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
 #include <string>
@@ -21,6 +20,9 @@ class Pragma
 {
 private:
     Pragma();
+
+    Pragma( const Pragma& ) = delete;
+    Pragma& operator=( const Pragma& ) = delete;
 
 public:
     enum class ForceInfinite { NONE, FIXED_RATE, MULTISERVERS, ALL };
@@ -48,8 +50,6 @@ public:
     static void usage( std::ostream& output );
 
 private:
-    Pragma( const Pragma& );		/* No copy constructor */
-
     void set_abort_on_dropped_message( const std::string& );
     void set_block_period( const std::string& );
     void set_force_infinite( const std::string& );
