@@ -1,8 +1,8 @@
 /* -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/group.h $
- * Global vars for simulation.
  *
- * $Id: group.h 15297 2021-12-30 16:21:19Z greg $
+ * Processor Group handling.
+ *
+ * $Id: group.h 15312 2022-01-01 14:19:39Z greg $
  */
 
 /************************************************************************/

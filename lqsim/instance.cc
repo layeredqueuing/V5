@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 15000 2021-09-27 18:48:30Z greg $
+ * $Id: instance.cc 15314 2022-01-01 15:11:20Z greg $
  */
 
 /*
@@ -41,7 +41,7 @@
 /* see parainout.h */
 
 
-int client_init_count = 0;		/* Semaphore for -C...*/
+volatile int client_init_count = 0;	/* Semaphore for -C...*/
 std::vector<Instance *> object_tab(MAX_TASKS+1);	/* object table		*/
 
 Instance::Instance( Task * cp, const char * task_name, long task_id )
@@ -65,11 +65,11 @@ Instance::Instance( Task * cp, const char * task_name, long task_id )
 {
     assert ( _std_port < MAX_PORTS );
 
-    _entry.assign( cp->n_entries(), NULL );
+    _entry.assign( cp->n_entries(), nullptr );
     _join_done.assign( cp->max_activities(), false );
     
     object_tab[task_id] = this;
-    if ( task_id > total_tasks ) {
+    if ( static_cast<unsigned long>(task_id) > total_tasks ) {
 	total_tasks = task_id;
     }
 }
@@ -94,13 +94,6 @@ Instance::start( void * )
 	deferred_exception = true;
 	ps_suspend( ps_myself );
     }
-}
-
-
-long
-Instance::std_port() const
-{
-    return ps_std_port(task_id());
 }
 
 
@@ -202,7 +195,7 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
 		   msg->reply_port);
 	    fflush(stdout);
 #endif
-	    ps_send( msg->reply_port , 0, (char *)msg, ps_my_std_port );
+	    ps_send( msg->reply_port , 0, (char *)msg, std_port() );
 	}
 
     } else if ( ep->is_regular() ) {
@@ -214,7 +207,7 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
 	}
 
     } else {
-	abort();
+	ps_kill( task_id() );				/* nothing to do, so abort */
     }
 
     delta = ps_now - start_time;
@@ -225,7 +218,7 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
     if ( end_msg ) {
 	if ( end_msg->reply_port == -1 ) {
 	    _cp->free_message( end_msg );
-	} else if ( ep->_join_list == NULL && _cp->is_sync_server() ) {
+	} else if ( ep->_join_list == nullptr && _cp->is_sync_server() ) {
 	    LQIO::solution_error( LQIO::ERR_REPLY_NOT_GENERATED, ep->name() );
 	}
     }
@@ -237,6 +230,7 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
 
     ps_my_schedule_time = ps_now;		/* In case we don't block...	*/
 }
+
 
 /*----------------------------------------------------------------------*/
 /*		     Task class implementations.			*/
@@ -255,11 +249,7 @@ Real_Instance::Real_Instance( Task * cp, const char * task_name )
 int
 Real_Instance::create_task( Task * cp, const char * task_name )
 {
-    if ( cp->group_id() != -1 ) {
-	return ps_create_group( task_name, cp->node_id(), ANY_HOST, Instance::start, cp->priority(), cp->group_id() );
-    } else {
-	return ps_create( task_name, cp->node_id(), ANY_HOST, Instance::start, cp->priority() );
-    }
+    return ps_create( task_name, cp->node_id(), ANY_HOST, Instance::start, cp->priority() );
 }
 
 
@@ -356,7 +346,7 @@ srn_client::run()
 {
     timeline_trace( TASK_CREATED );
 
-    const double think_time = dynamic_cast<Reference_Task *>(_cp)->think_time();
+    const double think_time = _cp->think_time();
 
     /* ---------------------- Main loop --------------------------- */
 
@@ -603,7 +593,7 @@ srn_worker::run()
 
 	timeline_trace( TASK_IS_WAITING, 1 );
 
-	ps_receive( ps_my_std_port, NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
+	ps_receive( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
 	timeline_trace( TASK_IS_READY, 1 );
 
 	if ( msg ) {
@@ -651,7 +641,7 @@ srn_token::run()
 
 	timeline_trace( TASK_IS_WAITING, 1 );
 
-	ps_receive( ps_my_std_port, NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
+	ps_receive( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
 	timeline_trace( TASK_IS_READY, 1 );
 
 	if ( msg ) {
@@ -686,7 +676,7 @@ srn_token::run()
 
 	/* Now wait for signal */
 
-	ps_receive( ps_my_std_port, NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
+	ps_receive( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
 	timeline_trace( TASK_IS_READY, 1 );
 
 
@@ -755,7 +745,7 @@ srn_token_r::run()
 
 	timeline_trace( TASK_IS_WAITING, 1 );
 
-	ps_receive( ps_my_std_port, NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
+	ps_receive( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
 	timeline_trace( TASK_IS_READY, 1 );
 
 	if ( msg ) {
@@ -785,7 +775,7 @@ srn_token_r::run()
 
 	/* Now wait for wait */
 
-	ps_receive( ps_my_std_port, NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
+	ps_receive( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
 	timeline_trace( TASK_IS_READY, 1 );
 
 	if ( msg ) {
@@ -970,7 +960,7 @@ srn_writer_token::run()
 
 	timeline_trace( TASK_IS_WAITING, 1 );
 
-	ps_receive( ps_my_std_port, NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
+	ps_receive( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
 	timeline_trace( TASK_IS_READY, 1 );
 
 	if ( msg ) {
@@ -1001,7 +991,7 @@ srn_writer_token::run()
 
 	/* Now wait for unlocking signal */
 
-	ps_receive( ps_my_std_port, NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
+	ps_receive( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
 
 	timeline_trace( TASK_IS_READY, 1 );
 	
@@ -1076,7 +1066,7 @@ srn_thread::run()
 Message *
 Instance::wait_for_message( long& entry_id )
 {
-    Message *msg = NULL;
+    Message *msg = nullptr;
 
     ps_my_schedule_time = ps_now;		/* In case we don't block...	*/
 
@@ -1084,8 +1074,8 @@ Instance::wait_for_message( long& entry_id )
     
     for ( std::list<Message *>::iterator i = _cp->_pending_msgs.begin(); i != _cp->_pending_msgs.end(); ++i ) {
 	msg = *i;					/* This is returned!			*/
-	Entry * ep = msg->target->entry;
-	if ( ep->_join_list == NULL ) {			/* Entry is available to receive.	*/
+	Entry * ep = msg->target->entry();
+	if ( ep->_join_list == nullptr ) {			/* Entry is available to receive.	*/
 	    entry_id = ep->entry_id();			/* This is returned!			*/
 	    _cp->_pending_msgs.erase(i);		/* Remove Message from queue		*/
 	    return msg;					/* All done.				*/
@@ -1098,9 +1088,13 @@ Instance::wait_for_message( long& entry_id )
     for ( ;; ) {
 	double time_stamp;		/* time message sent.		*/
 	long reply_port;		/* reply port			*/
+
 	if ( _cp->discipline() == SCHEDULE_HOL ) {
 	    assert( ps_receive_priority( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port ) != SYSERR );
 	} else {
+	    if ( parentPort() > 0 ) {
+		ps_send( parentPort(), entry_id, (char *)msg, ps_my_std_port );
+	    }
 	    assert( ps_receive( ps_my_std_port, NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port ) != SYSERR );
 	}
 	msg->reply_port = reply_port;
@@ -1109,7 +1103,7 @@ Instance::wait_for_message( long& entry_id )
 	/* Is entry busy? !JOIN! */
 
 	const Entry * ep = Entry::entry_table[entry_id];
-	if ( ep->_join_list == NULL ) break;		/* Entry available - done!		*/
+	if ( ep->_join_list == nullptr ) break;		/* Entry available - done!		*/
 
 	_cp->_pending_msgs.push_back( msg ); 	    	/* queue message and try again.		*/
     }
@@ -1120,7 +1114,7 @@ Instance::wait_for_message( long& entry_id )
 Message *
 Instance::wait_for_message2( long& entry_id )
 {
-    Message * msg = NULL;	/* Message from client		*/
+    Message * msg = nullptr;	/* Message from client		*/
     double time_stamp;		/* time message sent.		*/
     long reply_port;		/* reply port			*/
 
@@ -1223,14 +1217,14 @@ Instance::do_forwarding ( Message * msg, const Entry * ep )
 
 	} else {
 				
-	    timeline_trace( SYNC_INTERACTION_FORWARDED, ep, msg->client, tp->entry );
+	    timeline_trace( SYNC_INTERACTION_FORWARDED, ep, msg->client, tp->entry() );
 
 	    msg->time_stamp   = ps_now; 		/* Tag send time.	*/
 	    msg->intermediate = ep;
 	    msg->target       = tp;
 
-	    ps_send( fwd.target[i].entry->get_port(),	/* Forward request.	*/
-		     fwd.target[i].entry->entry_id(), (char *)msg, msg->reply_port );
+	    ps_send( fwd[i].entry()->get_port(),	/* Forward request.	*/
+		     fwd[i].entry()->entry_id(), (char *)msg, msg->reply_port );
 	}
     }
 }
@@ -1243,30 +1237,11 @@ Instance::do_forwarding ( Message * msg, const Entry * ep )
 void
 Instance::random_shuffle_reply( std::vector<const Entry *>& array )
 {
-    const unsigned n = array.size();
-    for ( unsigned i = n; i >= 1; --i ) {
-	const unsigned k = static_cast<unsigned>(drand48() * i);
+    const size_t n = array.size();
+    for ( size_t i = n; i >= 1; --i ) {
+	const size_t k = static_cast<size_t>(drand48() * i);
 	if ( i-1 != k ) {
 	    const Entry * temp = array[k];
-	    array[k] = array[i-1];
-	    array[i-1] = temp;
-	}
-    }
-}
-
-
-/*
- * Randomly shuffle items.
- */
-
-void
-Instance::random_shuffle_activity( Activity ** array, unsigned n )
-{
-    unsigned i;
-    for ( i = n; i >= 1; --i ) {
-	unsigned k = static_cast<unsigned>(drand48() * i);
-	if ( i-1 != k ) {
-	    Activity * temp = array[k];
 	    array[k] = array[i-1];
 	    array[i-1] = temp;
 	}
@@ -1303,7 +1278,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
     double start_time = ps_my_schedule_time;
     double slices = 0.0;
     unsigned int p = _current_phase;
-    int count = ap->tinfo.size() > 0 || ap->has_service_time() || ap->think_time(); /* !!! warning !!! */
+    int count = ap->_calls.size() > 0 || ap->has_service_time() || ap->think_time(); /* !!! warning !!! */
     double delta;
     Activity * phase = &ep->_phase.at(p);
 
@@ -1326,7 +1301,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
      * Now do service.
      */
 
-    if ( ap->tinfo.size() > 0 || ap->has_service_time() ) {
+    if ( ap->_calls.size() > 0 || ap->has_service_time() ) {
 	double sends = 0.0;
 	unsigned int i = 0;		/* loop index			*/
 	unsigned int j = 0;		/* loop index (det ph.)		*/
@@ -1352,15 +1327,14 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 
 	    compute( ap, phase );
 	    slices += 1.0;
-
-	    tar_t * tp = ap->tinfo.entry_to_send_to( i, j );
+	    tar_t * tp = ap->_calls.entry_to_send_to( i, j );
 
 	    if ( !tp ) break;
 
 	    sends += 1.0;
 	    if ( tp->reply() ) {
+	      //if(ep->name()=="retrievePage") printf("reply port=%ld\n", reply_port());
 		tp->send_synchronous( ep, _cp->priority(), reply_port() );
-
 		delta = ps_now - ps_my_schedule_time;
 
 		ps_add_stat( ap->r_proc_delay.raw, delta );
@@ -1498,8 +1472,8 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 Activity * 
 Instance::next_activity( Entry * ep, Activity * ap_in, bool reschedule )
 {
-    Activity * ap_out = NULL;
-    ActivityList * fork_list = NULL;
+    Activity * ap_out = nullptr;
+    InputActivityList * fork_list = nullptr;
 
     if ( ap_in->_output != 0 ) {
 
@@ -1508,15 +1482,14 @@ Instance::next_activity( Entry * ep, Activity * ap_in, bool reschedule )
 	 * type join then I have to do some work....
 	 */
 
-	ActivityList * join_list = ap_in->_output;
+	AndJoinActivityList * join_list = dynamic_cast<AndJoinActivityList *>(ap_in->_output);
 
-	switch ( join_list->type ) {
-	case ACT_AND_JOIN_LIST:
-	    if ( _cp->is_sync_server() && join_list->u.join.join_type == JOIN_SYNCHRONIZATION ) {
+	if ( join_list != nullptr ) {
+	    if ( _cp->is_sync_server() && join_list->join_type_is( AndJoinActivityList::Join::SYNCHRONIZATION ) ) {
 		if ( root_ptr()->all_activities_done( ap_in ) ) {
 		    double delta = ps_now - _cp->_join_start_time;
-		    ps_record_stat( join_list->u.join.r_join.raw, delta );
-		    ps_record_stat( join_list->u.join.r_join_sqr.raw, square( delta ) );
+		    ps_record_stat( join_list->r_join.raw, delta );
+		    ps_record_stat( join_list->r_join_sqr.raw, square( delta ) );
 					  
 		    _cp->_join_start_time = 0.0;
 
@@ -1525,126 +1498,101 @@ Instance::next_activity( Entry * ep, Activity * ap_in, bool reschedule )
 		    
 		    for ( std::vector<Entry *>::const_iterator e = _cp->_entry.begin(); e != _cp->_entry.end(); ++e ) {
 			if ( (*e)->_join_list == join_list ) {
-			    (*e)->_join_list = NULL;
+			    (*e)->_join_list = nullptr;
 			}
 		    }
 		} else {
 		    /* Mark entry busy */
 		    ep->_join_list = join_list;
 		    _cp->_join_start_time = ps_now;
-		    return NULL;	/* Do not execute output list. */
+		    return nullptr;	/* Do not execute output list. */
 		}
 	    } else {
 		/* tomari:quorum,  Histogram binning needs to be done here. */
-		return NULL;	/* Thread complete. */
+		return nullptr;	/* Thread complete. */
 	    }
-	    break;
-
-	case ACT_JOIN_LIST:
-	case ACT_OR_JOIN_LIST:
-	    break;
-
-	default:
-	    abort();
 	}
-	fork_list = join_list->u.join.next;
+	fork_list = ap_in->_output->get_next();
     }
-
-again_1:
-    if ( fork_list ) {
 
 	/*
 	 * Now I can do the fork_list list.  And forks are the biggest headache.
 	 */
 
-	unsigned i;
-	double fork_start;
-	double exit_value;
-	double sum;
-	ActivityList * join_list = NULL;
-	double thread_K_outOf_N_end_compute_time = 0;
 
-	switch ( fork_list->type ) {
-	case ACT_AND_FORK_LIST:
-
- 	    fork_start = ps_now;
+again_1:
+    if ( fork_list ) {
+	if ( fork_list->get_type() == ActivityList::Type::AND_FORK_LIST ) {
+	    AndForkActivityList * and_fork_list = dynamic_cast<AndForkActivityList *>(fork_list);
+	    const double fork_start = ps_now;
+	    double thread_K_outOf_N_end_compute_time = 0;
 
 	    /* launch threads */
 
-	    if ( fork_list->na == 0 ) {
-		abort();
-	    }
+	    assert( and_fork_list->size() > 0 );
 
-	    timeline_trace( ACTIVITY_FORK, fork_list->list[0], this );
-	    random_shuffle_activity( fork_list->list, fork_list->na );
+	    timeline_trace( ACTIVITY_FORK, and_fork_list->front(), this );
+	    and_fork_list->shuffle();
 				  
-	    spawn_activities( ep->entry_id(), fork_list );
+	    spawn_activities( ep->entry_id(), and_fork_list );
 
 	    /* Wait for all threads to complete, then we're done. */
 
-	    wait_for_threads( fork_list, &thread_K_outOf_N_end_compute_time );
+	    wait_for_threads( and_fork_list, &thread_K_outOf_N_end_compute_time );
 
 	    lastQuorumEndTime = thread_K_outOf_N_end_compute_time;
 
-	    join_list = fork_list->u.fork.join;
+	    AndJoinActivityList * join_list = dynamic_cast<AndJoinActivityList *>(and_fork_list->get_join());
 	    if ( join_list ) {
 		const double delta = thread_K_outOf_N_end_compute_time - fork_start; 
 
-		ps_record_stat( join_list->u.join.r_join.raw, delta );
-		ps_record_stat( join_list->u.join.r_join_sqr.raw, square( delta ) );
-		if ( join_list->u.join._hist_data ) {
-		    join_list->u.join._hist_data->insert( delta );
+		ps_record_stat( join_list->r_join.raw, delta );
+		ps_record_stat( join_list->r_join_sqr.raw, square( delta ) );
+		if ( join_list->_hist_data ) {
+		    join_list->_hist_data->insert( delta );
 		}
-		fork_list = join_list->u.join.next;
-		timeline_trace( ACTIVITY_JOIN, fork_list->list[0], fork_list );
+		fork_list = join_list->get_next();
+		timeline_trace( ACTIVITY_JOIN, fork_list->front(), fork_list );
 
 	    } else {
-		fork_list = NULL;
+		fork_list = nullptr;
 	    }
 	    ps_my_end_compute_time = ps_now;				/* BUG 321 */
 	    ps_my_schedule_time    = ps_now;				/* BUG 259 */
 	    goto again_1;
 
-	case ACT_OR_FORK_LIST:
-	    if ( fork_list->na == 0 ) {
-		abort();
-	    }
-	    exit_value = ps_random;
-	    sum = 0.0;
-	    for ( i = 0; i < fork_list->na; ++i ) {
-		sum += fork_list->u.fork.prob[i];
+	} else if ( fork_list->get_type() == ActivityList::Type::OR_FORK_LIST ) {
+
+	    assert ( fork_list->size() > 0 );
+	    const double exit_value = ps_random;
+	    double sum = 0.0;
+	    size_t i = 0;
+	    for ( i = 0; i < fork_list->size(); ++i ) {
+		sum += static_cast<OrForkActivityList *>(fork_list)->get_prob_at(i);
 		if ( sum > exit_value ) break;
 	    }
-	    ap_out = fork_list->list[i];
-	    break;
+	    ap_out = fork_list->at(i);
 
-	case ACT_FORK_LIST:
-	    if ( fork_list->na == 1 ) {
-		ap_out = fork_list->list[0];
-	    } else if ( fork_list->na != 0 ) {
-		abort();
+	} else if ( fork_list->get_type() == ActivityList::Type::FORK_LIST ) {
+	    assert( fork_list->size() <= 1 );
+	    if ( fork_list->size() == 1 ) {
+		ap_out = fork_list->front();
 	    }
-	    break;
 
-	case ACT_LOOP_LIST:
+	} else {
 	again_2:
+	    LoopActivityList * loop_list = dynamic_cast<LoopActivityList *>(fork_list);
 	    ps_my_end_compute_time = ps_now;	/* BUG 321 */
-	    exit_value = ps_random * (fork_list->u.loop.total + 1.0);
-	    sum = 0;
-	    for ( i = 0; i < fork_list->na; ++i ) {
-		sum += fork_list->u.loop.count[i];
+	    const double exit_value = ps_random * (loop_list->get_total() + 1.0);
+	    double sum = 0;
+	    for ( ActivityList::const_iterator i  = loop_list->begin(); i < loop_list->end(); ++i ) {
+		sum += loop_list->get_count_at(i-loop_list->begin());
 		if ( sum > exit_value ) {
-		    run_activities( ep, fork_list->list[i], reschedule );
+		    run_activities( ep, *i, reschedule );
 		    goto again_2;
 		}
 	    }
-	    ap_out = fork_list->u.loop.endlist;
-	    break;
-
-
-	default:
-	    abort();
-	    ap_out = NULL;
+	    ap_out = loop_list->get_exit();
 	}
     }
 
@@ -1666,9 +1614,9 @@ Instance::spawn_activities( const long entry_id, ActivityList * fork_list )
 {
     ps_my_schedule_time = ps_now;		/* In case we don't block...	*/
 
-    for ( unsigned i = 0; i < fork_list->na; ++i ) {
+    for ( ActivityList::const_iterator i = fork_list->begin(); i != fork_list->end(); ++i ) {
 	char * msg = 0;
-	Activity * ap = fork_list->list[i];
+	Activity * ap = (*i);
 
 	/* Request for service arrives. */
 
@@ -1677,7 +1625,7 @@ Instance::spawn_activities( const long entry_id, ActivityList * fork_list )
 
 	/* Reap any pending threads if possible */
 
-	while ( thread_wait( IMMEDIATE, (char **)&msg, false, NULL ) ) {
+	while ( thread_wait( IMMEDIATE, (char **)&msg, false, nullptr ) ) {
 	    timeline_trace( THREAD_REAP, msg );
 	}
 
@@ -1694,7 +1642,7 @@ Instance::spawn_activities( const long entry_id, ActivityList * fork_list )
 	    timeline_trace( THREAD_CREATE, id );
 	    ps_resume( id  );
 	    active_threads += 1;
-	    thread_wait( NEVER, &msg, false, NULL );
+	    thread_wait( NEVER, &msg, false, nullptr );
 
 	}
 
@@ -1720,7 +1668,7 @@ Instance::flush_threads()
     while ( active_threads > 0  ) {
 	Activity * ap;
 
-	thread_wait( NEVER, (char **)&ap, true, NULL );
+	thread_wait( NEVER, (char **)&ap, true, nullptr );
     }
 }
 
@@ -1770,21 +1718,20 @@ Instance::thread_wait( double time_out, char ** msg, const bool flush, double * 
 bool
 Instance::all_activities_done( const Activity * ap )
 {
-    ActivityList * join_list = ap->_output;
-    unsigned i = 0;
+    OutputActivityList * join_list = ap->_output;
 
     _join_done[ap->index()] = true;
 
-    for ( i = 0; i < join_list->na; ++i ) {
-	if ( !_join_done[join_list->list[i]->index()] ) {
+    for ( ActivityList::const_iterator i = join_list->begin(); i < join_list->end(); ++i ) {
+	if ( !_join_done[(*i)->index()] ) {
 	    return false;
 	}
     }
 
     /* All activities tagged -- zap and return */
 
-    for ( i = 0; i < join_list->na; ++i ) {
-	_join_done[join_list->list[i]->index()] = false;	/* !!! */
+    for ( ActivityList::const_iterator i = join_list->begin(); i < join_list->end(); ++i ) {
+	_join_done[(*i)->index()] = false;	/* !!! */
     }
     return true;
 }
@@ -1792,13 +1739,13 @@ Instance::all_activities_done( const Activity * ap )
 
 
 void
-Instance::wait_for_threads( ActivityList * fork_list, double * thread_K_outOf_N_end_compute_time )
+Instance::wait_for_threads( AndForkActivityList * fork_list, double* thread_K_outOf_N_end_compute_time )
 {
     Activity * ap;			/* Time stamp info from client	*/
-    int count = fork_list->u.fork.visit_count;
-    ActivityList * join_list = fork_list->u.fork.join;
+    int count = fork_list->get_visits();
+    AndJoinActivityList * join_list = dynamic_cast<AndJoinActivityList *>(fork_list->get_join());
     const int N = count;
-    const int K = (join_list && join_list->u.join.quorumCount > 0) ? join_list->u.join.quorumCount : count;
+    const int K = (join_list && join_list->get_quorum_count() > 0) ? join_list->get_quorum_count() : count;
 
     if ( count == 0 ) return;
 
@@ -1812,8 +1759,8 @@ Instance::wait_for_threads( ActivityList * fork_list, double * thread_K_outOf_N_
 
 	/* Only acknowledge active threads */
  
-	for ( unsigned i = 0; i < fork_list->na; ++i ) {
-	    if ( fork_list->u.fork.visit[i] && fork_list->list[i] == ap ) {
+	for ( size_t i = 0; i < fork_list->size(); ++i ) {
+	    if ( fork_list->at(i) && fork_list->at(i) == ap ) {
 		count -= 1;
 		break;
 	    }
@@ -1822,8 +1769,6 @@ Instance::wait_for_threads( ActivityList * fork_list, double * thread_K_outOf_N_
 
     timeline_trace( TASK_IS_READY, 1 );
 }
-
-
 
 /*----------------------------------------------------------------------*/
 /* Timeline Stuff.							*/

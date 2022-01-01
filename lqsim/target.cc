@@ -1,13 +1,13 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
- * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 15091 2021-10-22 17:01:44Z greg $
+ * $Id: target.cc 15314 2022-01-01 15:11:20Z greg $
  * ------------------------------------------------------------------------
  */
 
 #include <parasol.h>
 #include "lqsim.h"
+#include <algorithm>
 #include <limits>
 #include <lqio/error.h>
 #include <lqio/input.h>
@@ -19,16 +19,6 @@
 #include "message.h"
 #include "instance.h"
 #include "pragma.h"
-
-tar_t::tar_t()
-  : entry(0),
-    _link(-1),
-    _tprob(0.0),
-    _calls(0),
-    _reply(0),
-    _type(undefined)
-{
-}
 
 /*
  * Rendezvous message.  Recycle message.
@@ -45,15 +35,15 @@ tar_t::send_synchronous( const Entry * src, const int priority, const long reply
 
     Instance * ip = object_tab[ps_myself];
 
-    ip->timeline_trace( SYNC_INTERACTION_INITIATED, src, entry );
+    ip->timeline_trace( SYNC_INTERACTION_INITIATED, src, _entry );
     if ( link() >= 0 ) {	/* !!!SEND!!! */
-	ps_link_send( _link, entry->get_port(),
-		      entry->entry_id(),
+	ps_link_send( _link, _entry->get_port(),
+		      _entry->entry_id(),
 		      LINKS_MESSAGE_SIZE,
 		      (char *)&msg, reply_port );
-    } else if ( ps_send_priority( entry->get_port(), entry->entry_id(),
+    } else if ( ps_send_priority( _entry->get_port(), _entry->entry_id(),
 			       (char *)&msg, reply_port,
-			       priority + entry->priority() ) == SYSERR ) {
+			       priority + _entry->priority() ) == SYSERR ) {
 	throw std::runtime_error( "tar_t::send_synchronous" );
     }
 
@@ -73,7 +63,7 @@ tar_t::send_synchronous( const Entry * src, const int priority, const long reply
 void
 tar_t::send_asynchronous( const Entry * src, const int priority )
 {
-    Entry * dst = this->entry;
+    Entry * dst = _entry;
     Task * cp = dst->task();
     Message * msg = cp->alloc_message();
     if ( msg != NULL ) {
@@ -81,20 +71,20 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
 
 	ps_record_stat( r_loss_prob.raw, 0 );
 	Instance * ip = object_tab[ps_myself];
-	ip->timeline_trace( ASYNC_INTERACTION_INITIATED, src, entry );
+	ip->timeline_trace( ASYNC_INTERACTION_INITIATED, src, _entry );
 
 	if ( link() >= 0 ) {	/* !!!SEND!!! */
-	    ps_link_send( _link, entry->get_port(), entry->entry_id(),
+	    ps_link_send( _link, _entry->get_port(), _entry->entry_id(),
 			  LINKS_MESSAGE_SIZE, (char *)msg, -1 );
-	} else if ( ps_send_priority( entry->get_port(), entry->entry_id(),
+	} else if ( ps_send_priority( _entry->get_port(), _entry->entry_id(),
 				      (char *)msg, -1,
-				      priority + entry->priority() ) == SYSERR ) {
+				      priority + _entry->priority() ) == SYSERR ) {
 	    throw std::runtime_error( "tar_t::send_asynchronous" );
 	}
     } else {
 	ps_record_stat( r_loss_prob.raw, 1 );
 	if ( Pragma::__pragmas->abort_on_dropped_message() ) {
-	    LQIO::solution_error( FTL_MSG_POOL_EMPTY, src->name(), entry->name() );
+	    LQIO::solution_error( FTL_MSG_POOL_EMPTY, src->name(), _entry->name() );
 	} else {
 	    messages_lost = true;
 	}
@@ -104,10 +94,12 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
 void
 tar_t::configure()
 {
-    if ( _type == call ) {
+    if ( _entry->task()->is_reference_task() ) {
+	LQIO::solution_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, _entry->task()->name(), _entry->name() );
+    } else if ( _type == Type::call ) {
 	_calls = _dom._call->getCallMeanValue();
 	_reply = (_dom._call->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS || _dom._call->getCallType() == LQIO::DOM::Call::Type::FORWARD);
-    } else if ( _type != constant ) {
+    } else if ( _type != Type::constant ) {
 	abort();
     }
 }
@@ -150,10 +142,10 @@ double
 tar_t::compute_minimum_service_time() const
 {
     if ( reply() ) {
-	if ( entry->_minimum_service_time[0] == 0. ) {
-	    entry->compute_minimum_service_time();
+	if ( entry()->_minimum_service_time[0] == 0. ) {
+	    entry()->compute_minimum_service_time();
 	}
-	return calls() * entry->_minimum_service_time[0];
+	return calls() * entry()->_minimum_service_time[0];
     } else {
 	return 0.0;
     }
@@ -162,16 +154,16 @@ tar_t::compute_minimum_service_time() const
 FILE *
 tar_t::print( FILE * output ) const
 {
-    (void) fprintf( output, "%5.2f * %s", calls(), entry->name() );
+    (void) fprintf( output, "%5.2f * %s", calls(), _entry->name() );
     return output;
 }
 
 
 
-void
+tar_t&
 tar_t::insertDOMResults()
 {
-    if ( _type != call ) return;
+    if ( _type != Type::call ) return *this;
 
     double meanDelay, meanDelayVariance;
     const double meanLossProbability = r_loss_prob.mean();
@@ -207,6 +199,7 @@ tar_t::insertDOMResults()
 	    _dom._call->setResultDropProbabilityVariance( meanLossVariance );
 	}
     }
+    return *this;
 }
 
 /*
@@ -216,9 +209,9 @@ tar_t::insertDOMResults()
 void
 Targets::store_target_info (  Entry * to_entry, LQIO::DOM::Call* a_call  )
 {
-    const size_t offset = target.size();
+    const size_t offset = _target.size();
     if ( a_call && alloc_target_info( to_entry ) ) {
-	target[offset].initialize( to_entry, a_call );
+	_target[offset].initialize( to_entry, a_call );
     }
 }
 
@@ -230,9 +223,9 @@ Targets::store_target_info (  Entry * to_entry, LQIO::DOM::Call* a_call  )
 void
 Targets::store_target_info ( Entry * to_entry, double a_const )
 {
-    const size_t offset = target.size();
+    const size_t offset = _target.size();
     if ( a_const > 0.0 &&  alloc_target_info( to_entry ) ) {
-	target[offset].initialize( to_entry, a_const );
+	_target[offset].initialize( to_entry, a_const );
     }
 }
 
@@ -244,13 +237,13 @@ Targets::alloc_target_info( Entry * to_entry )
     /* Check for duplicate call. */
 	
     for ( unsigned t = 0; t < size(); ++t ) {
-	if ( target[t].entry == to_entry ) {
+	if ( _target[t]._entry == to_entry ) {
 	    input_error2( LQIO::WRN_MULTIPLE_SPECIFICATION );
 	    return false;
 	}
     }
-    const size_t size = target.size();
-    target.resize(size+1);
+    const size_t size = _target.size();
+    _target.resize(size+1);
     return true;
 }
 
@@ -270,8 +263,8 @@ Targets::configure( const LQIO::DOM::DocumentObject * dom, bool normalize )
     const char * srcName = (dom != nullptr) ? dom->getName().c_str() : "-";
     _type = (dynamic_cast<const LQIO::DOM::Phase *>(dom) != nullptr) ? dynamic_cast<const LQIO::DOM::Phase *>(dom)->getPhaseTypeFlag() : LQIO::DOM::Phase::Type::STOCHASTIC;
     
-    for ( std::vector<tar_t>::iterator tp = target.begin(); tp != target.end(); ++tp ) {
-	const char * dstName = tp->entry->name();
+    for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
+	const char * dstName = tp->entry()->name();
 	try {
 	    tp->configure();
 	    if ( _type == LQIO::DOM::Phase::Type::DETERMINISTIC && tp->calls() != trunc( tp->calls() ) ) throw std::domain_error( "invalid integer" );
@@ -301,7 +294,7 @@ Targets::configure( const LQIO::DOM::DocumentObject * dom, bool normalize )
     if ( _type != LQIO::DOM::Phase::Type::DETERMINISTIC ) {
 	if ( normalize ) {
 	    sum += 1.0;
-	    for ( std::vector<tar_t>::iterator tp = target.begin(); tp != target.end(); ++tp ) {
+	    for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
 		tp->_tprob /= sum;
 	    }
 	} else if ( sum > 1. ) {
@@ -316,8 +309,8 @@ Targets::configure( const LQIO::DOM::DocumentObject * dom, bool normalize )
 void
 Targets::initialize( const char * srcName )
 {
-    for ( std::vector<tar_t>::iterator tp = target.begin(); tp != target.end(); ++tp ) {
-	const char * dstName = tp->entry->name();
+    for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
+	const char * dstName = tp->entry()->name();
     
 	tp->r_delay.init( SAMPLE,     "Wait %-11.11s %-11.11s          ", srcName, dstName );
 	tp->r_delay_sqr.init( SAMPLE, "Wait %-11.11s %-11.11s          ", srcName, dstName );
@@ -343,12 +336,12 @@ Targets::entry_to_send_to ( unsigned int&i, unsigned int& j ) const
 
 	case LQIO::DOM::Phase::Type::STOCHASTIC:
 	    p = ps_random;
-	    for ( i = 0; i < size() && p >= target[i]._tprob; i = i + 1 );
+	    for ( i = 0; i < size() && p >= _target[i]._tprob; i = i + 1 );
 	    break;
 
 	case LQIO::DOM::Phase::Type::DETERMINISTIC:
 	    j = j + 1;
-	    while ( i < size() && j > target[i].calls() ) {
+	    while ( i < size() && j > _target[i].calls() ) {
 		j = 1;
 		i = i + 1;
 	    }
@@ -358,7 +351,7 @@ Targets::entry_to_send_to ( unsigned int&i, unsigned int& j ) const
 	    abort();
 	}
 	if ( i < size() ) {
-	    return const_cast<tar_t *>(&target[i]);
+	    return const_cast<tar_t *>(&_target[i]);
 	}
     }
 
@@ -370,8 +363,7 @@ Targets::entry_to_send_to ( unsigned int&i, unsigned int& j ) const
 Targets&
 Targets::accumulate_data()
 {
-    std::vector<tar_t>::iterator tp;
-    for ( tp = target.begin(); tp != target.end(); ++tp ) {
+    for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
 	tp->r_delay_sqr.accumulate_variance( tp->r_delay.accumulate() );
 	if ( !tp->reply() ) {
 	    tp->r_loss_prob.accumulate();
@@ -385,8 +377,7 @@ Targets::accumulate_data()
 Targets&
 Targets::reset_stats()
 {
-    std::vector<tar_t>::iterator tp;
-    for ( tp = target.begin(); tp != target.end(); ++tp ) {
+    for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
  	tp->r_delay.reset();
  	tp->r_delay_sqr.reset();
  	if ( !tp->reply() ) {
@@ -400,9 +391,8 @@ Targets::reset_stats()
 const Targets&
 Targets::print_raw_stat( FILE * output ) const
 {
-    std::vector<tar_t>::const_iterator tp;
-    for ( tp = target.begin(); tp != target.end(); ++tp ) {
-	Entry * ep = tp->entry;
+    for ( std::vector<tar_t>::const_iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
+	Entry * ep = tp->entry();
 	tp->r_delay.print_raw( output,      "Calling %-11.11s- delay", ep->name() );
 	tp->r_delay_sqr.print_raw( output,  "Calling %-11.11s- delay sqr", ep->name() );
 	if ( !tp->reply() ) {
@@ -416,9 +406,6 @@ Targets::print_raw_stat( FILE * output ) const
 Targets&
 Targets::insertDOMResults()
 {
-    std::vector<tar_t>::iterator tp;
-    for ( tp = target.begin(); tp != target.end(); ++tp ) {
-	tp->insertDOMResults();
-    }
+    for_each( _target.begin(), _target.end(), Exec<tar_t>( &tar_t::insertDOMResults ) );
     return *this;
 }

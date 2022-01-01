@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: entry.h 15295 2021-12-30 00:16:23Z greg $
+ * $Id: entry.h 15312 2022-01-01 14:19:39Z greg $
  */
 
 #ifndef ENTRY_H
@@ -117,6 +117,7 @@ public:
     bool is_send_no_reply() const { return _recv == Type::SEND_NO_REPLY; }
     bool is_rendezvous() const { return _recv == Type::RENDEZVOUS; }
     bool has_lost_messages() const;
+    bool has_think_time() const;
 
     virtual bool test_and_set( LQIO::DOM::Entry::Type );			/* Sets _type too!		*/
     bool test_and_set_recv( Type );

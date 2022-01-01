@@ -7,9 +7,9 @@
 /************************************************************************/
 
 /*
- * Global vars for simulation.
+ * Activities (and phases).
  *
- * $Id: activity.h 14995 2021-09-27 14:01:46Z greg $
+ * $Id: activity.h 15314 2022-01-01 15:11:20Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -31,7 +31,6 @@ typedef double (*distribution_func_ptr)( double, double );
 
 class Activity {
     friend class Instance;
-    
 
 public:
     Activity( Task * cp=NULL, LQIO::DOM::Phase * dom=NULL );
@@ -60,7 +59,7 @@ public:
     bool has_lost_messages() const;
     
     void set_arrival_rate( const double r ) { _arrival_rate = r; }
-    double get_slice_time() { return (*distribution_func)( _scale, _shape ); }
+    double get_slice_time() { return (*_distribution)( _scale, _shape ); }
     Activity& set_DOM( LQIO::DOM::Phase* phaseInfo );
     LQIO::DOM::Phase* get_DOM() const { return _dom; }
     const std::vector<LQIO::DOM::Call*>& get_calls() const { return _dom->getCalls(); }
@@ -79,7 +78,7 @@ public:
 
     const Activity& print_raw_stat( FILE * output ) const;
     void print_debug_info();
-    double find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * ep );
+    double find_children( std::deque<Activity *>& activity_stack, std::deque<AndForkActivityList *>& fork_stack, const Entry * ep );
 
     double compute_minimum_service_time() const;
     double compute_minimum_service_time( ActivityList::Collect& data ) const;
@@ -96,8 +95,8 @@ private:
     ActivityList * act_and_fork_list( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist );
     ActivityList * act_or_fork_list( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist );
     ActivityList * act_loop_list( ActivityList * activity_list, LQIO::DOM::ActivityList * dom_activitylist );
-    ActivityList * realloc_list ( const list_type type, const ActivityList * input_list,  LQIO::DOM::ActivityList * dom_activitylist );
-    const Entry * find_reply( const Entry * ep ) const;
+    ActivityList * realloc_list ( const ActivityList::Type type, const ActivityList * input_list,  LQIO::DOM::ActivityList * dom_activitylist );
+    bool find_reply( const Entry * ep ) const;
 
 private:
     LQIO::DOM::Phase* _dom;
@@ -116,7 +115,7 @@ private:
     unsigned _phase;			/* Phase number (not needed)	*/
     double _scale;			/* "scale" for slice distrib.	*/
     double _shape;			/* "shape" for slice distrib.	*/
-    distribution_func_ptr distribution_func;
+    distribution_func_ptr _distribution;
     const unsigned int _index;		/* My index (for joins.)	*/
     double _prewaiting;			/* Used for calculating the task waiting time variance only. Tao*/ 
     std::vector<const Entry *> _reply;	/* reply list.			*/
@@ -125,9 +124,9 @@ private:
     bool _is_start_activity;		/* True if I am a start activity*/
 
 public:
-    ActivityList *_input;		/* Node which calls me.		*/
-    ActivityList *_output;		/* Node which I call.		*/
-    Targets tinfo;			/* target info			*/
+    InputActivityList *_input;		/* Node which calls me.		*/
+    OutputActivityList *_output;	/* Node which I call.		*/
+    Targets _calls;			/* target info			*/
     unsigned _active;			/* Number of active instances.	*/
     unsigned _cpu_active;		/* Number of active instances.	*/
     Histogram * _hist_data;            	/* histogram data.		*/
@@ -146,15 +145,7 @@ public:
     static std::map<LQIO::DOM::ActivityList*, ActivityList *> domToNative;
 };
 
-typedef double (*activity_func_ptr)( const Activity * ap );
-
-extern unsigned join_count;		/* non-zero if any joins	*/
-extern unsigned fork_count;		/* non-zero if any forks	*/
-
-Activity * find_or_create_activity ( const void * task, const char * activity_name );
-void print_activity_info( FILE * output, const Activity * ap, const bool parse_flag, activity_func_ptr mean, activity_func_ptr stddev, activity_func_ptr mean2 );
 void act_print_raw_stat( FILE * output, Activity * ap );
-int act_find_phase_2( const Entry * ep, Activity * ap, int my_phase);
 
 /*
  * Compare a entry name to a string.  Used by the find_if (and other algorithm type things).
@@ -168,7 +159,4 @@ struct eqActivityStr
 private:
     const char * _s;
 };
-
-
 #endif
-

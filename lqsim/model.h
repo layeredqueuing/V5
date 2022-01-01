@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 15302 2021-12-31 14:19:34Z greg $
+ * $Id: model.h 15314 2022-01-01 15:11:20Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -96,8 +96,6 @@ public:
     };
 
 private:
-    template <typename Type> inline static void Delete( Type x ) { delete x; }
-
     Model( LQIO::DOM::Document* document, const std::string&, const std::string&, LQIO::DOM::Document::OutputFormat );
     Model( const Model& );
     Model& operator=( const Model& );
@@ -121,12 +119,15 @@ public:
 private:
     bool prepare();		/* Step 1 -- outside of parasol */
     bool create();		/* Step 2 -- inside of parasol	*/
+#if BUG_313
+    static void extend();	/* convert entry think times	*/
+#endif
 
     void reset_stats();
     void accumulate_data();
     void insertDOMResults();
 
-    bool hasOutputFileName() const { return _output_file_name.size() > 0 && _output_file_name != "-"; }
+    const std::string& getOutputFileName() const { return (_output_file_name.size() > 0 && _output_file_name != "-") ? _output_file_name : _input_file_name; }
     
     void print_intermediate();
     void print_raw_stats( FILE * output ) const;

@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15309 2021-12-31 22:18:21Z greg $
+ * $Id: model.cc 15314 2022-01-01 15:11:20Z greg $
  */
 
 #include "lqsim.h"
@@ -90,16 +90,16 @@ Model::Model( LQIO::DOM::Document* document, const std::string& input_file_name,
 
 Model::~Model()
 {
-    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), Model::Delete<Processor*> );
+    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), Delete<Processor*> );
     Processor::__processors.clear();
 
-    std::for_each( Group::__groups.begin(), Group::__groups.end(), Model::Delete<Group *> );
+    std::for_each( Group::__groups.begin(), Group::__groups.end(), Delete<Group *> );
     Group::__groups.clear();
 
-    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), Model::Delete<Task *> );
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), Delete<Task *> );
     Task::__tasks.clear();
 
-    std::for_each( Entry::__entries.begin(), Entry::__entries.end(), Model::Delete<Entry *> );
+    std::for_each( Entry::__entries.begin(), Entry::__entries.end(), Delete<Entry *> );
     Entry::__entries.clear();
 
     Activity::actConnections.clear();
@@ -144,10 +144,13 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
     LQX::Program * program = nullptr;
     FILE * output = nullptr;
     try { 
-
 	if ( !model.prepare() ) throw std::runtime_error( "Model::prepare" );
 
 	document->mergePragmas( pragmas.getList() );       /* Save pragmas */
+
+#if BUG_313
+	extend();			/* convert entry think times	*/
+#endif
 
 	/* We can simply run if there's no control program */
 
@@ -335,6 +338,22 @@ Model::prepare()
     return !LQIO::io_vars.anError();
 }
 
+
+
+#if BUG_313
+/*
+ * Add a think server if there are any entries with think times.
+ */
+
+/* static */ void
+Model::extend()
+{
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	if ( (*task)->has_think_time() ) {
+	}
+    }
+}
+#endif
 
 
 /*
@@ -593,7 +612,7 @@ Model::reload()
 {
     /* Default mapping */
 
-    LQIO::Filename directory_name( hasOutputFileName() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
+    LQIO::Filename directory_name( getOutputFileName(), "d" );		/* Get the base file name */
 
     if ( access( directory_name().c_str(), R_OK|W_OK|X_OK ) < 0 ) {
 	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );

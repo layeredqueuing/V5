@@ -1,8 +1,8 @@
 /* -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/instance.h $
- * Global vars for simulation.
+ * 
+ * Logic executed for task behaviour in simulation.
  *
- * $Id: instance.h 15000 2021-09-27 18:48:30Z greg $
+ * $Id: instance.h 15314 2022-01-01 15:11:20Z greg $
  */
 
 /************************************************************************/
@@ -26,7 +26,7 @@ class Activity;
 class Message;
 
 
-extern int client_init_count;		/* Semaphore for -C...*/
+extern volatile int client_init_count;		/* Semaphore for -C...*/
 
 class  Instance
 {
@@ -35,9 +35,9 @@ private:
     Instance& operator=( const Instance& );
 
 protected:
-    static void start( void * = 0 );
+    static void start( void * );
     static void random_shuffle_reply( std::vector<const Entry *>& array );
-    static void random_shuffle_activity( Activity ** array, unsigned n );
+    static void random_shuffle_activity( std::vector<Activity *>& array );
 
 protected:
     Instance( Task * a_task, const char * task_name, long task_id );
@@ -47,7 +47,7 @@ public:
     
     long task_id() const { return _task_id; }
     long node_id() const { return _node_id; }
-    long std_port() const;
+    long std_port() const { return _std_port; }
     long reply_port() const { return _reply_port; }
     long start_port() const { return _start_port; }
     long thread_port() const { return _thread_port; }
@@ -76,7 +76,7 @@ private:
     bool all_activities_done( const Activity * ap );
     Activity * next_activity( Entry * ep, Activity * ap_in, bool reschedule );
     void spawn_activities( const long entry_id, ActivityList * fork_list );
-    void wait_for_threads( ActivityList * fork_list, double * thread_K_outOf_N_end_compute_time );
+    void wait_for_threads( AndForkActivityList * fork_list, double * thread_K_outOf_N_end_compute_time );
     void flush_threads();
     int thread_wait( double time_out, char ** msg, const bool flush, double * thread_end_compute_time );
 
@@ -157,7 +157,7 @@ class srn_server : public Real_Instance
     /* SERVER 		*/
 public:
     srn_server( Task * cp, const char * task_name )
-	: Real_Instance( cp, task_name ) {}
+	: Real_Instance( cp, task_name ) {_parent_port=-1;}
 
     virtual const std::string& type_name() const { return Task::type_strings.at(Task::Type::SERVER); }
     void run();
@@ -173,7 +173,7 @@ class srn_multiserver : public Virtual_Instance
     /* INFINITE_SERVER 	*/
 public:
     srn_multiserver( Task * cp, const char * task_name, unsigned long max_workers )
-	: Virtual_Instance( cp, task_name ), _max_workers(max_workers) {}
+	: Virtual_Instance( cp, task_name ), _max_workers(max_workers) {_parent_port=-1;}
 
     virtual const std::string& type_name() const;
     void run();

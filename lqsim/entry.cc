@@ -8,19 +8,16 @@
 /************************************************************************/
 
 /*
- * Input output processing.
+ * Lqsim-parasol Entry interface.
  *
- * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/entry.cc $
- *
- * $Id: entry.cc 15295 2021-12-30 00:16:23Z greg $
+ * $Id: entry.cc 15314 2022-01-01 15:11:20Z greg $
  */
 
-#include <parasol.h>
 #include "lqsim.h"
+#include <parasol.h>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <stdarg.h>
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include "activity.h"
@@ -75,7 +72,9 @@ Entry::~Entry()
 }
 
 /*
- * Initialization code for entries done AFTER the simulation starts.
+ * Initialization code done BEFORE the simulation starts.  Store the
+ * open arrival rate for entry.  This act is accomplished by setting
+ * up a fake task to generate open arrivals.
  */
 
 double
@@ -87,35 +86,20 @@ Entry::configure()
     }
 
     double total_calls = 0.0;
-    if ( is_regular() ) {
 
-	/* link phases */
-
-	for ( std::vector<Activity>::iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
-	    const size_t p = phase - _phase.begin() + 1;
-	    phase->set_phase( p );
-	    phase->set_task( task() );
-	    total_calls += phase->configure();
-
-	    if ( phase->has_service_time() || phase->has_think_time() || phase->tinfo.size() > 0 ) {
-		if ( task()->max_phases() < p ) {
-		    task()->max_phases( p );
-		}
-	    } else if ( phase->_hist_data ) {
-		LQIO::solution_error( WRN_NO_PHASE_FOR_HISTOGRAM, name(), p );
-	    }
-
-	}
-			
-    } else {
+    if ( is_activity() ) {
 
 	std::deque<Activity *> activity_stack;
-	std::deque<ActivityList *> fork_stack;
-	double n_replies;
+	std::deque<AndForkActivityList *> fork_stack;
+	double n_replies = 0.0;
 	    
-	_activity->find_children( activity_stack, fork_stack, this );
-	ActivityList::Collect data( this, &Activity::count_replies );
-	n_replies = _activity->collect( activity_stack, data );
+	if ( _activity ) {
+	    _activity->find_children( activity_stack, fork_stack, this );
+	    ActivityList::Collect data( this, &Activity::count_replies );
+	    n_replies = _activity->collect( activity_stack, data );
+	} else {
+	    LQIO::solution_error( LQIO::ERR_ENTRY_NOT_SPECIFIED, name() );
+	}
 
 	if ( is_rendezvous() ) {
 	    if ( n_replies == 0 ) {
@@ -137,6 +121,24 @@ Entry::configure()
 		phase->_hist_data = new Histogram( _dom->getHistogramForPhase( p ) );
 	    }
 	}
+
+    } else {
+	
+	/* link phases */
+
+	for ( std::vector<Activity>::iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+	    const size_t p = phase - _phase.begin() + 1;
+	    if ( (phase->service() + phase->think_time()) > 0. || phase->_calls.size() > 0 ) {
+		task()->max_phases( p );
+	    } else if ( phase->_hist_data ) {
+		LQIO::solution_error( WRN_NO_PHASE_FOR_HISTOGRAM, name(), p );
+	    }
+
+	    phase->set_phase( p );
+	    phase->set_task( task() );
+	    total_calls += phase->configure();
+	}
+
     }
 
     _active.assign( MAX_PHASES, 0 );
@@ -168,6 +170,10 @@ Entry::configure()
     return total_calls;
 }
 
+
+/*
+ * Initialization code for entries done AFTER the simulation starts.
+ */
 
 Entry&
 Entry::initialize()
@@ -276,6 +282,14 @@ Entry::has_lost_messages() const
 {
     return std::any_of( _phase.begin(), _phase.end(), Predicate<Activity>( &Activity::has_lost_messages ) );
 }
+
+
+bool
+Entry::has_think_time() const
+{
+    return std::any_of( _phase.begin(), _phase.end(), Predicate<Activity>( &Activity::has_think_time ) );
+}
+
 
 /*
  * Set fields denoting run of the mill entry.
@@ -428,7 +442,7 @@ Entry::insertDOMResults()
      * Service times.
      */
 	    
-    if (is_activity()) {
+    if ( is_activity() ) {
 	for ( unsigned p = 1; p <= 2; ++p ) {
 	    Activity * phase = &_phase[p-1];
 	    _dom->setResultPhasePServiceTime( p, phase->r_cycle.mean() )
@@ -575,8 +589,8 @@ Pseudo_Entry::configure()
 Entry&
 Pseudo_Entry::insertDOMResults()
 {
-    for ( std::vector<tar_t>::iterator tp = _phase[0].tinfo.target.begin(); tp != _phase[0].tinfo.target.end(); ++tp ) {
-	Entry * ep = tp->entry;
+    for ( Targets::const_iterator tp = _phase[0]._calls.begin(); tp != _phase[0]._calls.end(); ++tp ) {
+	Entry * ep = tp->entry();
 	LQIO::DOM::Entry * dom = ep->get_DOM();
 	assert( dom == get_DOM() );
 	dom->setResultWaitingTime( tp->mean_delay() );
@@ -626,7 +640,7 @@ Entry::add( LQIO::DOM::Entry* domEntry, Task * task )
 Entry&
 Entry::add_open_arrival_task()
 {
-    if ( !_dom || !_dom->hasOpenArrivalRate() || !test_and_set_recv( Entry::Type::SEND_NO_REPLY ) || dynamic_cast<Pseudo_Entry *>(this) != NULL ) return *this;
+    if ( !_dom || !_dom->hasOpenArrivalRate() || !test_and_set_recv( Entry::Type::SEND_NO_REPLY ) || dynamic_cast<Pseudo_Entry *>(this) != nullptr ) return *this;	/* Not necessary due to override */
 
     char * task_name = new char[strlen( name() ) + 20];
     (void) sprintf( task_name, "(%s)", name() );
@@ -647,7 +661,7 @@ Entry::add_open_arrival_task()
 
     /* Set up calls per cycle.  1 call is made per cycle */
 
-    from_entry->_phase[0].tinfo.store_target_info( this, 1.0 );
+    from_entry->_phase[0]._calls.store_target_info( this, 1.0 );
 
     open_arrival_count += 1;
 
@@ -659,7 +673,6 @@ void
 Entry::add_call( const unsigned int p, LQIO::DOM::Call* domCall )
 {
     /* Begin by extracting the from/to DOM entries from the call and their names */
-    assert( 0 < p && p <= MAX_PHASES );
     const LQIO::DOM::Entry* toDOMEntry = domCall->getDestinationEntry();
 
     /* Make sure this is one of the supported call types */
@@ -676,7 +689,7 @@ Entry::add_call( const unsigned int p, LQIO::DOM::Call* domCall )
     if ( domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS && !to_entry->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) return;
     if ( domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY && !to_entry->test_and_set_recv( Entry::Type::SEND_NO_REPLY ) ) return;
 
-    _phase.at(p-1).tinfo.store_target_info( to_entry, domCall );
+    _phase.at(p-1)._calls.store_target_info( to_entry, domCall );
 }
 
 /*
@@ -732,9 +745,8 @@ Entry::print_debug_info()
 
     if ( _fwd.size() > 0 ) {
 	fprintf( stddbg, "\tfwds:  " );
-	std::vector<tar_t>::iterator tp;
-	for ( tp = _fwd.target.begin(); tp != _fwd.target.end(); ++tp ) {
-	    if ( tp != _fwd.target.begin() ) {
+	for ( Targets::const_iterator tp = _fwd.begin(); tp != _fwd.end(); ++tp ) {
+	    if ( tp != _fwd.begin() ) {
 		(void) fprintf( stddbg, ", " );
 	    }
 	    tp->print( stddbg );

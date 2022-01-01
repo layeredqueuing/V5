@@ -12,7 +12,7 @@
 /*
  * Global vars for setting up simulation.
  *
- * $Id: lqsim.h 15301 2021-12-31 00:49:26Z greg $
+ * $Id: lqsim.h 15314 2022-01-01 15:11:20Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -20,9 +20,11 @@
 #endif
 #include <cstdio>
 #include <lqio/input.h>
-#if	defined(HAVE_SYS_TYPES_H)
+#if HAVE_SYS_TYPES_H
 #include <sys/types.h>    /* Need def for size_t */
 #endif
+
+#define	BUG_313		1
 
 #define GROUP_SCHEDULING       0
 
@@ -40,7 +42,6 @@
 #define MAX_MESSAGES	16384
 
 #define	LINKS_MESSAGE_SIZE	1
-
 
 #define EPSILON 0.000001
 
@@ -62,7 +63,7 @@ extern bool restart_flag;		/* Restart and mussing run 	*/
 extern bool quorum_delayed_calls;	/* Quorum reply (BUG_311)	*/
 extern bool check_stacks;		/* Test for stack overrun	*/
 extern int print_interval;		/* Value set by input file.	*/
-    
+
 extern unsigned long watched_events;	/* Observe these events.	*/
 
 extern int trace_driver;		/* trace sim. drriver.		*/
@@ -72,7 +73,7 @@ extern int scheduling_model;		/* Slice/Natural scheduling.	*/
 extern double inter_proc_delay;		/* Inter-processor delay.	*/
 
 extern char * histogram_output_file;	/* File name for histogram data	*/
-    
+
 void * my_malloc( size_t size );
 void * my_realloc( void * ptr, size_t size );
 void report_matherr( FILE * output );
@@ -166,6 +167,8 @@ typedef enum
 }
 #endif
 
+template <typename Type> inline static void Delete( Type x ) { delete x; }
+
 template <class Type> struct Exec
 {
     typedef Type& (Type::*funcPtr)();
@@ -185,7 +188,7 @@ template <class Type> struct ConstExec
 private:
     const funcPtr _f;
 };
-    
+
 template <class Type1, class Type2> struct Exec1
 {
     typedef Type1& (Type1::*funcPtr)( Type2 x );
@@ -219,7 +222,7 @@ private:
     const funcPtr _f;
     Type2 _sum;
 };
-    
+
 template <class Type1, class Type2 > struct ConstExecSum
 {
     typedef Type2 (Type1::*funcPtr)() const;
@@ -231,7 +234,7 @@ private:
     const funcPtr _f;
     Type2 _sum;
 };
-    
+
 template <class Type> struct Predicate
 {
     typedef bool (Type::*predicate)() const;

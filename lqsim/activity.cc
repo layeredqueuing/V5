@@ -11,30 +11,28 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: activity.cc 15314 2022-01-01 15:11:20Z greg $
  */
 
 #include <parasol.h>
 #include "lqsim.h"
 #include <cstdarg>
+#include <cstring>
 #include <algorithm>
-#include <string.h>
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/dom_histogram.h>
 #include <lqio/dom_activity.h>
 #include <lqio/dom_actlist.h>
+#include "activity.h"
 #include "model.h"
 #include "entry.h"
-#include "activity.h"
 #include "task.h"
 #include "errmsg.h"
 #include "message.h"
 #include "processor.h"
 
 Activity * junk_activity_list = 0;
-unsigned join_count = 0;		/* non-zero if any joins	*/
-unsigned fork_count = 0;		/* non-zero if any forks	*/
 
 static void activity_cycle_error( int, std::deque<Activity *>& activity_stack );
 
@@ -66,18 +64,21 @@ Activity::Activity( Task * cp, LQIO::DOM::Phase * dom )
       _phase(0),
       _scale(0.0),
       _shape(1.0),		/* coefficient of variation squared (usually) -- Exponential assumed */
-      distribution_func(0),
+      _distribution(nullptr),
       _index(cp ? cp->_activity.size(): -1),
       _prewaiting(0),
       _reply(),
       _is_reachable(false),
       _is_start_activity(false),
-      _input(NULL),
-      _output(NULL),
+      _input(nullptr),
+      _output(nullptr),
       _active(0),
       _cpu_active(0),
-      _hist_data(0)
+      _hist_data(nullptr)
 {
+    if ( dom && (dom->hasHistogram() || dom->hasMaxServiceTimeExceeded()) ) {
+//	    _hist_data = new Histogram( _dom->getHistogram() );
+    }
 }
 
 
@@ -86,8 +87,8 @@ Activity::~Activity()
     if ( _hist_data ) {
 	delete _hist_data;
     }
-    _input = 0;
-    _output = 0;
+    _input = nullptr;
+    _output = nullptr;
 
     _reply.clear();
 }
@@ -110,16 +111,13 @@ Activity::set_DOM(LQIO::DOM::Phase* phaseInfo)
 bool
 Activity::has_lost_messages() const
 {
-    for ( std::vector<tar_t>::const_iterator tp = tinfo.target.begin(); tp != tinfo.target.end(); ++tp ) {
-	if ( (*tp).dropped_messages() ) return true;
-    }
-    return false;
+    return std::any_of(_calls.begin(),_calls.end(), Predicate<tar_t>( &tar_t::dropped_messages ) );
 }
 
 double
 Activity::service() const
 {
-    if (_dom == NULL) return _arrival_rate;		/* Psuedo entry sets this for open arrival */
+    if (_dom == nullptr) return _arrival_rate;		/* Psuedo entry sets this for open arrival */
     try {
 	return get_DOM()->getServiceTimeValue();
     }
@@ -138,7 +136,7 @@ Activity::service() const
 double
 Activity::configure()
 {
-    const double n_calls = tinfo.configure( _dom, (bool)(type() == LQIO::DOM::Phase::Type::STOCHASTIC) );
+    const double n_calls = _calls.configure( _dom, (bool)(type() == LQIO::DOM::Phase::Type::STOCHASTIC) );
     double slice;
     
     _active = 0;
@@ -177,25 +175,25 @@ Activity::configure()
     if ( task()->discipline() == SCHEDULE_BURST ) {
 	_shape = sqrt( 1.0 / cv_sqr() + 1.0 ) + 1.0;
 	_scale = slice * ( _shape - 1.0 ) / _shape;
-	distribution_func = rv_pareto;
+	_distribution = rv_pareto;
     } else if ( task()->discipline() == SCHEDULE_UNIFORM ) {
 	_shape = 0;
 	_scale = slice * 2.;			/* Mean of uniform is 1/2 upper limit. */
-	distribution_func = rv_uniform;
+	_distribution = rv_uniform;
     } else if ( cv_sqr() == 0 ) {
-	distribution_func = rv_constant;	/* args ignored */
+	_distribution = rv_constant;	/* args ignored */
 	_shape = 0;
 	_scale = slice;
     } else if ( cv_sqr() < 1.0 ) {
 	_shape = 1.0 / cv_sqr();
 	_scale = slice * cv_sqr();
-	distribution_func = rv_gamma;
+	_distribution = rv_gamma;
     } else if ( cv_sqr() == 1.0 ) {
-	distribution_func = rv_exponential;	/* coeff-of-var ignored */
+	_distribution = rv_exponential;	/* coeff-of-var ignored */
 	_scale = slice;
 	_shape = 1.0;
     } else {
-	distribution_func = rv_hyperexponential;
+	_distribution = rv_hyperexponential;
 	_scale = slice;
 	_shape = cv_sqr();
     }
@@ -225,7 +223,7 @@ Activity::initialize()
     r_cycle_sqr.init( SAMPLE,   "%30.30s Cycle Sqred", name() );
     r_afterQuorumThreadWait.init( SAMPLE,   "%30.30s afterQuorumThreadWait Raw Data", name() );	/* tomari quorum */
 
-    tinfo.initialize( name() );
+    _calls.initialize( name() );
     return *this;
 }
 
@@ -237,8 +235,9 @@ Activity::initialize()
  * loop and abort.
  */
 
+
 double
-Activity::find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * ep )
+Activity::find_children( std::deque<Activity *>& activity_stack, std::deque<AndForkActivityList *>& fork_stack, const Entry * ep )
 {
     double sum = 0;
 
@@ -246,7 +245,7 @@ Activity::find_children( std::deque<Activity *>& activity_stack, std::deque<Acti
 	activity_cycle_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, activity_stack );
     } else if ( _output ) {
 	activity_stack.push_back( this );
-	sum += join_find_children( _output, activity_stack, fork_stack, ep );
+	sum += _output->find_children( activity_stack, fork_stack, ep );
 	activity_stack.pop_back();
     }
     return sum;
@@ -270,7 +269,7 @@ Activity::collect( std::deque<Activity *>& activity_stack, ActivityList::Collect
 
 	if ( _output ) {
 	    activity_stack.push_back( this );
-	    sum += join_collect( _output, activity_stack, data );
+	    sum += _output->collect( activity_stack, data );
 	    activity_stack.pop_back();
 	}
     }
@@ -308,7 +307,7 @@ double Activity::count_replies( ActivityList::Collect& data ) const
 double
 Activity::compute_minimum_service_time() const
 {
-    double sum = for_each( tinfo.target.begin(), tinfo.target.end(), ConstExecSum<const tar_t,double>( &tar_t::compute_minimum_service_time ) ).sum();
+    double sum = for_each( _calls.begin(), _calls.end(), ConstExecSum<const tar_t,double>( &tar_t::compute_minimum_service_time ) ).sum();
     return service() + sum;
 }
     
@@ -345,7 +344,7 @@ Activity::reset_stats()
     r_service.reset();
     r_afterQuorumThreadWait.reset();	/* tomari quorum */
 
-    tinfo.reset_stats();
+    _calls.reset_stats();
  
     /* Histogram stuff */
  
@@ -360,7 +359,7 @@ Activity::reset_stats()
  * Accumulate stats for this activity.
  */
 
-Activity& 
+Activity&
 Activity::accumulate_data()
 {
     r_util.accumulate();
@@ -382,7 +381,7 @@ Activity::accumulate_data()
 	r_cpu_util.accumulate();
     }
     r_cycle_sqr.accumulate_variance( r_cycle.accumulate() );	/* Do last! */
-    tinfo.accumulate_data();
+    _calls.accumulate_data();
 
     /* Histogram stuff */
 
@@ -421,7 +420,7 @@ Activity::add_calls()
 	} else if ( domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY && !destEntry->test_and_set_recv( Entry::Type::SEND_NO_REPLY ) ) {
 	    continue;
 	} else if ( !destEntry->task()->is_reference_task()) {
-	    tinfo.store_target_info( destEntry, domCall );
+	    _calls.store_target_info( destEntry, domCall );
 	}
     }
     return *this;
@@ -464,12 +463,12 @@ Activity::add_activity_lists()
 {  
     /* Obtain the Task and Activity information DOM records */
     LQIO::DOM::Activity* domAct = dynamic_cast<LQIO::DOM::Activity*>(get_DOM());
-    if (domAct == NULL) { return *this; }
+    if (domAct == nullptr) { return *this; }
 	
     /* May as well start with the outputToList, this is done with various methods */
     LQIO::DOM::ActivityList* joinList = domAct->getOutputToList();
-    ActivityList * localActivityList = NULL;
-    if (joinList != NULL && joinList->getProcessed() == false) {
+    ActivityList * localActivityList = nullptr;
+    if (joinList != nullptr && joinList->getProcessed() == false) {
 	const std::vector<const LQIO::DOM::Activity*>& list = joinList->getList();
 	std::vector<const LQIO::DOM::Activity*>::const_iterator iter;
 	joinList->setProcessed(true);
@@ -499,15 +498,15 @@ Activity::add_activity_lists()
 		
 	/* Create the association for the activity list */
 	domToNative[joinList] = localActivityList;
-	if (joinList->getNext() != NULL) {
+	if (joinList->getNext() != nullptr) {
 	    actConnections[joinList] = joinList->getNext();
 	}
     }
 	
     /* Now we move onto the inputList, or the fork list */
     LQIO::DOM::ActivityList* forkList = domAct->getInputFromList();
-    localActivityList = NULL;
-    if (forkList != NULL && forkList->getProcessed() == false) {
+    localActivityList = nullptr;
+    if (forkList != nullptr && forkList->getProcessed() == false) {
 	const std::vector<const LQIO::DOM::Activity*>& list = forkList->getList();
 	std::vector<const LQIO::DOM::Activity*>::const_iterator iter;
 	forkList->setProcessed(true);
@@ -540,7 +539,7 @@ Activity::add_activity_lists()
 		
 	/* Create the association for the activity list */
 	domToNative[forkList] = localActivityList;
-	if (forkList->getNext() != NULL) {
+	if (forkList->getNext() != nullptr) {
 	    actConnections[forkList] = forkList->getNext();
 	}
     }
@@ -574,11 +573,10 @@ Activity::print_debug_info()
 
     (void) fprintf( stddbg, "\tservice: %5.2g {%5.2g, %5.2g}\n", service(), _shape, _scale );
 
-    if ( tinfo.size() > 0 ) {
+    if ( _calls.size() > 0 ) {
 	fprintf( stddbg, "\tcalls:  " );
-	std::vector<tar_t>::iterator tp;
-	for ( tp = tinfo.target.begin(); tp != tinfo.target.end(); ++tp ) {
-	    if ( tp != tinfo.target.begin() ) {
+	for ( Targets::const_iterator tp = _calls.begin(); tp != _calls.end(); ++tp ) {
+	    if ( tp != _calls.begin() ) {
 		(void) fprintf( stddbg, ", " );
 	    }
 	    tp->print( stddbg );
@@ -628,7 +626,7 @@ Activity::insertDOMResults()
 	_hist_data->insertDOMResults();
     }
 
-    tinfo.insertDOMResults();
+    _calls.insertDOMResults();
     return *this;
 }
 
@@ -637,18 +635,20 @@ Activity::insertDOMResults()
  */
 
 ActivityList *
-Activity::act_join_item( LQIO::DOM::ActivityList * dom_activitylist )
+Activity::act_join_item( LQIO::DOM::ActivityList * dom )
 {
-    ActivityList * list = 0;
+    OutputActivityList * list = nullptr;
 
     if ( _output ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name() );
     } else {
-	list = realloc_list( ACT_JOIN_LIST, 0, dom_activitylist );
-	list->u.join.quorumCount = 0;
-	_output = list;
+	Task * cp = task();
+	list = new OutputActivityList( ActivityList::Type::JOIN_LIST, dom );
+	list->push_back( this );
+	cp->add_list( list );
     }
 
+    _output = list;
     return list;
 }
 
@@ -658,28 +658,30 @@ Activity::act_join_item( LQIO::DOM::ActivityList * dom_activitylist )
  */
 
 ActivityList *
-Activity::act_and_join_list ( ActivityList* input_list, LQIO::DOM::ActivityList * dom_activitylist )
+Activity::act_and_join_list ( ActivityList* input_list, LQIO::DOM::ActivityList * dom )
 {
     if ( _output ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name() );
 	return input_list;
     } 
 
-    ActivityList * list = realloc_list( ACT_AND_JOIN_LIST, input_list, dom_activitylist );
+    Task * cp = task();
+
+    AndJoinActivityList * list = nullptr;
+    if ( input_list == nullptr ) {
+	list = new AndJoinActivityList( ActivityList::Type::AND_JOIN_LIST, dom );
+	list->push_back( this );
+	cp->add_list(list).add_join(list);
+    } else {
+	list = dynamic_cast<AndJoinActivityList *>(input_list);
+	list->push_back( this );
+    }
     _output = list;
 
-    Task * cp = task();
-    if ( list->u.join.quorumCount > 0 && cp->max_phases() == 1 ) {
+    if ( list->get_quorum_count() > 0 ) {
 	cp->max_phases( 2 );
     }
           
-    /* Tack new and_join_list onto join list for task */
-
-    if ( input_list == 0 ) {
-	cp->add_join(list);
-	join_count  += 1;	/* Global count */
-    }
-
     return list;
 }
 
@@ -690,34 +692,43 @@ Activity::act_and_join_list ( ActivityList* input_list, LQIO::DOM::ActivityList 
  */
 
 ActivityList *
-Activity::act_or_join_list ( ActivityList * input_list, LQIO::DOM::ActivityList * dom_activitylist )
+Activity::act_or_join_list ( ActivityList * input_list, LQIO::DOM::ActivityList * dom )
 {
-    ActivityList * list = input_list;
+    OutputActivityList * list = nullptr;
 
     if ( _output ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name() );
+    } else if ( input_list == nullptr ) {
+	Task * cp = task();
+	list = new OutputActivityList( ActivityList::Type::OR_JOIN_LIST, dom );
+	list->push_back( this );
+	cp->add_list( list );
     } else {
-	list = realloc_list( ACT_OR_JOIN_LIST, input_list, dom_activitylist );
-	_output = list;
+	list = dynamic_cast<OutputActivityList *>(input_list);
+	list->push_back( this );
     }
+    _output = list;
     return list;
 }
 
 
 
 ActivityList *
-Activity::act_fork_item( LQIO::DOM::ActivityList * dom_activitylist)
+Activity::act_fork_item( LQIO::DOM::ActivityList * dom )
 {
-    ActivityList * list = 0;
+    ForkActivityList * list = nullptr;
 
     if ( _is_start_activity ) {
 	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, task()->name(), name() );
     } else if ( _input ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
     } else {
-	list = realloc_list( ACT_FORK_LIST, 0, dom_activitylist );
-	_input = list;
+	Task * cp = task();
+	list = new ForkActivityList( ActivityList::Type::FORK_LIST, dom );
+	list->push_back( this );
+	cp->add_list( list );
     }
+    _input = list;
 
     return list;
 }
@@ -728,27 +739,25 @@ Activity::act_fork_item( LQIO::DOM::ActivityList * dom_activitylist)
  */
 
 ActivityList *
-Activity::act_and_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList * dom_activitylist )
+Activity::act_and_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList * dom )
 {
-    ActivityList * list = input_list;
+    AndForkActivityList * list = nullptr;
 
     if ( _is_start_activity ) {
 	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, task()->name(), name() );
     } else if ( _input ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
+    } else if ( input_list == nullptr ) {
+	Task * cp = task();
+	list = new AndForkActivityList( ActivityList::Type::AND_FORK_LIST, dom );
+	list->push_back( this );
+	cp->add_list(list).add_fork(list);
     } else {
-	list = realloc_list( ACT_AND_FORK_LIST, input_list, dom_activitylist );
-	_input = list;
-
-	/* Tack new and_fork_list onto join list for task */
-
-	if ( input_list == 0 ) {
-	    Task * cp = task();
-	    cp->add_fork(list);
-	    fork_count  += 1;	/* Global count */
-	}
-
+	list = dynamic_cast<AndForkActivityList *>( input_list );
+	list->push_back( this );
     }
+    _input = list;
+
     return list;
 }
 
@@ -759,28 +768,24 @@ Activity::act_and_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList
  */
 
 ActivityList *
-Activity::act_or_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList * dom_activitylist )
+Activity::act_or_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList * dom )
 {
-    ActivityList * list = input_list;
+    OrForkActivityList * list = nullptr;
 
     if ( _is_start_activity ) {
 	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, task()->name(), name() );
     } else if ( _input ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
+    } else if ( input_list == nullptr ) {
+	Task * cp = task();
+	list = new OrForkActivityList( ActivityList::Type::OR_FORK_LIST, dom );
+	list->push_back( this );
+	cp->add_list(list);
     } else {
-	unsigned i;
-	double sum = 0.0;
-	list = realloc_list( ACT_OR_FORK_LIST, input_list, dom_activitylist );
-	if ( list ) {
-	    for ( i = 0; i < list->na; ++i ) {
-		sum += list->u.fork.prob[i];
-	    }
-	    if ( sum - 1.0 > EPSILON ) {
-		LQIO::input_error2( LQIO::ERR_INVALID_PROBABILITY, sum );
-	    }
-	}
-	_input = list;
+	list = dynamic_cast<OrForkActivityList *>(input_list);
+	list->push_back( this );
     }
+    _input = list;
     return list;
 }
 
@@ -791,188 +796,44 @@ Activity::act_or_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList 
  */
 
 ActivityList *
-Activity::act_loop_list ( ActivityList * input_list, LQIO::DOM::ActivityList * dom_activitylist )
+Activity::act_loop_list ( ActivityList * input_list, LQIO::DOM::ActivityList * dom )
 {
-    ActivityList * list = input_list;
+    LoopActivityList * list = nullptr;
 	  
     if ( _is_start_activity ) {
 	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, task()->name(), name() );
     } else if ( _input ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
+    } else if ( input_list == nullptr ) {
+	Task * cp = task();
+	list = new LoopActivityList( ActivityList::Type::LOOP_LIST, dom );
+	cp->add_list( list );
     } else {
-	list = realloc_list( ACT_LOOP_LIST, input_list, dom_activitylist );
-	_input = list;
+	list = dynamic_cast<LoopActivityList *>(input_list);
     }
+
+    if ( list ) {
+	if ( dom->getParameter(dynamic_cast<LQIO::DOM::Activity *>(get_DOM())) == nullptr ) {
+	    list->end_list( this );
+	} else {
+	    list->push_back( this );
+	}
+    }
+    _input = list;
     return list;
 }
 
 /* ---------------------------------------------------------------------- */
 
-/*
- * Allocate a list and storage for items in it.  The list will grow if necessary.
- */
-
-ActivityList *
-Activity::realloc_list( const list_type type, const ActivityList * input_list, LQIO::DOM::ActivityList * dom_activity_list )
-{
-    ActivityList * list;
-    unsigned i;
-
-    if ( !input_list ) {
-	list = static_cast<ActivityList *>(my_malloc( sizeof( ActivityList ) ));
-	list->type          = type;
-	list->na            = 0;
-	list->maxa          = 3;
-	list->list          = (Activity **)my_malloc( sizeof( Activity *) * 3);
-	list->list[0]       = 0;
-
-	task()->_act_list.push_back( list );
-
-	switch ( type ) {
-	case ACT_FORK_LIST:
-	case ACT_OR_FORK_LIST:
-	case ACT_AND_FORK_LIST:
-	    list->u.fork.prev = 0;
-	    list->u.fork.join = 0;
-	    if ( type == ACT_OR_FORK_LIST ) {
-		list->u.fork.prob = (double *)my_malloc( sizeof( double ) * list->maxa );
-		for ( i = 0; i < list->maxa; ++i ) {
-		    list->u.fork.prob[i] = 0.0;
-		}
-		list->u.fork.visit = 0;
-	    } else if ( type == ACT_AND_FORK_LIST ) {
-		list->u.fork.visit = (bool *) my_malloc( sizeof( bool ) * list->maxa );
-		for ( i = 0; i < list->maxa; ++i ) {
-		    list->u.fork.visit[i] = false;
-		}
-		list->u.fork.prob  = 0;
-	    } else {
-		list->u.fork.visit = 0;
-		list->u.fork.prob  = 0;
-	    }
-	    list->u.fork.visit_count = 0;
-	    break;
-
-	case ACT_LOOP_LIST:
-	    list->u.loop.prev = 0;
-	    list->u.loop.endlist = 0;
-	    list->u.loop.count = (double *)my_malloc( sizeof( double ) * list->maxa );
-	    for ( i = 0; i < list->maxa; ++i ) {
-		list->u.loop.count[i] = 0.0;
-	    }
-	    list->u.loop.total = 0.0;
-	    break;
-
-	case ACT_AND_JOIN_LIST:
-	case ACT_JOIN_LIST:
-	case ACT_OR_JOIN_LIST:
-	    list->u.join.next   = 0;
-	    if ( type == ACT_AND_JOIN_LIST ) {
-		list->u.join.fork = static_cast<ActivityList **>(my_malloc( sizeof( ActivityList * ) * list->maxa ));
-		list->u.join.source = static_cast<Activity **>(my_malloc( sizeof( Activity * ) * list->maxa ));
-		for ( i = 0; i < list->maxa; ++i ) {
-		    list->u.join.fork[i] = 0;
-		    list->u.join.source[i] = 0;
-		}
-		list->u.join._hist_data = 0;
-//		list->u.join.hist_data = new Histogram();
-		/* Need to allocate stuff for histogram -- need to specify service time somehow...*/
-		/* I might need to make the M (histogram option) parameter to be applied
-		   to the join list in the input LQN grammar. */
-
-/* !!!		create_histogram(list->u.join.hist_data, 8, hist_alpha); */
-	    } else {
-		list->u.join.fork = 0;
-		list->u.join.source = 0;
-	    }
-	    list->u.join.join_type   = JOIN_UNDEFINED;
-	    list->u.join.quorumCount = 0;
-	    break;
-
-	default:
-	    abort();
-	}
-
-    } else if ( input_list->na >= input_list->maxa ) {
-
-	int old_maxa = input_list->maxa;
-	list = const_cast<ActivityList *>(input_list);
-	list->maxa += 5;
-	list->list = static_cast<Activity **>(realloc( list->list, sizeof( Activity *) * list->maxa ));
-
-	switch ( type ) {
-	case ACT_OR_FORK_LIST:
-	    list->u.fork.prob = (double *)my_realloc( list->u.fork.prob, sizeof( double ) * list->maxa );
-	    for ( i = old_maxa; i < list->maxa; ++i ) {
-		list->u.fork.prob[i] = 0;
-	    }
-	    break;
-
-	case ACT_AND_FORK_LIST:
-	    list->u.fork.visit = (bool *)my_realloc( list->u.fork.visit, sizeof( bool ) * list->maxa );
-	    for ( i = old_maxa; i < list->maxa; ++i ) {
-		list->u.fork.visit[i] = false;
-	    }
-	    break;
-
-	case ACT_AND_JOIN_LIST:
-	    list->u.join.fork = static_cast<ActivityList **>(my_realloc( list->u.join.fork, sizeof( ActivityList * ) * list->maxa ));
-	    list->u.join.source = static_cast<Activity **>(my_realloc( list->u.join.source, sizeof( Activity * ) * list->maxa ));
-	    for ( i = old_maxa; i < list->maxa; ++i ) {
-		list->u.join.fork[i] = 0;
-		list->u.join.source[i] = 0;
-	    }
-	    break;
-
-	case ACT_LOOP_LIST:
-	    list->u.loop.count = (double *)my_realloc( list->u.loop.count, sizeof( double ) * list->maxa );
-	    for ( i = old_maxa; i < list->maxa; ++i ) {
-		list->u.loop.count[i] = 0;
-	    }
-	    break;
-
-	}
-
-    } else {
-	list = const_cast<ActivityList *>(input_list);
-
-    }
-
-    const LQIO::DOM::ExternalVariable * count;
-    if ( type == ACT_LOOP_LIST && (count = dom_activity_list->getParameter(dynamic_cast<LQIO::DOM::Activity *>(get_DOM()))) == nullptr ) {
-	list->u.loop.endlist = this;
-    } else {
-	list->list[list->na] = this;
-	list->na += 1;
-    }
-    list->_dom_actlist = dom_activity_list;
-
-    return list;
-}
-
-/* ---------------------------------------------------------------------- */
-
-/*
- * Find the activity.  If not found, create it.
- */
-
-Activity *
-find_or_create_activity ( const void * task, const char * activity_name )
-{
-    abort();
-}
-
 /*
  * Check the reply list for entry ep.
  */
 
-const Entry * 
+
+bool
 Activity::find_reply( const Entry * ep ) const
 {
-    for ( std::vector<const Entry *>::const_iterator rp = _reply.begin(); rp != _reply.end(); ++rp ) {
-	if ( (*rp) == ep ) return ep;
-    }
-    return 0;
+    return  std::find( _reply.begin(), _reply.end(), ep ) != _reply.end();
 }
 
 
@@ -996,7 +857,7 @@ Activity::print_raw_stat( FILE * output ) const
 	r_afterQuorumThreadWait.print_raw( output, "%-24.24s afterQuorumThreadWait Raw Data", name() );	/* tomari quorum */
     }
 
-    tinfo.print_raw_stat( output );
+    _calls.print_raw_stat( output );
     return *this;
 }
 

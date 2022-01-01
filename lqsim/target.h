@@ -1,9 +1,7 @@
-/* target.h	-- Greg Franks
- *
- * $HeadURL$
- *
+/*  -*- c++ -*- 
+ * 
  * ------------------------------------------------------------------------
- * $Id: target.h 14995 2021-09-27 14:01:46Z greg $
+ * $Id: target.h 15314 2022-01-01 15:11:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -23,11 +21,12 @@ class Activity;
 
 class tar_t {				/* send target struct		*/
     friend class Targets;
-    typedef enum { undefined, call, constant } target_type;
+    enum class Type { undefined, call, constant };
     
 public:
-    tar_t();
-    
+    tar_t() : _entry(nullptr), _link(-1), _tprob(0.0), _calls(0.0), _reply(false), _type(Type::undefined) {}
+
+    Entry * entry() const { return _entry; }
     double calls() const { return _calls; }
     bool reply() const { return _reply; }
     int link() const { return _link; }
@@ -43,10 +42,9 @@ public:
     void send_synchronous ( const Entry *, const int priority,  const long reply_port );
     void send_asynchronous( const Entry *, const int priority );
     FILE * print( FILE * ) const;
-    void insertDOMResults();
+    tar_t& insertDOMResults();
 
 public:
-    Entry * entry;			/* target entry 		*/
     result_t r_delay;			/* Delay to send to target.	*/
     result_t r_delay_sqr;		/* Delay to send to target.	*/
     result_t r_loss_prob;		/* Loss probability.		*/
@@ -56,28 +54,33 @@ private:
 //    tar_t( const tar_t& );
 //    tar_t& operator=( const tar_t& );		/* need for realloc */
     
-    void initialize( Entry * to_entry, LQIO::DOM::Call* domCall ) { entry = to_entry; _type = call; _dom._call = domCall; }
-    void initialize( Entry * to_entry, double value, bool reply=false ) { entry = to_entry; _type = constant; _calls = value; _reply = reply; }
+    void initialize( Entry * to_entry, LQIO::DOM::Call* domCall ) { _entry = to_entry; _type = Type::call; _dom._call = domCall; }
+    void initialize( Entry * to_entry, double value, bool reply=false ) { _entry = to_entry; _type = Type::constant; _calls = value; _reply = reply; }
 
 private:
+    Entry * _entry;			/* target entry 		*/
     int _link;				/* Link to send data on.	*/
     double _tprob;			/* test probability		*/
     double _calls;			/* # of calls.			*/
     bool _reply;			/* Generate reply.		*/
-    target_type _type;			/* Types are different...	*/
+    Type _type;				/* Types are different...	*/
     union {				/* ...so we use a  union	*/
 	LQIO::DOM::Call* _call;		/* ...instead of dynamic_cast	*/
 	LQIO::DOM::ExternalVariable* _extvar;
     } _dom;
 };
 
-
 class Targets {				/* send table struct		*/
 public:
+    typedef std::vector<tar_t>::const_iterator const_iterator;
+
     Targets() {}
     ~Targets() {}
 
-    unsigned size() const { return target.size(); }
+    const tar_t& operator[]( size_t ix ) const { return _target[ix]; }
+    size_t size() const { return _target.size(); }
+    Targets::const_iterator begin() const { return _target.begin(); }
+    Targets::const_iterator end() const { return _target.end(); }
 
     void store_target_info( Entry * to_entry, LQIO::DOM::Call* a_call );
     void store_target_info( Entry * to_entry, double );
@@ -90,12 +93,9 @@ public:
     Targets& accumulate_data();
     Targets& insertDOMResults();
 
-    std::vector<tar_t> target;		/* target array			*/
-
 private:
-    Targets& operator=( const Targets& );
-    Targets( const Targets& );
-    
+    std::vector<tar_t> _target;		/* target array			*/
+
     bool alloc_target_info( Entry * to_entry ) ;
 
 private:

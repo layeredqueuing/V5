@@ -7,11 +7,9 @@
 /************************************************************************/
 
 /*
- * Input output processing.
+ * Lqsim-parasol Processor interface.
  *
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/processor.cc $
- *
- * $Id: processor.cc 15297 2021-12-30 16:21:19Z greg $
+ * $Id: processor.cc 15314 2022-01-01 15:11:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -21,7 +19,6 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <iomanip>
-#include <sstream>
 #include "lqsim.h"
 #include <lqio/input.h>
 #include <lqio/error.h>
@@ -37,25 +34,19 @@
 #define	SN_PREEMPT	100			/* Message.			*/
 
 std::set<Processor *, Processor::ltProcessor> Processor::__processors;	/* Processor table.		*/
-Processor *Processor::processor_table[MAX_NODES+1];	/* NodeId to processor		*/
+Processor *Processor::processor_table[MAX_NODES+1];			/* NodeId to processor		*/
 
-int Processor::scheduling_types[N_SCHEDULING_TYPES] =
+const std::map<const scheduling_type,const int> Processor::scheduling_types =
 {
-    FIFO,	/* SCHEDULE_CUSTOMER	*/
-    FIFO,	/* SCHEDULE_DELAY	*/
-    FIFO, 	/* SCHEDULE_FIFO	*/
-    HOL, 	/* SCHEDULE_HOL		*/
-    PR, 	/* SCHEDULE_PPR		*/
-    -1,		/* SCHEDULE_RAND	*/
-    FIFO,	/* SCHEDULE_PS		*/
-    HOL,	/* SCHEDULE_PS_HOL	*/
-    PR,		/* SCHEDULE_PS_PPR 	*/
-    -1,		/* SCHEDULE_POLL	*/
-    -1,		/* SCHEDULE_BURST	*/
-    -1, 	/* SCHEDULE_UNIFORM	*/
-    -1,		/* SCHEDULE_SEMAPHORE	*/
-    CFS,	/* SCHEDULE_CFS		*/
-    -1		/* SCHEDULE_RWLOCK 	*/
+    { SCHEDULE_CUSTOMER,    FIFO },
+    { SCHEDULE_DELAY,	    FIFO },
+    { SCHEDULE_FIFO,	    FIFO },
+    { SCHEDULE_HOL,	    HOL },
+    { SCHEDULE_PPR,	    PR },
+    { SCHEDULE_PS,	    FIFO },
+    { SCHEDULE_PS_HOL,	    HOL },
+    { SCHEDULE_PS_PPR,	    PR },
+    { SCHEDULE_CFS,	    CFS }
 };
 
 
@@ -78,7 +69,8 @@ Processor::find( const std::string& processor_name  )
 
 Processor::Processor( LQIO::DOM::Processor* domProcessor )
     : trace_flag(false),
-      group(nullptr),
+      r_util(),
+      _group(nullptr),
       _node_id(0),
       _dom( domProcessor )
 {
@@ -93,9 +85,8 @@ Processor::Processor( LQIO::DOM::Processor* domProcessor )
 Processor&
 Processor::create()
 {
-    assert( scheduling_types[static_cast<unsigned int>(discipline())] >= 0 );
     _node_id = ps_build_node( name(), multiplicity(), cpu_rate(), quantum(),
-			      scheduling_types[static_cast<unsigned int>(discipline())],
+			      scheduling_types.at(discipline()),
 			      SF_PER_NODE|SF_PER_HOST );
 
     if ( _node_id < 0 || MAX_NODES < _node_id ) {

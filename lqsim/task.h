@@ -1,8 +1,7 @@
 /* -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/task.h $
  * Global vars for simulation.
  *
- * $Id: task.h 15297 2021-12-30 16:21:19Z greg $
+ * $Id: task.h 15314 2022-01-01 15:11:20Z greg $
  */
 
 /************************************************************************/
@@ -14,12 +13,14 @@
 /* Nov 2005.								*/
 /************************************************************************/
 
-#ifndef	TASK_H
-#define TASK_H
+#ifndef	LQSIM_TASK_H
+#define LQSIM_TASK_H
 
 #include <set>
 #include <vector>
 #include <string>
+#include <list>
+#include <algorithm>
 #include <cstdio>
 #include <lqio/dom_task.h>
 #include <parasol.h>
@@ -34,7 +35,7 @@ class Group;
 class ParentGroup;
 class Instance;
 class Activity;
-struct ActivityList;
+class ActivityList;
 class srn_client;
 
 #define	PRIORITY_OFFSET	10
@@ -47,7 +48,6 @@ typedef void * processor_class;
 typedef double (*hold_func_ptr)( const Task *, const unsigned );
 
 class Task {
-    friend Activity * find_or_create_activity ( const void * task, const char * activity_name );
     friend class Instance;
 
     /*
@@ -114,6 +114,7 @@ public:
 
     LQIO::DOM::Task * getDOM() const{ return _dom; }
 
+    virtual double think_time() const { abort(); return 0.0; }			/* Cached.  see create()	*/
     virtual const char * name() const { return _dom->getName().c_str(); }
     virtual scheduling_type discipline() const { return _dom->getSchedulingType(); }
     virtual unsigned multiplicity() const;					/* Special access!		*/
@@ -144,14 +145,16 @@ public:
     virtual bool is_sync_server() const { return false; }
     bool has_activities() const { return _activity.size() > 0; }	/* True if activities present.	*/
     bool has_threads() const { return _forks.size() > 0; }
+    bool has_think_time() const;
     virtual bool derive_utilization() const;
     bool has_lost_messages() const;
 
     void set_start_activity( LQIO::DOM::Entry* theDOMEntry );
     Activity * add_activity( LQIO::DOM::Activity * activity );
     unsigned max_activities() const { return _activity.size(); }	/* Max # of activities.		*/
-    void add_fork( ActivityList * list ) { _forks.push_back( list ); }
-    void add_join( ActivityList * list ) { _joins.push_back( list ); }
+    Task& add_list( ActivityList * list ) { _act_list.push_back( list ); return *this; }
+    Task& add_fork( AndForkActivityList * list ) { _forks.push_back( list ); return *this; }
+    Task& add_join( AndJoinActivityList * list ) { _joins.push_back( list ); return *this; }
 
     virtual Task& configure();		/* Called after recalulateDynamicVariables but before create */
     virtual Task& create();
@@ -185,8 +188,9 @@ private:
     unsigned _active;				/* Number of active instances.	*/
     unsigned _max_phases;			/* Max # phases, this task.	*/
 
-    std::vector<ActivityList *> _forks;		/* List of forks for this task	*/
-    std::vector<ActivityList *> _joins; 	/* List of joins for this task	*/
+    std::vector<ActivityList *> _act_list;	/* activity list array 		*/
+    std::vector<AndForkActivityList *> _forks;	/* List of forks for this task	*/
+    std::vector<AndJoinActivityList *> _joins; 	/* List of joins for this task	*/
     std::list<Message *> _pending_msgs;		/* Messages blocked by join.	*/
     double _join_start_time;			/* non-zero if in sync-join	*/
 
@@ -198,8 +202,6 @@ protected:
 public:
     std::vector<Entry *> _entry;		/* entry array		        */
     std::vector<Activity *>_activity;		/* List of activities.		*/
-    std::vector<ActivityList *> _act_list;	/* activity list array 		*/
-    unsigned _hold_active;			/* Number of active instances.	*/
 
     bool trace_flag;				/* True if task is to be traced	*/
 
@@ -208,6 +210,8 @@ public:
     result_t r_util;				/* Utilization.		        */
     result_t r_group_util;			/* group Utilization.		*/
     result_t r_loss_prob;			/* Asynch message loss prob.	*/
+
+    unsigned _hold_active;			/* Number of active instances.	*/
 };
 
 

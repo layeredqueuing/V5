@@ -1,8 +1,7 @@
 /* result.cc	-- Greg Franks Fri Jun  5 2009
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/result.cc $
  *
  * ------------------------------------------------------------------------
- * $Id: result.cc 11462 2013-08-05 01:33:59Z greg $
+ * $Id: result.cc 15312 2022-01-01 14:19:39Z greg $
  * ------------------------------------------------------------------------
  */
 
