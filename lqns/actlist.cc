@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 15304 2021-12-31 15:51:38Z greg $
+ * $Id: actlist.cc 15322 2022-01-02 15:35:27Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,7 +24,6 @@
 #include <numeric>
 #include <lqio/input.h>
 #include <lqio/error.h>
-#include <mva/fpgoop.h>
 #include <lqio/dom_actlist.h>
 #include "activity.h"
 #include "actlist.h"
@@ -66,7 +65,7 @@ ActivityList::ActivityList( const ActivityList& src, const Task * owner, unsigne
 ActivityList*
 ActivityList::next() const
 {
-    throw should_not_implement( "ActivityList::next", __FILE__, __LINE__ );
+    throw LQIO::should_not_implement( "ActivityList::next" );
     return nullptr;
 }
 
@@ -78,7 +77,7 @@ ActivityList::next() const
 ActivityList*
 ActivityList::prev() const
 {
-    throw should_not_implement( "ActivityList::prev", __FILE__, __LINE__ );
+    throw LQIO::should_not_implement( "ActivityList::prev" );
     return nullptr;
 }
 
@@ -90,7 +89,7 @@ ActivityList::prev() const
 ActivityList&
 ActivityList::next( ActivityList * )
 {
-    throw should_not_implement( "ActivityList::next", __FILE__, __LINE__ );
+    throw LQIO::should_not_implement( "ActivityList::next" );
     return *this;
 }
 
@@ -102,7 +101,7 @@ ActivityList::next( ActivityList * )
 ActivityList&
 ActivityList::prev( ActivityList * )
 {
-    throw should_not_implement( "ActivityList::addSubList", __FILE__, __LINE__ );
+    throw LQIO::should_not_implement( "ActivityList::addSubList" );
     return *this;
 }
 

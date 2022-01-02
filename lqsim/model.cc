@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15314 2022-01-01 15:11:20Z greg $
+ * $Id: model.cc 15324 2022-01-02 18:10:24Z greg $
  */
 
 #include "lqsim.h"
@@ -23,9 +23,6 @@
 #include <unistd.h>
 #if HAVE_SYS_UTSNAME_H
 #include <sys/utsname.h>
-#endif
-#if HAVE_VALUES_H
-#include <values.h>
 #endif
 #include <sys/stat.h>
 #if HAVE_SYS_WAIT_H
@@ -496,7 +493,7 @@ Model::insertDOMResults()
 
     std::string buf;
 
-#if defined(HAVE_UNAME)
+#if HAVE_UNAME
     struct utsname uu;		/* Get system triva. */
 
     uname( &uu );

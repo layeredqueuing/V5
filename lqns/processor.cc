@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 15191 2021-12-10 04:12:37Z greg $
+ * $Id: processor.cc 15322 2022-01-02 15:35:27Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -21,7 +21,6 @@
 #include <lqio/input.h>
 #include <lqio/labels.h>
 #include <lqio/error.h>
-#include <mva/fpgoop.h>
 #include <mva/multserv.h>
 #include <mva/mva.h>
 #include <mva/open.h>
@@ -202,7 +201,7 @@ Processor::fanIn( const Task * aClient ) const
 unsigned
 Processor::fanOut( const Entity * aServer ) const
 {
-    throw should_not_implement( "Entity::fanOut", __FILE__, __LINE__ );
+    throw LQIO::should_not_implement( "Entity::fanOut" );
     return 1;
 }
 
@@ -398,7 +397,7 @@ Processor::makeServer( const unsigned nChains )
 		break;
 
 	    case Pragma::Multiserver::SURI:
-		throw not_implemented( "Task::makeServer", __FILE__, __LINE__ );
+		throw LQIO::not_implemented( "Task::makeServer" );
 
 	    case Pragma::Multiserver::ZHOU:
 		if ( dynamic_cast<Zhou_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;

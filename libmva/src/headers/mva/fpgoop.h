@@ -9,20 +9,20 @@
  *
  * November, 1994
  *
- * $Id: fpgoop.h 15089 2021-10-22 16:14:46Z greg $
+ * $Id: fpgoop.h 15322 2022-01-02 15:35:27Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#ifndef	FPGOOP_H
-#define	FPGOOP_H
+#ifndef	LIBMVA_FPGOOP_H
+#define	LIBMVA_FPGOOP_H
 
 #include <config.h>
 #if HAVE_IEEEFP_H && !defined(__WINNT__) &&!defined(MSDOS)
 #include <ieeefp.h>
 #endif
 #include <string>
-#include <exception>
+#include <stdexcept>
 
 void set_fp_abort();
 bool check_fp_ok();
@@ -55,55 +55,17 @@ inline double square( double x ) { return x * x; }
 /* Funky Formatting functions for inline with <<.			*/
 /* -------------------------------------------------------------------- */
 
-class floating_point_error : public std::exception {
+class floating_point_error : public std::runtime_error {
 public:
-    floating_point_error( const char * f, const unsigned l );
+    floating_point_error( const std::string& f, const unsigned l ) : std::runtime_error( construct( f, l ) ) {}
 
-    virtual ~floating_point_error() throw() {} 
-    virtual const char * what() const throw();
+    virtual ~floating_point_error() {} 
 
 private:
-    std::string _msg;
+    std::string construct( const std::string& f, const unsigned l );
 };
 
 typedef enum { FP_IGNORE, FP_REPORT, FP_DEFERRED_ABORT, FP_IMMEDIATE_ABORT } fp_exeception_reporting;
 extern fp_exeception_reporting matherr_disposition;	/* What to do about math probs.	*/
-
-class class_error : public std::exception 
-{
-public:
-    class_error( const std::string& aStr, const char * file, const unsigned line, const char * anError );
-    virtual ~class_error() throw() = 0;
-    virtual const char* what() const throw();
-
-private:
-    std::string _msg;
-};
-
-
-class subclass_responsibility : public class_error 
-{
-public:
-    subclass_responsibility( const std::string& aStr, const char * file, const unsigned line )
-	: class_error( aStr, file, line, "Subclass responsibility." ) {}
-    virtual ~subclass_responsibility() throw() {}
-};
-
-class not_implemented  : public class_error 
-{
-public:
-    not_implemented( const std::string& aStr, const char * file, const unsigned line )
-	: class_error( aStr, file, line, "Not implemented." ) {}
-    virtual ~not_implemented() throw() {}
-};
-
-class should_not_implement  : public class_error 
-{
-public:
-    should_not_implement( const std::string& aStr, const char * file, const unsigned line )
-	: class_error( aStr, file, line, "Should not implement." ) {}
-    virtual ~should_not_implement() throw() {}
-};
-
 #endif
 

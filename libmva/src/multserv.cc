@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15115 2021-11-19 12:26:54Z greg $
+ * $Id: multserv.cc 15322 2022-01-02 15:35:27Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -53,6 +53,7 @@
 #include <limits>
 #include "multserv.h"
 #include "mva.h"
+#include "mvaexception.h"
 #include "prob.h"
 #include "vector.h"
 
@@ -955,14 +956,14 @@ Zhou_Multi_Server::P_mean( const MVA& solver, const Population& N ) const
 void
 Phased_Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
-    throw not_implemented( "Phased_Zhou_Multi_Server::wait", __FILE__, __LINE__ );
+    throw LibMVA::not_implemented( "Phased_Zhou_Multi_Server::wait", __FILE__, __LINE__ );
 }
 
 
 void
 Markov_Phased_Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
-    throw not_implemented( "Markov_Phased_Zhou_Multi_Server::wait", __FILE__, __LINE__ );
+    throw LibMVA::not_implemented( "Markov_Phased_Zhou_Multi_Server::wait", __FILE__, __LINE__ );
 }
 
 /*----------------------------------------------------------------------*/
@@ -1092,14 +1093,14 @@ Suri_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& 
 void
 Suri_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
 {
-    throw not_implemented( "Suri_Multi_Server::mixedWait", __FILE__, __LINE__ );
+    throw LibMVA::not_implemented( "Suri_Multi_Server::mixedWait", __FILE__, __LINE__ );
 }
 
 
 void
 Suri_Multi_Server::openWait() const
 {
-    throw not_implemented( "Suri_Multi_Server::openWait", __FILE__, __LINE__ );
+    throw LibMVA::not_implemented( "Suri_Multi_Server::openWait", __FILE__, __LINE__ );
 }
 
 /* ----------------- Markov Phased Franks Multi Server  --------------- */
@@ -1111,7 +1112,7 @@ Suri_Multi_Server::openWait() const
 void
 Markov_Phased_Suri_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
-    throw not_implemented( "Markov_Phased_Suri_Multi_Server::wait", __FILE__, __LINE__ );
+    throw LibMVA::not_implemented( "Markov_Phased_Suri_Multi_Server::wait", __FILE__, __LINE__ );
 }
 
 /* ---------------------------- Iterators ----------------------------- */

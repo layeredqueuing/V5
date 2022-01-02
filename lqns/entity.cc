@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15104 2021-11-16 02:53:19Z greg $
+ * $Id: entity.cc 15322 2022-01-02 15:35:27Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -22,7 +22,6 @@
 #include <lqio/error.h>
 #include <lqio/labels.h>
 #include <lqio/dom_extvar.h>
-#include <mva/fpgoop.h>
 #include <mva/open.h>
 #include <mva/mva.h>
 #include <mva/ph2serv.h>

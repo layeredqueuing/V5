@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 15046 2021-10-05 21:52:16Z greg $
+ * $Id: phase.cc 15322 2022-01-02 15:35:27Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -22,7 +22,6 @@
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include <lqio/dom_histogram.h>
-#include <mva/fpgoop.h>
 #include <mva/prob.h>
 #include <mva/vector.h>
 #include "call.h"

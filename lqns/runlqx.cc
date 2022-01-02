@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: runlqx.cc 15322 2022-01-02 15:35:27Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -88,16 +88,16 @@ namespace SolverInterface
 	    LQIO::io_vars.error_count += 1;
 	    ok = false;
 	}
+	catch ( const floating_point_error& error ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << error.what() << std::endl;
+	    LQIO::io_vars.error_count += 1;
+	    ok = false;
+	}
 	catch ( const std::runtime_error& error ) {
 	    throw LQX::RuntimeException( error.what() );
 	}
 	catch ( const std::logic_error& error ) {
 	    throw LQX::RuntimeException( error.what() );
-	}
-	catch ( const floating_point_error& error ) {
-	    std::cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << error.what() << std::endl;
-	    LQIO::io_vars.error_count += 1;
-	    ok = false;
 	}
 	return LQX::Symbol::encodeBoolean(ok);
     }

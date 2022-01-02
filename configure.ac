@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-# $Id: configure.ac 15283 2021-12-28 16:01:25Z greg $
+# $Id: configure.ac 15324 2022-01-02 18:10:24Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([lqns],[5.23],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([config])
@@ -60,9 +60,8 @@ AC_STRUCT_TM
 # ----------------------------------------------------------------------
 # Checks for header files.
 #
-AC_CHECK_HEADERS([glob.h errno.h getopt.h unistd.h libgen.h])
-AC_CHECK_HEADERS([sys/resource.h sys/utsname.h sys/times.h])
-AC_CHECK_HEADERS([fenv.h float.h ieeefp.h])
+AC_CHECK_HEADERS([errno.h fenv.h float.h getopt.h glob.h ieeefp.h libgen.h mcheck.h strings.h time.h unistd.h])
+AC_CHECK_HEADERS([sys/errno.h sys/mman.h sys/resource.h sys/times.h sys/utsname.h])
 AC_CHECK_HEADERS([expat.h])
 AC_CHECK_HEADERS([gd.h])
 
@@ -97,18 +96,16 @@ AM_CONDITIONAL([EXPAT], [test "x${ac_cv_lib_expat_XML_ParserCreateNS}" = "xyes"]
 
 # ----------------------------------------------------------------------
 # Checks for library functions.
-AC_FUNC_ERROR_AT_LINE
-AC_FUNC_SELECT_ARGTYPES 
+AC_FUNC_MMAP
 AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
-AC_FUNC_FORK
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([ctime getopt_long getsubopt getrusage glob])
+AC_CHECK_FUNCS([ctime drand48 getopt_long getrusage getsubopt glob mcheck uname])
+AC_CHECK_FUNCS([feclearexcept feenableexcept fesetexceptflag fetestexcept fpgetsticky fpsetmask fpsetsticky])
 AC_CHECK_FUNCS([lgamma])
-AC_CHECK_FUNCS([drand48])
 if test "x$enable_shared" = "xyes"; then
-   AC_CHECK_FUNCS([gdImageFilledArc gdImageGifPtr gdImageSetAntiAliased gdFTUseFontConfig])
+   AC_CHECK_FUNCS([gdFTUseFontConfig gdImageFilledArc gdImageSetAntiAliased gdImageGifPtr])
 fi
 #
 # Final pass for jpeg/png/gd. 

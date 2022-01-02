@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 15046 2021-10-05 21:52:16Z greg $
+ * $Id: activity.cc 15321 2022-01-02 12:48:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -803,7 +803,7 @@ Activity::getLevelMeansAndNumberOfCalls(double & level1Mean,
 {
     bool anError = false;
     double relax = 1;
-    int currentSubmodel = owner()->submodel();
+    unsigned int currentSubmodel = owner()->submodel();
     currentSubmodel++; //As a client the actual submodel is submodel++.
     if (flags.trace_quorum) {
 	std::cout <<"myActivityList[i]->owner()->submodel()=" << currentSubmodel<< std::endl;

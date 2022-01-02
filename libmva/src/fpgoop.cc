@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: fpgoop.cc 15089 2021-10-22 16:14:46Z greg $
+ * $Id: fpgoop.cc 15322 2022-01-02 15:35:27Z greg $
  *
  * Floating point exception handling.  It is all different on all machines.
  * See:
@@ -25,14 +25,16 @@
  * ------------------------------------------------------------------------
  */
 
-
+#if HAVE_CONFIG_H
 #include <config.h>
+#endif
 #include <cstdio>
 #include <cstdlib>
-#include <signal.h>
 #include <cmath>
 #include <cassert>
 #include <stdexcept>
+#include <sstream>
+#include <signal.h>
 #if HAVE_FENV_H
 #include <fenv.h>
 #elif HAVE_IEEEFP_H && !defined(MSDOS)
@@ -109,37 +111,26 @@ fp_exeception_reporting matherr_disposition;	/* What to do about math probs.	*/
 /*
  * Print out gory details of fault.
  */
-floating_point_error::floating_point_error( const char * file, const unsigned line ) 
-    : exception()
+
+std::string
+floating_point_error::construct( const std::string& file, const unsigned line ) 
 {
     const fp_bit_type flags = fp_status_bits();
+    std::ostringstream ss;
 
-    char temp[10];
-    sprintf( temp, "%d", line );
-
-    _msg = "Floating point exception";
-    _msg += ": ";
-    _msg += file;
-    _msg += " ";
-    _msg += temp;
-    _msg += ": ";
+    ss << "Floating point exception" << ": " << file << " " << line << ": ";
 
     unsigned count = 0;
     for ( unsigned i = 0; fp_op_str[i].str; ++i ) {
 	if ( flags & fp_op_str[i].bit ) {
 	    if ( count > 0 ) {
-		_msg += ", ";
+		ss<< ", ";
 	    }
-	    _msg += fp_op_str[i].str;
+	    ss << fp_op_str[i].str;
 	    count += 1;
 	}
     }
-}
-
-const char * 
-floating_point_error::what() const throw()
-{
-    return _msg.c_str();
+    return ss.str();
 }
 
 /*
@@ -628,24 +619,4 @@ choose( unsigned i, unsigned j )
     }
 	
     return product / factorial( b );
-}
-
-
-class_error::class_error( const std::string& aStr, const char * file, const unsigned line, const char * anError )
-    : exception()
-{
-    char temp[10];
-    sprintf( temp, "%d", line );
-    _msg = aStr + ": " +  + " " + temp + ": " + anError;
-}
-
-
-class_error::~class_error() throw()
-{
-}
-
-const char * 
-class_error::what() const throw()
-{
-    return _msg.c_str();
 }

@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15046 2021-10-05 21:52:16Z greg $
+ * $Id: entry.cc 15322 2022-01-02 15:35:27Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,7 +24,6 @@
 #include <iomanip>
 #include <sstream>
 #include <lqio/error.h>
-#include <mva/fpgoop.h>
 #include <mva/prob.h>
 #include "actlist.h"
 #include "call.h"
@@ -1509,7 +1508,7 @@ DeviceEntry::~DeviceEntry()
 DeviceEntry&
 DeviceEntry::initProcessor()
 {
-    throw should_not_implement( "DeviceEntry::initProcessor", __FILE__, __LINE__ );
+    throw LQIO::should_not_implement( "DeviceEntry::initProcessor" );
     return *this;
 }
 
@@ -1551,7 +1550,7 @@ DeviceEntry::initVariance()
 DeviceEntry&
 DeviceEntry::owner( const Entity * )
 {
-    throw should_not_implement( "DeviceEntry::owner", __FILE__, __LINE__ );
+    throw LQIO::should_not_implement( "DeviceEntry::owner" );
     return *this;
 }
 
@@ -1595,7 +1594,7 @@ DeviceEntry::setPriority( const int priority )
 double
 DeviceEntry::processorCalls( const unsigned ) const
 {
-    throw should_not_implement( "DeviceEntry::processorCalls", __FILE__, __LINE__ );
+    throw LQIO::should_not_implement( "DeviceEntry::processorCalls" );
     return 0.0;
 }
 
@@ -1608,7 +1607,7 @@ DeviceEntry::processorCalls( const unsigned ) const
 DeviceEntry&
 DeviceEntry::updateWait( const Submodel&, const double )
 {
-    throw should_not_implement( "DeviceEntry::updateWait", __FILE__, __LINE__ );
+    throw LQIO::should_not_implement( "DeviceEntry::updateWait" );
     return *this;
 }
 
@@ -1622,7 +1621,7 @@ DeviceEntry::updateWait( const Submodel&, const double )
 double
 DeviceEntry::updateWaitReplication( const Submodel&, unsigned&  )
 {
-    throw should_not_implement( "DeviceEntry::updateWaitReplication", __FILE__, __LINE__ );
+    throw LQIO::should_not_implement( "DeviceEntry::updateWaitReplication" );
     return 0.0;
 }
 #endif
@@ -1655,7 +1654,7 @@ DeviceEntry::processorUtilization() const
 double
 DeviceEntry::queueingTime( const unsigned ) const
 {
-    throw should_not_implement( "DeviceEntry::queueingTime", __FILE__, __LINE__ );
+    throw LQIO::should_not_implement( "DeviceEntry::queueingTime" );
     return 0.0;
 }
 

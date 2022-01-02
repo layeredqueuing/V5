@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 15248 2021-12-22 20:05:28Z greg $
+ * $Id: mva.cc 15322 2022-01-02 15:35:27Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -142,6 +142,7 @@
 #include <cassert>
 #include <limits>
 #include "mva.h"
+#include "mvaexception.h"
 #include "server.h"
 #include "prob.h"
 
@@ -3297,7 +3298,7 @@ Linearizer2::sumOf_L_m( const Server&, const Population &N, const unsigned j ) c
 
     if ( N[j] < 1 ) return 0.0;
 
-    throw not_implemented( "Linearizer2::sumOf_L_m", __FILE__, __LINE__ );
+    throw LibMVA::not_implemented( "Linearizer2::sumOf_L_m", __FILE__, __LINE__ );
     return 0.0;
 }
 
