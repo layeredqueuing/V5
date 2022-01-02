@@ -1,3 +1,14 @@
+* Bugs fixes in 5.23
+300 	lqiolib 	Station results not computed for single class models. 	
+324 	lqns 		Runtime Exception Occured: Batch_Model::addToSubmodel: bad submodel for task t1 
+329 	qnsolver 	uncaught exception of type std::out_of_range: map::at: key not found 
+331 	lqn2xxx 	Rendering issues with activities. 
+332 	lqsim 		Lqsim CFS: 71-fair, 72-fair 
+271 	lqn2xxx 	Group by regex may or may not work. 
+321 	lqiolib 	Runtime Exception Occured: Object of type phase does not have property service_time 
+328 	spex 		Using $1, $2... as result variables fails. 
+209 	lqns 		Odd throughput results 
+
 * Bugs fixed in 5.22
 314 	lqns	 	Add -Pmultiserver=zhou 
 316 	lqns 	 	Allow zero's for rendezvous/send-no-reply requests 

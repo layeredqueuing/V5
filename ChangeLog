@@ -1,3 +1,8 @@
+2022-01-02  Gregory Franks  <greg@Gregs-Retina-iMac.local>
+
+	* lqiolib, lqns, qnsolver, lqn2xxx
+	- Bug fixes.  See NEWS.
+
 2021-12-10  Gregory Franks  <greg@Gregs-Retina-iMac.local>
 
 	* lqns
@@ -529,4 +534,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 15196 2021-12-10 17:37:47Z greg $
+$Id: ChangeLog 15326 2022-01-02 18:37:23Z greg $
