@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 15322 2022-01-02 15:35:27Z greg $
+ * $Id: runlqx.cc 15331 2022-01-02 21:51:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -52,7 +52,7 @@ namespace SolverInterface
 	}
 
 #if defined(DEBUG_MESSAGES)
-	env->cleanInvokeGlobalMethod("print_symbol_table", NULL);
+	env->cleanInvokeGlobalMethod("print_symbol_table", nullptr);
 #endif
 
 	/* Tell the world the iteration number */

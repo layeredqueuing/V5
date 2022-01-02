@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 15324 2022-01-02 18:10:24Z greg $
+ * $Id: lqsim.cc 15331 2022-01-02 21:51:30Z greg $
  */
 
 #define STACK_TESTING
@@ -322,7 +322,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2022-01-02 13:10:24 -0500 (Sun, 02 Jan 2022) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2022-01-02 16:51:30 -0500 (Sun, 02 Jan 2022) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -344,7 +344,7 @@ main( int argc, char * argv[] )
 	
     for ( ;; ) {
 #if HAVE_GETOPT_LONG
-	const int c = getopt_long( argc, argv, opts, longopts, NULL );
+	const int c = getopt_long( argc, argv, opts, longopts, nullptr );
 #else	
 	const int c = getopt( argc, argv, opts );
 #endif

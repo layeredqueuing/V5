@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15324 2022-01-02 18:10:24Z greg $
+ * $Id: lqns.cc 15331 2022-01-02 21:51:30Z greg $
  *
  * Command line processing.
  *
@@ -145,7 +145,7 @@ int main (int argc, char *argv[])
 
     for ( ;; ) {
 #if HAVE_GETOPT_LONG
-        const int c = getopt_long( argc, argv, opts, longopts, NULL );
+        const int c = getopt_long( argc, argv, opts, longopts, nullptr );
 #else
         const int c = getopt( argc, argv, opts );
 #endif

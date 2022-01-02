@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 15318 2022-01-01 17:09:35Z greg $
+ * $Id: instance.cc 15331 2022-01-02 21:51:30Z greg $
  */
 
 /*
@@ -1217,7 +1217,7 @@ Instance::do_forwarding ( Message * msg, const Entry * ep )
 	    long reply_port  = msg->reply_port;	/* Local copy	*/
 
 	    timeline_trace( SYNC_INTERACTION_REPLIES, ep, msg->client );
-	    ps_send( reply_port, 0, (char *)msg->init( ep, NULL ), ps_my_std_port );
+	    ps_send( reply_port, 0, (char *)msg->init( ep, nullptr ), ps_my_std_port );
 
 	} else {
 				

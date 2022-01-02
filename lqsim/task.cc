@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15317 2022-01-01 16:44:56Z greg $
+ * $Id: task.cc 15331 2022-01-02 21:51:30Z greg $
  */
 
 #include "lqsim.h"
@@ -183,8 +183,8 @@ Task&
 Task::initialize()
 {
     for_each( _activity.begin(), _activity.end(), Exec<Activity>( &Activity::initialize ) );
-    for_each( _act_list.begin(), _act_list.end(), Exec<ActivityList>( &ActivityList::initialize ) );
     for_each( _entry.begin(), _entry.end(), Exec<Entry>( &Entry::initialize ) );
+    for_each( _forks.begin(), _forks.end(), Exec<AndForkActivityList>( &AndForkActivityList::initialize ) );
 
     /*
      * Allocate statistics for joins.  We do it here because we
@@ -192,14 +192,6 @@ Task::initialize()
      * class object.
      */
 
-    for ( std::vector<AndForkActivityList *>::iterator lp = _forks.begin(); lp != _forks.end(); ++lp ) {
-	(*lp)->set_visits( 0 );
-	for ( unsigned j = 0; j < (*lp)->size(); ++j ) {
-	    if ( (*lp)->at(j) ) {
-		(*lp)->inc_visits();
-	    }
-	}
-    }
     for ( std::vector<AndJoinActivityList *>::iterator lp = _joins.begin(); lp != _joins.end(); ++lp ) {
 	const Activity * src = (*lp)->front();
 	const Activity * dst = (*lp)->back();
@@ -406,16 +398,9 @@ Task::reset_stats()
     r_util.reset();
     r_cycle.reset();
 
-    for_each( _entry.begin(), _entry.end(), Exec<Entry>( &Entry::reset_stats ) );
-    for_each( _activity.begin(), _activity.end(), Exec<Activity>( &Activity::reset_stats ) );
-
-    for ( std::vector<AndJoinActivityList *>::iterator lp = _joins.begin(); lp != _joins.end(); ++lp ) {
-	(*lp)->r_join.reset();
-	(*lp)->r_join_sqr.reset();
-	if ( (*lp)->_hist_data ) {
-	    (*lp)->_hist_data->reset();
-	}
-    }
+    std::for_each( _entry.begin(), _entry.end(), Exec<Entry>( &Entry::reset_stats ) );
+    std::for_each( _activity.begin(), _activity.end(), Exec<Activity>( &Activity::reset_stats ) );
+    std::for_each( _joins.begin(), _joins.end(), Exec<AndJoinActivityList>( &AndJoinActivityList::reset_stats ) );
 
     /* Histogram stuff */
 
@@ -434,15 +419,9 @@ Task::accumulate_data()
     r_util.accumulate();
     r_cycle.accumulate();
 
-    for_each( _entry.begin(), _entry.end(), Exec<Entry>( &Entry::accumulate_data ) );
-    for_each( _activity.begin(), _activity.end(), Exec<Activity>( &Activity::accumulate_data ) );
-
-    for ( std::vector<AndJoinActivityList *>::iterator lp = _joins.begin(); lp != _joins.end(); ++lp ) {
-	(*lp)->r_join_sqr.accumulate_variance( (*lp)->r_join.accumulate() );
-	if ( (*lp)->_hist_data ) {
-	    (*lp)->_hist_data->accumulate_data();
-	}
-    }
+    std::for_each( _entry.begin(), _entry.end(), Exec<Entry>( &Entry::accumulate_data ) );
+    std::for_each( _activity.begin(), _activity.end(), Exec<Activity>( &Activity::accumulate_data ) );
+    std::for_each( _joins.begin(), _joins.end(), Exec<AndJoinActivityList>( &AndJoinActivityList::accumulate_data ) );
 
     /* Histogram stuff */
 

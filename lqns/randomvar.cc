@@ -11,7 +11,7 @@
  *
  * January 2005.
  *
- * $Id: randomvar.cc 15322 2022-01-02 15:35:27Z greg $
+ * $Id: randomvar.cc 15331 2022-01-02 21:51:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1577,7 +1577,7 @@ DiscreteCDFs::quorumKofN( const unsigned K, const unsigned N )
     for (unsigned int i=0; i <= N; i++) { //initialization.
 	MemoizingTable[i] = new DiscretePoints*[N+1];
 	for (unsigned int j=0; j <= N; j++) {
-	    MemoizingTable[i][j] = NULL;
+	    MemoizingTable[i][j] = nullptr;
 	}
     }
     if ( myCDFsCltn.size() == N ) {

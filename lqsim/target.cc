@@ -1,7 +1,7 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 15314 2022-01-01 15:11:20Z greg $
+ * $Id: target.cc 15331 2022-01-02 21:51:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -66,7 +66,7 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
     Entry * dst = _entry;
     Task * cp = dst->task();
     Message * msg = cp->alloc_message();
-    if ( msg != NULL ) {
+    if ( msg != nullptr ) {
 	msg->init( src, this );
 
 	ps_record_stat( r_loss_prob.raw, 0 );

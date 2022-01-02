@@ -1,5 +1,4 @@
 /* -*- c++ -*- */
-
 /************************************************************************/
 /* Copyright the Real-Time and Distributed Systems Group,		*/
 /* Department of Systems and Computer Engineering,			*/
@@ -11,7 +10,7 @@
 /*
  * Lqsim-parasol entry interface.
  *
- * $Id: entry.h 15317 2022-01-01 16:44:56Z greg $
+ * $Id: entry.h 15331 2022-01-02 21:51:30Z greg $
  */
 
 #ifndef ENTRY_H

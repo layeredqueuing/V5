@@ -234,17 +234,17 @@ Model::compute()
 	}
 	saveResults();
     }
+    catch ( const floating_point_error& error ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << error.what() << std::endl;
+	LQIO::io_vars.error_count += 1;
+	ok = false;
+    }
     catch ( const std::runtime_error& error ) {
 	throw LQX::RuntimeException( error.what() );
 	ok = false;
     }
     catch ( const std::logic_error& error ) {
 	throw LQX::RuntimeException( error.what() );
-	ok = false;
-    }
-    catch ( const floating_point_error& error ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << error.what() << std::endl;
-	LQIO::io_vars.error_count += 1;
 	ok = false;
     }
     return ok;

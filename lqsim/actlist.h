@@ -10,7 +10,7 @@
  * November 2020.
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.h 15317 2022-01-01 16:44:56Z greg $
+ * $Id: actlist.h 15331 2022-01-02 21:51:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -95,7 +95,6 @@ public:
     virtual ActivityList& push_back( Activity * activity ) { _list.push_back( activity ); return *this; }
     virtual double collect( std::deque<Activity *>& activity_stack, ActivityList::Collect& data ) const = 0;
     void shuffle();
-    ActivityList& initialize();
 
 private:
     const Type _type;
@@ -110,7 +109,7 @@ class InputActivityList : public ActivityList
 public:
     InputActivityList( Type type, LQIO::DOM::ActivityList * dom )
 	: ActivityList(type,dom),
-	  _prev(NULL)
+	  _prev(nullptr)
 	{}
 
     OutputActivityList * get_prev() const { return _prev; }
@@ -128,22 +127,17 @@ class ForkActivityList : public InputActivityList
 public:
     ForkActivityList( Type type, LQIO::DOM::ActivityList * dom )
 	: InputActivityList(type,dom),
-	  _join(NULL),
-	  _visits(0)
+	  _join(nullptr)
 	{}
 
     OutputActivityList * get_join() const { return _join; }
     ForkActivityList& set_join( OutputActivityList * list ) { _join = list; return *this; }
-    unsigned int get_visits() const { return _visits; }
-    ForkActivityList& set_visits( unsigned int value ) { _visits = value; return *this; }
-    ForkActivityList& inc_visits() { _visits += 1; return *this; }
 
     virtual double find_children( std::deque<Activity *>& activity_stack, std::deque<AndForkActivityList *>& fork_stack, const Entry * ep );
     virtual double collect( std::deque<Activity *>& activity_stack, ActivityList::Collect& data ) const;
     
 private:
     OutputActivityList * _join;		/* Link to fork from join.	*/
-    unsigned _visits;			/* */
 };
 
 class OrForkActivityList : public ForkActivityList
@@ -170,14 +164,21 @@ class AndForkActivityList : public ForkActivityList
 {
 public:
     AndForkActivityList( Type type, LQIO::DOM::ActivityList * dom )
-	: ForkActivityList(type,dom)
+	: ForkActivityList(type,dom),
+	  _visits(0)
 	{}
 
     virtual AndForkActivityList& push_back( Activity * activity );
+    AndForkActivityList& initialize();
     virtual AndForkActivityList& configure();
+    unsigned int get_visits() const { return _visits; }
+    
     virtual double find_children( std::deque<Activity *>& activity_stack, std::deque<AndForkActivityList *>& fork_stack, const Entry * ep );
     virtual void fork_backtrack( std::deque<AndForkActivityList *>&, std::deque<AndJoinActivityList *>&, std::set<AndForkActivityList *>& );
     virtual double collect( std::deque<Activity *>& activity_stack, ActivityList::Collect& data ) const;
+
+private:
+    unsigned _visits;			/* */
 };
 
 class LoopActivityList : public InputActivityList
@@ -185,7 +186,7 @@ class LoopActivityList : public InputActivityList
 public:
     LoopActivityList( Type type, LQIO::DOM::ActivityList * dom )
 	: InputActivityList(type,dom),
-	  _exit(NULL),
+	  _exit(nullptr),
 	  _count(),
 	  _total(0.0)
 	{}
@@ -213,7 +214,7 @@ class OutputActivityList : public ActivityList
 public:
     OutputActivityList( Type type, LQIO::DOM::ActivityList * dom )
 	: ActivityList(type,dom),
-	  _next(NULL)
+	  _next(nullptr)
 	{}
 	  
     InputActivityList * get_next() const { return _next; }
@@ -261,6 +262,8 @@ public:
     virtual void join_backtrack( std::deque<AndForkActivityList *>&, std::deque<AndJoinActivityList *>&, std::set<AndForkActivityList *>& );
     virtual double collect( std::deque<Activity *>& activity_stack, ActivityList::Collect& data ) const;
 
+    AndJoinActivityList& reset_stats();
+    AndJoinActivityList& accumulate_data();
     AndJoinActivityList& insertDOMResults();
 
 private:
