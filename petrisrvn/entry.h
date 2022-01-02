@@ -93,16 +93,16 @@ public:
     void add_call( const unsigned int p, LQIO::DOM::Call * );
     static void add_fwd_call( LQIO::DOM::Call * );
 
+    void clear();
     void initialize();
-    bool check();
     void remove_netobj();
     double transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struct place_object * d_place, 
 			  unsigned m, short enabling );
     void create_forwarding_gspn();
 
-    void insert_DOM_results();
+    void insert_DOM_results() const;
     
-    double task_utilization( unsigned p );
+    double task_utilization( unsigned p ) const;
     double queueing_time( const Entry * entry ) const;
     bool check_open_result();
 

@@ -74,7 +74,7 @@ public:
     bool check_quorum_join() const;
     bool check_fork_has_join() const;
 
-    void insert_DOM_results();
+    void insert_DOM_results() const;
 
     bool join_find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * e );
     bool fork_find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * e );

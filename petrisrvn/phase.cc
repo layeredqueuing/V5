@@ -616,13 +616,13 @@ Phase::remove_netobj()
 }
 
 void
-Phase::insert_DOM_results()
+Phase::insert_DOM_results() const
 {
     _dom->setResultServiceTime( residence_time() )
 	.setResultUtilization( utilization() );
 
-    for ( std::map<const Entry *,Call>::iterator c = _call.begin(); c != _call.end(); ++c ) {
-	Call& call = c->second;
+    for ( std::map<const Entry *,Call>::const_iterator c = _call.begin(); c != _call.end(); ++c ) {
+	const Call& call = c->second;
 	const Entry * entry = c->first;
 	if ( call.is_rendezvous() ) {
 	    const_cast<Call&>(call)._dom->setResultWaitingTime( queueing_time( entry ) );

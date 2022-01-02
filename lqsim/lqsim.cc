@@ -150,8 +150,10 @@ static const struct option longopts[] =
 #if defined(STACK_TESTING)
     { "check-stacks",	  no_argument,	     0, 256+'s' },
 #endif
-    { 0, 0, 0, 0 }
+    { nullptr, 0, 0, 0 }
 };
+#else
+const struct option * = nullptr;
 #endif
 static const char opts[] = "aA:B:C:de:G:h:HI:jm:MnN:o:pP:rRsS:t:T:vVwx";
 
@@ -312,7 +314,7 @@ main( int argc, char * argv[] )
     char * value;
     extern int optind;
 
-    LQIO::CommandLine command_line;
+    LQIO::CommandLine command_line( longopts );
 
     /* Set the program name and revision numbers.			*/
 

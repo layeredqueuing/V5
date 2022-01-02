@@ -42,7 +42,7 @@ private:
 public:
     virtual ~Processor() {}
     static void create( const std::pair<std::string,LQIO::DOM::Processor*>& );
-    bool check() const;
+    void clear();
 
     double rate() const;
     Processor& add_task( Task * task ) { _tasks.push_back( task ); return *this; }
@@ -51,11 +51,11 @@ public:
 
     bool is_single_place_processor() const;
     
-    void initialize();
     void remove_netobj() { PX = 0; }
+    void initialize();
     void transmorgrify( unsigned max_count );
 
-    void insert_DOM_results();
+    void insert_DOM_results() const;
 
     static Processor * find( const std::string& name  );
     static unsigned set_queue_length();
@@ -73,7 +73,7 @@ private:
 			    const unsigned low, const unsigned curr, const unsigned m,
 			    Phase * curr_phase );
 
-    double get_waiting( const Phase& phase );
+    double get_waiting( const Phase& phase ) const;
 
 public:
     struct place_object * PX;

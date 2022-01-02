@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: fpgoop.cc 15322 2022-01-02 15:35:27Z greg $
+ * $Id: fpgoop.cc 15329 2022-01-02 20:46:57Z greg $
  *
  * Floating point exception handling.  It is all different on all machines.
  * See:
@@ -32,6 +32,8 @@
 #include <cstdlib>
 #include <cmath>
 #include <cassert>
+#include <iostream>
+#include <iomanip>
 #include <stdexcept>
 #include <sstream>
 #include <signal.h>
@@ -141,8 +143,8 @@ floating_point_error::construct( const std::string& file, const unsigned line )
  */
 
 extern "C" {
-#if defined(HAVE_SIGACTION)
-#if defined(SA_SIGINFO)
+#if HAVE_SIGACTION
+#if SA_SIGINFO
 static void my_handler( int, siginfo_t *, void * );
 #else
 static void my_handler( int );
@@ -242,37 +244,37 @@ set_fp_abort()
  * See /usr/include/sys/signal.h. (MacosX)
  */
 
-#if defined(HAVE_SIGACTION) && defined(SA_SIGINFO)
+#if HAVE_SIGACTION && SA_SIGINFO
 static void
 my_handler (int sig, siginfo_t * info, void * )
 {
     if ( sig == SIGFPE ) {
-	cerr << "Floating point exception: ";
+	std::cerr << "Floating point exception: ";
 
 	switch ( info->si_code ) {
 #if defined(FPE_INTDIV)
-	case FPE_INTDIV: cerr << "integer divide by zero"; break;
+	case FPE_INTDIV: std::cerr << "integer divide by zero"; break;
 #endif
 #if defined(FPE_INTOVF)
-	case FPE_INTOVF: cerr << "integer overflow"; break;
+	case FPE_INTOVF: std::cerr << "integer overflow"; break;
 #endif
-	case FPE_FLTDIV: cerr << "floating point divide by zero"; break;
-	case FPE_FLTOVF: cerr << "floating point overflow"; break;
-	case FPE_FLTUND: cerr << "floating point underflow"; break;
-	case FPE_FLTRES: cerr << "floating point inexact result"; break;
-	case FPE_FLTINV: cerr << "floating point invalid operation"; break;
+	case FPE_FLTDIV: std::cerr << "floating point divide by zero"; break;
+	case FPE_FLTOVF: std::cerr << "floating point overflow"; break;
+	case FPE_FLTUND: std::cerr << "floating point underflow"; break;
+	case FPE_FLTRES: std::cerr << "floating point inexact result"; break;
+	case FPE_FLTINV: std::cerr << "floating point invalid operation"; break;
 #if defined(FPE_FLTSUB)
-	case FPE_FLTSUB: cerr << "subscript out of range"; break;
+	case FPE_FLTSUB: std::cerr << "subscript out of range"; break;
 #endif
-	default: cerr << "unknown!"; break;
+	default: std::cerr << "unknown!"; break;
 	}
 
-	cerr.fill('0');
-	cerr.setf ( ios::hex|ios::showbase, ios::basefield|ios::showbase );  // set hex as the basefield
-	cerr << " at " << setw(10) << reinterpret_cast<unsigned long>(info->si_addr);
-	cerr << endl;
+	std::cerr.fill('0');
+	std::cerr.setf ( std::ios::hex|std::ios::showbase, std::ios::basefield|std::ios::showbase );  // set hex as the basefield
+	std::cerr << " at " << std::setw(10) << reinterpret_cast<unsigned long>(info->si_addr);
+	std::cerr << std::endl;
     } else {
-	cerr << "Caught signal " << sig << endl;
+	std::cerr << "Caught signal " << sig << std::endl;
     }
     exit( 255 );
 }
@@ -298,7 +300,7 @@ my_handler (int /* sig */, int code, struct sigcontext * /* scp */ )
     }
 
 
-    cerr << "FP exception " << str << " occured." << endl;
+    std::cerr << "FP exception " << str << " occured." << std::endl;
     assert(0);
 }
 
@@ -339,10 +341,10 @@ my_handler (int sig, int code, struct sigcontext * scp )
     opcode_t opcode;
 
     if ( *((int *) scp->sc_jmpbuf.jmp_context.iar ) != FLTTRAPINST || !(fpstat &TST_MASK ) ) {
-	cerr << "Integer exception (INT Divide by zero/Subscript bounds) at pc "
-	     << scp->sc_jmpbuf.jmp_context.iar << endl;
+	std::cerr << "Integer exception (INT Divide by zero/Subscript bounds) at pc "
+	     << scp->sc_jmpbuf.jmp_context.iar << std::endl;
     } else if ( !find_instr( (ulong_t *)scp->sc_jmpbuf.jmp_context.iar, opcode ) ) {
-	cerr << "SIGTRAP cannot find exception point." << endl;
+	std::cerr << "SIGTRAP cannot find exception point." << std::endl;
     } else {
 	fp_bit_type flags = 0;
 
@@ -360,9 +362,9 @@ my_handler (int sig, int code, struct sigcontext * scp )
 	} else if ( fpstat & (TRP_INEXACT|FP_INEXACT) == (TRP_INEXACT|FP_INEXACT) ) {
 	    flags |= FP_INEXACT;
 	}
-	cerr << "FP exception (";
-	printStatus( cerr, flags );
-	cerr << "), opcode: " << opcode.code << " at pc " << opcode.fpe_loc << endl;
+	std::cerr << "FP exception (";
+	printStatus( std::cerr, flags );
+	std::cerr << "), opcode: " << opcode.code << " at pc " << opcode.fpe_loc << std::endl;
     }
     scp->sc_jmpbuf.jmp_context.fpscr &= ~FP_ALL_XCP;	// Reset bits -- they are sticky.
     scp->sc_jmpbuf.jmp_context.iar += 4;			// Continue with next instr.
@@ -406,11 +408,11 @@ my_handler ( int )
 bool
 check_fp_ok()
 {
-#if defined(HAVE_FENV_H) && defined(HAVE_FETESTEXCEPT)
+#if HAVE_FENV_H && HAVE_FETESTEXCEPT
 
     return fetestexcept( fp_bits ) == 0;
 
-#elif HAVE_IEEEFP_H && defined(HAVE_FPGETSTICKY)
+#elif HAVE_IEEEFP_H && HAVE_FPGETSTICKY
 
     return (fpgetsticky() & fp_bits) == 0;
 
@@ -437,7 +439,7 @@ check_fp_ok()
 void
 set_fp_ok( bool overflow )
 {
-#if defined(HAVE_FENV_H) && defined(HAVE_FECLEAREXCEPT) 
+#if HAVE_FENV_H && HAVE_FECLEAREXCEPT
 
     fp_bits = FE_DIVBYZERO|FE_INVALID;
     if ( overflow ) {
@@ -449,7 +451,7 @@ set_fp_ok( bool overflow )
 
     fpsetsticky( FP_X_CLEAR );
 
-#elif HAVE_IEEEFP_H && defined(HAVE_FPSETSTICKY)
+#elif HAVE_IEEEFP_H && HAVE_FPSETSTICKY
 
     fp_bits = FP_X_INV | FP_X_DZ;
     if ( overflow ) {
@@ -488,11 +490,11 @@ set_fp_ok( bool overflow )
 int
 fp_status_bits()
 {
-#if  defined(HAVE_FENV_H) && defined(HAVE_FETESTEXCEPT)
+#if  HAVE_FENV_H && HAVE_FETESTEXCEPT
 
     return fetestexcept( FE_DIVBYZERO|FE_INEXACT|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW );
 
-#elif HAVE_IEEEFP_H && defined(HAVE_FPGETSTICKY)
+#elif HAVE_IEEEFP_H && HAVE_FPGETSTICKY
 
     return fpgetsticky();
 

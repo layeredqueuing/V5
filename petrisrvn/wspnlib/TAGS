@@ -1,0 +1,346 @@
+
+net.c,103
+init_net(11,139
+create_net(27,369
+reset_net_object(37,508
+free_netobj(60,999
+purge_netobj(68,1087
+
+change.c,188
+int wspn_report_errors	14,199
+int wspn_accept_input	15,227
+change_trate(24,441
+change_itrate(40,700
+change_rate(57,953
+change_pmar(82,1605
+change_res(102,1916
+change_rpar(120,2183
+
+value.c,387
+value_pmmean(23,382
+value_pmvariance(39,623
+value_prob(62,1143
+value_trate(84,1510
+value_itrate(102,1764
+tran_rate(119,1987
+value_mpar(155,2518
+value_pmar(173,2913
+value_rpar(191,3211
+value_res(207,3436
+value_tput(225,3676
+value_itput(243,3921
+find_place(259,4148
+find_trans(279,4542
+find_itrans(298,4935
+find_result(319,5442
+find_rpar(337,5833
+solution_stats(355,6223
+
+wspn.c,395
+struct net_object *head_net;head_net16,266
+struct net_object *cur_net;cur_net17,295
+char            filename[filename19,324
+char            * net_name;20,359
+char            obj_name[obj_name21,387
+char            yes;23,423
+int             ivalue;24,444
+float           fvalue;25,468
+int             net_num;26,492
+FILE           *fpr;fpr27,517
+main(30,543
+change_net(120,2793
+
+solve.c,121
+char * toolname 27,477
+static char pathname[pathname28,503
+solve(31,543
+solve2(39,666
+remove_result_files(150,3054
+
+wspn.h,204
+#define WSPNLIB_WSPN_H6,86
+typedef enum { SOLVE_STEADY_STATE,11,193
+typedef enum { SOLVE_STEADY_STATE, SOLVE_TRANSIENT 11,193
+typedef enum { SOLVE_STEADY_STATE, SOLVE_TRANSIENT } solution_type;11,193
+
+global.c,669
+#define WHOLE_NET_LAYER 11,123
+struct net_object *netobj netobj18,295
+FILE    *nfp;nfp20,330
+FILE    *dfp;dfp21,344
+char    edit_file[edit_file22,358
+int     place_num,24,387
+int     place_num, trans_num,24,387
+int     place_num, trans_num, group_num,24,387
+int     place_num, trans_num, group_num, cset_num,24,387
+int     place_num, trans_num, group_num, cset_num, layer_num;24,387
+LAYER   layers_on;26,450
+char    *layer_name[layer_name28,470
+float	place_radius 33,585
+float	trans_length 34,609
+float	titrans_height 35,634
+float	imtrans_height 36,660
+float	token_diameter 37,686
+int	arrowht 38,712
+int	arrowwid 39,729
+float	not_radius 40,747
+
+global.h,317
+#define WSPN_GLOBAL_H9,110
+typedef unsigned long LAYER;15,254
+#define WHOLE_NET_LAYER 16,283
+#define encode_layer(78,1786
+#define test_layer(79,1841
+#define IN_TO_PIX(81,1899
+#define PIX_TO_IN(82,1968
+#define MIN(85,2058
+#define ABS(88,2122
+#define sign(90,2173
+#define TRUE 95,2252
+#define FALSE 96,2267
+
+res.c,404
+static struct place_object *place;place21,404
+static struct res_object *n_res;n_res22,439
+static struct probability *prob;prob23,472
+static struct probability *temp_pr;temp_pr24,505
+static int      noplace;26,542
+static float    error,27,567
+static float    error, attime;27,567
+clear_res(31,612
+get_pascal_real 47,943
+get_token_distr(58,1148
+get_throughputs(97,2194
+collect_res(117,2729
+
+save.c,316
+#define VBAR 26,753
+static struct com_object *comm;comm28,771
+save_file(34,921
+print_layer(184,5480
+put_trans(195,5640
+putname(276,7958
+#define	BLANK 278,8005
+#define	EOLN 279,8023
+putarcs(288,8141
+static char name[name324,9345
+save_net_files(332,9431
+void write_file(352,9997
+void put_file(353,10047
+
+alloc.c,33
+emalloc(21,383
+erealloc(40,739
+
+object.h,7106
+#define WSPN_OBJECT_H10,160
+union f_fp 16,248
+    float ff;17,261
+    float * fp;18,275
+struct images	22,310
+struct images			{ struct pixrect 	*i_p;i_p22,310
+				  float			 i_top;23,350
+				  float			 i_left;24,372
+				  float			 i_width;25,395
+				  float			 i_height;26,419
+				  struct images		*next;next27,444
+struct coordinate	31,487
+struct coordinate		{ float			 x,31,487
+struct coordinate		{ float			 x, y;31,487
+				  struct coordinate	*next;next32,523
+struct position	35,562
+struct position			{ float	x,35,562
+struct position			{ float	x, y;35,562
+struct mpar_object	37,598
+struct mpar_object		{ char			*tag;tag37,598
+				  LAYER			 layer;38,633
+				  short			 value;39,655
+				  struct position	 center;40,677
+				  struct mpar_object	*next;next41,708
+struct probability	44,748
+struct probability		{ float			 prob;44,748
+				  short			 val;45,785
+				  struct probability	*next;next46,805
+struct lisp_object	49,845
+struct lisp_object		{ char			*tag;tag49,845
+				  struct position	 center;50,880
+				  char			 type;51,911
+				  struct com_object	*text;text52,931
+				  struct lisp_object	*next;next53,962
+struct place_object	56,1002
+struct place_object		{ char			*tag;tag56,1002
+				  struct position	 tagpos;57,1038
+				  char			*color;color58,1069
+				  struct lisp_object	*lisp;lisp59,1090
+				  struct position	 colpos;60,1122
+				  LAYER			 layer;61,1153
+				  short			 tokens;62,1175
+				  short			 m0;63,1198
+				  struct probability	*distr;distr64,1217
+				  struct mpar_object	*mpar;mpar65,1250
+				  struct lisp_object	*cmark;cmark66,1282
+				  struct position	 center;67,1315
+				  struct place_object	*next;next68,1346
+struct rpar_object	71,1387
+struct rpar_object		{ char			*tag;tag71,1387
+				  LAYER			 layer;72,1422
+				  float			 value;73,1444
+				  struct position	 center;74,1466
+				  struct rpar_object	*next;next75,1497
+struct com_object	78,1537
+struct com_object		{ char			*line;line78,1537
+				  struct com_object	*next;next79,1572
+struct trans_object	82,1611
+struct trans_object		{ char			*tag;tag82,1611
+				  struct position	 tagpos;83,1647
+				  struct position	 pripos;84,1678
+				  char			*color;color85,1709
+				  struct lisp_object	*lisp;lisp86,1730
+				  struct position	 colpos;87,1762
+				  LAYER			 layer;88,1793
+				  short			 kind;89,1815
+				  short			 enabl;90,1836
+				  short			 Lbound;91,1858
+				  short			 Ebound;92,1881
+				  short			 Rbound;93,1904
+	 /* used in firing */	  short			 enabled;94,1927
+				  union f_fp	 fire_rate;95,1970
+	 /* used in firing */	  float			 f_time;96,1999
+				  struct rpar_object	*rpar;rpar97,2041
+				  struct com_object	*mark_dep;mark_dep98,2073
+				  struct position	 center;99,2108
+				  struct position	 ratepos;100,2139
+				  short			 orient;101,2171
+				  struct trans_object	*next;next102,2194
+struct group_object	105,2235
+struct group_object		{ char			*tag;tag105,2235
+				  short                  pri;106,2271
+				  struct trans_object	*trans;trans107,2305
+				  struct position	 center;108,2339
+				  struct group_object	*movelink;movelink109,2370
+				  struct group_object	*next;next110,2407
+struct arc_object	113,2448
+struct arc_object		{ char			 type;113,2448
+				  LAYER			 layer;114,2483
+				  short                  mult;115,2505
+				  struct place_object	*place;place116,2540
+				  struct trans_object	*trans;trans117,2574
+				  struct coordinate	*point;point118,2608
+				  char			*color;color119,2640
+				  struct lisp_object	*lisp;lisp120,2661
+				  struct position	 colpos;121,2693
+				  struct arc_object	*next;next122,2724
+struct tok_object 125,2763
+struct tok_object               { struct tarc           *larc;larc125,2763
+				  struct  tarc          *pas;pas126,2826
+				  struct  tarc          *jum;jum127,2860
+				  struct  tarc          *mpl;mpl128,2894
+				  struct coordinate     *pt;pt129,2928
+				  struct coordinate     *tt;tt130,2961
+				  struct tarc           *lspez;lspez131,2994
+				  struct coordinate     *token;token132,3030
+				  struct coordinate     *coor;coor133,3066
+				  struct tarc           *rep1;rep1134,3101
+				  struct tok_object     *next;next135,3136
+struct tarc 139,3182
+struct tarc                   { float                 arr;139,3182
+                                struct tarc          *next;next140,3241
+struct text_object	144,3336
+struct text_object		{ int			 font,144,3336
+struct text_object		{ int			 font, size,144,3336
+struct text_object		{ int			 font, size, style;144,3336
+				  int			 height,145,3384
+				  int			 height, length;145,3384
+				  struct position	 swcorner;146,3413
+				  char			 cstring[cstring147,3446
+				  struct text_object	*next;next148,3473
+struct res_object	151,3513
+struct res_object		{ char			*tag;tag151,3513
+				  struct position	 center;152,3547
+				  float			 value;153,3578
+				  struct com_object	*text;text154,3600
+				  struct res_object	*next;next155,3631
+struct net_object	158,3670
+struct net_object		{ struct com_object	*comment;comment158,3670
+				  struct position	 nwcorner;159,3719
+				  struct position	 secorner;160,3752
+				  int			 boxht;161,3785
+				  int			 boxwid;162,3805
+				  int			 circlerad;163,3826
+				  struct mpar_object    *mpars;mpars164,3850
+				  struct place_object	*places;places165,3886
+				  struct rpar_object    *rpars;rpars166,3921
+				  struct trans_object	*trans;trans167,3957
+				  struct group_object   *groups;groups168,3991
+				  struct arc_object	*arcs;arcs169,4028
+				  struct res_object	*results;results170,4059
+				  struct lisp_object	*lisps;lisps171,4093
+				  struct text_object	*texts;texts172,4126
+				  struct net_object	*next;next173,4159
+#define                 TOKOBJ_SIZE 175,4197
+#define			COORD_SIZE	176,4273
+#define			PROB_SIZE	177,4330
+#define                 TARC_SIZE 178,4387
+#define                 AWAY_SIZE 179,4457
+#define                 SPEZ_SIZE 180,4527
+#define			MPAOBJ_SIZE	181,4597
+#define			PLAOBJ_SIZE	182,4656
+#define			RPAOBJ_SIZE	183,4716
+#define			TRNOBJ_SIZE	184,4775
+#define			GRPOBJ_SIZE	185,4835
+#define			ARCOBJ_SIZE	186,4895
+#define			RESOBJ_SIZE	187,4953
+#define			LISPOBJ_SIZE	188,5011
+#define			TEXOBJ_SIZE	189,5071
+#define			CMMOBJ_SIZE	190,5130
+#define			NETOBJ_SIZE	191,5188
+#define			TAG_SIZE	193,5247
+#define				PLACE	197,5351
+#define				IMTRANS	198,5371
+#define				EXTRANS	199,5393
+#define				DETRANS	200,5415
+#define				IO_ARC	201,5437
+#define				INH_ARC	202,5458
+#define				MPAR	203,5480
+#define				MARK	204,5499
+#define				RPAR	205,5518
+#define				RATE	206,5537
+#define				RESULT	207,5556
+#define				COLOR	208,5577
+#define				NAME	209,5598
+#define				TEXT	210,5618
+#define				LISP	211,5638
+#define	HORIZONTAL	215,5732
+#define VERTICAL	216,5781
+#define FORTYFIVE	217,5826
+#define MINUSFORTYFIVE	218,5872
+#define TO_TRANS	220,5924
+#define	TO_PLACE	221,5981
+#define	INHIBITOR	222,6038
+#define EXPONENTIAL	224,6097
+#define IMMEDIATE	225,6154
+#define DETERMINISTIC	226,6201
+
+show.c,17
+show_net(15,201
+
+read.c,15
+readin(16,247
+
+load.c,147
+#define VBAR 10,213
+load_file(22,478
+getname(579,15916
+#define	BLANK 581,15941
+#define	EOLN 582,15959
+getarcs(600,16326
+read_file(671,18265
+
+netdir.c,21
+make_net_dir(23,345
+
+const.h,101
+#define ALLOCINC	8,77
+#define LINEMAX 9,144
+#define	PIX_PER_INCH	11,206
+#define MAX_LAYER 13,264

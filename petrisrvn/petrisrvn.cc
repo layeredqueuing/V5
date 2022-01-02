@@ -121,6 +121,9 @@ static const struct option longopts[] =
     { "debug-xml",          no_argument,        0, 256+'x' },
     { nullptr, 0, 0, 0 }
 };
+#else
+const struct option * longopts = nullptr;
+#endif
 
 static const char * opthelp[]  = {
     /* "debug"		    */    "Enable debug code.",
@@ -154,7 +157,6 @@ static const char * opthelp[]  = {
     /* "debug-xml"	    */    "Output debugging information while parsing XML input.",
     nullptr
 };
-#endif
 
 
 std::regex * inservice_match_pattern	= nullptr;
@@ -164,12 +166,12 @@ FILE * stddbg;				/* debugging output goes here.	*/
 static void usage( void );
  
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
     std::string output_file = "";
     LQIO::DOM::Document::InputFormat input_format = LQIO::DOM::Document::InputFormat::AUTOMATIC;
     LQIO::DOM::Document::OutputFormat output_format = LQIO::DOM::Document::OutputFormat::DEFAULT;
-    LQIO::CommandLine command_line;
+    LQIO::CommandLine command_line( longopts );
     LQIO::DOM::Pragma pragmas;
     Model::solve_using solve_function = &Model::compute;
 

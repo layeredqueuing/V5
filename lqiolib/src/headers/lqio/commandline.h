@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: commandline.h 15220 2021-12-15 15:18:47Z greg $
+ * $Id: commandline.h 15329 2022-01-02 20:46:57Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -12,15 +12,14 @@
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(LQIO_COMMANDLINE_H)
+#if !defined(LQIO_COMMANDLINE_H)
 #define	LQIO_COMMANDLINE_H
 
-#include <string>
-#include <getopt.h>
-
-#if defined(HAVE_CONFIG_H)
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <string>
+#include <getopt.h>
 
 #if !HAVE_GETOPT_LONG
 struct option;
@@ -31,8 +30,7 @@ namespace LQIO {
     class CommandLine
     {
     public:
-    CommandLine()
-	: _s() {}
+	CommandLine( const struct option * longopts = nullptr ) : _longopts(longopts), _s() {}
 
 	CommandLine& operator=( const std::string& );
 	CommandLine& append( int c, const char * optarg );
@@ -40,6 +38,7 @@ namespace LQIO {
 	inline const char * c_str() { return _s.c_str(); }
 
     private:
+	const option * _longopts;
 	std::string _s;
     };
 

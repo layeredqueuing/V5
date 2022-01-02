@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 15309 2021-12-31 22:18:21Z greg $
+ *  $Id: dom_document.cpp 15329 2022-01-02 20:46:57Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -243,12 +243,6 @@ namespace LQIO {
 		}
 	    }
 	    return new ConstantExternalVariable( __initialValues[index] );
-	}
-
-	void
-	Document::setMVAStatistics( const unsigned int submodels, const unsigned long core, const double step, const double step_squared, const double wait, const double wait_squared, const unsigned int faults )
-	{
-	    _mvaStatistics.set( submodels, core, step, step_squared, wait, wait_squared, faults );
 	}
 
 	unsigned Document::getNextEntityId()
@@ -498,6 +492,13 @@ namespace LQIO {
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+	Document&
+	Document::setMVAStatistics( const unsigned int submodels, const unsigned long core, const double step, const double step_squared, const double wait, const double wait_squared, const unsigned int faults )
+	{
+	    _mvaStatistics.set( submodels, core, step, step_squared, wait, wait_squared, faults );
+	    return *this;
+	}
+
 	Document& Document::setResultValid(bool resultValid)
 	{
 	    _hasResults = true;
@@ -519,10 +520,17 @@ namespace LQIO {
 	    return *this;
 	}
 
-	Document& Document::setResultPlatformInformation(const std::string& resultPlatformInformation)
+	Document& Document::setResultPlatformInformation(const std::string& version )
 	{
 	    _hasResults = true;
-	    _resultPlatformInformation = resultPlatformInformation;
+	    _resultPlatformInformation.clear();
+
+#if HAVE_UNAME
+	    struct utsname uu;		/* Get system triva. */
+	    uname( &uu );
+	    _resultPlatformInformation += uu.nodename + " " + uu.sysname + " " + uu.release;
+#endif
+	    _resultPlatformInformation += LQIO::io_vars.lq_toolname + " " + version;
 	    return *this;
 	}
 

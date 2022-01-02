@@ -103,6 +103,8 @@ const struct option longopts[] =
     { "debug-xml",				no_argument,	   nullptr, 512+'x' },
     { nullptr, 0, nullptr, 0 }
 };
+#else
+const struct option * longopts = nullptr;
 #endif
 const char opts[]       = "abc:d:e:fhH:i:I:jno:pP:rt:u:vVwxz:";
 
@@ -120,7 +122,7 @@ int main (int argc, char *argv[])
 {
     std::string outputFileName = "";
     LQIO::DOM::Document::OutputFormat output_format = LQIO::DOM::Document::OutputFormat::DEFAULT;
-    LQIO::CommandLine command_line;
+    LQIO::CommandLine command_line( longopts );
     Options::Debug::initialize();
     Options::Trace::initialize();
     Options::Special::initialize();

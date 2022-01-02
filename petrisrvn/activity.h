@@ -31,7 +31,7 @@ namespace LQIO {
 }
 
 class Activity : public Phase {
-    friend void ActivityList::insert_DOM_results();
+    friend void ActivityList::insert_DOM_results() const;
 
 public:    
     Activity( LQIO::DOM::Activity *, Task * );
@@ -61,7 +61,7 @@ public:
 			  struct place_object * end_place, bool can_reply );
 
     virtual double residence_time() const;
-    virtual void insert_DOM_results();
+    virtual void insert_DOM_results() const;
 
     void activity_cycle_error( int err, const char *, std::deque<Activity *>& activity_stack );
     static void complete_activity_connections();

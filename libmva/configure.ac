@@ -1,5 +1,5 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 15162 2021-12-06 20:42:16Z greg $
+# $Id: configure.ac 15329 2022-01-02 20:46:57Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
@@ -24,6 +24,7 @@ AC_CHECK_HEADERS([fenv.h float.h ieeefp.h])
 # Checks for library functions.
 AC_CHECK_LIB([m], [sqrt])
 AC_FUNC_ERROR_AT_LINE
-AC_CHECK_FUNCS([feclearexcept feenableexcept fesetexceptflag fetestexcept finite fpgetsticky fpsetmask fpsetsticky ieee_retrospective signbit])
+AC_CHECK_FUNCS([feclearexcept feenableexcept fesetexceptflag fetestexcept finite fpgetsticky fpsetmask fpsetsticky])
+AC_CHECK_FUNCS([lgamma sigaction])
 AC_CONFIG_FILES([Makefile src/Makefile src/headers/mva/Makefile regression/Makefile])
 AC_OUTPUT

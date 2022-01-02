@@ -61,7 +61,7 @@ private:
 
 public:
     static Task * create( LQIO::DOM::Task * dom );
-    bool check();
+    void clear();
 
     Type type() const { return _type; }
     virtual int priority() const;			/* Priority for this task.	*/
@@ -107,7 +107,7 @@ public:
     void get_results();
     void get_total_throughput( Task * dst, double tot_tput[] );
 
-    virtual void insert_DOM_results();
+    virtual void insert_DOM_results() const;
 
 private:
     double create_instance( double base_x_pos, double base_y_pos, unsigned m, short enabling );
@@ -184,7 +184,7 @@ public:
     virtual bool has_main_thread() const { return false; }
 
     virtual void get_results( unsigned int m );
-    virtual void insert_DOM_results();
+    virtual void insert_DOM_results() const;
 
 private:
     LQIO::DOM::Document * _document;

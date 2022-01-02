@@ -50,11 +50,11 @@ Processor::Processor( LQIO::DOM::Entity * dom )
     : Place( dom ),
       PX(0)
 {
-    initialize();
+    clear();
 }
 
 
-void Processor::initialize() 
+void Processor::clear() 
 {
     PX = 0;
     for ( unsigned e = 0; e <= DIME; ++e ) {
@@ -95,12 +95,13 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 
 
 /*
- * Suppress warning for processor scheduling if there is only one thread on this processor.   Processor::create is executed before Task::create and we need 
- * to know if the task has threads or copies.
+ * Suppress warning for processor scheduling if there is only one
+ * thread on this processor.  Processor::create is executed before
+ * Task::create and we need to know if the task has threads or copies.
  */
 
-bool
-Processor::check() const
+void
+Processor::initialize() 
 {
     if ( scheduling() == SCHEDULE_PS ) {
 	if ( n_tasks() > 1 || _tasks[0]->multiplicity() > 1 || _tasks[0]->n_threads() > 1 ) {
@@ -108,7 +109,6 @@ Processor::check() const
 	    get_dom()->setSchedulingType( SCHEDULE_FIFO );
 	}
     }
-    return true;
 }
 
 
@@ -442,7 +442,7 @@ Processor::make_fifo_queue( double x_pos, double y_pos, const int priority,
  */
 
 void
-Processor::insert_DOM_results ()
+Processor::insert_DOM_results() const
 {
     /* For all tasks, For all entries, for all phases ... */
     double proc_util = 0;
@@ -482,7 +482,7 @@ Processor::insert_DOM_results ()
  */
 
 double
-Processor::get_waiting( const Phase& phase )
+Processor::get_waiting( const Phase& phase ) const
 {
     double tokens = 0.0;
     double tput	  = 0.0;

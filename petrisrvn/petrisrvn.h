@@ -1,3 +1,4 @@
+/* -*- c++ -*- */
 /************************************************************************/
 /* Copyright the Real-Time and Distributed Systems Group,		*/
 /* Department of Systems and Computer Engineering,			*/
@@ -12,7 +13,7 @@
 #define _PETRISRVN_H
 
 /*
- * $Id: petrisrvn.h 15302 2021-12-31 14:19:34Z greg $
+ * $Id: petrisrvn.h 15329 2022-01-02 20:46:57Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -107,4 +108,33 @@ extern FILE * stddbg;			/* debugging output goes here.		*/
 static inline bool bit_test( unsigned flag, unsigned bits ) { return ((1 << flag) & bits ) != 0; }
 static inline void throw_bad_parameter() { throw std::domain_error( "invalid parameter" ); }
 
+template <class Type> struct Exec
+{
+    typedef void (Type::*funcPtr)();
+    Exec<Type>( funcPtr f ) : _f(f) {};
+    void operator()( Type * object ) const { (object->*_f)(); }
+    void operator()( Type& object ) const { (object.*_f)(); }
+private:
+    funcPtr _f;
+};
+
+template <class Type> struct ConstExec
+{
+    typedef void (Type::*funcPtr)() const;
+    ConstExec<Type>( const funcPtr f ) : _f(f) {}
+    void operator()( const Type * object ) const { (object->*_f)(); }
+    void operator()( const Type& object ) const { (object.*_f)(); }
+private:
+    const funcPtr _f;
+};
+
+template <class Type> struct Predicate
+{
+    typedef bool (Type::*predicate)() const;
+    Predicate<Type>( const predicate p ) : _p(p) {};
+    bool operator()( const Type * object ) const { return (object->*_p)(); }
+    bool operator()( const Type& object ) const { return (object.*_p)(); }
+private:
+    const predicate _p;
+};
 #endif /* _PETRISRVN_H */

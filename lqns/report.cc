@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: report.cc 15155 2021-12-06 18:54:53Z greg $
+ * $Id: report.cc 15329 2022-01-02 20:46:57Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -305,7 +305,7 @@ SolverReport::print( std::ostream& output ) const
     }
 #endif
     output << "    Real:    " << LQIO::DOM::CPUTime::print( _delta_time.getRealTime() ) << std::endl;
-#if defined(HAVE_SYS_TIME_H)
+#if HAVE_SYS_TIME_H
     output << "    User:    " << LQIO::DOM::CPUTime::print( _delta_time.getUserTime() ) << std::endl;
     output << "    System:  " << LQIO::DOM::CPUTime::print( _delta_time.getSystemTime() ) << std::endl;
 #endif
@@ -323,34 +323,9 @@ SolverReport::insertDOMResults() const
     _document->setResultConvergenceValue(_convergenceValue)
 	.setResultValid(_valid)
 	.setResultIterations(_iterations)
-	.setMVAStatistics(MVAStats.size(),total._n,total.step,total.step_sqr,total.wait,total.wait_sqr,total.faults);
-
-    std::string buf;
-
-#if defined(HAVE_SYS_UTSNAME_H)
-    struct utsname uu;		/* Get system triva. */
-    uname( &uu );
-
-    buf = uu.nodename;
-    buf += " ";
-    buf += uu.sysname;
-    buf += " ";
-    buf += uu.release;
-    _document->setResultPlatformInformation(buf);
-#endif
-    buf = LQIO::io_vars.lq_toolname;
-    buf += " ";
-    buf += VERSION;
-    _document->setResultSolverInformation(buf);
-
+	.setMVAStatistics(MVAStats.size(),total._n,total.step,total.step_sqr,total.wait,total.wait_sqr,total.faults)
+	.setResultPlatformInformation(VERSION);
     _delta_time.insertDOMResults( *_document );
-    return *this;
-
-#if HAVE_SYS_RESOURCE_H && HAVE_GETRUSAGE
-    struct rusage r_usage;
-    if ( getrusage( RUSAGE_SELF, &r_usage ) == 0 && r_usage.ru_maxrss > 0 ) {
-	_document->setResultMaxRSS( r_usage.ru_maxrss );
-    }
-#endif
+    
     return *this;
 }

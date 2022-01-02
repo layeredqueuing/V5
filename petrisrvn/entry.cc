@@ -54,12 +54,12 @@ Entry::Entry( LQIO::DOM::Entry * dom, Task * task )
     for ( unsigned int p = 1; p <= n_phases; ++p ) {
 	phase[p].set_dom( dom->getPhase(p), this );
     }
-    initialize();
+    clear();
 }
 
 
 void 
-Entry::initialize()
+Entry::clear()
 {
     for ( unsigned m = 0; m < MAX_MULT; ++m ) {
 	DX[m] = 0;
@@ -198,18 +198,18 @@ Entry::add_call( const unsigned int p, LQIO::DOM::Call * call )
     }
 }
 
-bool
-Entry::check (void)
+/*
+ * Determine the maximum number of phases over all entries,
+ * and check that all phases have some service time and set
+ * the release probability.  The latter is only important when
+ * we are forwarding.
+ */
+	 
+void
+Entry::initialize()
 {
     _n_phases = 1;
     
-    /*
-     * Determine the maximum number of phases over all entries,
-     * and check that all phases have some service time and set
-     * the release probability.  The latter is only important when
-     * we are forwarding.
-     */
-	 
     bool has_service_time = false;
     bool has_deterministic_phases = false;
 	
@@ -286,8 +286,6 @@ Entry::check (void)
 	    solution_error( LQIO::ERR_INVALID_FORWARDING_PROBABILITY, name(), 1.0 - _rel_prob );
 	}
     }
-
-    return !LQIO::io_vars.anError();
 }
 
 
@@ -441,7 +439,7 @@ Entry::remove_netobj()
  */
 
 double
-Entry::task_utilization ( unsigned p )
+Entry::task_utilization ( unsigned p ) const
 {
     unsigned max_m = task()->n_customers();
     if ( p <= n_phases() ) {
@@ -491,7 +489,7 @@ Entry::check_open_result()
 }
 
 void 
-Entry::insert_DOM_results()
+Entry::insert_DOM_results() const
 {
     double totalPhaseUtil = 0.0;
     double proc_tokens    = 0.0;
@@ -532,8 +530,8 @@ Entry::insert_DOM_results()
     }
 
     /* Store forwarding data */
-    for ( std::map<const Entry *,Call>::iterator f = _fwd.begin(); f != _fwd.end(); ++f ) {
-	Call& call = f->second;
+    for ( std::map<const Entry *,Call>::const_iterator f = _fwd.begin(); f != _fwd.end(); ++f ) {
+	const Call& call = f->second;
 	const Entry * entry = f->first;
 	call._dom->setResultWaitingTime( queueing_time( entry ) );
     }

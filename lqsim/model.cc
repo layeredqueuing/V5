@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15324 2022-01-02 18:10:24Z greg $
+ * $Id: model.cc 15329 2022-01-02 20:46:57Z greg $
  */
 
 #include "lqsim.h"
@@ -475,40 +475,15 @@ Model::insertDOMResults()
 {
     /* Insert general information about simulation run */
 
-    _document->setResultConvergenceValue(_confidence)
-	.setResultValid( _confidence <= _parameters._precision || _parameters._precision == 0.0 )
-	.setResultIterations(number_blocks);
-
     LQIO::DOM::CPUTime stop_time;
     stop_time.init();
     stop_time -= _start_time;
     stop_time.insertDOMResults( *_document );
 
-#if HAVE_SYS_RESOURCE_H && HAVE_GETRUSAGE
-    struct rusage r_usage;
-    if ( getrusage( RUSAGE_SELF, &r_usage ) == 0 && r_usage.ru_maxrss > 0 ) {
-	_document->setResultMaxRSS( r_usage.ru_maxrss );
-    }
-#endif
-
-    std::string buf;
-
-#if HAVE_UNAME
-    struct utsname uu;		/* Get system triva. */
-
-    uname( &uu );
-    buf  = uu.nodename;
-    buf += " ";
-    buf += uu.sysname;
-    buf += " ";
-    buf += uu.release;
-    _document->setResultPlatformInformation(buf);
-#endif
-    buf = LQIO::io_vars.lq_toolname;
-    buf += " ";
-    buf += VERSION;
-    _document->setResultSolverInformation(buf);
-
+    _document->setResultConvergenceValue(_confidence)
+	.setResultValid( _confidence <= _parameters._precision || _parameters._precision == 0.0 )
+	.setResultIterations(number_blocks)
+	.setResultSolverInformation(VERSION);
 
     for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::insertDOMResults ) );
     for_each( Group::__groups.begin(), Group::__groups.end(), Exec<Group>( &Group::insertDOMResults ) );

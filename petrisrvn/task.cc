@@ -77,7 +77,7 @@ Task::Task( LQIO::DOM::Task* dom, Task::Type type, Processor * processor )
       _proc_queue_count(0),
       _requestor_no(0)
 {
-    initialize();
+    clear();
     _inservice_flag = inservice_match_pattern != nullptr && std::regex_match( name(), *inservice_match_pattern );
 #if !defined(BUFFER_BY_ENTRY)
     if ( dom && dom->hasQueueLength() ) {
@@ -87,7 +87,7 @@ Task::Task( LQIO::DOM::Task* dom, Task::Type type, Processor * processor )
 }
 
 
-void Task::initialize()
+void Task::clear()
 {
     for ( unsigned int m = 0; m < MAX_MULT; ++m ) {
 	TX[m] = 0;			/* Task place.			*/
@@ -244,8 +244,8 @@ Task::create( LQIO::DOM::Task * dom )
 }
 
 
-bool
-Task::check() 
+void
+Task::initialize() 
 {
     if ( !entries.size() ) {
 	LQIO::solution_error( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, name() );
@@ -343,8 +343,6 @@ Task::check()
 	    solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, (*e)->name() );
 	}
     }
-
-    return !LQIO::io_vars.anError();
 }
 
 /* Priority for this task.	*/
@@ -962,7 +960,7 @@ Task::get_total_throughput( Task * dst, double tot_tput[] )
  */
 
 void
-Task::insert_DOM_results()
+Task::insert_DOM_results() const
 {
     double tput_sum     = 0.0;
     double util_sum     = 0.0;
@@ -1037,7 +1035,7 @@ OpenTask::get_results( unsigned m )
  */
 
 void
-OpenTask::insert_DOM_results()
+OpenTask::insert_DOM_results() const
 {
     LQIO::DOM::Entry * entry = const_cast<LQIO::DOM::Entry *>(_dst->get_dom());
     entry->setResultWaitingTime( entries[0]->phase[1].response_time( _dst ) );

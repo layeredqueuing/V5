@@ -113,7 +113,7 @@ public:
     virtual double residence_time() const;
     double response_time( const Entry * dst ) const;
 
-    virtual void insert_DOM_results();
+    virtual void insert_DOM_results() const;
 
     static void inc_par_offsets(void);
 

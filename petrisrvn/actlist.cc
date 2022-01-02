@@ -632,7 +632,7 @@ bool ActivityList::is_loop_list() const
     return type() == Type::LOOP;
 }
 
-void ActivityList::insert_DOM_results() 
+void ActivityList::insert_DOM_results() const
 {
     if ( type() == Type::AND_JOIN && list[0]->_throughput[0] ) {
 	_dom->setResultJoinDelay( u.join.tokens[0] / list[0]->_throughput[0] );

@@ -639,7 +639,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 }
 
 void 
-Activity::insert_DOM_results()
+Activity::insert_DOM_results() const
 {
     Phase::insert_DOM_results();
 

@@ -1,5 +1,5 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 15165 2021-12-07 01:23:08Z greg $
+# $Id: configure.ac 15329 2022-01-02 20:46:57Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
@@ -20,20 +20,22 @@ AC_LANG(C++)
 
 # Checks for header files.
 AC_FUNC_ALLOCA
-AC_CHECK_HEADERS([unistd.h malloc.h strings.h pwd.h values.h time.h])
-AC_CHECK_HEADERS([sys/mman.h sys/param.h sys/resource.h sys/time.h sys/times.h])
+AC_CHECK_HEADERS([strings.h pwd.h unistd.h time.h])
+AC_CHECK_HEADERS([sys/errno.h sys/mman.h sys/resource.h sys/time.h sys/times.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_SYS_WAIT
 AC_HEADER_STAT
 AC_HEADER_STDBOOL
 
 # Checks for library functions.
-AC_FUNC_ERROR_AT_LINE
+AC_FUNC_MMAP
 AC_FUNC_STAT
+AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([ctime memset strchr strdup strerror strftime])
-AC_CHECK_FUNCS([geteuid getpwuid getrusage gettimeofday uname mmap])
+AC_CHECK_FUNCS([ctime getopt_long ])
+AC_CHECK_FUNCS([geteuid getpwuid getrusage gettimeofday])
 
 AC_CHECK_HEADERS([expat.h])
 AC_CHECK_LIB([expat], [XML_ParserCreateNS])
