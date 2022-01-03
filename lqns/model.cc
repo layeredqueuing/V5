@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 15322 2022-01-02 15:35:27Z greg $
+ * $Id: model.cc 15337 2022-01-03 13:59:54Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -189,7 +189,7 @@ Model::solve( solve_using solve_function, const std::string& inputFileName, cons
 	environment->getMethodTable()->registerMethod(new SolverInterface::Solve(document, solve_function, model));
 	LQIO::RegisterBindings(environment, document);
 
-	if ( outputFileName.size() > 0 && outputFileName != "-" && LQIO::Filename::isRegularFile(outputFileName.c_str()) ) {
+	if ( !outputFileName.empty() && outputFileName != "-" && LQIO::Filename::isRegularFile(outputFileName.c_str()) ) {
 	    output = fopen( outputFileName.c_str(), "w" );
 	    if ( !output ) {
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, outputFileName.c_str(), strerror( errno ) );
@@ -811,9 +811,9 @@ Model::compute()
     insertDOMResults();
     _document->print( _output_file_name, _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : std::string(""), _output_format, flags.rtf_output );
 
-    //if ( flags.print_overtaking ) {
-    //printOvertaking( output );
-    //}
+    if ( flags.print_overtaking ) {
+	printOvertaking( std::cout );
+    }
 
     if ( flags.generate ) {
 	Generate::makefile( nSubmodels() );	/* We are dumping C source -- make a makefile. */

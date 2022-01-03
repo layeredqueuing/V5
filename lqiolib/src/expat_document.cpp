@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 15315 2022-01-01 16:35:32Z greg $
+ * $Id: expat_document.cpp 15337 2022-01-03 13:59:54Z greg $
  *
  * Read in XML input files.
  *
@@ -142,7 +142,7 @@ namespace LQIO {
 	    bool rc = true;
             int input_fd = -1;
 
-            if ( _input_file_name ==  "-" ) {
+            if ( !Filename::isFileName( _input_file_name ) ) {
                 input_fd = fileno( stdin );
             } else if ( ( input_fd = open( _input_file_name.c_str(), O_RDONLY ) ) < 0 ) {
                 std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << _input_file_name << " - " << strerror( errno ) << std::endl;

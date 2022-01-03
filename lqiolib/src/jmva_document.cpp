@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 15240 2021-12-18 04:40:03Z greg $
+ * $Id: jmva_document.cpp 15337 2022-01-03 13:59:54Z greg $
  *
  * Read in XML input files.
  *
@@ -38,6 +38,7 @@
 #include "dom_document.h"
 #include "dom_extvar.h"
 #include "error.h"
+#include "filename.h"
 #include "glblerr.h"
 #include "input.h"
 #include "jmva_document.h"
@@ -128,7 +129,7 @@ namespace BCMP {
 	bool rc = true;
 	int input_fd = -1;
 
-	if ( _input_file_name ==  "-" ) {
+	if ( !Filename::isFileName( _input_file_name ) ) {
 	    input_fd = fileno( stdin );
 	} else if ( ( input_fd = open( _input_file_name.c_str(), O_RDONLY ) ) < 0 ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << _input_file_name << " - " << strerror( errno ) << std::endl;

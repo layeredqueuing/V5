@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 15304 2021-12-31 15:51:38Z greg $
+ *  $Id: srvn_input.cpp 15337 2022-01-03 13:59:54Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -1147,13 +1147,13 @@ namespace LQIO {
 }
 
 
-bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_filename, bool load_results )
+bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_file_name, bool load_results )
 {
     unsigned errorCode = 0;
-    if ( input_filename == "-" ) {
+    if ( !Filename::isFileName( input_file_name ) ) {
 	LQIO_in = stdin;
-    } else if (!( LQIO_in = fopen( input_filename.c_str(), "r" ) ) ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << input_filename << " - " << strerror( errno ) << std::endl;
+    } else if (!( LQIO_in = fopen( input_file_name.c_str(), "r" ) ) ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << input_file_name << " - " << strerror( errno ) << std::endl;
 	return false;
     } 
     int LQIO_in_fd = fileno( LQIO_in );
@@ -1163,14 +1163,14 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_fi
 	std::cerr << LQIO::io_vars.lq_toolname << ": Input from terminal is not allowed." << std::endl;
 	return false;
     } else if ( fstat( LQIO_in_fd, &statbuf ) != 0 ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot stat " << input_filename << " - " << strerror( errno ) << std::endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot stat " << input_file_name << " - " << strerror( errno ) << std::endl;
 	return false;
 #if defined(S_ISSOCK)
     } else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) && !S_ISSOCK(statbuf.st_mode) ) {
 #else
     } else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) ) {
 #endif
-	std::cerr << LQIO::io_vars.lq_toolname << ": Input from " << input_filename << " is not allowed." << std::endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": Input from " << input_file_name << " is not allowed." << std::endl;
 	return false;
     } 
 
@@ -1210,11 +1210,11 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_fi
 #endif
     if ( LQIO::io_vars.anError() ) {
 	errorCode = 1;
-    } else if ( load_results && input_filename != "-" ) {
-	LQIO::Filename parse_name( input_filename, "p" );
+    } else if ( load_results && Filename::isFileName( input_file_name ) ) {
+	LQIO::Filename parse_name( input_file_name, "p" );
 	try {
-	    if ( parse_name.mtimeCmp( input_filename ) < 0 ) {
-		std::cerr << LQIO::io_vars.lq_toolname << ": input file " << input_filename << " is more recent than " << parse_name() 
+	    if ( parse_name.mtimeCmp( input_file_name ) < 0 ) {
+		std::cerr << LQIO::io_vars.lq_toolname << ": input file " << input_file_name << " is more recent than " << parse_name() 
 			  << " -- results ignored. " << std::endl;
 	    } else {
 		LQIO::SRVN::loadResults( parse_name() );

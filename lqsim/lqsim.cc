@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 15331 2022-01-02 21:51:30Z greg $
+ * $Id: lqsim.cc 15337 2022-01-03 13:59:54Z greg $
  */
 
 #define STACK_TESTING
@@ -42,11 +42,11 @@
 #include <sys/resource.h>
 #endif
 #include <lqio/input.h>
+#include <lqio/filename.h>
 #if !HAVE_GETSUBOPT
 #include <lqio/getsbopt.h>
 #endif
 #include <lqio/error.h>
-#include <lqio/filename.h>
 #include <lqio/commandline.h>
 #include <lqio/srvn_spex.h>
 #include <lqio/dom_pragma.h>
@@ -322,7 +322,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2022-01-02 16:51:30 -0500 (Sun, 02 Jan 2022) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2022-01-03 08:59:54 -0500 (Mon, 03 Jan 2022) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -645,13 +645,6 @@ main( int argc, char * argv[] )
 	
     if ( optind == argc ) {
 
-	/* If stdout is not a terminal and output to stdout.  		*/
-	/* For pipelines.						*/
-	
-	if ( output_file.size() == 0 && LQIO::Filename::isWriteableFile( fileno( stdout ) ) > 0 ) {
-	    output_file = "-";
-	}
-	
 	try {
 	    global_error_flag |= Model::solve( solve_function, "-", input_format, output_file, output_format, pragmas );
 	}
@@ -670,7 +663,7 @@ main( int argc, char * argv[] )
   
 	int file_count = argc - optind;
 		
-	if ( output_file.size() > 0  && file_count > 1 && LQIO::Filename::isDirectory( output_file ) == 0 ) {
+	if ( file_count > 1 && LQIO::Filename::isFileName( output_file ) && LQIO::Filename::isDirectory( output_file ) == 0 ) {
 	    (void) fprintf( stderr, "%s: Too many input files specified with -o <file> option.\n", LQIO::io_vars.toolname() );
 	    exit( INVALID_ARGUMENT );
 	}

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_results.cpp 15304 2021-12-31 15:51:38Z greg $
+ *  $Id: srvn_results.cpp 15337 2022-01-03 13:59:54Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -1210,7 +1210,7 @@ namespace LQIO {
 	    if ( ! LQIO::DOM::__document ) {
 		return false;
 	    }
-	    if ( filename == "-" ) {
+	    if ( !Filename::isFileName( filename ) ) {
 		resultin = stdin;
 		resultparse();
 	    } else if ( ( resultin = fopen( filename.c_str(), "r" ) ) != nullptr ) {

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 15329 2022-01-02 20:46:57Z greg $
+ *  $Id: dom_document.cpp 15337 2022-01-03 13:59:54Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -856,7 +856,7 @@ namespace LQIO {
 	    };
     
 	    const bool lqx_output = getResultInvocationNumber() > 0;
-	    const std::string directory_name = LQIO::Filename::createDirectory( isOutputFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
+	    const std::string directory_name = LQIO::Filename::createDirectory( Filename::Filename::isFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
 
 	    /* Set output format from input, or if LQN and LQX then force to XML. */
     
@@ -867,12 +867,12 @@ namespace LQIO {
 	    /* override is true for '-p -o filename.out when filename.in' == '-p filename.in' */
 
 	    bool override = false;
-	    if ( isOutputFileName( output_file_name ) && LQIO::Filename::isRegularFile( output_file_name ) > 0 ) {
+	    if ( Filename::isFileName( output_file_name ) && LQIO::Filename::isRegularFile( output_file_name ) > 0 ) {
 		LQIO::Filename filename( __input_file_name, rtf_output ? "rtf" : "out" );
 		override = filename() == output_file_name;
 	    }
 
-	    if ( override || ((!isOutputFileName( output_file_name ) || !directory_name.empty()) && __input_file_name != "-" )) {
+	    if ( override || ((!Filename::isFileName( output_file_name ) || !directory_name.empty()) && Filename::isFileName( __input_file_name ) )) {
 
 		/* Case for "-o <dir>" or "[-o xxx.out] -{p,j,x}" when xxx.out == xxx.in if -o xxx.out is present */
 
@@ -907,20 +907,7 @@ namespace LQIO {
 		}
 		output.close();
 
-	    } else if ( output_file_name == "-" || __input_file_name == "-" ) {
-
-		/* case for pipeines: ... | lqns ... */
-
-		const std::map<const LQIO::DOM::Document::OutputFormat,const std::string>::const_iterator extension =  __output_extensions.find( output_format );
-		if ( extension != __output_extensions.end() ) {
-		    print( std::cout, extension->first );
-		} else if ( rtf_output ) {
-		    print( std::cout, LQIO::DOM::Document::OutputFormat::RTF );
-		} else {
-		    print( std::cout );
-		}
-
-	    } else {
+	    } else if ( Filename::isFileName( output_file_name ) ) {
 
 		/* case for -o xxx, do not map filename. */
 
@@ -938,6 +925,20 @@ namespace LQIO {
 		    print( output );
 		}
 		output.close();
+
+	    } else {
+
+		/* case for pipeines: ... | lqns ... */
+
+		const std::map<const LQIO::DOM::Document::OutputFormat,const std::string>::const_iterator extension =  __output_extensions.find( output_format );
+		if ( extension != __output_extensions.end() ) {
+		    print( std::cout, extension->first );
+		} else if ( rtf_output ) {
+		    print( std::cout, LQIO::DOM::Document::OutputFormat::RTF );
+		} else {
+		    print( std::cout );
+		}
+
 	    }
 	}
 
@@ -951,7 +952,7 @@ namespace LQIO {
 	Document::print( const std::string& output_file_name, const std::string& suffix, OutputFormat output_format, bool rtf_output, unsigned int iteration ) const
 	{
 	    const bool lqx_output = getResultInvocationNumber() > 0;
-	    const std::string directory_name = LQIO::Filename::createDirectory( isOutputFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
+	    const std::string directory_name = LQIO::Filename::createDirectory( Filename::isFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
 	    std::string extension;
 
 	    const std::map<const LQIO::DOM::Document::OutputFormat,const std::string>::const_iterator ext_iter = __output_extensions.find( output_format );

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: filename.h 15299 2021-12-30 21:36:22Z greg $
+ * $Id: filename.h 15337 2022-01-03 13:59:54Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -54,7 +54,7 @@ namespace LQIO {
 	static int isWriteableFile( int fileno );
 	static void backup( const std::string& file_name );
 	static std::string createDirectory( const std::string& file_name, bool lqx_output );
-
+	static inline bool isFileName( const std::string& name ) { return !name.empty() && name != "-"; }
 
     private:
 	std::string _filename;

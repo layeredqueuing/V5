@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 15308 2021-12-31 17:19:15Z greg $
+ * $Id: petrisrvn.cc 15337 2022-01-03 13:59:54Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -48,7 +48,6 @@
 #include <lqio/commandline.h>
 #include <lqio/dom_document.h>
 #include <lqio/srvn_spex.h>
-#include <lqio/filename.h>
 #if !defined(HAVE_GETSUBOPT)
 #include <lqio/getsbopt.h>
 #endif
@@ -410,19 +409,12 @@ main(int argc, char *argv[])
 
     if ( optind == argc ) {
 
-	/* If stdout is not a terminal and output to stdout.  		*/
-	/* For pipelines.						*/
-
-	if ( output_file.size() == 0 && LQIO::Filename::isWriteableFile( fileno( stdout ) ) > 0 ) {
-	    output_file = "-";
-	}
-
 	status |= Model::solve( solve_function, "-", input_format, output_file, output_format, pragmas );
 
     } else {
 	unsigned int file_count = argc - optind;			/* Number of files on cmd line	*/
 
-	if ( output_file.size() && file_count > 1 && !LQIO::Filename::isDirectory( output_file ) ) {
+	if ( file_count > 1 && LQIO::Filename::isFileName( output_file ) && !LQIO::Filename::isDirectory( output_file ) ) {
 	    (void) fprintf( stderr, "%s: Too many input files specified with -o <file> option.\n", LQIO::io_vars.toolname() );
 	    exit( INVALID_ARGUMENT );
 	}

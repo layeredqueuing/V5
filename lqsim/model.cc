@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15329 2022-01-02 20:46:57Z greg $
+ * $Id: model.cc 15336 2022-01-03 12:50:08Z greg $
  */
 
 #include "lqsim.h"
@@ -210,7 +210,7 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
 
 
 /*
- * Step 2: convert DOM into lqn entities.
+ * Step 2: convert DOM into lqn entities.  Runs outside of simulation.
  */
 
 bool
@@ -282,8 +282,6 @@ Model::prepare()
 	Entry* newEntry = Entry::find(entry->getName().c_str());
 	if ( newEntry == nullptr ) continue;
 
-//	newEntry->setEntryInformation( entry );
-
 	/* Go over all of the entry's phases and add the calls */
 	for (unsigned p = 1; p <= entry->getMaximumPhase(); ++p) {
 	    LQIO::DOM::Phase* phase = entry->getPhase(p);
@@ -354,10 +352,11 @@ Model::extend()
 
 
 /*
+ * Called from ps_genesis() by ps_run_parasol().
+ *
  * Create all of the parasol tasks instances after the simulation has
  * started.  Some construction is needed after the simulation has
- * initialized and started simply because we need run-time
- * info. Called from ps_genesis() by ps_run_parasol().
+ * initialized and started simply because we need run-time info.
  * Model::create() will call Task::initialize() which will call
  * XXX::initialize(). XXX:configure() is called from ::start() which
  * is called before ps_run_parasol().
@@ -465,6 +464,7 @@ Model::print_raw_stats( FILE * output ) const
 #endif
     (void) fprintf( output, "\n\n");
 }
+
 
 /*
  * Go through data structures and insert results into the DOM
@@ -890,16 +890,14 @@ void Model::simulation_parameters::set( const std::map<std::string,std::string>&
 }
 
 
-bool Model::simulation_parameters::set( double& parameter, const std::map<std::string,std::string>& pragmas, const char * value )
+bool Model::simulation_parameters::set( double& parameter, const std::map<std::string,std::string>& pragmas, const std::string& value )
 {
     std::map<std::string,std::string>::const_iterator i = pragmas.find( value );
     if ( i != pragmas.end() ) {
 	char * endptr = nullptr;
 	parameter = std::strtod( i->second.c_str(), &endptr );
 	if ( *endptr != '\0' ) {
-	    std::stringstream err;
-	    err << value << "=" << i->second;
-	    throw std::invalid_argument(err.str());
+	    throw std::invalid_argument( value + "=" + i->second );
 	}
 	return true;
     } else {
@@ -908,16 +906,14 @@ bool Model::simulation_parameters::set( double& parameter, const std::map<std::s
 }
 
 
-bool Model::simulation_parameters::set( unsigned long& parameter, const std::map<std::string,std::string>& pragmas, const char * value )
+bool Model::simulation_parameters::set( unsigned long& parameter, const std::map<std::string,std::string>& pragmas, const std::string& value )
 {
     std::map<std::string,std::string>::const_iterator i = pragmas.find( value );
     if ( i != pragmas.end() ) {
 	char * endptr = nullptr;
 	parameter = std::strtol( i->second.c_str(), &endptr, 10 );
 	if ( *endptr != '\0' ) {
-	    std::stringstream err;
-	    err << value << "=" << i->second;
-	    throw std::invalid_argument(err.str());
+	    throw std::invalid_argument( value + "=" + i->second );
 	}
 	return true;
     } else {

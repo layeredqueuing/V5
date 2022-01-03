@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15331 2022-01-02 21:51:30Z greg $
+ * $Id: lqns.cc 15337 2022-01-03 13:59:54Z greg $
  *
  * Command line processing.
  *
@@ -22,14 +22,14 @@
 #if HAVE_LIBGEN_H
 #include <libgen.h>
 #endif
-#include <lqio/filename.h>
-#include <lqio/commandline.h>
-#include <lqio/srvn_spex.h>
-#include <lqio/dom_pragma.h>
 #if HAVE_GETOPT_H
 #include <getopt.h>
 #endif
-#if !defined(HAVE_GETSUBOPT)
+#include <lqio/commandline.h>
+#include <lqio/filename.h>
+#include <lqio/srvn_spex.h>
+#include <lqio/dom_pragma.h>
+#if !HAVE_GETSUBOPT
 #include <lqio/getsbopt.h>
 #endif
 #include <mva/fpgoop.h>
@@ -430,13 +430,6 @@ int main (int argc, char *argv[])
 
     if ( optind == argc ) {
 
-        /* If stdout is not a terminal route output to stdout.          */
-        /* For pipelines.                                               */
-
-        if ( outputFileName == "" && LQIO::Filename::isWriteableFile( fileno( stdout ) ) > 0 ) {
-            outputFileName = "-";
-        }
-
         global_error_flag = Model::solve( solve_function, "-", outputFileName, output_format );
 
     } else {
@@ -444,7 +437,7 @@ int main (int argc, char *argv[])
         const int file_count = argc - optind;           /* Number of files on cmd line  */
 
         if ( file_count > 1 ) {
-            if ( outputFileName != "" ) {
+            if ( LQIO::Filename::isFileName( outputFileName ) && LQIO::Filename::isDirectory( outputFileName ) == 0 ) {
                 std::cerr << LQIO::io_vars.lq_toolname << ": Too many input files specified with the option: -o"
                      << outputFileName
                      << std::endl;
