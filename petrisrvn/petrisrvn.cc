@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 15337 2022-01-03 13:59:54Z greg $
+ * $Id: petrisrvn.cc 15340 2022-01-03 15:16:34Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
