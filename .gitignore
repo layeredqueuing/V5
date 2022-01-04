@@ -40,6 +40,7 @@
 .svn
 Makefile
 Makefile.in
+TAGS
 \#*
 aclocal.m4
 confdefs.h
@@ -99,13 +100,13 @@ libmva/regression/test9i
 libmva/regression/testA
 libmva/regression/testB
 libtool
-lqn2ps/lqn2ps
 lqn2csv/lqn2csv
+lqn2ps/lqn2ps
 lqngen/lqngen
 lqns/lqns
 lqns/regression/disttest
-lqsim/lqsim
 lqsim/doc
+lqsim/lqsim
 lqx/drvsrc/lqx
 lqx/libsrc/Parser_pre.cpp
 lqx/libsrc/Parser_pre.h
