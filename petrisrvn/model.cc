@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 15329 2022-01-02 20:46:57Z greg $
+ * $Id: model.cc 15356 2022-01-04 23:29:39Z greg $
  *
  * Load the SRVN model.
  */
@@ -123,14 +123,7 @@ Model::~Model()
 int
 Model::solve( solve_using solver_function, const std::string& inputFileName, LQIO::DOM::Document::InputFormat inputFormat, const std::string& outputFileName, LQIO::DOM::Document::OutputFormat outputFormat, const LQIO::DOM::Pragma& pragmas )
 {
-    static const std::map<const LQIO::DOM::Document::InputFormat,const LQIO::DOM::Document::OutputFormat> input_to_output_format = {
-	{ LQIO::DOM::Document::InputFormat::XML,	LQIO::DOM::Document::OutputFormat::XML },
-	{ LQIO::DOM::Document::InputFormat::JSON,	LQIO::DOM::Document::OutputFormat::JSON },
-	{ LQIO::DOM::Document::InputFormat::LQN,	LQIO::DOM::Document::OutputFormat::XML },
-    };
-    
     LQIO::DOM::Document* document = Model::load( inputFileName, inputFormat );
-    LQX::Program * program = document->getLQXProgram();
 
     /* Make sure we got a document */
     if ( document == nullptr || LQIO::io_vars.anError() ) return FILEIO_ERROR;
@@ -150,22 +143,14 @@ Model::solve( solve_using solver_function, const std::string& inputFileName, LQI
     default:;
     }
 
-    /*
-     * Set output format from input, or if LQN and LQX then force to XML.
-     */
-    
-    if ( outputFormat == LQIO::DOM::Document::OutputFormat::DEFAULT && (document->getInputFormat() != LQIO::DOM::Document::InputFormat::LQN || program != nullptr) ) {
-	outputFormat = input_to_output_format.at( document->getInputFormat() );
-    }
-
     /* declare Model * at this scope but don't instantiate due to problems with LQX programs and registering external symbols*/
     Model model( document, inputFileName,  outputFileName, outputFormat );
     if ( !model.construct() ) return FILEIO_ERROR;
 
     int status = 0;
-
-    /* We can simply run if there's no control program */
-    if ( program ) {
+    LQX::Program * program = document->getLQXProgram();
+    if ( program != nullptr ) {
+	/* We can simply run if there's no control program */
 	if (program == nullptr) {
 	    LQIO::solution_error( LQIO::ERR_LQX_COMPILATION, inputFileName.c_str() );
 	    status = FILEIO_ERROR;
@@ -717,7 +702,7 @@ Model::reload()
     }
 
     unsigned int errorCode;
-    if ( !_document->loadResults( directory_name(), _input_file_name, SolverInterface::Solve::customSuffix, errorCode ) ) {
+    if ( !_document->loadResults( directory_name(), _input_file_name, SolverInterface::Solve::customSuffix, _output_format, errorCode ) ) {
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     } else {
 	return true;

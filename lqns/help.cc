@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 15232 2021-12-17 14:46:45Z greg $
+ * $Id: help.cc 15353 2022-01-04 22:06:34Z greg $
  */
 
 #include "lqns.h"
@@ -32,55 +32,55 @@ private:
 };
 
 static const std::map<const std::string,const std::string> opt_help = {
-    { "no-advisories",			    "Do not output advisory messages" },
-    { "bounds-only",			    "Compute throughput bounds only." },
-    { "convergence",			    "Set the convergence value to <n.n>." },
-    { "debug",				    "Enable debug code. See -Hd." },
-    { "error",				    "Set floating point exception mode." },
-    { LQIO::DOM::Pragma::_fast_,	    "Solve using one-step-linearizer, batch layering and Conway multiserver." },
-    { "help",				    "Print a summary of the command line options.  The optional argument shows help for -d, -t, -z, and -P respectively." },
-    { "huge",				    "Solve using one-step-schweitzer, no interlocking, and Rolia multiserver." },
-    { "iteration-limit",		    "Set the iteration limit to <n>." },
-    { "input-format",			    "Force input format to ARG. ARG is either 'lqn', 'json' or 'xml'." },
-    { "json",				    "Output reuslt in JSON format." },
-    { "no-execute",			    "Build the model, but do not solve." },
-    { "output",				    "Redirect ouptut to FILE." },
-    { "parseable",			    "Generate parseable (.p) output." },
-    { "pragma",				    "Set solver options.  See -HP." },
-    { "rtf",				    "Output results in Rich Text Format instead of plain text." },
-    { "trace",				    "Trace solver operation.  See -Ht." },
-    { LQIO::DOM::Pragma::_underrelaxation_, "Set the under-relaxation value to <n.n>." },
-    { "verbose",			    "Output on standard error the progress of the solver." },
-    { "version",			    "Print the version of the solver." },
-    { "no-warnings",			    "Do not output warning messages." },
-    { "xml",				    "Ouptut results in XML format." },
-    { "special",			    "Set special options.  See -Hz." },
-    { LQIO::DOM::Pragma::_exact_,	    "Use exact MVA instead of Linearizer for solving submodels." },
-    { LQIO::DOM::Pragma::_schweitzer_,	    "Use Schweitzer approximate MVA instead of Linearizer." },
-    { "batch-layering",			    "Default layering strategy." },
-    { "hwsw-layering",			    "Use HW/SW layering instead of batched layering." },
-    { "method-of-layers",		    "Use the Method of Layers instead of batched layering." },
-    { "squashed-layering",		    "Use only one submodel to solve the model." },
-    { "srvn-layering",			    "Use one server per layer instead of batched layering." },
-    { "processor-sharing",		    "Use processor sharing scheduling at fifo scheduled processors." },
+    { "no-advisories",				"Do not output advisory messages" },
+    { "bounds-only",				"Compute throughput bounds only." },
+    { LQIO::DOM::Pragma::_convergence_value_,	"Set the convergence value to <n.n>." },
+    { "debug",					"Enable debug code. See -Hd." },
+    { "error",					"Set floating point exception mode." },
+    { LQIO::DOM::Pragma::_fast_,		"Solve using one-step-linearizer, batch layering and Conway multiserver." },
+    { "help",					"Print a summary of the command line options.  The optional argument shows help for -d, -t, -z, and -P respectively." },
+    { "huge",					"Solve using one-step-schweitzer, no interlocking, and Rolia multiserver." },
+    { LQIO::DOM::Pragma::_iteration_limit_,	"Set the iteration limit to <n>." },
+    { "input-format",				"Force input format to ARG. ARG is either 'lqn', 'json' or 'xml'." },
+    { "json",					"Output reuslt in JSON format." },
+    { "no-execute",				"Build the model, but do not solve." },
+    { "output",					"Redirect ouptut to FILE." },
+    { "parseable",				"Generate parseable (.p) output." },
+    { "pragma",					"Set solver options.  See -HP." },
+    { "rtf",					"Output results in Rich Text Format instead of plain text." },
+    { "trace",					"Trace solver operation.  See -Ht." },
+    { LQIO::DOM::Pragma::_underrelaxation_,	"Set the under-relaxation value to <n.n>." },
+    { "verbose",				"Output on standard error the progress of the solver." },
+    { "version",				"Print the version of the solver." },
+    { "no-warnings",				"Do not output warning messages." },
+    { "xml",					"Ouptut results in XML format." },
+    { "special",				"Set special options.  See -Hz." },
+    { LQIO::DOM::Pragma::_exact_,		"Use exact MVA instead of Linearizer for solving submodels." },
+    { LQIO::DOM::Pragma::_schweitzer_,		"Use Schweitzer approximate MVA instead of Linearizer." },
+    { "batch-layering",				"Default layering strategy." },
+    { "hwsw-layering",				"Use HW/SW layering instead of batched layering." },
+    { "method-of-layers",			"Use the Method of Layers instead of batched layering." },
+    { "squashed-layering",			"Use only one submodel to solve the model." },
+    { "srvn-layering",				"Use one server per layer instead of batched layering." },
+    { "processor-sharing",			"Use processor sharing scheduling at fifo scheduled processors." },
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-    { "quorum",				    "Quorum." },
+    { "quorum",					"Quorum." },
 #endif
-    { "no-stop-on-message-loss",	    "Ignore infinities caused by open arrivals or asynchronous sends." },
-    { "no-variance",			    "Ignore the variance computation during solution." },
-    { "reload-lqx",			    "Run the LQX program, but re-use the results from a previous invocation." },
-    { "restart",			    "Reuse existing valid results.  Otherwise, run the solver." },
-    { "no-header",			    "Do not output the variable name header on SPEX results." },
-    { "no-variance",			    "Do not use variances in the waiting time calculations." },
-    { "print-comment",			    "Add the model comment as the first line of output when running with SPEX input." },
-    { "print-interval",			    "Output the intermediate solution of the model after <n> iterations." },
-    { "reset-mva",			    "Reset the MVA calculation prior to solving a submodel." }, 
-    { "trace-mva",			    "Trace the operation of the MVA solver." },
-    { "debug-json",			    "Output debugging information while parsing JSON input." },
-    { "debug-lqx",			    "Output debugging information while parsing LQX input." },
-    { "debug-xml",			    "Output debugging information while parsing XML input." },
-    { "debug-srvn",			    "Output debugging information while parsing SRVN input." },
-    { "debug-spex",			    "Output LQX progam corresponding to SPEX input." }
+    { "no-stop-on-message-loss",		"Ignore infinities caused by open arrivals or asynchronous sends." },
+    { "no-variance",				"Ignore the variance computation during solution." },
+    { "reload-lqx",				"Run the LQX program, but re-use the results from a previous invocation." },
+    { "restart",				"Reuse existing valid results.	Otherwise, run the solver." },
+    { "no-header",				"Do not output the variable name header on SPEX results." },
+    { "no-variance",				"Do not use variances in the waiting time calculations." },
+    { "print-comment",				"Add the model comment as the first line of output when running with SPEX input." },
+    { "print-interval",				"Output the intermediate solution of the model after <n> iterations." },
+    { "reset-mva",				"Reset the MVA calculation prior to solving a submodel." },
+    { "trace-mva",				"Trace the operation of the MVA solver." },
+    { "debug-json",				"Output debugging information while parsing JSON input." },
+    { "debug-lqx",				"Output debugging information while parsing LQX input." },
+    { "debug-xml",				"Output debugging information while parsing XML input." },
+    { "debug-srvn",				"Output debugging information while parsing SRVN input." },
+    { "debug-spex",				"Output LQX progam corresponding to SPEX input." }
 };
 
 
@@ -119,7 +119,7 @@ const std::map<const int,const Help::help_fptr> Help::__option_table =
     { 256+'p',	&Help::flagProcessorSharing },
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     { 256+'p',	&Help::flagQuorum },
-#endif    
+#endif
     { 256+'o',	&Help::flagStopOnMessageLoss },
     { 256+'v',	&Help::flagNoVariance },
     { 256+'r',  &Help::flagResetMVA },
@@ -252,7 +252,7 @@ const Help::parameter_map_t Help::__prune_args =
     { LQIO::DOM::Pragma::_false_,	parameter_info(&Help::pragmaPruneFalse,true) },
     { LQIO::DOM::Pragma::_true_,	parameter_info(&Help::pragmaPruneTrue) }
 };
-    
+
 #if RESCHEDULE
 const Help::parameter_map_t Help::__reschedule_args =
 {
@@ -272,7 +272,7 @@ const Help::parameter_map_t Help::__spex_header_args = {
     { LQIO::DOM::Pragma::_false_,       parameter_info(&Help::pragmaSpexHeaderFalse,true) },
     { LQIO::DOM::Pragma::_true_,        parameter_info(&Help::pragmaSpexHeaderTrue) }
 };
-	
+
 
 const Help::parameter_map_t Help::__stop_on_message_loss_args = {
     { LQIO::DOM::Pragma::_no_,		parameter_info(&Help::pragmaStopOnMessageLossTrue,true) },
@@ -721,11 +721,11 @@ Help::flagExactMVA( std::ostream& output, bool verbose ) const
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::flagFast( std::ostream& output, bool verbose ) const
 {
     output << "This option is used to set options for quick solution of a model using One-Step (Bard-Schweitzer) MVA."  << std::endl
-	   << "It is equivalent to setting " << bold( *this, "pragma" ) 
+	   << "It is equivalent to setting " << bold( *this, "pragma" )
 	   << " "  << emph( *this, LQIO::DOM::Pragma::_mva_ ) << "=" << emph( *this, LQIO::DOM::Pragma::_one_step_ )
 	   << ", " << emph( *this, LQIO::DOM::Pragma::_layering_ ) << "=" << emph( *this, LQIO::DOM::Pragma::_batched_ )
 	   << ", " << emph( *this, LQIO::DOM::Pragma::_multiserver_ ) << "=" << emph( *this, LQIO::DOM::Pragma::_conway_ ) << std::endl;
@@ -774,7 +774,7 @@ Help::flagJSON( std::ostream& output, bool verbose ) const
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::flagMethoOfLayers( std::ostream& output, bool verbose ) const
 {
     output << "This option is to use the Method Of Layers solution approach to solving the layer submodels." << std::endl;
@@ -820,9 +820,9 @@ std::ostream&
 Help::flagOutput( std::ostream& output, bool verbose ) const
 {
     output << "Direct analysis results to " << emph( *this, "output" ) << ix( *this, "output" ) << ".  A filename of `" << filename( *this, "-" )  << ix( *this, "standard input" ) << "'" << std::endl
-	   << "directs output to standard output.  If " << filename( *this, "output" ) << " is a directory, all output is saved in " 
+	   << "directs output to standard output.  If " << filename( *this, "output" ) << " is a directory, all output is saved in "
 	   << filename( *this, "output/input.out" ) << ". If the input model contains a SPEX program with loops, the SPEX output is sent to "
-	   << filename( *this, "output" ) << "; the individual model output files are found in the directory " 
+	   << filename( *this, "output" ) << "; the individual model output files are found in the directory "
 	   << filename( *this, "output.d" ) << ". If " << bold( *this, "lqns" ) <<" is invoked with this" << std::endl
 	   << "option, only one input file can be specified." << std::endl;
     return output;
@@ -867,7 +867,7 @@ Help::flagPrintInterval( std::ostream& output, bool verbose ) const
 }
 
 
-std::ostream& 
+std::ostream&
 Help::flagProcessorSharing( std::ostream& output, bool verbose ) const
 {
     output << "Use Processor Sharing scheduling at all fixed-rate processors." << std::endl;
@@ -912,7 +912,7 @@ Help::flagSchweitzerMVA( std::ostream& output, bool verbose ) const
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::flagSquashedLayering( std::ostream& output, bool verbose ) const
 {
     output << "Use only one submodel to solve the model." << std::endl;
@@ -1193,7 +1193,7 @@ Help::traceJoins( std::ostream & output, bool verbose ) const
 std::ostream&
 Help::traceMva( std::ostream & output, bool verbose ) const
 {
-    output << "Print out the MVA submodel and its solution." << std::endl;  
+    output << "Print out the MVA submodel and its solution." << std::endl;
     if ( verbose ) {
 	output << "A numeric argument supplied to this option will print out only the specified MVA submodel, otherwise, all submodels will be printed." << std::endl;
     }
@@ -1538,7 +1538,7 @@ Help::pragmaVariance( std::ostream& output, bool verbose ) const
 }
 
 
-std::ostream& 
+std::ostream&
 Help::pragmaSeverityLevel( std::ostream& output, bool verbose ) const
 {
     output << "This pragma is used to enable or disable warning messages." << std::endl;
@@ -1647,14 +1647,14 @@ Help::pragmaForceInfiniteAll( std::ostream& output, bool verbose ) const
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::pragmaStopOnMessageLossFalse( std::ostream& output, bool verbose ) const
 {
     output << "Ignore queue overflows" << ix( *this, "overflow" ) << " for open arrivals" << ix( *this, "open arrival!overflow" ) << " and send-no-reply" << ix( *this, "send-no-reply!overflow" ) << " requests.  If a queue overflows, its waiting times is reported as infinite." << ix( *this, "infinity" ) << "";
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::pragmaStopOnMessageLossTrue( std::ostream& output, bool verbose ) const
 {
     output << "Stop if messages are lost." << std::endl;
@@ -1939,7 +1939,7 @@ Help::pragmaThreadsDefault( std::ostream& output, bool verbose ) const
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::pragmaVarianceDefault( std::ostream& output, bool verbose ) const
 {
     return output;
@@ -1980,54 +1980,54 @@ Help::pragmaVarianceInitOnly( std::ostream& output, bool verbose ) const
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::pragmaSeverityLevelWarnings( std::ostream& output, bool verbose ) const
 {
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::pragmaSeverityLevelRunTime( std::ostream& output, bool verbose ) const
 {
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::pragmaSpexCommentFalse( std::ostream& output, bool verbose ) const
 {
     output << "Do not output a comment line (the output can then be fed into gnuplot easily)." << std::endl;
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::pragmaSpexCommentTrue( std::ostream& output, bool verbose ) const
 {
     output << "Output the model comment in the SPEX output." << std::endl;
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::pragmaSpexHeaderFalse( std::ostream& output, bool verbose ) const
 {
     output << "Do not output a header line (the output can then be fed into gnuplot easily)." << std::endl;
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::pragmaSpexHeaderTrue( std::ostream& output, bool verbose ) const
 {
     output << "Output a header line consisting of the names of all of the variables used in the Result section on the input file." << std::endl;
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::pragmaPruneFalse( std::ostream& output, bool verbose ) const
 {
     output << "Solve model with all processors present." << std::endl;
     return output;
 }
 
-std::ostream& 
+std::ostream&
 Help::pragmaPruneTrue( std::ostream& output, bool verbose ) const
 {
     output << "Solve model without including \"useless\" processors." << std::endl;
@@ -2138,7 +2138,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 15232 2021-12-17 14:46:45Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 15353 2022-01-04 22:06:34Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2437,7 +2437,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 15232 2021-12-17 14:46:45Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 15353 2022-01-04 22:06:34Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl
@@ -2770,7 +2770,7 @@ HelpPlain::filename( std::ostream& output, const std::string& s1, const std::str
 }
 
 void
-HelpPlain::print_special( std::ostream& output ) 
+HelpPlain::print_special( std::ostream& output )
 {
     HelpPlain self;
     output << "Valid arguments for --special" << std::endl;
@@ -2782,7 +2782,7 @@ HelpPlain::print_special( std::ostream& output )
 
 
 void
-HelpPlain::print_trace( std::ostream& output ) 
+HelpPlain::print_trace( std::ostream& output )
 {
     HelpPlain self;
     output << "Valid arguments for --trace" << std::endl;
@@ -2793,7 +2793,7 @@ HelpPlain::print_trace( std::ostream& output )
 
 
 void
-HelpPlain::print_debug( std::ostream& output ) 
+HelpPlain::print_debug( std::ostream& output )
 {
     HelpPlain self;
     output << "Valid arguments for --debug" << std::endl;

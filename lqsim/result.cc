@@ -1,7 +1,7 @@
 /* result.cc	-- Greg Franks Fri Jun  5 2009
  *
  * ------------------------------------------------------------------------
- * $Id: result.cc 15312 2022-01-01 14:19:39Z greg $
+ * $Id: result.cc 15353 2022-01-04 22:06:34Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -16,7 +16,7 @@
  * For block statistics.
  */
 
-unsigned number_blocks;
+unsigned long number_blocks;
 
 /*
  * Calculate the t1 and t2 values used for estimating the confidence

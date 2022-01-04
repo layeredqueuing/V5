@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15304 2021-12-31 15:51:38Z greg $
+ * $Id: model.cc 15354 2022-01-04 23:11:41Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -953,9 +953,24 @@ Model::reload()
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
+    LQIO::DOM::Document::OutputFormat output_format = LQIO::DOM::Document::OutputFormat::DEFAULT;
+    switch ( Flags::output_format() ) {
+    case File_Format::JSON:
+	output_format = LQIO::DOM::Document::OutputFormat::JSON;
+	break;
+    case File_Format::PARSEABLE:
+    case File_Format::SRVN:
+	output_format = LQIO::DOM::Document::OutputFormat::PARSEABLE;
+	break;
+    case File_Format::LQX:
+    case File_Format::XML:
+	output_format = LQIO::DOM::Document::OutputFormat::XML;
+	break;
+    }
+    
     unsigned int errorCode;
     if ( !_document->loadResults( directory_name(), _inputFileName,
-				  SolverInterface::Solve::customSuffix, errorCode ) ) {
+				  SolverInterface::Solve::customSuffix, output_format, errorCode ) ) {
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     } else {
 	label();

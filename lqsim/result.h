@@ -1,14 +1,14 @@
 /* -*- c++ -*-
  *
  * ------------------------------------------------------------------------
- * $Id: result.h 15317 2022-01-01 16:44:56Z greg $
+ * $Id: result.h 15353 2022-01-04 22:06:34Z greg $
  * ------------------------------------------------------------------------
  */
 
 #ifndef _RESULT_H
 #define _RESULT_H
 
-extern unsigned number_blocks;	/* For block statistics. 	*/
+extern unsigned long number_blocks;	/* For block statistics. 	*/
 
 
 class result_t {

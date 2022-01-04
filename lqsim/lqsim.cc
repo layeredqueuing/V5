@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 15340 2022-01-03 15:16:34Z greg $
+ * $Id: lqsim.cc 15353 2022-01-04 22:06:34Z greg $
  */
 
 #define STACK_TESTING
@@ -80,14 +80,12 @@ bool verbose_flag 	      = false;	/* Verbose text output?	    	*/
 bool no_execute_flag	      = false;	/* Run simulation if false	*/
 bool timeline_flag	      = false;	/* Generate output for timeline	*/
 bool trace_msgbuf_flag        = false;	/* Observe msg buffer operation	*/
-bool override_print_int       = false;	/* Override input file.		*/
 bool check_stacks	      = false;	/* Enable parasol stack check.	*/
 
 bool debug_interactive_stepping = false;
 
 unsigned max_num_bins	      = 20;
 unsigned long watched_events = 0xffffffff;	/* trace everything	*/
-int print_interval;			/* Value set by input file.	*/
 
 matherr_type matherr_disposition;	/* What to do on FPE error.	*/
 
@@ -137,7 +135,7 @@ static const struct option longopts[] =
     { "version",          no_argument,	     0, 'V' },
     { "no-warnings",      no_argument,	     0, 'w' },
     { "xml",		  no_argument,	     0, 'x' },
-    { "print-interval",   required_argument, 0, 256+'p' },
+    { "print-interval",   optional_argument, 0, 256+'p' },
     { "global-delay",	  required_argument, 0, 256+'z' },
     { "no-stop-on-message-loss", no_argument,0, 256+'o' },
     { "reload-lqx",	  no_argument,       0, 256+'r' },
@@ -322,12 +320,8 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2022-01-03 10:16:34 -0500 (Mon, 03 Jan 2022) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2022-01-04 17:06:34 -0500 (Tue, 04 Jan 2022) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
-
-    /* Stuff set from the input file.				*/
-	
-    print_interval  = 0;
 
     /* Handy defaults.						*/
 	
@@ -483,8 +477,6 @@ main( int argc, char * argv[] )
 		nice_value = strtol( optarg, &value, 10 );
 		if ( nice_value < -20 || 20 <= nice_value || *value != '\0' ) {
 		    throw std::invalid_argument( optarg );
-		} else {
-		    override_print_int = true;
 		}
 		break;
 		
@@ -508,12 +500,13 @@ main( int argc, char * argv[] )
 		break;
 			    
 	    case 256+'p':
-		print_interval = strtol( optarg, &value, 10 );
-		if ( print_interval < 0 || *value != '\0' ) {
-		    throw std::invalid_argument( optarg );
-		} else {
-		    override_print_int = true;
+		if ( optarg != nullptr ) {
+		    Model::__print_interval = strtoul( optarg, &value, 10 );
+		    if ( *value != '\0' ) {
+			throw std::invalid_argument( optarg );
+		    }
 		}
+		Model::__enable_print_interval = true;
 		break;
 				
 	    case 'r':

@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15336 2022-01-03 12:50:08Z greg $
+ * $Id: model.cc 15354 2022-01-04 23:11:41Z greg $
  */
 
 #include "lqsim.h"
@@ -59,6 +59,8 @@ extern "C" {
 
 int Model::__genesis_task_id = 0;
 Model * Model::__model = nullptr;
+bool Model::__enable_print_interval = false;
+unsigned int Model::__print_interval = 0;
 double Model::max_service = 0.0;
 const double Model::simulation_parameters::DEFAULT_TIME = 1e5;
 bool deferred_exception = false;	/* domain error detected during run.. throw after parasol stops. */
@@ -216,8 +218,8 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
 bool
 Model::prepare()
 {
-    if ( !override_print_int ) {
-	print_interval = _document->getModelPrintIntervalValue();
+    if ( __print_interval == 0 ) {
+	__print_interval = _document->getModelPrintIntervalValue();
     }
     Pragma::set( _document->getPragmaList() );
     LQIO::io_vars.severity_level = Pragma::__pragmas->severity_level();
@@ -593,7 +595,7 @@ Model::reload()
 
     unsigned int errorCode = 0;
     if ( !_document->loadResults( directory_name(), _input_file_name,
-				  SolverInterface::Solve::customSuffix, errorCode ) ) {
+				  SolverInterface::Solve::customSuffix, _output_format, errorCode ) ) {
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     } else {
 	return _document->getResultValid();
@@ -697,7 +699,7 @@ Model::run( int task_id )
 
 		insertDOMResults();
 
-		if ( !valid && print_interval > 0 && number_blocks % print_interval == 0 ) {
+		if ( __enable_print_interval && !valid && __print_interval > 0 && number_blocks % __print_interval == 0 ) {
 		    print_intermediate();
 		}
 

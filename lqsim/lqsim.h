@@ -12,7 +12,7 @@
 /*
  * Global vars for setting up simulation.
  *
- * $Id: lqsim.h 15314 2022-01-01 15:11:20Z greg $
+ * $Id: lqsim.h 15353 2022-01-04 22:06:34Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -57,12 +57,10 @@ extern bool verbose_flag;		/* Verbose text output?	    	*/
 extern bool no_execute_flag;		/* Run simulation if false	*/
 extern bool timeline_flag;		/* Generate output for timeline	*/
 extern bool trace_msgbuf_flag;		/* Observe msg buffer operation	*/
-extern bool override_print_int;     	/* Override input file.		*/
 extern bool reload_flag;		/* Reload results from LQX run.	*/
 extern bool restart_flag;		/* Restart and mussing run 	*/
 extern bool quorum_delayed_calls;	/* Quorum reply (BUG_311)	*/
 extern bool check_stacks;		/* Test for stack overrun	*/
-extern int print_interval;		/* Value set by input file.	*/
 
 extern unsigned long watched_events;	/* Observe these events.	*/
 
