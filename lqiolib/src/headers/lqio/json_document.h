@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: json_document.h 15304 2021-12-31 15:51:38Z greg $
+ *  $Id: json_document.h 15362 2022-01-05 14:09:18Z greg $
  *
  *  Created by Greg Franks.
  */
@@ -30,7 +30,7 @@ namespace LQIO {
 	class Processor;
 	class Task;
 
-	class Json_Document : private Common_IO {
+	class JSON_Document : private Common_IO {
 	public:
 	    class ImportEntry;
 	    class ImportActivity;
@@ -42,17 +42,17 @@ namespace LQIO {
 	private:
 	    friend class LQIO::DOM::Document;
 	  
-	    Json_Document( Document& document, const std::string&, bool create_objects=true, bool load_results=false );
+	    JSON_Document( Document& document, const std::string&, bool create_objects=true, bool load_results=false );
 
 	public:
 	    static bool load( Document&, const std::string& filename, unsigned int & errorCode, const bool load_results  );		// Factory.
-	    bool loadResults( Document& document, const std::string& filename, unsigned& errorCode );
+	    static bool loadResults( Document& document, const std::string& filename );
 
 
 	    /* ---------------------------------------------------------------- */
 
 	public:
-	    ~Json_Document();
+	    ~JSON_Document();
 
 	    bool hasResults() const { return _document.hasResults(); }
 
@@ -61,8 +61,8 @@ namespace LQIO {
 	    Document& getDocument() const { return _document; }
 
 	private:
-	    Json_Document( const Json_Document& );
-	    Json_Document& operator=( const Json_Document& );
+	    JSON_Document( const JSON_Document& );
+	    JSON_Document& operator=( const JSON_Document& );
 
 	    bool parse();
 
@@ -142,10 +142,10 @@ namespace LQIO {
 	    typedef void (Task::*task_unsigned_fptr)( unsigned );
 	    typedef void (Task::*task_group_fptr)( Group * );
 	    typedef void (Task::*task_proc_fptr)( Processor * );
-	    typedef void (Json_Document::*set_object_fptr)( DocumentObject*, const picojson::value& );
-	    typedef void (Json_Document::*set_docobj_fptr)( Document*, const picojson::value& );
-	    typedef void (Json_Document::*call_type_fptr)( DocumentObject*, const picojson::value&, Call::Type );
-	    typedef void (Json_Document::*task_fan_in_out_fptr)( DocumentObject*, const picojson::value&, fan_in_out_fptr );
+	    typedef void (JSON_Document::*set_object_fptr)( DocumentObject*, const picojson::value& );
+	    typedef void (JSON_Document::*set_docobj_fptr)( Document*, const picojson::value& );
+	    typedef void (JSON_Document::*call_type_fptr)( DocumentObject*, const picojson::value&, Call::Type );
+	    typedef void (JSON_Document::*task_fan_in_out_fptr)( DocumentObject*, const picojson::value&, fan_in_out_fptr );
 	    typedef DocumentObject& (DocumentObject::*set_result_fptr)( const double );
 	    typedef DocumentObject& (DocumentObject::*set_result_ph_fptr)( unsigned int, const double );
 
@@ -212,7 +212,7 @@ namespace LQIO {
 	    };
 
 	    class Import {
-		friend Json_Document::Json_Document( Document&, const std::string&, bool, bool );
+		friend JSON_Document::JSON_Document( Document&, const std::string&, bool, bool );
 
 	    private:
 		class AttributeManip {
@@ -286,7 +286,7 @@ namespace LQIO {
 		ImportModel() : Import() {}
 		ImportModel( set_object_fptr f ) : Import( f ) {}
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document& document, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document& document, const picojson::value& ) const;
 	    };
 
 	    class ImportGeneral : public Import
@@ -298,7 +298,7 @@ namespace LQIO {
 		ImportGeneral( set_object_fptr f ) : Import( f ) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, Document& document, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Document& document, const picojson::value& ) const;
 	    };
 
 	    class ImportProcessor : public Import
@@ -312,7 +312,7 @@ namespace LQIO {
 		ImportProcessor( set_object_fptr f )	  : Import( f ) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, Processor&, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Processor&, const picojson::value& ) const;
 	    };
 
 	    class ImportGroup : public Import
@@ -326,7 +326,7 @@ namespace LQIO {
                 ImportGroup( set_object_fptr f )        : Import( f ) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, Group&, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Group&, const picojson::value& ) const;
 	    };
 
 	    class ImportTask : public Import
@@ -343,7 +343,7 @@ namespace LQIO {
 		ImportTask( task_fan_in_out_fptr f, fan_in_out_fptr g ) : Import( f ), _g(g) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, Task&, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Task&, const picojson::value& ) const;
 
 		fan_in_out_fptr getGptr() const { return _g; }
 
@@ -366,8 +366,8 @@ namespace LQIO {
 		ImportEntry( call_type_fptr f, Call::Type t ) : Import( f ), _call_type(t) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, bool, Json_Document&, Entry&, const picojson::value& ) const;	/* Entry */
-		void operator()( const std::string& attribute, Json_Document&, Phase&, const picojson::value& ) const;		/* Phase */
+		void operator()( const std::string& attribute, bool, JSON_Document&, Entry&, const picojson::value& ) const;	/* Entry */
+		void operator()( const std::string& attribute, JSON_Document&, Phase&, const picojson::value& ) const;		/* Phase */
 
 		Call::Type getCallType() const { return _call_type; }
 
@@ -386,7 +386,7 @@ namespace LQIO {
 		ImportPhase( call_type_fptr f, Call::Type t ) : Import( f ), _call_type(t) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, Phase&, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Phase&, const picojson::value& ) const;
 
 		Call::Type getCallType() const { return _call_type; }
 
@@ -402,8 +402,8 @@ namespace LQIO {
 		ImportCall( set_object_fptr f )  : Import( f ) {}
 		
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, Call&, const picojson::value& ) const;
-		void operator()( const std::string& attribute, Json_Document&, Entry&, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Call&, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Entry&, const picojson::value& ) const;
 	    };
 		
 	    class ImportTaskActivity : public Import
@@ -413,7 +413,7 @@ namespace LQIO {
                 ImportTaskActivity( set_object_fptr f ) : Import( f ) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, Task *, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Task *, const picojson::value& ) const;
 	    };
 
 	    class ImportActivity : public Import
@@ -427,7 +427,7 @@ namespace LQIO {
 		ImportActivity( call_type_fptr f, Call::Type t ) : Import( f ), _call_type(t) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, Activity&, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Activity&, const picojson::value& ) const;
 
 		Call::Type getCallType() const { return _call_type; }
 
@@ -442,7 +442,7 @@ namespace LQIO {
 		ImportPrecedence( ActivityList::Type t ) : Import(), _precedence_type(t) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, ActivityList&, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, ActivityList&, const picojson::value& ) const;
 
 		ActivityList::ActivityList::Type precedence_type() const { return _precedence_type; }
 
@@ -457,7 +457,7 @@ namespace LQIO {
 		ImportGeneralObservation( int key ) : Import(), _key(key) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, Document& document, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Document& document, const picojson::value& ) const;
 		int getKey() const { return _key; }
 
 	    private:
@@ -478,7 +478,7 @@ namespace LQIO {
 		ImportGeneralResult( dom_type t, const doc_double_fptr f ) : Import(t,f) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, Document& document, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Document& document, const picojson::value& ) const;
 	    };
 
 	    class ImportObservation : public Import
@@ -488,8 +488,8 @@ namespace LQIO {
 		ImportObservation( int key ) : Import(), _key(key) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, DocumentObject&, unsigned int, const picojson::value& ) const;
-		void operator()( const std::string& attribute, Json_Document&, Entry&, unsigned int, Entry&, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, DocumentObject&, unsigned int, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Entry&, unsigned int, Entry&, const picojson::value& ) const;
 		int getKey() const { return _key; }
 
 	    private:
@@ -506,7 +506,7 @@ namespace LQIO {
 		ImportResult( set_result_fptr f, set_result_fptr g=0, set_result_ph_fptr f2=0, set_result_ph_fptr g2=0 ) : Import(f), _g(g), _f2(f2), _g2(g2) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, DocumentObject&, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, DocumentObject&, const picojson::value& ) const;
 
 		set_result_fptr getGptr() const { return _g; }
 		set_result_ph_fptr getF2ptr() const { return _f2; }
@@ -525,32 +525,32 @@ namespace LQIO {
 		ImportHistogram( set_object_fptr f ) : Import(f) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		void operator()( const std::string& attribute, Json_Document&, Histogram&, const picojson::value& ) const;
+		void operator()( const std::string& attribute, JSON_Document&, Histogram&, const picojson::value& ) const;
 	    };
 
-	    static const std::map<const char*,const Json_Document::ImportModel,Json_Document::ImportModel> model_table;
-	    static const std::map<const char*,const Json_Document::ImportGeneral,Json_Document::ImportGeneral> general_table;
-	    static const std::map<const char*,const Json_Document::ImportProcessor,Json_Document::ImportProcessor> processor_table;
-	    static const std::map<const char*,const Json_Document::ImportGroup,Json_Document::ImportGroup> group_table;
-	    static const std::map<const char*,const Json_Document::ImportTask,Json_Document::ImportTask> task_table;
-	    static const std::map<const char*,const Json_Document::ImportEntry,Json_Document::ImportEntry> entry_table;
-	    static const std::map<const char*,const Json_Document::ImportPhase,Json_Document::ImportPhase> phase_table;
-	    static const std::map<const char*,const Json_Document::ImportCall,Json_Document::ImportCall> call_table;
-	    static const std::map<const char*,const Json_Document::ImportTaskActivity,Json_Document::ImportTaskActivity> task_activity_table;
-	    static const std::map<const char*,const Json_Document::ImportActivity,Json_Document::ImportActivity> activity_table;
-	    static const std::map<const char*,const Json_Document::ImportPrecedence,Json_Document::ImportPrecedence> precedence_table;
-	    static const std::map<const char*,const Json_Document::ImportGeneralObservation,Json_Document::ImportGeneralObservation>  general_observation_table;
-	    static const std::map<const char*,const Json_Document::ImportObservation,Json_Document::ImportObservation> observation_table;
-	    static const std::map<const char*,const Json_Document::ImportGeneralResult,Json_Document::ImportGeneralResult> general_result_table;
-	    static const std::map<const char*,const Json_Document::ImportResult,Json_Document::ImportResult> result_table;
-	    static const std::map<const char*,const Json_Document::ImportHistogram,Json_Document::ImportHistogram> histogram_table;
+	    static const std::map<const char*,const ImportModel,JSON_Document::ImportModel> model_table;
+	    static const std::map<const char*,const ImportGeneral,JSON_Document::ImportGeneral> general_table;
+	    static const std::map<const char*,const ImportProcessor,JSON_Document::ImportProcessor> processor_table;
+	    static const std::map<const char*,const ImportGroup,JSON_Document::ImportGroup> group_table;
+	    static const std::map<const char*,const ImportTask,JSON_Document::ImportTask> task_table;
+	    static const std::map<const char*,const ImportEntry,JSON_Document::ImportEntry> entry_table;
+	    static const std::map<const char*,const ImportPhase,JSON_Document::ImportPhase> phase_table;
+	    static const std::map<const char*,const ImportCall,JSON_Document::ImportCall> call_table;
+	    static const std::map<const char*,const ImportTaskActivity,JSON_Document::ImportTaskActivity> task_activity_table;
+	    static const std::map<const char*,const ImportActivity,JSON_Document::ImportActivity> activity_table;
+	    static const std::map<const char*,const ImportPrecedence,JSON_Document::ImportPrecedence> precedence_table;
+	    static const std::map<const char*,const ImportGeneralObservation,JSON_Document::ImportGeneralObservation>  general_observation_table;
+	    static const std::map<const char*,const ImportObservation,JSON_Document::ImportObservation> observation_table;
+	    static const std::map<const char*,const ImportGeneralResult,JSON_Document::ImportGeneralResult> general_result_table;
+	    static const std::map<const char*,const ImportResult,JSON_Document::ImportResult> result_table;
+	    static const std::map<const char*,const ImportHistogram,JSON_Document::ImportHistogram> histogram_table;
 
 	    static const std::map<const ActivityList::Type,const std::string>  precedence_type_table;
 	    static const std::map<const Call::Type,const std::string> call_type_table;
 
 	private:
 	    class Export {
-		friend Json_Document::Json_Document( Document&, const std::string&, bool, bool );
+		friend JSON_Document::JSON_Document( Document&, const std::string&, bool, bool );
 
 		class ResultManip {
 		public:
@@ -683,17 +683,18 @@ namespace LQIO {
 		static ExtvarManip print_value( const ExternalVariable& value ) { return ExtvarManip( &printValue, value ); }
 		static ObservationManip print_value( const Spex::ObservationInfo& observation ) { return ObservationManip( &printValue, observation ); }
 		static ResultManip print_value( const double mean, const LQIO::ConfidenceIntervals& conf_95, const double variance ) { return ResultManip( &printValue, mean, conf_95, variance ); }
-		static StringExtvarManip attribute( const std::string& name, const ExternalVariable& value ) { return StringExtvarManip( &printAttribute, name, value ); }
-		static StringExtvarManip next_attribute( const std::string& name, const ExternalVariable& value ) { return StringExtvarManip( &printNextAttribute, name, value ); }
-		static StringBooleanManip next_attribute( const std::string& name, bool value ) { return StringBooleanManip( &printNextAttribute, name, value ); }
-		static StringDoubleManip next_attribute( const std::string& name, double value ) { return StringDoubleManip( &printNextAttribute, name, value ); }
 		static StringDoubleManip attribute( const std::string& name, double value ) { return StringDoubleManip( &printAttribute, name, value ); }
-		static StringStringManip attribute( const std::string& name, const std::string& value ) { return StringStringManip( &printAttribute, name, value ); }
-		static StringStringManip next_attribute( const std::string& name, const std::string& value ) { return StringStringManip( &printNextAttribute, name, value ); }
-		static StringDoubleManip time_attribute( const std::string& name, const double value ) { return StringDoubleManip( &printTimeAttribute, name, value ); }
+		static StringExtvarManip attribute( const std::string& name, const ExternalVariable& value ) { return StringExtvarManip( &printAttribute, name, value ); }
 		static StringObservationManip attribute( const std::string& name, const Spex::ObservationInfo& value ) { return StringObservationManip( &printAttribute, name, value ); }
 		static StringResultManip attribute( const std::string& name, const double mean, const LQIO::ConfidenceIntervals& conf_95, const double variance ) { return StringResultManip( &printAttribute, name, mean, conf_95, variance ); }
+		static StringStringManip attribute( const std::string& name, const std::string& value ) { return StringStringManip( &printAttribute, name, value ); }
+		static StringBooleanManip next_attribute( const std::string& name, bool value ) { return StringBooleanManip( &printNextAttribute, name, value ); }
+		static StringDoubleManip next_attribute( const std::string& name, double value ) { return StringDoubleManip( &printNextAttribute, name, value ); }
+		static StringLongManip next_attribute( const std::string& name, long value ) { return StringLongManip( &printNextAttribute, name, value ); }
+		static StringExtvarManip next_attribute( const std::string& name, const ExternalVariable& value ) { return StringExtvarManip( &printNextAttribute, name, value ); }
 		static StringResultManip next_attribute( const std::string& name, const double mean, const LQIO::ConfidenceIntervals& conf_95, const double variance ) { return StringResultManip( &printNextAttribute, name, mean, conf_95, variance ); }
+		static StringStringManip next_attribute( const std::string& name, const std::string& value ) { return StringStringManip( &printNextAttribute, name, value ); }
+		static StringDoubleManip time_attribute( const std::string& name, const double value ) { return StringDoubleManip( &printTimeAttribute, name, value ); }
 		static StringManip escape_string( const std::string& string ) { return StringManip( &escapeString, string ); }
 
 	    private:
@@ -709,16 +710,18 @@ namespace LQIO {
 		static std::ostream& printValue( std::ostream&, const ExternalVariable& );
 		static std::ostream& printValue( std::ostream&, const Spex::ObservationInfo& );
 		static std::ostream& printValue( std::ostream&, const double, const LQIO::ConfidenceIntervals& conf_95, const double );
-		static std::ostream& printAttribute( std::ostream&, const std::string&, const std::string& );
 		static std::ostream& printAttribute( std::ostream&, const std::string&, const ExternalVariable& );
+		static std::ostream& printAttribute( std::ostream&, const std::string&, const Spex::ObservationInfo& );
 		static std::ostream& printAttribute( std::ostream&, const std::string&, const double );
 		static std::ostream& printAttribute( std::ostream&, const std::string&, const double, const LQIO::ConfidenceIntervals& conf_95, const double );
-		static std::ostream& printAttribute( std::ostream&, const std::string&, const Spex::ObservationInfo& );
-		static std::ostream& printNextAttribute( std::ostream&, const std::string&, const bool );
+		static std::ostream& printAttribute( std::ostream&, const std::string&, const long );
+		static std::ostream& printAttribute( std::ostream&, const std::string&, const std::string& );
 		static std::ostream& printNextAttribute( std::ostream&, const std::string&, const ExternalVariable& );
+		static std::ostream& printNextAttribute( std::ostream&, const std::string&, const bool );
 		static std::ostream& printNextAttribute( std::ostream&, const std::string&, const double );
-		static std::ostream& printNextAttribute( std::ostream&, const std::string&, const std::string& );
 		static std::ostream& printNextAttribute( std::ostream&, const std::string&, const double, const LQIO::ConfidenceIntervals& conf_95, const double );
+		static std::ostream& printNextAttribute( std::ostream&, const std::string&, const long );
+		static std::ostream& printNextAttribute( std::ostream&, const std::string&, const std::string& );
 		static std::ostream& printTimeAttribute( std::ostream&, const std::string&, const double );
 		static std::ostream& escapeString( std::ostream&, const std::string& );
 

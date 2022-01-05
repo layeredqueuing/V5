@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 15220 2021-12-15 15:18:47Z greg $
+ * $Id: srvn_spex.h 15360 2022-01-05 12:01:00Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -37,7 +37,7 @@ namespace LQIO {
 	class Task;
 	class Activity;
 	class DocumentObject;
-	class Json_Document;
+	class JSON_Document;
 	class Expat_Document;
 	class BCMP_to_LQN;
     }
@@ -107,7 +107,7 @@ namespace LQIO {
 
     class Spex {
 	friend class BCMP::JMVA_Document;
-	friend class DOM::Json_Document;
+	friend class DOM::JSON_Document;
 	friend class DOM::Expat_Document;
 	friend class DOM::BCMP_to_LQN;
 	friend void ::spex_set_program( void * param_arg, void * result_arg, void * convergence_arg );

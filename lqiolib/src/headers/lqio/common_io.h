@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: common_io.h 15299 2021-12-30 21:36:22Z greg $
+ *  $Id: common_io.h 15362 2022-01-05 14:09:18Z greg $
  *
  *  Greg Franks
  */
@@ -95,6 +95,18 @@ namespace LQIO {
 	    const double _value;
 
 	    friend std::ostream& operator<<(std::ostream & os, const StringDoubleManip& m ) { return m._f(os,m._name,m._value); }
+	};
+
+	class StringLongManip {
+	public:
+	StringLongManip( std::ostream& (*f)(std::ostream&, const std::string& name, long value ), const std::string& name, long value ) : _f(f), _name(name), _value(value) {}
+
+	private:
+	    std::ostream& (*_f)( std::ostream&, const std::string&, long );
+	    const std::string& _name;
+	    const long _value;
+
+	    friend std::ostream& operator<<(std::ostream & os, const StringLongManip& m ) { return m._f(os,m._name,m._value); }
 	};
 
 	class Common_IO {

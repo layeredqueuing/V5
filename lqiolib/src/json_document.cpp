@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 15337 2022-01-03 13:59:54Z greg $
+ * $Id: json_document.cpp 15362 2022-01-05 14:09:18Z greg $
  *
  * Read in JSON input files.
  *
@@ -65,8 +65,8 @@ extern "C" {
 
 namespace LQIO {
     namespace DOM {
-	int Json_Document::Import::__indent = 0;
-	int Json_Document::Export::__indent = -1;		/* suppress initial newline */
+	int JSON_Document::Import::__indent = 0;
+	int JSON_Document::Export::__indent = -1;		/* suppress initial newline */
 
 #if !__clang__ && __cplusplus < 201103L
 	static regex_t pattern;
@@ -79,7 +79,7 @@ namespace LQIO {
 	    AddPragma( Document& document ) : _document(document) {}
 	    void operator()( const std::pair<std::string, picojson::value>& o )
 		{
-		    if ( Document::__debugJSON ) std::cerr << Json_Document::Import::indent(0) << "{ \"" << o.first << "\", \"" << o.second.to_str() << "\" }" << std::endl;
+		    if ( Document::__debugJSON ) std::cerr << JSON_Document::Import::indent(0) << "{ \"" << o.first << "\", \"" << o.second.to_str() << "\" }" << std::endl;
 		    _document.addPragma( o.first, o.second.to_str() );
 		}
 	private:
@@ -115,7 +115,7 @@ namespace LQIO {
 namespace LQIO {
     namespace DOM {
 
-	Json_Document::Json_Document( Document& document, const std::string& input_file_name, bool createObjects, bool loadResults )
+	JSON_Document::JSON_Document( Document& document, const std::string& input_file_name, bool createObjects, bool loadResults )
 	    : _dom(), _document( document ), _input_file_name(input_file_name), _createObjects(createObjects), _loadResults(loadResults)
 	{
 	    Import::__indent = 0;
@@ -123,17 +123,17 @@ namespace LQIO {
 	}
 
 
-	Json_Document::~Json_Document()
+	JSON_Document::~JSON_Document()
 	{
 	}
 
 
 	bool
-	Json_Document::load( Document& document, const std::string& input_file_name, unsigned& errorCode, const bool load_results )
+	JSON_Document::load( Document& document, const std::string& input_file_name, unsigned& errorCode, const bool load_results )
 	{
-	    Json_Document json_document( document, input_file_name, true, load_results );
+	    JSON_Document input( document, input_file_name, true, load_results );
 
-	    if ( !json_document.parse() ) {
+	    if ( !input.parse() ) {
 		return false;
 	    } else {
 		const std::string& program_text = document.getLQXProgramText();
@@ -155,10 +155,10 @@ namespace LQIO {
 	 */
 
 	bool
-	Json_Document::loadResults( Document& document, const std::string& filename, unsigned& errorCode )
+	JSON_Document::loadResults( Document& document, const std::string& input_file_name )
 	{
-	    errorCode = 0;
-	    return false;
+	    JSON_Document input( document, input_file_name, false, true );
+	    return input.parse();
 	}
 
 
@@ -169,7 +169,7 @@ namespace LQIO {
 	 */
 
 	bool
-	Json_Document::parse()
+	JSON_Document::parse()
 	{
 	    struct stat statbuf;
 	    bool rc = true;
@@ -243,7 +243,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::input_error( const char * fmt, ... ) const
+	JSON_Document::input_error( const char * fmt, ... ) const
 	{
 	    va_list args;
 	    va_start( args, fmt );
@@ -256,7 +256,7 @@ namespace LQIO {
 	/* ---------------------------------------------------------------- */
 
 	void
-	Json_Document::handleModel()
+	JSON_Document::handleModel()
 	{
 	    if ( !_dom.is<picojson::object>() ) throw std::runtime_error( "JSON object expected" );
 	    const picojson::value::object& obj = _dom.get<picojson::object>();
@@ -281,12 +281,12 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleComment( DocumentObject *, const picojson::value& value )
+	JSON_Document::handleComment( DocumentObject *, const picojson::value& value )
 	{
 	}
 
 	void
-	Json_Document::handleParameters( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleParameters( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		std::string program;
@@ -307,7 +307,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handlePragma( DocumentObject *, const picojson::value& value )
+	JSON_Document::handlePragma( DocumentObject *, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		const picojson::value::array& arr = value.get<picojson::array>();
@@ -323,7 +323,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleGeneral( DocumentObject *, const picojson::value& value )
+	JSON_Document::handleGeneral( DocumentObject *, const picojson::value& value )
 	{
 	    if ( !value.is<picojson::object>() ) {
 		XML::invalid_argument( Xgeneral, value.to_str() );
@@ -345,7 +345,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleGeneralObservation( DocumentObject *, const picojson::value& value )
+	JSON_Document::handleGeneralObservation( DocumentObject *, const picojson::value& value )
 	{
 	    if ( !value.is<picojson::object>() ) {
 		XML::invalid_argument( Xgeneral, value.to_str() );
@@ -363,7 +363,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleProcessor( DocumentObject *, const picojson::value& value )
+	JSON_Document::handleProcessor( DocumentObject *, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		const picojson::value::array& arr = value.get<picojson::array>();
@@ -427,7 +427,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::handleGroup( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleGroup( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		const picojson::value::array& arr = value.get<picojson::array>();
@@ -481,7 +481,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleTask( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleTask( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		const picojson::value::array& arr = value.get<picojson::array>();
@@ -564,7 +564,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::handleFanInOut( DocumentObject * parent, const picojson::value& value, fan_in_out_fptr fan_in_out )
+	JSON_Document::handleFanInOut( DocumentObject * parent, const picojson::value& value, fan_in_out_fptr fan_in_out )
 	{
 	    if ( value.is<picojson::array>() ) {
 		const picojson::value::array& arr = value.get<picojson::array>();
@@ -593,7 +593,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleEntry( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleEntry( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		const picojson::value::array& arr = value.get<picojson::array>();
@@ -690,7 +690,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::handlePhase( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handlePhase( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		const picojson::value::array& arr = value.get<picojson::array>();
@@ -746,7 +746,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleTaskActivity( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleTaskActivity( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		const picojson::value::array& arr = value.get<picojson::array>();
@@ -791,7 +791,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::handleActivity( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleActivity( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		const picojson::value::array& arr = value.get<picojson::array>();
@@ -847,7 +847,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::handlePrecedence( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handlePrecedence( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		const picojson::value::array& arr = value.get<picojson::array>();
@@ -942,7 +942,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::handleCall( DocumentObject * parent, const picojson::value& value, Call::Type call_type )
+	JSON_Document::handleCall( DocumentObject * parent, const picojson::value& value, Call::Type call_type )
 	{
 	    if ( value.is<picojson::object>() ) {
 		const std::map<std::string, picojson::value> obj = value.get<picojson::object>();
@@ -1010,7 +1010,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleReplyList( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleReplyList( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		const picojson::value::array& arr = value.get<picojson::array>();
@@ -1035,7 +1035,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::handleResults( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleResults( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		std::string program;
@@ -1058,7 +1058,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleConvergence( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleConvergence( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() ) {
 		std::string program;
@@ -1083,7 +1083,7 @@ namespace LQIO {
 	/* -------------------------- results ------------------------- */
 
 	void
-	Json_Document::handleGeneralResult( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleGeneralResult( DocumentObject * parent, const picojson::value& value )
 	{
 	    _document.setInstantiated( true );		/* Set true even if we aren't loading results */
 
@@ -1110,7 +1110,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleMvaInfo( Document * document, const picojson::value& value )
+	JSON_Document::handleMvaInfo( Document * document, const picojson::value& value )
 	{
 	    if ( !value.is<picojson::object>() ) {
 		XML::invalid_argument( Xresults, value.to_str() );	/* throws... */
@@ -1131,7 +1131,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleObservation( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleObservation( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( !value.is<picojson::object>() ) {
 		XML::invalid_argument( Xresults, value.to_str() );	/* throws... */
@@ -1163,7 +1163,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::handleResult( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleResult( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( !_loadResults ) return;
 
@@ -1194,7 +1194,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleHistogram( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleHistogram( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() && dynamic_cast<Entry *>(parent) ) {
 		Entry * entry = dynamic_cast<Entry *>(parent);
@@ -1261,7 +1261,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::handleHistogramBin( DocumentObject * parent, unsigned int index, const picojson::value& value )
+	JSON_Document::handleHistogramBin( DocumentObject * parent, unsigned int index, const picojson::value& value )
 	{
 	    Histogram * histogram = dynamic_cast<Histogram *>(parent);
 	    if ( value.is<picojson::object>() && histogram ) {
@@ -1289,7 +1289,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::handleMaxServiceTime( DocumentObject * parent, const picojson::value& value )
+	JSON_Document::handleMaxServiceTime( DocumentObject * parent, const picojson::value& value )
 	{
 	    if ( value.is<picojson::array>() && dynamic_cast<Entry *>(parent) ) {
 		Entry * entry = dynamic_cast<Entry *>(parent);
@@ -1355,7 +1355,7 @@ namespace LQIO {
 	/* Find the results for an element and handle them.  (used when reloading the model). */
 
 	void
-	Json_Document::handleResults( DocumentObject * parent, const std::map<std::string, picojson::value>& obj )
+	JSON_Document::handleResults( DocumentObject * parent, const std::map<std::string, picojson::value>& obj )
 	{
 	    std::map<std::string, picojson::value>::const_iterator attr = obj.find( Xresults );
 	    if ( attr != obj.end() ) {
@@ -1364,7 +1364,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::connectEntry( Entry * entry, Task * task, const std::string& name )
+	JSON_Document::connectEntry( Entry * entry, Task * task, const std::string& name )
 	{
 	    if ( !task ) {
 		LQIO::solution_error( ERR_NO_TASK_FOR_ENTRY, name.c_str() );
@@ -1383,14 +1383,14 @@ namespace LQIO {
 
 
 	/* static */ bool
-	Json_Document::has_attribute( const char * name, const std::map<std::string, picojson::value>& obj )
+	JSON_Document::has_attribute( const char * name, const std::map<std::string, picojson::value>& obj )
 	{
 	    const std::map<std::string, picojson::value>::const_iterator attr = obj.find( name );
 	    return attr != obj.end();
 	}
 
 	/* static */ const std::string
-	Json_Document::get_string_attribute( const char * name, const std::map<std::string, picojson::value>& obj )
+	JSON_Document::get_string_attribute( const char * name, const std::map<std::string, picojson::value>& obj )
 	{
 	    const std::map<std::string, picojson::value>::const_iterator attr = obj.find( name );
 	    if ( attr != obj.end() ) {
@@ -1401,7 +1401,7 @@ namespace LQIO {
 	}
 
 	/* static */ long
-	Json_Document::get_long_attribute( const char * name, const std::map<std::string, picojson::value>& obj )
+	JSON_Document::get_long_attribute( const char * name, const std::map<std::string, picojson::value>& obj )
 	{
 	    const std::map<std::string, picojson::value>::const_iterator attr = obj.find( name );
 	    if ( attr == obj.end() ) {
@@ -1423,7 +1423,7 @@ namespace LQIO {
 	}
 
 	/* static */ double
-	Json_Document::get_double_attribute( const char * name, const std::map<std::string, picojson::value>& obj )
+	JSON_Document::get_double_attribute( const char * name, const std::map<std::string, picojson::value>& obj )
 	{
 	    const std::map<std::string, picojson::value>::const_iterator attr = obj.find( name );
 	    if ( Document::__debugJSON ) Import::beginAttribute( std::cerr, attr->first, attr->second );
@@ -1443,7 +1443,7 @@ namespace LQIO {
 	}
 
 	/* static */ const picojson::value&
-	Json_Document::get_value_attribute( const char * name, const std::map<std::string, picojson::value>& obj )
+	JSON_Document::get_value_attribute( const char * name, const std::map<std::string, picojson::value>& obj )
 	{
 	    const std::map<std::string, picojson::value>::const_iterator attr = obj.find( name );
 	    if ( attr != obj.end() ) {
@@ -1454,7 +1454,7 @@ namespace LQIO {
 	}
 
 	/* static */  scheduling_type
-	Json_Document::get_scheduling_attribute( const std::map<std::string, picojson::value>& obj, const scheduling_type default_value )
+	JSON_Document::get_scheduling_attribute( const std::map<std::string, picojson::value>& obj, const scheduling_type default_value )
 	{
 	    const std::map<std::string, picojson::value>::const_iterator attr = obj.find( Xscheduling );
 	    if ( attr != obj.end() ) {
@@ -1470,7 +1470,7 @@ namespace LQIO {
 	}
 
 	/* static */ unsigned int
-	Json_Document::get_unsigned_int( const picojson::value& value )
+	JSON_Document::get_unsigned_int( const picojson::value& value )
 	{
 	    char * end_ptr = 0;
 	    double i = -1;
@@ -1486,7 +1486,7 @@ namespace LQIO {
 	}
 
 	/* static */ unsigned int
-	Json_Document::get_opt_phase( const picojson::value::object& obj )
+	JSON_Document::get_opt_phase( const picojson::value::object& obj )
 	{
 	    const std::map<std::string, picojson::value>::const_iterator phase = obj.find( Xphase );
 	    if ( phase != obj.end() ) {
@@ -1509,7 +1509,7 @@ namespace LQIO {
 	}
 
 	ExternalVariable *
-	Json_Document::get_external_variable( const picojson::value& value ) const
+	JSON_Document::get_external_variable( const picojson::value& value ) const
 	{
 #if __clang__ || __cplusplus >= 201103L
 	    static const std::regex e( "^\\$[_$A-Za-z0-9]+$" );
@@ -1538,7 +1538,7 @@ namespace LQIO {
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Import::printIndent( std::ostream& output, int i )
+	JSON_Document::Import::printIndent( std::ostream& output, int i )
 	{
 	    if ( i < 0 ) {
 		__indent += i;
@@ -1554,7 +1554,7 @@ namespace LQIO {
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Import::beginAttribute( std::ostream& output, const std::string& attribute, const picojson::value& value )
+	JSON_Document::Import::beginAttribute( std::ostream& output, const std::string& attribute, const picojson::value& value )
 	{
 	    if ( value.is<picojson::object>() ) {
 		std::cerr << indent( +1 ) << attribute << ": {" << std::endl;
@@ -1567,7 +1567,7 @@ namespace LQIO {
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Import::beginAttribute( std::ostream& output, const picojson::value& value )
+	JSON_Document::Import::beginAttribute( std::ostream& output, const picojson::value& value )
 	{
 	    if ( value.is<picojson::object>() ) {
 		std::cerr << indent( +1 ) << "{" << std::endl;
@@ -1580,13 +1580,13 @@ namespace LQIO {
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Import::endAttribute( std::ostream& output, const std::string& attribute, const picojson::value& value )
+	JSON_Document::Import::endAttribute( std::ostream& output, const std::string& attribute, const picojson::value& value )
 	{
 	    return endAttribute( output, value );
 
 	}
 	/* static */ std::ostream&
-	Json_Document::Import::endAttribute( std::ostream& output, const picojson::value& value )
+	JSON_Document::Import::endAttribute( std::ostream& output, const picojson::value& value )
 	{
 	    if ( value.is<picojson::object>() ) {
 		std::cerr << indent( -1 ) << "}" << std::endl;
@@ -1602,7 +1602,7 @@ namespace LQIO {
 	 */
 
 	void
-	Json_Document::ImportModel::operator()( const std::string& attribute, Json_Document& document, const picojson::value& value ) const
+	JSON_Document::ImportModel::operator()( const std::string& attribute, JSON_Document& document, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 
@@ -1631,7 +1631,7 @@ namespace LQIO {
 	 */
 
 	void
-	Json_Document::ImportGeneral::operator()( const std::string& attribute, Json_Document& input, Document& document, const picojson::value& value ) const
+	JSON_Document::ImportGeneral::operator()( const std::string& attribute, JSON_Document& input, Document& document, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 
@@ -1689,7 +1689,7 @@ namespace LQIO {
 	 */
 
 	void
-	Json_Document::ImportProcessor::operator()( const std::string& attribute, Json_Document& input, Processor& processor, const picojson::value& value ) const
+	JSON_Document::ImportProcessor::operator()( const std::string& attribute, JSON_Document& input, Processor& processor, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 
@@ -1746,7 +1746,7 @@ namespace LQIO {
 	 */
 
 	void
-	Json_Document::ImportGroup::operator()( const std::string& attribute, Json_Document& input, Group& group, const picojson::value& value ) const
+	JSON_Document::ImportGroup::operator()( const std::string& attribute, JSON_Document& input, Group& group, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 	    switch ( getType() ) {
@@ -1808,7 +1808,7 @@ namespace LQIO {
 	 */
 
 	void
-	Json_Document::ImportTask::operator()( const std::string& attribute, Json_Document& input, Task& task, const picojson::value& value ) const
+	JSON_Document::ImportTask::operator()( const std::string& attribute, JSON_Document& input, Task& task, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 
@@ -1889,7 +1889,7 @@ namespace LQIO {
 	 */
 
 	void
-	Json_Document::ImportEntry::operator()( const std::string& attribute, bool is_array, Json_Document& input, Entry& entry, const picojson::value& value ) const
+	JSON_Document::ImportEntry::operator()( const std::string& attribute, bool is_array, JSON_Document& input, Entry& entry, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) {
 		if ( is_array ) {
@@ -1955,7 +1955,7 @@ namespace LQIO {
 	 */
 
 	void
-	Json_Document::ImportEntry::operator()( const std::string& attribute, Json_Document& input, Phase& phase, const picojson::value& value ) const
+	JSON_Document::ImportEntry::operator()( const std::string& attribute, JSON_Document& input, Phase& phase, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) Import::beginAttribute( std::cerr, value );
 
@@ -1990,7 +1990,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::ImportPhase::operator()( const std::string& attribute, Json_Document& input, Phase& phase, const picojson::value& value ) const
+	JSON_Document::ImportPhase::operator()( const std::string& attribute, JSON_Document& input, Phase& phase, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 
@@ -2035,7 +2035,7 @@ namespace LQIO {
 	 */
 
 	void
-	Json_Document::ImportCall::operator()( const std::string& attribute, Json_Document& input, Call& call, const picojson::value& value ) const
+	JSON_Document::ImportCall::operator()( const std::string& attribute, JSON_Document& input, Call& call, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) Import::beginAttribute( std::cerr, value );
 
@@ -2064,7 +2064,7 @@ namespace LQIO {
 	 */
 
 	void
-	Json_Document::ImportCall::operator()( const std::string& attribute, Json_Document& input, Entry& entry, const picojson::value& value ) const
+	JSON_Document::ImportCall::operator()( const std::string& attribute, JSON_Document& input, Entry& entry, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 	    switch ( getType() ) {
@@ -2084,7 +2084,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ImportTaskActivity::operator()( const std::string& attribute, Json_Document& input, Task *task, const picojson::value& value ) const
+	JSON_Document::ImportTaskActivity::operator()( const std::string& attribute, JSON_Document& input, Task *task, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 	    switch ( getType() ) {
@@ -2104,7 +2104,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ImportActivity::operator()( const std::string& attribute, Json_Document& input, Activity& activity, const picojson::value& value ) const
+	JSON_Document::ImportActivity::operator()( const std::string& attribute, JSON_Document& input, Activity& activity, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 
@@ -2145,7 +2145,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::ImportPrecedence::operator()( const std::string& attribute, Json_Document& input, ActivityList& list, const picojson::value& value ) const
+	JSON_Document::ImportPrecedence::operator()( const std::string& attribute, JSON_Document& input, ActivityList& list, const picojson::value& value ) const
 	{
 	    Activity * activity = 0;
 	    const Task * task = list.getTask();
@@ -2196,7 +2196,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::ImportGeneralObservation::operator()( const std::string& attribute, Json_Document& input, LQIO::DOM::Document& document, const picojson::value& value ) const
+	JSON_Document::ImportGeneralObservation::operator()( const std::string& attribute, JSON_Document& input, LQIO::DOM::Document& document, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 	    const int key = getKey();
@@ -2216,7 +2216,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ImportObservation::operator()( const std::string& attribute, Json_Document& input, DocumentObject& object, unsigned int phase, const picojson::value& value ) const
+	JSON_Document::ImportObservation::operator()( const std::string& attribute, JSON_Document& input, DocumentObject& object, unsigned int phase, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 
@@ -2253,7 +2253,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ImportObservation::addObservation( DocumentObject * object, unsigned int p, int key, const char * var1, unsigned int conf, const char * var2 ) const
+	JSON_Document::ImportObservation::addObservation( DocumentObject * object, unsigned int p, int key, const char * var1, unsigned int conf, const char * var2 ) const
 	{
 	    if ( dynamic_cast<Processor *>(object)
 		 || dynamic_cast<Group *>(object)
@@ -2295,7 +2295,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ImportGeneralResult::operator()( const std::string& attribute, Json_Document& input, Document& document, const picojson::value& value ) const
+	JSON_Document::ImportGeneralResult::operator()( const std::string& attribute, JSON_Document& input, Document& document, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 	    unsigned long hrs	= 0;
@@ -2322,6 +2322,14 @@ namespace LQIO {
 	    case dom_type::DOUBLE:
 		if ( value.is<double>() ) {
 		    (document.*getFptr().dd)( value.get<double>() );
+		} else {
+		    XML::invalid_argument( attribute, value.to_str() );
+		}
+		break;
+
+	    case dom_type::LONG:
+		if ( value.is<double>() ) {
+		    (document.*getFptr().dl)( static_cast<long>(value.get<double>()) );
 		} else {
 		    XML::invalid_argument( attribute, value.to_str() );
 		}
@@ -2362,7 +2370,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ImportResult::operator()( const std::string& attribute, Json_Document& input, DocumentObject& dom_obj, const picojson::value& value ) const
+	JSON_Document::ImportResult::operator()( const std::string& attribute, JSON_Document& input, DocumentObject& dom_obj, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 	    if ( value.is<double>() && getType() == dom_type::DOUBLE ) {
@@ -2407,7 +2415,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::ImportHistogram::operator()( const std::string& attribute, Json_Document& input, Histogram& hist, const picojson::value& value ) const
+	JSON_Document::ImportHistogram::operator()( const std::string& attribute, JSON_Document& input, Histogram& hist, const picojson::value& value ) const
 	{
 	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
 	    switch ( getType() ) {
@@ -2438,7 +2446,7 @@ namespace LQIO {
 
 	/* Export the DOM. */
 	void
-	Json_Document::serializeDOM( std::ostream& output ) const
+	JSON_Document::serializeDOM( std::ostream& output ) const
 	{
 	    if ( _document.hasConfidenceIntervals() ) {
 		const_cast<ConfidenceIntervals *>(&_conf_95)->set_blocks( _document.getResultNumberOfBlocks() );
@@ -2449,7 +2457,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::Model::print( const Document& document ) const
+	JSON_Document::Model::print( const Document& document ) const
 	{
 	    _output << begin_object();
 	    _output << begin_array( Xcomment )
@@ -2495,21 +2503,21 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ExportPragma::operator()( const std::pair<std::string,std::string>& pragma ) const
+	JSON_Document::ExportPragma::operator()( const std::pair<std::string,std::string>& pragma ) const
 	{
 	    _output << separator() << indent() << "{ \"" << pragma.first << "\": \"" << pragma.second << "\" }";
 	}
 
 
 	void
-	Json_Document::ExportParameters::operator()( const std::pair<std::string,LQX::SyntaxTreeNode *>& var ) const
+	JSON_Document::ExportParameters::operator()( const std::pair<std::string,LQX::SyntaxTreeNode *>& var ) const
 	{
 	    _output << separator() << indent() << "\"" << Spex::print_input_variable( var ) << "\"";
 	}
 
 
 	void
-	Json_Document::ExportGeneral::print( const Document& document ) const
+	JSON_Document::ExportGeneral::print( const Document& document ) const
 	{
 	    _output << begin_object( Xgeneral );
 	    const std::string& comment = document.getModelCommentString();
@@ -2545,12 +2553,12 @@ namespace LQIO {
 			<< time_attribute( Xsystem_cpu_time, document.getResultSysTime() )
 			<< time_attribute( Xelapsed_time, document.getResultElapsedTime() );
 		if ( document.getResultMaxRSS() > 0 ) {
-		    _output << next_attribute( Xmax_rss, static_cast<double>(document.getResultMaxRSS()) );
+		    _output << next_attribute( Xmax_rss, static_cast<long>(document.getResultMaxRSS()) );
 		}
 		const MVAStatistics& mva_info = document.getResultMVAStatistics();
 		if ( mva_info.getNumberOfSubmodels() > 0 ) {
 		    _output << next_begin_object( Xmva_info )
-			    << attribute( Xsubmodels, mva_info.getNumberOfSubmodels() )
+			    << attribute( Xsubmodels, static_cast<long>(mva_info.getNumberOfSubmodels()) )
 			    << next_attribute( Xcore, static_cast<double>(mva_info.getNumberOfCore() ) )
 			    << next_attribute( Xstep, mva_info.getNumberOfStep() )
 			    << next_attribute( Xstep_squared, mva_info.getNumberOfStepSquared() )
@@ -2569,7 +2577,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::ExportProcessor::print( const Processor& processor ) const
+	JSON_Document::ExportProcessor::print( const Processor& processor ) const
 	{
 	    if ( processor.getTaskList().size() == 0 ) return;
 
@@ -2635,7 +2643,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ExportGroup::print(Group const& group ) const
+	JSON_Document::ExportGroup::print(Group const& group ) const
 	{
 	    if ( group.getTaskList().size() == 0 ) return;
 
@@ -2673,7 +2681,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::ExportTask::print(Task const& task ) const
+	JSON_Document::ExportTask::print(Task const& task ) const
 	{
 	    _output << separator() << begin_object()
 		    << attribute( Xname, task.getName() );
@@ -2681,7 +2689,7 @@ namespace LQIO {
 		_output << next_attribute( Xcomment,  task.getComment() );
 	    }
 	    if ( task.isInfinite() ) {
-		_output << next_attribute( Xscheduling, scheduling_label[SCHEDULE_DELAY].XML );		   // see lqio/labels.c
+		_output << next_attribute( Xscheduling, std::string( scheduling_label[SCHEDULE_DELAY].XML ) );		   // see lqio/labels.c
 	    } else {
 		_output << next_attribute( Xscheduling, std::string( scheduling_label[task.getSchedulingType()].XML ) );	// see lqio/labels.c
 		if ( task.isMultiserver() ) {
@@ -2740,7 +2748,7 @@ namespace LQIO {
 			for ( unsigned p = 1; p <= n_phases; ++p ) {
 			    if ( p != 1 ) _output << ", ";
 			    _output << begin_object()
-				    << attribute( Xphase, p ) << ",";
+				    << attribute( Xphase, static_cast<long>( p )) << ",";
 			    std::for_each( obs[p].begin(), obs[p].end(), ExportObservation( _output, _conf_95 ) );
 			    _output << end_object();
 			}
@@ -2812,7 +2820,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ExportEntry::print(Entry const& entry ) const
+	JSON_Document::ExportEntry::print(Entry const& entry ) const
 	{
 	    _output << separator() << begin_object()
 		    << attribute( Xname, entry.getName() );
@@ -2905,7 +2913,7 @@ namespace LQIO {
 	 */
 
 	void
-	Json_Document::ExportEntry::printPhase( const Entry& entry, const char * name, extvar_fptr get ) const
+	JSON_Document::ExportEntry::printPhase( const Entry& entry, const char * name, extvar_fptr get ) const
 	{
 	    _output << next_begin_array( name, true );
 	    const unsigned int n_phases = entry.getMaximumPhase();
@@ -2929,7 +2937,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ExportEntry::printPhase( const Entry& entry, const char * name, phtype_fptr get ) const
+	JSON_Document::ExportEntry::printPhase( const Entry& entry, const char * name, phtype_fptr get ) const
 	{
 	    _output << next_begin_array( name, true );
 	    const unsigned int n_phases = entry.getMaximumPhase();
@@ -2949,7 +2957,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ExportEntry::printPhase( const Entry& entry, const char * name, const ConfidenceIntervals * conf, double_phase_fptr get ) const
+	JSON_Document::ExportEntry::printPhase( const Entry& entry, const char * name, const ConfidenceIntervals * conf, double_phase_fptr get ) const
 	{
 	    _output << next_begin_array( name, true );
 	    const unsigned int n_phases = entry.getMaximumPhase();
@@ -2969,7 +2977,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ExportEntry::printPhase( const Entry& entry, const char * name, double_entry_fptr get_mean, const ConfidenceIntervals& conf_95, double_entry_fptr get_variance ) const
+	JSON_Document::ExportEntry::printPhase( const Entry& entry, const char * name, double_entry_fptr get_mean, const ConfidenceIntervals& conf_95, double_entry_fptr get_variance ) const
 	{
 	    _output << next_begin_array( name, conf_95.is_set() );
 	    const unsigned int n_phases = entry.isStandardEntry() ? entry.getMaximumPhase() : 2;
@@ -2990,7 +2998,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ExportEntry::printPhase( const Entry& entry, const char * name, const ExportHistogram& f ) const
+	JSON_Document::ExportEntry::printPhase( const Entry& entry, const char * name, const ExportHistogram& f ) const
 	{
 	    for ( unsigned int p = 1; p <= entry.getMaximumPhase(); ++p ) {
 		if ( p > 1 ) {
@@ -3012,7 +3020,7 @@ namespace LQIO {
 	 */
 
 	std::ostream&
-	Json_Document::ExportEntry::printEntryPhaseResults( std::ostream& output, const Entry & entry, const char * attribute, const double_entry_fptr mean, const LQIO::ConfidenceIntervals& conf_95, const double_entry_fptr variance	 )
+	JSON_Document::ExportEntry::printEntryPhaseResults( std::ostream& output, const Entry & entry, const char * attribute, const double_entry_fptr mean, const LQIO::ConfidenceIntervals& conf_95, const double_entry_fptr variance	 )
 	{
 	    output << next_begin_array( attribute, !conf_95.is_set() );
 	    for ( unsigned int p = 1; p <= entry.getResultPhaseCount(); ++p ) {
@@ -3024,12 +3032,12 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ExportPhase::print( unsigned int p, const Phase& phase ) const
+	JSON_Document::ExportPhase::print( unsigned int p, const Phase& phase ) const
 	{
 	    if ( !phase.isPresent() ) return;
 
 	    _output << separator() << begin_object()
-		    << attribute( Xphase, p );
+		    << attribute( Xphase, static_cast<long>( p ));
 	    ExportPhaseActivity::printParameters( phase );
 	    ExportPhaseActivity::printResults( phase );
 	    _output << end_object();
@@ -3040,7 +3048,7 @@ namespace LQIO {
 	 */
 
 	void
-	Json_Document::ExportCall::operator()( const Call* call ) const
+	JSON_Document::ExportCall::operator()( const Call* call ) const
 	{
 	    if ( call->getCallType() != _type ) return;
 
@@ -3076,7 +3084,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ExportCall::print( const char * attr, const Call& call, double_call_fptr mean, double_call_fptr variance ) const
+	JSON_Document::ExportCall::print( const char * attr, const Call& call, double_call_fptr mean, double_call_fptr variance ) const
 	{
 	    if ( _conf_95.is_set() ) {
 		_output << begin_object( attr )
@@ -3090,7 +3098,7 @@ namespace LQIO {
 
 
 	void
-	Json_Document::ExportPhaseActivity::printParameters( const Phase& phase ) const
+	JSON_Document::ExportPhaseActivity::printParameters( const Phase& phase ) const
 	{
 	    if ( phase.getComment().size() > 0 ) {
 		_output << next_attribute( Xcomment,  phase.getComment() );
@@ -3125,7 +3133,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ExportPhaseActivity::printResults( const Phase& phase ) const
+	JSON_Document::ExportPhaseActivity::printResults( const Phase& phase ) const
 	{
 /*+ JSON-SPEX */
 	    if ( !phase.getDocument()->instantiated() ) {
@@ -3162,7 +3170,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ExportActivity::print( const Activity& activity ) const
+	JSON_Document::ExportActivity::print( const Activity& activity ) const
 	{
 	    _output << separator() << begin_object()
 		    << attribute( Xname, activity.getName() );
@@ -3185,7 +3193,7 @@ namespace LQIO {
 	}
 
 	void
-	Json_Document::ExportPrecedence::print( const ActivityList& join ) const
+	JSON_Document::ExportPrecedence::print( const ActivityList& join ) const
 	{
 	    /* Print the Join (pre) list here... */
 
@@ -3255,20 +3263,20 @@ namespace LQIO {
 
 
 	void
-	Json_Document::ExportInputVariables::operator()( const Spex::var_name_and_expr& var ) const
+	JSON_Document::ExportInputVariables::operator()( const Spex::var_name_and_expr& var ) const
 	{
 	    _output << separator() << indent() << "\"" << Spex::print_input_variable( var ) << "\"";
 	}
 
 	void
-	Json_Document::ExportResults::operator()( const Spex::var_name_and_expr& var ) const
+	JSON_Document::ExportResults::operator()( const Spex::var_name_and_expr& var ) const
 	{
 	    _output << separator() << indent() << "\"" << Spex::print_result_variable( var ) << "\"";
 	}
 
 
 	void
-	Json_Document::ExportHistogram::print( const Histogram& histogram ) const
+	JSON_Document::ExportHistogram::print( const Histogram& histogram ) const
 	{
 	    _output << separator()
 		    << begin_object()
@@ -3298,13 +3306,13 @@ namespace LQIO {
 
 
 	void
-	Json_Document::ExportFanInOut::print( const std::pair<const std::string, const ExternalVariable *>& fan_in_out ) const
+	JSON_Document::ExportFanInOut::print( const std::pair<const std::string, const ExternalVariable *>& fan_in_out ) const
 	{
 	    _output << separator() << indent() << "{ \"" << fan_in_out.first << "\": " << print_value( *fan_in_out.second ) << " }";
 	}
 
 	void
-	Json_Document::ExportObservation::print( const Spex::ObservationInfo& obs ) const
+	JSON_Document::ExportObservation::print( const Spex::ObservationInfo& obs ) const
 	{
 	    _output << separator() << indent() << "\"" << __key_lqx_function_map.at(obs.getKey()) << "\": " << print_value( obs );		/* Should only be one for a processors */
 	}
@@ -3314,13 +3322,13 @@ namespace LQIO {
 namespace LQIO {
     namespace DOM {
 	bool
-	Json_Document::has_activities( const std::pair<std::string,Task *>& tp )
+	JSON_Document::has_activities( const std::pair<std::string,Task *>& tp )
 	{
 	    return tp.second->getActivities().size() > 0;
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printIndent( std::ostream& output )
+	JSON_Document::Export::printIndent( std::ostream& output )
 	{
 	    if ( __indent < 0 ) {
 		__indent = 0;
@@ -3334,7 +3342,7 @@ namespace LQIO {
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printSeparator( std::ostream& output, const Export& self )
+	JSON_Document::Export::printSeparator( std::ostream& output, const Export& self )
 	{
 	    if ( self._count > 0 ) {
 		output << ",";
@@ -3345,7 +3353,7 @@ namespace LQIO {
 
 
 	/* static */ std::ostream&
-	Json_Document::Export::printValue( std::ostream& output, const ExternalVariable& value )
+	JSON_Document::Export::printValue( std::ostream& output, const ExternalVariable& value )
 	{
 	    std::map<const LQIO::DOM::ExternalVariable *, const LQX::SyntaxTreeNode *>::const_iterator vp;
 	    if ( !value.wasSet() ) {
@@ -3366,7 +3374,7 @@ namespace LQIO {
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printValue( std::ostream& output, const Spex::ObservationInfo& obs )
+	JSON_Document::Export::printValue( std::ostream& output, const Spex::ObservationInfo& obs )
 	{
 	    if ( obs.getConfLevel() == 95 ) {
 		output << begin_object()
@@ -3380,7 +3388,7 @@ namespace LQIO {
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printValue( std::ostream& output, const double mean, const LQIO::ConfidenceIntervals& conf_95, const double variance )
+	JSON_Document::Export::printValue( std::ostream& output, const double mean, const LQIO::ConfidenceIntervals& conf_95, const double variance )
 	{
 	    if ( conf_95.is_set() ) {
 		output << begin_object()
@@ -3394,28 +3402,35 @@ namespace LQIO {
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printAttribute( std::ostream& output, const std::string& name, const double value )
+	JSON_Document::Export::printAttribute( std::ostream& output, const std::string& name, const double value )
 	{
 	    output << indent() << "\"" << name << "\": " << value;
 	    return output;
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printAttribute( std::ostream& output, const std::string& name, const ExternalVariable& value )
+	JSON_Document::Export::printAttribute( std::ostream& output, const std::string& name, const ExternalVariable& value )
 	{
 	    output << indent() << "\"" << name << "\": " << print_value( value );
 	    return output;
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printAttribute( std::ostream& output, const std::string& name, const std::string& value )
+	JSON_Document::Export::printAttribute( std::ostream& output, const std::string& name, const long value )
+	{
+	    output << indent() << "\"" << name << "\": " << value;
+	    return output;
+	}
+
+	/* static */ std::ostream&
+	JSON_Document::Export::printAttribute( std::ostream& output, const std::string& name, const std::string& value )
 	{
 	    output << indent() << "\"" << name << "\": \"" << escape_string( value ) << "\"";
 	    return output;
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printAttribute( std::ostream& output, const std::string& name, const double mean, const LQIO::ConfidenceIntervals& conf_95, const double variance )
+	JSON_Document::Export::printAttribute( std::ostream& output, const std::string& name, const double mean, const LQIO::ConfidenceIntervals& conf_95, const double variance )
 	{
 	    if ( conf_95.is_set() ) {
 		output << begin_object( name )
@@ -3429,49 +3444,56 @@ namespace LQIO {
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printAttribute( std::ostream& output, const std::string& name, const Spex::ObservationInfo& obs )
+	JSON_Document::Export::printAttribute( std::ostream& output, const std::string& name, const Spex::ObservationInfo& obs )
 	{
 	    output << indent() << "\"" << name << "\":" << print_value( obs );
 	    return output;
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printNextAttribute(std::ostream& output, const std::string& name, bool value )
+	JSON_Document::Export::printNextAttribute(std::ostream& output, const std::string& name, bool value )
 	{
 	    output << "," << indent() << "\"" << name << "\": " << (value ? "true" : "false");
 	    return output;
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printNextAttribute( std::ostream& output, const std::string& name, const ExternalVariable& value )
+	JSON_Document::Export::printNextAttribute( std::ostream& output, const std::string& name, const double value )
 	{
 	    output << ",";
 	    return printAttribute( output, name, value );
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printNextAttribute( std::ostream& output, const std::string& name, const double value )
+	JSON_Document::Export::printNextAttribute( std::ostream& output, const std::string& name, const ExternalVariable& value )
 	{
 	    output << ",";
 	    return printAttribute( output, name, value );
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printNextAttribute( std::ostream& output, const std::string& name, const std::string& value )
+	JSON_Document::Export::printNextAttribute( std::ostream& output, const std::string& name, const long value )
 	{
 	    output << ",";
 	    return printAttribute( output, name, value );
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printNextAttribute( std::ostream& output, const std::string& name, const double mean, const LQIO::ConfidenceIntervals& conf_95, const double variance )
+	JSON_Document::Export::printNextAttribute( std::ostream& output, const std::string& name, const std::string& value )
+	{
+	    output << ",";
+	    return printAttribute( output, name, value );
+	}
+
+	/* static */ std::ostream&
+	JSON_Document::Export::printNextAttribute( std::ostream& output, const std::string& name, const double mean, const LQIO::ConfidenceIntervals& conf_95, const double variance )
 	{
 	    output << ",";
 	    return printAttribute( output, name, mean, conf_95, variance );
 	}
 
 	/* static */ std::ostream&
-	Json_Document::Export::printTimeAttribute( std::ostream& output, const std::string& name, const double time )
+	JSON_Document::Export::printTimeAttribute( std::ostream& output, const std::string& name, const double time )
 	{
 	    output << "," << indent() << "\"" << name << "\": \"" << CPUTime::print( time ) <<	"\"";
 	    return output;
@@ -3479,7 +3501,7 @@ namespace LQIO {
 
 	/* static */
 	std::ostream&
-	Json_Document::Export::escapeString( std::ostream& output, const std::string& s )
+	JSON_Document::Export::escapeString( std::ostream& output, const std::string& s )
 	{
 	    for ( std::string::const_iterator p = s.begin(); p != s.end() ; ++p ) {	/* Handle special characters in strings */
 		switch ( *p ) {
@@ -3504,7 +3526,7 @@ namespace LQIO {
 	}
 
 	/* static */
-	std::ostream& Json_Document::Export::printArrayBegin( std::ostream& output, const std::string& name, bool inline_array )
+	std::ostream& JSON_Document::Export::printArrayBegin( std::ostream& output, const std::string& name, bool inline_array )
 	{
 	    output << indent() << "\"" << name << "\": [";
 	    if ( inline_array ) {
@@ -3516,14 +3538,14 @@ namespace LQIO {
 	}
 
 	/* static */
-	std::ostream& Json_Document::Export::printNextArrayBegin( std::ostream& output, const std::string& name, bool inline_array )
+	std::ostream& JSON_Document::Export::printNextArrayBegin( std::ostream& output, const std::string& name, bool inline_array )
 	{
 	    output << ",";
 	    return printArrayBegin( output, name, inline_array );
 	}
 
 	/* static */
-	std::ostream& Json_Document::Export::printArrayEnd( std::ostream& output, bool inline_array )
+	std::ostream& JSON_Document::Export::printArrayEnd( std::ostream& output, bool inline_array )
 	{
 	    if ( inline_array ) {
 		output << " ";
@@ -3538,7 +3560,7 @@ namespace LQIO {
 	}
 
 	/* static */
-	std::ostream& Json_Document::Export::printObjectBegin( std::ostream& output )
+	std::ostream& JSON_Document::Export::printObjectBegin( std::ostream& output )
 	{
 	    output << indent() << "{";
 	    __indent += 1;
@@ -3546,7 +3568,7 @@ namespace LQIO {
 	}
 
 	/* static */
-	std::ostream& Json_Document::Export::printObjectBegin( std::ostream& output, const std::string& name )
+	std::ostream& JSON_Document::Export::printObjectBegin( std::ostream& output, const std::string& name )
 	{
 	    output << indent() << "\"" << name << "\": {";
 	    __indent += 1;
@@ -3554,14 +3576,14 @@ namespace LQIO {
 	}
 
 	/* static */
-	std::ostream& Json_Document::Export::printNextObjectBegin( std::ostream& output, const std::string& name )
+	std::ostream& JSON_Document::Export::printNextObjectBegin( std::ostream& output, const std::string& name )
 	{
 	    output << ",";
 	    return printObjectBegin( output, name );
 	}
 
 	/* static */
-	std::ostream& Json_Document::Export::printObjectEnd( std::ostream& output )
+	std::ostream& JSON_Document::Export::printObjectEnd( std::ostream& output )
 	{
 	    if ( __indent > 0 ) {
 		__indent -= 1;
@@ -3583,129 +3605,129 @@ namespace LQIO {
 	/* Data.							    */
 	/* ---------------------------------------------------------------- */
 
-	const char * Json_Document::Xactivity		= "activity";
-	const char * Json_Document::Xand_fork		= "and-fork";
-	const char * Json_Document::Xand_join		= "and-join";
-	const char * Json_Document::Xasynch_call	= "asynch-call";
-	const char * Json_Document::Xbegin		= "begin";
-	const char * Json_Document::Xbottleneck_strength= "bottleneck-strength";
-	const char * Json_Document::Xcap		= "cap";
-	const char * Json_Document::Xcoeff_of_var_sq	= "host-demand-cvsq";
-	const char * Json_Document::Xcomment		= "comment";
-	const char * Json_Document::Xconf_95		= "conf-95";
-	const char * Json_Document::Xconf_99		= "conf-99";
-	const char * Json_Document::Xconvergence	= "convergence";
-	const char * Json_Document::Xconv_val		= "conv-val";
-	const char * Json_Document::Xconv_val_result	= "convergence-value";
-	const char * Json_Document::Xcore		= "core";
-	const char * Json_Document::Xdestination	= "destination";
-	const char * Json_Document::Xdeterministic	= "determinstic-calls";
-	const char * Json_Document::Xdrop_probability	= "drop-probability";
-	const char * Json_Document::Xelapsed_time	= "elapsed-time";
-	const char * Json_Document::Xend		= "end";
-	const char * Json_Document::Xentry		= "entry";
-	const char * Json_Document::Xfanin		= "fan-in";
-	const char * Json_Document::Xfanout		= "fan-out";
-	const char * Json_Document::Xfaults		= "faults";
-	const char * Json_Document::Xforwarding		= "forwarding";
-	const char * Json_Document::Xgeneral		= "general";
-	const char * Json_Document::Xgroup		= "group";
-	const char * Json_Document::Xhistogram		= "histogram";
-	const char * Json_Document::Xhistogram_bin	= "bin";
-	const char * Json_Document::Xinitially		= "initially";
-	const char * Json_Document::Xit_limit		= "it-limit";
-	const char * Json_Document::Xiterations		= "iterations";
-	const char * Json_Document::Xjoin_variance	= "join-variance";
-	const char * Json_Document::Xjoin_waiting	= "join-waiting";
-	const char * Json_Document::Xloop		= "loop";
-	const char * Json_Document::Xmax		= "max";
-	const char * Json_Document::Xmax_rss		= "max-rss";
-	const char * Json_Document::Xmax_service_time	= "max-service-time";
-	const char * Json_Document::Xmean		= "mean";
-	const char * Json_Document::Xmean_calls		= "mean-calls";
-	const char * Json_Document::Xmin		= "min";
-	const char * Json_Document::Xmultiplicity	= "multiplicity";
-	const char * Json_Document::Xmva_info		= "mva-info";
-	const char * Json_Document::Xname		= "name";
-	const char * Json_Document::Xnumber_bins	= "bins";
-	const char * Json_Document::Xobserve		= "observe";
-	const char * Json_Document::Xopen_arrival_rate	= "open-arrival-rate";
-	const char * Json_Document::Xopen_wait_time	= "open-wait-time";
-	const char * Json_Document::Xor_fork		= "or-fork";
-	const char * Json_Document::Xor_join		= "or-join";
-	const char * Json_Document::Xoverflow_bin	= "overflow";
-	const char * Json_Document::Xparameters		= "parameters";
-	const char * Json_Document::Xphase		= "phase";
-	const char * Json_Document::Xphase_type_flag	= "phase-type";
-	const char * Json_Document::Xphase_utilization	= "phase-utilization";
-	const char * Json_Document::Xplatform_info	= "platform-info";
-	const char * Json_Document::Xpost		= "post";
-	const char * Json_Document::Xpragma		= "pragma";
-	const char * Json_Document::Xpre		= "pre";
-	const char * Json_Document::Xprecedence		= "precedence";
-	const char * Json_Document::Xprint_int		= "print-int";
-	const char * Json_Document::Xpriority		= "priority";
-	const char * Json_Document::Xprob		= "prob";
-	const char * Json_Document::Xprob_exceed_max	= "prob_exceed_max_service_time";
-	const char * Json_Document::Xproc_utilization	= "proc-utilization";
-	const char * Json_Document::Xproc_waiting	= "proc-waiting";
-	const char * Json_Document::Xprocessor		= "processor";
-	const char * Json_Document::Xquantum		= "quantum";
-	const char * Json_Document::Xqueue_length	= "queue-length";
-	const char * Json_Document::Xquorum		= "quorum";
-	const char * Json_Document::Xr_lock		= "read-lock";
-	const char * Json_Document::Xr_unlock		= "read-unlock";
-	const char * Json_Document::Xreplication	= "replication";
-	const char * Json_Document::Xreply_to		= "reply-to";
-	const char * Json_Document::Xresults		= "results";
-	const char * Json_Document::Xrwlock		= "rwlock";
-	const char * Json_Document::Xrwlock_reader_holding		= "rwlock-reader-holding";
-	const char * Json_Document::Xrwlock_reader_holding_variance	= "rwlock-reader-holding-variance";
-	const char * Json_Document::Xrwlock_reader_utilization		= "rwlock-reader-utilization";
-	const char * Json_Document::Xrwlock_reader_waiting		= "rwlock-reader-waiting";
-	const char * Json_Document::Xrwlock_reader_waiting_variance	= "rwlock-reader-waiting-variance";
-	const char * Json_Document::Xrwlock_writer_holding		= "rwlock-writer-holding";
-	const char * Json_Document::Xrwlock_writer_holding_variance	= "rwlock-writer-holding-variance";
-	const char * Json_Document::Xrwlock_writer_utilization		= "rwlock-writer-utilization";
-	const char * Json_Document::Xrwlock_writer_waiting		= "rwlock-writer-waiting";
-	const char * Json_Document::Xrwlock_writer_waiting_variance	= "rwlock-writer-waiting-variance";
-	const char * Json_Document::Xscheduling		= "scheduling";
-	const char * Json_Document::Xsemaphore		= "semaphore";
-	const char * Json_Document::Xsemaphore_utilization		= "semaphore-waiting";
-	const char * Json_Document::Xsemaphore_waiting			= "semaphore-waiting-variance";
-	const char * Json_Document::Xsemaphore_waiting_variance		= "semaphore-utilization";
-	const char * Json_Document::Xservice_time	= "service-time";
-	const char * Json_Document::Xservice_time_variance		= "service-time-variance";
-	const char * Json_Document::Xservice_type	= "service-time";
-	const char * Json_Document::Xshare		= "share";
-	const char * Json_Document::Xsignal		= "signal";
-	const char * Json_Document::Xsolver_info	= "solver-info";
-	const char * Json_Document::Xspeed_factor	= "rate";
-	const char * Json_Document::Xsquared_coeff_variation		= "squared-coeff-variation";
-	const char * Json_Document::Xstart_activity	= "start-activity";
-	const char * Json_Document::Xstep		= "step";
-	const char * Json_Document::Xstep_squared	= "step-squared";
-	const char * Json_Document::Xsubmodels		= "submodels";
-	const char * Json_Document::Xsynch_call		= "synch-call";
-	const char * Json_Document::Xsystem_cpu_time	= "system-cpu-time";
-	const char * Json_Document::Xtask		= "task";
-	const char * Json_Document::Xthink_time		= "think-time";
-	const char * Json_Document::Xthroughput		= "throughput";
-	const char * Json_Document::Xthroughput_bound	= "throughput-bound";
-	const char * Json_Document::Xtotal		= "total";
-	const char * Json_Document::Xunderflow_bin	= "underflow";
-	const char * Json_Document::Xunderrelax_coeff	= "underrelax-coeff";
-	const char * Json_Document::Xuser_cpu_time	= "user-cpu-time";
-	const char * Json_Document::Xutilization	= "utilization";
-	const char * Json_Document::Xvalid		= "valid";
-	const char * Json_Document::Xw_lock		= "write-lock";
-	const char * Json_Document::Xw_unlock		= "write-unlock";
-	const char * Json_Document::Xwait		= "wait";
-	const char * Json_Document::Xwait_squared	= "wait-squared";
-	const char * Json_Document::Xwaiting		= "waiting";
-	const char * Json_Document::Xwaiting_variance	= "waiting-variance";
+	const char * JSON_Document::Xactivity		= "activity";
+	const char * JSON_Document::Xand_fork		= "and-fork";
+	const char * JSON_Document::Xand_join		= "and-join";
+	const char * JSON_Document::Xasynch_call	= "asynch-call";
+	const char * JSON_Document::Xbegin		= "begin";
+	const char * JSON_Document::Xbottleneck_strength= "bottleneck-strength";
+	const char * JSON_Document::Xcap		= "cap";
+	const char * JSON_Document::Xcoeff_of_var_sq	= "host-demand-cvsq";
+	const char * JSON_Document::Xcomment		= "comment";
+	const char * JSON_Document::Xconf_95		= "conf-95";
+	const char * JSON_Document::Xconf_99		= "conf-99";
+	const char * JSON_Document::Xconvergence	= "convergence";
+	const char * JSON_Document::Xconv_val		= "conv-val";
+	const char * JSON_Document::Xconv_val_result	= "convergence-value";
+	const char * JSON_Document::Xcore		= "core";
+	const char * JSON_Document::Xdestination	= "destination";
+	const char * JSON_Document::Xdeterministic	= "determinstic-calls";
+	const char * JSON_Document::Xdrop_probability	= "drop-probability";
+	const char * JSON_Document::Xelapsed_time	= "elapsed-time";
+	const char * JSON_Document::Xend		= "end";
+	const char * JSON_Document::Xentry		= "entry";
+	const char * JSON_Document::Xfanin		= "fan-in";
+	const char * JSON_Document::Xfanout		= "fan-out";
+	const char * JSON_Document::Xfaults		= "faults";
+	const char * JSON_Document::Xforwarding		= "forwarding";
+	const char * JSON_Document::Xgeneral		= "general";
+	const char * JSON_Document::Xgroup		= "group";
+	const char * JSON_Document::Xhistogram		= "histogram";
+	const char * JSON_Document::Xhistogram_bin	= "bin";
+	const char * JSON_Document::Xinitially		= "initially";
+	const char * JSON_Document::Xit_limit		= "it-limit";
+	const char * JSON_Document::Xiterations		= "iterations";
+	const char * JSON_Document::Xjoin_variance	= "join-variance";
+	const char * JSON_Document::Xjoin_waiting	= "join-waiting";
+	const char * JSON_Document::Xloop		= "loop";
+	const char * JSON_Document::Xmax		= "max";
+	const char * JSON_Document::Xmax_rss		= "max-rss";
+	const char * JSON_Document::Xmax_service_time	= "max-service-time";
+	const char * JSON_Document::Xmean		= "mean";
+	const char * JSON_Document::Xmean_calls		= "mean-calls";
+	const char * JSON_Document::Xmin		= "min";
+	const char * JSON_Document::Xmultiplicity	= "multiplicity";
+	const char * JSON_Document::Xmva_info		= "mva-info";
+	const char * JSON_Document::Xname		= "name";
+	const char * JSON_Document::Xnumber_bins	= "bins";
+	const char * JSON_Document::Xobserve		= "observe";
+	const char * JSON_Document::Xopen_arrival_rate	= "open-arrival-rate";
+	const char * JSON_Document::Xopen_wait_time	= "open-wait-time";
+	const char * JSON_Document::Xor_fork		= "or-fork";
+	const char * JSON_Document::Xor_join		= "or-join";
+	const char * JSON_Document::Xoverflow_bin	= "overflow";
+	const char * JSON_Document::Xparameters		= "parameters";
+	const char * JSON_Document::Xphase		= "phase";
+	const char * JSON_Document::Xphase_type_flag	= "phase-type";
+	const char * JSON_Document::Xphase_utilization	= "phase-utilization";
+	const char * JSON_Document::Xplatform_info	= "platform-info";
+	const char * JSON_Document::Xpost		= "post";
+	const char * JSON_Document::Xpragma		= "pragma";
+	const char * JSON_Document::Xpre		= "pre";
+	const char * JSON_Document::Xprecedence		= "precedence";
+	const char * JSON_Document::Xprint_int		= "print-int";
+	const char * JSON_Document::Xpriority		= "priority";
+	const char * JSON_Document::Xprob		= "prob";
+	const char * JSON_Document::Xprob_exceed_max	= "prob_exceed_max_service_time";
+	const char * JSON_Document::Xproc_utilization	= "proc-utilization";
+	const char * JSON_Document::Xproc_waiting	= "proc-waiting";
+	const char * JSON_Document::Xprocessor		= "processor";
+	const char * JSON_Document::Xquantum		= "quantum";
+	const char * JSON_Document::Xqueue_length	= "queue-length";
+	const char * JSON_Document::Xquorum		= "quorum";
+	const char * JSON_Document::Xr_lock		= "read-lock";
+	const char * JSON_Document::Xr_unlock		= "read-unlock";
+	const char * JSON_Document::Xreplication	= "replication";
+	const char * JSON_Document::Xreply_to		= "reply-to";
+	const char * JSON_Document::Xresults		= "results";
+	const char * JSON_Document::Xrwlock		= "rwlock";
+	const char * JSON_Document::Xrwlock_reader_holding		= "rwlock-reader-holding";
+	const char * JSON_Document::Xrwlock_reader_holding_variance	= "rwlock-reader-holding-variance";
+	const char * JSON_Document::Xrwlock_reader_utilization		= "rwlock-reader-utilization";
+	const char * JSON_Document::Xrwlock_reader_waiting		= "rwlock-reader-waiting";
+	const char * JSON_Document::Xrwlock_reader_waiting_variance	= "rwlock-reader-waiting-variance";
+	const char * JSON_Document::Xrwlock_writer_holding		= "rwlock-writer-holding";
+	const char * JSON_Document::Xrwlock_writer_holding_variance	= "rwlock-writer-holding-variance";
+	const char * JSON_Document::Xrwlock_writer_utilization		= "rwlock-writer-utilization";
+	const char * JSON_Document::Xrwlock_writer_waiting		= "rwlock-writer-waiting";
+	const char * JSON_Document::Xrwlock_writer_waiting_variance	= "rwlock-writer-waiting-variance";
+	const char * JSON_Document::Xscheduling		= "scheduling";
+	const char * JSON_Document::Xsemaphore		= "semaphore";
+	const char * JSON_Document::Xsemaphore_utilization		= "semaphore-waiting";
+	const char * JSON_Document::Xsemaphore_waiting			= "semaphore-waiting-variance";
+	const char * JSON_Document::Xsemaphore_waiting_variance		= "semaphore-utilization";
+	const char * JSON_Document::Xservice_time	= "service-time";
+	const char * JSON_Document::Xservice_time_variance		= "service-time-variance";
+	const char * JSON_Document::Xservice_type	= "service-time";
+	const char * JSON_Document::Xshare		= "share";
+	const char * JSON_Document::Xsignal		= "signal";
+	const char * JSON_Document::Xsolver_info	= "solver-info";
+	const char * JSON_Document::Xspeed_factor	= "rate";
+	const char * JSON_Document::Xsquared_coeff_variation		= "squared-coeff-variation";
+	const char * JSON_Document::Xstart_activity	= "start-activity";
+	const char * JSON_Document::Xstep		= "step";
+	const char * JSON_Document::Xstep_squared	= "step-squared";
+	const char * JSON_Document::Xsubmodels		= "submodels";
+	const char * JSON_Document::Xsynch_call		= "synch-call";
+	const char * JSON_Document::Xsystem_cpu_time	= "system-cpu-time";
+	const char * JSON_Document::Xtask		= "task";
+	const char * JSON_Document::Xthink_time		= "think-time";
+	const char * JSON_Document::Xthroughput		= "throughput";
+	const char * JSON_Document::Xthroughput_bound	= "throughput-bound";
+	const char * JSON_Document::Xtotal		= "total";
+	const char * JSON_Document::Xunderflow_bin	= "underflow";
+	const char * JSON_Document::Xunderrelax_coeff	= "underrelax-coeff";
+	const char * JSON_Document::Xuser_cpu_time	= "user-cpu-time";
+	const char * JSON_Document::Xutilization	= "utilization";
+	const char * JSON_Document::Xvalid		= "valid";
+	const char * JSON_Document::Xw_lock		= "write-lock";
+	const char * JSON_Document::Xw_unlock		= "write-unlock";
+	const char * JSON_Document::Xwait		= "wait";
+	const char * JSON_Document::Xwait_squared	= "wait-squared";
+	const char * JSON_Document::Xwaiting		= "waiting";
+	const char * JSON_Document::Xwaiting_variance	= "waiting-variance";
 
-	const std::map<const char*,const Json_Document::ImportActivity,Json_Document::ImportActivity> Json_Document::activity_table =
+	const std::map<const char*,const JSON_Document::ImportActivity,JSON_Document::ImportActivity> JSON_Document::activity_table =
 	{
 	    { Xname,		ImportActivity() },
 	    { Xmax_service_time,ImportActivity( &Phase::setMaxServiceTime ) },
@@ -3714,56 +3736,56 @@ namespace LQIO {
 	    { Xcoeff_of_var_sq,	ImportActivity( &Phase::setCoeffOfVariationSquared ) },
 	    { Xthink_time,	ImportActivity( &Phase::setThinkTime ) },
 	    { Xdeterministic,	ImportActivity( &Phase::setPhaseTypeFlag ) },
-	    { Xsynch_call,	ImportActivity( &Json_Document::handleCall, Call::Type::RENDEZVOUS ) },
-	    { Xasynch_call,	ImportActivity( &Json_Document::handleCall, Call::Type::SEND_NO_REPLY ) },
-	    { Xreply_to,	ImportActivity( &Json_Document::handleReplyList ) },
-	    { Xhistogram,	ImportActivity( &Json_Document::handleHistogram ) },
-	    { Xobserve,		ImportActivity( &Json_Document::handleObservation ) },	// SPEX
-	    { Xresults,		ImportActivity( &Json_Document::handleResult ) },
+	    { Xsynch_call,	ImportActivity( &JSON_Document::handleCall, Call::Type::RENDEZVOUS ) },
+	    { Xasynch_call,	ImportActivity( &JSON_Document::handleCall, Call::Type::SEND_NO_REPLY ) },
+	    { Xreply_to,	ImportActivity( &JSON_Document::handleReplyList ) },
+	    { Xhistogram,	ImportActivity( &JSON_Document::handleHistogram ) },
+	    { Xobserve,		ImportActivity( &JSON_Document::handleObservation ) },	// SPEX
+	    { Xresults,		ImportActivity( &JSON_Document::handleResult ) },
 	    { "#",		ImportActivity( &DocumentObject::setComment ) }
 	};
 
-	const std::map<const char*,const Json_Document::ImportCall,Json_Document::ImportCall> Json_Document::call_table =
+	const std::map<const char*,const JSON_Document::ImportCall,JSON_Document::ImportCall> JSON_Document::call_table =
 	{
 	    { Xdestination,	ImportCall() },
 	    { Xmean_calls,	ImportCall( &Call::setCallMean ) },
-	    { Xresults,		ImportCall( &Json_Document::handleResult ) },
-	    { Xobserve,		ImportCall( &Json_Document::handleObservation ) },	// SPEX
+	    { Xresults,		ImportCall( &JSON_Document::handleResult ) },
+	    { Xobserve,		ImportCall( &JSON_Document::handleObservation ) },	// SPEX
 	};
 
-	const std::map<const char*,const Json_Document::ImportEntry,Json_Document::ImportEntry> Json_Document::entry_table =
+	const std::map<const char*,const JSON_Document::ImportEntry,JSON_Document::ImportEntry> JSON_Document::entry_table =
 	{
 	    { Xname,		    ImportEntry() },
 	    { Xstart_activity,	    ImportEntry() },		// Nop.	 Handled specially
 	    { Xcomment,		    ImportEntry( &DocumentObject::setComment ) },
-	    { Xphase,		    ImportEntry( &Json_Document::handlePhase ) },
+	    { Xphase,		    ImportEntry( &JSON_Document::handlePhase ) },
 	    { Xcoeff_of_var_sq,	    ImportEntry( &Phase::setCoeffOfVariationSquared ) },
 	    { Xdeterministic,	    ImportEntry( &Phase::setPhaseTypeFlag ) },
 	    { Xopen_arrival_rate,   ImportEntry( &Entry::setOpenArrivalRate ) },
 	    { Xservice_time,	    ImportEntry( &Phase::setServiceTime ) },
 	    { Xthink_time,	    ImportEntry( &Phase::setThinkTime ) },
-	    { Xforwarding,	    ImportEntry( &Json_Document::handleCall, Call::Type::FORWARD ) },
-	    { Xhistogram,	    ImportEntry( &Json_Document::handleHistogram ) },
-	    { Xmax_service_time,    ImportEntry( &Json_Document::handleMaxServiceTime ) },
-	    { Xobserve,		    ImportEntry( &Json_Document::handleObservation ) },	// SPEX
-	    { Xresults,		    ImportEntry( &Json_Document::handleResult ) },
+	    { Xforwarding,	    ImportEntry( &JSON_Document::handleCall, Call::Type::FORWARD ) },
+	    { Xhistogram,	    ImportEntry( &JSON_Document::handleHistogram ) },
+	    { Xmax_service_time,    ImportEntry( &JSON_Document::handleMaxServiceTime ) },
+	    { Xobserve,		    ImportEntry( &JSON_Document::handleObservation ) },	// SPEX
+	    { Xresults,		    ImportEntry( &JSON_Document::handleResult ) },
 	    { "#",		    ImportEntry( &DocumentObject::setComment ) }
 	};
 
-	const std::map<const char*,const Json_Document::ImportGeneral,Json_Document::ImportGeneral>  Json_Document::general_table =
+	const std::map<const char*,const JSON_Document::ImportGeneral,JSON_Document::ImportGeneral>  JSON_Document::general_table =
 	{
 	    { Xcomment,		    ImportGeneral( &Document::setModelCommentString ) },
 	    { Xconv_val,	    ImportGeneral( &Document::setModelConvergence ) },
 	    { Xit_limit,	    ImportGeneral( &Document::setModelIterationLimit ) },
 	    { Xunderrelax_coeff,    ImportGeneral( &Document::setModelUnderrelaxationCoefficient ) },
 	    { Xprint_int,	    ImportGeneral( &Document::setModelPrintInterval ) },
-	    { Xobserve,		    ImportGeneral( &Json_Document::handleGeneralObservation ) },	// SPEX
-	    { Xpragma,		    ImportGeneral( &Json_Document::handlePragma ) },
-	    { Xresults,		    ImportGeneral( &Json_Document::handleGeneralResult ) },
+	    { Xobserve,		    ImportGeneral( &JSON_Document::handleGeneralObservation ) },	// SPEX
+	    { Xpragma,		    ImportGeneral( &JSON_Document::handlePragma ) },
+	    { Xresults,		    ImportGeneral( &JSON_Document::handleGeneralResult ) },
 	    { "#",		    ImportGeneral( &Document::setModelComment ) }
 	};
 
-	const std::map<const char*,const Json_Document::ImportGeneralObservation,Json_Document::ImportGeneralObservation>  Json_Document::general_observation_table =
+	const std::map<const char*,const JSON_Document::ImportGeneralObservation,JSON_Document::ImportGeneralObservation>  JSON_Document::general_observation_table =
 	{
 	    { Xiterations,	ImportGeneralObservation( KEY_ITERATIONS ) },
 	    { Xwaiting,		ImportGeneralObservation( KEY_WAITING ) },		// Waits (overloaded)
@@ -3773,13 +3795,13 @@ namespace LQIO {
 	    { Xelapsed_time,	ImportGeneralObservation( KEY_ELAPSED_TIME ) }
 	};
 
-	const std::map<const char*,const Json_Document::ImportGeneralResult,Json_Document::ImportGeneralResult> Json_Document::general_result_table =
+	const std::map<const char*,const JSON_Document::ImportGeneralResult,JSON_Document::ImportGeneralResult> JSON_Document::general_result_table =
 	{
 	    { Xconv_val_result, ImportGeneralResult( &Document::setResultConvergenceValue ) },
 	    { Xelapsed_time,	ImportGeneralResult( dom_type::CLOCK, &Document::setResultElapsedTime) },
 	    { Xiterations,	ImportGeneralResult( &Document::setResultIterations ) },
 	    { Xmax_rss,		ImportGeneralResult( &Document::setResultMaxRSS ) },
-	    { Xmva_info,	ImportGeneralResult( &Json_Document::handleMvaInfo ) },
+	    { Xmva_info,	ImportGeneralResult( &JSON_Document::handleMvaInfo ) },
 	    { Xplatform_info,	ImportGeneralResult( &Document::setResultPlatformInformation ) },
 	    { Xsolver_info,	ImportGeneralResult( &Document::setResultSolverInformation ) },
 	    { Xsystem_cpu_time, ImportGeneralResult( dom_type::CLOCK, &Document::setResultSysTime) },
@@ -3787,20 +3809,20 @@ namespace LQIO {
 	    { Xvalid,		ImportGeneralResult( &Document::setResultValid ) }
 	};
 
-	const std::map<const char*,const Json_Document::ImportGroup,Json_Document::ImportGroup>	 Json_Document::group_table =
+	const std::map<const char*,const JSON_Document::ImportGroup,JSON_Document::ImportGroup>	 JSON_Document::group_table =
 	{
 	    { Xname,		ImportGroup() },		// Nop.	 Handled specially
 	    { Xcomment,		ImportGroup( &DocumentObject::setComment ) },
 	    { Xprocessor,	ImportGroup( &Group::setProcessor ) },
 	    { Xshare,		ImportGroup( &Group::setGroupShare ) },
 	    { Xcap,		ImportGroup( &Group::setCap ) },
-	    { Xobserve,		ImportGroup( &Json_Document::handleObservation ) },	// SPEX
-	    { Xresults,		ImportGroup( &Json_Document::handleResult ) },
-	    { Xtask,		ImportGroup( &Json_Document::handleTask ) },
+	    { Xobserve,		ImportGroup( &JSON_Document::handleObservation ) },	// SPEX
+	    { Xresults,		ImportGroup( &JSON_Document::handleResult ) },
+	    { Xtask,		ImportGroup( &JSON_Document::handleTask ) },
 	    { "#",		ImportGroup( &DocumentObject::setComment ) },
 	};
 
-	const std::map<const char*,const Json_Document::ImportHistogram,Json_Document::ImportHistogram> Json_Document::histogram_table =
+	const std::map<const char*,const JSON_Document::ImportHistogram,JSON_Document::ImportHistogram> JSON_Document::histogram_table =
 	{
 	    { Xnumber_bins,	ImportHistogram() },		// Nop must be done first.
 	    { Xmin,		ImportHistogram() },
@@ -3808,18 +3830,18 @@ namespace LQIO {
 	    { Xhistogram_bin,	ImportHistogram() }
 	};
 
-	const std::map<const char*,const Json_Document::ImportModel,Json_Document::ImportModel>	 Json_Document::model_table =
+	const std::map<const char*,const JSON_Document::ImportModel,JSON_Document::ImportModel>	 JSON_Document::model_table =
 	{
 	    { Xcomment,		ImportModel() },	// Nop. Discard
-	    { Xparameters,	ImportModel( &Json_Document::handleParameters  ) },
-	    { Xgeneral,		ImportModel( &Json_Document::handleGeneral ) },
-	    { Xprocessor,	ImportModel( &Json_Document::handleProcessor ) },
-	    { Xresults,		ImportModel( &Json_Document::handleResults ) },
-	    { Xconvergence,	ImportModel( &Json_Document::handleConvergence ) },
+	    { Xparameters,	ImportModel( &JSON_Document::handleParameters  ) },
+	    { Xgeneral,		ImportModel( &JSON_Document::handleGeneral ) },
+	    { Xprocessor,	ImportModel( &JSON_Document::handleProcessor ) },
+	    { Xresults,		ImportModel( &JSON_Document::handleResults ) },
+	    { Xconvergence,	ImportModel( &JSON_Document::handleConvergence ) },
 	    { "#",		ImportModel() }		// Nop. Discard
 	};
 
-	const std::map<const char*,const Json_Document::ImportObservation,Json_Document::ImportObservation>  Json_Document::observation_table =
+	const std::map<const char*,const JSON_Document::ImportObservation,JSON_Document::ImportObservation>  JSON_Document::observation_table =
 	{
 	    { Xthroughput,		ImportObservation( KEY_THROUGHPUT ) },
 	    { Xproc_utilization,	ImportObservation( KEY_PROCESSOR_UTILIZATION ) },
@@ -3835,7 +3857,7 @@ namespace LQIO {
 	    { Xphase,			ImportObservation() }
 	};
 
-	const std::map<const char*,const Json_Document::ImportPrecedence,Json_Document::ImportPrecedence> Json_Document::precedence_table =
+	const std::map<const char*,const JSON_Document::ImportPrecedence,JSON_Document::ImportPrecedence> JSON_Document::precedence_table =
 	{
 	    { Xpre,		ImportPrecedence(ActivityList::Type::JOIN) },
 	    { Xpost,		ImportPrecedence(ActivityList::Type::FORK) },
@@ -3849,7 +3871,7 @@ namespace LQIO {
 	    { Xhistogram,	ImportPrecedence() }
 	};
 
-	const std::map<const char*,const Json_Document::ImportPhase,Json_Document::ImportPhase> Json_Document::phase_table =
+	const std::map<const char*,const JSON_Document::ImportPhase,JSON_Document::ImportPhase> JSON_Document::phase_table =
 	{
 	    { Xphase,		ImportPhase() },
 	    { Xmax_service_time,ImportPhase( &Phase::setMaxServiceTime ) },
@@ -3858,15 +3880,15 @@ namespace LQIO {
 	    { Xcoeff_of_var_sq,	ImportPhase( &Phase::setCoeffOfVariationSquared ) },
 	    { Xthink_time,	ImportPhase( &Phase::setThinkTime ) },
 	    { Xdeterministic,	ImportPhase( &Phase::setPhaseTypeFlag ) },
-	    { Xsynch_call,	ImportPhase( &Json_Document::handleCall, Call::Type::RENDEZVOUS ) },
-	    { Xasynch_call,	ImportPhase( &Json_Document::handleCall, Call::Type::SEND_NO_REPLY ) },
-	    { Xhistogram,	ImportPhase( &Json_Document::handleHistogram ) },
-	    { Xobserve,		ImportPhase( &Json_Document::handleObservation ) },	// SPEX
-	    { Xresults,		ImportPhase( &Json_Document::handleResult ) },
+	    { Xsynch_call,	ImportPhase( &JSON_Document::handleCall, Call::Type::RENDEZVOUS ) },
+	    { Xasynch_call,	ImportPhase( &JSON_Document::handleCall, Call::Type::SEND_NO_REPLY ) },
+	    { Xhistogram,	ImportPhase( &JSON_Document::handleHistogram ) },
+	    { Xobserve,		ImportPhase( &JSON_Document::handleObservation ) },	// SPEX
+	    { Xresults,		ImportPhase( &JSON_Document::handleResult ) },
 	    { "#",		ImportPhase( &DocumentObject::setComment ) }
 	};
 
-	const std::map<const char*,const Json_Document::ImportProcessor,Json_Document::ImportProcessor>	 Json_Document::processor_table =
+	const std::map<const char*,const JSON_Document::ImportProcessor,JSON_Document::ImportProcessor>	 JSON_Document::processor_table =
 	{
 	    { Xname,		ImportProcessor() },		// Nop.	 Handled specially
 	    { Xscheduling,	ImportProcessor() },		// Nop.	 Handled specially
@@ -3875,20 +3897,20 @@ namespace LQIO {
 	    { Xmultiplicity,	ImportProcessor( &Processor::setCopies ) },
 	    { Xreplication,	ImportProcessor( &Processor::setReplicas ) },
 	    { Xspeed_factor,	ImportProcessor( &Processor::setRate ) },
-	    { Xobserve,		ImportProcessor( &Json_Document::handleObservation ) },	// SPEX
-	    { Xresults,		ImportProcessor( &Json_Document::handleResult ) },
-	    { Xtask,		ImportProcessor( &Json_Document::handleTask ) },
-	    { Xgroup,		ImportProcessor( &Json_Document::handleGroup ) },
+	    { Xobserve,		ImportProcessor( &JSON_Document::handleObservation ) },	// SPEX
+	    { Xresults,		ImportProcessor( &JSON_Document::handleResult ) },
+	    { Xtask,		ImportProcessor( &JSON_Document::handleTask ) },
+	    { Xgroup,		ImportProcessor( &JSON_Document::handleGroup ) },
 	    { "#",		ImportProcessor( &DocumentObject::setComment ) }
 	};
 
-	const std::map<const char*,const Json_Document::ImportTask,Json_Document::ImportTask>  Json_Document::task_table =
+	const std::map<const char*,const JSON_Document::ImportTask,JSON_Document::ImportTask>  JSON_Document::task_table =
 	{
 	    { Xname,		ImportTask() },			// Nop.	 Handled specially
 	    { Xscheduling,	ImportTask() },			// Nop.	 Handled specially
 	    { Xcomment,		ImportTask( &DocumentObject::setComment ) },
-	    { Xfanin,		ImportTask( &Json_Document::handleFanInOut, &Task::setFanIn ) },
-	    { Xfanout,		ImportTask( &Json_Document::handleFanInOut, &Task::setFanOut ) },
+	    { Xfanin,		ImportTask( &JSON_Document::handleFanInOut, &Task::setFanIn ) },
+	    { Xfanout,		ImportTask( &JSON_Document::handleFanInOut, &Task::setFanOut ) },
 	    { Xprocessor,	ImportTask( &Task::setProcessor ) },
 	    { Xgroup,		ImportTask( &Task::setGroup ) },
 	    { Xmultiplicity,	ImportTask( &Task::setCopies ) },
@@ -3896,15 +3918,15 @@ namespace LQIO {
 	    { Xthink_time,	ImportTask( &Task::setThinkTime ) },
 	    { Xpriority,	ImportTask( &Task::setPriority ) },
 	    { Xactivity,	ImportTask() },			// Nop.	 Handled specially
-	    { Xentry,		ImportTask( &Json_Document::handleEntry ) },
+	    { Xentry,		ImportTask( &JSON_Document::handleEntry ) },
 	    { Xprecedence,	ImportTask() },			// Nop.	 Handled specially
-	    { Xobserve,		ImportTask( &Json_Document::handleObservation ) },	// SPEX
-	    { Xresults,		ImportTask( &Json_Document::handleResult ) },
+	    { Xobserve,		ImportTask( &JSON_Document::handleObservation ) },	// SPEX
+	    { Xresults,		ImportTask( &JSON_Document::handleResult ) },
 	    { "#",		ImportTask( &DocumentObject::setComment ) },
 	};
 
 
-	const std::map<const char*,const Json_Document::ImportResult,Json_Document::ImportResult>  Json_Document::result_table =
+	const std::map<const char*,const JSON_Document::ImportResult,JSON_Document::ImportResult>  JSON_Document::result_table =
 	{
 	    { Xbottleneck_strength,	ImportResult( &DocumentObject::setResultBottleneckStrength ) },
 	    { Xjoin_waiting,		ImportResult( &DocumentObject::setResultJoinDelay,		&DocumentObject::setResultJoinDelayVariance ) },
@@ -3924,15 +3946,15 @@ namespace LQIO {
 	    { Xthroughput_bound,	ImportResult( &DocumentObject::setResultThroughputBound ) }
 	};
 
-	const std::map<const char*,const Json_Document::ImportTaskActivity,Json_Document::ImportTaskActivity> Json_Document::task_activity_table =
+	const std::map<const char*,const JSON_Document::ImportTaskActivity,JSON_Document::ImportTaskActivity> JSON_Document::task_activity_table =
 	{
 	    { Xtask,		ImportTaskActivity() },
-	    { Xactivity,	ImportTaskActivity( &Json_Document::handleActivity ) },
-	    { Xprecedence,	ImportTaskActivity( &Json_Document::handlePrecedence ) }
+	    { Xactivity,	ImportTaskActivity( &JSON_Document::handleActivity ) },
+	    { Xprecedence,	ImportTaskActivity( &JSON_Document::handlePrecedence ) }
 	};
 
 	/* Maps srvn_gram.h KEY_XXX to lqx function name */
-	const std::map<const int,const char *> Json_Document::__key_lqx_function_map = {
+	const std::map<const int,const char *> JSON_Document::__key_lqx_function_map = {
 	    { KEY_ELAPSED_TIME,		Xelapsed_time },
 	    { KEY_EXCEEDED_TIME,	Xprob_exceed_max },
 	    { KEY_ITERATIONS,		Xiterations },
@@ -3949,7 +3971,7 @@ namespace LQIO {
 	    { KEY_WAITING_VARIANCE,	Xwaiting_variance }
 	};
 
-	const std::map<const ActivityList::Type,const std::string>  Json_Document::precedence_type_table =
+	const std::map<const ActivityList::Type,const std::string>  JSON_Document::precedence_type_table =
 	{
 	    { ActivityList::Type::JOIN,		Xpre },
 	    { ActivityList::Type::FORK,		Xpost },
@@ -3960,12 +3982,12 @@ namespace LQIO {
 	    { ActivityList::Type::REPEAT,	Xloop }
 	};
 
-	const std::map<const Call::Type,const std::string> Json_Document::call_type_table =
+	const std::map<const Call::Type,const std::string> JSON_Document::call_type_table =
 	{
 	    { Call::Type::NULL_CALL,		"Null" },
-	    { Call::Type::SEND_NO_REPLY,	Json_Document::Xasynch_call },
-	    { Call::Type::RENDEZVOUS,		Json_Document::Xsynch_call },
-	    { Call::Type::FORWARD,		Json_Document::Xforwarding }
+	    { Call::Type::SEND_NO_REPLY,	JSON_Document::Xasynch_call },
+	    { Call::Type::RENDEZVOUS,		JSON_Document::Xsynch_call },
+	    { Call::Type::FORWARD,		JSON_Document::Xforwarding }
 	};
     }
 }
