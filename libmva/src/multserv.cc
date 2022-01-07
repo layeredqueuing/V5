@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15322 2022-01-02 15:35:27Z greg $
+ * $Id: multserv.cc 15364 2022-01-06 17:37:24Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -851,12 +851,12 @@ void
 Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     /* Compute the time spent in the queue */
-    const Positive sum = sumOf_SL( solver, N, k );		/* Wait_AB in thesis */
+    const Positive sum = sumOf_SL( solver, N, k );	// Wait_AB in thesis
 
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
 	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
-	    W[e][k][p] = S(e,k) + sum;
+	    W[e][k][p] = S(e,k) + sum;			// Call from logindelay to login.
 	}
     }
 }
@@ -937,18 +937,18 @@ Zhou_Multi_Server::S_mean( const MVA& solver, const Population& N ) const
 Probability
 Zhou_Multi_Server::P_mean( const MVA& solver, const Population& N ) const
 {
-    double sumOf_X = 0.0;
+//  double sumOf_X = 0.0;					// sumOf_X cancels out.
     double sumOf_Z = 0.0;
     double sumOf_R = 0.0;
     for ( unsigned int k = 1; k <= K; ++k ) {
 	const double X_k = solver.throughput( *this, k );
 	const double R_k = this->R(k);
 	if ( X_k == 0. ) continue;
-	sumOf_X += X_k;
-	sumOf_Z += std::max( (N[k] / X_k) - R_k, 0.0 );		// don't allow negative numbers
-	sumOf_R += R_k;
+//	sumOf_X += X_k;						// sumOf_X cancels out.
+	sumOf_Z += std::max( (N[k] / X_k) - R_k, 0.0 ) * X_k;	// don't allow negative numbers
+	sumOf_R += R_k * X_k;					// Weighted mean
     }
-    return sumOf_R / (sumOf_Z + sumOf_R);
+    return sumOf_R / (sumOf_R + sumOf_Z);			// (R/X)/((R/X+Z/X) = (R/X)/((R+Z)/X) = R/(R+Z)
 }
 
 /* -------------------- Phased Simple Multi-Server -------------------- */
