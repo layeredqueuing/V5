@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15339 2022-01-03 14:34:28Z greg $
+# $Id: Makefile.am 15367 2022-01-12 12:38:09Z greg $
 #----------------------------------------------------------------------
-SUBDIRS		= regression
+SUBDIRS		= regression doc
 
 AM_CPPFLAGS	= -I../lqx/libsrc/headers/ -I../lqiolib/src/headers -I../parasol/include
 bin_PROGRAMS	= lqsim
