@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15262 2021-12-26 18:55:49Z greg $
+ * $Id: task.cc 15374 2022-01-20 02:21:34Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1198,7 +1198,7 @@ Task::canPrune() const
      * this point.  canPrune could be recursive?
      */
 
-    assert( Flags::aggregation() == Aggregate::ENTRIES );
+//    assert( Flags::aggregation() == Aggregate::ENTRIES );
 //    std::set<const Task *> callers = std::accumulate( entries().begin(), entries().end(), std::set<const Task *>(), &Entry::collect_callers );
     return calls().size() == 1;
 }

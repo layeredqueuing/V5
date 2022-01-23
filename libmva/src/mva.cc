@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 15322 2022-01-02 15:35:27Z greg $
+ * $Id: mva.cc 15375 2022-01-23 00:30:08Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -228,6 +228,9 @@ MVA::dimension( const size_t mapMaxOffset )
 	    L[n] = new double ** [M+1];
 	    U[n] = new double ** [M+1];
 	    P[n] = new double * [M+1];
+	    L[n][0] = nullptr;
+	    U[n][0] = nullptr;
+	    P[n][0] = nullptr;
 
 	    for ( unsigned m = 1; m <= M; ++m ) {
 		const unsigned E = Q[m]->nEntries();
