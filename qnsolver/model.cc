@@ -156,7 +156,7 @@ Model::solve()
 	LQX::Program * lqx = LQX::Program::loadRawProgram( program );
 	_input.registerExternalSymbolsWithProgram( lqx );
 	if ( print_spex ) {
-	    lqx->print( std::cout );
+	    lqx->print( std::cerr );
 	}
 	FILE * output = nullptr;
 	LQX::Environment * environment = lqx->getEnvironment();

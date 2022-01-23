@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 15337 2022-01-03 13:59:54Z greg $
+ * $Id: jmva_document.cpp 15376 2022-01-23 03:07:46Z greg $
  *
  * Read in XML input files.
  *
@@ -1080,10 +1080,7 @@ namespace BCMP {
 	
 	const Model::Chain::map_t::iterator i = chains().begin();
 	const Model::Chain::map_t::iterator j = std::next(i);
-
-	const std::string name = "$Beta";					/* Need to create one 		*/
-	LQIO::DOM::SymbolExternalVariable * Beta = new LQIO::DOM::SymbolExternalVariable( name );
-	_variables.emplace( name, Beta );					/* Save it.			*/
+	const std::string beta = "$Beta";					/* Local variable	*/
 
 	/*
 	 * Two new variables are needed, n1, for class 1, which is $N
@@ -1104,7 +1101,7 @@ namespace BCMP {
 	LQX::SyntaxTreeNode * assignment_expr;
 	expr_list * function_args = new expr_list;
 	function_args->push_back( new LQX::MathExpression( LQX::MathExpression::MULTIPLY,
-							   new LQX::VariableExpression( &name[1], false ),
+							   new LQX::VariableExpression( &beta[1], false ),
 							   new LQX::ConstantValueExpression( k1_customers ) ) );
 	assignment_expr = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &class1_name[1], false ), new LQX::MethodInvocationExpression( "ceil", function_args ) );
 	LQIO::Spex::__deferred_assignment.push_back( assignment_expr );
@@ -1118,12 +1115,12 @@ namespace BCMP {
 	k2->second.setCustomers( n2 );								/* swap constanst for variable in class */
 	function_args = new expr_list;
 	function_args->push_back( new LQX::MathExpression( LQX::MathExpression::MULTIPLY,
-							   new LQX::MathExpression( LQX::MathExpression::SUBTRACT,  new LQX::ConstantValueExpression( 1. ), new LQX::VariableExpression( &name[1], false ) ),
+							   new LQX::MathExpression( LQX::MathExpression::SUBTRACT,  new LQX::ConstantValueExpression( 1. ), new LQX::VariableExpression( &beta[1], false ) ),
 							   new LQX::ConstantValueExpression( k2_customers ) ) );
 	assignment_expr = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &class2_name[1], false ), new LQX::MethodInvocationExpression( "floor", function_args ) );
 	LQIO::Spex::__deferred_assignment.push_back( assignment_expr );
 	LQIO::Spex::__input_variables[class2_name] = assignment_expr;
-	return name;
+	return beta;
     }
 
     /*
@@ -1529,7 +1526,6 @@ namespace BCMP {
 
 	double x_max = 0;
 	double y_max = 0;
-	bool parametric = false;
 	for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
 	    if (     m->second.type() != Model::Station::Type::LOAD_INDEPENDENT
 		  && m->second.type() != Model::Station::Type::MULTISERVER ) continue;
@@ -1554,24 +1550,23 @@ namespace BCMP {
 	    if ( D_x == 0. && D_y == 0. ) {
 		continue;
 	    } else if ( D_x == 0. ) {
-		plot << ", " << D_y;
+		plot << ", t," << D_y;
 	    } else if ( D_y == 0. ) {
-		parametric = true;
-		plot << ", " << D_x << ",t";
+		plot << ", 1/" << D_x << ",t";
 	    } else {
-		plot << ", (1-x*" << D_x << ")/" << D_y;
+		plot << ", t,(1-t*" << D_x << ")/" << D_y;;
 	    }
 	    plot << " with lines title \"" << m->first << " Bound\"";
 	}
-	if ( x_max > 0 ) _gnuplot.push_back( LQIO::Spex::print_node( "set xrange [0:" + std::to_string(1.0/x_max) + "]" ) );
-	if ( y_max > 0 ) _gnuplot.push_back( LQIO::Spex::print_node( "set yrange [0:" + std::to_string(1.0/y_max) + "]" ) );
-
-	/* If a line has to be drawn at x (D_y = 0), use parametric */
-	if ( parametric ) {
-	    _gnuplot.push_back( LQIO::Spex::print_node( "set parametric" ) );
-	    _gnuplot.push_back( LQIO::Spex::print_node( "set trange [0:" + std::to_string(1.0/y_max) + "]" ) );
+	_gnuplot.push_back( LQIO::Spex::print_node( "set parametric" ) );
+	if ( x_max > 0 ) {
+	    _gnuplot.push_back( LQIO::Spex::print_node( "set xrange [0:" + std::to_string(1.0/x_max) + "]" ) );
+	    _gnuplot.push_back( LQIO::Spex::print_node( "set trange [0:" + std::to_string(1.0/x_max) + "]" ) );
 	}
-	
+	if ( y_max > 0 ) {
+	    _gnuplot.push_back( LQIO::Spex::print_node( "set yrange [0:" + std::to_string(1.0/y_max) + "]" ) );
+	}
+
 	return plot;
     }
 }
