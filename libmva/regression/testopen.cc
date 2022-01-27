@@ -4,7 +4,7 @@
  * Example from:
  *
  * ------------------------------------------------------------------------
- * $Id: testopen.cc 14307 2020-12-31 15:54:48Z greg $
+ * $Id: testopen.cc 15384 2022-01-25 02:56:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -54,7 +54,7 @@ int main (int argc, char *argv[])
 	case 'n':
 	    count = atol( optarg );
 	    if ( count == 0 ) {
-		cerr << "Bogus loop count: " << optarg << endl;
+		std::cerr << "Bogus loop count: " << optarg << std::endl;
 		exit( 1 );
 	    }
 	    break;
@@ -74,7 +74,7 @@ int main (int argc, char *argv[])
 	case 'z':
 	    special = atoi( optarg );
 	    if ( special == 0 ) {
-		cerr << "Bogus \"special\": " << optarg << endl;
+		std::cerr << "Bogus \"special\": " << optarg << std::endl;
 		exit( 1 );
 	    }
 	    break;
@@ -85,7 +85,7 @@ int main (int argc, char *argv[])
     }
 
     if ( optind != argc ) {
-	cerr << "Arg count." << endl;
+	std::cerr << "Arg count." << std::endl;
     }
 
     status = 1;
@@ -112,13 +112,13 @@ run( const unsigned special )
 	test( Q, special );
     }
     catch ( runtime_error& error ) {
-	cerr << "runtime error - " << error.what() << endl;
+	std::cerr << "runtime error - " << error.what() << std::endl;
 	return 0;
     }
 
     if ( debug_flag ) {
 	for ( unsigned j = 1; j <= Q.size(); ++j ) {
-	    cout << Q[j] << endl;
+	    std::cout << Q[j] << std::endl;
 	}
     }
 
@@ -141,29 +141,29 @@ doIt( Vector<Server *>& Q, const unsigned special )
 	model->solve();
     }
     catch ( runtime_error& error ) {
-	cerr << "runtime error - " << error.what() << endl;
+	std::cerr << "runtime error - " << error.what() << std::endl;
 	ok = false;
     }
     catch ( logic_error& error ) {
-	cerr << "logic error - " << error.what() << endl;
+	std::cerr << "logic error - " << error.what() << std::endl;
 	ok = false;
     }
     catch ( floating_point_error& error ) {
-	cerr << "floating point error - " << error.what() << endl;
+	std::cerr << "floating point error - " << error.what() << std::endl;
 	ok = false;
     }
     if ( ok ) {
 	if ( !silencio_flag ) {
-	    cout << "Open solver." << endl;
-	    cout.precision(4);
-	    cout << *model;
-	    special_check( cout, *model, special );
+	    std::cout << "Open solver." << std::endl;
+	    std::cout.precision(4);
+	    std::cout << *model;
+	    special_check( std::cout, *model, special );
 	}
 	if ( verbose_flag ) {
 	}
 
 	if ( !nocheck_flag ) {
-	    ok = check( cout, *model, special );
+	    ok = check( std::cout, *model, special );
 	}
     }
 	

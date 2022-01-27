@@ -4,7 +4,7 @@
  * Test case from:
  *
  * ------------------------------------------------------------------------
- * $Id: testB.cc 14307 2020-12-31 15:54:48Z greg $
+ * $Id: testB.cc 15384 2022-01-25 02:56:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -40,7 +40,7 @@ void test( Vector<Server *>& Q, const unsigned )
 
 
 void
-special_check( ostream&, const Open&, const unsigned )
+special_check( std::ostream&, const Open&, const unsigned )
 {
 }
 
@@ -49,7 +49,7 @@ special_check( ostream&, const Open&, const unsigned )
 static double goodL[3] = { 0, 0, 0 };
 
 bool
-check( ostream&, const Open& solver, const unsigned )
+check( std::ostream&, const Open& solver, const unsigned )
 {
     bool ok = true;
 
@@ -57,8 +57,8 @@ check( ostream&, const Open& solver, const unsigned )
     unsigned n = solver.offset(solver.NCust);
     for ( unsigned m = 1; m <= solver.M; ++m ) {
 	if ( fabs( solver.L[n][m][1][k] - goodL[m] ) >= 0.001 ) {
-	    cerr << "Mismatch at m=" << m <<", k=" << k;
-	    cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[solverId][m][k] << endl;
+	    std::cerr << "Mismatch at m=" << m <<", k=" << k;
+	    std::cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[solverId][m][k] << std::endl;
 	    ok = false;
 	}
     }

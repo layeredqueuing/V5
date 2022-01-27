@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: test7e.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: test7e.cc 15384 2022-01-25 02:56:14Z greg $
  *
  * Markov Phased server test.  N customers.  2 clients to separate entries.
  * ------------------------------------------------------------------------
@@ -70,7 +70,7 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 	break;
 	
     default:
-	cerr << "Invalid N1 index (0-" << N1_COUNT << "):" << n1_ix << endl;
+	std::cerr << "Invalid N1 index (0-" << N1_COUNT << "):" << n1_ix << std::endl;
 	exit( 1 );
     }
 	
@@ -123,12 +123,12 @@ static double goodL[N1_COUNT][4][N_STATIONS+1][N_ENTRIES+1] =
 
 
 void
-special_check( ostream& output, const MVA& solver, const unsigned s1_ix )
+special_check( std::ostream& output, const MVA& solver, const unsigned s1_ix )
 {
     const int width = output.precision() + 2;
     const unsigned k = 1;
 	
-    output << "By:        Solver  GreatSPN       Difference" << endl;
+    output << "By:        Solver  GreatSPN       Difference" << std::endl;
     unsigned n = solver.offset(solver.NCust);
     for ( unsigned m = 1; m <= solver.M; ++m ) {
 	for ( unsigned e = 1; e <= N_ENTRIES; ++e ) {
@@ -139,8 +139,8 @@ special_check( ostream& output, const MVA& solver, const unsigned s1_ix )
 	    if ( U2 == 0.0 ) continue;
 
 	    output << "U_" << m << e << k << solver.U[n][m][e][k];
-	    output << ", " << setw(width) << U2;
-	    output << ", delta = " << setw(width) << (fabs( U2 - U1 ) * 100.0 / U2) << endl;
+	    output << ", " << std::setw(width) << U2;
+	    output << ", delta = " << std::setw(width) << (fabs( U2 - U1 ) * 100.0 / U2) << std::endl;
 	}
     }
 }
@@ -163,8 +163,8 @@ check( const int solverId, const MVA & solver, const unsigned n1_ix )
 		e = 1;
 	    }
 	    if ( fabs( solver.L[n][m][e][k] - goodL[n1_ix][solverId][m][k] ) >= 0.001 ) {
-		cerr << "Mismatch at m=" << m <<", k=" << k;
-		cerr << ".  Computed=" << solver.L[n][m][e][k] << ", Correct= " << goodL[n1_ix][solverId][m][k] << endl;
+		std::cerr << "Mismatch at m=" << m <<", k=" << k;
+		std::cerr << ".  Computed=" << solver.L[n][m][e][k] << ", Correct= " << goodL[n1_ix][solverId][m][k] << std::endl;
 		ok = false;
 	    }
 	}

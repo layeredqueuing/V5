@@ -3,7 +3,7 @@
  *
  * Hardware submodel for Flow.
  * ------------------------------------------------------------------------
- * $Id: test6.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: test6.cc 15384 2022-01-25 02:56:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -66,7 +66,7 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 
 
 void
-special_check( ostream&, const MVA&, const unsigned )
+special_check( std::ostream&, const MVA&, const unsigned )
 {
 }
 
@@ -96,8 +96,8 @@ check( const int solverId, const MVA & solver, const unsigned )
 		e = k;
 	    }
 	    if ( fabs( solver.L[n][m][e][k] - goodL[solverId][m][k] ) >= 0.001 ) {
-		cerr << "Mismatch at m=" << m <<", k=" << k;
-		cerr << ".  Computed=" << solver.L[n][m][e][k] << ", Correct= " << goodL[solverId][m][k] << endl;
+		std::cerr << "Mismatch at m=" << m <<", k=" << k;
+		std::cerr << ".  Computed=" << solver.L[n][m][e][k] << ", Correct= " << goodL[solverId][m][k] << std::endl;
 		ok = false;
 	    }
 	}

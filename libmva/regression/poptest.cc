@@ -4,7 +4,7 @@
  * Population test ( for X[N] ).
  * ------------------------------------------------------------------------
  *
- * $Id: poptest.cc 14307 2020-12-31 15:54:48Z greg $
+ * $Id: poptest.cc 15384 2022-01-25 02:56:14Z greg $
  */
 
 #include "testmva.h"
@@ -20,7 +20,7 @@ char * myName;
 
 static void usage ()
 {
-    cerr << myName << " [-[els]] n1 n2 n3 ... " << endl;
+    std::cerr << myName << " [-[els]] n1 n2 n3 ... " << std::endl;
     exit( 1 );
 }
 
@@ -49,7 +49,7 @@ int main ( int argc, char * argv[] )
 	    break;
 
 	default:
-	    cerr << "Unkown option." << endl;
+	    std::cerr << "Unkown option." << std::endl;
 	    usage();
 	}
     }
@@ -58,7 +58,7 @@ int main ( int argc, char * argv[] )
     const unsigned k = argc - optind;
 
     if ( k == 0 ) {
-	cerr << "Arg count." << endl;
+	std::cerr << "Arg count." << std::endl;
 	usage();
     }
 
@@ -68,7 +68,7 @@ int main ( int argc, char * argv[] )
     for ( unsigned i = optind; i < argc; ++i ) {
 	N[i-optind+1] = atoi( argv[i] );
     }
-    cout << "Limit: " << N << endl;
+    std::cout << "Limit: " << N << std::endl;
 
     /* Iterate over all populations. */
 

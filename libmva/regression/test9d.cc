@@ -4,7 +4,7 @@
  * Multiserver test.  Conway / de Souza e Silva and Muntz waiting time.
  *
  * ------------------------------------------------------------------------
- * $Id: test9d.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: test9d.cc 15384 2022-01-25 02:56:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -89,14 +89,14 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 	break;
 		
     default:
-	cerr << "Invalid S22 index (0-4):" << s22_ix << endl;
+	std::cerr << "Invalid S22 index (0-4):" << s22_ix << std::endl;
 	exit( 1 );
     }
 }
 
 
 void
-special_check( ostream&, const MVA&, const unsigned )
+special_check( std::ostream&, const MVA&, const unsigned )
 {
 }
 
@@ -172,8 +172,8 @@ check( const int solverId, const MVA & solver, const unsigned s22_ix )
     for ( unsigned m = 1; m <= solver.M; ++m ) {
 	for ( unsigned k = 1; k <= solver.K; ++k ) {
 	    if ( fabs( solver.L[n][m][1][k] - goodL[s22_ix][solverId][m][k] ) >= 0.001 ) {
-		cerr << "Mismatch at m=" << m <<", k=" << k;
-		cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[s22_ix][solverId][m][k] << endl;
+		std::cerr << "Mismatch at m=" << m <<", k=" << k;
+		std::cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[s22_ix][solverId][m][k] << std::endl;
 		ok = false;
 	    }
 	}

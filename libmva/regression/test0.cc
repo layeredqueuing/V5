@@ -4,7 +4,7 @@
  * Lazowska, Ch 6, Page 117
  *
  * ------------------------------------------------------------------------
- * $Id: test0.cc 14307 2020-12-31 15:54:48Z greg $
+ * $Id: test0.cc 15384 2022-01-25 02:56:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -36,7 +36,7 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 
 
 void
-special_check( ostream&, const MVA&, const unsigned )
+special_check( std::ostream&, const MVA&, const unsigned )
 {
 }
 
@@ -61,8 +61,8 @@ check( const int solverId, const MVA & solver, const unsigned )
     for ( unsigned m = 1; m <= solver.M; ++m ) {
 	for ( unsigned k = 1; k <= solver.K; ++k ) {
 	    if ( fabs( solver.L[n][m][1][k] - goodL[solverId][m][k] ) >= 0.001 ) {
-		cerr << "Mismatch at m=" << m <<", k=" << k;
-		cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[solverId][m][k] << endl;
+		std::cerr << "Mismatch at m=" << m <<", k=" << k;
+		std::cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[solverId][m][k] << std::endl;
 		ok = false;
 	    }
 	}

@@ -4,7 +4,7 @@
  * Example from:
  *
  * ------------------------------------------------------------------------
- * $Id: testmixed.cc 14307 2020-12-31 15:54:48Z greg $
+ * $Id: testmixed.cc 15384 2022-01-25 02:56:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -79,7 +79,7 @@ int main (int argc, char *argv[])
 			
 	case 'n':
 	    if ( sscanf( optarg, "%lu", &count ) != 1 ) {
-		cerr << "Bogus loop count: " << optarg << endl;
+		std::cerr << "Bogus loop count: " << optarg << std::endl;
 		exit( 1 );
 	    }
 	    break;
@@ -102,7 +102,7 @@ int main (int argc, char *argv[])
 			
 	case 'z':
 	    if ( sscanf( optarg, "%u", &special ) != 1 ) {
-		cerr << "Bogus \"special\": " << optarg << endl;
+		std::cerr << "Bogus \"special\": " << optarg << std::endl;
 		exit( 1 );
 	    }
 	    break;
@@ -117,7 +117,7 @@ int main (int argc, char *argv[])
     }
 
     if ( optind != argc ) {
-	cerr << "Arg count." << endl;
+	std::cerr << "Arg count." << std::endl;
     }
 
     ok = true;
@@ -125,7 +125,7 @@ int main (int argc, char *argv[])
 	ok = run( solver_set, special );
     }
     if ( !ok ) { 
-	cerr << argv[0] << " fails." << endl;
+	std::cerr << argv[0] << " fails." << std::endl;
 	return 1;
     } else {
 	return 0;
@@ -150,14 +150,14 @@ run( const unsigned solver_set, const unsigned special )
 	try {
 	    test( N, Q, Z, priority, special );
 	}
-	catch ( runtime_error& error ) {
-	    cerr << "runtime error - " << error.what() << endl;
+	catch ( std::runtime_error& error ) {
+	    std::cerr << "runtime error - " << error.what() << std::endl;
 	    return 0;
 	}
 	
 	if ( print_flag ) {
 	    for ( unsigned j = 1; j <= Q.size(); ++j ) {
-		cout << *Q[j] << endl;
+		std::cout << *Q[j] << std::endl;
 	    }
 	}
 
@@ -194,8 +194,8 @@ doIt( solverId solver, Vector<Server *>& Q, const Population & N, const VectorMa
     try {
 	openModel->convert( N );
     }
-    catch ( range_error& error ) {
-	cerr << "range error - " << error.what() << endl;
+    catch ( std::range_error& error ) {
+	std::cerr << "range error - " << error.what() << std::endl;
 	ok = false;
     }
 
@@ -217,37 +217,37 @@ doIt( solverId solver, Vector<Server *>& Q, const Population & N, const VectorMa
     try {
 	closedModel->solve();
     }
-    catch ( runtime_error& error ) {
-	cerr << "runtime error - " << error.what() << endl;
+    catch ( std::runtime_error& error ) {
+	std::cerr << "runtime error - " << error.what() << std::endl;
 	ok = false;
     }
-    catch ( logic_error& error ) {
-	cerr << "logic error - " << error.what() << endl;
+    catch ( std::logic_error& error ) {
+	std::cerr << "logic error - " << error.what() << std::endl;
 	ok = false;
     }
     catch ( floating_point_error& error ) {
-	cerr << "floating point error - " << error.what() << endl;
+	std::cerr << "floating point error - " << error.what() << std::endl;
 	ok = false;
     }
     try {
 	openModel->solve( *closedModel, N );	/* Calculate L[0] queue lengths. */
     }
-    catch ( runtime_error& error ) {
-	cerr << "runtime error - " << error.what() << endl;
+    catch ( std::runtime_error& error ) {
+	std::cerr << "runtime error - " << error.what() << std::endl;
 	ok = false;
     }
 
 	
     if ( ok ) {
 	if ( !silencio_flag ) {
-	    cout << names[(int)solver] << " solver." << endl;
-	    cout.precision(4);
-	    cout << *openModel;
-	    cout << *closedModel;
-	    special_check( cout, *closedModel, special );
+	    std::cout << names[(int)solver] << " solver." << std::endl;
+	    std::cout.precision(4);
+	    std::cout << *openModel;
+	    std::cout << *closedModel;
+	    special_check( std::cout, *closedModel, special );
 	}
 	if ( verbose_flag ) {
-	    cout << "Number of iterations of core step: " << closedModel->iterations() << endl;
+	    std::cout << "Number of iterations of core step: " << closedModel->iterations() << std::endl;
 	}
 
 	if ( !nocheck_flag ) {

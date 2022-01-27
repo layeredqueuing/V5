@@ -13,7 +13,7 @@
  *     month =    feb
  *
  * ------------------------------------------------------------------------
- * $Id: testmva.cc 15107 2021-11-17 16:45:05Z greg $
+ * $Id: testmva.cc 15384 2022-01-25 02:56:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -25,6 +25,7 @@
 #include <getopt.h>
 #include "prob.h"
 #include "fpgoop.h"
+#include "mvaexception.h"
 
 static bool doIt( const solverId, Vector<Server *>& Q, const Population & NCust, const VectorMath<double>& thinkTime, const VectorMath<unsigned>& priority, const unsigned special );
 static bool run( const unsigned solver_set, const unsigned special );
@@ -131,7 +132,7 @@ int main (int argc, char *argv[])
 
 	case 'i':
 	    if ( sscanf( optarg, "%lu", &count ) != 1 ) {
-		cerr << "Bogus loop count: " << optarg << endl;
+		std::cerr << "Bogus loop count: " << optarg << std::endl;
 		exit( 1 );
 	    }
 	    break;
@@ -154,7 +155,7 @@ int main (int argc, char *argv[])
 
 	case 't':
 	    if ( sscanf( optarg, "%u", &special ) != 1 ) {
-		cerr << "Bogus \"special\": " << optarg << endl;
+		std::cerr << "Bogus \"special\": " << optarg << std::endl;
 		exit( 1 );
 	    }
 	    break;
@@ -176,7 +177,7 @@ int main (int argc, char *argv[])
 
 
     if ( optind != argc ) {
-	cerr << "Arg count." << endl;
+	std::cerr << "Arg count." << std::endl;
     }
 
     ok = true;
@@ -184,7 +185,7 @@ int main (int argc, char *argv[])
 	ok = run( solver_set, special );
     }
     if ( !ok ) { 
-	cerr << argv[0] << " fails." << endl;
+	std::cerr << argv[0] << " fails." << std::endl;
 	return 1;
     } else {
 	return 0;
@@ -208,14 +209,14 @@ run( const unsigned solver_set, const unsigned special )
     try {
 	test( N, Q, Z, priority, special );
     }
-    catch ( runtime_error& error ) {
-	cerr << "runtime error - " << error.what() << endl;
+    catch ( std::runtime_error& error ) {
+	std::cerr << "runtime error - " << error.what() << std::endl;
 	return 0;
     }
 	
     if ( print_flag ) {
 	for ( unsigned j = 1; j <= Q.size(); ++j ) {
-	    cout << *Q[j] << endl;
+	    std::cout << *Q[j] << std::endl;
 	}
     }
 
@@ -271,31 +272,31 @@ doIt( solverId solver, Vector<Server *>& Q, const Population & N, const VectorMa
     try {
 	model->solve();
     }
-    catch ( runtime_error& error ) {
-	cerr << "runtime error - " << error.what() << endl;
+    catch ( LibMVA::not_implemented& error ) {
+	std::cerr << error.what() << std::endl;
 	ok = false;
     }
-    catch ( logic_error& error ) {
-	cerr << "logic error - " << error.what() << endl;
+    catch ( std::runtime_error& error ) {
+	std::cerr << "runtime error - " << error.what() << std::endl;
+	ok = false;
+    }
+    catch ( std::logic_error& error ) {
+	std::cerr << "logic error - " << error.what() << std::endl;
 	ok = false;
     }
     catch ( floating_point_error& error ) {
-	cerr << "floating point error - " << error.what() << endl;
-	ok = false;
-    }
-    catch ( not_implemented& error ) {
-	cerr << error.what() << endl;
+	std::cerr << "floating point error - " << error.what() << std::endl;
 	ok = false;
     }
     if ( ok ) {
 	if ( !silencio_flag ) {
-	    cout << names[(int)solver] << " solver." << endl;
-	    cout.precision(4);
-	    cout << *model;
-	    special_check( cout, *model, special );
+	    std::cout << names[(int)solver] << " solver." << std::endl;
+	    std::cout.precision(4);
+	    std::cout << *model;
+	    special_check( std::cout, *model, special );
 	}
 	if ( verbose_flag ) {
-	    cout << "Number of iterations of core step: " << model->iterations() << endl;
+	    std::cout << "Number of iterations of core step: " << model->iterations() << std::endl;
 	}
 
 	if ( !nocheck_flag ) {
@@ -310,11 +311,11 @@ doIt( solverId solver, Vector<Server *>& Q, const Population & N, const VectorMa
 static void
 usage() 
 {
-    cerr << "Usage: " << progname;
+    std::cerr << "Usage: " << progname;
 
 #if HAVE_GETOPT_LONG
-    cerr << " [option]" << endl << endl;
-    cerr << "Options" << endl;
+    std::cerr << " [option]" << std::endl << std::endl;
+    std::cerr << "Options" << std::endl;
     const char ** p = opthelp;
     for ( const struct option *o = longopts; (o->name || o->val) && *p; ++o, ++p ) {
 	string s;
@@ -327,35 +328,35 @@ usage()
 	    s = " ";
 	}
 	if ( isascii(o->val) && isgraph(o->val) ) {
-	    cerr << " -" << static_cast<char>(o->val) << ", ";
+	    std::cerr << " -" << static_cast<char>(o->val) << ", ";
 	} else {
-	    cerr << "     ";
+	    std::cerr << "     ";
 	}
-	cerr.setf( ios::left, ios::adjustfield );
-	cerr << setw(24) << s << *p << endl;
+	std::cerr.setf( ios::left, ios::adjustfield );
+	std::cerr << setw(24) << s << *p << std::endl;
     }
 #else
     const char * s;
-    cerr << " [-";
+    std::cerr << " [-";
     for ( s = opts; *s; ++s ) {
 	if ( *(s+1) == ':' ) {
 	    ++s;
 	} else {
-	    cerr.put( *s );
+	    std::cerr.put( *s );
 	}
     }
-    cerr << ']';
+    std::cerr << ']';
 
     for ( s = opts; *s; ++s ) {
 	if ( *(s+1) == ':' ) {
-	    cerr << " [-" << *s;
+	    std::cerr << " [-" << *s;
 	    switch ( *s ) {
 	    }
-	    cerr << ']';
+	    std::cerr << ']';
 	    ++s;
 	}
     }
 #endif
-    cerr << endl;
+    std::cerr << std::endl;
 }
 

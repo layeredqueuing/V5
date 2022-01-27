@@ -4,7 +4,7 @@
  * Population iterator testor.  See usage().
  * ------------------------------------------------------------------------
  *
- * $Id: popitertest.cc 15107 2021-11-17 16:45:05Z greg $
+ * $Id: popitertest.cc 15384 2022-01-25 02:56:14Z greg $
  */
 
 #include "testmva.h"
@@ -17,7 +17,7 @@ char * myName;
 
 static void usage ()
 {
-	cerr << myName << " [-a [-m<servers>]] [-b [-m<servers>] [-j<class>]] n1 n2 n3 ... " << endl;
+	std::cerr << myName << " [-a [-m<servers>]] [-b [-m<servers>] [-j<class>]] n1 n2 n3 ... " << std::endl;
 	exit( 1 );
 }
 
@@ -45,7 +45,7 @@ int main ( int argc, char * argv[] )
 		case 'j':
 			j = atoi( optarg );
 			if ( !j ) {
-				cerr << "Bad value for j:" << optarg << endl;
+				std::cerr << "Bad value for j:" << optarg << std::endl;
 				usage();
 			}
 			break;
@@ -53,13 +53,13 @@ int main ( int argc, char * argv[] )
 		case'm':
 			m = atoi( optarg );
 			if ( !m ) {
-				cerr << "Bad value for m:" << optarg << endl;
+				std::cerr << "Bad value for m:" << optarg << std::endl;
 				usage();
 			}
 			break;
 
 		default:
-			cerr << "Unkown option." << endl;
+			std::cerr << "Unkown option." << std::endl;
 			usage();
 		}
 	}
@@ -67,7 +67,7 @@ int main ( int argc, char * argv[] )
 	const unsigned k = argc - optind;
 
 	if ( k == 0 ) {
-		cerr << "Arg count." << endl;
+		std::cerr << "Arg count." << std::endl;
 		usage();
 	}
 
@@ -77,7 +77,7 @@ int main ( int argc, char * argv[] )
 	for ( unsigned i = optind; i < argc; ++i ) {
 		NCust[i-optind+1] = atoi( argv[i] );
 	}
-	cout << "Limit: " << NCust << endl;
+	std::cout << "Limit: " << NCust << std::endl;
 
 	switch ( type ) {
 	case A_POP:
@@ -97,7 +97,7 @@ int main ( int argc, char * argv[] )
 
 	
 	for ( unsigned count = 1; (* next)( N ); ++count ) {
-		cout << setw(3) << count << ": " << N << endl;
+		std::cout << std::setw(3) << count << ": " << N << std::endl;
 	}
 	if ( aServer ) {
 	    delete aServer;

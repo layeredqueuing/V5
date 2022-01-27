@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pop.cc 14305 2020-12-31 14:51:49Z greg $
+ * $Id: pop.cc 15393 2022-01-26 23:05:56Z greg $
  *
  * Population vector functions.
  *
@@ -51,7 +51,7 @@ Population::Iterator::operator()( Population& N )
 int
 Population::Iterator::step( Population& N, const unsigned k )
 {
-    if ( N[k] < limit[k] ) {
+    if ( limit[k] != 0 && N[k] < limit[k] ) {
 	N[k] += 1;
 	return offset( N );
     } else {
@@ -178,8 +178,14 @@ PopulationMap::offset_e_c_e_j( const unsigned c, const unsigned j ) const
 PopulationMap::iterator::iterator( const Population& N )
     : _N(N), _n(N.size()), _end(end(N))
 {
-    const size_t k = N.size();
-    _n[k] = 1;			/* One customer in last class 	*/
+    size_t k = N.size();
+    while ( k > 0 && N[k] == 0 ) {
+	_n[k] = 0;
+	k -= 1;
+    }
+    if ( k > 0 ) {
+	_n[k] = 1;			/* One customer in last class 	*/
+    }
     _i = 1;
 }
 

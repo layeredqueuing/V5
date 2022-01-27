@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: test13e.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: test13e.cc 15384 2022-01-25 02:56:14Z greg $
  *
  * Rolia Multiserver test.
  * ------------------------------------------------------------------------
@@ -30,7 +30,7 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 	const unsigned stations = N_STATIONS;
 
 	if ( ix >= N_TESTS ) {
-	    cerr << "Index is too big. (0 < t <= 8)" << endl;
+	    std::cerr << "Index is too big. (0 < t <= 8)" << std::endl;
 	    exit( 1 );
 	}
 	    
@@ -53,7 +53,7 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 
 
 void
-special_check( ostream&, const MVA&, const unsigned )
+special_check( std::ostream&, const MVA&, const unsigned )
 {
 }
 
@@ -117,8 +117,8 @@ check( const int solverId, const MVA & solver, const unsigned v22_ix )
 	for ( unsigned m = 1; m <= solver.M; ++m ) {
 		for ( unsigned k = 1; k <= solver.K; ++k ) {
 			if ( fabs( solver.L[n][m][1][k] - goodL[v22_ix][solverId][m][k] ) >= 0.001 ) {
-				cerr << "Mismatch at m=" << m <<", k=" << k;
-				cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[v22_ix][solverId][m][k] << endl;
+				std::cerr << "Mismatch at m=" << m <<", k=" << k;
+				std::cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[v22_ix][solverId][m][k] << std::endl;
 				ok = false;
 			}
 		}

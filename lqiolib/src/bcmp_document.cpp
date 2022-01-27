@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 15220 2021-12-15 15:18:47Z greg $
+ * $Id: bcmp_document.cpp 15394 2022-01-26 23:21:12Z greg $
  *
  * Read in XML input files.
  *
@@ -297,9 +297,9 @@ namespace BCMP {
     Model::Station::insertResultVariable( Result::Type type, const std::string& name  )
     {
 	if ( type == Result::Type::RESPONSE_TIME ) {
-	    throw std::runtime_error( "Invalid Result::Type" );
+	    throw std::runtime_error( std::string("Invalid Result::Type: ") + name );
 	} else if ( !_result_vars.emplace(type,name).second ) {
-	    throw std::runtime_error( "Duplicate Result Variable" );
+	    throw std::runtime_error( std::string("Duplicate Result Variable: ") + name );
 	}
     }
 
@@ -350,7 +350,7 @@ namespace BCMP {
     /*			           Classes				*/
     /* ---------------------------------------------------------------- */
 
-    const char * const Model::Station::Class::__typeName = "Class";
+    const char * const Model::Station::Class::__typeName = "class";
 
     Model::Station::Class::Class( const DOM::ExternalVariable* visits, const DOM::ExternalVariable* service_time ) :
 	_visits(visits), _service_time(service_time), _results(), _result_vars()
@@ -374,9 +374,9 @@ namespace BCMP {
     Model::Station::Class::insertResultVariable( Result::Type type, const std::string& name  )
     {
 	if ( type == Result::Type::RESPONSE_TIME ) {
-	    throw std::runtime_error( "Invalid Result::Type" );
+	    throw std::runtime_error( std::string("Invalid Result::Type: ") + name );
 	} else if ( !_result_vars.emplace(type,name).second ) {
-	    throw std::runtime_error( "Duplicate Result Variable" );
+	    throw std::runtime_error( std::string("Duplicate Result Variable") + name );
 	}
     }
 

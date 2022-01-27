@@ -1,6 +1,6 @@
 /* graphic.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: graphic.cc 15263 2021-12-26 19:06:26Z greg $
+ * $Id: graphic.cc 15382 2022-01-25 01:42:07Z greg $
  */
 
 #include <cassert>
@@ -1259,6 +1259,8 @@ Fig::clearBackground( std::ostream& output, const Point& anOrigin, const Point& 
 std::ostream&
 Fig::point( std::ostream& output, const Point& aPoint )
 {
+    assert ( 0 <= aPoint.x() && aPoint.x() < std::numeric_limits<int>::max() );
+    assert ( 0 <= aPoint.y() && aPoint.y() < std::numeric_limits<int>::max() );
     output << static_cast<int>(aPoint.x() + 0.5) << ' '
 	   << static_cast<int>(aPoint.y() + 0.5) << ' ';
     return output;

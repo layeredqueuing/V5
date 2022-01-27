@@ -143,20 +143,29 @@ bool
 Model::solve()
 {
     bool ok = true;
-    if ( _input.hasSPEX() && _input.getLQXProgram() != nullptr ) {
-	std::vector<LQX::SyntaxTreeNode *> * program = _input.getLQXProgram();
+    LQX::Program * lqx = _input.getLQXProgram();
+    std::vector<LQX::SyntaxTreeNode *> * program = _input.getSPEXProgram();
+    expr_list result_vars;		/* needs to be scoped here, else println args are cleared */
+    if ( program != nullptr ) {
+	if ( lqx != nullptr ) {
+	    LQIO::solution_error( LQIO::ERR_LQX_SPEX, _input.getInputFileName().c_str() );
+	    return false;
+	}
 		
 	/* Get the result variables and convert to an expression list for construct */
 	const std::vector<LQIO::Spex::var_name_and_expr>& result_variables = LQIO::Spex::result_variables();
-	expr_list result_vars;
 	for ( std::vector<LQIO::Spex::var_name_and_expr>::const_iterator result = result_variables.begin(); result != result_variables.end(); ++result ) {
 	    result_vars.push_back( result->second );
 	}
 	if ( !LQIO::spex.construct_program( program, &result_vars, nullptr, _input.getGNUPlotProgram() ) ) return false;
-	LQX::Program * lqx = LQX::Program::loadRawProgram( program );
+	lqx = LQX::Program::loadRawProgram( program );
+    }
+
+    if ( lqx != nullptr ) {
 	_input.registerExternalSymbolsWithProgram( lqx );
 	if ( print_spex ) {
 	    lqx->print( std::cerr );
+	    std::cerr << std::endl;
 	}
 	FILE * output = nullptr;
 	LQX::Environment * environment = lqx->getEnvironment();

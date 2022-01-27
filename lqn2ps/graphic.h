@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * graphic.h	-- Greg Franks
  *
- * $Id: graphic.h 15262 2021-12-26 18:55:49Z greg $
+ * $Id: graphic.h 15382 2022-01-25 01:42:07Z greg $
  */
 
 #ifndef _GRAPHIC_H
@@ -144,8 +144,8 @@ public:
     enum class Font { DEFAULT, NORMAL, OBLIQUE, BOLD, SPECIAL };
 
 private:
-    Graphic( const Graphic& );
-    Graphic& operator=( const Graphic& );
+    Graphic( const Graphic& ) = delete;
+    Graphic& operator=( const Graphic& ) = delete;
 
 public:
     explicit Graphic( Colour pen_colour = Colour::DEFAULT, Colour fill_colour = Colour::DEFAULT, LineStyle ls = LineStyle::DEFAULT )

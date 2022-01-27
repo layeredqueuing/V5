@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 15240 2021-12-18 04:40:03Z greg $
+ *  $Id: jmva_document.h 15388 2022-01-26 02:26:55Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -135,17 +135,26 @@ namespace BCMP {
 	JMVA_Document( const std::string& input_file_name );
 	JMVA_Document( const std::string&, const BCMP::Model& );
 	virtual ~JMVA_Document();
-	static JMVA_Document * create( const std::string& input_file_name );
+	bool load();
 	static bool load( LQIO::DOM::Document&, const std::string& );		// Factory.
+
+    private:
 	bool parse();
+
+    public:
 	const BCMP::Model& model() const { return _model; }
 	const std::string& getInputFileName() const { return _input_file_name; }
 	const std::map<std::string,std::string>& getPragmaList() const { return _pragmas.getList(); }
 
-	bool hasSPEX() const { return !_variables.empty() || _lqx_program != nullptr; }
+	bool hasSPEX() const { return !_variables.empty() || getSPEXProgram() != nullptr; }
 	bool hasPragmas() const { return !_pragmas.empty(); }
 	bool hasVariable( const std::string& name ) { return _variables.find(name) != _variables.end(); }
-	expr_list * getLQXProgram() const { return _lqx_program; }
+	void setLQXProgram( LQX::Program * program ) { _lqx_program = program; }
+	expr_list * getSPEXProgram() const { return _spex_program; }
+	LQX::Program * getLQXProgram() const { return _lqx_program; }
+	std::string& getLQXProgramText() { return _lqx_program_text; }
+	void setLQXProgramLineNumber( const unsigned n ) { _lqx_program_line_number = n; }
+	const unsigned getLQXProgramLineNumber() const { return _lqx_program_line_number; }
 	expr_list * getGNUPlotProgram() { return &_gnuplot; }
 	std::vector<std::string> getUndefinedExternalVariables() const;
 
@@ -188,6 +197,7 @@ namespace BCMP {
 	void startAlgorithm( Object& object, const XML_Char * element, const XML_Char ** attributes );
 	void startStationResults( Object& object, const XML_Char * element, const XML_Char ** attributes );
 	void startClassResults( Object& object, const XML_Char * element, const XML_Char ** attributes );
+	void startLQX( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void startNOP( Object&, const XML_Char * element, const XML_Char ** attributes );
 
 	const LQIO::DOM::ExternalVariable * getVariableAttribute( const XML_Char **attributes, const XML_Char * attribute, double default_value=-1.0 );
@@ -362,9 +372,12 @@ namespace BCMP {
 	std::string _text;
 	std::stack<parse_stack_t> _stack;
 	LQIO::DOM::Pragma _pragmas;
-
+	std::string _lqx_program_text;
+	unsigned int _lqx_program_line_number;
+	LQX::Program * _lqx_program;
+	
 	/* SPEX */
-	expr_list* _lqx_program;
+	expr_list* _spex_program;
 	std::map<std::string,LQIO::DOM::SymbolExternalVariable*> _variables;	/* Spex vars */
 
 	/* Maps for asssociating var (the string) to an object */
@@ -403,6 +416,7 @@ namespace BCMP {
 	static const XML_Char * Xdescription;
 	static const XML_Char * Xldstation;
 	static const XML_Char * Xlistation;
+	static const XML_Char * XLQX;
 	static const XML_Char * XmaxSamples;
 	static const XML_Char * Xmodel;
 	static const XML_Char * Xmultiplicity;

@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 15230 2021-12-17 14:22:19Z greg $
+ * $Id: qnsolver.cc 15395 2022-01-27 02:04:58Z greg $
  */
 
 #include "config.h"
@@ -44,6 +44,7 @@ const struct option longopts[] =
     { "help",					no_argument,		0, 'h' },
     { "export-qnap2",				no_argument,		0, 'Q' },
     { "debug-mva",				no_argument,		0, 'D' },
+    { "debug-lqx",				no_argument,		0, 'L' },
     { "debug-xml",				no_argument,		0, 'X' },
     { "debug-spex",				no_argument,		0, 'S' },
     { nullptr, 0, 0, 0 }
@@ -156,6 +157,10 @@ int main (int argc, char *argv[])
 	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_linearizer_);
 	    break;
 
+	case 'L':
+	    LQIO::DOM::Document::lqx_parser_trace(stderr);
+	    break;
+	    
 	case 'm':
 	    pragmas.insert(LQIO::DOM::Pragma::_multiserver_,optarg);
 	    break;
@@ -259,7 +264,7 @@ static void exec( const std::string& input_file_name, const std::string& output_
 
     if ( verbose_flag ) std::cerr << input_file_name << ": load... ";
     BCMP::JMVA_Document input( input_file_name );
-    if ( input.parse() ) {
+    if ( input.load() ) {
 	if ( print_qnap2 ) {
 	    std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
 	} else {

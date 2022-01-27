@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 15376 2022-01-23 03:07:46Z greg $
+ * $Id: jmva_document.cpp 15390 2022-01-26 14:28:17Z greg $
  *
  * Read in XML input files.
  *
@@ -11,6 +11,9 @@
  * December 2020.
  * ------------------------------------------------------------------------
  */
+
+#define BUG_343 1
+#define BUG_344 1
 
 #if HAVE_CONFIG_H
 #include <config.h>
@@ -72,20 +75,22 @@ namespace BCMP {
     /* DOM input.                                                       */
     /* ---------------------------------------------------------------- */
 
-    JMVA_Document::JMVA_Document( const std::string& input_file_name ) : _model(), _input_file_name(input_file_name), _parser(nullptr), _stack(),
-									 _pragmas(), _lqx_program(nullptr), _variables(), 
-									 _think_time_vars(), _population_vars(), _arrival_rate_vars(),
-									 _multiplicity_vars(), _service_time_vars(), _visit_vars(),
-									 _plot_population_mix(false), _x1(), _x2()
+    JMVA_Document::JMVA_Document( const std::string& input_file_name ) :
+	_model(), _input_file_name(input_file_name), _parser(nullptr), _stack(),
+	_pragmas(), _lqx_program_text(), _lqx_program_line_number(0), _lqx_program(nullptr), _spex_program(nullptr), _variables(), 
+	_think_time_vars(), _population_vars(), _arrival_rate_vars(),
+	_multiplicity_vars(), _service_time_vars(), _visit_vars(),
+	_plot_population_mix(false), _x1(), _x2()
     {
 	LQIO::DOM::Document::__input_file_name = input_file_name;
     }
 
-    JMVA_Document::JMVA_Document( const std::string& input_file_name, const BCMP::Model& model ) : _model(model), _input_file_name(input_file_name), _parser(nullptr), _stack(),
-												   _pragmas(), _lqx_program(nullptr), _variables(), 
-												   _think_time_vars(), _population_vars(), _arrival_rate_vars(),
-												   _multiplicity_vars(), _service_time_vars(), _visit_vars(),
-												   _plot_population_mix(false), _x1(), _x2()
+    JMVA_Document::JMVA_Document( const std::string& input_file_name, const BCMP::Model& model ) :
+	_model(model), _input_file_name(input_file_name), _parser(nullptr), _stack(),
+	_pragmas(), _lqx_program_text(), _lqx_program_line_number(0), _lqx_program(nullptr), _spex_program(nullptr), _variables(), 
+	_think_time_vars(), _population_vars(), _arrival_rate_vars(),
+	_multiplicity_vars(), _service_time_vars(), _visit_vars(),
+	_plot_population_mix(false), _x1(), _x2()
     {
 	LQIO::DOM::Document::__input_file_name = input_file_name;
     }
@@ -100,26 +105,39 @@ namespace BCMP {
 	LQIO::DOM::Document::__input_file_name.clear();
     }
 
-    /* static */ JMVA_Document *
-    JMVA_Document::create( const std::string& input_file_name )
+    /*
+     * Load the document 
+     */
+    
+    bool
+    JMVA_Document::load()
     {
-	JMVA_Document * document = new JMVA_Document( input_file_name );
-	if ( document->parse() ) {
-	    return document;
-	} else {
-	    delete document;
-	    return nullptr;
+	if ( !parse() ) return false;
+
+	/* LQX present? */
+	const std::string& program_text = getLQXProgramText();
+	if ( !program_text.empty() ) {
+	    LQX::Program* program = nullptr;
+	    program = LQX::Program::loadFromText(_input_file_name.c_str(), getLQXProgramLineNumber(), program_text.c_str());
+	    setLQXProgram( program );
 	}
+	return true;
     }
 
+
+    /* 
+     * For loading a JMVA document into an LQN document.  There is a
+     * memory leak here, but the external variables are shared between
+     * the jmva document and the dom.
+     */
+    
     bool
     JMVA_Document::load( LQIO::DOM::Document& lqn, const std::string& input_file_name )
     {
-	JMVA_Document * jmva = create( input_file_name );
-	if ( !jmva ) return false;
+	JMVA_Document * jmva = new JMVA_Document( input_file_name );
+	if ( !jmva->parse() ) return false;
 	return  jmva->convertToLQN( lqn );
     }
-
 
 
     bool
@@ -208,6 +226,7 @@ namespace BCMP {
 	    rc = false;
 	}
 	catch ( const std::runtime_error& e ) {
+	    LQIO::input_error( "Runtime error: %s ", e.what() );
 	    rc = false;
 	}
 
@@ -328,6 +347,9 @@ namespace BCMP {
 	const parse_stack_t& top = parser->_stack.top();
 	if ( top.start == &JMVA_Document::startDescription || top.start == &JMVA_Document::startServiceTime || top.start == &JMVA_Document::startVisit ) {
 	    parser->_text.append( text, length );
+	} else if ( top.start == &JMVA_Document::startLQX ) {
+	    std::string& program = const_cast<std::string &>(parser->getLQXProgramText());
+	    program.append( text, length );
 	}
     }
 
@@ -453,6 +475,9 @@ namespace BCMP {
 	    checkAttributes( element, attributes, solutions_table );
 	    setResultVariables( XML::getStringAttribute( attributes, XResultVariables, "" ) );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startSolutions) );
+	} else if ( strcasecmp( element, XLQX ) == 0 ) {
+	    setLQXProgramLineNumber(XML_GetCurrentLineNumber(_parser));
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startLQX) );
 	} else {
 	    throw LQIO::element_error( element );
 	}
@@ -781,6 +806,7 @@ namespace BCMP {
 	}
     }
 
+
     /*
      * Generate SPEX result vars here.
      */
@@ -796,6 +822,17 @@ namespace BCMP {
 	    throw LQIO::element_error( element );
 	}
     }
+
+
+    /*
+     */
+
+    void
+    JMVA_Document::startLQX( Object& object, const XML_Char * element, const XML_Char ** attributes )
+    {
+	throw LQIO::element_error( element );             /* Should not get here. */
+    }
+    
 
     /*
      */
@@ -936,7 +973,7 @@ namespace BCMP {
 	LQIO::Spex::__input_variables[x_var] = statement;	/* Save for output */
 
 	/* Add the loop to the program */
-	_lqx_program = static_cast<expr_list *>(spex_list( _lqx_program, statement ));
+	_spex_program = static_cast<expr_list *>(spex_list( _spex_program, statement ));
 
 	/* If this is the first WhatIf, then set the first x variable for gnuplot */
 	if ( _x1.empty() ) {
@@ -1120,6 +1157,12 @@ namespace BCMP {
 	assignment_expr = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &class2_name[1], false ), new LQX::MethodInvocationExpression( "floor", function_args ) );
 	LQIO::Spex::__deferred_assignment.push_back( assignment_expr );
 	LQIO::Spex::__input_variables[class2_name] = assignment_expr;
+#if BUG_343
+	if ( LQIO::Spex::__input_variables.size() == 0 ) {
+	    std::cerr << "No input variables..." << std::endl;
+	
+	}
+#endif
 	return beta;
     }
 
@@ -1158,8 +1201,6 @@ namespace BCMP {
 	std::string name;
 	name = r.first + "_" + _m->first;	// Don't forget leading $!
 	std::replace( name.begin(), name.end(), ' ', '_' );			/* Remove spaces from names */
-	Model::Result::map_t& result_vars = const_cast<Model::Result::map_t&>(_m->second.resultVariables());
-	result_vars[r.second] = name;
 	_self.appendResultVariable( name );
 	_self.createObservation( name, r.second, &_m->second, nullptr );	/* Station results only */
     }
@@ -1949,6 +1990,7 @@ namespace BCMP {
     const XML_Char * JMVA_Document::Xdelaystation	= "delaystation";
     const XML_Char * JMVA_Document::Xdescription	= "description";
     const XML_Char * JMVA_Document::Xlistation		= "listation";
+    const XML_Char * JMVA_Document::XLQX		= "lqx";
     const XML_Char * JMVA_Document::Xldstation		= "ldstation";
     const XML_Char * JMVA_Document::XmaxSamples		= "maxSamples";
     const XML_Char * JMVA_Document::Xmodel		= "model";

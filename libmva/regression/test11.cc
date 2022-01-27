@@ -4,7 +4,7 @@
  * Priority MVA Test case from:
  *
  * ------------------------------------------------------------------------
- * $Id: test11.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: test11.cc 15384 2022-01-25 02:56:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -38,7 +38,7 @@ void test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, Vector
 }
 
 
-void special_check( ostream&, const MVA&, const unsigned )
+void special_check( std::ostream&, const MVA&, const unsigned )
 {
 }
 
@@ -60,8 +60,8 @@ check( const int solverId, const MVA& solver, const unsigned )
     for ( unsigned m = 1; m <= solver.M; ++m ) {
 	for ( unsigned k = 1; k <= solver.K; ++k ) {
 	    if ( fabs( solver.L[n][m][1][k] - goodL[solverId][m][k] ) >= 0.001 ) {
-		cerr << "Mismatch at m=" << m <<", k=" << k;
-		cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[solverId][m][k] << endl;
+		std::cerr << "Mismatch at m=" << m <<", k=" << k;
+		std::cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[solverId][m][k] << std::endl;
 		ok = false;
 	    }
 	}

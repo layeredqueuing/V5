@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: label.cc 15262 2021-12-26 18:55:49Z greg $
+ * $Id: label.cc 15383 2022-01-25 02:30:08Z greg $
  */
 
 #include "lqn2ps.h"
@@ -687,7 +687,9 @@ LabelFig::initialPoint() const
 	dx = -Flags::font_size() / 2.0 * FIG_SCALING;
 	break;
     }
-    aPoint.moveBy( dx, (((1-size())*Flags::font_size())/2 + 2) * FIG_SCALING );
+    aPoint.moveBy( dx, (((1.0-size())*Flags::font_size())/2.0 + 2.0) * FIG_SCALING );	// Beware of unsigned int math!
+    assert ( 0 <= aPoint.x() && aPoint.x() < std::numeric_limits<int>::max() );
+    assert ( 0 <= aPoint.y() && aPoint.y() < std::numeric_limits<int>::max() );
     return aPoint;
 }
 
@@ -1240,7 +1242,7 @@ LabelTeX::initialPoint() const
     case Justification::RIGHT:	dx = -Flags::font_size() / 2.0 * EEPIC_SCALING; break;
     }
 
-    aPoint.moveBy( dx, -(((1-size())*Flags::font_size())/2. + 1.) * EEPIC_SCALING);
+    aPoint.moveBy( dx, -(((1.-size())*Flags::font_size())/2. + 1.) * EEPIC_SCALING);	// Beware of unsigned math!
     return aPoint;
 }
 
@@ -1340,7 +1342,7 @@ LabelPsTeX::initialPoint() const
 	dx = -Flags::font_size() / 2.0 * FIG_SCALING;
 	break;
     }
-    aPoint.moveBy( dx, (((1-size())*Flags::font_size())/2 + 2) * FIG_SCALING );
+    aPoint.moveBy( dx, (((1.0-size())*Flags::font_size())/2.0 + 2.0) * FIG_SCALING );	// Beware of unsigned math
     return aPoint;
 }
 

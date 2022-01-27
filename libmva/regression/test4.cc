@@ -6,7 +6,7 @@
  *
  *
  * ------------------------------------------------------------------------
- * $Id: test4.cc 14323 2021-01-03 03:49:05Z greg $
+ * $Id: test4.cc 15384 2022-01-25 02:56:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -79,7 +79,7 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 	variance = 4.0;
 	break;
     default:
-	cerr << "Invalid V5 index (0-4):" << v5_ix << endl;
+	std::cerr << "Invalid V5 index (0-4):" << v5_ix << std::endl;
 	exit( 1 );
     }
 
@@ -93,15 +93,15 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 
 
 void
-special_check( ostream& output, const MVA& solver, const unsigned )
+special_check( std::ostream& output, const MVA& solver, const unsigned )
 {
     const unsigned m = 6;
     const unsigned k = 1;
 
-    output << "Terminal Response Time (by sum of R()) = " << solver.responseTime(  *solver.Q[m], k ) << endl;
+    output << "Terminal Response Time (by sum of R()) = " << solver.responseTime(  *solver.Q[m], k ) << std::endl;
 
     const double response_time = solver.NCust[k] / solver.throughput( m, k, solver.NCust ) - solver.Q[m]->S(k);
-    output << "Terminal Response Time (by throughput) = " << response_time << endl;
+    output << "Terminal Response Time (by throughput) = " << response_time << std::endl;
 }
 
 
@@ -142,8 +142,8 @@ check( const int solverId, const MVA & solver, const unsigned v5_ix )
     for ( unsigned m = 1; m <= solver.M; ++m ) {
 	for ( unsigned k = 1; k <= solver.K; ++k ) {
 	    if ( fabs( solver.L[n][m][1][k] - goodL[v5_ix][solverId][m][k] ) >= 0.001 ) {
-		cerr << "Mismatch at m=" << m <<", k=" << k;
-		cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[v5_ix][solverId][m][k] << endl;
+		std::cerr << "Mismatch at m=" << m <<", k=" << k;
+		std::cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[v5_ix][solverId][m][k] << std::endl;
 		ok = false;
 	    }
 	}

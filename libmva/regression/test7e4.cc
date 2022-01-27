@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: test7e4.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: test7e4.cc 15384 2022-01-25 02:56:14Z greg $
  *
  * Four customers, one server (inService probability test).
  * This version has a phased server.
@@ -85,7 +85,7 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 	NCust[4] = ncust_ix;
 	break;
     default:
-	cerr << "Invalid S5 index (0-1):" << ncust_ix << endl;
+	std::cerr << "Invalid S5 index (0-1):" << ncust_ix << std::endl;
 	exit( 1 );
     }
 	
@@ -103,11 +103,11 @@ static double exactU[Ncust_COUNT][N_STATIONS+1][N_CLASSES+1] =
 
 
 void
-special_check( ostream& output, const MVA& solver, const unsigned ncust_ix )
+special_check( std::ostream& output, const MVA& solver, const unsigned ncust_ix )
 {
     const int width = output.precision() + 2;
 
-    output << "By:              Solver GreatSPN      Difference" << endl;
+    output << "By:              Solver GreatSPN      Difference" << std::endl;
     unsigned n = solver.offset(solver.NCust);
     for ( unsigned m = 1; m <= solver.M; ++m ) {
 	for ( unsigned k = 1; k <= solver.K; ++k ) {
@@ -124,8 +124,8 @@ special_check( ostream& output, const MVA& solver, const unsigned ncust_ix )
 	    if ( U2 == 0.0 ) continue;
 
 	    output << "U_" << m << e << k << solver.U[n][m][e][k];
-	    output << ", " << setw(width) << U2;
-	    output << ", delta = " << setw(width) << (fabs( U2 - U1 ) * 100.0 / U2) << endl;
+	    output << ", " << std::setw(width) << U2;
+	    output << ", delta = " << std::setw(width) << (fabs( U2 - U1 ) * 100.0 / U2) << std::endl;
 	}
     }
 }
@@ -163,8 +163,8 @@ check( const int solverId, const MVA & solver, const unsigned ncust_ix )
 		e = 1;
 	    }
 	    if ( fabs( solver.L[n][m][e][k] - goodL[ncust_ix][solverId][m][k] ) >= 0.001 ) {
-		cerr << "Mismatch at m=" << m <<", k=" << k;
-		cerr << ".  Computed=" << solver.L[n][m][e][k] << ", Correct= " << goodL[ncust_ix][solverId][m][k] << endl;
+		std::cerr << "Mismatch at m=" << m <<", k=" << k;
+		std::cerr << ".  Computed=" << solver.L[n][m][e][k] << ", Correct= " << goodL[ncust_ix][solverId][m][k] << std::endl;
 		ok = false;
 	    }
 	}

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: test8.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: test8.cc 15384 2022-01-25 02:56:14Z greg $
  *
  * Conway Multiserver test.
  * ------------------------------------------------------------------------
@@ -62,14 +62,14 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 		Q[2]->setService(2,1.0).setVisits(2,20.0);
 		break;
 	default:
-		cerr << "Invalid S22 index (0-4):" << v22_ix << endl;
+		std::cerr << "Invalid S22 index (0-4):" << v22_ix << std::endl;
 		exit( 1 );
 	}
 }
 
 
 void
-special_check( ostream&, const MVA&, const unsigned )
+special_check( std::ostream&, const MVA&, const unsigned )
 {
 }
 
@@ -121,8 +121,8 @@ check( const int solverId, const MVA & solver, const unsigned v22_ix )
 				e = 1;
 			}
 			if ( fabs( solver.L[n][m][e][k] - goodL[v22_ix][solverId][m][k] ) >= 0.001 ) {
-				cerr << "Mismatch at m=" << m <<", k=" << k;
-				cerr << ".  Computed=" << solver.L[n][m][e][k] << ", Correct= " << goodL[v22_ix][solverId][m][k] << endl;
+				std::cerr << "Mismatch at m=" << m <<", k=" << k;
+				std::cerr << ".  Computed=" << solver.L[n][m][e][k] << ", Correct= " << goodL[v22_ix][solverId][m][k] << std::endl;
 				ok = false;
 			}
 		}

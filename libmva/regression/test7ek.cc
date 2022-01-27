@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: test7ek.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: test7ek.cc 15384 2022-01-25 02:56:14Z greg $
  *
  * Markov Phased server test.  N customers.  2 clients to separate entries.
  * Entry service time varies.
@@ -76,7 +76,7 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 	break;
 		
     default:
-	cerr << "Invalid S2 index (0-1):" << s2_ix << endl;
+	std::cerr << "Invalid S2 index (0-1):" << s2_ix << std::endl;
 	exit( 1 );
     }
 	
@@ -116,11 +116,11 @@ static double goodL[S2_COUNT][4][N_STATIONS+1][N_CLASSES+1] =
 
 
 void
-special_check( ostream& output, const MVA& solver, const unsigned s1_ix )
+special_check( std::ostream& output, const MVA& solver, const unsigned s1_ix )
 {
     const int width = output.precision() + 2;
 	
-    output << "By:         Solver GreatSPN      Difference" << endl;
+    output << "By:         Solver GreatSPN      Difference" << std::endl;
     unsigned n = solver.offset(solver.NCust);
     for ( unsigned m = 1; m <= solver.M; ++m ) {
 	for ( unsigned k = 1; k <= solver.K; ++k ) {
@@ -136,8 +136,8 @@ special_check( ostream& output, const MVA& solver, const unsigned s1_ix )
 	    if ( U2 == 0.0 ) continue;
 
 	    output << "U_" << m << e << k << solver.U[n][m][e][k];
-	    output << ", " << setw(width) << U2;
-	    output << ", delta = " << setw(width) << (fabs( U2 - U1 ) * 100.0 / U2) << endl;
+	    output << ", " << std::setw(width) << U2;
+	    output << ", delta = " << std::setw(width) << (fabs( U2 - U1 ) * 100.0 / U2) << std::endl;
 	}
     }
 }
@@ -160,8 +160,8 @@ check( const int solverId, const MVA & solver, const unsigned s2_ix )
 		e = 1;
 	    }
 	    if ( fabs( solver.L[n][m][e][k] - goodL[s2_ix][solverId][m][k] ) >= 0.001 ) {
-		cerr << "Mismatch at m=" << m <<", k=" << k;
-		cerr << ".  Computed=" << solver.L[n][m][e][k] << ", Correct= " << goodL[s2_ix][solverId][m][k] << endl;
+		std::cerr << "Mismatch at m=" << m <<", k=" << k;
+		std::cerr << ".  Computed=" << solver.L[n][m][e][k] << ", Correct= " << goodL[s2_ix][solverId][m][k] << std::endl;
 		ok = false;
 	    }
 	}

@@ -4,7 +4,7 @@
  * Vary the number of servers.  Test all multi-server models.
  *
  * ------------------------------------------------------------------------
- * $Id: test9i.cc 14307 2020-12-31 15:54:48Z greg $
+ * $Id: test9i.cc 15384 2022-01-25 02:56:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -90,7 +90,7 @@ main (int argc, char *argv[])
 	case 'n':
 	    count = atol( optarg );
 	    if ( count == 0 ) {
-		cerr << "Bogus loop count: " << optarg << endl;
+		std::cerr << "Bogus loop count: " << optarg << std::endl;
 		exit( 1 );
 	    }
 	    break;
@@ -110,7 +110,7 @@ main (int argc, char *argv[])
 	case 'z':
 	    special = atoi( optarg );
 	    if ( special <= 0 || INFINITE < special ) {
-		cerr << "Bogus \"special\": " << optarg << endl;
+		std::cerr << "Bogus \"special\": " << optarg << std::endl;
 		exit( 1 );
 	    }
 	    break;
@@ -125,7 +125,7 @@ main (int argc, char *argv[])
     }
 
     if ( optind != argc ) {
-	cerr << "Arg count." << endl;
+	std::cerr << "Arg count." << std::endl;
     }
 
     status = 1;
@@ -172,27 +172,27 @@ run( const unsigned solver_set, const unsigned special )
     int status = 1;
 
     if ( !silencio_flag ) {
-	cout << "Multi-server model is " << special_str[special] << endl;
+	std::cout << "Multi-server model is " << special_str[special] << std::endl;
     }
 	
     for ( unsigned i = 0; i <= 3; ++i ) {
 	if ( (1 << i) & solver_set ) {
 	    if ( !silencio_flag ) {
-		cout << names[i] << endl;
+		std::cout << names[i] << std::endl;
 	    }
 	    const unsigned max_n = (special == INFINITE) ? 1 : 10;
 	    for ( unsigned n = 1; n <= max_n; ++n ) {
 		try {
 		    test( N, Q, special, n );
 		}
-		catch ( runtime_error& error ) {
-		    cerr << "runtime error - " << error.what() << endl;
+		catch ( std::runtime_error& error ) {
+		    std::cerr << "runtime error - " << error.what() << std::endl;
 		    return 0;
 		}
 
 		if ( debug_flag ) {
 		    for ( unsigned j = 1; j <= stations; ++j ) {
-			cout << Q[j] << endl;
+			std::cout << Q[j] << std::endl;
 		    }
 		}
 
@@ -234,28 +234,28 @@ doIt( solverId solver, Vector<Server *>& Q, const Population & N, const VectorMa
     try {
 	model->solve();
     }
-    catch ( runtime_error& error ) {
-	cerr << "runtime error - " << error.what() << endl;
-	ok = false;
-    }
-    catch ( logic_error& error ) {
-	cerr << "logic error - " << error.what() << endl;
-	ok = false;
-    }
     catch ( floating_point_error& error ) {
-	cerr << "floating point error - " << error.what() << endl;
+	std::cerr << "floating point error - " << error.what() << std::endl;
+	ok = false;
+    }
+    catch ( std::runtime_error& error ) {
+	std::cerr << "runtime error - " << error.what() << std::endl;
+	ok = false;
+    }
+    catch ( std::logic_error& error ) {
+	std::cerr << "logic error - " << error.what() << std::endl;
 	ok = false;
     }
 	
     if ( ok ) {
 	if ( !silencio_flag ) {
-	    cout << names[(int)solver] << " solver." << endl;
-	    cout.precision(4);
-	    cout << *model;
-	    special_check( cout, *model, special );
+	    std::cout << names[(int)solver] << " solver." << std::endl;
+	    std::cout.precision(4);
+	    std::cout << *model;
+	    special_check( std::cout, *model, special );
 	}
 	if ( verbose_flag ) {
-	cout << "Number of iterations of core step: " << model->iterations() << endl;
+	std::cout << "Number of iterations of core step: " << model->iterations() << std::endl;
 	}
 
 	if ( !nocheck_flag ) {
@@ -328,16 +328,16 @@ check( const MVA &model, const unsigned special, const unsigned solver, const un
     if ( fabs( goodX[special-1][solver][n_servers-1] - model.throughput(1) ) < 0.001 ) {
 	return true;
     } else {
-	cerr << "Mismatch at " << special
+	std::cerr << "Mismatch at " << special
 	     << ".  Computed=" << model.throughput(1)
-	     << ", Correct= " << goodX[special-1][solver][n_servers-1] << endl;
+	     << ", Correct= " << goodX[special-1][solver][n_servers-1] << std::endl;
 	return false;
     }
 }
 
 void
-special_check( ostream& output, const MVA& solver, const unsigned )
+special_check( std::ostream& output, const MVA& solver, const unsigned )
 {
-    output << ": X = " << setw(4) << solver.throughput(1)
-	   << ", U" << setw(4) << solver.U[2][1][1];
+    output << ": X = " << std::setw(4) << solver.throughput(1)
+	   << ", U" << std::setw(4) << solver.U[2][1][1];
 }

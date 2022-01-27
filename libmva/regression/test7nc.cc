@@ -3,7 +3,7 @@
  *
  * Markov Phased server test.  N customers.  One client to common entry.
  * ------------------------------------------------------------------------
- * $Id: test7nc.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: test7nc.cc 15384 2022-01-25 02:56:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -72,7 +72,7 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 	NCust[1] = 5;
 	break;
     default:
-	cerr << "Invalid S1 index (0-2):" << s1_ix << endl;
+	std::cerr << "Invalid S1 index (0-2):" << s1_ix << std::endl;
 	exit( 1 );
     }
     prOt[1][0][2] = prOt[1][1][2];	
@@ -112,12 +112,12 @@ static double goodL[S1_COUNT][4][N_STATIONS+1][N_CLASSES+1] =
       { { 0,0 }, {0, 0.4949}, {0, 4.505} } }
 };
 
-void special_check( ostream& output, const MVA& solver, const unsigned s1_ix )
+void special_check( std::ostream& output, const MVA& solver, const unsigned s1_ix )
 {
     const unsigned e = 1;
     const int width = output.precision() + 2;
 	
-    output << "By:        Solver  GreatSPN        Difference" << endl;
+    output << "By:        Solver  GreatSPN        Difference" << std::endl;
     unsigned n = solver.offset(solver.NCust);
     for ( unsigned m = 1; m <= solver.M; ++m ) {
 	for ( unsigned k = 1; k <= solver.K; ++k ) {
@@ -127,8 +127,8 @@ void special_check( ostream& output, const MVA& solver, const unsigned s1_ix )
 	    if ( U2 == 0.0 ) continue;
 
 	    output << "U_" << m << e << k << solver.U[n][m][e][k];
-	    output << ", " << setw(width) << U2;
-	    output << ", delta = " << setw(width) << (fabs( U2 - U1 ) * 100.0 / U2) << endl;
+	    output << ", " << std::setw(width) << U2;
+	    output << ", delta = " << std::setw(width) << (fabs( U2 - U1 ) * 100.0 / U2) << std::endl;
 	}
     }
 }
@@ -144,8 +144,8 @@ check( const int solverId, const MVA & solver, const unsigned s1_ix )
     for ( unsigned m = 1; m <= solver.M; ++m ) {
 	for ( unsigned k = 1; k <= solver.K; ++k ) {
 	    if ( fabs( solver.L[n][m][1][k] - goodL[s1_ix][solverId][m][k] ) >= 0.001 ) {
-		cerr << "Mismatch at m=" << m <<", k=" << k;
-		cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[s1_ix][solverId][m][k] << endl;
+		std::cerr << "Mismatch at m=" << m <<", k=" << k;
+		std::cerr << ".  Computed=" << solver.L[n][m][1][k] << ", Correct= " << goodL[s1_ix][solverId][m][k] << std::endl;
 		ok = false;
 	    }
 	}

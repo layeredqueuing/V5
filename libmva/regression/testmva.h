@@ -4,7 +4,7 @@
  * Exported goodies.
  *
  * ------------------------------------------------------------------------
- * $Id: testmva.h 15107 2021-11-17 16:45:05Z greg $
+ * $Id: testmva.h 15384 2022-01-25 02:56:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -17,8 +17,6 @@
 #include "pop.h"
 #include "server.h"
 #include "mva.h"
-
-using namespace std;
 
 class Server;
 class Population;
@@ -37,7 +35,7 @@ typedef enum {EXACT_SOLVER, LINEARIZER_SOLVER, LINEARIZER2_SOLVER, BARD_SCHWEITZ
 /* linearizer.c */
 
 int main(int argc, char *argv[]);
-void special_check( ostream&, const MVA&, const unsigned );
+void special_check( std::ostream&, const MVA&, const unsigned );
 void test( Population&, Vector<Server *>&, VectorMath<double>&, VectorMath<unsigned>&, const unsigned );
 bool check( const int, const MVA&, const unsigned );
 
