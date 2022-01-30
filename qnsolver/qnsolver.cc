@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 15395 2022-01-27 02:04:58Z greg $
+ * $Id: qnsolver.cc 15409 2022-01-30 15:45:57Z greg $
  */
 
 #include "config.h"
@@ -36,7 +36,7 @@ const struct option longopts[] =
     { "plot-queue-length",			required_argument,	0, 'q' },
     { "plot-response-time",			no_argument,		0, 'r' },
     { "plot-throughput",			optional_argument,	0, 't' },
-    { "plot-utilization",			required_argument,	0, 'u' },
+    { "plot-utilization",			optional_argument,	0, 'u' },
     { "plot-waiting-time",			required_argument,	0, 'w' },
     { "multiserver",				required_argument,	0, 'm' },
     { LQIO::DOM::Pragma::_force_multiserver_,	no_argument,		0, 'F' },
@@ -83,7 +83,6 @@ static bool verbose_flag = false;		/* Print steps		*/
 static bool print_qnap2 = false;		/* Export to qnap2.  		*/
 static bool print_gnuplot = false;		/* Output WhatIf as gnuplot	*/
 static BCMP::Model::Result::Type plot_type = BCMP::Model::Result::Type::THROUGHPUT;
-static std::string plot_arg;
 
 /* Globals */
 
@@ -95,11 +94,12 @@ BCMP::JMVA_Document* __input = nullptr;
 
 /* Local procedures */
 
-static void exec( const std::string& input_file_name, const std::string& output_file_name );
+static void exec( const std::string& input_file_name, const std::string& output_file_name, const std::string& );
 
 int main (int argc, char *argv[])
 {
     std::string output_file_name;
+    std::string plot_arg;
 
     program_name = basename( argv[0] );
 
@@ -234,10 +234,10 @@ int main (int argc, char *argv[])
 
 #if HAVE_EXPAT_H
     if ( optind == argc ) {
-	exec( "-", output_file_name );
+	exec( "-", output_file_name, plot_arg );
     } else {
         for ( ; optind < argc; ++optind ) {
-	    exec( argv[optind], output_file_name );
+	    exec( argv[optind], output_file_name, plot_arg );
 	}
     }
 #else
@@ -251,7 +251,7 @@ int main (int argc, char *argv[])
  * Run the solver.
  */
 
-static void exec( const std::string& input_file_name, const std::string& output_file_name )
+static void exec( const std::string& input_file_name, const std::string& output_file_name, const std::string& plot_arg )
 {
     static std::map<const Model::Solver,const std::string> solver_name = {
 	{ Model::Solver::EXACT_MVA,		LQIO::DOM::Pragma::_exact_ },

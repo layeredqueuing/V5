@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 15388 2022-01-26 02:26:55Z greg $
+ *  $Id: jmva_document.h 15409 2022-01-30 15:45:57Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -310,7 +310,8 @@ namespace BCMP {
 	std::ostream& plot_chain( std::ostream& plot, Model::Result::Type type );
 	std::ostream& plot_class( std::ostream& plot, Model::Result::Type type, const std::string& );
 	std::ostream& plot_station( std::ostream& plot, Model::Result::Type type, const std::string& );
-	std::ostream& plot_population_mix( std::ostream& plot );
+	std::ostream& plot_population_mix_vs_throughput( std::ostream& plot );
+	std::ostream& plot_population_mix_vs_utilization( std::ostream& plot );
 
 	/* -------------------------- Output -------------------------- */
 
@@ -401,6 +402,7 @@ namespace BCMP {
 	static const std::set<const XML_Char *,attribute_table_t> demand_table;
 	static const std::set<const XML_Char *,attribute_table_t> measure_table;
 	static const std::set<const XML_Char *,attribute_table_t> null_table;
+	static const std::map<const Model::Result::Type, const std::string> y_label_table;
 
 	static const XML_Char * XArrivalProcess;
 	static const XML_Char * XClass;

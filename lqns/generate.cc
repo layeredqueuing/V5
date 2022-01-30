@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 15162 2021-12-06 20:42:16Z greg $
+ * $Id: generate.cc 15409 2022-01-30 15:45:57Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -23,6 +23,9 @@
 #if HAVE_SYS_UTSNAME_H
 #include <sys/utsname.h>
 #endif
+#if HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 #include <lqio/error.h>
 #include <lqio/glblerr.h>
 #include <mva/mva.h>
@@ -38,7 +41,7 @@
 #include "submodel.h"
 #include "task.h"
 
-static const char * myIncludes[] = {
+const std::vector<std::string> Generate::__includes = {
     "\"mva.h\"",
     "\"open.h\"",
     "\"server.h\"",
@@ -47,8 +50,7 @@ static const char * myIncludes[] = {
     "\"pop.h\"",
     "\"prob.h\"",
     "\"vector.h\"",
-    "\"fpgoop.h\"",
-    0
+    "\"fpgoop.h\""
 };
 
 static const std::map<const Pragma::MVA,const std::string> solvers = {
@@ -82,8 +84,8 @@ Generate::Generate( const MVASubmodel& aSubModel )
 std::ostream& 
 Generate::print( std::ostream& output ) const
 {
-    for ( int i = 0; myIncludes[i]; ++i ) {
-	output << "#include " << myIncludes[i] << std::endl;
+    for ( const auto& s : __includes ) {
+	output << "#include " << s << std::endl;
     }
 	
     output << std::endl << "int main ( int, char *[] )" << std::endl << "{" << std::endl;
@@ -158,25 +160,25 @@ Generate::print( std::ostream& output ) const
     unsigned closedStnNo = 0;
     unsigned openStnNo 	 = 0;
 
-    output << "    cout << \"Clients:\" << std::endl;" << std::endl;
+    output << "    std::cout << \"Clients:\" << std::endl;" << std::endl;
     for ( std::set<Task *>::const_iterator client = _submodel._clients.begin(); client != _submodel._clients.end(); ++client ) {
 	++closedStnNo;
 	output << "    station[" << closedStnNo << "]\t= " << station_name( *(*client) ) << ";";
- 	output << "\tcout << \"" << closedStnNo << ": " << *(*client) << "\" << std::endl;" << std::endl;
+ 	output << "\tstd::cout << \"" << closedStnNo << ": " << *(*client) << "\" << std::endl;" << std::endl;
     }
-    output << "    cout << std::endl << \"Servers:\" << std::endl;" << std::endl;
+    output << "    std::cout << std::endl << \"Servers:\" << std::endl;" << std::endl;
     for ( std::set<Entity *>::const_iterator server = _submodel._servers.begin(); server != _submodel._servers.end(); ++server ) {
 	if ( (*server)->isInClosedModel() ) {
 	    ++closedStnNo;
 	    output << "    station[" << closedStnNo << "]\t= " << station_name( *(*server) ) << ";";
-	    output << "\tcout << \"" << closedStnNo << ": " << *(*server) << "\" << std::endl;" << std::endl;
+	    output << "\tstd::cout << \"" << closedStnNo << ": " << *(*server) << "\" << std::endl;" << std::endl;
 	}
 	if ( (*server)->isInOpenModel() ) {
 	    ++openStnNo;
 	    output << "    open_station[" << openStnNo << "]\t= " << station_name( *(*server) ) << ";" << std::endl;
 	}
     }
-    output << "    cout << std::endl;" << std::endl;
+    output << "    std::cout << std::endl;" << std::endl;
     output << std::endl;
 
     /* Solver */
@@ -186,11 +188,11 @@ Generate::print( std::ostream& output ) const
     if ( openStnNo > 0 ) {
 	output << "    Open open( n_open_stations, open_station );" << std::endl;
 	output << "    open.solve();" << std::endl;
-	output << "    cout << open << std::endl;" << std::endl;
+	output << "    std::cout << open << std::endl;" << std::endl;
     } 
     if ( closedStnNo > 0 ) {
 	if ( MVA::__bounds_limit ) {
-	    output << "    " << "MVA::boundsLimit = " << MVA::__bounds_limit << ";" << std::endl;
+	    output << "    " << "MVA::__bounds_limit = " << MVA::__bounds_limit << ";" << std::endl;
 	}
 	output << "    " << solvers.at(Pragma::mva());
 	output << " model( station, customers, thinkTime, priority";
@@ -199,7 +201,7 @@ Generate::print( std::ostream& output ) const
 	}
 	output << " );" << std::endl;
 	output << "    model.solve();" << std::endl;
-	output << "    cout << model << std::endl;" << std::endl;
+	output << "    std::cout << model << std::endl;" << std::endl;
 
 
 	if ( _submodel._overlapFactor ) {
@@ -424,17 +426,14 @@ Generate::makefile( const unsigned nSubmodels )
 	return;
     }
 
-    std::string defines = "-DTESTMVA -DHAVE_BOOL -DHAVE_STD=1 -DHAVE_NAMESPACES=1";
-
-    output << "LQNDIR=$(HOME)/Interlock_merge_LQN/lqn/interlock-merge" << std::endl
-	   << "CC = gcc" << std::endl
+    const std::string defines = "-DTESTMVA -DHAVE_CONFIG_H=1 -I$(LQNDIR)/libmva -I$(LQNDIR)/libmva/src/headers/mva";
+     
+    output << "LQNDIR=$(HOME)/usr/src" << std::endl
 	   << "CXX = g++" << std::endl
-	   << "CFLAGS = -g" << std::endl
-	   << "CXXFLAGS = -g" << std::endl
-	   << "CPPFLAGS = " << defines << " -I. -I$(LQNDIR)" << std::endl
-	   << "OBJS = dim.o fpgoop.o multserv.o  mva.o  open.o  ph2serv.o  pop.o  prob.o  server.o vector.o" << std::endl
-	   << "SRCS = dim.cc fpgoop.cc multserv.cc mva.cc open.cc ph2serv.cc pop.cc prob.cc server.cc vector.cc" << std::endl
-	   << "INCS = dim.h fpgoop.h multserv.h mva.h open.h ph2serv.h pop.h prob.h server.h vector.h" << std::endl;
+	   << "CXXFLAGS += -g -std=c++11 -Wall" << std::endl
+	   << "CPPFLAGS = " << defines << std::endl
+	   << "OBJS = fpgoop.o multserv.o  mva.o  open.o  ph2serv.o  pop.o  prob.o  server.o" << std::endl
+	   << "SRCS = fpgoop.cc multserv.cc mva.cc open.cc ph2serv.cc pop.cc prob.cc server.cc" << std::endl;
 
     output << std::endl
 	   << "all:\t";
@@ -447,7 +446,7 @@ Generate::makefile( const unsigned nSubmodels )
 	std::ostringstream fileName;
 	fileName << file_name << "-" << i;
 	output << std::endl
-	       << fileName.str() << ":\t$(INCS) $(SRCS) $(OBJS) " << fileName.str() << ".o" << std::endl
+	       << fileName.str() << ":\t$(SRCS) $(OBJS) " << fileName.str() << ".o" << std::endl
 	       << "\t$(CXX) $(CXXFLAGS) -I. -o " << fileName.str() << " $(OBJS) " << fileName.str() << ".o -lm" << std::endl;
     }
 
@@ -471,15 +470,7 @@ Generate::makefile( const unsigned nSubmodels )
 
     output << std::endl
 	   << "$(SRCS):" << std::endl
-	   << "\t@if test ! -f $@; then ln -s $(LQNDIR)/lqns/$@ .; fi" << std::endl;
-
-    output << std::endl
-	   << "$(INCS):" << std::endl
-	   << "\t@if test ! -f $@; then ln -s $(LQNDIR)/lqns/$@ .; fi" << std::endl;
-
-    output << std::endl
-	   << "dim.cc:\tvector.cc vector.h server.h" << std::endl;
-    
+	   << "\t@if test ! -f $@; then ln -s $(LQNDIR)/libmva/src/$@ .; fi" << std::endl;
 }
 
 /* ---------------------------------------------------------------------- */

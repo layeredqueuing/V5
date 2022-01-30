@@ -7,7 +7,7 @@
  *
  * November, 1994
  *
- * $Id: generate.h 15304 2021-12-31 15:51:38Z greg $
+ * $Id: generate.h 15402 2022-01-28 01:20:00Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -74,4 +74,5 @@ public:
 private:
     const MVASubmodel& _submodel;
     const unsigned K;			/* Number of chains */
+    static const std::vector<std::string> __includes;
 };

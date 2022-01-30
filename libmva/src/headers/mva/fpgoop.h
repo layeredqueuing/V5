@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: fpgoop.h 15322 2022-01-02 15:35:27Z greg $
+ * $Id: fpgoop.h 15399 2022-01-27 15:11:46Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -58,8 +58,6 @@ inline double square( double x ) { return x * x; }
 class floating_point_error : public std::runtime_error {
 public:
     floating_point_error( const std::string& f, const unsigned l ) : std::runtime_error( construct( f, l ) ) {}
-
-    virtual ~floating_point_error() {} 
 
 private:
     std::string construct( const std::string& f, const unsigned l );

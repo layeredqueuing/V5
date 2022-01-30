@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15353 2022-01-04 22:06:34Z greg $
+ * $Id: lqns.cc 15402 2022-01-28 01:20:00Z greg $
  *
  * Command line processing.
  *
@@ -182,7 +182,7 @@ int main (int argc, char *argv[])
 		    char * value = nullptr;
 		    const char * subopt = options;
 		    const int ix = getsubopt( &options, Options::Debug::__options.data(), &value );
-		    if ( ix >= 0 && value != nullptr ) {
+		    if ( ix >= 0 ) {
 			Options::Debug::exec( ix, (value == nullptr ? std::string("") : value) );
 		    } else {
 			throw std::invalid_argument( std::string("--debug=") + subopt );

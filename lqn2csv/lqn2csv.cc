@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15274 2021-12-27 16:01:46Z greg $
+ * $Id: lqn2csv.cc 15404 2022-01-28 03:09:36Z greg $
  *
  * Command line processing.
  *
@@ -18,7 +18,6 @@
 #include <cstring>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <iostream>
 #include <numeric>
 #include <regex>

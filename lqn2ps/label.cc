@@ -1,13 +1,14 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: label.cc 15383 2022-01-25 02:30:08Z greg $
+ * $Id: label.cc 15400 2022-01-27 22:15:30Z greg $
  */
 
 #include "lqn2ps.h"
 #include <algorithm>
-#include <stdarg.h>
-#include <cstdlib>
 #include <cmath>
+#include <cstdlib>
+#include <cstdarg>
+#include <limits>
 #if HAVE_IEEEFP_H && !defined(MSDOS)
 #include <ieeefp.h>
 #endif

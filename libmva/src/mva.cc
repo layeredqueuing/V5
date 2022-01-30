@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 15375 2022-01-23 00:30:08Z greg $
+ * $Id: mva.cc 15404 2022-01-28 03:09:36Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -1685,12 +1685,7 @@ MVA::printX( std::ostream& output ) const
 
     for ( unsigned k = 1; k <= K; ++k ) {
 	if ( k > 1 ) output << ", ";
-	output << "X_" << k << "(";
-	for ( unsigned j = 1; j <= K; ++j ) {
-	    output << NCust[j];
-	    if ( j < K ) output << ",";
-	}
-	output << ") = " << std::setw(width) << X[n][k];
+	output << "X_" << k << NCust << " = " << std::setw(width) << X[n][k];
     }
     output << std::endl;
     return output;
@@ -2853,6 +2848,7 @@ Linearizer::solve()
 	 * NB: `c' is an instance variable used by our Lm function.
 	 */
 	for ( c = 0; c <= K; ++c ) {
+	    if ( c > 0 && NCust[c] == 0 ) continue;	/* NOP  BUG 345 */
 	    N = NCust;
 
 	    if ( c > 0 ) N[c] -= 1;
