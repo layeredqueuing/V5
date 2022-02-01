@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: bcmp_document.h 15414 2022-02-01 13:39:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -160,6 +160,7 @@ namespace BCMP {
 
 	    private:
 		static Class::map_t collect( const Class::map_t& augend_t, const Class::pair_t& );
+		static void clear_all_result_variables( Class::pair_t& c ) { c.second.resultVariables().clear(); }
 
 	    public:
 		static const char * const __typeName;
@@ -246,6 +247,7 @@ namespace BCMP {
 	    static double sum_utilization( double addend, const BCMP::Model::Station::Class::pair_t& augend );
 	    static double sum_residence_time( double addend, const BCMP::Model::Station::Class::pair_t& augend );
 	    static double sum_queue_length( double addend, const BCMP::Model::Station::Class::pair_t& augend );
+	    static void clear_all_result_variables( BCMP::Model::Station::pair_t& m );
 
 	public:
 	    static const char * const __typeName;
@@ -339,11 +341,13 @@ namespace BCMP {
 
 	Station::Class::map_t computeCustomerDemand( const std::string& ) const;
 	bool convertToLQN( DOM::Document& ) const;
+	void clearAllResultVariables();
 
 	double response_time( const std::string& ) const;
 	double throughput( const std::string& ) const;
 
 	virtual std::ostream& print( std::ostream& output ) const;	/* NOP (lqn2ps will render) */
+
 	static bool isSet( const LQIO::DOM::ExternalVariable * var, double default_value=0.0 );
 
 	struct pad_demand {

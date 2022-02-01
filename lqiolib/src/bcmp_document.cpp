@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 15394 2022-01-26 23:21:12Z greg $
+ * $Id: bcmp_document.cpp 15414 2022-02-01 13:39:36Z greg $
  *
  * Read in XML input files.
  *
@@ -137,6 +137,16 @@ namespace BCMP {
 	return LQIO::DOM::BCMP_to_LQN( *this, dom ).convert();
     }
 
+
+    /*
+     * Plotting will insert new variables, so erase all those currently set.
+     */
+    
+    void
+    Model::clearAllResultVariables()
+    {
+	std::for_each( stations().begin(), stations().end(), &Station::clear_all_result_variables );
+    }
 
     std::ostream&
     Model::print( std::ostream& output ) const
@@ -333,6 +343,15 @@ namespace BCMP {
     }
 
 
+    void
+    Model::Station::clear_all_result_variables( BCMP::Model::Station::pair_t& mi )
+    {
+	Model::Station& m = mi.second;
+	m.resultVariables().clear();
+	std::for_each( m.classes().begin(), m.classes().end(), &Model::Station::Class::clear_all_result_variables );
+    }
+
+    
     Model::Station::Class::map_t
     Model::Station::select::operator()( const Class::map_t& augend, const Station::pair_t& m ) const
     {

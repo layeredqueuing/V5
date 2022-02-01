@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 15409 2022-01-30 15:45:57Z greg $
+ *  $Id: jmva_document.h 15413 2022-02-01 12:57:12Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -103,16 +103,17 @@ namespace BCMP {
 	struct Generator
 	{
 	public:
-	    Generator( const std::string& s ) : _begin(-1.), _end(-1.), _stride(0.) { convert(s); }
+	    Generator( const std::string& s ) : _begin(0.), _end(0.), _count(0) { convert(s); }
 	    double begin() const { return _begin; }
 	    double end() const { return _end; }
-	    double stride() const { return _stride; }
+	    double count() const { return _count; }
+	    double stride() const { return _count > 0 ? (_end - _begin) / static_cast<double>(_count) : 0.; }
 	private:
 	    void convert( const std::string& );
 
 	    double _begin;
 	    double _end;
-	    double _stride;
+	    double _count;
 	};
 
 	struct register_variable {
@@ -163,6 +164,8 @@ namespace BCMP {
 
 	std::ostream& print( std::ostream& ) const;
 	void plot( Model::Result::Type, const std::string& );
+	bool plotPopulationMix() const { return _plot_population_mix; }
+	void setPlotPopulationMix( bool plot_population_mix ) { _plot_population_mix = plot_population_mix; }
 
     private:
 	bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,JMVA_Document::attribute_table_t>& table ) const;
