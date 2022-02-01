@@ -140,7 +140,7 @@ fi
 AC_CONFIG_SUBDIRS([lqiolib lqx libmva parasol])
 AC_CONFIG_FILES([Makefile lqns/Makefile lqns/regression/Makefile qnsolver/Makefile])
 AC_CONFIG_FILES([lqn2csv/Makefile lqngen/Makefile lqn2ps/Makefile srvndiff/Makefile])
-AC_CONFIG_FILES([lqsim/Makefile lqsim/regression/Makefile lqsim/doc/Makefile])
+AC_CONFIG_FILES([lqsim/Makefile lqsim/regression/Makefile])
 AC_CONFIG_FILES([petrisrvn/Makefile petrisrvn/wspnlib/Makefile petrisrvn/regression/Makefile])
 AC_CONFIG_FILES([doc/Makefile doc/tutorial/Makefile doc/userman/Makefile])
 AC_CONFIG_FILES([doc/tutorial/activity-templ/Makefile doc/tutorial/calls/Makefile doc/tutorial/model/Makefile doc/tutorial/pseudo-tasks/Makefile doc/tutorial/web-server/Makefile])
