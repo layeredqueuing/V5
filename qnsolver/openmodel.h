@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/openmodel.h $
  *
- * SRVN command line interface.
+ * Open Model solver.
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -9,14 +9,16 @@
  *
  * December 2020
  *
- * $Id: openmodel.h 14494 2021-02-26 18:48:22Z greg $
+ * $Id: openmodel.h 15420 2022-02-01 22:24:21Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
 #if !defined(OPENMODEL_H)
 #define OPENMODEL_H
+#if HAVE_CONFIG_H
 #include <config.h>
+#endif
 #include <map>
 #include <string>
 #include <lqio/bcmp_document.h>
@@ -24,7 +26,6 @@
 #include <mva/open.h>
 #include "model.h"
 
-class Server;
 class ClosedModel;
 class Open;
 

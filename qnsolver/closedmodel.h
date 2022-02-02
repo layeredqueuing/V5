@@ -9,14 +9,16 @@
  *
  * December 2020
  *
- * $Id: closedmodel.h 15125 2021-11-25 03:12:30Z greg $
+ * $Id: closedmodel.h 15420 2022-02-01 22:24:21Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
 #if !defined(CLOSEDMODEL_H)
 #define CLOSEDMODEL_H
+#if HAVE_CONFIG_H
 #include <config.h>
+#endif
 #include <map>
 #include <string>
 #include <lqio/bcmp_document.h>

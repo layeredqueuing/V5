@@ -28,6 +28,7 @@
 #include <lqx/Program.h>
 #include <mva/multserv.h>
 #include <mva/mva.h>
+#include "boundsmodel.h"
 #include "closedmodel.h"
 #include "model.h"
 #include "openmodel.h"
@@ -39,7 +40,7 @@ bool debug_flag = false;
 
 Model::Model( BCMP::JMVA_Document& input, Model::Solver solver, const std::string& output_file_name )
     : _model(input.model()), _solver(solver),
-      Q(), _result(false), _input(input), _output_file_name(output_file_name), _closed_model(nullptr), _open_model(nullptr)
+      Q(), _result(false), _input(input), _output_file_name(output_file_name), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr)
 {
     const size_t M = _model.n_stations(type());	// Size based on type.
     if ( M == 0 ) {
@@ -53,7 +54,7 @@ Model::Model( BCMP::JMVA_Document& input, Model::Solver solver, const std::strin
 
 Model::Model( BCMP::JMVA_Document& input, Model::Solver solver )
     : _model(input.model()), _solver(solver),
-      Q(), _result(false), _input(input), _output_file_name(), _closed_model(nullptr), _open_model(nullptr)
+      Q(), _result(false), _input(input), _output_file_name(), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr)
 {
     const size_t M = _model.n_stations(type());	// Size based on type.
     if ( M == 0 ) {
@@ -67,6 +68,7 @@ Model::Model( BCMP::JMVA_Document& input, Model::Solver solver )
 
 Model::~Model()
 {
+    if ( _bounds_model ) delete _bounds_model;
     if ( _closed_model ) delete _closed_model;
     if ( _open_model ) delete _open_model;
 }
@@ -80,21 +82,23 @@ Model::~Model()
 bool
 Model::construct()
 {
-    try {
 	_result = true;
+	try {
 	std::for_each( chains().begin(), chains().end(), CreateChainIndex( *this, type() ) );
 	std::for_each( stations().begin(), stations().end(), CreateStationIndex( *this, type() ) );
 	if ( isParent() ) {
 	    /* Create open and closed models */
 	    std::for_each( stations().begin(), stations().end(), InstantiateStation( *this ) );
-	    if (  _model.n_stations(BCMP::Model::Chain::Type::CLOSED) > 0 ) {
+	    if ( _model.n_stations(BCMP::Model::Chain::Type::CLOSED) > 0 ) {
 		_closed_model = new ClosedModel( *this, _input, _solver );
 		_closed_model->construct();
 	    }
-	    if (  _model.n_stations(BCMP::Model::Chain::Type::OPEN) > 0 ) {
+	    if ( _model.n_stations(BCMP::Model::Chain::Type::OPEN) > 0 ) {
 		_open_model = new OpenModel( *this, _input );
 		_open_model->construct();
 	    }
+	    _bounds_model = new BoundsModel( *this, _input );
+	    _bounds_model->construct();
 	}
     }
     catch ( const std::domain_error& e ) {
@@ -121,21 +125,6 @@ Model::instantiate()
 	return false;
     }
     return true;
-}
-
-
-/*
- * For each chain, find the station with the highest demand, and find the total demand.
- * Highest demand gives throughput bound, total demand gives response bound.
- */
-
-void
-Model::bounds()
-{
-    std::map<std::string,BCMP::Model::Bound> bounds;
-    for ( BCMP::Model::Chain::map_t::const_iterator chain = chains().begin(); chain != chains().end(); ++chain ) {
-	bounds.emplace( chain->first, BCMP::Model::Bound(*chain,stations()) );
-    }
 }
 
 

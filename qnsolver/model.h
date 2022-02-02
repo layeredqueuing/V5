@@ -10,14 +10,16 @@
  *
  * December 2020
  *
- * $Id: model.h 15230 2021-12-17 14:22:19Z greg $
+ * $Id: model.h 15420 2022-02-01 22:24:21Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
 #if !defined(QNSOLVER_MODEL_H)
 #define QNSOLVER_MODEL_H
+#if HAVE_CONFIG_H
 #include <config.h>
+#endif
 #include <lqio/bcmp_document.h>
 #include <mva/vector.h>
 #include <mva/pop.h>
@@ -35,6 +37,7 @@ namespace SolverInterface {
 }
 
 class Server;
+class BoundsModel;
 class OpenModel;
 class ClosedModel;
 
@@ -44,7 +47,7 @@ class Model {
     friend class ClosedModel;
     
 public:
-    enum class Solver { OPEN, EXACT_MVA, LINEARIZER, LINEARIZER2, BARD_SCHWEITZER, EXPERIMENTAL };
+    enum class Solver { BOUNDS, OPEN, EXACT_MVA, LINEARIZER, LINEARIZER2, BARD_SCHWEITZER, EXPERIMENTAL };
     enum class Multiserver { DEFAULT, CONWAY, REISER, REISER_PS, ROLIA, ROLIA_PS, BRUELL, SCHMIDT, SURI, ZHOU };
     
 public:
@@ -179,5 +182,6 @@ private:
     /* mixed model */  /* Might change to a vector */
     ClosedModel * _closed_model;
     OpenModel * _open_model;
+    BoundsModel * _bounds_model;
 };
 #endif

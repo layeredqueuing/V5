@@ -1,6 +1,6 @@
 .\" -*- nroff -*-
 .TH qnsolver 1 ""  "5.20"
-.\" $Id: qnsolver.1 15379 2022-01-23 03:19:37Z greg $
+.\" $Id: qnsolver.1 15420 2022-02-01 22:24:21Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -20,8 +20,9 @@ results for the model are printed.
 .SH "OPTIONS"
 .TP
 \fB\-b\fR, \fB\-\-bounds\fR
-Compute the throughput and response time bounds.  (NOP for now, done
-implicitly with \fB\-\-plot\-throughput\fR and \fB\-\-plot\-response\-time\fR).
+Use the Bounds solver to solve the model(s).  Bounds are computed
+implicitly with \fB\-\-plot\-throughput\fR and
+\fB\-\-plot\-response\-time\fR.
 .TP
 \fB\-e\fR, \fB\-\-exact\-mva\fR
 Use Exact Mean Value Analysis to solve the model(s).

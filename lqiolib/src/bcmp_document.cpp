@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 15414 2022-02-01 13:39:36Z greg $
+ * $Id: bcmp_document.cpp 15422 2022-02-02 12:12:42Z greg $
  *
  * Read in XML input files.
  *
@@ -141,7 +141,7 @@ namespace BCMP {
     /*
      * Plotting will insert new variables, so erase all those currently set.
      */
-    
+
     void
     Model::clearAllResultVariables()
     {
@@ -351,7 +351,7 @@ namespace BCMP {
 	std::for_each( m.classes().begin(), m.classes().end(), &Model::Station::Class::clear_all_result_variables );
     }
 
-    
+
     Model::Station::Class::map_t
     Model::Station::select::operator()( const Class::map_t& augend, const Station::pair_t& m ) const
     {
@@ -512,6 +512,39 @@ namespace BCMP {
 	else return 0.0;
     }
 
+
+    /*
+     * Find the demand at a station that forms queues.  Adjust for
+     * multiplicity.
+     */
+
+    double
+    Model::Bound::D( const Model::Station& m, const Model::Chain::pair_t& chain )
+    {
+	return demand( m, chain.first );
+    }
+
+
+    /*
+     * Find the demand at a station that forms queues.  Adjust for
+     * multiplicity.
+     */
+
+    double
+    Model::Bound::demand( const Model::Station& m, const std::string& chain )
+    {
+	if ( (   m.type() != Model::Station::Type::LOAD_INDEPENDENT
+	      && m.type() != Model::Station::Type::MULTISERVER)
+	     || !m.hasClass( chain ) ) return 0.0;
+	const Model::Station::Class& k = m.classAt( chain );
+	double demand = to_double( *k.visits() ) * to_double( *k.service_time() );
+	if ( m.type() == Model::Station::Type::MULTISERVER ) {
+	    demand = demand / to_double( *m.copies() );
+	}
+	return demand;
+    }
+
+
     /*
      * Find the largest demand at a station that forms queues.  Adjust
      * for multiplicity.
@@ -520,19 +553,14 @@ namespace BCMP {
     double
     Model::Bound::max_demand::operator()( double a1, const Model::Station::pair_t& m2 )
     {
-	const Model::Station& m = m2.second;
-	if ( (    m.type() != Model::Station::Type::LOAD_INDEPENDENT
-	       && m.type() != Model::Station::Type::MULTISERVER )
-	     || !m.hasClass( _class ) ) return a1;
-	const Model::Station::Class& k = m.classAt( _class );
-	double demand = to_double( *k.visits() ) * to_double( *k.service_time() );
-	if ( m.type() == Model::Station::Type::MULTISERVER ) {
-	    demand = demand / to_double( *m.copies() );
-	}
-	return std::max( a1, demand );
+	return std::max( a1,  Bound::demand( m2.second, _class ) );
     }
 
 
+
+    /*
+     * Add up all of the demand for _class.  Do not adjust for multiplicity.
+     */
 
     double
     Model::Bound::sum_demand::operator()( double a1, const Model::Station::pair_t& m2 )

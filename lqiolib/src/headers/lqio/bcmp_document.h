@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 15414 2022-02-01 13:39:36Z greg $
+ *  $Id: bcmp_document.h 15422 2022-02-02 12:12:42Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -270,9 +270,10 @@ namespace BCMP {
 	    Bound( const Chain::pair_t& chain, const Station::map_t& stations );
 
 	    double think_time() const;
+	    static double D( const Station& m, const Chain::pair_t& chain );
 
-	    double D_max() const { return _D_max; }
-	    double D_sum() const { return _D_sum; }
+	    double D_max() const { return _D_max; }		/* Max Demand (adjusted for multiservers) */
+	    double D_sum() const { return _D_sum; }		/* Sum of Demands */
 	    double Z() const { return _Z; }
 	
 	private:
@@ -280,6 +281,7 @@ namespace BCMP {
 	    const Station::map_t& stations() const { return _stations; }
 
 	    void compute();
+	    static double demand( const Station& m, const std::string& chain );
 
 	    struct max_demand {
 		max_demand( const std::string& chain ) : _class(chain) {}

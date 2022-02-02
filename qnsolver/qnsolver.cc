@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 15409 2022-01-30 15:45:57Z greg $
+ * $Id: qnsolver.cc 15420 2022-02-01 22:24:21Z greg $
  */
 
 #include "config.h"
@@ -56,7 +56,7 @@ static std::string opts = "bdefhlo:rstvxQSX";
 #endif
 
 const static std::map<const std::string,const std::string> opthelp  = {
-    { "bounds",		    			"Compute bounds" },
+    { "bounds",		    			"Use the bounds solver." },
     { LQIO::DOM::Pragma::_exact_,		"Use Exact MVA." },
     { LQIO::DOM::Pragma::_schweitzer_,		"Use Bard-Schweitzer approximate MVA." },
     { LQIO::DOM::Pragma::_linearizer_,		"Use Linearizer." },

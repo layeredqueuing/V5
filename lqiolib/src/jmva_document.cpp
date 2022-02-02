@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 15414 2022-02-01 13:39:36Z greg $
+ * $Id: jmva_document.cpp 15422 2022-02-02 12:12:42Z greg $
  *
  * Read in XML input files.
  *
@@ -1274,20 +1274,26 @@ namespace BCMP {
     }
 
 
+    /*
+     * Convert a string of the form "v_1;v_2;...;v_n" to v_1, v_n, n.
+     * The assumption is that all of the values "v" are monotonically
+     * increasing and evenly distributed with a difference of 
+     * (v_n - v_1)/(n-1) between pairs.
+     */
+    
     void
     JMVA_Document::Generator::convert( const std::string& s )
     {
 	char * endptr = nullptr;
 	for ( const char *p = s.data(); *p != '\0'; p = endptr ) {
 	    if ( *p == ';' ) ++p;
-	    double value = strtod( p, &endptr );
-	    if ( *endptr != '\0' && *endptr != ';' ) throw std::invalid_argument( s );
+	    const double value = strtod( p, &endptr );
+	    if ( (*endptr != '\0' && *endptr != ';') || (value < _end) || (_count != 0 && value == _end) ) throw std::invalid_argument( s );
 	    _end = value;			/* always take the last */
 	    if ( p == s.data() ) {
-		_begin = value;
+		_begin = _end;
 	    } else {
 		_count += 1;
-		_end = value;
 	    }
 	}
     }
@@ -1583,29 +1589,14 @@ namespace BCMP {
 	for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
 	    if (     m->second.type() != Model::Station::Type::LOAD_INDEPENDENT
 		  && m->second.type() != Model::Station::Type::MULTISERVER ) continue;
-	    double D_x = 0;
-	    double D_y = 0;
-	    if ( m->second.hasClass( x->first ) ) {
-		const Model::Station::Class& k = m->second.classAt( x->first );
-		D_x = to_double( *k.visits() ) * to_double( *k.service_time() );
-	    }
-	    if ( m->second.hasClass( y->first ) ) {
-		const Model::Station::Class& k = m->second.classAt( y->first );
-		D_y = to_double( *k.visits() ) * to_double( *k.service_time() );
-	    }
-	    if ( m->second.type() == Model::Station::Type::MULTISERVER ) {
-		const double copies = to_double( *m->second.copies() );
-		D_x /= copies;
-		D_y /= copies;
-	    }
+
+	    double D_x = Model::Bound::D( m->second, *x );		/* Adjusted for multiservers	*/
+	    double D_y = Model::Bound::D( m->second, *y );
+	    if ( D_x == 0. && D_y == 0. ) continue;
 
 	    x_max = std::max( x_max, D_x );
 	    y_max = std::max( y_max, D_y );
-	    if ( D_x == 0. && D_y == 0. ) {
-		continue;
-	    } else if ( D_x == 0. ) {
-		plot << ", t," << D_y;
-	    } else if ( D_y == 0. ) {
+	    if ( D_y == 0. ) {
 		plot << ", 1/" << D_x << ",t";
 	    } else {
 		plot << ", t,(1-t*" << D_x << ")/" << D_y;;
@@ -1644,25 +1635,23 @@ namespace BCMP {
     std::ostream&
     JMVA_Document::plot_population_mix_vs_utilization( std::ostream& plot )
     {
-	const Model::Chain::map_t::iterator x1 = chains().begin();
-	const Model::Chain::map_t::iterator x2 = std::next(x1);
-
 	appendResultVariable( _x1.var );
 	appendResultVariable( _x2.var );
 
 	/* Find utilization for all stations */
 
 	_gnuplot.push_back( LQIO::Spex::print_node( "set xlabel \""  + _x1.label + "\"" ) );			// X axis
-	_gnuplot.push_back( LQIO::Spex::print_node( "set x2label \"" + _x2.label + "\"" ) );			// X axis
+//	_gnuplot.push_back( LQIO::Spex::print_node( "set x2label \"" + _x2.label + "\"" ) );			// X axis
 	_gnuplot.push_back( LQIO::Spex::print_node( "set ylabel \""  + y_label_table.at(Model::Result::Type::UTILIZATION) + "\"" ) );	// Y1 axis
-//	_gnuplot.push_back( LQIO::Spex::print_node( "set key title \"Station " + arg + "\"" ) );
+	_gnuplot.push_back( LQIO::Spex::print_node( "set key title \"Station\"" ) );
 //	_gnuplot.push_back( LQIO::Spex::print_node( "set key top left box" ) );
 
 	const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
 	size_t y = x + 1;		/* Skip "mirror" x */
 	
 	for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
-	    if ( m->second.reference() ) continue;
+	    if (     m->second.type() != Model::Station::Type::LOAD_INDEPENDENT
+		  && m->second.type() != Model::Station::Type::MULTISERVER ) continue;
 
 	    if ( y > 2 ) plot << ", ";
 
@@ -1673,9 +1662,7 @@ namespace BCMP {
 	    appendResultVariable( y_var );
 
 	    /* Append plot command to plot */
-	    std::string title = m->first;
-	    plot << "\"$DATA\" using " << x << ":" << y << " with linespoints"
-		 << " title \"" << title << "\"";
+	    plot << "\"$DATA\" using " << x << ":" << y << " with linespoints" << " title \"" << m->first << "\"";
 	}
 
 	return plot;
