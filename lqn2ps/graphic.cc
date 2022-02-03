@@ -1,6 +1,6 @@
 /* graphic.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: graphic.cc 15400 2022-01-27 22:15:30Z greg $
+ * $Id: graphic.cc 15423 2022-02-03 02:10:02Z greg $
  */
 
 #include <cassert>
@@ -157,7 +157,7 @@ Graphic::intersects( const Point& p1, const Point& p2, const Point& p3 )
 	&& origin.y() <= p1.y() && p1.y() <= extent.y();
 }
 
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
 /* -------------------------------------------------------------------- */
 /* Windows Enhanced Meta File output					*/
 /* -------------------------------------------------------------------- */

@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: label.cc 15400 2022-01-27 22:15:30Z greg $
+ * $Id: label.cc 15423 2022-02-03 02:10:02Z greg $
  */
 
 #include "lqn2ps.h"
@@ -56,7 +56,7 @@ Label::newLabel()
 {
     static const std::map<const File_Format,Label::create_func> new_label = {
 	{ File_Format::EEPIC,        LabelTeX::create },
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
 	{ File_Format::EMF,          LabelEMF::create },
 #endif
 	{ File_Format::FIG,          LabelFig::create },
@@ -361,7 +361,7 @@ Label::boundingBox( Point& boxOrigin, Point& boxExtent, const double scaling ) c
     return *this;
 }
 
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
 /* -------------------------------------------------------------------- */
 /* Windows Enhanced Meta File output					*/
 /* -------------------------------------------------------------------- */

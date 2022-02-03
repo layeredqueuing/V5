@@ -1,6 +1,6 @@
 /* node.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: node.cc 15262 2021-12-26 18:55:49Z greg $
+ * $Id: node.cc 15423 2022-02-03 02:10:02Z greg $
  */
 
 #include "lqn2ps.h"
@@ -23,7 +23,7 @@ Node::newNode( double x, double y )
 {
     static const std::map<const File_Format,Node::create_func> new_node = {
 	{ File_Format::EEPIC,       NodeTeX::create },
-#if definedEMF_OUTPUT
+#if EMF_OUTPUT
 	{ File_Format::EMF,         NodeEMF::create },
 #endif
 	{ File_Format::FIG,         NodeFig::create },
@@ -168,7 +168,7 @@ Node::open_sink( std::ostream& output, const Point& centerTop, const double radi
     return output;
 }
 
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
 /* -------------------------------------------------------------------- */
 /* Windows Enhanced Meta File output					*/
 /* -------------------------------------------------------------------- */

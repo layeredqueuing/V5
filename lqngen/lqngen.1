@@ -1,6 +1,6 @@
 .\" -*- nroff -*-
 .TH lqngen 1 ""  "5.13"
-.\" $Id: lqngen.1 15379 2022-01-23 03:19:37Z greg $
+.\" $Id: lqngen.1 15423 2022-02-03 02:10:02Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -18,8 +18,9 @@ specified, the model will be output to \fIstdout\fP.  If no options
 are specified, a simple annotated model consisting of one reference task, one
 serving task and their respective processors is produced.  
 To create a random model with exactly \fIn\fP tasks, use \fB\-\-automatic\fP=\fIn\fP (see options below).
-If \fIFILE\fP exists, it will be over written with a new model file.  To convert a model
-to use either SPEX or LQX, use \fBlqn2lqx\fP(1). or the \fB\-\-transform\fP option.
+If \fIFILE\fP exists, it will be over written with a new model file.
+To convert an existing model to use either SPEX or LQX, use
+\fBlqn2lqx\fP(1) or the \fB\-\-transform\fP option. 
 .PP
 The size of a model is controlled by setting the number of server-task layers with \fB\-L\fP\fIn\fP, 
 tasks with \fB\-T\fP\fIn\fP, 

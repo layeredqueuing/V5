@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15354 2022-01-04 23:11:41Z greg $
+ * $Id: model.cc 15423 2022-02-03 02:10:02Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -1363,7 +1363,7 @@ Model::finalScaleTranslate()
 	*this *= EEPIC_SCALING;
 	break;
 
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
     case File_Format::EMF:
 	translateScale( EMF_SCALING );
 	break;
@@ -1729,7 +1729,7 @@ Model::printEEPIC( std::ostream & output ) const
 }
 
 
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
 std::ostream&
 Model::printEMF( std::ostream& output ) const
 {
@@ -2561,7 +2561,7 @@ to_inches_str( std::ostream& output, const double value )
     case File_Format::EEPIC:
 	output << value / (EEPIC_SCALING * PTS_PER_INCH);
 	break;
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
     case File_Format::EMF:
 	output << value / (EMF_SCALING * PTS_PER_INCH);
 	break;

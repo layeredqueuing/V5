@@ -1,6 +1,6 @@
 /* dumpemf.c	-- Greg Franks Thu Dec  2 2004
  *
- * $Id: dumpemf.c 11987 2014-04-16 20:57:40Z greg $
+ * $Id: dumpemf.c 15423 2022-02-03 02:10:02Z greg $
  */
 
 #include <stdio.h>
@@ -211,7 +211,7 @@ char * name[] = {
 unsigned long
 to_long( unsigned char * buf )
 {
-    return (buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | buf[0];
+    return ((buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | buf[0]) & 0xffffffff;
 }
 
 unsigned long
@@ -246,24 +246,24 @@ main( int argc, char ** argv )
 	    if ( 0 <= code && code < sizeof( name ) ) {
 		printf( "%-24s", name[code] );
 	    } else {
-		printf( "%08x %08x", code, i );
+		printf( "%08x %08lx", code, i );
 	    }
 	    if ( i > 8 ) {
 		n = fread( &buf[8], sizeof(char), i-8, input );
 		if ( n == i-8 ) {
 		    int j;
-		    int k;
-		    int l;
+		    long k;
+		    long l;
 		    switch ( code ) {
 		    case HEADER:
-			printf( "Records: %d, File Size %d\n", to_long( &buf[52] ), to_long( &buf[48] ) );
-			printf( "\t\t\tBounds: %d %d %d %d, Frame: %d %d %d %d, Ref Dev: %u %u, MM Dev: %u %u\n",
+			printf( "Records: %lu, File Size %lu\n", to_long( &buf[52] ), to_long( &buf[48] ) );
+			printf( "\t\t\tBounds: %lu %lu %lu %lu, Frame: %lu %lu %lu %lu, Ref Dev: %lu %lu, MM Dev: %lu %lu\n",
 				to_long( &buf[8] ), to_long( &buf[12] ), to_long( &buf[16] ), to_long( &buf[20] ),
 				to_long( &buf[24] ), to_long( &buf[28] ), to_long( &buf[32] ), to_long( &buf[36] ),
 				to_long( &buf[72] ), to_long( &buf[76] ), to_long( &buf[80] ), to_long( &buf[84] ) );
 			k = to_long( &buf[60] );
 			l = to_long( &buf[64] );
-			printf( "\t\t\tDescription: %d, String: ", k );
+			printf( "\t\t\tDescription: %ld, String: ", k );
 			for ( j = 0; j < k; ++j ) {
 			    if ( buf[100+j*2] ) {
 				putchar( buf[100+j*2] );
@@ -275,16 +275,16 @@ main( int argc, char ** argv )
 
 		    case SELECTOBJECT:
 		    case DELETEOBJECT:
-			printf( "Handle: %08x", to_long( &buf[8] ) );
+			printf( "Handle: %08lx", to_long( &buf[8] ) );
 			break;
 
 		    case POLYGON:
 		    case POLYLINE:
-			printf( "rect: %u,%u,%u,%u, n=%d ",
+			printf( "rect: %lu,%lu,%lu,%lu, n=%lu ",
 				to_long( &buf[8] ), to_long( &buf[12] ), to_long( &buf[16] ), to_long( &buf[20] ),
 				to_long( &buf[24] ));
 			for ( j = 28; j < i; j += 8 ) {
-			    printf( "(%u, %u) ", to_long( &buf[j] ), to_long( &buf[j+4] ) );
+			    printf( "(%lu, %lu) ", to_long( &buf[j] ), to_long( &buf[j+4] ) );
 			}
 			break;
 
@@ -294,32 +294,32 @@ main( int argc, char ** argv )
 		    case SETVIEWPORTORGEX:
 		    case MOVETOEX:
 		    case LINETO:
-			printf( "(%u,%u)", to_long( &buf[8] ), to_long( &buf[12] ) );
+			printf( "(%lu,%lu)", to_long( &buf[8] ), to_long( &buf[12] ) );
 			break;
 
 		    case EXTTEXTOUTW:
 			l = to_long( &buf[44] );
 			k = to_long( &buf[48] );
-			printf( "Len: %d, Offset %d, ", l, k );
+			printf( "Len: %ld, Offset %ld, ", l, k );
 			for ( j = 0; j < l; ++j ) {
 			    printf( "%c", buf[k+j*2] );
 			}
 			break;
 			
 		    case CREATEPEN:
-			printf( "Handle: %u, Type: %u, Width: %u, ?? %u, Colour: %06x",
+			printf( "Handle: %lu, Type: %lu, Width: %lu, ?? %lu, Colour: %06lx",
 				to_long( &buf[8] ), to_long( &buf[12] ), to_long( &buf[16] ),
 				to_long( &buf[20] ), to_long( &buf[24] ) );
 			break;
 			    
 		    case CREATEBRUSHINDIRECT:
-			printf( "Handle: %u, Type: %u, Colour: %06x, Hatch: %u",
+			printf( "Handle: %lu, Type: %lu, Colour: %06lx, Hatch: %lu",
 				to_long( &buf[8] ), to_long( &buf[12] ), to_long( &buf[16] ),
 				to_long( &buf[20] ) );
 			break;
 			
 		    case EXTCREATEFONTINDIRECTW:
-			printf( "Handle %u: Size: %u Font: ", to_long( &buf[8] ), to_long( &buf[12] ) );
+			printf( "Handle %lu: Size: %lu Font: ", to_long( &buf[8] ), to_long( &buf[12] ) );
 			for ( j = 72; j < 104 && buf[j]; ++j ) {
 			    printf( "%c", buf[j] );
 			}
@@ -335,7 +335,7 @@ main( int argc, char ** argv )
 	    }
 	    printf( "\n" );
 	} else {
-	    fprintf( stderr, "Bogus record!  Bad size %d\n", i );
+	    fprintf( stderr, "Bogus record!  Bad size %lu\n", i );
 	    break;
 	}
     }

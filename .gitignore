@@ -102,6 +102,7 @@ libmva/regression/testB
 libmva/regression/testcust
 libtool
 lqn2csv/lqn2csv
+lqn2ps/dumpemf
 lqn2ps/lqn2ps
 lqngen/lqngen
 lqns/lqns
