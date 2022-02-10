@@ -1,3 +1,16 @@
+* Bugs fixed in 5.24
+321 	lqiolib 	Runtime Exception Occured: Object of type phase does not have property service_time 
+328 	spex 		Using $1, $2... as result variables fails. 
+339 	lqiolib 	--reload-lqx segvs or generally is borked. 
+340 	lqiolib 	loadResults not implemented in Json_Document. 
+341 	lqn2xxx 	lqn2svg -Q1 -o 01-sanity-queue.svg -Zprune 01-sanity.in aborted. 
+342 	qnsolver 	Assertion failed: (L[n][0] == nullptr), function reset, file mva.cc, line 353. 
+344 	lqiolib 	Automatic variable creation generates duplicate symbols for 2-class models. 
+345 	libmva 		No results for NCust = [X,0] 
+346 	libmva 		class(station("m"),"k").throughput fails. 
+347 	lqns 		Changes needed to -zgenerate 
+351 	lqn2xxx 	EMF output borked. 
+
 * Bugs fixes in 5.23
 300 	lqiolib 	Station results not computed for single class models. 	
 324 	lqns 		Runtime Exception Occured: Batch_Model::addToSubmodel: bad submodel for task t1 

@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15423 2022-02-03 02:10:02Z greg $
+ * $Id: model.cc 15434 2022-02-09 00:28:27Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -682,7 +682,7 @@ Model::process()
     } 
 
     if ( !Flags::have_results && Flags::colouring() == Colouring::RESULTS ) {
-	Flags::set_colouring( Colouring::NONE );
+	Flags::set_colouring( Colouring::INPUT );
     }
 
     if ( share_output() ) {

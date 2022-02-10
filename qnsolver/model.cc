@@ -40,28 +40,18 @@ bool debug_flag = false;
 
 Model::Model( BCMP::JMVA_Document& input, Model::Solver solver, const std::string& output_file_name )
     : _model(input.model()), _solver(solver),
-      Q(), _result(false), _input(input), _output_file_name(output_file_name), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr)
+      _result(false), _input(input), _output_file_name(output_file_name), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr), Q()
 {
     const size_t M = _model.n_stations(type());	// Size based on type.
-    if ( M == 0 ) {
-	_result = false;
-	return;
-    }
-
     Q.resize(M);
 }
 
 
 Model::Model( BCMP::JMVA_Document& input, Model::Solver solver )
     : _model(input.model()), _solver(solver),
-      Q(), _result(false), _input(input), _output_file_name(), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr)
+      _result(false), _input(input), _output_file_name(), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr), Q()
 {
     const size_t M = _model.n_stations(type());	// Size based on type.
-    if ( M == 0 ) {
-	_result = false;
-	return;
-    }
-
     Q.resize(M);
 }
 
@@ -82,23 +72,26 @@ Model::~Model()
 bool
 Model::construct()
 {
-	_result = true;
-	try {
+    _result = true;
+    try {
 	std::for_each( chains().begin(), chains().end(), CreateChainIndex( *this, type() ) );
 	std::for_each( stations().begin(), stations().end(), CreateStationIndex( *this, type() ) );
 	if ( isParent() ) {
-	    /* Create open and closed models */
-	    std::for_each( stations().begin(), stations().end(), InstantiateStation( *this ) );
-	    if ( _model.n_stations(BCMP::Model::Chain::Type::CLOSED) > 0 ) {
-		_closed_model = new ClosedModel( *this, _input, _solver );
-		_closed_model->construct();
+	    if ( _solver == Solver::BOUNDS ) {
+		_bounds_model = new BoundsModel( *this, _input );
+		_bounds_model->construct();
+	    } else {
+		/* Create open and closed models */
+		std::for_each( stations().begin(), stations().end(), InstantiateStation( *this ) );
+		if ( _model.n_stations(BCMP::Model::Chain::Type::CLOSED) > 0 ) {
+		    _closed_model = new ClosedModel( *this, _input, _solver );
+		    _closed_model->construct();
+		}
+		if ( _model.n_stations(BCMP::Model::Chain::Type::OPEN) > 0 ) {
+		    _open_model = new OpenModel( *this, _input );
+		    _open_model->construct();
+		}
 	    }
-	    if ( _model.n_stations(BCMP::Model::Chain::Type::OPEN) > 0 ) {
-		_open_model = new OpenModel( *this, _input );
-		_open_model->construct();
-	    }
-	    _bounds_model = new BoundsModel( *this, _input );
-	    _bounds_model->construct();
 	}
     }
     catch ( const std::domain_error& e ) {
@@ -217,6 +210,9 @@ Model::compute()
     try {
 	instantiate();
 	
+	if ( _bounds_model ) {
+	    _bounds_model->solve();
+	}
 	if ( _closed_model ) {
 	    if ( _open_model ) {
 		_open_model->convert( _closed_model );
@@ -252,6 +248,9 @@ Model::compute()
 void
 Model::saveResults()
 {
+    if ( _bounds_model ) {
+	_bounds_model->saveResults();
+    }
     if ( _closed_model ) {
 	_closed_model->saveResults();
     }
@@ -485,8 +484,6 @@ Model::print( std::ostream& output ) const
     output.fill(' ');
     output << __separator << std::setw(__width) << " " << Model::blankline() << __separator << std::endl;
     for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
-	const size_t m = _index.m.at(mi->first);
-
 	const BCMP::Model::Station::Class::map_t& results = mi->second.classes();
 	const BCMP::Model::Station::Class sum = std::accumulate( std::next(results.begin()), results.end(), results.begin()->second, &BCMP::Model::Station::sumResults ).deriveResidenceTime();
 	const double service = sum.throughput() > 0 ? sum.utilization() / sum.throughput() : 0.0;
@@ -500,15 +497,9 @@ Model::print( std::ostream& output ) const
 	    for ( BCMP::Model::Station::Class::map_t::const_iterator result = results.begin(); result != results.end(); ++result ) {
 		if (result->second.throughput() == 0 ) continue;
 		output << __separator << std::setw(__width) <<  ( "(" + result->first + ")");
-		const BCMP::Model::Chain& chain = _model.chainAt(result->first);
-		if ( chain.isClosed() ) {
-		    const size_t k = indexAt(BCMP::Model::Chain::Type::CLOSED,result->first);
-		    print(output,Q[m]->S(k),result->second);
-		} else {
-		    static const size_t k = 0;
-		    const size_t e = indexAt(BCMP::Model::Chain::Type::OPEN,result->first);
-		    print(output,Q[m]->S(e,k),result->second);
-		}
+		const double service_time = LQIO::DOM::to_double( *mi->second.classAt(result->first).service_time() );
+		const double visits = LQIO::DOM::to_double( *mi->second.classAt(result->first).visits() );
+		print( output, service_time * visits, result->second );
 		output << __separator << std::endl;
 	    }
 	}

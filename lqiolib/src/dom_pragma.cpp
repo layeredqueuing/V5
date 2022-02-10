@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 15277 2021-12-27 21:09:31Z greg $
+ *  $Id: dom_pragma.cpp 15429 2022-02-04 23:04:05Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -181,6 +181,7 @@ namespace LQIO {
 	const char * Pragma::_batched_ =			"batched";
 	const char * Pragma::_batched_back_ =			"batched-back";
 	const char * Pragma::_bcmp_ =				"bcmp";			// BUG 270
+	const char * Pragma::_bounds_ =				"bounds";
 	const char * Pragma::_block_period_ =			"block-period";
 	const char * Pragma::_bruell_ =				"bruell";		// multiserver
 	const char * Pragma::_conway_ =				"conway";		// multiserver
@@ -282,7 +283,7 @@ namespace LQIO {
 	const std::set<std::string> Pragma::__force_multiserver_args = { _none_, _processors_, _tasks_, _all_, _true_, _yes_, _false_, _no_, "t", "y", "f", "n", "" };
 	const std::set<std::string> Pragma::__layering_args = { _batched_, _batched_back_, _mol_, _mol_back_, _squashed_, _srvn_, _hwsw_ };
 	const std::set<std::string> Pragma::__multiserver_args = { _bruell_, _conway_, _default_, _reiser_, _reiser_ps_, _rolia_, _rolia_ps_, _schmidt_, _suri_, _zhou_ };
-	const std::set<std::string> Pragma::__mva_args = { _linearizer_, _exact_, _schweitzer_, _fast_, _one_step_, _one_step_linearizer_ };
+	const std::set<std::string> Pragma::__mva_args = { _bounds_, _exact_, _linearizer_, _schweitzer_, _fast_, _one_step_, _one_step_linearizer_ };
 	const std::set<std::string> Pragma::__overtaking_args = { _markov_, _rolia_, _simple_, _special_, _none_ };
 	const std::set<std::string> Pragma::__processor_args = { _default_, scheduling_label[SCHEDULE_DELAY].XML, scheduling_label[SCHEDULE_FIFO].XML, scheduling_label[SCHEDULE_HOL].XML, scheduling_label[SCHEDULE_PPR].XML, scheduling_label[SCHEDULE_PS].XML, scheduling_label[SCHEDULE_RAND].XML };
 	const std::set<std::string> Pragma::__quorum_delayed_calls_args = { _keep_all_, _abort_all_, _abort_local_, _abort_remote_ };

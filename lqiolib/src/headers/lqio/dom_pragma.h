@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 15277 2021-12-27 21:09:31Z greg $
+ * $Id: dom_pragma.h 15429 2022-02-04 23:04:05Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -81,6 +81,7 @@ namespace LQIO {
 	    static const char * _batched_back_;
 	    static const char * _bcmp_;			// BUG 270
 	    static const char * _block_period_;
+	    static const char * _bounds_;
 	    static const char * _bruell_;		// multiserver
 	    static const char * _conway_;		// multiserver
 	    static const char * _convergence_value_;

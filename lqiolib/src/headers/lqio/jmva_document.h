@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 15413 2022-02-01 12:57:12Z greg $
+ *  $Id: jmva_document.h 15429 2022-02-04 23:04:05Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -419,6 +419,7 @@ namespace BCMP {
 	static const XML_Char * Xcustomerclass;
 	static const XML_Char * Xdelaystation;
 	static const XML_Char * Xdescription;
+	static const XML_Char * Xjaba;
 	static const XML_Char * Xldstation;
 	static const XML_Char * Xlistation;
 	static const XML_Char * XLQX;

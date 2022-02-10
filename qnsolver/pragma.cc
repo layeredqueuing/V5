@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15155 2021-12-06 18:54:53Z greg $ *
+ * $Id: pragma.cc 15429 2022-02-04 23:04:05Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -86,6 +86,7 @@ void Pragma::setMultiserver(const std::string& value)
 void Pragma::setSolver(const std::string& value)
 {
     static const std::map<const std::string,const Model::Solver> __mva_pragma = {
+	{ LQIO::DOM::Pragma::_bounds_,		Model::Solver::BOUNDS },
 	{ LQIO::DOM::Pragma::_exact_,	     	Model::Solver::EXACT_MVA },
 	{ LQIO::DOM::Pragma::_fast_,		Model::Solver::LINEARIZER2 },
 	{ LQIO::DOM::Pragma::_linearizer_,	Model::Solver::LINEARIZER },

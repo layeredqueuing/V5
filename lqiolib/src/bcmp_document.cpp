@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 15422 2022-02-02 12:12:42Z greg $
+ * $Id: bcmp_document.cpp 15425 2022-02-04 13:32:11Z greg $
  *
  * Read in XML input files.
  *
@@ -487,6 +487,18 @@ namespace BCMP {
     /*			           Bound				*/
     /* ---------------------------------------------------------------- */
 
+    /*
+     * Find the demand at a station that forms queues.  Adjust for
+     * multiplicity.
+     */
+
+    /* static */ double
+    Model::Bound::D( const Model::Station& m, const Model::Chain::pair_t& chain )
+    {
+	return demand( m, chain.first );
+    }
+
+
     Model::Bound::Bound( const Model::Chain::pair_t& chain, const Model::Station::map_t& stations )
 	: _chain(chain), _stations(stations), _D_max(0.0), _D_sum(0.0), _Z(0.0)
     {
@@ -514,14 +526,13 @@ namespace BCMP {
 
 
     /*
-     * Find the demand at a station that forms queues.  Adjust for
-     * multiplicity.
+     * Is this station the one with the higest demand?
      */
-
-    double
-    Model::Bound::D( const Model::Station& m, const Model::Chain::pair_t& chain )
+    
+    bool
+    Model::Bound::is_D_max( const Model::Station& m ) const
     {
-	return demand( m, chain.first );
+	return demand( m, chain() ) == _D_max;
     }
 
 

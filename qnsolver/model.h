@@ -10,7 +10,7 @@
  *
  * December 2020
  *
- * $Id: model.h 15420 2022-02-01 22:24:21Z greg $
+ * $Id: model.h 15429 2022-02-04 23:04:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -133,7 +133,7 @@ private:
 	size_t indexAt(const std::string& name ) const { return _model._index.m.at(name); }
 	size_t indexAt(BCMP::Model::Chain::Type type, const std::string& name) const  { return _model.indexAt( type, name ); }
 	const BCMP::Model::Chain::map_t& chains() { return _model.chains(); }
-	Server*& Q(size_t m) { return _model.Q[m]; }
+	Server*& Q(size_t m) { return _model.Q[m]; }	/* Will choose the subclass version */
 	Server * replace_server( const std::string&, Server *, Server * ) const;
 	const ClosedModel * closed_model() const { return _model._closed_model; }
 	const OpenModel * open_model() const { return _model._open_model; }
@@ -173,7 +173,6 @@ protected:
     const BCMP::Model& _model;			/* Input */
     const Model::Solver _solver;
     Index _index;				/* Map name to station/class no. */
-    Vector<Server *> Q;				/* Stations. */
     bool _result;
 
 private:
@@ -183,5 +182,6 @@ private:
     ClosedModel * _closed_model;
     OpenModel * _open_model;
     BoundsModel * _bounds_model;
+    Vector<Server *> Q;				/* Stations. */
 };
 #endif

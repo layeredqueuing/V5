@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15374 2022-01-20 02:21:34Z greg $
+ * $Id: task.cc 15434 2022-02-09 00:28:27Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1771,7 +1771,8 @@ Task::moveSrcBy( const double dx, const double dy )
 }
 
 
-Graphic::Colour Task::colour() const
+Graphic::Colour
+Task::colour() const
 {
     switch ( Flags::colouring() ) {
     case Colouring::DIFFERENCES:
@@ -2414,7 +2415,7 @@ Task::draw( std::ostream& output ) const
     myNode->fillColour( colour() );
     if ( Flags::colouring() == Colouring::NONE ) {
 	myNode->penColour( Graphic::Colour::DEFAULT );			// No colour.
-    } else if ( throughput() == 0.0 ) {
+    } else if ( Flags::have_results && throughput() == 0.0 ) {
 	myNode->penColour( Graphic::Colour::RED );
     } else if ( colour() == Graphic::Colour::GREY_10 ) {
 	myNode->penColour( Graphic::Colour::BLACK );

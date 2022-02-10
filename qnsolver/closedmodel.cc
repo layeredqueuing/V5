@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: closedmodel.cc 15223 2021-12-15 19:31:15Z greg $
+ * $Id: closedmodel.cc 15429 2022-02-04 23:04:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -25,7 +25,7 @@
 #include "closedmodel.h"
 
 ClosedModel::ClosedModel( Model& parent, BCMP::JMVA_Document& input, Model::Solver mva )
-    : Model(input,mva), _parent(parent), N(), Z(), priority(), _mva(mva), _solver(nullptr)
+    : Model(input,mva), _parent(parent), _solver(nullptr), _mva(mva), N(), Z(), priority()
 {
     const size_t K = _model.n_chains(BCMP::Model::Chain::Type::CLOSED);
     const size_t M = _model.n_stations(BCMP::Model::Chain::Type::CLOSED);

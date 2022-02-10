@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15262 2021-12-26 18:55:49Z greg $
+ * $Id: entity.cc 15434 2022-02-09 00:28:27Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -343,8 +343,8 @@ Entity::colour() const
 	}
 	break;
 
+    case Colouring::DIFFERENCES:
 	if ( Flags::have_results ) {
-	case Colouring::DIFFERENCES:
 	    return colourForDifference( utilization() );
 	}
 	break;

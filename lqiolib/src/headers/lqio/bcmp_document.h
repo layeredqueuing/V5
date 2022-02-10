@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 15422 2022-02-02 12:12:42Z greg $
+ *  $Id: bcmp_document.h 15429 2022-02-04 23:04:05Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -275,6 +275,8 @@ namespace BCMP {
 	    double D_max() const { return _D_max; }		/* Max Demand (adjusted for multiservers) */
 	    double D_sum() const { return _D_sum; }		/* Sum of Demands */
 	    double Z() const { return _Z; }
+	    double N() const { return D_sum() / D_max(); }
+	    bool is_D_max( const Station& ) const;		/* Station with highest demand		*/
 	
 	private:
 	    const std::string& chain() const { return _chain.first; }

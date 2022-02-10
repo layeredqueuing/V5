@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 15422 2022-02-02 12:12:42Z greg $
+ * $Id: jmva_document.cpp 15429 2022-02-04 23:04:05Z greg $
  *
  * Read in XML input files.
  *
@@ -437,7 +437,7 @@ namespace BCMP {
     void
     JMVA_Document::startDocument( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
-	static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> document_table = { Xxml_debug	};
+	static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> document_table = { Xxml_debug, Xjaba };
 	
 	if ( strcasecmp( element, Xmodel ) == 0 ) {
 	    checkAttributes( element, attributes, document_table );
@@ -2056,6 +2056,7 @@ namespace BCMP {
     const XML_Char * JMVA_Document::Xcustomerclass	= "customerclass";
     const XML_Char * JMVA_Document::Xdelaystation	= "delaystation";
     const XML_Char * JMVA_Document::Xdescription	= "description";
+    const XML_Char * JMVA_Document::Xjaba		= "jaba";
     const XML_Char * JMVA_Document::Xlistation		= "listation";
     const XML_Char * JMVA_Document::XLQX		= "lqx";
     const XML_Char * JMVA_Document::Xldstation		= "ldstation";
