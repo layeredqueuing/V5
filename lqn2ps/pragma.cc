@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15201 2021-12-13 01:31:53Z greg $ *
+ * $Id: pragma.cc 15435 2022-02-09 21:40:09Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -149,6 +149,7 @@ Layering Pragma::layering()
     case Layering::MOL:
     case Layering::SQUASHED:
     case Layering::SRVN:
+    case Layering::PROCESSOR:
 	return Flags::layering();
 	
     default:
@@ -164,6 +165,7 @@ void Pragma::setLayering(const std::string& value)
 	{ LQIO::DOM::Pragma::_hwsw_,		Layering::HWSW },
 	{ LQIO::DOM::Pragma::_mol_,		Layering::MOL },
 	{ LQIO::DOM::Pragma::_mol_back_,	Layering::MOL },
+	{ LQIO::DOM::Pragma::_processor_,	Layering::PROCESSOR },
 	{ LQIO::DOM::Pragma::_squashed_,	Layering::SQUASHED },
 	{ LQIO::DOM::Pragma::_srvn_,		Layering::SRVN }
     };

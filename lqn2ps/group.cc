@@ -1,6 +1,6 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 15255 2021-12-24 17:42:46Z greg $
+ * $Id: group.cc 15435 2022-02-09 21:40:09Z greg $
  */
 
 #include <algorithm>
@@ -264,7 +264,7 @@ GroupByProcessor::label()
     }
     if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
 	myLabel->newLine() << begin_math( &Label::mu ) << "=" << myProcessor->utilization() << end_math();
-	if ( !myProcessor->hasBogusUtilization() ) {
+	if ( myProcessor->hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
 	    myLabel->colour(Graphic::Colour::RED);
 	}
     }

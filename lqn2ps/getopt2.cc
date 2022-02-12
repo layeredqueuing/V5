@@ -92,11 +92,11 @@ getopt2_long( int nargc, char * const * nargv, const char *ostr, const struct op
 		for ( const struct option *o = longopts; o->name || o->val; ++o ) {
 		    if ( strncmp( &place[2], o->name, len ) == 0 ) {
 			count += 1;
-			if ( (o->val & 0xff00) == 0x0100 ) {
-			    optopt = o->val & 0x00ff;
-			    optsign = '+';		/* Flag '+' version of opt. */
+			if ( (o->val & 0xff00) != 0x0000 ) {
+			    optsign = (o->val & 0x0100) ? '+' : '-';	/* Flag '+' version of opt. */
+			    optopt = o->val & ~0x0100;	/* Clear sign bit	*/
 			} else {
-			    optopt = o->val;
+			    optopt = o->val & 0x00ff;	/* Clear sign bit    	*/
 			}
 			has_arg = o->has_arg;
 		    }
@@ -116,7 +116,7 @@ getopt2_long( int nargc, char * const * nargv, const char *ostr, const struct op
 			optarg = q;
 			if ( q == nargv[optind] ) ++optind;
 		    } else {
-			optarg = NULL;
+			optarg = nullptr;
 		    }
 		    ++optind;
 		    return optopt;
@@ -142,21 +142,21 @@ getopt2_long( int nargc, char * const * nargv, const char *ostr, const struct op
 	return BADCH;
     }
     if (*++oli != ':') {			/* don't need argument */
-	optarg = NULL;
+	optarg = nullptr;
 	if (!*place)
 	    ++optind;
     }
     else {					/* need an argument */
-	if (*place)			/* no white space */
+	if (*place)				/* no white space */
 	    optarg = const_cast<char *>(place);
-	else if (nargc <= ++optind) {	/* no arg */
+	else if (nargc <= ++optind) {		/* no arg */
 	    place = EMSG;
 	    if (opterr) {
 		(void)fprintf(stderr, "%s: option requires an argument -- %c\n", p, optopt);
 	    }
 	    return BADCH;
 	}
-	else				/* white space */
+	else					/* white space */
 	    optarg = nargv[optind];
 	place = EMSG;
 	++optind;

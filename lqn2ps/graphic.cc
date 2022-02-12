@@ -1,6 +1,6 @@
 /* graphic.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: graphic.cc 15423 2022-02-03 02:10:02Z greg $
+ * $Id: graphic.cc 15436 2022-02-09 22:31:36Z greg $
  */
 
 #include <cassert>
@@ -1015,8 +1015,10 @@ Fig::initColours( std::ostream& output )
     static const std::set<Graphic::Colour> reject = { Graphic::Colour::TRANSPARENT, Graphic::Colour::DEFAULT, Graphic::Colour::BLACK, Graphic::Colour::WHITE };
     
     for ( std::map<const Graphic::Colour, const RGB::colour_defn>::const_iterator i = __value.begin(); i != __value.end(); ++i ) {
+
 	if ( reject.find(i->first) != reject.end() || __colour.at(i->first) < 32 ) continue;
-	output << "0 " << __name.at(i->first) << " " << rgb( i->second.red, i->second.green, i->second.blue ) << std::endl;
+	output << "0 " << __colour.at(i->first) << " " << rgb( i->second.red, i->second.green, i->second.blue )
+	       << " # " << __name.at(i->first) << std::endl;
     }
     return output;
 }

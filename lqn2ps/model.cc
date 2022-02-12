@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15434 2022-02-09 00:28:27Z greg $
+ * $Id: model.cc 15436 2022-02-09 22:31:36Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -220,6 +220,9 @@ Model::operator*=( const double s )
     if ( _key ) {
 	_key->scaleBy( s, s );
     }
+    if ( _label ) {
+	_label->scaleBy( s, s );
+    }
     for_each( Group::__groups.begin(), Group::__groups.end(), ::ExecXY<Group>( &Group::scaleBy, s, s ) );
 
     _origin  *= s;
@@ -237,6 +240,9 @@ Model::translateScale( const double s )
     if ( _key ) {
 	_key->translateY( top() );
     }
+    if ( _label ) {
+	_label->translateY( top() );
+    }
     for_each( Group::__groups.begin(), Group::__groups.end(), Exec1<Group,double>( &Group::translateY, top() ) );
     *this *= s;
 
@@ -250,6 +256,9 @@ Model::moveBy( const double dx, const double dy )
     for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::moveBy, dx, dy ) );
     if ( _key ) {
 	_key->moveBy( dx, dy );
+    }
+    if ( _label ) {
+	_label->moveBy( dx, dy );
     }
     for_each( Group::__groups.begin(), Group::__groups.end(), ::ExecXY<Group>( &Group::moveBy, dx, dy ) );
     _origin.moveBy( dx, dy );
@@ -408,6 +417,23 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
     document->mergePragmas( pragmas.getList() );       	/* Save pragmas -- prepare will process */
     Pragma::set( document->getPragmaList() );
     
+    /* Show/hide processors as required because it can be set by pragmas */
+    switch ( Flags::layering() ) {
+    case Layering::HWSW:
+    case Layering::MOL:
+    case Layering::SQUASHED:
+    case Layering::SRVN:
+	Flags::set_processors( Processors::ALL );
+	break;
+
+    case Layering::PROCESSOR:
+	Flags::set_processors( Processors::NONE );
+	break;
+
+    default:
+	;
+    }
+
 #if BUG_270
     if ( !queueing_output()
 	 && (   Flags::output_format() == File_Format::JMVA
@@ -787,7 +813,7 @@ Model::process()
 	}
 	if ( _label != nullptr && _label->size() ) {
 	    _extent.moveBy( 0, _label->height() );
-	    _label->moveTo( _origin.x() + _extent.x()/2 , _extent.y() );
+	    _label->moveTo( _origin.x() + _extent.x()/2 , _extent.y() - _label->height() );
 	}
 	     
 
@@ -1388,14 +1414,14 @@ Model::finalScaleTranslate()
 	break;
 #endif	/* HAVE_LIBGD */
 
-#if defined(SVG_OUTPUT)
+#if SVG_OUTPUT
     case File_Format::SVG:
 	/* TeX's origin is lower left corner.  SVG's is upper right.  Fix and scale */
 	translateScale( SVG_SCALING );
 	break;
 #endif
 
-#if defined(SXD_OUTPUT)
+#if SXD_OUTPUT
     case File_Format::SXD:
 	/* TeX's origin is lower left corner.  SXD's is upper right.  Fix and scale */
 	translateScale( SXD_SCALING );

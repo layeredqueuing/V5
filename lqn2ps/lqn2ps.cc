@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 15315 2022-01-01 16:35:32Z greg $
+ * $Id: lqn2ps.cc 15436 2022-02-09 22:31:36Z greg $
  *
  * Command line processing.
  *
@@ -206,7 +206,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2022-01-01 11:35:32 -0500 (Sat, 01 Jan 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-02-09 17:31:36 -0500 (Wed, 09 Feb 2022) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -270,6 +270,7 @@ main(int argc, char *argv[])
 		}
 		break;
 
+	    case 0x200+'B':
 	    case 0x300+'B':
 		pragmas.insert(LQIO::DOM::Pragma::_bcmp_,(enable ? LQIO::DOM::Pragma::_true_ : LQIO::DOM::Pragma::_false_));
 		break;
@@ -430,9 +431,8 @@ main(int argc, char *argv[])
 		case Layering::MOL:
 		case Layering::SQUASHED:
 		case Layering::SRVN:
-		    Flags::set_processors( Processors::ALL );
-		    /* Fall through */
 		case Layering::BATCH:
+		case Layering::PROCESSOR:
 		    if ( !values.empty() ) throw std::invalid_argument( optarg );
 		    pragmas.insert(LQIO::DOM::Pragma::_layering_,Options::layering.at(l));
 		    break;
@@ -444,7 +444,6 @@ main(int argc, char *argv[])
 		    Flags::set_processors( Processors::ALL );
 		    break;
 
-		case Layering::PROCESSOR:
 		case Layering::SHARE:
 		    if ( !values.empty() ) throw std::invalid_argument( optarg );
 		    Flags::set_processors( Processors::NONE );
@@ -625,11 +624,8 @@ main(int argc, char *argv[])
 		}
 		break;
 
-	    case 0x200+'z':
-		Flags::surrogates = false;
-		break;
-
-	    case 0x300+'z':
+	    case 0x200+'z':	/* false case */
+	    case 0x300+'z':	/* true case */
 		Flags::surrogates = enable;
 		break;
 
@@ -637,10 +633,12 @@ main(int argc, char *argv[])
 		resultdebug = true;
 		break;
 
+	    case 0x200+'#':
 	    case 0x300+'#':
 		Flags::print[MODEL_COMMENT].opts.value.b = enable;
 		break;
 
+	    case 0x200+'!':
 	    case 0x300+'!':
 		Flags::print[SOLVER_INFO].opts.value.b = enable;
 		break;
@@ -872,7 +870,7 @@ makeopts( std::string& opts, std::vector<struct option>& longopts )
 	    std::string name = "no-";					/* - case is no-<name> */
 	    name += f->name;
 	    longopts[k].name = strdup( name.c_str() );			/* Make a copy */
-	    longopts[k].val = (f->c & ~0x0100);		/* Clear the bit */
+	    longopts[k].val = (f->c & ~0x0100);				/* Clear the bit */
 	}
 
 	if ( (f->c & 0xff00) == 0 ) {

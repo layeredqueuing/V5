@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 15429 2022-02-04 23:04:05Z greg $
+ *  $Id: dom_pragma.cpp 15435 2022-02-09 21:40:09Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -173,25 +173,25 @@ namespace LQIO {
 
 	/* Labels */
 	
-	const char * Pragma::_abort_all_ = 			"abort-all";		// Quorum
-	const char * Pragma::_abort_local_ = 			"abort-local";		// Quorum
-	const char * Pragma::_abort_remote_ = 			"abort-remote";		// Quorum
+	const char * Pragma::_abort_all_ =			"abort-all";		// Quorum
+	const char * Pragma::_abort_local_ =			"abort-local";		// Quorum
+	const char * Pragma::_abort_remote_ =			"abort-remote";		// Quorum
 	const char * Pragma::_advisory_ =			"advisory";
 	const char * Pragma::_all_ =				"all";
 	const char * Pragma::_batched_ =			"batched";
 	const char * Pragma::_batched_back_ =			"batched-back";
 	const char * Pragma::_bcmp_ =				"bcmp";			// BUG 270
-	const char * Pragma::_bounds_ =				"bounds";
 	const char * Pragma::_block_period_ =			"block-period";
+	const char * Pragma::_bounds_ =				"bounds";
 	const char * Pragma::_bruell_ =				"bruell";		// multiserver
+	const char * Pragma::_convergence_value_ =		"convergence-value";
 	const char * Pragma::_conway_ =				"conway";		// multiserver
-	const char * Pragma::_convergence_value_ = 		"convergence-value";
-	const char * Pragma::_custom_ = 		    	"custom";		// multiserver
-	const char * Pragma::_custom_natural_ =		    	"custom-natural";
+	const char * Pragma::_custom_ =				"custom";		// multiserver
+	const char * Pragma::_custom_natural_ =			"custom-natural";
 	const char * Pragma::_cycles_ =				"cycles";
 	const char * Pragma::_default_ =			"default";
-	const char * Pragma::_default_natural_ = 		"default-natural";
-	const char * Pragma::_deterministic_ = 			"deterministic";	// Quorum
+	const char * Pragma::_default_natural_ =		"default-natural";
+	const char * Pragma::_deterministic_ =			"deterministic";	// Quorum
 	const char * Pragma::_exact_ =				"exact-mva";
 	const char * Pragma::_expand_ =				"expand";
 	const char * Pragma::_exponential_ =			"exponential";
@@ -202,18 +202,18 @@ namespace LQIO {
 	const char * Pragma::_force_infinite_ =			"force-infinite";
 	const char * Pragma::_force_multiserver_ =		"force-multiserver";
 	const char * Pragma::_force_random_queueing_ =		"force-random-queueing";
-	const char * Pragma::_gamma_ = 				"gamma";		// Quorum
-	const char * Pragma::_geometric_ = 			"geometric";		// Quorum
+	const char * Pragma::_gamma_ =				"gamma";		// Quorum
+	const char * Pragma::_geometric_ =			"geometric";		// Quorum
 	const char * Pragma::_hwsw_ =				"hwsw";
 	const char * Pragma::_hyper_ =				"hyper";
 	const char * Pragma::_init_only_ =			"init-only";
 	const char * Pragma::_initial_delay_ =			"initial-delay";
 	const char * Pragma::_initial_loops_ =			"initial-loops";
-	const char * Pragma::_iteration_limit_ = 		"iteration-limit";
 	const char * Pragma::_interlocking_ =			"interlocking";
+	const char * Pragma::_iteration_limit_ =		"iteration-limit";
 	const char * Pragma::_join_delay_ =			"join-delay";		// Quorum
-	const char * Pragma::_keep_all_ = 			"keep-all";		// Quorum
-	const char * Pragma::_layering_ = 			"layering";
+	const char * Pragma::_keep_all_ =			"keep-all";		// Quorum
+	const char * Pragma::_layering_ =			"layering";
 	const char * Pragma::_linearizer_ =			"linearizer";
 	const char * Pragma::_lqn_ =				"lqn";			// BUG 270
 	const char * Pragma::_mak_ =				"mak";
@@ -221,10 +221,10 @@ namespace LQIO {
 	const char * Pragma::_max_blocks_ =			"max-blocks";
 	const char * Pragma::_mol_ =				"mol";
 	const char * Pragma::_mol_back_ =			"mol-back";
-	const char * Pragma::_mol_underrelaxation_ = 		"mol-underrelaxation";
-	const char * Pragma::_multiserver_ = 			"multiserver";
-	const char * Pragma::_multiservers_ = 			"multiservers";
-	const char * Pragma::_mva_ = 				"mva";
+	const char * Pragma::_mol_underrelaxation_ =		"mol-underrelaxation";
+	const char * Pragma::_multiserver_ =			"multiserver";
+	const char * Pragma::_multiservers_ =			"multiservers";
+	const char * Pragma::_mva_ =				"mva";
 	const char * Pragma::_nice_ =				"nice";
 	const char * Pragma::_no_ =				"no";
 	const char * Pragma::_no_entry_ =			"no-entry";
@@ -234,13 +234,14 @@ namespace LQIO {
 	const char * Pragma::_overtaking_ =			"overtaking";
 	const char * Pragma::_pan_ =				"pan";
 	const char * Pragma::_precision_ =			"precision";
+	const char * Pragma::_processor_ =			"processor";
 	const char * Pragma::_processor_scheduling_ =		"processor-scheduling";
 	const char * Pragma::_processors_ =			"processors";
 	const char * Pragma::_prune_ =				"prune";
 	const char * Pragma::_queue_size_ =			"queue-size";		// Petrisrvn.
 	const char * Pragma::_quorum_delayed_calls_ =		"quorum-delayed-calls";	// Quroum
-	const char * Pragma::_quorum_distribution_ = 		"quorum-distribution";	// Quroum
-	const char * Pragma::_quorum_idle_time_ = 		"quorum-idle-time";	// Quroum
+	const char * Pragma::_quorum_distribution_ =		"quorum-distribution";	// Quroum
+	const char * Pragma::_quorum_idle_time_ =		"quorum-idle-time";	// Quroum
 	const char * Pragma::_quorum_reply_ =			"quorum-reply";		// Quorum
 	const char * Pragma::_reiser_ =				"reiser";		// multiserver
 	const char * Pragma::_reiser_ps_ =			"reiser-ps";		// multiserver
@@ -249,14 +250,15 @@ namespace LQIO {
 	const char * Pragma::_rolia_ =				"rolia";		// multiserver
 	const char * Pragma::_rolia_ps_ =			"rolia-ps";		// multiserver
 	const char * Pragma::_run_time_ =			"run-time";
-	const char * Pragma::_scheduling_model_ = 		"scheduling-model";
+	const char * Pragma::_scheduling_model_ =		"scheduling-model";
 	const char * Pragma::_schmidt_ =			"schmidt";		// multiserver
 	const char * Pragma::_schweitzer_ =			"schweitzer";
 	const char * Pragma::_seed_value_ =			"seed-value";
-	const char * Pragma::_severity_level_ = 		"severity-level";
+	const char * Pragma::_severity_level_ =			"severity-level";
+	const char * Pragma::_share_ =				"share";
 	const char * Pragma::_simple_ =				"simple";
 	const char * Pragma::_special_ =			"special";
-	const char * Pragma::_spex_comment_ = 			"spex-comment";
+	const char * Pragma::_spex_comment_ =			"spex-comment";
 	const char * Pragma::_spex_header_ =			"spex-header";
 	const char * Pragma::_squashed_ =			"squashed";
 	const char * Pragma::_srvn_ =				"srvn";
@@ -268,7 +270,7 @@ namespace LQIO {
 	const char * Pragma::_tasks_ =				"tasks";
 	const char * Pragma::_tau_ =				"tau";
 	const char * Pragma::_threads_ =			"threads";
-	const char * Pragma::_threepoint_ = 			"three-point";		// Quorum
+	const char * Pragma::_threepoint_ =			"three-point";		// Quorum
 	const char * Pragma::_true_ =				"true";
 	const char * Pragma::_underrelaxation_ =		"underrelaxation";
 	const char * Pragma::_variance_ =			"variance";
@@ -281,7 +283,7 @@ namespace LQIO {
 	const std::set<std::string> Pragma::__bcmp_args = { _lqn_, _extended_, _true_, _yes_, _false_, _no_, "t", "y", "f", "n", "" };
 	const std::set<std::string> Pragma::__force_infinite_args = { _none_, _fixed_rate_, _multiservers_, _all_ };
 	const std::set<std::string> Pragma::__force_multiserver_args = { _none_, _processors_, _tasks_, _all_, _true_, _yes_, _false_, _no_, "t", "y", "f", "n", "" };
-	const std::set<std::string> Pragma::__layering_args = { _batched_, _batched_back_, _mol_, _mol_back_, _squashed_, _srvn_, _hwsw_ };
+	const std::set<std::string> Pragma::__layering_args = { _batched_, _batched_back_, _mol_, _mol_back_, _processor_, _share_, _squashed_, _srvn_, _hwsw_ };
 	const std::set<std::string> Pragma::__multiserver_args = { _bruell_, _conway_, _default_, _reiser_, _reiser_ps_, _rolia_, _rolia_ps_, _schmidt_, _suri_, _zhou_ };
 	const std::set<std::string> Pragma::__mva_args = { _bounds_, _exact_, _linearizer_, _schweitzer_, _fast_, _one_step_, _one_step_linearizer_ };
 	const std::set<std::string> Pragma::__overtaking_args = { _markov_, _rolia_, _simple_, _special_, _none_ };

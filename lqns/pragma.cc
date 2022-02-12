@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15300 2021-12-30 23:41:01Z greg $ *
+ * $Id: pragma.cc 15435 2022-02-09 21:40:09Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -193,6 +193,7 @@ const std::map<const std::string,const Pragma::Layering> Pragma::__layering_prag
     { LQIO::DOM::Pragma::_hwsw_,		Pragma::Layering::HWSW },
     { LQIO::DOM::Pragma::_mol_,			Pragma::Layering::METHOD_OF_LAYERS },
     { LQIO::DOM::Pragma::_mol_back_,		Pragma::Layering::BACKPROPOGATE_METHOD_OF_LAYERS },
+    { LQIO::DOM::Pragma::_processor_,		Pragma::Layering::BATCHED },	/* For lqn2ps	*/
     { LQIO::DOM::Pragma::_squashed_,		Pragma::Layering::SQUASHED },
     { LQIO::DOM::Pragma::_srvn_,		Pragma::Layering::SRVN }
 };
