@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 15255 2021-12-24 17:42:46Z greg $
+ * $Id: entity.h 15440 2022-03-02 01:56:46Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -100,7 +100,7 @@ public:
     Entity& isSelected( bool yesOrNo ) { _isSelected = yesOrNo; return *this; }
     bool isSurrogate() const { return _isSurrogate; }
     Entity& isSurrogate( bool yesOrNo ) { _isSurrogate = yesOrNo; return *this; }
-    bool hasBogusUtilization() const;
+    virtual bool hasBogusUtilization() const;
 
     virtual double utilization() const = 0;
 

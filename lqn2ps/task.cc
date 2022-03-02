@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15434 2022-02-09 00:28:27Z greg $
+ * $Id: task.cc 15440 2022-03-02 01:56:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2534,6 +2534,22 @@ ReferenceTask::thinkTime() const
 
 
 /*
+ * Utilization for reference tasks should be one, unless there is a
+ * think time, then it should be < 1.
+ */
+
+bool
+ReferenceTask::hasBogusUtilization() const
+{
+    if ( !Flags::have_results ) return false;
+
+    const double u = utilization() / copiesValue();
+    const double z = dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getThinkTimeValue();
+    return (z == 0. && u < 0.99) || 1.01 < u;
+}
+
+
+/*
  * Reference tasks are always fully utilized, but never a performance
  * problem, so always draw them black.
  */
@@ -2547,7 +2563,9 @@ ReferenceTask::colour() const
 	return Graphic::Colour::RED;
 
     case Colouring::RESULTS:
-	if ( processor != nullptr ) {
+	if ( hasBogusUtilization() ) {
+	    return Entity::colour();	/* Punt to superclass */
+	} else if ( processor != nullptr ) {
 	    return processor->colour();
 	}
 	/* Fall through */

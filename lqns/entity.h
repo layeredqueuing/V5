@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14859 2021-06-25 20:16:24Z greg $
+ * $Id: entity.h 15439 2022-02-14 02:25:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -85,6 +85,22 @@ public:
     };
 
     static std::set<Task *>& add_clients( std::set<Task *>& clients, const Entity * entity ) { return entity->getClients( clients ); }
+
+    /*
+     * For SRVN layering.  Increment the submodel number
+     */
+
+    struct increment_submodel {
+	increment_submodel() : _submodel(0) {}
+	void operator()( Entity* server )
+	    {
+		_submodel += 1;
+		server->setSubmodel( _submodel );
+	    }
+	size_t count() const { return _submodel; }
+    private:
+	size_t _submodel;
+    };
 
 private:
     class SRVNManip {

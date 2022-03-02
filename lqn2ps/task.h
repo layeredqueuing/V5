@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 15255 2021-12-24 17:42:46Z greg $
+ * $Id: task.h 15440 2022-03-02 01:56:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -290,6 +290,7 @@ public:
     virtual bool isPureServer() const { return false; }
     virtual bool hasThinkTime() const;
     const LQIO::DOM::ExternalVariable& thinkTime() const;
+    virtual bool hasBogusUtilization() const;
 
     virtual bool canConvertToOpenArrivals() const { return false; }
 
