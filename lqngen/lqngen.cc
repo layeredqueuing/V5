@@ -2,7 +2,7 @@
  * Model file generator.
  * This is actually part of lqn2ps, but if lqn2ps is invoked as lqngen, then this magically runs.
  *
- * $Id: lqngen.cc 15343 2022-01-03 20:03:51Z greg $
+ * $Id: lqngen.cc 15444 2022-03-04 21:36:54Z greg $
  */
 
 #include "lqngen.h"
@@ -892,7 +892,7 @@ lqngen( int argc, char *argv[0] )
 
     } else {
 
-	std::cerr << LQIO::io_vars.lq_toolname << ": arg count." << std::endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": too many output files specified (output is to " << argv[optind] << ")." << std::endl;
 
     }
 

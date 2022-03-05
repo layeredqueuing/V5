@@ -1,21 +1,23 @@
 # Makefile for bookstore
 # Copyright (C) 2005 Greg Franks <rgfranks@alumni.uwaterloo.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 14618 2021-04-21 14:24:22Z greg $
+# $Id: Makefile.am 15446 2022-03-05 00:01:59Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	join-time.fig \
 	service-time.fig \
 	holding-time.fig
-
-EXTRA_DIST = $(SRCS)
+OBJS = $(SRCS:.fig=.eps) 
 
 SUFFIXES = .pdf .ps .dvi .bbl .eps .pstex .eps .fig .tex
 
-.fig.eps:
-	fig2dev -L eps -m 0.75 $< $@
+EXTRA_DIST = $(SRCS) $(OBJS)
+pkgdata_DATA = $(OBJS)
 
-noinst_DATA = $(SRCS:.fig=.eps) 
+.fig.eps:
+if HAVE_FIG2DEV
+	fig2dev -L eps -m 0.75 $< $@
+endif
 
 distclean-local:
 	rm -f *.bak

@@ -3,23 +3,24 @@
 # Carleton University, Ottawa, Ontario, Canada. K1S 5B6
 #
 #----------------------------------------------------------------------
-# $Id: Makefile.am 14619 2021-04-21 14:26:50Z greg $
+# $Id: Makefile.am 15446 2022-03-05 00:01:59Z greg $
 #----------------------------------------------------------------------
 
 if HAVE_LATEX
-SUBDIRS = model calls activity-templ web-server pseudo-tasks
-DST = 	tutorial
-SRCS =	schema.fig activity-schema.fig
 LATEX = latex -shell-escape -interaction=nonstopmode -file-line-error
 FILTER= grep -i ".*:[0-9]*:.*\|warning"
 
-pkgdata_DATA = $(DST).pdf
-EXTRA_DIST = $(DST).tex $(DST).bib $(SRCS)
+SUBDIRS = model calls activity-templ web-server pseudo-tasks
+DST = 	tutorial
+SRCS =	schema.fig activity-schema.fig
+OBJS = $(SRCS:.fig=.eps) 
+
+pkgdata_DATA = $(DST).pdf $(OBJS)
 
 SUFFIXES = .pdf .ps .dvi .bbl .eps .pstex .eps .fig .tex
 
-OBJS = $(SRCS:.fig=.eps) 
 
+yEXTRA_DIST = $(DST).tex $(DST).bib $(SRCS)
 
 .ps.pdf:
 	ps2pdf $< $@
@@ -42,7 +43,7 @@ $(DST).pdf: $(DST).ps
 
 $(DST).ps: $(DST).dvi 
 
-$(DST).dvi: $(DST).tex $(OBJS) $(DST).bib
+$(DST).dvi: $(DST).tex $(DST).bib
 
 $(DST).txt: $(DST).dvi
 	dvi2tty -w132 $(DST).dvi > $(DST).txt

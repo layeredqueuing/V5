@@ -1,4 +1,4 @@
-$Id: README-LOCAL 14950 2021-08-20 22:08:50Z greg $
+$Id: README-LOCAL 15444 2022-03-04 21:36:54Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -10,6 +10,7 @@ Carleton University, Ottawa, Ontario, Canada. K1S 5B6
 This package contains:
 libmva:	   Mean Value Analysis (Exact,Linearizer) for Extended Queueing Networks.
 lqiolib:   LQN/SRVN input/output file parsing library.
+lqn2csv:   ...
 lqn2ps:    LQN file format converter.
 lqngen:	   LQN model generator.
 lqns:      Analytic solver for Layered Queueing Networks.
@@ -21,6 +22,17 @@ srvndiff:  Result comparison program.
 
 BUILD INSTRUCTIONS (Unix variants)
 ----------------------------------
+
+You require:
+  flex
+  bison
+  gcc-c++
+  expat
+  texlive and texlive-epsf (optional for documentation)
+  automake
+  libtool
+  gd-devel (optional for png/jpeg output)
+for a complete build (sudo dnf install ...; apt-get install ...).
 
 To build and install from the distribution tarball using the gcc/g++
 compiler:

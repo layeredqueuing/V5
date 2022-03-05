@@ -1,5 +1,5 @@
 #!/bin/sh
-dirs="lqx lqiolib libmva parasol lqsim doc"
+dirs="lqx lqiolib libmva parasol"
 echo "Out with the old..."
 find . \( -name 'libtool' -o -name '*.cache' -o -name '.deps' -o -name config.in -o -name aclocal.m4 \) -print | xargs rm -rf
 echo "In with the new..."

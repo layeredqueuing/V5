@@ -2,17 +2,19 @@
 # Copyright (C) 2005 Greg Franks <rgfranks@alumni.uwaterloo.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 14388 2021-01-22 02:35:36Z greg $
+# $Id: Makefile.am 15446 2022-03-05 00:01:59Z greg $
 # ------------------------------------------------------------------------
 
 if HAVE_LATEX
-SUBDIRS = model bookstore replication srvn-schema timing-diagrams xml-schema 
+SUBDIRS = model bookstore replication srvn-schema timing-diagrams xml-schema
+
 DST = 	userman
 INFILE = infile
 LATEX = latex -shell-escape -interaction=nonstopmode -file-line-error
 FILTER= grep -i ".*:[0-9]*:.*\|warning"
 
-SRCS=	
+#SRCS=	
+#OBJS = $(SRCS:.fig=.eps) 
 
 TEXS=	defects.tex \
 	errors.tex \
@@ -32,17 +34,18 @@ BIBS = 	$(DST).bib
 
 
 pkgdata_DATA = $(DST).pdf
-EXTRA_DIST = $(BIBS) $(SRCS) $(TEXS) $(CLSS)
 
 SUFFIXES = .pdf .ps .dvi .ind .bbl .aux .tex .eps .fig 
 
-OBJS = $(SRCS:.fig=.eps) 
+EXTRA_DIST = $(BIBS) $(SRCS) $(TEXS) $(CLSS) #$(OBJS)
 
 .ps.pdf:
 	ps2pdf $< $@
 
 .fig.eps:
+if HAVE_FIG2DEV
 	fig2dev -L eps -m 0.75 $< $@
+endif
 
 .dvi.ps:
 	dvips -q -tletter -Ppdf -G0 -o $@ $< 
@@ -57,7 +60,7 @@ OBJS = $(SRCS:.fig=.eps)
 
 $(DST).pdf: $(DST).ps
 
-$(DST).dvi: $(OBJS) $(TEXS) $(DST).bib
+$(DST).dvi: $(TEXS) $(DST).bib
 
 $(DST).txt: $(DST).dvi
 	dvi2tty -w132 $(DST).dvi > $(DST).txt
@@ -68,8 +71,6 @@ clean-local:
 distclean-local:
 	$(MAKE) clean-local
 	rm -f $(OBJS) $(DST).bbl 
-
-gurjari-install: $(DST).pdf $(INFILE).pdf
 else
 all:
 	echo LaTeX is required to make the user manual.
