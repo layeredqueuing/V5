@@ -14,7 +14,7 @@ namespace RV
     {
 	char * endptr = 0;
 	setMean( strtod( str.c_str(), &endptr ) );
-	if ( endptr != 0 && *endptr != '\0' ) throw std::domain_error( "Invalid numeric argument" );
+	if ( endptr != 0 && *endptr != '\0' ) throw std::invalid_argument( "Invalid numeric argument" );
 	return *this;
     }
 
@@ -24,7 +24,7 @@ namespace RV
     {
 	char * endptr = 0;
 	setArg( i, strtod( arg.c_str(), &endptr ) );
-	if ( endptr != 0 && *endptr != '\0' ) throw std::domain_error( "Invalid numeric argument" );
+	if ( endptr != 0 && *endptr != '\0' ) throw std::invalid_argument( "Invalid numeric argument" );
 	return *this;
     }
 
@@ -57,7 +57,7 @@ namespace RV
 
     Beta& Beta::setMean( double mean )
     {
-	if ( mean <= 0 || 1 <= mean ) throw std::domain_error( "mean <= 0 || 1 <= mean" );
+	if ( mean <= 0 || 1 <= mean ) throw std::invalid_argument( "mean <= 0 || 1 <= mean" );
 	_a = mean * _b / ( 1.0 - mean );
 	return *this;
     }
@@ -79,14 +79,14 @@ namespace RV
 
     Pareto& Pareto::setMean( double mean )
     {
-	if ( mean <= 1.0 ) throw std::domain_error( "mean <= 1" );
+	if ( mean <= 1.0 ) throw std::invalid_argument( "mean <= 1" );
 	_a = mean / ( mean - 1.0 );
 	return *this;
     }
 
     Probability& Probability::setMean( double mean )
     {
-	if ( mean < 0 || 1 < mean ) throw std::domain_error( "mean < 0 || 1 < mean" );
+	if ( mean < 0 || 1 < mean ) throw std::invalid_argument( "mean < 0 || 1 < mean" );
 	_mean = mean;
 	return *this;
     }
