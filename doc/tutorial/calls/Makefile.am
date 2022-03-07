@@ -3,14 +3,14 @@
 # Carleton University, Ottawa, Ontario, Canada. K1S 5B6
 #
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15446 2022-03-05 00:01:59Z greg $
+# $Id: Makefile.am 15449 2022-03-05 01:06:36Z greg $
 #----------------------------------------------------------------------
 
 SUBDIRS = 
 SRCS =	fwd-seq.fig rnv-seq.fig snr-seq.fig fwd.fig rnv.fig snr.fig
 OBJS = $(SRCS:.fig=.eps) 
 
-EXTRA_DIST = $(SRCS)
+EXTRA_DIST = $(SRCS) $(OBJS)
 pkgdata_DIST = $(OBJS)
 
 SUFFIXES = .pdf .ps .dvi .bbl .eps .pstex .eps .fig .tex

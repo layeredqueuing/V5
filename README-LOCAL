@@ -1,4 +1,4 @@
-$Id: README-LOCAL 15444 2022-03-04 21:36:54Z greg $
+$Id: README-LOCAL 15448 2022-03-05 01:05:41Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -28,10 +28,13 @@ You require:
   bison
   gcc-c++
   expat
-  texlive and texlive-epsf (optional for documentation)
   automake
   libtool
   gd-devel (optional for png/jpeg output)
+  texlive (optional for documentation)
+  texlive-epsf (optional for documentation)
+  xfig (optional for documentation)
+  fig2dev (optional for documentation)
 for a complete build (sudo dnf install ...; apt-get install ...).
 
 To build and install from the distribution tarball using the gcc/g++

@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <rgfranks@alumni.uwaterloo.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15446 2022-03-05 00:01:59Z greg $
+# $Id: Makefile.am 15448 2022-03-05 01:05:41Z greg $
 # ------------------------------------------------------------------------
 
 if HAVE_LATEX
@@ -15,6 +15,7 @@ FILTER= grep -i ".*:[0-9]*:.*\|warning"
 
 #SRCS=	
 #OBJS = $(SRCS:.fig=.eps) 
+OBJS = $(SRCS:.fig=.eps) 
 
 TEXS=	defects.tex \
 	errors.tex \

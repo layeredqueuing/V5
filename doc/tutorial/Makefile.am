@@ -3,7 +3,7 @@
 # Carleton University, Ottawa, Ontario, Canada. K1S 5B6
 #
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15446 2022-03-05 00:01:59Z greg $
+# $Id: Makefile.am 15448 2022-03-05 01:05:41Z greg $
 #----------------------------------------------------------------------
 
 if HAVE_LATEX
@@ -16,11 +16,9 @@ SRCS =	schema.fig activity-schema.fig
 OBJS = $(SRCS:.fig=.eps) 
 
 pkgdata_DATA = $(DST).pdf $(OBJS)
+EXTRA_DIST = $(DST).tex $(DST).bib $(SRCS) $(OBJS)
 
 SUFFIXES = .pdf .ps .dvi .bbl .eps .pstex .eps .fig .tex
-
-
-yEXTRA_DIST = $(DST).tex $(DST).bib $(SRCS)
 
 .ps.pdf:
 	ps2pdf $< $@

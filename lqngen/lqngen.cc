@@ -1,8 +1,9 @@
 /* lqngen.cc	-- Greg Franks Thu Jul 29 2004
- * Model file generator.
- * This is actually part of lqn2ps, but if lqn2ps is invoked as lqngen, then this magically runs.
+ * Model file generator/converter.
+ * If invoked as lqngen, generate a model.
+ * In invoked as lqn2lqx, convert model to lqx.
  *
- * $Id: lqngen.cc 15444 2022-03-04 21:36:54Z greg $
+ * $Id: lqngen.cc 15452 2022-03-07 13:36:43Z greg $
  */
 
 #include "lqngen.h"
@@ -15,9 +16,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <libgen.h>
-#if !HAVE_GETSUBOPT
-#include <lqio/getsbopt.h>
-#endif
 #include <lqio/commandline.h>
 #include <lqio/filename.h>
 #include <lqio/glblerr.h>
@@ -27,9 +25,6 @@
 #include "randomvar.h"
 #endif
 
-#if (defined(linux) || defined(__linux__)) && !defined(__USE_XOPEN_EXTENDED)
-extern "C" int getsubopt (char **, char * const *, char **);
-#endif
 #if HAVE_GETOPT_H
 void makeopts( std::string& opts, std::vector<struct option>& longopts, int * );
 #else
@@ -500,10 +495,8 @@ main( int argc, char *argv[] )
 		break;
 		
 	    case 'O': {
-		char * old_optarg = optarg;
-		static const char * const strings[] = { "lqn", "xml", "lqx", nullptr };
-		int arg = getsubopt( &optarg, const_cast<char * const *>(strings), &endptr );
-		switch ( arg ) {
+		static const std::vector<std::string> strings = { "lqn", "xml", "lqx" };
+		switch ( std::find( strings.begin(), strings.end(), optarg ) - strings.begin() ) {
 		case 0:
 		    Flags::output_format = LQIO::DOM::Document::InputFormat::LQN;
 		    break;
@@ -516,7 +509,7 @@ main( int argc, char *argv[] )
 		    Flags::lqx_output  = true;
 		    break;
 		default:
-		    ::invalid_argument( c, old_optarg );
+		    ::invalid_argument( c, optarg );
 		    exit( 1 );
 		} }
 		break;
