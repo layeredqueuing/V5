@@ -58,5 +58,5 @@ if test "x$latexdoc" = "xyes"; then
 fi
 AM_CONDITIONAL([HAVE_LATEX], test -n "$XLATEX")
 AM_CONDITIONAL([BUILD_latexdoc], test "x$latexdoc" = "xyes")
-AC_CONFIG_FILES([Makefile include/Makefile src/Makefile doc/Makefile tests/Makefile])
+AC_CONFIG_FILES([Makefile include/parasol/Makefile src/Makefile doc/Makefile tests/Makefile])
 AC_OUTPUT

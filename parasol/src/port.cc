@@ -1,4 +1,4 @@
-// $Id: port.cc 9042 2009-10-14 01:31:21Z greg $
+// $Id: port.cc 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
 //	port.cc - PS_Port, PS_SharedPort and PS_PortSet class definitions.
 //
@@ -26,10 +26,9 @@
 //	Created: 27/06/95 (PRM)
 //
 //=======================================================================
-#include "port.h"
 
 #include <stdlib.h>
-#include <port.h>
+#include <parasol/port.h>
  
 //=======================================================================
 // function:	long PS_Port::~Port()

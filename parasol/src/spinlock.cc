@@ -1,4 +1,4 @@
-// $Id: spinlock.cc 9042 2009-10-14 01:31:21Z greg $
+// $Id: spinlock.cc 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
 //	spinlock.cc - PS_Spinlock class definition.
 //
@@ -26,6 +26,6 @@
 //	Created: 27/06/95 (PRM)
 //
 //=======================================================================
- #include <spinlock.h>
+ #include <parasol/spinlock.h>
  
  long PS_Spinlock::nextid = 0;

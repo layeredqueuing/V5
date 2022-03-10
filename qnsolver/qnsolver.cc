@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 15429 2022-02-04 23:04:05Z greg $
+ * $Id: qnsolver.cc 15460 2022-03-10 01:50:09Z greg $
  */
 
 #include "config.h"
@@ -265,6 +265,7 @@ static void exec( const std::string& input_file_name, const std::string& output_
     };
 
     if ( verbose_flag ) std::cerr << input_file_name << ": load... ";
+#if HAVE_EXPAT_H
     BCMP::JMVA_Document input( input_file_name );
     if ( input.load() ) {
 	if ( print_qnap2 ) {
@@ -287,6 +288,7 @@ static void exec( const std::string& input_file_name, const std::string& output_
 	    }
 	}
     }
+#endif
     if ( verbose_flag ) std::cerr << "done" << std::endl;
 }
 

@@ -1,6 +1,6 @@
-// $Id: genesis.h 9210 2010-02-24 18:59:24Z greg $
+// $Id: carrier.h 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
-//	genesis.h - The simulation startup code header file.
+//	carrier.h - PS_Carrier, PS_Link and PS_Bus class declarations.
 //
 //	Copyright (C) 1995 School of Computer Science,
 //		Carleton University, Ottawa, Ont., Canada
@@ -26,73 +26,63 @@
 //	Created: 27/06/95 (PRM)
 //
 //=======================================================================
-#ifndef __GENESIS_H
-#define __GENESIS_H
+#ifndef __CARRIER_H
+#define __CARRIER_H
 
-#ifndef __TASK_H
-#include <task.h>
-#endif //__TASK_H
+#ifndef __PARA_ENTITY_H
+#include <parasol/para_entity.h>
+#endif //__PARA_ENTITY_H
 
 #ifndef __NODE_H
-#include <node.h>
+#include <parasol/node.h>
 #endif //__NODE_H
 
-#ifndef __CARRIER_H
-#include <carrier.h>
+#ifndef __PORT_H
+#include <parasol/port.h>
+#endif //__PORT_H
+
+//=======================================================================
+// class:	Carrier
+// description:	Encapsulates Parasol message passing mediums.
+//=======================================================================
+class PS_AbstractCarrier : public PS_ParasolEntity {
+protected:
+	PS_AbstractCarrier(long cid) : PS_ParasolEntity(cid) {};
+ 
+public:
+	virtual SYSCALL Send(const PS_Port& port, long type, int size, char *text,
+	    long ap) const = 0;
+}; 
+
+
+//=======================================================================
+// class:	PS_Link
+// description:	Encapsulates Parasol links.
+//=======================================================================
+class PS_Link : public PS_AbstractCarrier {
+public:
+	PS_Link(const char *name, const PS_AbstractNode& src, 
+	    const PS_AbstractNode& dest, double rate, long stat_flag);
+	virtual SYSCALL Send(const PS_Port& port, long type, int size, char *text,
+	    long ap) const;
+};
+
+//=======================================================================
+// class:	PS_Bus
+// description:	Encapsulates Parasol buses.
+//=======================================================================
+class PS_Bus : public PS_AbstractCarrier {
+private:
+	static	long	*node_ids;
+
+	long *Nodes2IDs(int nnodes, const PS_AbstractNode **nodes);
+	
+public:
+	PS_Bus(const char *name, long nnodes, const PS_AbstractNode **nodes, 
+	    double rate, long discipline, int stat_flag);
+	virtual SYSCALL Send(const PS_Port& port, long type, int size, 
+	    char *text, long ap) const;
+};
+
+
 #endif //__CARRIER_H
-
-//=======================================================================
-// class:	PS_GenesisTask
-// description:	Represents a ps_genesis task.  There is only one instance
-//		of this class and it's called 'genesis'.
-//=======================================================================
-class PS_GenesisTask : public PS_SystemTask {
-private:
-	static	long 	init;
-
-	virtual void code( void * );
-
-public:
-	PS_GenesisTask() {};
-	PS_GenesisTask(long tid);
-	friend void ps_genesis(void *);
-};
-
-//=======================================================================
-// class:	PS_ParasolNode
-// description:	Represents a Parasol base node. There is only one instance
-//		of this class and it's called 'base_node'.
-//=======================================================================
-class PS_ParasolNode : public PS_SystemNode {
-private:
-	static	long	init;
-
-public:
-	PS_ParasolNode();
-};
-
-//=======================================================================
-// class:	PS_Ether
-// description:	Represents a zero delay/infinite rate carrier.  There is
-//		only one instance of this class and it's called 'ether'.
-//=======================================================================
-class PS_Ether : public PS_AbstractCarrier {
-private:
-	static	long	init;
-
-public:
-	PS_Ether();
-	virtual SYSCALL Send(const PS_Port& port, long type, int size,
-	    char *text, long other) const;
-	SYSCALL Resend(const PS_Port& port, long type, int size, double ts,
-	    char *text, long other) const
-	    { return ps_resend(port.id(), type, ts, text, other); };
-	long Broadcast(int type, int size, char *text, int other) const
-	    { return ps_broadcast(type, text, other); };
-};
-
-extern PS_ParasolNode	PS_parasol_node;	// The base node (node 0)
-extern PS_GenesisTask	PS_genesis_task;	// The genesis task
-extern PS_Ether		PS_ether;		// The 'ether' carrier
-
-#endif //__GENESIS_H

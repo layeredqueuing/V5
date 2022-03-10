@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: option.cc 15315 2022-01-01 16:35:32Z greg $
+ * $Id: option.cc 15460 2022-03-10 01:50:09Z greg $
  */
 
 #include "lqn2ps.h"
@@ -496,7 +496,7 @@ bool
 graphical_output()
 {
     static const std::set<File_Format> reject = {
-#if JMVA_OUTPUT
+#if JMVA_OUTPUT && HAVE_EXPAT_H
 	File_Format::JMVA,
 #endif
 	File_Format::JSON,

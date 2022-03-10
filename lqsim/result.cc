@@ -1,14 +1,13 @@
 /* result.cc	-- Greg Franks Fri Jun  5 2009
  *
  * ------------------------------------------------------------------------
- * $Id: result.cc 15353 2022-01-04 22:06:34Z greg $
+ * $Id: result.cc 15456 2022-03-09 15:06:35Z greg $
  * ------------------------------------------------------------------------
  */
 
 
 #include "lqsim.h"
 #include <cstdarg>
-#include <parasol.h>
 #include "result.h"
 #include "model.h"
 

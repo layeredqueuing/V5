@@ -1,4 +1,4 @@
-// $Id: node.cc 9042 2009-10-14 01:31:21Z greg $
+// $Id: node.cc 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
 //	node.cc - PS_AbstractNode, PS_UserNode and PS_SystemNode class
 //		  definitions.
@@ -27,7 +27,7 @@
 //	Created: 27/06/95 (PRM)
 //
 //=======================================================================
-#include <node.h>
+#include <parasol/node.h>
  
 //=======================================================================
 // function:	PS_UserNode:: PS_UserNode(const char*,int,double,double,

@@ -1,4 +1,4 @@
-// $Id: task.h 9210 2010-02-24 18:59:24Z greg $
+// $Id: task.h 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
 //	task.h - PS_AbstractTask, PS_UserTask and PS_SystemTask class
 //		 declarations.
@@ -31,15 +31,15 @@
 #define __TASK_H
 
 #ifndef __PARA_ENTITY_H
-#include <para_entity.h>
+#include <parasol/para_entity.h>
 #endif //__PARA_ENTITY_H
 
 #ifndef __NODE_H
-#include <node.h>
+#include <parasol/node.h>
 #endif //__NODE_H
 
 #ifndef __PORT_H
-#include <port.h>
+#include <parasol/port.h>
 #endif //__PORT_H
                                                
 

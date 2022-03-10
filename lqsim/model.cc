@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15354 2022-01-04 23:11:41Z greg $
+ * $Id: model.cc 15456 2022-03-09 15:06:35Z greg $
  */
 
 #include "lqsim.h"
@@ -40,8 +40,7 @@
 #include <lqio/json_document.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
-#include <parasol.h>
-#include <para_internals.h>
+#include <parasol/para_internals.h>
 #include "activity.h"
 #include "entry.h"
 #include "errmsg.h"

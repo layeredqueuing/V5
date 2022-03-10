@@ -1,4 +1,4 @@
-// $Id: semaphore.h 9042 2009-10-14 01:31:21Z greg $
+// $Id: semaphore.h 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
 //	semaphore.h - PS_Semaphore class declaration.
 //
@@ -30,7 +30,7 @@
 #define __SEMAPHORE_H
 
 #ifndef __PARA_ENTITY_H
-#include <para_entity.h>
+#include <parasol/para_entity.h>
 #endif //__PARA_ENTITY_H
 
 //=======================================================================

@@ -1,4 +1,4 @@
-/* $Id: standalone.c 9893 2010-10-19 02:50:46Z greg $ */
+/* $Id: standalone.c 15456 2022-03-09 15:06:35Z greg $ */
 /************************************************************************/
 /*	para_library.c - PARASOL library source file			*/
 /*									*/
@@ -24,8 +24,8 @@
 /*  the School of Computer Science at Carleton University.		*/
 /************************************************************************/
 
-#include <para_internals.h>
-#include <para_privates.h>
+#include <parasol/para_internals.h>
+#include <parasol/para_privates.h>
 #if defined(HAVE_FENV_H)
 #if defined(__GNUC__) && defined(linux)
 #define __USE_GNU

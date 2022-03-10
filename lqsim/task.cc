@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15331 2022-01-02 21:51:30Z greg $
+ * $Id: task.cc 15456 2022-03-09 15:06:35Z greg $
  */
 
 #include "lqsim.h"
@@ -18,7 +18,6 @@
 #include <cassert>
 #include <cstring>
 #include <algorithm>
-#include <parasol.h>
 #include <lqio/labels.h>
 #include <lqio/error.h>
 #include <lqio/dom_actlist.h>

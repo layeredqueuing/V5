@@ -1,4 +1,4 @@
-// $Id: carrier.cc 9042 2009-10-14 01:31:21Z greg $
+// $Id: carrier.cc 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
 //	carrier.cc - PS_Carrier, PS_Link and PS_Bus class definitions.
 //
@@ -27,7 +27,7 @@
 //
 //=======================================================================
 #include <stdlib.h>
-#include <carrier.h>
+#include <parasol/carrier.h>
 
 long *PS_Bus::node_ids;	// Used by PS_Bus::PS_Bus() and PS_Bus::Nodes2IDs()
  

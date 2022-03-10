@@ -9,16 +9,16 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 15297 2021-12-30 16:21:19Z greg $
+ * $Id: group.cc 15456 2022-03-09 15:06:35Z greg $
  */
+
+#include "lqsim.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
-#include <parasol.h>
 #include <assert.h>
-#include "lqsim.h"
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include "errmsg.h"

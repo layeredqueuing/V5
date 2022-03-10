@@ -1,4 +1,4 @@
-// $Id: para_entity.h 9042 2009-10-14 01:31:21Z greg $
+// $Id: para_entity.h 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
 //	para_entity.h - PS_ParasolEntity class declaration.
 //
@@ -30,7 +30,7 @@
 #define __PARA_ENTITY_H
 
 #ifndef __PARASOL_H
-#include <parasol.h>
+#include <parasol/parasol.h>
 #endif //__PARASOL_H
 
 //=======================================================================

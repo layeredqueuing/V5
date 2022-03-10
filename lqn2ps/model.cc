@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15436 2022-02-09 22:31:36Z greg $
+ * $Id: model.cc 15460 2022-03-10 01:50:09Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -435,9 +435,11 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
     }
 
 #if BUG_270
-    if ( !queueing_output()
-	 && (   Flags::output_format() == File_Format::JMVA
-	     || Flags::output_format() == File_Format::QNAP2) ) {
+    if ( !queueing_output() && (   
+#if JMVA_OUTPUT && HAVE_EXPAT_H
+	     Flags::output_format() == File_Format::JMVA ||
+#endif
+	     Flags::output_format() == File_Format::QNAP2) ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": -O" << Options::file_format.at(Flags::output_format())
 		  << " must be used with -Q<submodel>." << std::endl;
 	exit( 1 );

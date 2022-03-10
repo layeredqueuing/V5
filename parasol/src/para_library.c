@@ -1,4 +1,4 @@
-/* $Id: para_library.c 14335 2021-01-05 04:10:54Z greg $ */
+/* $Id: para_library.c 15456 2022-03-09 15:06:35Z greg $ */
 
 /************************************************************************/
 /*	para_library.c - PARASOL library source file			*/
@@ -145,8 +145,8 @@
 /*									*/
 /************************************************************************/
 
-#include <para_internals.h>
-#include <para_privates.h>
+#include <parasol/para_internals.h>
+#include <parasol/para_privates.h>
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif

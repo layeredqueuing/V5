@@ -1,4 +1,4 @@
-// $Id: semaphore.cc 9042 2009-10-14 01:31:21Z greg $
+// $Id: semaphore.cc 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
 //	semaphore.cc - PS_Semaphore class definition.
 //
@@ -26,7 +26,7 @@
 //	Created: 27/06/95 (PRM)
 //
 //=======================================================================
-#include <semaphore.h>
+#include <parasol/semaphore.h>
  
 // Static (Class) variable definition
 long PS_Semaphore::nextid = 0;

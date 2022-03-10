@@ -10,13 +10,12 @@
 /*
  * Input output processing.
  *
- * $Id: message.cc 15331 2022-01-02 21:51:30Z greg $
+ * $Id: message.cc 15456 2022-03-09 15:06:35Z greg $
  */
 
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-#include <parasol.h>
 #include <assert.h>
 #include <lqio/input.h>
 #include <lqio/error.h>

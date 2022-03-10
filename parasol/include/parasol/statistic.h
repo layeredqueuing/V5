@@ -1,4 +1,4 @@
-// $Id: statistic.h 9042 2009-10-14 01:31:21Z greg $
+// $Id: statistic.h 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
 //	statistic.h - PS_AbstractStatistic, PS_RateStatistic, 
 //		     PS_VariableStatistic and PS_SampleStatistic class
@@ -32,7 +32,7 @@
 #define __STATISTIC_H
 
 #ifndef __PARA_ENTITY_H
-#include <para_entity.h>
+#include <parasol/para_entity.h>
 #endif //__PARA_ENTITY_H
 
 //=======================================================================

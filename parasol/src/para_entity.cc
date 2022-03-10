@@ -1,4 +1,4 @@
-// $Id: para_entity.cc 7631 2007-11-14 18:10:13Z greg $
+// $Id: para_entity.cc 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
 //	para_entity.cc - PS_ParasolEntity class definition.
 //
@@ -27,7 +27,7 @@
 //
 //=======================================================================
 #include <stdlib.h>
-#include <para_entity.h>
+#include <parasol/para_entity.h>
  
 //=======================================================================
 // function:	void PS_ParasolEntity::Abort(const char*) 

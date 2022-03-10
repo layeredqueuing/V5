@@ -1,4 +1,4 @@
-/* $Id: para_protos.h 14386 2021-01-20 23:58:29Z greg $ */
+/* $Id: para_protos.h 15456 2022-03-09 15:06:35Z greg $ */
 
 /************************************************************************/
 /*	para_protos.h - PARASOL library prototype and macro file	*/
@@ -49,7 +49,7 @@
 #ifndef	_PARA_PROTOS
 #define	_PARA_PROTOS
 
-#include	<para_types.h>
+#include <parasol/para_types.h>
 
 /* Functions defined here for compiling on Windows NT.			*/
 #if !defined(HAVE_DRAND48)

@@ -1,4 +1,4 @@
-// $Id: task.cc 9210 2010-02-24 18:59:24Z greg $
+// $Id: task.cc 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
 //	task.cc - PS_AbstractTask, PS_UserTask and PS_SystemTask class
 //		     definitions.
@@ -28,7 +28,7 @@
 //
 //=======================================================================
 #include <stdlib.h>
-#include <task.h>
+#include <parasol/task.h>
  
 //=======================================================================
 // function:	cpp_wrapper

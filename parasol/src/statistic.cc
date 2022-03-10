@@ -1,4 +1,4 @@
-// $Id: statistic.cc 9042 2009-10-14 01:31:21Z greg $
+// $Id: statistic.cc 15456 2022-03-09 15:06:35Z greg $
 //=======================================================================
 //	statistic.cc - PS_AbstractStatistic, PS_RateStatistic, 
 //		     PS_VariableStatistic and PS_SampleStatistic class
@@ -28,7 +28,7 @@
 //	Created: 27/06/95 (PRM)
 //
 //=======================================================================
-#include <statistic.h>
+#include <parasol/statistic.h>
 
 //=======================================================================
 // function:	 PS_AbstractStatistic:: PS_AbstractStatistic(const char*,int) 
