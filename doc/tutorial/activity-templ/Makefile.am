@@ -3,18 +3,18 @@
 # Carleton University, Ottawa, Ontario, Canada. K1S 5B6
 #
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15446 2022-03-05 00:01:59Z greg $
+# $Id: Makefile.am 15463 2022-03-10 23:32:21Z greg $
 #----------------------------------------------------------------------
 
 SUBDIRS = 
 SRCS =	activity-templ.fig
+OBJS = $(SRCS:.fig=.eps) 
 
 EXTRA_DIST = $(SRCS) activity-templ.lqnx activity-templ.lqn
-pkgdata_DIST = $(OBJS)
+pkgdata_DATA = $(OBJS)
 
 SUFFIXES = .pdf .ps .dvi .bbl .eps .pstex .eps .fig .tex
 
-OBJS = $(SRCS:.fig=.eps) 
 
 .fig.eps:
 if HAVE_FIG2DEV

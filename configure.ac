@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-# $Id: configure.ac 15448 2022-03-05 01:05:41Z greg $
+# $Id: configure.ac 15463 2022-03-10 23:32:21Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([lqns],[5.25],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([config])
@@ -40,15 +40,15 @@ fi
 #
 AC_PROG_INSTALL
 AC_PROG_LN_S
-AC_CHECK_PROGS(XPS2PDF, ps2pdf)
+AC_CHECK_PROGS([XPS2PDF], [ps2pdf])
 if test -z "$XPS2PDF"; then
   AC_MSG_NOTICE([Ps2pdf not found - Unable to create PDF version of the user manual])
 fi
 AM_CONDITIONAL([HAVE_PS2PDF], test -n "$XPS2PDF")
-AC_CHECK_PROGS(XSVN, svn)
+AC_CHECK_PROGS([XSVN], svn)
 AM_CONDITIONAL([HAVE_SVN], test -n "$XSVN")
 
-AC_CHECK_PROGS(XFIG2DEV, fig2dev)
+AC_CHECK_PROGS([XFIG2DEV], fig2dev)
 AM_CONDITIONAL([HAVE_FIG2DEV], test -n "$XFIG2DEV")
 
 AC_ARG_ENABLE([latex-doc],
@@ -60,7 +60,7 @@ AC_ARG_ENABLE([latex-doc],
 if test "x$latexdoc" = "xyes"; then
    AC_MSG_NOTICE([building of the PDF of the user manual from LaTeX source is enabled])
    # Check for presence of pdfLaTeX
-   AC_CHECK_PROGS(XLATEX, latex)
+   AC_CHECK_PROGS([XLATEX], latex)
    if test -z "$XLATEX"; then
       AC_MSG_NOTICE([LaTeX not found - Unable to create PDF version of the user manual])
    fi
@@ -108,7 +108,6 @@ if test "$quroum" = "yes"; then
      AC_CHECK_LIB([gsl], [gsl_cdf_gamma_P])
 fi
 
-#AC_CHECK_LIB([pthread], [pthread_create])
 AM_CONDITIONAL([QUORUM], [test ${ac_cv_lib_gsl_gsl_cdf_gamma_P} = "yes"] )
 
 AC_CHECK_LIB([expat], [XML_ParserCreateNS])
