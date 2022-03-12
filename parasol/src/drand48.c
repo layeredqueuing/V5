@@ -14,7 +14,7 @@
 
 #include <config.h>
 #if !defined(HAVE_DRAND48)
-#include "drand48.h"
+#include <parasol/drand48.h>
 
 #define N	16
 #define MASK	((unsigned)(1 << (N - 1)) + (1 << (N - 1)) - 1)
