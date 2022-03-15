@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15468 2022-03-14 09:41:25Z greg $
+ * $Id: multserv.cc 15469 2022-03-14 19:19:28Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -944,21 +944,18 @@ Probability
 Zhou_Multi_Server::P_mean( const MVA& solver, const Population& N ) const
 {
 #if BUG_349_COMMENT_8
-    const double f = solver.throughput( *this );
-    const unsigned int sumOf_N = N.sum();
-    double sumOf_W = 0.;
-    double sumOf_X = 0.;
+    double sumOf_WX = 0.;
     for ( unsigned int k = 1; k <= K; ++k ) {
+	const double X = solver.throughput( *this, k );		// Hoist offset(NCust);
 	for ( unsigned int e = 1; e <= E; ++e ) {
-	    const double X_ek = solver.throughput( *this, e, k );
-	    sumOf_W += W[e][k][0] * X_ek;
-	    sumOf_X += X_ek;
+	    sumOf_WX += W[e][k][0] * V(e,k) * X;
 	}
     }
-    /* Orignal expression from Murray was (S+W, but THAT W is queueing only..., so
+    const double sumOf_N = static_cast<double>(N.sum());
+    /* Orignal expression from Murray was S+W, but THAT W is queueing only..., so
      * don't bother with S_mean...*/
 //    return f * (W) / sumOf_N;
-    return std::min(f * (sumOf_W / sumOf_X) / sumOf_N, 1.0);	// Use mean waiting time at server and truncate at 1
+    return std::min( sumOf_WX / sumOf_N, 1.0 );			// truncate at 1
 #else
 //  double sumOf_X = 0.0;					// sumOf_X cancels out.
     double sumOf_Z = 0.0;
