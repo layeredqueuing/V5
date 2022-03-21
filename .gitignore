@@ -6,6 +6,7 @@
 *.cache
 *.deps
 *.diff
+*.dmg
 *.dvi
 *.eps
 *.exe
