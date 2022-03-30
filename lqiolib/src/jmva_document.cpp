@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 15429 2022-02-04 23:04:05Z greg $
+ * $Id: jmva_document.cpp 15480 2022-03-30 21:44:04Z greg $
  *
  * Read in XML input files.
  *
@@ -97,7 +97,7 @@ namespace BCMP {
 
     JMVA_Document::~JMVA_Document()
     {
-	for ( std::map<std::string, LQIO::DOM::SymbolExternalVariable*>::const_iterator var = _variables.begin(); var != _variables.end(); ++var ) {
+	for ( std::map<const std::string, LQIO::DOM::SymbolExternalVariable*>::const_iterator var = _variables.begin(); var != _variables.end(); ++var ) {
 	    delete var->second;
 	}
 	
@@ -494,7 +494,7 @@ namespace BCMP {
 //	if ( _variables.empty() || !LQIO::Spex::__result_variables.empty() || _plot_population_mix ) return;
 	if ( !LQIO::Spex::__result_variables.empty() ) return;
 
-	for (std::map<std::string,LQIO::DOM::SymbolExternalVariable*>::const_iterator var = _variables.begin(); var != _variables.end(); ++var ) {
+	for (std::map<const std::string,LQIO::DOM::SymbolExternalVariable*>::const_iterator var = _variables.begin(); var != _variables.end(); ++var ) {
 	    appendResultVariable( var->first );
 	}
 	/* For all stations... create name_X, name_Q, name_R and name_U */
@@ -867,9 +867,9 @@ namespace BCMP {
     JMVA_Document::getVariable( const XML_Char *attribute, const XML_Char *value )
     {
 	if ( value[0] == '$' ) {
-	    const std::map<std::string,LQIO::DOM::SymbolExternalVariable*>::const_iterator var = _variables.find(value);
+	    const std::map<const std::string,LQIO::DOM::SymbolExternalVariable*>::const_iterator var = _variables.find(value);
 	    if ( var != _variables.end() ) return var->second;
-	    std::pair<const std::map<std::string,LQIO::DOM::SymbolExternalVariable*>::const_iterator,bool> result = _variables.emplace( value, new LQIO::DOM::SymbolExternalVariable(value) );
+	    std::pair<const std::map<const std::string,LQIO::DOM::SymbolExternalVariable*>::const_iterator,bool> result = _variables.emplace( value, new LQIO::DOM::SymbolExternalVariable(value) );
 	    return result.first->second;
 	} else {
 	    char* endPtr = nullptr;

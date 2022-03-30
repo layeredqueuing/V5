@@ -1,6 +1,6 @@
 # Makefile for .
 # Copyright (C) 2003 Greg Franks <rgfranks@alumni.uwaterloo.ca>
-# $Id: Makefile.am 15273 2021-12-27 12:53:44Z greg $
+# $Id: Makefile.am 15480 2022-03-30 21:44:04Z greg $
 # ----------------------------------------------------------------------
 
 AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers 
@@ -24,16 +24,15 @@ distclean-local:
 
 install-exec-hook:
 	for i in $(OTHEREXE); do \
-	  $(RM) $(DESTDIR)$(bindir)/$$i$(EXEEXT); \
-	  (cd $(DESTDIR)$(bindir); $(LN_S) lqngen$(EXEEXT) $$i$(EXEEXT)); \
+	  (cd $(DESTDIR)$(bindir); rm -f $$i$(EXEEXT); $(LN_S) lqngen$(EXEEXT) $$i$(EXEEXT)); \
 	done
 
 if HAVE_PS2PDF
 install-data-local: lqngen.pdf lqn2lqx.pdf
 
 lqngen.pdf: lqngen.1
-	groff -man $< | ps2pdf - $@
+	groff -man lqngen.1 | ps2pdf - $@
 
 lqn2lqx.pdf: lqn2lqx.1
-	groff -man $< | ps2pdf - $@
+	groff -man lqn2lqx.1 | ps2pdf - $@
 endif
