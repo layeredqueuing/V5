@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15460 2022-03-10 01:50:09Z greg $
+ * $Id: model.cc 15476 2022-03-30 13:20:14Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -468,6 +468,11 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 		} else { 
 		    /* Attempt to run the program */
 		    document->registerExternalSymbolsWithProgram(program);
+
+		    if ( Flags::print_spex ) {
+			program->print( std::cerr );
+		    }
+		    
 		    if ( Flags::print[RELOAD_LQX].opts.value.b ) {
 			program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::reload, model));
 		    } else {

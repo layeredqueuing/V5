@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 15436 2022-02-09 22:31:36Z greg $
+ * $Id: lqn2ps.cc 15476 2022-03-30 13:20:14Z greg $
  *
  * Command line processing.
  *
@@ -142,6 +142,7 @@ std::vector<Options::Type> Flags::print = {
     { "print-summary",   0x200+'S', nullptr,               {&Options::none,         0},                 "Print model summary on stdout." },
     { "debug-json",      0x200+'J', nullptr,               {&Options::none,         0},                 "Output debugging information while parsing JSON input." },
     { "debug-lqx",       0x200+'L', nullptr,               {&Options::none,         0},                 "Output debugging information while parsing LQX input." },
+    { "debug-spex",	 0x200+'K', nullptr,		   {&Options::none,         0},                 "Output LQX progam corresponding to SPEX input." },
     { "debug-srvn",      0x200+'Y', nullptr,               {&Options::none,         0},                 "Output debugging information while parsing SRVN input." },
     { "debug-p",         0x200+'Z', nullptr,               {&Options::none,         0},                 "Output debugging information while parsing parseable results input." },
     { "debug-xml",       0x200+'X', nullptr,               {&Options::none,         0},                 "Output debugging information while parsing XML input." },
@@ -206,7 +207,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2022-02-09 17:31:36 -0500 (Wed, 09 Feb 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-03-30 09:20:14 -0400 (Wed, 30 Mar 2022) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -421,6 +422,10 @@ main(int argc, char *argv[])
 		    throw std::invalid_argument( optarg );
 		}
 		Flags::set_processors( Processors::ALL );
+		break;
+
+	    case 0x200+'K':
+		Flags::print_spex = true;
 		break;
 
 	    case 'L': {

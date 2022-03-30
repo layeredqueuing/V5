@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 15354 2022-01-04 23:11:41Z greg $
+ *  $Id: dom_document.h 15475 2022-03-30 13:18:13Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -251,8 +251,8 @@ namespace LQIO {
 	    std::map<unsigned, Entity*> _entities;            	/* entity.id -> Entity */
 
 	    /* We need to make sure all variables named the same point the same */
-	    std::map<std::string, SymbolExternalVariable*> _variables;
-	    std::map<const char *, const ExternalVariable*> _controlVariables;
+	    std::map<const std::string, SymbolExternalVariable*> _variables;
+	    std::map<const std::string, const ExternalVariable*> _controlVariables;
 	    static std::map<const char *, double> __initialValues;
 
 	    unsigned _nextEntityId;                           	/* for sorting, see _entities 	*/

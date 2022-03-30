@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 15360 2022-01-05 12:01:00Z greg $
+ * $Id: srvn_spex.h 15475 2022-03-30 13:18:13Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -336,7 +336,7 @@ namespace LQIO {
 	static std::vector<var_name_and_expr>::const_iterator find( std::vector<var_name_and_expr>::const_iterator, std::vector<var_name_and_expr>::const_iterator, const std::string& );
 
     public:
-	static std::map<std::string, LQIO::DOM::SymbolExternalVariable*>* __global_variables;	/* Document global variables. (input) */
+	static std::map<const std::string, LQIO::DOM::SymbolExternalVariable*>* __global_variables;	/* Document global variables. (input) */
 
     private:
 	static std::vector<std::string> __scalar_variables;			/* Saves $<scalar_name> for output */

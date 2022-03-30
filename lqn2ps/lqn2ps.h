@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 15256 2021-12-25 01:47:40Z greg $
+ * $Id: lqn2ps.h 15476 2022-03-30 13:20:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -167,6 +167,7 @@ struct Flags
     static bool print_comment;
     static bool print_forwarding_by_depth;
     static bool print_layer_number;
+    static bool print_spex;
     static bool print_submodel_number;
     static bool print_submodels;
     static bool prune;			// BUG 270.

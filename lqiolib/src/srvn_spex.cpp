@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 15342 2022-01-03 19:04:41Z greg $
+ *  $Id: srvn_spex.cpp 15478 2022-03-30 13:29:38Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -919,7 +919,7 @@ namespace LQIO {
     std::map<std::string,Spex::ComprehensionInfo> Spex::__comprehensions;   /* Saves all comprehensions for $<name> */
     expr_list Spex::__deferred_assignment;
 
-    std::map<std::string, DOM::SymbolExternalVariable*>* Spex::__global_variables = nullptr;	/* Document global variables. (input) */
+    std::map<const std::string, DOM::SymbolExternalVariable*>* Spex::__global_variables = nullptr;	/* Document global variables. (input) */
     std::map<std::string,LQX::SyntaxTreeNode *> Spex::__input_variables;    /* Save for printing when __verbose == true */
     Spex::obs_var_tab_t Spex::__observations;				    /* Saves all key-$var for each object */
     std::vector<Spex::ObservationInfo> Spex::__document_variables;	    /* Saves all key-$var for the document */
