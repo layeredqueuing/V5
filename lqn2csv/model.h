@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: model.h 15485 2022-04-01 01:48:03Z greg $
+ * $Id: model.h 15489 2022-04-01 14:42:45Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -91,6 +91,8 @@ namespace Model {
 	    THROUGHPUT_BOUND
 	};
 
+
+
 	struct result_fields {
 	    Object::Type type;
 	    const std::string name;
@@ -135,9 +137,9 @@ namespace Model {
 
     class Process {
     public:
-	Process( std::ostream& output, const std::vector<Model::Result::result_t>& results, const std::pair<size_t,double>& y_index ) : _output(output), _results(results), _i(0), _x_index(y_index) {}
+	Process( std::ostream& output, const std::vector<Model::Result::result_t>& results, const std::pair<size_t,double>& x_index ) : _output(output), _results(results), _i(0), _x_index(x_index) {}
 
-	void operator()( const char * filename );
+	void operator()( const std::string& filename );
 
     private:
 	size_t x_index() const { return _x_index.first; }
@@ -153,12 +155,13 @@ namespace Model {
 
     class Print {
     public:
-	Print( std::ostream& output ) : _output(output), _first(true) {}
+	Print( std::ostream& output, const std::string& filename ) : _output(output), _first(true), _filename(filename) {}
 	
 	void operator()( double );
     private:
 	std::ostream& _output;
 	bool _first;
+	const std::string& _filename;
     };
 	
 }

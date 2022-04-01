@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 15304 2021-12-31 15:51:38Z greg $
+ * $Id: model.cc 15489 2022-04-01 14:42:45Z greg $
  *
  * Command line processing.
  *
@@ -100,7 +100,7 @@ bool Model::Result::isDependentVariable( Model::Result::Type type )
  * Load a file then extract results using Model::Result::operator().
  */
 
-void Model::Process::operator()( const char * filename )
+void Model::Process::operator()( const std::string& filename )
 {
     /* Load results */
     unsigned int error_code = 0;
@@ -113,7 +113,7 @@ void Model::Process::operator()( const char * filename )
 
     _i += 1;
     std::vector<double> data;
-    data.push_back( static_cast<double>(_i) );
+    data.push_back( static_cast<double>(_i) );			// File (record) number
     data = std::accumulate( _results.begin(), _results.end(), data, Model::Result( *dom ) );
 
     /* We now have a vector of doubles */
@@ -126,26 +126,8 @@ void Model::Process::operator()( const char * filename )
 	}
     }
 
-    std::for_each( data.begin(), data.end(), Model::Print( _output ) );
+    std::for_each( data.begin(), data.end(), Model::Print( _output, filename ) );
     _output << std::endl;
-}
-
-/* Output an item, separated by commas. */
-
-void
-Model::Print::operator()( double item )
-{
-    if ( _first ) {
-	_first = false;
-    } else {
-	_output << ",";
-    }
-
-    if ( item != std::numeric_limits<double>::quiet_NaN() ) {
-	_output << item;
-    } else {
-	_output << "NULL";
-    }
 }
 
 /*
@@ -320,4 +302,22 @@ Model::Result::equal( Model::Result::Type type_1, Model::Result::Type type_2 )
 	|| (service_time( type_1 ) && service_time( type_2 ))
 	|| (variance( type_1 ) && variance( type_2 ))
 	|| (waiting( type_1 ) && waiting( type_2 ));
+}
+
+/* Output an item, separated by commas. */
+
+void
+Model::Print::operator()( double item )
+{
+    if ( _first ) {
+	_first = false;
+	_output << "\"" << _filename << "\"";
+    } else {
+	_output << ",";
+	if ( item != std::numeric_limits<double>::quiet_NaN() && item != std::numeric_limits<double>::signaling_NaN() ) {
+	    _output << item;
+	} else {
+	    _output << "NULL";
+	}
+    }
 }

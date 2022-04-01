@@ -3,7 +3,7 @@
  * If invoked as lqngen, generate a model.
  * In invoked as lqn2lqx, convert model to lqx.
  *
- * $Id: lqngen.cc 15454 2022-03-07 22:46:37Z greg $
+ * $Id: lqngen.cc 15491 2022-04-01 15:54:49Z greg $
  */
 
 #include "lqngen.h"
@@ -457,7 +457,7 @@ main( int argc, char *argv[] )
 	    case 'L':
 		if ( Flags::lqn2lqx ) throw c;
 		if ( number_of_layers ) delete number_of_layers;
-		number_of_clients = get_RV( std::string( optarg ), constant_default, RV::RandomVariable::DISCREET );
+		number_of_layers = get_RV( std::string( optarg ), constant_default, RV::RandomVariable::DISCREET );
 		if ( !check_multiplicity( number_of_layers ) ) throw std::invalid_argument( "The number of layers must be greater than zero." );
 		break;
 

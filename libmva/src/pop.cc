@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pop.cc 15393 2022-01-26 23:05:56Z greg $
+ * $Id: pop.cc 15487 2022-04-01 10:35:01Z greg $
  *
  * Population vector functions.
  *
@@ -22,13 +22,6 @@
 Population::Population( unsigned int size )
 {
     _N.resize( size, 0 );
-}
-
-
-unsigned
-Population::sum() const
-{
-    return std::for_each( _N.begin(), _N.end(), Sum() ).sum();
 }
 
 /* ---------------------------- Iterators ----------------------------- */

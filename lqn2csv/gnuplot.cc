@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: gnuplot.cc 15485 2022-04-01 01:48:03Z greg $
+ * $Id: gnuplot.cc 15489 2022-04-01 14:42:45Z greg $
  *
  * Command line processing.
  *
@@ -64,10 +64,10 @@ Model::GnuPlot::preamble()
 	if ( Result::isIndependentVariable( result->second ) ) {
 	    if ( _x1_axis.second == Result::Type::NONE ) {
 		_x1_axis = *result;
-		_x1_index = result - _results.begin() + 2;
+		_x1_index = result - _results.begin() + 1;
 	    } else if ( _x2_axis.second == Result::Type::NONE ) {
 		_x2_axis = *result;
-		_x2_index = result - _results.begin() + 2;
+		_x2_index = result - _results.begin() + 1;
 //		_output << "set x2label \"" << _x2_axis.first << " " << Model::Result::__results.at(_x2_axis.second).name << "\"" << std::endl;
 //		_output << "set x2tics" << std::endl;
 	    } else {
@@ -131,9 +131,9 @@ Model::GnuPlot::plot()
 	} else {
 	    _output << ",\\" << std::endl << "     ";
 	}
-	_output << "$DATA using " << _x1_index << ":";
+	_output << "$DATA using " << _x1_index + 1 << ":";
 	if ( splot_output() ) {
-	    _output << _x2_index << ":";
+	    _output << _x2_index + 1 << ":";
 	}
 	_output << (result - _results.begin()) + 2 << " with linespoints";
 

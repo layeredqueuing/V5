@@ -1,3 +1,7 @@
+2022-04-01  Greg Franks  <greg@merlin.sce.carleton.ca>
+
+	* NEWS: 
+
 2022-02-04  Gregory Franks  <greg@Gregs-Retina-iMac.local>
 
 	* NEWS: Bug fixes.  
@@ -538,4 +542,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 15426 2022-02-04 14:24:53Z greg $
+$Id: ChangeLog 15490 2022-04-01 14:46:00Z greg $
