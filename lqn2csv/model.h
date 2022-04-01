@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: model.h 15089 2021-10-22 16:14:46Z greg $
+ * $Id: model.h 15485 2022-04-01 01:48:03Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -140,7 +140,7 @@ namespace Model {
 	void operator()( const char * filename );
 
     private:
-	size_t x_index() const { return _x_index.first - 1; }
+	size_t x_index() const { return _x_index.first; }
 	size_t x_value() const { return _x_index.second; }
 	void set_x_value( double value ) { _x_index.second = value; }
 

@@ -1,4 +1,4 @@
-$Id: README-LOCAL 15448 2022-03-05 01:05:41Z greg $
+$Id: README-LOCAL 15482 2022-03-31 01:40:56Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -9,8 +9,8 @@ Carleton University, Ottawa, Ontario, Canada. K1S 5B6
 
 This package contains:
 libmva:	   Mean Value Analysis (Exact,Linearizer) for Extended Queueing Networks.
-lqiolib:   LQN/SRVN input/output file parsing library.
-lqn2csv:   ...
+lqiolib:   LQN/SRVN input/output file parsing library (lqn,xml,json supported).
+lqn2csv:   LQN model result extraction program.
 lqn2ps:    LQN file format converter.
 lqngen:	   LQN model generator.
 lqns:      Analytic solver for Layered Queueing Networks.
@@ -26,7 +26,7 @@ BUILD INSTRUCTIONS (Unix variants)
 You require:
   flex
   bison
-  gcc-c++
+  gcc-c++ (or clang++, or...)
   expat
   automake
   libtool
@@ -35,7 +35,7 @@ You require:
   texlive-epsf (optional for documentation)
   xfig (optional for documentation)
   fig2dev (optional for documentation)
-for a complete build (sudo dnf install ...; apt-get install ...).
+for a complete build.
 
 To build and install from the distribution tarball using the gcc/g++
 compiler:
@@ -62,15 +62,17 @@ make install
 
 BUILD INSTRUCTIONS (Windows)
 ----------------------------
-There are three options: MinGW, MinGW2, Cygwin, and DJGPP.  Use MinGW2 for
-distribution as it builds native executables in Win32 mode.  Cygwin is
-probably the best choice for development.  I believe the original MinGW is no 
-longer supported.  DJGPP builds for DOS.
+There are four options: MinGW, MinGW2, Cygwin, and DJGPP.  Use MinGW2
+for distribution as it builds native executables in Win32 mode.
+Cygwin is probably the best choice for development, though MinGW2 is
+good enough.  I believe the original MinGW is no longer supported.
+DJGPP builds for DOS.
 
 If using MinGW2 
-1) Install mingw2 (See msys2.org).  It's relatively painless now.
+1) Install mingw2 (See msys2.org).  It's relatively painless compared to MinGW.
    - Update packages to latest:
      % pacman -Syu
+     % pacman -Su
    - I recommend to you install most used developer apps by:
      % pacman -S base-devel
    - You can run MSYS2 with mingw32_shell.bat and install mingw-w64 toolchain:
@@ -79,7 +81,7 @@ If using MinGW2
 2) Install other libraries for mingw.
    None needed with the above.
 
-3) The user manuals are built using LaTeX and 
+3) The user manuals are built using LaTeX and ghostview
    Install miktex - http://www.miktex.org/
    Install ghostview - http://www.cs.wisc.edu/~ghost/
 

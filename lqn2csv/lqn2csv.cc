@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15404 2022-01-28 03:09:36Z greg $
+ * $Id: lqn2csv.cc 15485 2022-04-01 01:48:03Z greg $
  *
  * Command line processing.
  *
@@ -173,6 +173,7 @@ main( int argc, char *argv[] )
 
     toolname = basename( argv[0] );
     opts = makeopts( longopts );	/* Convert to regular options */
+    LQIO::io_vars.init( VERSION, toolname, nullptr );
 
     for ( ;; ) {
 	const int c = getopt_long( argc, argv, opts.c_str(), longopts.data(), nullptr );
@@ -254,14 +255,19 @@ process( std::ostream& output, int argc, char **argv, const std::vector<Model::R
 
     /* For all files do... */
 
-    if ( argc - optind == 1 && is_directory( argv[optind] ) ) {
-	process_directory( output, argv[optind], Model::Process( output, results, plot.getSplotXIndex() ) );
-    } else {
-	std::for_each( &argv[optind], &argv[argc], Model::Process( output, results, plot.getSplotXIndex() ) );
-    }
+    try {
+	if ( argc - optind == 1 && is_directory( argv[optind] ) ) {
+	    process_directory( output, argv[optind], Model::Process( output, results, plot.getSplotXIndex() ) );
+	} else {
+	    std::for_each( &argv[optind], &argv[argc], Model::Process( output, results, plot.getSplotXIndex() ) );
+	}
 
-    if ( gnuplot_flag ) {
-	plot.plot();
+	if ( gnuplot_flag ) {
+	    plot.plot();
+	}
+    }
+    catch ( const std::runtime_error& e ) {
+	std::cerr << toolname << ": " << e.what() << std::endl;
     }
 }
 

@@ -26,11 +26,14 @@ the string ``NULL'' is output.
 
 The arguments to \fBlqn2csv\fR are a list of file names. If a
 directory is supplied as an argument, the directory is searched for
-all files the end in \fI\-*.lqxo\fP, \fI.lqxo~*~\fP, \fI\-*.lqjo\fP, 
+all files the end in \fI\-*.lqxo\fP, \fI*.lqxo~*~\fP, \fI\-*.lqjo\fP, 
 or \fI.lqjo~*~\fP, in that order (i.e., the results from SPEX or LQX
 runs, or the results from using \fB\-\-print-interval\fR with
-\fBlqns(1)\fP or \fBlqsim(1)\fB).  Parseable output, \fI*.p\fR, is not
-supported for the directory version of the command at this time.
+\fBlqns(1)\fP or \fBlqsim(1)\fB).  The name of the directory up to any
+suffix must match the name of result files,
+e.g. \fIfoo.d/foo-001.lqxo\fP.
+Parseable output, \fI*.p\fR, is not supported for the directory
+version of the command at this time. 
 .SH "OPTIONS"
 .TP 8
 \fB\-@\fP, \fB\-\-arguments=\fIarg\fR

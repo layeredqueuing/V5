@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15469 2022-03-14 19:19:28Z greg $
+ * $Id: multserv.cc 15484 2022-04-01 00:40:32Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -871,12 +871,16 @@ Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& 
 Positive
 Zhou_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned ) const
 {
-    const unsigned N_sum = N.sum();
+    unsigned N_sum = 0;		/* Number of customers visting this station */
+    for ( unsigned int k = 1; k <= K; ++k ) {
+	if ( V(k) == 0 ) continue;
+	N_sum += N[k];
+    }
     const unsigned m = copies();
     if ( N_sum == 0 ) return 0;				/* No customers */
 
     const Probability P = P_mean( solver, N );		// Residence time divided by cycle time (1/lambba)
-    const double S = S_mean( solver, N );		// Ratio of service times (by throughput)
+    const double S = S_mean( solver );			// Ratio of service times (by throughput)
 #if BUG_338
     std::cerr << "Zhou: P_mean" << N << "=" << P << ", S_mean(N)=" << S << std::endl;
 #endif
@@ -914,11 +918,12 @@ Zhou_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsig
  */
 
 double
-Zhou_Multi_Server::S_mean( const MVA& solver, const Population& N ) const
+Zhou_Multi_Server::S_mean( const MVA& solver ) const
 {
     double sumOf_X = 0.0;
     double sumOf_S = 0.0;
     for ( unsigned int k = 1; k <= K; ++k ) {
+	if ( V(k) == 0 ) continue;
 	const double X = solver.throughput( *this, k ); 
 	sumOf_X += X;
 	sumOf_S += this->S(k) * X;
@@ -945,13 +950,15 @@ Zhou_Multi_Server::P_mean( const MVA& solver, const Population& N ) const
 {
 #if BUG_349_COMMENT_8
     double sumOf_WX = 0.;
+    double sumOf_N  = 0.;
     for ( unsigned int k = 1; k <= K; ++k ) {
+	if ( V(k) == 0 ) continue;				// No visits for this class.
+	sumOf_N += static_cast<double>(N[k]);
 	const double X = solver.throughput( *this, k );		// Hoist offset(NCust);
 	for ( unsigned int e = 1; e <= E; ++e ) {
 	    sumOf_WX += W[e][k][0] * V(e,k) * X;
 	}
     }
-    const double sumOf_N = static_cast<double>(N.sum());
     /* Orignal expression from Murray was S+W, but THAT W is queueing only..., so
      * don't bother with S_mean...*/
 //    return f * (W) / sumOf_N;
@@ -961,9 +968,10 @@ Zhou_Multi_Server::P_mean( const MVA& solver, const Population& N ) const
     double sumOf_Z = 0.0;
     double sumOf_R = 0.0;
     for ( unsigned int k = 1; k <= K; ++k ) {
+	if ( V(k) == 0 ) continue;				// No visits for this class.
 	const double X_k = solver.throughput( *this, k );
-	const double R_k = this->R(k);
 	if ( X_k == 0. ) continue;
+	const double R_k = this->R(k);
 //	sumOf_X += X_k;						// sumOf_X cancels out.
 	sumOf_Z += std::max( (N[k] / X_k) - R_k, 0.0 ) * X_k;	// don't allow negative numbers
 	sumOf_R += R_k * X_k;					// Weighted mean

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: gnuplot.cc 15223 2021-12-15 19:31:15Z greg $
+ * $Id: gnuplot.cc 15485 2022-04-01 01:48:03Z greg $
  *
  * Command line processing.
  *
@@ -68,8 +68,8 @@ Model::GnuPlot::preamble()
 	    } else if ( _x2_axis.second == Result::Type::NONE ) {
 		_x2_axis = *result;
 		_x2_index = result - _results.begin() + 2;
-		_output << "set x2label \"" << Model::Result::__results.at(result->second).name << "\"" << std::endl;
-		_output << "set x2tics" << std::endl;
+//		_output << "set x2label \"" << _x2_axis.first << " " << Model::Result::__results.at(_x2_axis.second).name << "\"" << std::endl;
+//		_output << "set x2tics" << std::endl;
 	    } else {
 		std::cerr << toolname << ": Too many independent variables to plot starting with " << result->first << std::endl;
 		exit( 1 );
@@ -104,9 +104,11 @@ Model::GnuPlot::plot()
     _output << "EOF" << std::endl;
     if ( _y1_axis.empty() ) return;		/* Nothing to plot */
 
-    _output << "set xlabel \"" << Model::Result::__results.at(_x1_axis.second).name << "\"" << std::endl;
+    if ( _x1_axis.second != Model::Result::Type::NONE ) {
+	_output << "set xlabel \"" << _x1_axis.first << " " << Model::Result::__results.at(_x1_axis.second).name << "\"" << std::endl;
+    }
     if ( splot_output() ) {
-	_output << "set ylabel \"" << Model::Result::__results.at(_x2_axis.second).name << "\"" << std::endl
+	_output << "set ylabel \"" << _x2_axis.first << " " << Model::Result::__results.at(_x2_axis.second).name << "\"" << std::endl
 		<< "set zlabel \"" << Model::Result::__results.at(_y1_axis.begin()->second).name << "\"" << std::endl;
     } else {
 	_output << "set ylabel \"" << Model::Result::__results.at(_y1_axis.begin()->second).name << "\"" << std::endl;

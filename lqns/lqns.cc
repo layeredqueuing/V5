@@ -341,7 +341,7 @@ int main (int argc, char *argv[])
 		while ( *options ) {
 		    char * value = nullptr;
 		    const char * subopt = options;
-		    const int ix = getsubopt( &options, Options::Debug::__options.data(), &value );
+		    const int ix = getsubopt( &options, Options::Trace::__options.data(), &value );
 		    if ( ix >= 0 ) {
 			Options::Trace::exec( ix, (value != nullptr ? value : std::string("") ) );
 		    } else {

@@ -2,23 +2,30 @@ LAYERED QUEUEING NETWORK MODELING SOFTWARE
 
 Commands:
 
-lqn2ps       -- Model formatter and converter.
-lqngen	     -- Model creation tool (start here for a input file template).
-lqns         -- Analytical model solver.
-lqsim        -- Model simulator.
-qnsolver     -- BCMP Queuing Network solver (uses JMVA as input).
-srvndiff     -- Result file differencer.
+lqn2csv         -- Model result extractor (outputs csv for spreadsheets, plotting)
+lqn2lqx         -- Model converter used to insert either SPEX or LQX experiment control.
+lqn2ps          -- Model formatter and converter (outputs svg, xml, postscript).
+lqngen          -- Model creation tool (start here for a input file template).
+lqns            -- Analytical model solver.
+lqsim           -- Model simulator.
+petrirsrvn      -- Output model for solution using GreatSPN.
+qnsolver        -- BCMP Queuing Network solver (uses JMVA as input).
+srvndiff        -- Result file differencer.
 
 Type "<command> --help" for a quick summary of usage.
 
 Documents:
 
-lqn2ps.pdf     -- Postscrpt version of man-page for srvn2eepic.
-lqns.pdf       -- manual page for the analytic solver.
-lqsim.pdf      -- manual page for simulator.
-srvndiff.pdf   -- manual page for srvndiff.
-tutorial.pdf   -- Tutorial for Layered Queueing Networks
-userman.pdf    -- User manual for Layered Queueing Network solvers.
+lqn2csv.pdf     -- manual page for lqn2csv.
+lqn2lqx.pdf     -- manual page for lqn2lqx.
+lqn2ps.pdf      -- manual page for lqn2ps.
+lqngen.pdf      -- manual page for lqngen.
+lqns.pdf        -- manual page for the analytic solver.
+lqsim.pdf       -- manual page for simulator.
+petrisrvn.pdf   -- manual page for petrisrvn.
+srvndiff.pdf    -- manual page for srvndiff.
+tutorial.pdf    -- Tutorial for Layered Queueing Networks
+userman.pdf     -- User manual for Layered Queueing Network solvers.
 
 Jlqndef:
 
