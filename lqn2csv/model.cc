@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 15489 2022-04-01 14:42:45Z greg $
+ * $Id: model.cc 15502 2022-04-03 13:59:13Z greg $
  *
  * Command line processing.
  *
@@ -102,6 +102,8 @@ bool Model::Result::isDependentVariable( Model::Result::Type type )
 
 void Model::Process::operator()( const std::string& filename )
 {
+    if ( _limit > 0 && _i >= _limit ) return;
+    
     /* Load results */
     unsigned int error_code = 0;
     LQIO::DOM::Document * dom = LQIO::DOM::Document::load( filename, LQIO::DOM::Document::InputFormat::AUTOMATIC, error_code, true );
@@ -126,7 +128,7 @@ void Model::Process::operator()( const std::string& filename )
 	}
     }
 
-    std::for_each( data.begin(), data.end(), Model::Print( _output, filename ) );
+    std::for_each( data.begin(), data.end(), Model::Print( _output, _mode, filename ) );
     _output << std::endl;
 }
 
@@ -310,8 +312,13 @@ void
 Model::Print::operator()( double item )
 {
     if ( _first ) {
+	/* The first item is the index value */
 	_first = false;
-	_output << "\"" << _filename << "\"";
+	if ( _mode == Mode::FILENAME ) {
+	    _output << "\"" << _filename << "\"";
+	} else {
+	    _output << item;
+	}
     } else {
 	_output << ",";
 	if ( item != std::numeric_limits<double>::quiet_NaN() && item != std::numeric_limits<double>::signaling_NaN() ) {

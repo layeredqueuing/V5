@@ -2,7 +2,7 @@
 #
 # Make file for Unit test files
 #
-# $Id: Makefile.am 15406 2022-01-28 18:49:05Z greg $
+# $Id: Makefile.am 15500 2022-04-02 12:33:58Z greg $
 # ------------------------------------------------------------------------
 
 AM_CXXFLAGS	= -std=c++11 -DTESTMVA -DTESTDIST -DDEBUG_MVA
@@ -15,13 +15,12 @@ check_PROGRAMS  = test0 test0a \
 		  test5 \
 		  test6 \
 		  test7 test7e test7e4 test7ek test7nc \
-		  test8 test8p \
-		  test9 test9a test9b test9c test9d test9i \
-		  test10 \
+		  test8a test8b test8c test8d \
+		  test9a test9b test9c test9d test9i \
+		  test10a \
 		  test11 test11a test11b test11f \
 		  test12 test12s \
 		  test13e test13s \
-		  test14 \
 		  testA \
 		  testB \
 		  testcust \
@@ -32,6 +31,15 @@ EXTRA_test_SOURCES	= ../src/fpgoop.cc ../src/multserv.cc ../src/mva.cc ../src/ph
 
 test0_SOURCES		= test0.cc testmva.cc $(EXTRA_test_SOURCES)
 test0a_SOURCES		= test0a.cc testmixed.cc $(EXTRA_test_SOURCES)
+test10a_SOURCES		= test10a.cc testmva.cc $(EXTRA_test_SOURCES)
+test11_SOURCES		= test11.cc testmva.cc $(EXTRA_test_SOURCES)
+test11a_SOURCES		= test11a.cc testmva.cc $(EXTRA_test_SOURCES)
+test11b_SOURCES		= test11b.cc testmva.cc $(EXTRA_test_SOURCES)
+test11f_SOURCES		= test11f.cc testmva.cc $(EXTRA_test_SOURCES)
+test12_SOURCES		= test12.cc testmva.cc $(EXTRA_test_SOURCES)
+test12s_SOURCES		= test12s.cc testmva.cc $(EXTRA_test_SOURCES)
+test13e_SOURCES		= test13e.cc testmva.cc $(EXTRA_test_SOURCES)
+test13s_SOURCES		= test13s.cc testmva.cc $(EXTRA_test_SOURCES)
 test1_SOURCES		= test1.cc testmva.cc $(EXTRA_test_SOURCES)
 test1hv_SOURCES		= test1hv.cc testmva.cc $(EXTRA_test_SOURCES)
 test1hvp_SOURCES	= test1hvp.cc testmva.cc $(EXTRA_test_SOURCES)
@@ -51,28 +59,19 @@ test4a_SOURCES		= test4a.cc testmva.cc $(EXTRA_test_SOURCES)
 test5_SOURCES		= test5.cc testmva.cc $(EXTRA_test_SOURCES)
 test6_SOURCES		= test6.cc testmva.cc $(EXTRA_test_SOURCES)
 test7_SOURCES		= test7.cc testmva.cc $(EXTRA_test_SOURCES)
-test7e_SOURCES		= test7e.cc testmva.cc $(EXTRA_test_SOURCES)
 test7e4_SOURCES		= test7e4.cc testmva.cc $(EXTRA_test_SOURCES)
+test7e_SOURCES		= test7e.cc testmva.cc $(EXTRA_test_SOURCES)
 test7ek_SOURCES		= test7ek.cc testmva.cc $(EXTRA_test_SOURCES)
 test7nc_SOURCES		= test7nc.cc testmva.cc $(EXTRA_test_SOURCES)
-test8_SOURCES		= test8.cc testmva.cc $(EXTRA_test_SOURCES)
-test8p_SOURCES		= test8p.cc testmva.cc $(EXTRA_test_SOURCES)
-test9_SOURCES		= test9.cc testmva.cc $(EXTRA_test_SOURCES)
+test8a_SOURCES		= test8a.cc testmva.cc $(EXTRA_test_SOURCES)
+test8b_SOURCES		= test8b.cc testmva.cc $(EXTRA_test_SOURCES)
+test8c_SOURCES		= test8c.cc testmva.cc $(EXTRA_test_SOURCES)
+test8d_SOURCES		= test8d.cc testmva.cc $(EXTRA_test_SOURCES)
 test9a_SOURCES		= test9a.cc testmva.cc $(EXTRA_test_SOURCES)
 test9b_SOURCES		= test9b.cc testmva.cc $(EXTRA_test_SOURCES)
 test9c_SOURCES		= test9c.cc testmva.cc $(EXTRA_test_SOURCES)
 test9d_SOURCES		= test9d.cc testmva.cc $(EXTRA_test_SOURCES)
 test9i_SOURCES		= test9i.cc $(EXTRA_test_SOURCES)
-test10_SOURCES		= test10.cc testmva.cc $(EXTRA_test_SOURCES)
-test11_SOURCES		= test11.cc testmva.cc $(EXTRA_test_SOURCES)
-test11a_SOURCES		= test11a.cc testmva.cc $(EXTRA_test_SOURCES)
-test11b_SOURCES		= test11b.cc testmva.cc $(EXTRA_test_SOURCES)
-test11f_SOURCES		= test11f.cc testmva.cc $(EXTRA_test_SOURCES)
-test12_SOURCES		= test12.cc testmva.cc $(EXTRA_test_SOURCES)
-test12s_SOURCES		= test12s.cc testmva.cc $(EXTRA_test_SOURCES)
-test13e_SOURCES		= test13e.cc testmva.cc $(EXTRA_test_SOURCES)
-test13s_SOURCES		= test13s.cc testmva.cc $(EXTRA_test_SOURCES)
-test14_SOURCES		= test10.cc testmva.cc $(EXTRA_test_SOURCES)
 testA_SOURCES		= testA.cc testopen.cc $(EXTRA_test_SOURCES)
 testB_SOURCES		= testB.cc testopen.cc $(EXTRA_test_SOURCES)
 testcust_SOURCES	= testcust.cc $(EXTRA_test_SOURCES)

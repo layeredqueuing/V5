@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: model.h 15489 2022-04-01 14:42:45Z greg $
+ * $Id: model.h 15502 2022-04-03 13:59:13Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -35,6 +35,8 @@ namespace LQIO {
 
 
 namespace Model {
+
+    enum class Mode { FILENAME, DIRECTORY };
 
     class Object {
     public:
@@ -137,7 +139,7 @@ namespace Model {
 
     class Process {
     public:
-	Process( std::ostream& output, const std::vector<Model::Result::result_t>& results, const std::pair<size_t,double>& x_index ) : _output(output), _results(results), _i(0), _x_index(x_index) {}
+	Process( std::ostream& output, const std::vector<Model::Result::result_t>& results, size_t limit, Mode mode, const std::pair<size_t,double>& x_index ) : _output(output), _results(results), _limit(limit), _mode(mode), _x_index(x_index), _i(0) {}
 
 	void operator()( const std::string& filename );
 
@@ -149,20 +151,23 @@ namespace Model {
     private:
 	std::ostream& _output;
 	const std::vector<Model::Result::result_t>& _results;
-	unsigned int _i;			/* Record number */
+	const size_t _limit;
+	const Mode _mode;
 	std::pair<size_t,double> _x_index;	/* For splot output */
+	unsigned int _i;			/* Record number */
     };
 
     class Print {
     public:
-	Print( std::ostream& output, const std::string& filename ) : _output(output), _first(true), _filename(filename) {}
+	Print( std::ostream& output, Mode mode, const std::string& filename ) : _output(output), _mode(mode), _filename(filename), _first(true) {}
 	
 	void operator()( double );
+
     private:
 	std::ostream& _output;
-	bool _first;
+	const Mode _mode;
 	const std::string& _filename;
+	bool _first;
     };
-	
 }
 #endif

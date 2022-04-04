@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15484 2022-04-01 00:40:32Z greg $
+ * $Id: multserv.cc 15507 2022-04-04 01:16:58Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -871,19 +871,13 @@ Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& 
 Positive
 Zhou_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned ) const
 {
-    unsigned N_sum = 0;		/* Number of customers visting this station */
-    for ( unsigned int k = 1; k <= K; ++k ) {
-	if ( V(k) == 0 ) continue;
-	N_sum += N[k];
-    }
-    const unsigned m = copies();
+    const unsigned N_sum = sumOf_N( N );		/* Number of customers visting this station */
     if ( N_sum == 0 ) return 0;				/* No customers */
 
+    const unsigned m = copies();
     const Probability P = P_mean( solver, N );		// Residence time divided by cycle time (1/lambba)
     const double S = S_mean( solver );			// Ratio of service times (by throughput)
-#if BUG_338
-    std::cerr << "Zhou: P_mean" << N << "=" << P << ", S_mean(N)=" << S << std::endl;
-#endif
+
     if ( P == 1.0 ) return static_cast<double>(N_sum - m) * S
 		      / static_cast<double>(m);		/* server full utilized */
 
@@ -903,12 +897,31 @@ Zhou_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsig
 	pDash += pw[i];					// pDash = pDash + pw[i];
 	M2 += i * pw[i];				// M2 + i*pw[i];
     }
-    const double L = P * Nm1 - static_cast<double>(m - 1)
-	* (1.0 - pDash) - M2; 				// L = P*(Nm1)-(m-1)*(1-pDash) - M2;
+    const double L = P * Nm1  				// L = P*(Nm1)-(m-1)*(1-pDash) - M2;
+	- static_cast<double>(m - 1) * (1.0 - pDash) - M2;
     if ( 0. > L && L > -0.0000001 ) return 0;		// Floating point precision
+#if DEBUG_MVA
+    if ( MVA::debug_P ) std::cout << closedIndex << ": P=" << P << ", pw[0]=" << pw[0] << ", pDash=" << pDash << ", M2=" << M2 << ", L=" << L << ", S=" << S << std::endl;
+#endif
     return L * S / static_cast<double>(m);		// return(L*S/m);
 }
 
+
+/*
+ * Return the total number of customers that can possibly be at this
+ * station
+ */
+
+unsigned int
+Zhou_Multi_Server::sumOf_N( const Population& N ) const
+{
+    unsigned int N_sum = 0;
+    for ( unsigned int k = 1; k <= K; ++k ) {
+	if ( V(k) == 0 ) continue;
+	N_sum += N[k];
+    }
+    return N_sum;
+}
 
 /*
  * Mean service time by throughput.

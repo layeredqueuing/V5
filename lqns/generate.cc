@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 15409 2022-01-30 15:45:57Z greg $
+ * $Id: generate.cc 15507 2022-04-04 01:16:58Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -42,6 +42,7 @@
 #include "task.h"
 
 const std::vector<std::string> Generate::__includes = {
+    "<unistd.h>",
     "\"mva.h\"",
     "\"open.h\"",
     "\"server.h\"",
@@ -53,6 +54,8 @@ const std::vector<std::string> Generate::__includes = {
     "\"fpgoop.h\""
 };
 
+std::string Generate::__directory_name;
+
 static const std::map<const Pragma::MVA,const std::string> solvers = {
     { Pragma::MVA::EXACT, 		"ExactMVA" },
     { Pragma::MVA::FAST, 		"Linearizer2" },
@@ -61,10 +64,7 @@ static const std::map<const Pragma::MVA,const std::string> solvers = {
     { Pragma::MVA::ONESTEP_LINEARIZER, 	"OneStepLinearizer" },
     { Pragma::MVA::SCHWEITZER, 		"Schweitzer" }
 };
-
-std::string Generate::file_name;
 
-
 /*
  * Constructor
  */
@@ -88,7 +88,7 @@ Generate::print( std::ostream& output ) const
 	output << "#include " << s << std::endl;
     }
 	
-    output << std::endl << "int main ( int, char *[] )" << std::endl << "{" << std::endl;
+    output << std::endl << "int main ( int argc, char* argv[] )" << std::endl << "{" << std::endl;
 
     if ( _submodel.n_openStns() ) {
 	output << "    const unsigned n_open_stations\t= " << _submodel.n_openStns() << ";" << std::endl;
@@ -102,9 +102,36 @@ Generate::print( std::ostream& output ) const
 	output << "    Population customers( n_chains );" << std::endl;
 	output << "    VectorMath<double> thinkTime( n_chains );" << std::endl;
 	output << "    VectorMath<unsigned> priority( n_chains );" << std::endl;
-	output << "    Probability *** prOt;\t\t//Overtaking Probabilities" << std::endl << std::endl;
+	if ( _submodel._overlapFactor ) {
+	    output << "    Probability *** prOt;\t\t//Overtaking Probabilities" << std::endl << std::endl;
+	}
+	output << "    MVA::new_solver solver = " << solvers.at(Pragma::mva()) << "::create;" << std::endl;
     }
+    output << std::endl;
 	
+    /* Argument handling */
+    
+    output << "    for ( ;; ) {" << std::endl;
+    output << "        const int c = getopt( argc, argv, \"dlnpuwxELS\" );" << std::endl;
+    output << "        if ( c == -1 ) break;" << std::endl;
+    output << "        switch ( c ) {" << std::endl;
+    output << "        case 'd': MVA::debug_D = true; break;" << std::endl;
+    output << "        case 'l': MVA::debug_L = true; break;" << std::endl;
+    output << "        case 'n': MVA::debug_N = true; break;" << std::endl;
+    output << "        case 'p': MVA::debug_P = true; break;" << std::endl;
+    output << "        case 'u': MVA::debug_U = true; break;" << std::endl;
+    output << "        case 'w': MVA::debug_W = true; break;" << std::endl;
+    output << "        case 'x': MVA::debug_X = true; break;" << std::endl;
+    output << "        case 'E': solver = ExactMVA::create; break;" << std::endl;
+    output << "        case 'S': solver = Schweitzer::create; break;" << std::endl;
+    output << "        case 'L': solver = Linearizer::create; break;" << std::endl;
+    output << "        default:" << std::endl;
+    output << "             std::cerr << \"Usage: \" << argv[0] << \" -[dlnpwxELS]\" << std::endl;" << std::endl;
+    output << "             exit( 1 );" << std::endl;
+    output << "         }" << std::endl;
+    output << "    }" << std::endl;
+    output << std::endl;
+
     /* Chains */
 
     if ( K > 0 ) {
@@ -194,15 +221,16 @@ Generate::print( std::ostream& output ) const
 	if ( MVA::__bounds_limit ) {
 	    output << "    " << "MVA::__bounds_limit = " << MVA::__bounds_limit << ";" << std::endl;
 	}
-	output << "    " << solvers.at(Pragma::mva());
-	output << " model( station, customers, thinkTime, priority";
+	output << "    MVA* model = (*solver)( station, customers, thinkTime, priority";
 	if ( _submodel._overlapFactor ) {
 	    output << ", _overlapFactor";
+	} else {
+	    output << ", nullptr";
 	}
 	output << " );" << std::endl;
-	output << "    model.solve();" << std::endl;
-	output << "    std::cout << model << std::endl;" << std::endl;
-
+	output << "    model->solve();" << std::endl;
+	output << "    std::cout << *model << std::endl;" << std::endl;
+	output << "    delete model;" << std::endl;
 
 	if ( _submodel._overlapFactor ) {
 	    output << std::endl
@@ -394,8 +422,7 @@ void
 Generate::print( const MVASubmodel& aSubModel ) 
 {
     std::ostringstream fileName;
-
-    fileName << file_name << "-" << aSubModel.number() << ".cc";
+    fileName << __directory_name << "/submodel-" << aSubModel.number() << ".cc";
 
     std::ofstream output;
     output.open( fileName.str().c_str(), std::ios::out );
@@ -415,22 +442,20 @@ Generate::print( const MVASubmodel& aSubModel )
 void
 Generate::makefile( const unsigned nSubmodels )
 {
-    std::string fileName = file_name;
-    fileName += ".mk";
+    const std::string makefileName = __directory_name + "/Makefile";
 	
     std::ofstream output;
-    output.open( fileName.c_str(), std::ios::out );
+    output.open( makefileName.c_str(), std::ios::out );
 
     if ( !output ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << fileName << " - " << strerror( errno ) << std::endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << makefileName << " - " << strerror( errno ) << std::endl;
 	return;
     }
 
-    const std::string defines = "-DTESTMVA -DHAVE_CONFIG_H=1 -I$(LQNDIR)/libmva -I$(LQNDIR)/libmva/src/headers/mva";
+    const std::string defines = "-g -std=c++11 -Wall -DDEBUG_MVA=1 -DHAVE_CONFIG_H=1 -I$(LQNDIR)/libmva -I$(LQNDIR)/libmva/src/headers/mva";
      
     output << "LQNDIR=$(HOME)/usr/src" << std::endl
 	   << "CXX = g++" << std::endl
-	   << "CXXFLAGS += -g -std=c++11 -Wall" << std::endl
 	   << "CPPFLAGS = " << defines << std::endl
 	   << "OBJS = fpgoop.o multserv.o  mva.o  open.o  ph2serv.o  pop.o  prob.o  server.o" << std::endl
 	   << "SRCS = fpgoop.cc multserv.cc mva.cc open.cc ph2serv.cc pop.cc prob.cc server.cc" << std::endl;
@@ -438,13 +463,13 @@ Generate::makefile( const unsigned nSubmodels )
     output << std::endl
 	   << "all:\t";
     for ( unsigned i = 1; i <= nSubmodels; ++i ) {
-	output << file_name << "-" << i << " ";
+	output << "submodel-" << i << " ";
     }
     output << std::endl;
 
     for ( unsigned i = 1; i <= nSubmodels; ++i ) {
 	std::ostringstream fileName;
-	fileName << file_name << "-" << i;
+	fileName << "submodel-" << i;
 	output << std::endl
 	       << fileName.str() << ":\t$(SRCS) $(OBJS) " << fileName.str() << ".o" << std::endl
 	       << "\t$(CXX) $(CXXFLAGS) -I. -o " << fileName.str() << " $(OBJS) " << fileName.str() << ".o -lm" << std::endl;
@@ -455,7 +480,7 @@ Generate::makefile( const unsigned nSubmodels )
 	   << "\trm -f $(OBJS) *~";
     for ( unsigned i = 1; i <= nSubmodels; ++i ) {
 	std::ostringstream fileName;
-	fileName << file_name << "-" << i;
+	fileName << "submodel-" << i;
 	output << " " << fileName.str() << " " << fileName.str() << ".o";
     }
     output << std::endl;

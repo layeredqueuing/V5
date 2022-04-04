@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: gnuplot.cc 15489 2022-04-01 14:42:45Z greg $
+ * $Id: gnuplot.cc 15505 2022-04-03 22:10:36Z greg $
  *
  * Command line processing.
  *
@@ -25,8 +25,8 @@ Model::GnuPlot::GnuPlot( std::ostream& output, const std::string& output_file_na
     _x2_axis("",Result::Type::NONE),
     _y1_axis(),
     _y2_axis(),
-    _x1_index(1),			   /* Position in _results of x1 variable  */
-    _x2_index(2),			   /* Position in _results of x2 variable  */
+    _x1_index(0),			   /* Position in _results of x1 variable  */
+    _x2_index(0),			   /* Position in _results of x2 variable  */
     _splot_x_index(0,0.)
 {
 }
@@ -64,10 +64,10 @@ Model::GnuPlot::preamble()
 	if ( Result::isIndependentVariable( result->second ) ) {
 	    if ( _x1_axis.second == Result::Type::NONE ) {
 		_x1_axis = *result;
-		_x1_index = result - _results.begin() + 1;
+		_x1_index = result - _results.begin();
 	    } else if ( _x2_axis.second == Result::Type::NONE ) {
 		_x2_axis = *result;
-		_x2_index = result - _results.begin() + 1;
+		_x2_index = result - _results.begin();
 //		_output << "set x2label \"" << _x2_axis.first << " " << Model::Result::__results.at(_x2_axis.second).name << "\"" << std::endl;
 //		_output << "set x2tics" << std::endl;
 	    } else {
@@ -104,9 +104,14 @@ Model::GnuPlot::plot()
     _output << "EOF" << std::endl;
     if ( _y1_axis.empty() ) return;		/* Nothing to plot */
 
+    _output << "set xlabel \"";
     if ( _x1_axis.second != Model::Result::Type::NONE ) {
-	_output << "set xlabel \"" << _x1_axis.first << " " << Model::Result::__results.at(_x1_axis.second).name << "\"" << std::endl;
+	_output << _x1_axis.first << " " << Model::Result::__results.at(_x1_axis.second).name;
+    } else {
+	_output << "File index";
     }
+    _output << "\"" << std::endl;
+
     if ( splot_output() ) {
 	_output << "set ylabel \"" << _x2_axis.first << " " << Model::Result::__results.at(_x2_axis.second).name << "\"" << std::endl
 		<< "set zlabel \"" << Model::Result::__results.at(_y1_axis.begin()->second).name << "\"" << std::endl;
@@ -131,7 +136,7 @@ Model::GnuPlot::plot()
 	} else {
 	    _output << ",\\" << std::endl << "     ";
 	}
-	_output << "$DATA using " << _x1_index + 1 << ":";
+	_output << "$DATA using " << _x1_index + 1 << ":";	/* Gnuplot starts at 1. */
 	if ( splot_output() ) {
 	    _output << _x2_index + 1 << ":";
 	}

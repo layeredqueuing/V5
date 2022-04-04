@@ -19,11 +19,9 @@ test4 - Pg 264, Lazowska, HVFCFS
 test5 - Pg 264, Lazowska test. FCFS
 test6 - 
 test7 - Markov Phased Server
-test8 - Conway Multi Server
-test9 - Reiser Multi Server
-test10 - Rolia Multi Server
+test8 - Multi Servers (Conway, Resiser, Rolia, Zhou).  1 class, 1 entry, 1 phase.
+test10 - Phased Multi Servers
 test11 - Priority MVA
 test12 - Conway (deSouza...) Multi Server
 test13 - Suri Multi Server
-test14 - Zhou Multi Server
 testcust - test the MVA solver for zero customers over three classes

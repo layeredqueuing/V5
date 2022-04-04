@@ -7,7 +7,7 @@
  *
  * November, 1994
  *
- * $Id: generate.h 15402 2022-01-28 01:20:00Z greg $
+ * $Id: generate.h 15506 2022-04-04 00:54:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -69,8 +69,8 @@ private:
     static std::ostream& print_overtaking_args( std::ostream& output, const unsigned e, const unsigned k, const unsigned p );
 
 public:
-    static std::string file_name;
-
+    static std::string __directory_name;
+    
 private:
     const MVASubmodel& _submodel;
     const unsigned K;			/* Number of chains */

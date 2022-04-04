@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15485 2022-04-01 01:48:03Z greg $
+ * $Id: lqn2csv.cc 15502 2022-04-03 13:59:13Z greg $
  *
  * Command line processing.
  *
@@ -42,6 +42,7 @@
 
 int gnuplot_flag    = 0;
 int no_header       = 0;
+size_t limit	    = 0;
 
 const std::vector<struct option> longopts = {
     /* name */ /* has arg */ /*flag */ /* val */
@@ -73,6 +74,7 @@ const std::vector<struct option> longopts = {
     { "service-exceeded",      required_argument, nullptr, 'x' }, 
     { "arguments",	       required_argument, nullptr, '@' },
     { "gnuplot",               no_argument,       &gnuplot_flag, 1 },
+    { "limit",		       required_argument, nullptr, 0x100+'l' },
     { "no-header",             no_argument,       &no_header,    1 },
     { "help",		       no_argument,	  nullptr, 0x100+'h' },
     { "version",	       no_argument,	  nullptr, 0x100+'v' },
@@ -113,10 +115,11 @@ const static std::map<int,const std::string> help_str
     { 'X', "print probability service time exceeded for <task>, <activity>." },
     { '@', "Read the argument list from <arg>.  --output-file and --arguments are ignored." },
     { 0x100+'h', "Print out this list." },
+    { 0x100+'l', "Limit output to the first <arg> files read." },
     { 0x100+'v', "Print out version numbder." }
 };
 
-const static std::map<char,Model::Result::Type> result_type
+const static std::map<int,Model::Result::Type> result_type
 {
     { 'a', Model::Result::Type::OPEN_WAIT              }, 
     { 'b', Model::Result::Type::THROUGHPUT_BOUND       }, 
@@ -148,7 +151,7 @@ const static std::map<char,Model::Result::Type> result_type
     
 std::vector<Model::Result::result_t> results;
 
-static void process( std::ostream& output, int argc, char **argv, const std::vector<Model::Result::result_t>& results );
+static void process( std::ostream& output, int argc, char **argv, const std::vector<Model::Result::result_t>& results, size_t limit );
 static bool is_directory( const char * filename );
 static void process_directory( std::ostream& output, const std::string& dirname, const Model::Process& );
 static void fetch_arguments( const std::string& filename, std::vector<Model::Result::result_t>& results );
@@ -176,11 +179,12 @@ main( int argc, char *argv[] )
     LQIO::io_vars.init( VERSION, toolname, nullptr );
 
     for ( ;; ) {
+	char * endptr = nullptr;
 	const int c = getopt_long( argc, argv, opts.c_str(), longopts.data(), nullptr );
 	if ( c == EOF ) break;
 	
 	/* Find the option */
-	std::map<char,Model::Result::Type>::const_iterator result = result_type.find( c );
+	std::map<int,Model::Result::Type>::const_iterator result = result_type.find( c );
 	if ( optarg != nullptr && result != result_type.end() ) {
 	    results.emplace_back( optarg, result->second );
 	}
@@ -196,6 +200,10 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	    break;
 
+	case 0x100+'l':
+	    limit = strtol( optarg, &endptr, 10 );
+	    break;
+	    
 	case 0x100+'v':
             std::cout << "Lqn2csv, Version " << VERSION << std::endl << std::endl;
             std::cout << "  Copyright " << copyrightDate << " the Real-Time and Distributed Systems Group," << std::endl;
@@ -212,6 +220,11 @@ main( int argc, char *argv[] )
             usage();
 	    exit( 1 );
 	}
+
+	if ( endptr != 0 && *endptr != '\0' ) {
+	    std::cerr << toolname << ": invalid argument -- " << argv[optind-1] << "." << std::endl; // 
+	    exit( 1 );
+	}
     }
 
     if ( optind == argc ) {
@@ -223,11 +236,11 @@ main( int argc, char *argv[] )
 	std::ofstream output;
 	output.open( output_file_name, std::ios::out );
 	if ( output ) {
-	    process( output, argc, argv, results );
+	    process( output, argc, argv, results, limit );
 	}
 	output.close();
     } else {
-	process( std::cout, argc, argv, results );
+	process( std::cout, argc, argv, results, limit );
     }
     exit( 0 );
 }
@@ -238,7 +251,7 @@ main( int argc, char *argv[] )
  */
 
 static void
-process( std::ostream& output, int argc, char **argv, const std::vector<Model::Result::result_t>& results )
+process( std::ostream& output, int argc, char **argv, const std::vector<Model::Result::result_t>& results, size_t limit )
 {
     extern int optind;
     Model::GnuPlot plot( output, output_file_name, results );
@@ -257,9 +270,9 @@ process( std::ostream& output, int argc, char **argv, const std::vector<Model::R
 
     try {
 	if ( argc - optind == 1 && is_directory( argv[optind] ) ) {
-	    process_directory( output, argv[optind], Model::Process( output, results, plot.getSplotXIndex() ) );
+	    process_directory( output, argv[optind], Model::Process( output, results, limit, Model::Mode::DIRECTORY, plot.getSplotXIndex() ) );
 	} else {
-	    std::for_each( &argv[optind], &argv[argc], Model::Process( output, results, plot.getSplotXIndex() ) );
+	    std::for_each( &argv[optind], &argv[argc], Model::Process( output, results, limit, Model::Mode::FILENAME, plot.getSplotXIndex() ) );
 	}
 
 	if ( gnuplot_flag ) {
@@ -281,7 +294,9 @@ static void
 process_directory( std::ostream& output, const std::string& dirname, const Model::Process& process )
 {
 #if HAVE_GLOB
-    static const std::vector<std::string> patterns = { "-*.lqxo", "-*.lqjo", ".lqxo~*~", ".lqjo~*~" };
+    /* look for foo-001.lqxo~001~, then for foo-001.lqxo, then foo.lqxo~00~,... (spex && print-interval, spex, print-interval). */
+
+    static const std::vector<std::string> patterns = { "-*.lqxo~*~", "-*.lqjo~*~", "-*.lqxo", "-*.lqjo", ".lqxo~*~", ".lqjo~*~",  };
 
     /* if there is a / followed by a dot, take the stuff between the slash and the dot as filename
      * else if there is no slash, but a dot, take the stuff up to the dot as filename
@@ -378,7 +393,7 @@ fetch_arguments( const std::string& filename, std::vector<Model::Result::result_
 	const int c = getopt_long( argc, argv.data(), opts.c_str(), longopts.data(), nullptr );
 
 	/* Handle all result args (and result options --gnuplot,...) */
-	std::map<char,Model::Result::Type>::const_iterator result = result_type.find( c );
+	std::map<int,Model::Result::Type>::const_iterator result = result_type.find( c );
 	if ( optarg != nullptr && result != result_type.end() ) {
 	    results.emplace_back( optarg, result->second );
 	    continue;
@@ -436,7 +451,7 @@ usage()
 	std::cerr << " --";
 
 	std::string s = opt->name;
-	std::map<char,Model::Result::Type>::const_iterator result = result_type.find( opt->val );
+	std::map<int,Model::Result::Type>::const_iterator result = result_type.find( opt->val );
 	if ( opt->has_arg == required_argument ) {
 	    if ( result != result_type.end() ) {
 		switch ( Model::Result::__results.at(result->second).type ) {

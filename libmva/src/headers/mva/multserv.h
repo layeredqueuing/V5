@@ -10,7 +10,7 @@
  * November, 1994
  * November, 2021
  *
- * $Id: multserv.h 15484 2022-04-01 00:40:32Z greg $
+ * $Id: multserv.h 15505 2022-04-03 22:10:36Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -502,6 +502,7 @@ public:
 
 private:
     virtual Positive sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const;
+    unsigned int sumOf_N( const Population& N ) const;
 
     double S_mean( const MVA& solver ) const;
     Probability P_mean( const MVA& solver, const Population& N ) const;
