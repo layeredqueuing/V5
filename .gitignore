@@ -59,6 +59,7 @@ libmva/regression/test0
 libmva/regression/test0a
 libmva/regression/test1
 libmva/regression/test10
+libmva/regression/test10a
 libmva/regression/test11
 libmva/regression/test11a
 libmva/regression/test11b
@@ -90,8 +91,10 @@ libmva/regression/test7e
 libmva/regression/test7e4
 libmva/regression/test7ek
 libmva/regression/test7nc
-libmva/regression/test8
-libmva/regression/test8p
+libmva/regression/test8a
+libmva/regression/test8b
+libmva/regression/test8c
+libmva/regression/test8d
 libmva/regression/test9
 libmva/regression/test9a
 libmva/regression/test9b
