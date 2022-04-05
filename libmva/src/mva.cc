@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 15404 2022-01-28 03:09:36Z greg $
+ * $Id: mva.cc 15515 2022-04-05 13:08:46Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -1027,19 +1027,6 @@ MVA::PB( const Server& station, const Population &N, const unsigned k ) const
 
 
 
-/*
- * Return the marginal probability that all stations are busy.
- */
-
-double
-MVA::PB2( const Server& station, const Population &N, const unsigned k ) const
-{
-    const double U1_m   = std::min( 1.0, sumOf_U_m( station, N, k ) / station.mu() );
-    return power( U1_m, static_cast<unsigned>(station.mu()) );
-}
-
-
-
 double
 MVA::throughput( const unsigned k ) const
 {
@@ -1901,7 +1888,8 @@ ExactMVA::solve()
 
 
 /*
- * Compute marginal probabilities component.  Subclasses assign
+ * Compute the probabilities that servers are idle.  PB(N) == P(J,N)
+ * is the probability that all servers are busy.  Subclasses assign
  * P(0,N) and may revise PB(N).
  */
 

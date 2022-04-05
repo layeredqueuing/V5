@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15511 2022-04-04 15:30:32Z greg $
+ * $Id: multserv.cc 15515 2022-04-05 13:08:46Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -537,7 +537,7 @@ Phased_Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const Pop
 void
 Markov_Phased_Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
-    const Positive sum = effectiveBacklog( solver, N, k ) + PBusy( solver, N, k ) * departureTime( solver, N, k );
+    const Positive sum = effectiveBacklog( solver, N, k ) + solver.PB( *this, N, k ) * departureTime( solver, N, k );
 
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
@@ -608,15 +608,6 @@ Markov_Phased_Conway_Multi_Server::meanMinimumOvertaking( const MVA& solver, con
 
     return ot;
 }
-
-
-
-
-Probability
-Markov_Phased_Conway_Multi_Server::PBusy( const MVA& solver, const Population& N, const unsigned k ) const
-{
-    return solver.PB( *this, N, k );
-}
 
 /*----------------------------------------------------------------------*/
 /*                          Rolia Multi Server                          */
@@ -665,9 +656,20 @@ Rolia_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsi
 {
     const double s = solver.sumOf_SL_m( *this, N, k );
     if ( !std::isfinite( s ) ) throw std::domain_error( "Rolia_Multi_Server::sumOf_SL" );
-    return solver.PB2( *this, N, k ) * s  / mu();
+    return PBusy( solver, N, k ) * s  / mu();
 }
 
+
+
+/*
+ * Return the probability that all stations are busy.
+ */
+
+Probability
+Rolia_Multi_Server::PBusy( const MVA& solver, const Population &N, const unsigned k ) const
+{
+    return power( std::min( 1.0, solver.sumOf_U_m( *this, N, k ) / mu() ), static_cast<unsigned>(mu()) );
+}
 
 
 /*
@@ -713,7 +715,7 @@ Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const Populati
 Positive
 Rolia_PS_Multi_Server::sumOf_L( const MVA& solver, const Population& N, const unsigned k ) const
 {
-    return solver.PB2( *this, N, k ) * solver.sumOf_L_m( *this, N, k );
+    return PBusy( solver, N, k ) * solver.sumOf_L_m( *this, N, k );
 }
 
 /* ------------------------ Rolia Multi Server  ----------------------- */
@@ -749,7 +751,7 @@ Phased_Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const Popu
 Positive
 Phased_Rolia_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const
 {
-    return solver.PB2( *this, N, k ) * (solver.sumOf_SL_m( *this, N, k ) + solver.sumOf_S2U_m( *this, N, k )) / mu();
+    return PBusy( solver, N, k ) * (solver.sumOf_SL_m( *this, N, k ) + solver.sumOf_S2U_m( *this, N, k )) / mu();
 }
 
 /* --------------------- Markov Rolia Multi Server  ------------------- */
@@ -811,7 +813,7 @@ Phased_Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const P
 Positive
 Phased_Rolia_PS_Multi_Server::sumOf_L( const MVA& solver, const Population& N, const unsigned k ) const
 {
-    return solver.PB2( *this, N, k ) * ( solver.sumOf_L_m( *this, N, k ) + solver.sumOf_U2_m( *this, N, k ) );
+    return PBusy( solver, N, k ) * ( solver.sumOf_L_m( *this, N, k ) + solver.sumOf_U2_m( *this, N, k ) );
 }
 
 /* ------------------------ Rolia Multi Server  ----------------------- */

@@ -10,7 +10,7 @@
  * November, 1994
  * November, 2021
  *
- * $Id: multserv.h 15505 2022-04-03 22:10:36Z greg $
+ * $Id: multserv.h 15516 2022-04-05 13:18:03Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -287,9 +287,6 @@ public:
 
     virtual const char * typeStr() const { return "Markov_Phased_Conway_Multi_Server"; }
 
-protected:
-    virtual Probability PBusy( const MVA& solver, const Population& N, const unsigned k ) const;
-
 private:
     Positive meanMinimumOvertaking( const MVA& solver, const Population& N, const unsigned k, const unsigned p ) const;
 
@@ -326,8 +323,9 @@ public:
     virtual const char * typeStr() const { return "Rolia_Multi_Server"; }
 
 protected:
-    double filter( const MVA&, const double, const unsigned, const unsigned, const unsigned ) const;
     virtual Positive sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const;
+    Probability PBusy( const MVA& solver,const Population& N, const unsigned k ) const;
+    double filter( const MVA&, const double, const unsigned, const unsigned, const unsigned ) const;
 };
 
 class Rolia_PS_Multi_Server : public virtual Server,
