@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15507 2022-04-04 01:16:58Z greg $
+ * $Id: multserv.cc 15511 2022-04-04 15:30:32Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -872,10 +872,12 @@ Positive
 Zhou_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned ) const
 {
     const unsigned N_sum = sumOf_N( N );		/* Number of customers visting this station */
-    if ( N_sum == 0 ) return 0;				/* No customers */
+    if ( N_sum == 0 ) return 0.;			/* No customers */
 
-    const unsigned m = copies();
     const Probability P = P_mean( solver, N );		// Residence time divided by cycle time (1/lambba)
+    if ( P == 0.0 ) return 0.;				/* server not used at all */
+    
+    const unsigned m = copies();
     const double S = S_mean( solver );			// Ratio of service times (by throughput)
 
     if ( P == 1.0 ) return static_cast<double>(N_sum - m) * S
@@ -884,24 +886,34 @@ Zhou_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsig
     const unsigned nMax = std::min(N_sum,m);		// nMax = min(N,m);
     const unsigned Nm1 = N_sum - 1;			// Nm1 = N-1;
 
-    double pw[nMax];					// pw = array_create();
-    pw[0] = std::pow( 1.0 - P, Nm1 ); 			// pw[0]= pow(1-P,Nm1); 
-    for ( unsigned int i = 1; i < nMax; ++i ) {		// for (i = 1; i<=nMaxM1; i = i+1) {
-	pw[i] = pw[i-1] * P * static_cast<double>(N_sum - i)
-	    / (static_cast<double>(i) * (1.0 - P));	// pw[i] = pw[i-1]*P*(N-i)/(i*(1-P));
+    const double pw_0 = std::pow( 1.0 - P, Nm1 );	// pw[0]= pow(1-P,Nm1); 
+    Probability pDash = pw_0;				// pDash = pw[0];
+    double M2 = 0.;					// M2 = 0;
+    if ( pw_0 > 1.0e-10 ) {
+	double pw_im1 = pw_0;
+	for ( unsigned int i = 1; i < nMax; ++i ) {		// for (i = 1; i<=nMaxM1; i = i+1) {
+	    const double pw_i = pw_im1 * P * static_cast<double>(N_sum - i)
+		/ (static_cast<double>(i) * (1.0 - P));		// pw[i] = pw[i-1]*P*(N-i)/(i*(1-P));
+	    pDash += pw_i;					// pDash = pDash + pw[i];
+	    M2 += i * pw_i;					// M2 + i*pw[i];
+	    pw_im1 = pw_i;
+	}
+    } else {
+	double pw_im1 = log( 1.0 - P ) * Nm1;
+	for ( unsigned int i = 1; i < nMax; ++i ) {		// for (i = 1; i<=nMaxM1; i = i+1) {
+	    const double pw_i = pw_im1 + log( P * static_cast<double>(N_sum - i) )
+		- log( static_cast<double>(i) * (1.0 - P) );	// pw[i] = pw[i-1]*P*(N-i)/(i*(1-P));
+	    pDash += exp( pw_i );				// pDash = pDash + pw[i];
+	    M2 += i * exp( pw_i );				// M2 + i*pw[i];
+	    pw_im1 = pw_i;
+	}
     }
 
-    Probability pDash = pw[0];				// pDash = pw[0];
-    double M2 = 0.;					// M2 = 0;
-    for ( unsigned int i = 1; i < nMax; ++i ) { 	// for (i = 1; i<=nMaxM1; i = i+1) {
-	pDash += pw[i];					// pDash = pDash + pw[i];
-	M2 += i * pw[i];				// M2 + i*pw[i];
-    }
     const double L = P * Nm1  				// L = P*(Nm1)-(m-1)*(1-pDash) - M2;
 	- static_cast<double>(m - 1) * (1.0 - pDash) - M2;
     if ( 0. > L && L > -0.0000001 ) return 0;		// Floating point precision
 #if DEBUG_MVA
-    if ( MVA::debug_P ) std::cout << closedIndex << ": P=" << P << ", pw[0]=" << pw[0] << ", pDash=" << pDash << ", M2=" << M2 << ", L=" << L << ", S=" << S << std::endl;
+    if ( MVA::debug_P ) std::cout << closedIndex << ": P=" << P << ", pw[0]=" << pw_0 << ", pDash=" << pDash << ", M2=" << M2 << ", L=" << L << ", S=" << S << std::endl;
 #endif
     return L * S / static_cast<double>(m);		// return(L*S/m);
 }

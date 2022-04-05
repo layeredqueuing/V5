@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15506 2022-04-04 00:54:15Z greg $
+ * $Id: lqns.cc 15513 2022-04-04 20:09:15Z greg $
  *
  * Command line processing.
  *
@@ -19,13 +19,15 @@
 #include <cstdlib>
 #include <cmath>
 #include <errno.h>
-#if HAVE_LIBGEN_H
-#include <libgen.h>
-#endif
+#include <fcntl.h>           /* Definition of AT_* constants */
 #if HAVE_GETOPT_H
 #include <getopt.h>
 #endif
+#if HAVE_LIBGEN_H
+#include <libgen.h>
+#endif
 #include <sys/stat.h>
+#include <unistd.h>
 #include <lqio/commandline.h>
 #include <lqio/filename.h>
 #include <lqio/srvn_spex.h>
