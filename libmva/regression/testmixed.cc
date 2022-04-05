@@ -4,7 +4,7 @@
  * Example from:
  *
  * ------------------------------------------------------------------------
- * $Id: testmixed.cc 15384 2022-01-25 02:56:14Z greg $
+ * $Id: testmixed.cc 15517 2022-04-05 13:34:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -217,16 +217,16 @@ doIt( solverId solver, Vector<Server *>& Q, const Population & N, const VectorMa
     try {
 	closedModel->solve();
     }
+    catch ( floating_point_error& error ) {
+	std::cerr << "floating point error - " << error.what() << std::endl;
+	ok = false;
+    }
     catch ( std::runtime_error& error ) {
 	std::cerr << "runtime error - " << error.what() << std::endl;
 	ok = false;
     }
     catch ( std::logic_error& error ) {
 	std::cerr << "logic error - " << error.what() << std::endl;
-	ok = false;
-    }
-    catch ( floating_point_error& error ) {
-	std::cerr << "floating point error - " << error.what() << std::endl;
 	ok = false;
     }
     try {
