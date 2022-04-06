@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- $Id$ -->
+<!-- lqn2ps -Zprune -Q1 -Ojmva -->
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="JMTmodel.xsd">
+   <parameters>
+      <classes number="2">
+         <closedclass name="User1" population="$N1"/>
+         <closedclass name="User2" population="$N2"/>
+      </classes>
+      <stations number="2">
+         <ldstation name="DelayP" servers="$M">
+            <servicetimes>
+               <servicetime customerclass="User1">$S1</servicetime>
+               <servicetime customerclass="User2">$S2</servicetime>
+            </servicetimes>
+            <visits>
+               <visit customerclass="User1">1</visit>
+               <visit customerclass="User2">1</visit>
+            </visits>
+         </ldstation>
+         <delaystation name="terminal">
+            <servicetimes>
+               <servicetime customerclass="User1">$Z1</servicetime>
+               <servicetime customerclass="User2">$Z2</servicetime>
+            </servicetimes>
+            <visits>
+               <visit customerclass="User1">1</visit>
+               <visit customerclass="User2">1</visit>
+            </visits>
+         </delaystation>
+      </stations>
+      <ReferenceStation number="2">
+         <Class name="User1" refStation="terminal"/>
+         <Class name="User2" refStation="terminal"/>
+      </ReferenceStation>
+   </parameters>
+   <algParams>
+      <algType maxSamples="10000" name="MVA" tolerance="1e-07"/>
+      <compareAlgs value="false"/>
+   </algParams>
+   <whatIf className="User1" type="Customer Numbers" values="1964"/>
+   <whatIf className="User2" type="Customer Numbers" values="534"/>
+   <whatIf className="User1" type="Think Time" values="751.675"/>
+   <whatIf className="User2" type="Think Time" values="183.105"/>
+   <whatIf stationName="DelayP" type="Number of Servers" values="8"/>
+   <whatIf stationName="DelayP" className="User1" type="Service Time" values="4.59331"/>
+   <whatIf stationName="DelayP" className="User2" type="Service Time" values="4.11903"/>
+   <solutions ok="false" ResultVariables="$R1;$R2">
+      <algorithm iterations="0">
+         <classresults customerclass="User1" ResidenceTime="$R1"/>
+         <classresults customerclass="User2" Throughput="$R2"/>
+      </algorithm>
+  </solutions>
+</model>

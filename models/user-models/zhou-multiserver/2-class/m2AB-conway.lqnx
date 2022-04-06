@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<!-- lqn2xml -->
+<lqn-model name="m2onecase" description="lqn2xml 6.2 solution for model from: m2onecase.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:///C:/Program Files/LQN Solvers/lqn.xsd">
+   <!-- Variables: $N1, $N2, $S1, $S2, $W, $Z1, $Z2 -->
+   <solver-params comment="Example Two-class Layered Queueing Network" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="1">
+      <pragma param="severity-level" value="advisory"/>
+      <pragma param="multiserver" value="conway"/>
+   </solver-params>
+   <processor name="ServerP" scheduling="inf">
+      <task name="User1" scheduling="ref" multiplicity="$N1" think-time="$Z1">
+         <entry name="User1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="User1_1" phase="1">
+                  <synch-call dest="Delay1" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="User2" scheduling="ref" multiplicity="$N2" think-time="$Z2">
+         <entry name="User2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="User2_1" phase="1">
+                  <synch-call dest="Delay2" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="DelayP" scheduling="ps" multiplicity="$M">
+      <task name="Delay" scheduling="inf">
+         <entry name="Delay1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="Delay1_1" phase="1" host-demand-mean="$S1" think-time="$W"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="Delay2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="Delay2_1" phase="1" host-demand-mean="$S2" think-time="$W"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <lqx><![CDATA[_0 = 0;
+
+$M = 8;
+$N1 = 1964;
+$N2 = 534;
+$S1 = 4.59331;      
+$S2 = 4.11903;
+$Z1 = 751.675;
+$Z2 = 183.105;
+$W = 0;
+E1 = entry("User1");
+E2 = entry("User2");
+
+   solve();
+   println_spaced(" ",phase(E1,1).service_time,phase(E2,1).service_time);
+]]></lqx>
+</lqn-model>

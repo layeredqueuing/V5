@@ -1,0 +1,43 @@
+# SRVN Model Description File, for file: 1-class.lqn
+# For: greg
+# Wed Nov 17 15:28:52 2021
+# $Id$
+# ------------------------------------------------------------------------
+
+#pragma prune
+#pragma bcmp
+
+$n = [1:10,1]
+$m = [1:10,1]
+$Z = 5
+$S1 = 1
+$S2 = 0.5
+
+G "Central Server Model." 1e-05 50 10 0.9 -1
+
+P 2
+  p p0 f m $m %u $U	# CPU
+  p p1 f		# File Server
+-1
+
+T 2
+  t t0 r e0 -1 p0 z $Z m $n  %f $X
+  t t1 n e1 -1 p1
+-1
+
+E 2
+# ---------- t0 ----------
+  s e0 $S1 -1 %s1 $R1
+  y e0 e1 1 -1
+# ---------- t1 ----------
+  s e1 $S2 -1 %s1 $R2
+-1
+
+R 0
+  $n
+  $m
+  $X
+  $R1
+  $R2
+  $U
+-1

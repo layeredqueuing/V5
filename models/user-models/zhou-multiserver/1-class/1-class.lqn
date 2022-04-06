@@ -1,0 +1,33 @@
+# SRVN Model Description File, for file: 1-class.lqn
+# For: greg
+# Wed Nov 17 15:28:52 2021
+# $Id$
+# ------------------------------------------------------------------------
+
+$n = [1:10,1]
+$m = [1:10,1]
+$Z = 5
+$S = 1
+
+G "Single class, product form." 1e-05 50 10 0.9 -1
+
+P 1
+  p p0 f m $m %u $U
+-1
+
+T 1
+  t t0 r e0 -1 p0 z $Z m $n  %f $X
+-1
+
+E 1
+# ---------- c0 ----------
+  s e0 $S -1 %s1 $R
+-1
+
+R 0
+  $n
+  $m
+  $X
+  $R
+  $U
+-1

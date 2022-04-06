@@ -1,0 +1,98 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<!-- lqn2xml -->
+<lqn-model name="m2onecase" description="lqn2xml 6.2 solution for model from: m2onecase.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:///C:/Program Files/LQN Solvers/lqn.xsd">
+   <!-- Variables: $N1, $N2, $S1, $S2, $W, $Z1, $Z2 -->
+   <solver-params comment="Example Two-class Layered Queueing Network" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="1">
+      <pragma param="severity-level" value="advisory"/>
+   </solver-params>
+   <processor name="ServerP" scheduling="inf">
+      <task name="User1" scheduling="ref" multiplicity="$N1" think-time="$Z1">
+         <entry name="User1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="User1_1" phase="1">
+                  <synch-call dest="Delay1" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="User2" scheduling="ref" multiplicity="$N2" think-time="$Z2">
+         <entry name="User2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="User2_1" phase="1">
+                  <synch-call dest="Delay2" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="DelayP" scheduling="inf">
+      <task name="Delay" scheduling="inf">
+         <entry name="Delay1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="Delay1_1" phase="1" host-demand-mean="$S1" think-time="$W"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="Delay2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="Delay2_1" phase="1" host-demand-mean="$S2" think-time="$W"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <lqx><![CDATA[_0 = 0;
+
+function waitAB(N,m,S,P){
+    nMax = min(N,m);
+    nMaxM1 = nMax - 1;
+    pw = array_create();
+    logpw = array_create();
+    Nm1 = N-1;
+    pw[0]= pow(1-P,Nm1); 
+    pDash = pw[0];
+    M2 = 0;
+    if (m>1){
+      for (i = 1; i<=nMaxM1; i = i+1) {
+        pw[i] = pw[i-1]*P*(N-i)/(i*(1-P));
+      }
+      for (i = 1; i<=nMaxM1; i = i+1) {
+         pDash = pDash + pw[i];
+         M2 = M2 + i*pw[i];
+      }
+    }
+    L = P*(Nm1)-(m-1)*(1-pDash) - M2;
+
+    return(L*S/m);
+
+}
+
+M = 8;
+$N1 = 1964;
+$N2 = 534;
+$S1 = 4.59331;      
+$S2 = 4.11903;
+$Z1 = 751.675;
+$Z2 = 183.105;
+$W = 0;
+eps = 1;
+S_N = $N1+$N2;
+E1 = entry("User1");
+E2 = entry("User2");
+
+while (eps > 1.e-6){
+      solve();
+      tp1 = $N1/($Z1+$S1+$W);
+      tp2 = $N2/($Z2+$S2+$W);
+      Prop1 = tp1/(tp1+tp2);
+      Prop2 = tp2/(tp1+tp2);
+      MergedS = Prop1*$S1 + Prop2*$S2;
+      MergedZ = Prop1*$Z1 + Prop2*$Z2;
+      MergedP = (MergedS+$W)/(MergedZ + MergedS + $W);
+      Wnew = waitAB(S_N, M, MergedS,MergedP);
+      eps = abs($W - Wnew);
+      $W = Wnew;
+   }
+   
+   println_spaced(" ",phase(E1,1).service_time,phase(E2,1).service_time);
+]]></lqx>
+</lqn-model>

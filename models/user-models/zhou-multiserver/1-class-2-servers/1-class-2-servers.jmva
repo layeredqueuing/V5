@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- $Id$ -->
+<!-- lqn2ps -Ojmva -->
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="JMTmodel.xsd">
+   <parameters>
+      <classes number="1">
+         <closedclass name="t0" population="$n"/>
+      </classes>
+      <stations number="3">
+         <ldstation name="p0" servers="$m">
+            <servicetimes>
+               <servicetime customerclass="t0">$S1</servicetime>
+            </servicetimes>
+            <visits>
+               <visit customerclass="t0">1</visit>
+            </visits>
+         </ldstation>
+         <listation name="p1">
+            <servicetimes>
+               <servicetime customerclass="t0">$S2</servicetime>
+            </servicetimes>
+            <visits>
+               <visit customerclass="t0">1</visit>
+            </visits>
+         </listation>
+         <delaystation name="terminal">
+            <servicetimes>
+               <servicetime customerclass="t0">$Z</servicetime>
+            </servicetimes>
+            <visits>
+               <visit customerclass="t0">1</visit>
+            </visits>
+         </delaystation>
+      </stations>
+      <ReferenceStation number="1">
+         <Class name="t0" refStation="terminal"/>
+      </ReferenceStation>
+   </parameters>
+   <algParams>
+      <algType maxSamples="10000" name="MVA" tolerance="1e-07"/>
+      <compareAlgs value="false"/>
+   </algParams>
+   <!-- SPEX input variables -->
+   <whatIf stationName="terminal" className="t0" type="Service Demands" values="5"/>  <!--$Z-->
+   <whatIf stationName="p0" className="t0" type="Service Demands" values="1"/>  <!--$S1-->
+   <whatIf stationName="p1" className="t0" type="Service Demands" values="0.5"/>  <!--$S2-->
+   <whatIf className="t0" type="Customer Numbers" values="1;2;3;4;5;6;7;8;9;10"/>  <!--$n-->
+   <whatIf stationName="p0" type="Number of Servers" values="1;2;3;4;5;6;7;8;9;10"/>  <!--$m-->
+   <!-- SPEX results -->
+   <solutions ok="false" ResultVariables="$n;$m;$X;$R1;$R2;$U">
+      <algorithm iterations="0">
+         <stationresults station="p0" Utilization="$U">
+            <classresults customerclass="t0" ResidenceTime="$R1">
+            </classresults>
+         </stationresults>
+         <stationresults station="p1">
+            <classresults customerclass="t0" ResidenceTime="$R2">
+            </classresults>
+         </stationresults>
+         <stationresults station="terminal">
+            <classresults customerclass="t0" Throughput="$X">
+            </classresults>
+         </stationresults>
+      </algorithm>
+   </solutions>
+</model>

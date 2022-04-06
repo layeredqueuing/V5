@@ -1,0 +1,57 @@
+& $Id$
+& lqn2ps -Oqnap2 -Q1
+/declare/
+   integer _n;                                                 & SPEX customers vars.
+   integer _m;                                                 & SPEX multiplicity vars.
+   real _S,_Z;                                                 & SPEX service time vars.
+   real _X,_R,_U;                                              & SPEX result vars.
+   queue terminal,p0;                                          & Station identifiers
+   integer n_users;                                            & Population
+   real think_t;                                               & Think time.
+   real p0_t;                                                  & Station service time
+&
+/station/ name=p0;
+   sched=fifo;
+   type=multiple(_m);
+   service=exp(p0_t);
+   transit=terminal;
+&
+/station/ name=terminal;
+   type=infinite;
+   init=n_users;                                               & Population by class
+   service=exp(think_t);
+   transit=p0,1.;                                              & visits to servers
+&
+/control/
+   option=nresult;                                             & Suppress default output
+&
+/exec/
+   begin
+   print("_n",",","_m",",","_X",",","_R",",","_U");            & SPEX results
+&  -- SPEX scalar variables --
+   _S:=1;
+   _Z:=5;
+&  -- SPEX arrays and completions --
+   for _n:=1 step 1 until 10 do begin
+   for _m:=1 step 1 until 10 do begin
+&  -- Class variables --
+   think_t:=_Z/(1.);                                           & Slice time at client
+   n_users:=_n;                                                & SPEX variable $n
+&  -- Station variables --
+   p0_t:=_S;                                                   & SPEX variable $S
+&  -- Let 'er rip! --
+   solve;
+&  -- SPEX results for QNAP2 solutions are converted to
+&  -- the LQN output for throughput, service and waiting time.
+&  -- QNAP2 throughput for a reference task is per-slice,
+&  -- and not the aggregate so divide by the number of transits.
+&  -- Service time is mservice() + sum of mresponse().
+&  -- Waiting time is mresponse() - mservice().
+   _X:=mthruput(terminal)/(1.);                                & Convert to LQN throughput
+   _R:=mresponse(p0);                                          & Convert to LQN service time.
+   _U:=mthruput(p0)*(_S);
+   print(_n,",",_m,",",_X,",",_R,",",_U);                      & SPEX results
+   end;                                                        & for _m
+   end;                                                        & for _n
+   end;
+/end/
