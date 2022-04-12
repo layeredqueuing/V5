@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: interlock.cc 15526 2022-04-12 01:52:09Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -115,8 +115,8 @@ CallInfo::Item::collect_calls::operator()( const Phase& phase )
 	if ( item == _calls.end() ) {
 	    _calls.emplace_back( CallInfo::Item( &_srcEntry, (*call)->dstEntry() ) );
 	    _calls.back()._phase[p] = (*call);
-	} else if ( !item->_phase[p]
-		    || item->_phase[p]->isForwardedCall() && (*call)->hasRendezvous() ) {	/* Drop forward -- keep rnv */
+	} else if ( item->_phase[p] != nullptr
+		    || (item->_phase[p]->isForwardedCall() && (*call)->hasRendezvous()) ) {	/* Drop forward -- keep rnv */
 	    item->_phase[p] = (*call);
 	} else if ( item->_phase[p]->hasRendezvous() && (*call)->isForwardedCall() ) {
 	    continue;

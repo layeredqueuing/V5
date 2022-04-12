@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 15322 2022-01-02 15:35:27Z greg $
+ * $Id: phase.cc 15524 2022-04-11 22:01:41Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -419,8 +419,14 @@ Phase::check() const
     std::string parent_type = parent->getTypeName();
     parent_type[0] = std::toupper( parent_type[0] );
 
+    bool parent_has_think_time = false;
+    if ( dynamic_cast<const LQIO::DOM::Entry *>(parent) != nullptr ) {
+	const LQIO::DOM::Task * task = dynamic_cast<const LQIO::DOM::Entry *>(parent)->getTask();
+	parent_has_think_time = task->hasThinkTime();
+    }
+    
     /* Service time not zero? */
-    if ( serviceTime() == 0 ) {
+    if ( serviceTime() == 0 && !parent_has_think_time ) {
 	LQIO::solution_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, parent_type.c_str(), parent->getName().c_str(), getDOM()->getTypeName(), name().c_str(), "service" );
     }
 

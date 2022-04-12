@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15476 2022-03-30 13:20:14Z greg $
+ * $Id: model.cc 15525 2022-04-12 00:48:24Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -905,7 +905,7 @@ Model::store()
 		    throw std::runtime_error( msg.str() );
 		}
 	    } else if ( partial_output()
-			|| Flags::aggregation() == Aggregate::NONE
+			|| Flags::aggregation() != Aggregate::NONE
 			|| Flags::replication() != Replication::NONE ) {
 		std::ostringstream msg;
 		msg << "Cannot overwrite input file " << filename() << " with a subset of original model.";
@@ -913,7 +913,7 @@ Model::store()
 	    }
 #else
 	    if ( partial_output()
-		 || Flags::aggregation() == Aggregate::NONE ) {
+		 || Flags::aggregation() != Aggregate::NONE ) {
 		ostringstream msg;
 		msg << "Cannot overwrite input file " << filename() << " with a subset of original model.";
 		throw runtime_error( msg.str() );

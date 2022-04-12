@@ -227,7 +227,7 @@ Entry::initialize()
 	    if ( !curr_phase->has_stochastic_calls() ) {
 		has_deterministic_phases = true;
 	    }
-	    if ( calls > 0 && curr_phase->s() == 0.0 ) {
+	    if ( calls > 0 && curr_phase->s() == 0.0 && task()->think_time() == 0. ) {
 		LQIO::solution_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "Entry", name(), get_dom()->getTypeName(), curr_phase->name(), "service" );
 	    }
 	    if ( ( calls > 0 || curr_phase->s() > 0.0 ) && p > n_phases() ) {
