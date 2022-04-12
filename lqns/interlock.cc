@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 15526 2022-04-12 01:52:09Z greg $
+ * $Id: interlock.cc 15531 2022-04-12 15:16:55Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -107,21 +107,27 @@ bool CallInfo::Item::isProcessorCall() const
 void
 CallInfo::Item::collect_calls::operator()( const Phase& phase )
 {
+    const unsigned int p = phase.getPhaseNumber() > 0 ? phase.getPhaseNumber() : _p;
     for ( std::set<Call *>::const_iterator call = phase.callList().begin(); call != phase.callList().end(); ++call ) {
 	if ( (*call)->isProcessorCall() || (*call)->dstEntry()->owner()->isProcessor() || !(*call)->hasTypeForCallInfo( _type ) ) continue;
-	const unsigned int p = phase.getPhaseNumber() > 0 ? phase.getPhaseNumber() : _p;
 
 	std::vector<CallInfo::Item>::iterator item = std::find_if( _calls.begin(), _calls.end(), compare( (*call)->dstEntry() ) );
 	if ( item == _calls.end() ) {
 	    _calls.emplace_back( CallInfo::Item( &_srcEntry, (*call)->dstEntry() ) );
 	    _calls.back()._phase[p] = (*call);
-	} else if ( item->_phase[p] != nullptr
+	} else if ( item->_phase[p] == nullptr
 		    || (item->_phase[p]->isForwardedCall() && (*call)->hasRendezvous()) ) {	/* Drop forward -- keep rnv */
 	    item->_phase[p] = (*call);
 	} else if ( item->_phase[p]->hasRendezvous() && (*call)->isForwardedCall() ) {
 	    continue;
 	} else {
+#define BUG_367 1
+#if BUG_367
+//	    std::cerr << __FILE__ << ", " << __LINE__ << ": CallInfo::Item::collect_calls::operator() duplicate calls from "
+//		      << item->_phase[p]->srcName() << " and " << (*call)->srcName() << " to " << (*call)->dstName() << std::endl;
+#else
 	    LQIO::internal_error( __FILE__, __LINE__, "CallInfo::Item::collect_calls::operator()" );
+#endif
 	}
     }
 }

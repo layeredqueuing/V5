@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 15188 2021-12-10 02:23:30Z greg $
+ * $Id: layer.cc 15530 2022-04-12 14:48:08Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -567,15 +567,16 @@ Layer::aggregate()
 Layer&
 Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_processor, Task *& surrogate_task )
 {
-    for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
-	Task * aTask = dynamic_cast<Task *>(*entity);
-	if ( !(*entity)->isSelected() || !aTask ) continue;
+    std::vector<Entity *> entities = _entities;		/* Copy as _entities will change */
+    for ( std::vector<Entity *>::const_iterator entity = entities.begin(); entity != entities.end(); ++entity ) {
+	Task * task = dynamic_cast<Task *>(*entity);
+	if ( !(*entity)->isSelected() || !task ) continue;
 
-	findOrAddSurrogateProcessor( document, surrogate_processor, aTask, number()+1 );
+	findOrAddSurrogateProcessor( document, surrogate_processor, task, number()+1 );
 
 	/* ---------- Servers ---------- */
 
-	const std::vector<Entry *>& entries = aTask->entries();
+	const std::vector<Entry *>& entries = task->entries();
 	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
 
 	    /* These are graphical object calls */
@@ -590,27 +591,27 @@ Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_pro
 	    for_each( phases.begin(), phases.end(), ResetServerPhaseParameters( document->hasResults() ) );
 	}
 
-	const std::vector<Activity *>& activities = aTask->activities();
+	const std::vector<Activity *>& activities = task->activities();
 	for_each ( activities.begin(), activities.end(), ResetServerPhaseParameters( document->hasResults() ) );
     }
 
     /* ---------- Clients ---------- */
 
     for ( std::vector<Task *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
-	Task * aTask = *client;
+	Task * task = *client;
 
-	LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(aTask->getDOM()));
+	LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(task->getDOM()));
 	dom_task->setSchedulingType( SCHEDULE_CUSTOMER );   // Clients become reference tasks.
 
 	/* Create a fake processor if necessary */
 
-	if ( std::any_of( aTask->processors().begin(), aTask->processors().end(), Predicate<Entity>( &Entity::isSelected ) ) ) {
-	    findOrAddSurrogateProcessor( document, surrogate_processor, aTask, number() );
+	if ( std::any_of( task->processors().begin(), task->processors().end(), Predicate<Entity>( &Entity::isSelected ) ) ) {
+	    findOrAddSurrogateProcessor( document, surrogate_processor, task, number() );
 	}
 
 	/* for all clients, reroute all non-selected calls to surrogate */
 
-	const std::vector<Entry *>& entries = aTask->entries();
+	const std::vector<Entry *>& entries = task->entries();
 	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
 	    for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
 		if ( (*call)->isSelected() || (*call)->dstTask()->isSelectedIndirectly() ) continue;
@@ -618,7 +619,7 @@ Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_pro
 	    }
 	}
 
-	const std::vector<Activity *> activities = aTask->activities();
+	const std::vector<Activity *> activities = task->activities();
 	for ( std::vector<Activity *>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity ) {
 	    for ( std::vector<Call *>::const_iterator call = (*activity)->calls().begin(); call != (*activity)->calls().end(); ++call ) {
 		if ( (*call)->isSelected() || (*call)->dstTask()->isSelectedIndirectly() ) continue;
@@ -652,9 +653,9 @@ Processor *
 Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *& processor, Task * task, const size_t level ) const
 {
     LQIO::DOM::Processor * dom_processor = nullptr;
-    if ( !processor ) {
+    if ( processor == nullptr ) {
 	/* Need to create a new processor */
-	dom_processor = new LQIO::DOM::Processor( document, "Surrogate", SCHEDULE_DELAY, NULL, NULL );
+	dom_processor = new LQIO::DOM::Processor( document, "Surrogate", SCHEDULE_DELAY );
 	document->addProcessorEntity( dom_processor );
 	processor = new Processor( dom_processor );		/* This is a model object */
 	processor->isSelected( true ).isSurrogate( true ).setLevel( level );
@@ -673,6 +674,8 @@ Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *&
 	dom_task->setProcessor( dom_processor );
 	old_processor->removeTask( task );
 	processor->addTask( task );
+	task->removeProcessor( old_processor );
+	task->addProcessor( processor );
 
 	/* Remap processor call */
 //	Point aPoint = processor->center();
@@ -698,10 +701,9 @@ Layer::findOrAddSurrogateTask( LQIO::DOM::Document* document, Processor*& proces
     std::vector<LQIO::DOM::Entry *> dom_entries;
     std::vector<Entry *> entries;
     if ( !task ) {
-	findOrAddSurrogateProcessor( document, processor, 0, level+1 );
+	findOrAddSurrogateProcessor( document, processor, nullptr, level+1 );
 	LQIO::DOM::Processor * dom_processor = const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()));
-	dom_task = new LQIO::DOM::Task( document, "Surrogate", SCHEDULE_DELAY, dom_entries, dom_processor,
-					0, 0, NULL, NULL, NULL );
+	dom_task = new LQIO::DOM::Task( document, "Surrogate", SCHEDULE_DELAY, dom_entries, dom_processor );
 	document->addTaskEntity( dom_task );
 	dom_processor->addTask( dom_task );
 	task = new ServerTask( dom_task, processor, 0, entries );

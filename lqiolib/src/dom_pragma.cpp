@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 15435 2022-02-09 21:40:09Z greg $
+ *  $Id: dom_pragma.cpp 15528 2022-04-12 12:00:19Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -276,6 +276,7 @@ namespace LQIO {
 	const char * Pragma::_variance_ =			"variance";
 	const char * Pragma::_warning_ =			"warning";
 	const char * Pragma::_yes_ =				"yes";
+	const char * Pragma::_zhang_ =				"zhang";		// multiserver
 	const char * Pragma::_zhou_ =				"zhou";			// multiserver 
 
 	/* Args */
@@ -284,7 +285,7 @@ namespace LQIO {
 	const std::set<std::string> Pragma::__force_infinite_args = { _none_, _fixed_rate_, _multiservers_, _all_ };
 	const std::set<std::string> Pragma::__force_multiserver_args = { _none_, _processors_, _tasks_, _all_, _true_, _yes_, _false_, _no_, "t", "y", "f", "n", "" };
 	const std::set<std::string> Pragma::__layering_args = { _batched_, _batched_back_, _mol_, _mol_back_, _processor_, _share_, _squashed_, _srvn_, _hwsw_ };
-	const std::set<std::string> Pragma::__multiserver_args = { _bruell_, _conway_, _default_, _reiser_, _reiser_ps_, _rolia_, _rolia_ps_, _schmidt_, _suri_, _zhou_ };
+	const std::set<std::string> Pragma::__multiserver_args = { _bruell_, _conway_, _default_, _reiser_, _reiser_ps_, _rolia_, _rolia_ps_, _schmidt_, _suri_, _zhang_, _zhou_ };
 	const std::set<std::string> Pragma::__mva_args = { _bounds_, _exact_, _linearizer_, _schweitzer_, _fast_, _one_step_, _one_step_linearizer_ };
 	const std::set<std::string> Pragma::__overtaking_args = { _markov_, _rolia_, _simple_, _special_, _none_ };
 	const std::set<std::string> Pragma::__processor_args = { _default_, scheduling_label[SCHEDULE_DELAY].XML, scheduling_label[SCHEDULE_FIFO].XML, scheduling_label[SCHEDULE_HOL].XML, scheduling_label[SCHEDULE_PPR].XML, scheduling_label[SCHEDULE_PS].XML, scheduling_label[SCHEDULE_RAND].XML };

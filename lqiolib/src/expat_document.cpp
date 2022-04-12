@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 15337 2022-01-03 13:59:54Z greg $
+ * $Id: expat_document.cpp 15527 2022-04-12 11:36:22Z greg $
  *
  * Read in XML input files.
  *
@@ -1539,7 +1539,7 @@ namespace LQIO {
             Entry * entry = _document.getEntryByName( entry_name );
             if ( _createObjects ) {
 
-                if ( !entry ) {
+                if ( entry == nullptr ) {
                     entry = new Entry( &_document, entry_name );
                     _document.addEntry(entry);            /* Add to global table */
 		} else if ( entry->getEntryType() != LQIO::DOM::Entry::Type::NOT_DEFINED ) {
@@ -1585,10 +1585,13 @@ namespace LQIO {
                 const std::vector<Entry *>& entries = dynamic_cast<Task *>(task)->getEntryList();
                 const_cast<std::vector<Entry *>*>(&entries)->push_back( entry );        /* Add to task. */
 
-            } else if ( !entry ) {
+            } else if ( entry == nullptr ) {
                 throw undefined_symbol( entry_name );
             }
 
+	    if ( entry->getTask() == nullptr )  {
+		entry->setTask(dynamic_cast<LQIO::DOM::Task *>(task));
+	    }
             return entry;
         }
 
