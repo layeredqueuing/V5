@@ -902,7 +902,7 @@ Task::get_throughput( const Entry * d, const Phase * phase_d, unsigned m  )
       //	throughput = get_tput( IMMEDIATE, "done%s%d", phase_d->name(), m );	/* done_P transition  */
         throughput = phase_d->doneX[m]->f_time;		/* Access directly */
     } else {
-	unsigned p_d = this->n_phases() == 1 ? 1 : 2;
+	unsigned p_d = d->n_phases();
 	for ( vector<Entry *>::const_iterator e = ::entry.begin(); e != ::entry.end(); ++e ) {
 	    unsigned max_m = n_customers();
 	    unsigned p_e;

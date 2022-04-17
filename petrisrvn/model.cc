@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 15356 2022-01-04 23:29:39Z greg $
+ * $Id: model.cc 15539 2022-04-16 22:20:02Z greg $
  *
  * Load the SRVN model.
  */
@@ -667,6 +667,9 @@ Model::compute()
 
 	    _document->print( _output_file_name, suffix, _output_format, rtf_flag );
 
+	    if ( inservice_match_pattern != nullptr ) {
+		print_inservice_probability( std::cout );
+	    }
 	    if ( verbose_flag ) {
 		std::cerr << stats;
 	    }
@@ -737,8 +740,6 @@ Model::restart()
 void
 Model::make_queues()
 {
-    struct debug_place_info ins_place[DIMPH+1][DIMDBGPLC][MAX_MULT];
-
     /* Make queues */
 	
     for ( std::vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
@@ -771,7 +772,7 @@ Model::make_queues()
 		for ( std::vector<Entry *>::const_iterator d = (*i)->entries.begin(); d != (*i)->entries.end(); ++d ) {
 		    if ( (*d)->is_regular_entry() ) {
 			for ( unsigned p = 1; p <= (*d)->n_phases(); p++ ) {
-			    k = make_queue( x_pos, y_pos, idle_x, &(*d)->phase[p], *e, ne, max_m, k, ins_place, queue_func );
+			    k = make_queue( x_pos, y_pos, idle_x, &(*d)->phase[p], *e, ne, max_m, k, queue_func );
 			}
 		    }
 
@@ -781,13 +782,13 @@ Model::make_queues()
 			    (this->*queue_func)(X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
 						&(*d)->phase[1], 0, *e, (*f)->_root,
 						(*f)->_slice_no, (*f)->_m, (*d)->prob_fwd(*e),
-						k, false, ins_place );
+						k, false );
 			}
 		    }
 		}
 
 		for ( std::vector<Activity *>::const_iterator a = (*i)->activities.begin(); a != (*i)->activities.end(); ++a ) {
-		    k = make_queue( x_pos, y_pos, idle_x, (*a), *e, ne, max_m, k, ins_place, queue_func );
+		    k = make_queue( x_pos, y_pos, idle_x, (*a), *e, ne, max_m, k, queue_func );
 		}
 		if ( sync_server ) {
 		    k += 1;
@@ -803,7 +804,6 @@ Model::make_queues()
 	 */
 
 	if ( (*t)->inservice_flag() ) {
-	    double temp_y = y_pos + Task::__queue_y_offset + 1.5;
 
 	    /* Be shifty... */
 
@@ -818,32 +818,6 @@ Model::make_queues()
 		}
 #endif
 	    }
-
-	    /*
-	     * connect all state places to instrumentation transitions
-	     */
-			
-	    for ( std::vector<Entry *>::const_iterator b = (*t)->entries.begin(); b != (*t)->entries.end(); ++b ) {
-		for ( std::vector<Task *>::const_iterator i = ::task.begin(); i != ::task.end(); ++i ) {
-		    unsigned max_m = (*i)->n_customers();
-
-		    for ( std::vector<Entry *>::const_iterator e = (*i)->entries.begin(); e != (*i)->entries.end(); ++e ) {
-				
-			if ( !(*e)->is_regular_entry() ) continue;
-						
-			for ( unsigned p = 1; p <= (*e)->n_phases(); p++ ) {
-			    Phase * curr_phase = &(*e)->phase[p];
-
-			    if (curr_phase->y(*b) == 0.0) continue;
-
-			    for ( unsigned int m = 0; m < max_m; ++m ) {
-				create_inservice_net( idle_x, temp_y, curr_phase, *b, m, ins_place );
-				temp_y += 0.5;
-			    }
-			} /* p */
-		    } /* li */
-		} /* i */
-	    } /* lj */
 	} /* inservice_flag */
     } /* j */
 }
@@ -862,30 +836,25 @@ Model::make_queue( double x_pos,		/* x coordinate.		*/
 		   const unsigned ne,
 		   const unsigned max_m,	/* Multiplicity of Src.		*/
 		   unsigned k,			/* an index.			*/
-		   struct debug_place_info ins_place[DIMPH+1][DIMDBGPLC][MAX_MULT],
 		   queue_fnptr queue_func )
 {
-    unsigned m;
-    double calls = a->y(b) + a->z(b);
-	
+    const double calls = a->y(b) + a->z(b);
     if ( calls == 0.0) return k;	/* No operation. */
 	
-    for ( m = 0; m < max_m; ++m ) {
+    for ( unsigned m = 0; m < max_m; ++m ) {
 	bool async_call = a->z(b) > 0 || a->task()->type() == Task::Type::OPEN_SRC;
 		
 	if ( a->has_stochastic_calls() ) {
 	    k += 1;
 	    (this->*queue_func)( X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
-				 a, 0, b, a, 0, m, 0.0, k,
-				 async_call, ins_place );
+				 a, 0, b, a, 0, m, 0.0, k, async_call );
 	} else {
 	    unsigned s;
 	    unsigned off = a->compute_offset( b );			/* Compute offset */
 	    for ( s = 0; s < calls; ++s ) {
 		k += 1;
 		(this->*queue_func)( X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
-				     a, s+off, b, a, s+off+1, m, 0.0, k,
-				     async_call, ins_place );
+				     a, s+off, b, a, s+off+1, m, 0.0, k, async_call );
 	    }
 	}
 
@@ -914,8 +883,7 @@ Model::fifo_queue( double x_pos,		/* x coordinate.		*/
 		   const unsigned m,		/* Multiplicity of Src.		*/
 		   const double prob_fwd,
 		   const unsigned k,		/* an index.			*/
-		   const bool async_call,
-		   struct debug_place_info ins_place[DIMPH+1][DIMDBGPLC][MAX_MULT] )
+		   const bool async_call )
 {
     struct trans_object * c_trans;
     struct place_object * r_place = 0;
@@ -1013,7 +981,7 @@ Model::fifo_queue( double x_pos,		/* x coordinate.		*/
 	 */
 
 	if ( j->inservice_flag() ) {
-	    create_phase_instr_net( idle_x, y_pos, a, m, b, b_m, k, r_trans, q_trans, s_trans, ins_place );
+	    create_phase_instr_net( idle_x, y_pos, a, m, b, b_m, k, r_trans, q_trans, s_trans );
 	}
     } /* b_m */
 }
@@ -1032,8 +1000,7 @@ Model::random_queue( double x_pos,		/* x coordinate.		*/
 		     const unsigned m,		/* Multiplicity of Src.		*/
 		     const double prob_fwd,
 		     const unsigned k,		/* an index.			*/
-		     const bool async_call,
-		     struct debug_place_info ins_place[DIMPH+1][DIMDBGPLC][MAX_MULT] )
+		     const bool async_call )
 {
     struct place_object * r_place;
     struct trans_object * c_trans;
@@ -1107,7 +1074,7 @@ Model::random_queue( double x_pos,		/* x coordinate.		*/
 	 */
 
 	if ( j->inservice_flag() ) {
-	    create_phase_instr_net( idle_x, y_pos, a, m, b, b_m, k, r_trans, q_trans, s_trans, ins_place );
+	    create_phase_instr_net( idle_x, y_pos, a, m, b, b_m, k, r_trans, q_trans, s_trans );
 	}
     }
 }
@@ -1321,8 +1288,7 @@ void
 Model::create_phase_instr_net( double idle_x, double y_pos,
 			       Phase * a, unsigned m,
 			       Entry * b, unsigned n, unsigned k,
-			       struct trans_object * r_trans, struct trans_object * q_trans, struct trans_object * s_trans,
-			       struct debug_place_info ins_place[DIMPH+1][DIMDBGPLC][MAX_MULT] )
+			       struct trans_object * r_trans, struct trans_object * q_trans, struct trans_object * s_trans )
 {
     unsigned q;			/* Another phase index.		*/
     struct place_object * c_place;
@@ -1331,24 +1297,24 @@ Model::create_phase_instr_net( double idle_x, double y_pos,
     double temp_x;
     double temp_y;
     const Task * j     = b->task();
+    struct place_object * ph2_place = nullptr;
 
     if ( k > DIMDBGPLC ) (void) abort();
 
     for ( q = 1; q <= b->n_phases(); ++q ) {
-	ins_place[q][k][n].c = a;
-	ins_place[q][k][n].d = &b->phase[q];
-	ins_place[q][k][n].m = m;
-
 	temp_x = INS_OFFSET(k,(double)(q-1)/2.0) + n_delta;
 	temp_y = y_pos + n_delta + (double)(q-1) - 2;
 		
-	ins_place[q][k][n].place = create_place( temp_x, temp_y, MEASUREMENT_LAYER, 0,
+	c_place = create_place( temp_x, temp_y, MEASUREMENT_LAYER, 0,
 						 "PH%d%s%d%s%d", q,
 						 a->name(), m,
 						 b->name(), n );
-	create_arc( MEASUREMENT_LAYER, TO_PLACE, c_trans, ins_place[q][k][n].place );
+	if ( q == 2 ) {
+	    ph2_place = c_place;
+	}
+	create_arc( MEASUREMENT_LAYER, TO_PLACE, c_trans, c_place );
 	if ( s_trans ) {
-	    create_arc( MEASUREMENT_LAYER, TO_PLACE, s_trans, ins_place[q][k][n].place );
+	    create_arc( MEASUREMENT_LAYER, TO_PLACE, s_trans, c_place );
 	    s_trans = 0;
 	}
 		
@@ -1367,71 +1333,41 @@ Model::create_phase_instr_net( double idle_x, double y_pos,
 	    create_arc( MEASUREMENT_LAYER|ENTRY_LAYER(b->entry_id()), TO_PLACE, c_trans, b->phase[q+1]._slice[0].WX[n] );
 	}
 
-	create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, ins_place[q][k][n].place );
+	create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, c_place );
 	create_arc( MEASUREMENT_LAYER|ENTRY_LAYER(b->entry_id()), TO_TRANS, c_trans, b->phase[q]._slice[0].ChX[n] );
     }
 	
-    /* --- */
-	
+    /* Arrival at queue k, phase 1 */
+
+    temp_x = INS_OFFSET(k,0.0) + n_delta;
     temp_y = y_pos + Task::__queue_y_offset + 1.0;
 	
-    c_place = create_place( INS_OFFSET(k,0.0) + n_delta, temp_y + n_delta, MEASUREMENT_LAYER, 0,
+    c_place = create_place( temp_x, temp_y + n_delta, MEASUREMENT_LAYER, 0,
 			    "Arr%s%d%s%d", a->name(), m, b->name(), n );
 	
-    c_trans = create_trans( idle_x + n_delta, temp_y + k * 0.5 + n_delta, MEASUREMENT_LAYER,
+    c_trans = create_trans( temp_x, temp_y + 0.5 + n_delta, MEASUREMENT_LAYER,
 			    1.0, 1, IMMEDIATE+1,
 			    "ArI%s%d%s%d", a->name(), m, b->name(), n );
 	
     create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, c_place );
+    create_arc( MEASUREMENT_LAYER, TO_PLACE, r_trans, c_place );
     create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, j->TX[n] );
     create_arc( MEASUREMENT_LAYER, TO_PLACE, c_trans, j->TX[n] );
-    create_arc( MEASUREMENT_LAYER, TO_PLACE, r_trans, c_place );
-}
 
-
-
-/*
- * Create transitions for measuring in-service probabilites.
- */
-
-void
-Model::create_inservice_net( double x_pos, double y_pos,
-			     Phase * a,	/* Entry of calling task 'i'	*/
-			     Entry * b,	/* Entry of server 'j'		*/
-			     unsigned m,	/* Instance of task 'i'		*/
-			     struct debug_place_info ins_place[DIMPH+1][DIMDBGPLC][MAX_MULT] )
-{
-    const Task * j	= b->task();
-    struct trans_object * c_trans;
-    unsigned n;
-
-    for ( n = 0; n < j->multiplicity(); ++n ) {
-	double n_delta = (double)n/4.0;
-
-	unsigned k;
-	for ( k = 1; k <= j->max_k(); ++k ) {
-	    double temp_x = x_pos + k + n_delta - 1.0;
-	    double temp_y = y_pos + n_delta;
-	    unsigned q;			/* Another phase index		*/
-	    struct place_object * c_place;
-
-	    c_place = no_place("Arr%s%d%s%d", a->name(), m, b->name(), n );
-			
-	    for ( q = 2; q <= b->n_phases(); ++q ) {
-		c_trans = create_trans( temp_x + (double)q/2.0, temp_y, MEASUREMENT_LAYER,
-					1.0, 1, IMMEDIATE+1,
-					"ArX%s%d%s%d%s%d%s%d",
-					a->name(), m,
-					b->name(), n,
-					ins_place[q][k][n].c->name(), ins_place[q][k][n].m,
-					ins_place[q][k][n].d->name(), n );
-		create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, c_place );
-		create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, ins_place[q][k][n].place );
-		create_arc( MEASUREMENT_LAYER, TO_PLACE, c_trans, ins_place[q][k][n].place );
-	    }
-	}
+    /* For each phase 2, do... */
+    /* In phase 2 */
+    
+    if ( ph2_place != nullptr ) {
+	c_trans = create_trans( temp_x + (double)q/2.0, temp_y, MEASUREMENT_LAYER,
+				1.0, 1, IMMEDIATE+1,
+				"ArX%s%d%s%d", a->name(), m, b->phase[2].name(), n );
+	create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, c_place );
+	create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, ph2_place );
+	create_arc( MEASUREMENT_LAYER, TO_PLACE, c_trans, ph2_place );
+	fprintf( stderr, "Create ArX%s%d%s%d\n", a->name(), m, b->phase[2].name(), n );		// debug
     }
 }
+
 
 
 /*
@@ -1744,24 +1680,12 @@ Model::print_inservice_cd( std::ostream& output, const Entry * a, const Entry * 
 		    col_sum_Pd[p] = 0.0;
 		}
 				
-		for ( unsigned int pd = (overtaking ? 2 : 1); pd <= j->n_phases(); pd++ ) {
+		for ( unsigned int pd = (overtaking ? 2 : 1); pd <= d->n_phases(); pd++ ) {
 		    for ( unsigned int pa = 1; pa <= DIMPH; ++pa ) {
 			tput[pa] = 0.0;
 		    }
 		    count_Pd += 1;
 					
-		    for ( unsigned int pc = 1; pc <= c->n_phases(); ++pc ) {
-			if ( c->phase[pc].y(d) == 0.0 ) continue;
-			for ( unsigned int pa = 1; pa <= a->n_phases(); ++pa ) {
-			    if ( a->phase[pa].y(b) == 0.0 ) continue;
-			    tput[pa] += get_tput( IMMEDIATE, "ArX%s%d%s%d%s%d%s%d",
-						  a->phase[pa].name(), 0,
-						  b->name(), 0,
-						  c->phase[pc].name(), 0,
-						  d->phase[pd].name(), 0 );
-			}
-		    }
-
 		    if ( count_Pd == 1 ) {
 			output << std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << a->name() << " "
 			       << std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << b->name() << " "
@@ -1771,6 +1695,24 @@ Model::print_inservice_cd( std::ostream& output, const Entry * a, const Entry * 
 			output << std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen*4) << " ";
 		    }
 		    output << " " << pd << "  ";
+
+		    for ( unsigned int pc = 1; pc <= c->n_phases(); ++pc ) {
+			if ( c->phase[pc].y(d) == 0.0 ) continue;
+			for ( unsigned int pa = 1; pa <= a->n_phases(); ++pa ) {
+			    if ( a->phase[pa].y(b) == 0.0 ) continue;
+#if 0
+			    tput[pa] += get_tput( IMMEDIATE, "ArX%s%d%s%d%s%d%s%d",
+						  a->phase[pa].name(), 0,
+						  b->name(), 0,
+						  c->phase[pc].name(), 0,
+						  d->phase[pd].name(), 0 );
+#else
+			    tput[pa] += get_tput( IMMEDIATE, "ArX%s%d%s%d",
+						  c->phase[pc].name(), 0,
+						  d->phase[pd].name(), 0 );
+#endif
+			}
+		    }
 
 		    tput[0] = 0.0;
 		    double prob = 0.0;

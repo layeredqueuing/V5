@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 15340 2022-01-03 15:16:34Z greg $
+ * $Id: petrisrvn.cc 15533 2022-04-13 01:27:07Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -144,6 +144,7 @@ static const char * opthelp[]  = {
     /* "xml"		    */    "Output results in XML format.",
     /* "disjoint-customers" */    "Create copies for reference tasks (increases state space).",
     /* "no-header"	    */	  "Do not output the variable name header on SPEX results.",
+    /* "print-comment"	    */    "Add the model comment as the first line of output when running with SPEX input.",
     /* "overtaking"	    */	  "Find in-service and overtaking probabilities (increases state space). ARG=condition",
     /* "queue-limit    	    */	  "Set the maximum queue size (open model).",
     /* "random-processors"  */	  "Use random queueing at all processors (reduces state space).",
@@ -367,7 +368,11 @@ main(int argc, char *argv[])
 	    break;
 
 	case 256+'O':
-	    inservice_match_pattern = new std::regex( optarg );
+	    if ( optarg == nullptr ) {
+		inservice_match_pattern = new std::regex( ".*" );
+	    } else {
+		inservice_match_pattern = new std::regex( optarg );
+	    }
 #if 0
 		case UNCONDITIONAL_PROB:
 		    uncondition_flag = true;
@@ -394,8 +399,8 @@ main(int argc, char *argv[])
 
     if ( ( inservice_match_pattern != nullptr ) && customers_flag ) {
 	if ( LQIO::io_vars.severity_level <= LQIO::WARNING_ONLY ) {
-	    (void) fprintf( stdout, "%s: -zin-service or -zin-queue is incompatible with multiple customer clients\n", LQIO::io_vars.toolname() );
-	    (void) fprintf( stdout, "\t-zcustomers assumed\n" );
+	    (void) fprintf( stdout, "%s: --overtaking is incompatible with multiple customer clients\n", LQIO::io_vars.toolname() );
+	    (void) fprintf( stdout, "\t--disjoint-customers assumed\n" );
 	}
 	customers_flag = false;
     }

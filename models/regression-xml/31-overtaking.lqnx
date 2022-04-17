@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!-- $Id: 31-overtaking.lqnx 15540 2022-04-17 13:26:30Z greg $ -->
+<!-- lqn2xml -o31-overtaking.lqnx -->
+<lqn-model name="../regression/31-overtaking" description="lqn2xml 5.26 solution for model from: ../regression/31-overtaking.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simplest model - rendezvous with overtaking." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
+   <processor name="p1" scheduling="inf">
+      <task name="t1" scheduling="ref">
+         <entry name="e1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e1_1" phase="1" host-demand-mean="1">
+                  <synch-call dest="e2" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="fcfs">
+      <task name="t2" scheduling="fcfs">
+         <entry name="e2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e2_1" phase="1" host-demand-mean="1"/>
+               <activity name="e2_2" phase="2" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

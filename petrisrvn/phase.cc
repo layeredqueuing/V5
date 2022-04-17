@@ -369,7 +369,7 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 
     this->done_xpos[m] = X_OFFSET(p_pos+this->n_slices()*3,0);
     this->done_ypos[m] = y_pos-0.5;
-    if ( !simplify_phase() || task()->is_client() ) {
+    if ( (!simplify_phase() && !task()->inservice_flag()) || task()->is_client() ) {
 	c_trans = create_trans( this->done_xpos[m], this->done_ypos[m], layer_mask, 1.0, 1, IMMEDIATE, "done%s%d", this->name(), m );
 	create_arc( layer_mask, TO_TRANS, c_trans, this->_slice[this->n_slices()-1].ChX[m] );
 	this->doneX[m] = c_trans;

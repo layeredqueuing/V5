@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: makeobj.cc 13477 2020-02-08 23:14:37Z greg $
+ * $Id: makeobj.cc 15537 2022-04-14 19:54:53Z greg $
  *
  * Make various model objects.
  */
@@ -189,10 +189,8 @@ no_place( const char * format, ... )
 	    }
 	}
     }
-    std::string msg = "No place named: ";
-    msg += name;
-    throw std::runtime_error( msg.c_str() );
-    return 0;
+    throw std::runtime_error( std::string( "No place named: " ) + name );
+    return nullptr;
 }
 
 
@@ -613,9 +611,8 @@ find_netobj_name( const std::string& name )
     std::map<std::string,std::string>::const_iterator i = netobj_name_table.find( name );
     if ( i != netobj_name_table.end() ) {
 	return const_cast<char *>(i->second.c_str());
+    } else {
+	throw std::runtime_error( std::string( "No object named: " ) + name );
     }
-    std::string msg = "No object named: ";
-    msg += name;
-    throw std::runtime_error( msg.c_str() );
-    return 0;
+    return nullptr;
 }

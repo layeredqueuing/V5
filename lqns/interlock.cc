@@ -123,8 +123,8 @@ CallInfo::Item::collect_calls::operator()( const Phase& phase )
 	} else {
 #define BUG_367 1
 #if BUG_367
-//	    std::cerr << __FILE__ << ", " << __LINE__ << ": CallInfo::Item::collect_calls::operator() duplicate calls from "
-//		      << item->_phase[p]->srcName() << " and " << (*call)->srcName() << " to " << (*call)->dstName() << std::endl;
+	    std::cerr << __FILE__ << ", " << __LINE__ << ": CallInfo::Item::collect_calls::operator() duplicate calls from "
+		      << item->_phase[p]->srcName() << " and " << (*call)->srcName() << " to " << (*call)->dstName() << std::endl;
 #else
 	    LQIO::internal_error( __FILE__, __LINE__, "CallInfo::Item::collect_calls::operator()" );
 #endif
