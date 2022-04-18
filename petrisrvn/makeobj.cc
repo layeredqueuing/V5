@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: makeobj.cc 15537 2022-04-14 19:54:53Z greg $
+ * $Id: makeobj.cc 15545 2022-04-17 22:42:21Z greg $
  *
  * Make various model objects.
  */
@@ -67,18 +67,18 @@ create_place( double curr_x, double curr_y, LAYER layer, int tokens, const char 
     cur_place->tag      = strdup( insert_netobj_name( name ).c_str() );
     cur_place->m0       = tokens;
     cur_place->tokens   = tokens;
-    cur_place->color    = NULL;
-    cur_place->lisp     = NULL;
-    cur_place->distr    = NULL;
-    cur_place->mpar     = NULL;
-    cur_place->cmark    = NULL;
+    cur_place->color    = nullptr;
+    cur_place->lisp     = nullptr;
+    cur_place->distr    = nullptr;
+    cur_place->mpar     = nullptr;
+    cur_place->cmark    = nullptr;
     cur_place->layer    = WHOLE_NET_LAYER | layer;
 
     /* Coordinates */
 
     move_place_tag( move_place( cur_place, curr_x, curr_y ), 0.25, 0.0 );
 
-    cur_place->next  = NULL;
+    cur_place->next  = nullptr;
 
     return cur_place;
 }
@@ -119,7 +119,7 @@ create_rpar( double curr_x, double curr_y, LAYER layer, double rate, const char 
     (void) vsnprintf( name, BUFSIZ, format, args );
     va_end( args );
 
-    if ( netobj->rpars == NULL) {
+    if ( netobj->rpars == nullptr) {
 	netobj->rpars = (struct rpar_object *) malloc(sizeof (struct rpar_object ));
 	cur_rpar = netobj->rpars;
     } else {
@@ -132,7 +132,7 @@ create_rpar( double curr_x, double curr_y, LAYER layer, double rate, const char 
     cur_rpar->center.x = IN_TO_PIX(curr_x);
     cur_rpar->center.y = IN_TO_PIX(curr_y);
     cur_rpar->layer    = WHOLE_NET_LAYER | layer;
-    cur_rpar->next     = NULL;
+    cur_rpar->next     = nullptr;
 
     return no_rpar( cur_rpar->tag );
 }
@@ -156,7 +156,7 @@ no_rpar( const char * format, ... )
     (void) vsnprintf( name, BUFSIZ, format, args );
     va_end( args );
 
-    for ( cur_rpar = netobj->rpars, i = 1; cur_rpar != NULL; cur_rpar = cur_rpar->next, ++i) {
+    for ( cur_rpar = netobj->rpars, i = 1; cur_rpar != nullptr; cur_rpar = cur_rpar->next, ++i) {
 	if (strcmp(cur_rpar->tag, name ) == 0) {
 	    return i;
 	}
@@ -183,7 +183,7 @@ no_place( const char * format, ... )
 
     std::map<std::string,std::string>::const_iterator i = netobj_name_table.find( name );
     if ( i != netobj_name_table.end() ) {
-	for ( cur_place = netobj->places; cur_place != NULL; cur_place = cur_place->next ) {
+	for ( cur_place = netobj->places; cur_place != nullptr; cur_place = cur_place->next ) {
 	    if ( i->second == cur_place->tag ) {
 		return cur_place;
 	    }
@@ -237,9 +237,9 @@ create_trans( double x_pos, double y_pos, LAYER layer, double rate, short enable
     (void) vsnprintf( name, BUFSIZ, format, args );
     va_end( args );
 
-    cur_trans->next  = NULL;
+    cur_trans->next  = nullptr;
 
-    if ( netobj->trans == NULL) {
+    if ( netobj->trans == nullptr) {
 	netobj->trans = cur_trans;
 	last_trans    = cur_trans;
 
@@ -261,14 +261,14 @@ create_trans( double x_pos, double y_pos, LAYER layer, double rate, short enable
     cur_trans->kind     	= kind;
     cur_trans->enabl		= enable;		/* 0 == infinite server */
 
-    cur_trans->color		= NULL;
-    cur_trans->lisp		= NULL;
+    cur_trans->color		= nullptr;
+    cur_trans->lisp		= nullptr;
     cur_trans->Lbound    	= 0;
     cur_trans->Ebound    	= 0;
     cur_trans->Rbound    	= 0;
     cur_trans->orient       	= 0;
-    cur_trans->rpar		= NULL;
-    cur_trans->mark_dep 	= NULL;
+    cur_trans->rpar		= nullptr;
+    cur_trans->mark_dep 	= nullptr;
     cur_trans->layer    	= WHOLE_NET_LAYER | layer;
 
     /* Coordinates */
@@ -329,7 +329,7 @@ no_trans( const char * format, ... )
 
     std::map<std::string,std::string>::const_iterator i = netobj_name_table.find( name );
     if ( i != netobj_name_table.end() ) {
-	for ( cur_trans = netobj->trans; cur_trans != NULL; cur_trans = cur_trans->next ) {
+	for ( cur_trans = netobj->trans; cur_trans != nullptr; cur_trans = cur_trans->next ) {
 	    if ( i->second == cur_trans->tag ) {
 		return cur_trans;
 	    }
@@ -351,21 +351,21 @@ no_trans( const char * format, ... )
  */
 
 void 
-create_arc (LAYER layer, int type, struct trans_object *transition, struct place_object *place)
+create_arc (LAYER layer, int type, const struct trans_object *transition, const struct place_object *place)
 {
     create_arc_mult( layer, type, transition, place, 1 );
 }
 
 
 void 
-create_arc_mult(LAYER layer, int type, struct trans_object *transition, struct place_object *place, short mult )
+create_arc_mult(LAYER layer, int type, const struct trans_object *transition, const struct place_object *place, short mult )
 {
     static struct arc_object *cur_arc;
 
     assert( transition != 0 );
     assert( place != 0);
 	
-    if ( netobj->arcs == NULL ) {
+    if ( netobj->arcs == nullptr ) {
 	netobj->arcs = (struct arc_object *) malloc( sizeof( struct arc_object ) );
 	cur_arc = netobj->arcs;
     } else {
@@ -376,11 +376,11 @@ create_arc_mult(LAYER layer, int type, struct trans_object *transition, struct p
     cur_arc->type  = type;
     cur_arc->mult  = mult;
     cur_arc->layer = WHOLE_NET_LAYER | layer;
-    cur_arc->place = place;
-    cur_arc->trans = transition;
-    cur_arc->color = NULL;
-    cur_arc->lisp  = NULL;
-    cur_arc->next  = NULL;
+    cur_arc->place = const_cast<struct place_object *>(place);
+    cur_arc->trans = const_cast<struct trans_object *>(transition);
+    cur_arc->color = nullptr;
+    cur_arc->lisp  = nullptr;
+    cur_arc->next  = nullptr;
 
     cur_arc->point = (struct coordinate *)malloc(COORD_SIZE);
     cur_arc->point->next = (struct coordinate *)malloc(COORD_SIZE);
@@ -404,7 +404,7 @@ create_arc_mult(LAYER layer, int type, struct trans_object *transition, struct p
     default:
 	break;
     }
-    cur_arc->point->next->next = NULL;
+    cur_arc->point->next->next = nullptr;
 }
 
 /*----------------------------------------------------------------------*/
@@ -431,7 +431,7 @@ create_res ( double curr_x, double curr_y, const char *format_name, const char *
     (void) vsnprintf( result_str, BUFSIZ, format_result, args );
     va_end( args );
 
-    if ( netobj->results == NULL) {
+    if ( netobj->results == nullptr) {
 	netobj->results = (struct res_object *) malloc(sizeof (struct res_object));
 	cur_res = netobj->results;
     } else {
@@ -442,10 +442,10 @@ create_res ( double curr_x, double curr_y, const char *format_name, const char *
     cur_res->tag = strdup( insert_netobj_name( name_str ).c_str() );
     cur_res->text = (struct com_object *)malloc( sizeof( struct com_object ) );
     cur_res->text->line = strdup( result_str );
-    cur_res->text->next = NULL;
+    cur_res->text->next = nullptr;
     cur_res->center.x = IN_TO_PIX(curr_x);
     cur_res->center.y = IN_TO_PIX(curr_y);
-    cur_res->next = NULL;
+    cur_res->next = nullptr;
     cur_res->value = -1.0;
 
     return cur_res;
@@ -502,9 +502,9 @@ groupize (void)
 	cur_group->pri	    = i+1;
 	cur_group->center.x = 0;
 	cur_group->center.y = 0;
-	cur_group->trans    = NULL;
-	cur_group->movelink = NULL;
-	cur_group->next     = NULL;
+	cur_group->trans    = nullptr;
+	cur_group->movelink = nullptr;
+	cur_group->next     = nullptr;
     }
     netobj->groups 	 = group[0].group;
 
@@ -528,13 +528,13 @@ groupize (void)
     }
 
 
-    *group[0].trans = NULL;
+    *group[0].trans = nullptr;
     for ( i = 1; i <= max_group; ++i ) {
-	*group[i].trans = NULL;
+	*group[i].trans = nullptr;
 	group[i-1].group->next = group[i].group;
     }
 
-    *last_trans  = NULL;
+    *last_trans  = nullptr;
 }
 
 

@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.h 15539 2022-04-16 22:20:02Z greg $
+ * $Id: model.h 15546 2022-04-17 22:54:22Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -19,6 +19,7 @@
 #define PETRISRVN_MODEL_H
 
 #include <string>
+#include <vector>
 #if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
@@ -39,10 +40,22 @@ class Task;
 class Entry;
 class Phase;
 struct solution_stats_t;
-
-#define	DIMDBGPLC	(DIME+1)*2
+struct place_object;
 
 class Model {
+private:
+    struct inst_arrival {
+	inst_arrival( double _x_pos, double _y_pos, const Phase * _a, const unsigned int _m, const Entry * _b, const unsigned int _n, const place_object * _ab_place ) :
+	    x_pos(_x_pos), y_pos(_y_pos), a(_a), m(_m), b(_b), n(_n), ab_place(_ab_place) {}
+	const double x_pos;
+	const double y_pos;
+	const Phase * a;
+	const unsigned int m;
+	const Entry * b;
+	const unsigned int n;
+	const struct place_object * ab_place;
+    };
+    
 public:
     typedef bool (Model::*solve_using)();
     typedef void (Model::*queue_fnptr)( double x_pos,		/* x coordinate.		*/
@@ -56,7 +69,8 @@ public:
 					const unsigned m,	/* Multiplicity of Src.		*/
 					const double prob_fwd,
 					const unsigned k,	/* an index.			*/
-					const bool async_call );
+					const bool async_call,
+					std::vector<Model::inst_arrival>& ph2_place );
 
 private:
     explicit Model( LQIO::DOM::Document *, const std::string&, const std::string&, LQIO::DOM::Document::OutputFormat );
@@ -106,7 +120,8 @@ private:
 			 const unsigned ne,
 			 const unsigned max_m,	/* Multiplicity of Src.		*/
 			 unsigned k,		/* an index.			*/
-			 queue_fnptr queue_func );
+			 queue_fnptr queue_func,
+			 std::vector<Model::inst_arrival>& ph2_place );
     void fifo_queue( double x_pos,		/* x coordinate.		*/
 		     double y_pos,		/* y coordinate.		*/
 		     double idle_x,
@@ -118,7 +133,8 @@ private:
 		     const unsigned m,		/* Multiplicity of Src.		*/
 		     const double prob_fwd,
 		     const unsigned k,		/* an index.			*/
-		     const bool async_call );
+		     const bool async_call,
+		     std::vector<Model::inst_arrival>& ph2_place );
     void random_queue( double x_pos,		/* x coordinate.		*/
 		       double y_pos,		/* y coordinate.		*/
 		       double idle_x,
@@ -130,7 +146,8 @@ private:
 		       const unsigned m,	/* Multiplicity of Src.		*/
 		       const double prob_fwd,
 		       const unsigned k,	/* an index.			*/
-		       const bool async_call );
+		       const bool async_call,
+		       std::vector<Model::inst_arrival>& ph2_place );
     struct trans_object * queue_prologue( double x_pos,		/* X coordinate.		*/
 					  double y_pos,		/* Y coordinate.		*/
 					  Phase * a,		/* sending entry.		*/
@@ -158,7 +175,9 @@ private:
     void create_phase_instr_net( double idle_x, double y_pos, 
 				 Phase * a, unsigned m,
 				 Entry * b, unsigned n, unsigned k,
-				 struct trans_object * r_trans, struct trans_object * q_trans, struct trans_object * s_trans );
+				 struct trans_object * r_trans, struct trans_object * q_trans, struct trans_object * s_trans,
+				 std::vector<Model::inst_arrival>& );
+    void create_inservice_net( const Phase * c, const Entry * d, unsigned int k, const std::vector<Model::inst_arrival>& ph2_place );
     void build_open_arrivals ();
 
     void print() const;

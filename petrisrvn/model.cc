@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 15539 2022-04-16 22:20:02Z greg $
+ * $Id: model.cc 15546 2022-04-17 22:54:22Z greg $
  *
  * Load the SRVN model.
  */
@@ -752,6 +752,7 @@ Model::make_queues()
 	unsigned k 	= 0;			/* Queue Kounter	*/
 	queue_fnptr queue_func;			/* Local version.	*/
 	bool sync_server = (*t)->is_sync_server() || (*t)->has_random_queueing() || (*t)->type() == Task::Type::SEMAPHORE || (*t)->is_infinite();
+	std::vector<Model::inst_arrival> ph2_place;
 
 	/* Override if dest is a join function. */
 		
@@ -767,12 +768,12 @@ Model::make_queues()
 
 	for ( std::vector<Entry *>::const_iterator e = (*t)->entries.begin(); e != (*t)->entries.end(); ++e ) {
 	    for ( std::vector<Task *>::const_iterator i = ::task.begin(); i != ::task.end(); ++i ) {
-		unsigned max_m = (*i)->n_customers();
+		const unsigned max_m = (*i)->n_customers();
 
 		for ( std::vector<Entry *>::const_iterator d = (*i)->entries.begin(); d != (*i)->entries.end(); ++d ) {
 		    if ( (*d)->is_regular_entry() ) {
 			for ( unsigned p = 1; p <= (*d)->n_phases(); p++ ) {
-			    k = make_queue( x_pos, y_pos, idle_x, &(*d)->phase[p], *e, ne, max_m, k, queue_func );
+			    k = make_queue( x_pos, y_pos, idle_x, &(*d)->phase[p], *e, ne, max_m, k, queue_func, ph2_place );
 			}
 		    }
 
@@ -782,13 +783,13 @@ Model::make_queues()
 			    (this->*queue_func)(X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
 						&(*d)->phase[1], 0, *e, (*f)->_root,
 						(*f)->_slice_no, (*f)->_m, (*d)->prob_fwd(*e),
-						k, false );
+						k, false, ph2_place );
 			}
 		    }
 		}
 
 		for ( std::vector<Activity *>::const_iterator a = (*i)->activities.begin(); a != (*i)->activities.end(); ++a ) {
-		    k = make_queue( x_pos, y_pos, idle_x, (*a), *e, ne, max_m, k, queue_func );
+		    k = make_queue( x_pos, y_pos, idle_x, (*a), *e, ne, max_m, k, queue_func, ph2_place );
 		}
 		if ( sync_server ) {
 		    k += 1;
@@ -818,6 +819,20 @@ Model::make_queues()
 		}
 #endif
 	    }
+	    k = 0;	/* Used to offset the transition by queue */
+	    for ( std::vector<Entry *>::const_iterator e = (*t)->entries.begin(); e != (*t)->entries.end(); ++e ) {
+		for ( std::vector<Task *>::const_iterator i = ::task.begin(); i != ::task.end(); ++i ) {
+		    for ( std::vector<Entry *>::const_iterator d = (*i)->entries.begin(); d != (*i)->entries.end(); ++d ) {
+			if ( (*d)->is_regular_entry() ) {
+			    for ( unsigned p = 1; p <= (*d)->n_phases(); p++ ) {
+				if ( (*d)->phase[p].y(*e) == 0. ) continue;	/* No call, so skip */
+				create_inservice_net( &(*d)->phase[p], *e, k, ph2_place );
+				k += 1;
+			    }
+			}
+		    }
+		}
+	    }
 	} /* inservice_flag */
     } /* j */
 }
@@ -836,7 +851,8 @@ Model::make_queue( double x_pos,		/* x coordinate.		*/
 		   const unsigned ne,
 		   const unsigned max_m,	/* Multiplicity of Src.		*/
 		   unsigned k,			/* an index.			*/
-		   queue_fnptr queue_func )
+		   queue_fnptr queue_func,
+		   std::vector<Model::inst_arrival>& ph2_place )
 {
     const double calls = a->y(b) + a->z(b);
     if ( calls == 0.0) return k;	/* No operation. */
@@ -847,14 +863,14 @@ Model::make_queue( double x_pos,		/* x coordinate.		*/
 	if ( a->has_stochastic_calls() ) {
 	    k += 1;
 	    (this->*queue_func)( X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
-				 a, 0, b, a, 0, m, 0.0, k, async_call );
+				 a, 0, b, a, 0, m, 0.0, k, async_call, ph2_place );
 	} else {
 	    unsigned s;
 	    unsigned off = a->compute_offset( b );			/* Compute offset */
 	    for ( s = 0; s < calls; ++s ) {
 		k += 1;
 		(this->*queue_func)( X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
-				     a, s+off, b, a, s+off+1, m, 0.0, k, async_call );
+				     a, s+off, b, a, s+off+1, m, 0.0, k, async_call, ph2_place );
 	    }
 	}
 
@@ -883,7 +899,8 @@ Model::fifo_queue( double x_pos,		/* x coordinate.		*/
 		   const unsigned m,		/* Multiplicity of Src.		*/
 		   const double prob_fwd,
 		   const unsigned k,		/* an index.			*/
-		   const bool async_call )
+		   const bool async_call,
+		   std::vector<Model::inst_arrival>& ph2_place )
 {
     struct trans_object * c_trans;
     struct place_object * r_place = 0;
@@ -981,7 +998,7 @@ Model::fifo_queue( double x_pos,		/* x coordinate.		*/
 	 */
 
 	if ( j->inservice_flag() ) {
-	    create_phase_instr_net( idle_x, y_pos, a, m, b, b_m, k, r_trans, q_trans, s_trans );
+	    create_phase_instr_net( idle_x, y_pos, a, m, b, b_m, k, r_trans, q_trans, s_trans, ph2_place );
 	}
     } /* b_m */
 }
@@ -1000,7 +1017,8 @@ Model::random_queue( double x_pos,		/* x coordinate.		*/
 		     const unsigned m,		/* Multiplicity of Src.		*/
 		     const double prob_fwd,
 		     const unsigned k,		/* an index.			*/
-		     const bool async_call )
+		     const bool async_call,
+		     std::vector<Model::inst_arrival>& ph2_place )
 {
     struct place_object * r_place;
     struct trans_object * c_trans;
@@ -1069,12 +1087,13 @@ Model::random_queue( double x_pos,		/* x coordinate.		*/
 	queue_epilogue( x_pos + n_delta, temp_y + 2.5 + n_delta, a, s_a, b, b_m, e, s_e, m, async_call, q_trans, s_trans );
 
 	/*
-	 * Bonus stuff in case we want in-service probabilites.
-	 * These states mark the active entry and phase.
+	 * Bonus stuff in case we want in-service probabilites.  These
+	 * states mark the active entry and phase.  Only do the first
+	 * instance because all the rest are the same.
 	 */
 
-	if ( j->inservice_flag() ) {
-	    create_phase_instr_net( idle_x, y_pos, a, m, b, b_m, k, r_trans, q_trans, s_trans );
+	if ( j->inservice_flag() && m == 0 && b_m == 0 ) {
+	    create_phase_instr_net( idle_x, y_pos, a, m, b, b_m, k, r_trans, q_trans, s_trans, ph2_place );
 	}
     }
 }
@@ -1288,8 +1307,10 @@ void
 Model::create_phase_instr_net( double idle_x, double y_pos,
 			       Phase * a, unsigned m,
 			       Entry * b, unsigned n, unsigned k,
-			       struct trans_object * r_trans, struct trans_object * q_trans, struct trans_object * s_trans )
+			       struct trans_object * r_trans, struct trans_object * q_trans, struct trans_object * s_trans,
+			       std::vector<Model::inst_arrival>& ph2_place )
 {
+    if ( n != 0 || m != 0 ) return;	/* Ignore copies */
     unsigned q;			/* Another phase index.		*/
     struct place_object * c_place;
     struct trans_object * c_trans = q_trans;
@@ -1297,20 +1318,17 @@ Model::create_phase_instr_net( double idle_x, double y_pos,
     double temp_x;
     double temp_y;
     const Task * j     = b->task();
-    struct place_object * ph2_place = nullptr;
-
-    if ( k > DIMDBGPLC ) (void) abort();
 
     for ( q = 1; q <= b->n_phases(); ++q ) {
 	temp_x = INS_OFFSET(k,(double)(q-1)/2.0) + n_delta;
-	temp_y = y_pos + n_delta + (double)(q-1) - 2;
+	temp_y = y_pos + n_delta - 2;
 		
 	c_place = create_place( temp_x, temp_y, MEASUREMENT_LAYER, 0,
 						 "PH%d%s%d%s%d", q,
 						 a->name(), m,
 						 b->name(), n );
 	if ( q == 2 ) {
-	    ph2_place = c_place;
+	    ph2_place.emplace_back( inst_arrival( temp_x, temp_y, a, m, b, n, c_place ) );
 	}
 	create_arc( MEASUREMENT_LAYER, TO_PLACE, c_trans, c_place );
 	if ( s_trans ) {
@@ -1340,31 +1358,50 @@ Model::create_phase_instr_net( double idle_x, double y_pos,
     /* Arrival at queue k, phase 1 */
 
     temp_x = INS_OFFSET(k,0.0) + n_delta;
-    temp_y = y_pos + Task::__queue_y_offset + 1.0;
+    temp_y = y_pos + Task::__queue_y_offset + 1.0 + n_delta;
 	
-    c_place = create_place( temp_x, temp_y + n_delta, MEASUREMENT_LAYER, 0,
+    c_place = create_place( temp_x, temp_y, MEASUREMENT_LAYER, 0,
 			    "Arr%s%d%s%d", a->name(), m, b->name(), n );
 	
-    c_trans = create_trans( temp_x, temp_y + 0.5 + n_delta, MEASUREMENT_LAYER,
+    c_trans = create_trans( temp_x, temp_y + 0.5, MEASUREMENT_LAYER,
 			    1.0, 1, IMMEDIATE+1,
 			    "ArI%s%d%s%d", a->name(), m, b->name(), n );
 	
-    create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, c_place );
     create_arc( MEASUREMENT_LAYER, TO_PLACE, r_trans, c_place );
+    create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, c_place );
     create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, j->TX[n] );
     create_arc( MEASUREMENT_LAYER, TO_PLACE, c_trans, j->TX[n] );
+}
 
-    /* For each phase 2, do... */
-    /* In phase 2 */
-    
-    if ( ph2_place != nullptr ) {
-	c_trans = create_trans( temp_x + (double)q/2.0, temp_y, MEASUREMENT_LAYER,
-				1.0, 1, IMMEDIATE+1,
-				"ArX%s%d%s%d", a->name(), m, b->phase[2].name(), n );
-	create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, c_place );
-	create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, ph2_place );
-	create_arc( MEASUREMENT_LAYER, TO_PLACE, c_trans, ph2_place );
-	fprintf( stderr, "Create ArX%s%d%s%d\n", a->name(), m, b->phase[2].name(), n );		// debug
+
+/* For each phase 2, do... */
+
+void
+Model::create_inservice_net( const Phase * a, const Entry * b, unsigned int k, const std::vector<Model::inst_arrival>& ph2_place )
+{
+    const unsigned int m = 0;	/* Only do the first instance */
+    const unsigned int n = 0;	/* Only do the first instance */
+
+    const struct place_object * ab_place = no_place( "Arr%s%d%s%d", a->name(), m, b->name(), n );
+
+    for ( const auto& cd : ph2_place ) {
+	const Phase * c = cd.a;
+	const Entry * d = cd.b;
+	const struct place_object * cd_place = cd.ab_place;
+
+	struct trans_object * c_trans = create_trans( cd.x_pos, cd.y_pos + ((k+1) * 0.5), MEASUREMENT_LAYER,
+						      1.0, 1, IMMEDIATE+1,
+						      "ArX%s%d%s%d%s%d%s%d",
+						      a->name(), m, b->name(), n,
+						      c->name(), m, d->phase[2].name(), n );
+	create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, ab_place );
+	create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, cd_place );
+	create_arc( MEASUREMENT_LAYER, TO_PLACE, c_trans, cd_place );
+#if 0
+	fprintf( stderr, "Create ArX%s%d%s%d%s%d%s%d\n",
+		 a->name(), m, b->name(), n,
+		 c->name(), m, d->phase[2].name(), n );		// debug BUG 369
+#endif
     }
 }
 
@@ -1700,7 +1737,7 @@ Model::print_inservice_cd( std::ostream& output, const Entry * a, const Entry * 
 			if ( c->phase[pc].y(d) == 0.0 ) continue;
 			for ( unsigned int pa = 1; pa <= a->n_phases(); ++pa ) {
 			    if ( a->phase[pa].y(b) == 0.0 ) continue;
-#if 0
+#if 1
 			    tput[pa] += get_tput( IMMEDIATE, "ArX%s%d%s%d%s%d%s%d",
 						  a->phase[pa].name(), 0,
 						  b->name(), 0,
