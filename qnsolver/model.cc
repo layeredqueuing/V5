@@ -406,11 +406,11 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
 	case Multiserver::ROLIA:
 	case Multiserver::ROLIA_PS:
 	    if ( station.scheduling() == SCHEDULE_FIFO ) {
-		if ( dynamic_cast<Rolia_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
+		if ( dynamic_cast<Rolia_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->mu() ) {
 		    Q(m) = replace_server( input.first, Q(m), new Rolia_Multi_Server(copies,E,K) );
 		}
 	    } else if ( station.scheduling() == SCHEDULE_PS ) {
-		if ( dynamic_cast<Rolia_PS_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
+		if ( dynamic_cast<Rolia_PS_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->mu() ) {
 		    Q(m) = replace_server( input.first, Q(m), new Rolia_Multi_Server(copies,E,K) );
 		}
 	    } else {
@@ -419,7 +419,7 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
 	    break;
 
 	case Multiserver::ZHOU:
-	    if ( dynamic_cast<Zhou_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->copies() ) {
+	    if ( dynamic_cast<Zhou_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->mu() ) {
 		Q(m) = replace_server( input.first, Q(m), new Zhou_Multi_Server(copies,E,K) );
 	    }
 	    break;

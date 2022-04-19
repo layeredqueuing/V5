@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_extvar.h 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: dom_extvar.h 15557 2022-04-19 01:48:03Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -53,7 +53,6 @@ namespace LQIO {
 	    static bool isPresent( const ExternalVariable *, double lower_limit );	/* Variable is present (may not be instantiated, but must be > lower_limit ) */
 	    static bool isDefault( const ExternalVariable *, double default_value=0. );	/* Variable is present (may not be instantiated) */
 	    
-	protected:
 	    virtual std::ostream& print( std::ostream& ) const = 0;
 	    virtual std::ostream& printVariableName( std::ostream& ) const = 0;
 
@@ -88,7 +87,6 @@ namespace LQIO {
 	    virtual const std::string& getName() const;
 	    virtual bool wasSet() const;
       
-	protected:
 	    virtual std::ostream& print( std::ostream& ) const;
 	    virtual std::ostream& printVariableName( std::ostream& ) const;
 
@@ -134,7 +132,6 @@ namespace LQIO {
 	    virtual bool wasSet() const;
 	    virtual const std::string& getName() const { return _name; }
       
-	protected:
 	    virtual std::ostream& print( std::ostream& ) const;
 	    virtual std::ostream& printVariableName( std::ostream& ) const;
 

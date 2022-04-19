@@ -20,6 +20,7 @@
 #include <lqio/error.h>
 #include <lqio/glblerr.h>
 #include <lqio/dom_actlist.h>
+#include <lqio/dom_extvar.h>
 #include "actlist.h"
 #include "task.h"
 #include "entry.h"
@@ -50,7 +51,7 @@ ActivityList::ActivityList( Type type, LQIO::DOM::ActivityList * dom )
 	u.fork.prev    = 0;
 	u.fork.join    = 0;
 	for ( unsigned int i = 0; i < MAX_BRANCH; ++i ) {
-	    u.fork.prob[i] = 1.0;
+	    u.fork.prob[i] = nullptr;
 	    u.fork.reachable[i] = false;
 	}
 	break;
@@ -569,10 +570,18 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
     case Type::OR_FORK:
 	for ( i = 0; i < this->n_acts(); ++i ) {
 	    unsigned branch_phase = curr_phase;
-	    sum += this->list[i]->count_replies( activity_stack, e, rate * this->u.fork.prob[i], curr_phase, branch_phase );
+	    const double prob = LQIO::DOM::to_double(*this->u.fork.prob[i]);
+	    if ( prob < 0. || 1.0 < prob ) {
+		LQIO::solution_error( LQIO::ERR_INVALID_PROBABILITY, prob );
+		break;
+	    } 
+	    sum += this->list[i]->count_replies( activity_stack, e, rate * prob, curr_phase, branch_phase );
 	    if ( branch_phase > next_phase ) {
 		next_phase = branch_phase;
 	    }
+	}
+	if ( sum < 1.0 - EPSILON || 1.0 + EPSILON < sum ) {
+	    LQIO::solution_error( LQIO::ERR_MISSING_OR_BRANCH, fork_join_name(), e->task()->name(), sum );
 	}
 	break;
 

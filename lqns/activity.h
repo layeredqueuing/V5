@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 14835 2021-06-16 00:25:22Z greg $
+ * $Id: activity.h 15555 2022-04-18 21:06:51Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -147,7 +147,7 @@ public:
     class Children {
     public:
 	Children( Call::stack& callStack, bool directPath, bool followCalls );
-	Children( const Children& src, double rate );
+	Children( const Children& src, double rate=1.0 );
 	Children( const Children& src, std::deque<const AndOrForkActivityList *>& forkStack, double rate );
 
 	Call::stack& getCallStack() { return _callStack; }

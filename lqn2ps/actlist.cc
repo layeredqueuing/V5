@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 15262 2021-12-26 18:55:49Z greg $
+ * $Id: actlist.cc 15555 2022-04-18 21:06:51Z greg $
  */
 
 
@@ -828,7 +828,6 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 {
     double sum = 0.0;
     next_p = curr_p;
-    bool ignore = false;
     for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	unsigned branch_p = curr_p;
 	double prob = 0.0;
@@ -836,13 +835,10 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 	if ( pr_branch.wasSet() ) {
 	    pr_branch.getValue( prob );
 	} else {
-	    ignore = true;
+	    prob = 1.0 / activityList().size();
 	}
 	sum += (*activity)->aggregate( anEntry, curr_p, branch_p, rate * prob, activityStack, aFunc );
 	next_p = std::max( next_p, branch_p );
-    }
-    if ( ignore ) {
-	sum = 1.0;
     }
 
     /* 

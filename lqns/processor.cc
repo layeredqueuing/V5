@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 15322 2022-01-02 15:35:27Z greg $
+ * $Id: processor.cc 15553 2022-04-18 17:11:00Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -337,12 +337,12 @@ Processor::makeServer( const unsigned nChains )
 
 	    case Pragma::Multiserver::ROLIA_PS:
 	    case Pragma::Multiserver::ROLIA:
-		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) ) return nullptr;
+		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) && _station->mu() == copies() ) return nullptr;
 		_station = new Rolia_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
 	    case Pragma::Multiserver::ZHOU:
-		if ( dynamic_cast<Zhou_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;
+		if ( dynamic_cast<Zhou_Multi_Server *>(_station) && _station->mu() == copies()) return nullptr;
 		_station = new Zhou_Multi_Server( copies(), nEntries(), nChains );
 		break;
 	    }
@@ -356,7 +356,7 @@ Processor::makeServer( const unsigned nChains )
 		    if ( dynamic_cast<Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		    _station = new Conway_Multi_Server( copies(), nEntries(), nChains );
 		} else {
-		    if ( dynamic_cast<Rolia_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;
+		    if ( dynamic_cast<Rolia_Multi_Server *>(_station) && _station->mu() == copies()) return nullptr;
 		    _station = new Rolia_Multi_Server(  copies(), nEntries(), nChains );
 		}
 		break;
@@ -377,12 +377,12 @@ Processor::makeServer( const unsigned nChains )
 		break;
 
 	    case Pragma::Multiserver::ROLIA:	/* Marginal size == 0 */
-		if ( dynamic_cast<Rolia_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;
+		if ( dynamic_cast<Rolia_Multi_Server *>(_station) && _station->mu() == copies()) return nullptr;
 		_station = new Rolia_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
 	    case Pragma::Multiserver::ROLIA_PS:
-		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;
+		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) && _station->mu() == copies()) return nullptr;
 		_station = new Rolia_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
@@ -400,7 +400,7 @@ Processor::makeServer( const unsigned nChains )
 		throw LQIO::not_implemented( "Task::makeServer" );
 
 	    case Pragma::Multiserver::ZHOU:
-		if ( dynamic_cast<Zhou_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;
+		if ( dynamic_cast<Zhou_Multi_Server *>(_station) && _station->mu() == copies()) return nullptr;
 		_station = new Zhou_Multi_Server( copies(), nEntries(), nChains );
 		break;
 		

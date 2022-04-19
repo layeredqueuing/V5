@@ -25,6 +25,7 @@
 namespace LQIO {
     namespace DOM {
 	class ActivityList;
+	class ExternalVariable;
     }
 }
 
@@ -103,7 +104,7 @@ private:
 	struct {
 	    ActivityList * prev;		/* Link to join list.		*/
 	    ActivityList * join;		/* My join if I am a fork.	*/
-	    double prob[MAX_BRANCH];		/* Array of probabilities.	*/
+	    const LQIO::DOM::ExternalVariable * prob[MAX_BRANCH];		/* Array of probabilities.	*/
 	    bool reachable[MAX_BRANCH];		/* true if backtrack finds me	*/
 	} fork;
 	struct {

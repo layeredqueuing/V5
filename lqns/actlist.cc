@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 15331 2022-01-02 21:51:30Z greg $
+ * $Id: actlist.cc 15557 2022-04-19 01:48:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -652,7 +652,7 @@ AndOrForkActivityList::find_children::operator()( unsigned arg1, const Activity 
 	std::cerr << std::setw( activityStack.size() ) << " " << activityStack.back()->name()
 		  << " -> " << arg2->name() << std::endl;
     }
-    Activity::Children path( _path, _self.prBranch( arg2 ) );
+    Activity::Children path( _path );
     return std::max( arg1, arg2->findChildren(path) );
 }
 
@@ -704,7 +704,7 @@ OrForkActivityList::check() const
     AndOrForkActivityList::check();
 
     const double sum = std::accumulate( activityList().begin(), activityList().end(), 0.0, add_prBranch( this ) );
-    if ( fabs( 1.0 - sum ) > EPSILON ) {
+    if ( sum < 1.0 - EPSILON || 1.0 + EPSILON < sum ) {
         LQIO::solution_error( LQIO::ERR_MISSING_OR_BRANCH, getName().c_str(), owner()->name().c_str(), sum );
 	return false;
     }
@@ -712,7 +712,7 @@ OrForkActivityList::check() const
 }
 
 
-double
+Probability
 OrForkActivityList::prBranch( const Activity * activity ) const
 {
     return getDOM()->getParameterValue(activity->getDOM());

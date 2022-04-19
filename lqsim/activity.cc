@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 15456 2022-03-09 15:06:35Z greg $
+ * $Id: activity.cc 15558 2022-04-19 01:56:14Z greg $
  */
 
 #include "lqsim.h"
@@ -285,7 +285,7 @@ double Activity::count_replies( ActivityList::Collect& data ) const
     if ( find_reply( ep ) ) {
 	if ( data.phase >= 2 ) {
 	    LQIO::solution_error( LQIO::ERR_DUPLICATE_REPLY, cp->name(), name(), ep->name() );
-	} else if ( !data.can_reply || data.rate == 0 || data.rate > 1.0 ) {
+	} else if ( !data.can_reply || data.rate > 1.0 ) {
 	    LQIO::solution_error( LQIO::ERR_INVALID_REPLY, cp->name(), name(), ep->name() );
 	} else if ( ep->is_send_no_reply() ) {
 	    LQIO::solution_error( LQIO::ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY, cp->name(), name(), ep->name() );

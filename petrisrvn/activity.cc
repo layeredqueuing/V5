@@ -177,8 +177,6 @@ Activity::count_replies( std::deque<Activity *>& activity_stack, const Entry * e
 	if ( replies_to( e ) ) {
 	    if ( curr_phase >= 2 ) {
 		solution_error( LQIO::ERR_DUPLICATE_REPLY, task()->name(), this->name(), e->name() );
-	    } else if ( rate <= 0 ) {
-		solution_error( LQIO::ERR_INVALID_REPLY, task()->name(), this->name(), e->name() );
 	    } else if ( e->requests() == SEND_NO_REPLY_REQUEST ) {
 		solution_error( LQIO::ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY, task()->name(), this->name(), e->name() );
 	    } else {
@@ -554,8 +552,8 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	sum = 0.0;
 	for ( i = 0; i < fork_list->n_acts(); ++i ) {
 	    next_act = fork_list->list[i];
-	    sum += fork_list->u.fork.prob[i];
-	    fork_list->FjT[i][m] = move_trans_tag( create_trans( X_OFFSET(p_pos+1,0.0), y_pos+i-0.5, layer_mask, fork_list->u.fork.prob[i], 1, IMMEDIATE, "oj%s%d", next_act->name(), m ),
+	    sum += LQIO::DOM::to_double(*fork_list->u.fork.prob[i]);
+	    fork_list->FjT[i][m] = move_trans_tag( create_trans( X_OFFSET(p_pos+1,0.0), y_pos+i-0.5, layer_mask, LQIO::DOM::to_double(*fork_list->u.fork.prob[i]), 1, IMMEDIATE, "oj%s%d", next_act->name(), m ),
 						   Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	    join_trans = fork_list->FjT[i][m];
 	    create_arc( layer_mask, TO_TRANS, join_trans, fork_list->FjP[m] );
@@ -677,7 +675,11 @@ Activity::follow_activity_for_tokens( const Entry * e, unsigned p, const unsigne
 
 double Activity::residence_time() const
 {
-    return task_tokens[0] / _throughput[0];
+    if ( _throughput[0] ) { 
+	return task_tokens[0] / _throughput[0];
+    } else {
+	return 0.;
+    }
 }
 
 /* ------------------------------------------------------------------------ */
@@ -810,7 +812,7 @@ Activity::act_or_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList 
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
     } else {
 	list = realloc_list( ActivityList::Type::OR_FORK, input_list, dom_activitylist );
-	list->u.fork.prob[list->_n_acts] = dom_activitylist->getParameterValue(dynamic_cast<LQIO::DOM::Activity *>(get_dom()));
+	list->u.fork.prob[list->_n_acts] = dom_activitylist->getParameter(dynamic_cast<LQIO::DOM::Activity *>(get_dom()));
 	list->list[list->_n_acts++] = this;
 	_input = list;
     }
