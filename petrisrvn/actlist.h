@@ -120,7 +120,7 @@ private:
 	} join;
 	struct {
 	    ActivityList * prev;		/* Link to join list.		*/
-	    double count[MAX_BRANCH];
+	    const LQIO::DOM::ExternalVariable * count[MAX_BRANCH];
 	    Activity * endlist;			/* For repeat nodes. 		*/
 	    struct place_object * LoopP[MAX_MULT];	/* Loop Place		*/
 	    struct trans_object * LoopT[MAX_MULT];	/* Loop Trans.		*/

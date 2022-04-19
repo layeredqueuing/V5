@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 15170 2021-12-07 23:33:05Z greg $
+ * $Id: layer.h 15569 2022-04-19 20:22:57Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -49,6 +49,7 @@ public:
     virtual ~Layer();
 
     Layer& append( Entity * );
+    Layer& remove( Entity * );
     Layer& erase( std::vector<Entity *>::iterator );
     int operator!() const { return _entities.size() == 0; }	/* Layer is empty! */
     const std::vector<Entity *>& entities() const { return _entities; }

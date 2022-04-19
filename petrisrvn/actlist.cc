@@ -59,7 +59,7 @@ ActivityList::ActivityList( Type type, LQIO::DOM::ActivityList * dom )
     case Type::LOOP:
 	u.loop.prev    = 0;
 	for ( unsigned int i = 0; i < MAX_BRANCH; ++i ) {
-	    u.loop.count[i] = 0.0;
+	    u.loop.count[i] = nullptr;
 	}
 	u.loop.endlist = 0;
 	for ( unsigned int m = 0; m < MAX_MULT; ++m ) {

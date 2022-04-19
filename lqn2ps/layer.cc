@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 15530 2022-04-12 14:48:08Z greg $
+ * $Id: layer.cc 15569 2022-04-19 20:22:57Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -111,6 +111,17 @@ Layer::append( Entity * entity )
 Layer&
 Layer::erase( std::vector<Entity *>::iterator pos )
 {
+    if ( pos != _entities.end() ) {
+	_entities.erase( pos );
+    }
+    return *this;
+}
+
+
+Layer&
+Layer::remove( Entity * entity )
+{
+    std::vector<Entity *>::iterator pos = std::find( _entities.begin(), _entities.end(), entity );
     if ( pos != _entities.end() ) {
 	_entities.erase( pos );
     }

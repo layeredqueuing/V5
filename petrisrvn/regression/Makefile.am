@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 13796 2020-08-26 18:00:44Z greg $
+# $Id: Makefile.am 15564 2022-04-19 15:06:14Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -27,6 +27,7 @@ MULTI=	20-multiserver.lqxo \
 	21-multiserver.lqxo \
 	22-multiserver.lqxo \
 	23-multiserver.lqxo 
+OVER=	31-overtaking.lqxo
 ACT=	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \
@@ -53,7 +54,7 @@ OTHER=	90-A01.lqxo \
 	92-open.lqxo \
 	93-simple-ucm.lqxo
 
-OBJS=	$(SANITY) $(INTER) $(MULTI) $(ACT) $(REPL) $(SEMA) $(SIM) $(SYNC) $(FORK) $(OTHER)
+OBJS=	$(SANITY) $(INTER) $(MULTI) $(OVER) $(ACT) $(REPL) $(SEMA) $(SIM) $(SYNC) $(FORK) $(OTHER)
 
 SRCS=	$(OBJS:.lqxo=.lqnx)
 

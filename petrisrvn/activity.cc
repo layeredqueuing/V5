@@ -576,7 +576,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
     case ActivityList::Type::LOOP:
 	sum = 1;
 	for ( i = 0; i < fork_list->n_acts(); ++i ) {
-	    sum += fork_list->u.loop.count[i];
+	    sum += LQIO::DOM::to_double( *fork_list->u.loop.count[i] );
 	}
 
 	fork_list->u.loop.LoopP[m] = move_place_tag( create_place( X_OFFSET(p_pos,0.25), y_pos, layer_mask, 0, "LOOP%s%d", this->name(), m ),
@@ -610,7 +610,8 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	/* Sub-branch of loop */
 
 	for ( i = 0; i < fork_list->n_acts(); ++i ) {
-	    fork_list->FjT[i][m] = move_trans_tag( create_trans( X_OFFSET(p_pos+1,0.0), y_pos+0.5, layer_mask, fork_list->u.loop.count[i]/sum, 1, IMMEDIATE, "loop%s%d", fork_list->list[i]->name(), m ),
+	    const double rate = LQIO::DOM::to_double(*fork_list->u.loop.count[i])/sum;
+	    fork_list->FjT[i][m] = move_trans_tag( create_trans( X_OFFSET(p_pos+1,0.0), y_pos+0.5, layer_mask, rate, 1, IMMEDIATE, "loop%s%d", fork_list->list[i]->name(), m ),
 						   Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	    join_trans = fork_list->FjT[i][m];
 	    create_arc( layer_mask, TO_TRANS, join_trans, fork_list->u.loop.LoopP[m] );
@@ -837,8 +838,8 @@ Activity::act_loop_list ( ActivityList * input_list, LQIO::DOM::ActivityList * d
     } else {
 	list = realloc_list( ActivityList::Type::LOOP, input_list, dom_activitylist );
 	const LQIO::DOM::ExternalVariable * count = dom_activitylist->getParameter(dynamic_cast<LQIO::DOM::Activity *>(get_dom()));
-	if ( count != NULL ) {
-	    list->u.loop.count[list->_n_acts] = LQIO::DOM::to_double( *count );
+	if ( count != nullptr ) {
+	    list->u.loop.count[list->_n_acts] = count;
 	    list->list[list->_n_acts++] = this;
 	} else {
 	    list->u.loop.endlist = this;

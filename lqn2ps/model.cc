@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15525 2022-04-12 00:48:24Z greg $
+ * $Id: model.cc 15569 2022-04-19 20:22:57Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -746,7 +746,7 @@ Model::process()
  	    _layers.at(layer).generateSubmodel();
 	    if ( Flags::surrogates ) {
 		_layers[layer].transmorgrify( _document, surrogate_processor, surrogate_task );
-		relayerize(layer-1);
+		relayerize(layer);
 		_layers.at(layer).sort( (compare_func_ptr)(&Entity::compare) ).format( 0 ).justify( Entry::__entries.size() * Flags::entry_width );
 	    }
 	}
@@ -757,7 +757,7 @@ Model::process()
 	for ( unsigned i = _layers.size(); i > 0; --i ) {
 	    _layers[i-1].generateSubmodel();
 	    _layers[i-1].transmorgrify( _document, surrogate_processor, surrogate_task );
-	    relayerize( i-1 );
+	    relayerize( i );
 	    _layers[i].sort( Element::compare ).format( 0 ).justify( Entry::__entries.size() * Flags::entry_width );
 	}
     }
@@ -1147,13 +1147,14 @@ Model::selectSubmodel( const unsigned submodel )
 
 
 Model&
-Model::relayerize( const unsigned level )
+Model::relayerize( const unsigned new_level )
 {
-    std::vector<Entity *>& entities = const_cast<std::vector<Entity *>& >(_layers.at(level).entities());
+    std::vector<Entity *>& entities = const_cast<std::vector<Entity *>& >(_layers.at(new_level).entities());
     for ( std::vector<Entity *>::iterator entity = entities.begin(); entity != entities.end(); ++entity ) {
-	if ( (*entity)->level() > level ) {
-	    _layers[level].erase(entity);
-	    _layers[level+1].append(*entity);
+	const size_t old_level = (*entity)->level();
+	if ( old_level > new_level ) {
+	    _layers[old_level].remove(*entity);
+	    _layers[new_level].append(*entity);
 	}
     }
     return *this;
@@ -2297,7 +2298,7 @@ Model::printSXDMeta( std::ostream& output ) const
     output << "<!DOCTYPE office:document-meta PUBLIC \"-//OpenOffice.org//DTD OfficeDocument 1.0//EN\" \"office.dtd\">" << std::endl;
     output << "<office:document-meta xmlns:office=\"http://openoffice.org/2000/office\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:meta=\"http://openoffice.org/2000/meta\" xmlns:presentation=\"http://openoffice.org/2000/presentation\" xmlns:fo=\"http://www.w3.org/1999/XSL/Format\" office:version=\"1.0\">" << std::endl;
     output << "<office:meta>" << std::endl;
-#if defined(HAVE_CTIME)
+#if HAVE_CTIME
     time_t tloc;
     time( &tloc );
     strftime( buf, 32, "%Y-%m-%d %H:%M:%S", localtime( &tloc ) );
@@ -2311,9 +2312,9 @@ Model::printSXDMeta( std::ostream& output ) const
     output << "<meta:generator>" << LQIO::io_vars.lq_toolname << " Version " << VERSION << "</meta:generator>" << std::endl;
     output << "<meta:creation-date>" << buf << "</meta:creation-date>" << std::endl;
     output << "<meta:editing-cycles>1</meta:editing-cycles>" << std::endl;
-#if defined(HAVE_SYS_TIMES_H)
+#if HAVE_SYS_TIMES_H
     struct tms run_time;
-    double stop_clock = times( &run_time );
+    times( &run_time );
     strftime( buf, 32, "PT%MM%SS", localtime( &tloc ) );
     output << "<meta:editing-duration>" << buf << "</meta:editing-duration>" << std::endl;
 #endif
