@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<!-- petrisrvn -xml -output=48-activities.lqxo -->
+<lqn-model name="48-activities" description="petrisrvn 6.0 solution for model from: 48-activities.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Activities with AND fork/join." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="0" iterations="0" platform-info="merlin-pc.sce.carleton.ca Linux 5.0.16-100.fc28.x86_64" user-cpu-time=" 0:00:00.032" system-cpu-time=" 0:00:00.041" elapsed-time=" 0:00:00.864"/>
+   </solver-params>
+   <processor name="client" scheduling="fcfs">
+      <result-processor utilization="1"/>
+      <task name="client" scheduling="ref">
+         <result-task throughput="0.666667" utilization="1" phase1-utilization="1" proc-utilization="1"/>
+         <entry name="client" type="NONE">
+            <result-entry utilization="1" throughput="0.666667" squared-coeff-variation="0" proc-utilization="1" phase1-service-time="1.5" phase1-utilization="1"/>
+         </entry>
+         <task-activities>
+            <activity name="client" bound-to-entry="client" host-demand-mean="0.25">
+               <result-activity proc-waiting="0" service-time="0.25" utilization="0.166667" throughput="0.666667" proc-utilization="0.166667"/>
+            </activity>
+            <activity name="fork1" host-demand-mean="0.4">
+               <result-activity proc-waiting="0.3" service-time="0.7" utilization="0.466667" throughput="0.666667" proc-utilization="0.266667"/>
+            </activity>
+            <activity name="fork2" host-demand-mean="0.6">
+               <result-activity proc-waiting="0.2" service-time="0.8" utilization="0.533333" throughput="0.666667" proc-utilization="0.4"/>
+            </activity>
+            <activity name="join" host-demand-mean="0.25">
+               <result-activity proc-waiting="0" service-time="0.25" utilization="0.166667" throughput="0.666667" proc-utilization="0.166667"/>
+            </activity>
+            <precedence>
+               <pre>
+                  <activity name="client"/>
+               </pre>
+               <post-AND>
+                  <activity name="fork1"/>
+                  <activity name="fork2"/>
+               </post-AND>
+            </precedence>
+            <precedence>
+               <pre-AND>
+                  <result-join-delay join-waiting="0.999999" join-variance="0"/>
+                  <activity name="fork1"/>
+                  <activity name="fork2"/>
+               </pre-AND>
+               <post>
+                  <activity name="join"/>
+               </post>
+            </precedence>
+         </task-activities>
+      </task>
+   </processor>
+</lqn-model>

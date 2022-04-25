@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!-- $Id: 31-overtaking.lqxo 15543 2022-04-17 16:48:15Z greg $ -->
+<!-- lqn2xml -->
+<lqn-model name="31-overtaking" description="lqn2xml 5.26 solution for model from: 31-overtaking.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simplest model - rendezvous with overtaking." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general solver-info="" valid="true" conv-val="0" iterations="0" platform-info="" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000" max-rss="10532"/>
+   </solver-params>
+   <processor name="p1" scheduling="inf">
+      <result-processor utilization="0.4"/>
+      <task name="t1" scheduling="ref">
+         <result-task throughput="0.4" utilization="1" phase1-utilization="1" proc-utilization="0.4"/>
+         <entry name="e1" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.4" squared-coeff-variation="0" proc-utilization="0.4"/>
+            <entry-phase-activities>
+               <activity name="e1_1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="2.5" utilization="1"/>
+                  <synch-call dest="e2" calls-mean="1">
+                     <result-call waiting="0.5"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="fcfs">
+      <result-processor utilization="0.8"/>
+      <task name="t2" scheduling="fcfs">
+         <result-task throughput="0.4" utilization="0.8" phase1-utilization="0.4" phase2-utilization="0.4" proc-utilization="0.8"/>
+         <entry name="e2" type="PH1PH2">
+            <result-entry utilization="0.8" throughput="0.4" squared-coeff-variation="0" proc-utilization="0.8"/>
+            <entry-phase-activities>
+               <activity name="e2_1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1" utilization="0.4"/>
+               </activity>
+               <activity name="e2_2" phase="2" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1" utilization="0.4"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>
