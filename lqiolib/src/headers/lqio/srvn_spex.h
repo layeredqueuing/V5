@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 15475 2022-03-30 13:18:13Z greg $
+ * $Id: srvn_spex.h 15572 2022-04-28 19:16:13Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -308,6 +308,8 @@ namespace LQIO {
 	Spex& operator=( const Spex& ) = delete;
 
 	bool has_vars() const;							/* True if any $var (except control args) set */
+	static bool duplicate_symbol( const std::string& );
+	static bool duplicate_symbol( const ObservationInfo& obs );
 	
 	LQX::SyntaxTreeNode * get_destination( const std::string& name ) const;
 	LQX::SyntaxTreeNode * observation( LQX::MethodInvocationExpression * lqx_obj, const DOM::DocumentObject * document_obj, const ObservationInfo& obs );

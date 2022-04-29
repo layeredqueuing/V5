@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.h 15220 2021-12-15 15:18:47Z greg $
+ * $Id: glblerr.h 15572 2022-04-28 19:16:13Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -96,7 +96,6 @@ namespace LQIO {
         ERR_ASYNC_REQUEST_TO_LOCKENTRIES,
         ERR_DUPLICATE_START_ACTIVITY,
         ERR_NOT_DEFINED,
-	ERR_SPEX_PARAMETER_OBSERVATION,
         ERR_INFINITE_TASK,
         ERR_ENTRY_COUNT_FOR_TASK,
 	ERR_NO_START_ACTIVITIES,

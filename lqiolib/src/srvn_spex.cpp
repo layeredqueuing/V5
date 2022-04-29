@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 15478 2022-03-30 13:29:38Z greg $
+ *  $Id: srvn_spex.cpp 15572 2022-04-28 19:16:13Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -110,6 +110,21 @@ namespace LQIO {
     {
 	return __input_variables.size() > 0 || __observation_variables.size() > 0 || __document_variables.size() > 0;
     }
+
+
+    bool Spex::duplicate_symbol( const std::string& name  )
+    {
+	if ( !name.empty() && (Spex::has_input_var( name ) || Spex::has_observation_var( name )) ) {
+	    LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "variable", name.c_str() );
+	    return true;
+	}
+	return false;
+    }
+
+    bool Spex::duplicate_symbol( const ObservationInfo& obs )
+    {
+	return duplicate_symbol( obs.getVariableName() ) || duplicate_symbol( obs.getConfVariableName() );
+    }
 
     /* ------------------------------------------------------------------------ */
 
@@ -214,9 +229,11 @@ namespace LQIO {
 	
     LQX::SyntaxTreeNode * Spex::observation( const ObservationInfo& obs )
     {
+	if ( duplicate_symbol( obs ) ) return nullptr;
+
 	__document_variables.push_back( obs );
 	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( "document" );
-	LQX::ObjectPropertyReadNode * node = 0;
+	LQX::ObjectPropertyReadNode * node = nullptr;
 	switch ( obs.getKey() ) {
 	case KEY_WAITING:	node = new LQX::ObjectPropertyReadNode( object, "waits" ); break;	/* Waits */
 	case KEY_SERVICE_TIME:	node = new LQX::ObjectPropertyReadNode( object, "steps" ); break;	/* Steps */
@@ -226,8 +243,10 @@ namespace LQIO {
 	case KEY_SYSTEM_TIME:	node = new LQX::ObjectPropertyReadNode( object, "system_cpu_time" ); break;
 	default:	abort();
 	}
+
 	const std::string& name = obs.getVariableName();
 	__observation_variables[name] = new LQX::AssignmentStatementNode( get_observation_variable( name ), node );
+
 	return object;		/* For chaining */
     }
 
@@ -237,6 +256,8 @@ namespace LQIO {
 	
     LQX::SyntaxTreeNode * Spex::observation( const DOM::DocumentObject* document_object, const ObservationInfo& obs )
     {
+	if ( duplicate_symbol( obs ) ) return nullptr;
+
 	const unsigned p = obs.getPhase();
 	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( document_object->getTypeName(), new LQX::ConstantValueExpression( document_object->getName() ), NULL );
 	if ( dynamic_cast<const DOM::Entry *>(document_object) != nullptr && 0 < p && p <= DOM::Phase::MAX_PHASE ) {
@@ -253,6 +274,8 @@ namespace LQIO {
 	
     LQX::SyntaxTreeNode * Spex::observation( const DOM::Task* task, const DOM::Activity * activity, const ObservationInfo& obs )
     {
+	if ( duplicate_symbol( obs ) ) return nullptr;
+
 	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( task->getTypeName(), new LQX::ConstantValueExpression( task->getName() ), NULL );
 	object = new LQX::MethodInvocationExpression( activity->getTypeName(), object, new LQX::ConstantValueExpression( activity->getName() ), NULL );
 	return observation( object, activity, obs );
@@ -264,6 +287,8 @@ namespace LQIO {
 	
     LQX::SyntaxTreeNode * Spex::observation( const DOM::Entry* src, const unsigned int phase, const DOM::Entry* dst, const ObservationInfo& obs )
     {
+	if ( duplicate_symbol( obs ) ) return nullptr;
+
 	assert( dynamic_cast<const DOM::Entry *>(src) != nullptr && phase != 0 );
 
 	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( src->getTypeName(), new LQX::ConstantValueExpression( src->getName() ), NULL );
@@ -285,6 +310,8 @@ namespace LQIO {
 	
     LQX::SyntaxTreeNode * Spex::observation( const DOM::Entry* src, const DOM::Entry* dst, const ObservationInfo& obs )
     {
+	if ( duplicate_symbol( obs ) ) return nullptr;
+
 	assert( dynamic_cast<const DOM::Entry *>(src) != nullptr );
 
 	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( src->getTypeName(), new LQX::ConstantValueExpression( src->getName() ), NULL );
@@ -299,6 +326,8 @@ namespace LQIO {
 	
     LQX::SyntaxTreeNode * Spex::observation( const DOM::Task* task, const DOM::Activity * activity, const DOM::Entry * dst, const ObservationInfo& obs )
     {
+	if ( duplicate_symbol( obs ) ) return nullptr;
+
 	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( task->getTypeName(), new LQX::ConstantValueExpression( task->getName() ), NULL );
 	object = new LQX::MethodInvocationExpression( activity->getTypeName(), object, new LQX::ConstantValueExpression( activity->getName() ), NULL );
 	const DOM::Call * call = activity->getCallToTarget( dst );
@@ -314,9 +343,6 @@ namespace LQIO {
     {
 	const std::string& name = obs.getVariableName();
 	const int key = obs.getKey();
-	if ( has_input_var( name ) ) {
-	    LQIO::input_error2( LQIO::ERR_SPEX_PARAMETER_OBSERVATION, name.c_str(), obs.getKeyCode().c_str(), doc_obj->getName().c_str() );
-	}
 	__observations.insert( std::pair<const DOM::DocumentObject*,ObservationInfo>(doc_obj,obs) );			/* Save variable names per DOM object */
 	__observation_variables[name] = new LQX::AssignmentStatementNode( get_observation_variable( name ),		/* Strip $ for LQX variable name */
 									  new LQX::ObjectPropertyReadNode( lqx_obj, __key_lqx_function_map.at(key) ) );
@@ -1220,10 +1246,7 @@ void spex_set_variable( void * variable )
 
 void * spex_assignment_statement( const char * name, void * expr, const bool constant_expression )
 {
-    if ( LQIO::Spex::has_input_var( name ) || LQIO::Spex::has_observation_var( name ) ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "variable", name );
-	return nullptr;
-    }
+    if ( LQIO::Spex::duplicate_symbol( name ) ) return nullptr;
 
     LQIO::Spex::__input_variables[std::string(name)] = static_cast<LQX::SyntaxTreeNode *>(expr);		/* Save variable for printing */
 

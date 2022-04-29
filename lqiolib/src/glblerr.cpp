@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.cpp 15139 2021-12-02 02:00:26Z greg $
+ * $Id: glblerr.cpp 15572 2022-04-28 19:16:13Z greg $
  *
  * Error messages common to solvers.
  *
@@ -84,7 +84,6 @@ namespace LQIO {
         { RUNTIME_ERROR, "Semaphore \"wait\" entry \"%s\" cannot accept send-no-reply requests." },                                 /* ERR_ASYNC_REQUEST_TO_WAIT            */
         { RUNTIME_ERROR, "Start activity for entry \"%s\" is already defined.  Activity \"%s\" is a duplicate." },                  /* ERR_DUPLICATE_START_ACTIVITY         */
         { RUNTIME_ERROR, "Symbol \"%s\" not previously defined." },                                                                 /* ERR_NOT_DEFINED                      */
-	{ RUNTIME_ERROR, "SPEX parameter \"%s\" cannot be used as observation \"%s\" for \"%s\"." },				    /* ERR_SPEX_PARAMETER_OBSERVATION 	    */
         { RUNTIME_ERROR, "Task \"%s\" cannot be an infinite server." },                                                             /* ERR_INFINITE_TASK                    */
         { RUNTIME_ERROR, "Task \"%s\" has %d entries defined, exactly %d are required." },                                          /* ERR_ENTRY_COUNT_FOR_TASK             */
         { RUNTIME_ERROR, "Task \"%s\" has activities but none are reachable." },                                                    /* ERR_NO_START_ACTIVITIES              */

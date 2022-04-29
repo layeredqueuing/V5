@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 15528 2022-04-12 12:00:19Z greg $
+ * $Id: dom_pragma.h 15570 2022-04-20 21:40:58Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -83,8 +83,8 @@ namespace LQIO {
 	    static const char * _block_period_;
 	    static const char * _bounds_;
 	    static const char * _bruell_;		// multiserver
-	    static const char * _conway_;		// multiserver
 	    static const char * _convergence_value_;
+	    static const char * _conway_;		// multiserver
 	    static const char * _custom_;
 	    static const char * _custom_natural_;
 	    static const char * _cycles_;
@@ -93,6 +93,7 @@ namespace LQIO {
 	    static const char * _deterministic_;	// Quorum
 	    static const char * _exact_;
 	    static const char * _expand_;
+	    static const char * _experimental_;		// Multiserver
 	    static const char * _exponential_;
 	    static const char * _extended_;		// BUG 270
 	    static const char * _false_;
@@ -108,8 +109,8 @@ namespace LQIO {
 	    static const char * _init_only_;
 	    static const char * _initial_delay_;
 	    static const char * _initial_loops_;
-	    static const char * _iteration_limit_;
 	    static const char * _interlocking_;
+	    static const char * _iteration_limit_;
 	    static const char * _join_delay_;		// Quorum
 	    static const char * _keep_all_;		// Quorum
 	    static const char * _layering_;
@@ -175,7 +176,6 @@ namespace LQIO {
 	    static const char * _variance_;
 	    static const char * _warning_;
 	    static const char * _yes_;
-	    static const char * _zhang_;		// Multiserver
 	    static const char * _zhou_;			// Multiserver
 	};
     }

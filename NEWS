@@ -1,3 +1,8 @@
+* Bugs fixed in 5.26
+365 	lqns	 	The warning for zero service time should be suppressed for reference tasks with think time. 
+369 	petrisrv 	Segmentation violation with --overtaking 
+370 	lqiolib 	Activity parameters probabilities and rates are constants. 
+
 * Bugs fixed in 5.25
 338 	lqns 		Queuing time not equal to zero when NCust = NServers for Zhou multiserver. 
 352 	lqn2xxx 	--no-xxxx doesn't work. 
