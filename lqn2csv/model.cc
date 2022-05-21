@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 15502 2022-04-03 13:59:13Z greg $
+ * $Id: model.cc 15586 2022-05-21 11:30:51Z greg $
  *
  * Command line processing.
  *
@@ -13,6 +13,7 @@
  */
 
 #include <algorithm>
+#include <iomanip>
 #include <limits>
 #include <numeric>
 #include <regex>
@@ -36,36 +37,37 @@
  * phase results, etc).
  */
 
+
 const std::map<Model::Result::Type,Model::Result::result_fields> Model::Result::__results =
 {
-    { Model::Result::Type::ACTIVITY_DEMAND,            { Model::Object::Type::ACTIVITY,      "Demand",      &LQIO::DOM::DocumentObject::getServiceTimeValue          } },
-    { Model::Result::Type::ACTIVITY_PROCESSOR_WAITING, { Model::Object::Type::ACTIVITY,      "Waiting",     &LQIO::DOM::DocumentObject::getResultProcessorWaiting    } },
-    { Model::Result::Type::ACTIVITY_PR_RQST_LOST,      { Model::Object::Type::ACTIVITY_CALL, "Drop Prob",   &LQIO::DOM::DocumentObject::getResultDropProbability     } },
-    { Model::Result::Type::ACTIVITY_PR_SVC_EXCD,       { Model::Object::Type::ACTIVITY,      "Pr. Exceed",  &LQIO::DOM::DocumentObject::getResultMaxServiceTimeExceeded } },
-    { Model::Result::Type::ACTIVITY_REQUEST_RATE,      { Model::Object::Type::ACTIVITY_CALL, "Request",     &LQIO::DOM::DocumentObject::getCallMeanValue             } },
-    { Model::Result::Type::ACTIVITY_SERVICE,           { Model::Object::Type::ACTIVITY,      "Service",     &LQIO::DOM::DocumentObject::getResultServiceTime         } },
-    { Model::Result::Type::ACTIVITY_THROUGHPUT,        { Model::Object::Type::ACTIVITY,      "Throughput",  &LQIO::DOM::DocumentObject::getResultThroughput          } },
-    { Model::Result::Type::ACTIVITY_VARIANCE,          { Model::Object::Type::ACTIVITY,      "Variance",    &LQIO::DOM::DocumentObject::getResultServiceTimeVariance } },
-    { Model::Result::Type::ACTIVITY_WAITING,           { Model::Object::Type::ACTIVITY_CALL, "Waiting",     &LQIO::DOM::DocumentObject::getResultWaitingTime         } },
-    { Model::Result::Type::ENTRY_THROUGHPUT,           { Model::Object::Type::ENTRY,         "Throughput",  &LQIO::DOM::DocumentObject::getResultThroughput          } },
-    { Model::Result::Type::ENTRY_UTILIZATION,          { Model::Object::Type::ENTRY,         "Utilization", &LQIO::DOM::DocumentObject::getResultUtilization         } },
-    { Model::Result::Type::HOLD_TIMES,                 { Model::Object::Type::JOIN,          "Hold Time",   &LQIO::DOM::DocumentObject::getResultHoldingTime         } },
-    { Model::Result::Type::JOIN_DELAYS,                { Model::Object::Type::JOIN,          "Join Delay",  &LQIO::DOM::DocumentObject::getResultJoinDelay           } },
-    { Model::Result::Type::OPEN_WAIT,                  { Model::Object::Type::ENTRY,         "Waiting",     &LQIO::DOM::DocumentObject::getResultWaitingTime         } },
-    { Model::Result::Type::PHASE_DEMAND,               { Model::Object::Type::PHASE,         "Demand",      &LQIO::DOM::DocumentObject::getServiceTimeValue          } },
-    { Model::Result::Type::PHASE_PROCESSOR_WAITING,    { Model::Object::Type::PHASE,         "Waiting",     &LQIO::DOM::DocumentObject::getResultProcessorWaiting    } },
-    { Model::Result::Type::PHASE_PR_RQST_LOST,         { Model::Object::Type::PHASE_CALL,    "Drop Prob",   &LQIO::DOM::DocumentObject::getResultDropProbability     } },
-    { Model::Result::Type::PHASE_PR_SVC_EXCD,          { Model::Object::Type::PHASE,         "Pr. Exceed",  &LQIO::DOM::DocumentObject::getResultMaxServiceTimeExceeded } },
-    { Model::Result::Type::PHASE_REQUEST_RATE,         { Model::Object::Type::PHASE_CALL,    "Request",     &LQIO::DOM::DocumentObject::getCallMeanValue             } },
-    { Model::Result::Type::PHASE_SERVICE,              { Model::Object::Type::PHASE,         "Service",     &LQIO::DOM::DocumentObject::getResultServiceTime         } },
-    { Model::Result::Type::PHASE_VARIANCE,             { Model::Object::Type::PHASE,         "Variance",    &LQIO::DOM::DocumentObject::getResultVarianceServiceTime } },
-    { Model::Result::Type::PHASE_WAITING,              { Model::Object::Type::PHASE_CALL,    "Waiting",     &LQIO::DOM::DocumentObject::getResultWaitingTime         } },
-    { Model::Result::Type::PROCESSOR_MULTIPLICITY,     { Model::Object::Type::PROCESSOR,     "Copies",      &LQIO::DOM::DocumentObject::getCopiesValueAsDouble       } },
-    { Model::Result::Type::PROCESSOR_UTILIZATION,      { Model::Object::Type::PROCESSOR,     "Utilization", &LQIO::DOM::DocumentObject::getResultUtilization         } },
-    { Model::Result::Type::TASK_MULTIPLICITY,          { Model::Object::Type::TASK,          "Copies",      &LQIO::DOM::DocumentObject::getCopiesValueAsDouble       } },
-    { Model::Result::Type::TASK_THROUGHPUT,            { Model::Object::Type::TASK,          "Throughput",  &LQIO::DOM::DocumentObject::getResultThroughput          } },
-    { Model::Result::Type::TASK_UTILIZATION,           { Model::Object::Type::TASK,          "Utilization", &LQIO::DOM::DocumentObject::getResultUtilization         } },
-    { Model::Result::Type::THROUGHPUT_BOUND,           { Model::Object::Type::ENTRY,         "Bound",       &LQIO::DOM::DocumentObject::getResultThroughputBound     } }
+    { Model::Result::Type::ACTIVITY_DEMAND,            { Model::Object::Type::ACTIVITY,      "Demand",      "demd", &LQIO::DOM::DocumentObject::getServiceTimeValue          } },
+    { Model::Result::Type::ACTIVITY_PROCESSOR_WAITING, { Model::Object::Type::ACTIVITY,      "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultProcessorWaiting    } },
+    { Model::Result::Type::ACTIVITY_PR_RQST_LOST,      { Model::Object::Type::ACTIVITY_CALL, "Drop Prob",   "pdrp", &LQIO::DOM::DocumentObject::getResultDropProbability     } },
+    { Model::Result::Type::ACTIVITY_PR_SVC_EXCD,       { Model::Object::Type::ACTIVITY,      "Pr. Exceed",  "pxcd", &LQIO::DOM::DocumentObject::getResultMaxServiceTimeExceeded } },
+    { Model::Result::Type::ACTIVITY_REQUEST_RATE,      { Model::Object::Type::ACTIVITY_CALL, "Request",     "requ", &LQIO::DOM::DocumentObject::getCallMeanValue             } },
+    { Model::Result::Type::ACTIVITY_SERVICE,           { Model::Object::Type::ACTIVITY,      "Service",     "serv", &LQIO::DOM::DocumentObject::getResultServiceTime         } },
+    { Model::Result::Type::ACTIVITY_THROUGHPUT,        { Model::Object::Type::ACTIVITY,      "Throughput",  "tput", &LQIO::DOM::DocumentObject::getResultThroughput          } },
+    { Model::Result::Type::ACTIVITY_VARIANCE,          { Model::Object::Type::ACTIVITY,      "Variance",    "vari", &LQIO::DOM::DocumentObject::getResultServiceTimeVariance } },
+    { Model::Result::Type::ACTIVITY_WAITING,           { Model::Object::Type::ACTIVITY_CALL, "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultWaitingTime         } },
+    { Model::Result::Type::ENTRY_THROUGHPUT,           { Model::Object::Type::ENTRY,         "Throughput",  "tput", &LQIO::DOM::DocumentObject::getResultThroughput          } },
+    { Model::Result::Type::ENTRY_UTILIZATION,          { Model::Object::Type::ENTRY,         "Utilization", "util", &LQIO::DOM::DocumentObject::getResultUtilization         } },
+    { Model::Result::Type::HOLD_TIMES,                 { Model::Object::Type::JOIN,          "Hold Time",   "hold", &LQIO::DOM::DocumentObject::getResultHoldingTime         } },
+    { Model::Result::Type::JOIN_DELAYS,                { Model::Object::Type::JOIN,          "Join Delay",  "join", &LQIO::DOM::DocumentObject::getResultJoinDelay           } },
+    { Model::Result::Type::OPEN_WAIT,                  { Model::Object::Type::ENTRY,         "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultWaitingTime         } },
+    { Model::Result::Type::PHASE_DEMAND,               { Model::Object::Type::PHASE,         "Demand",      "demd", &LQIO::DOM::DocumentObject::getServiceTimeValue          } },
+    { Model::Result::Type::PHASE_PROCESSOR_WAITING,    { Model::Object::Type::PHASE,         "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultProcessorWaiting    } },
+    { Model::Result::Type::PHASE_PR_RQST_LOST,         { Model::Object::Type::PHASE_CALL,    "Drop Prob",   "pdrp", &LQIO::DOM::DocumentObject::getResultDropProbability     } },
+    { Model::Result::Type::PHASE_PR_SVC_EXCD,          { Model::Object::Type::PHASE,         "Pr. Exceed",  "pxcd", &LQIO::DOM::DocumentObject::getResultMaxServiceTimeExceeded } },
+    { Model::Result::Type::PHASE_REQUEST_RATE,         { Model::Object::Type::PHASE_CALL,    "Request",     "reqs", &LQIO::DOM::DocumentObject::getCallMeanValue             } },
+    { Model::Result::Type::PHASE_SERVICE,              { Model::Object::Type::PHASE,         "Service",     "serv", &LQIO::DOM::DocumentObject::getResultServiceTime         } },
+    { Model::Result::Type::PHASE_VARIANCE,             { Model::Object::Type::PHASE,         "Variance",    "vari", &LQIO::DOM::DocumentObject::getResultVarianceServiceTime } },
+    { Model::Result::Type::PHASE_WAITING,              { Model::Object::Type::PHASE_CALL,    "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultWaitingTime         } },
+    { Model::Result::Type::PROCESSOR_MULTIPLICITY,     { Model::Object::Type::PROCESSOR,     "Copies",      "mult", &LQIO::DOM::DocumentObject::getCopiesValueAsDouble       } },
+    { Model::Result::Type::PROCESSOR_UTILIZATION,      { Model::Object::Type::PROCESSOR,     "Utilization", "util", &LQIO::DOM::DocumentObject::getResultUtilization         } },
+    { Model::Result::Type::TASK_MULTIPLICITY,          { Model::Object::Type::TASK,          "Copies",      "mult", &LQIO::DOM::DocumentObject::getCopiesValueAsDouble       } },
+    { Model::Result::Type::TASK_THROUGHPUT,            { Model::Object::Type::TASK,          "Throughput",  "tput", &LQIO::DOM::DocumentObject::getResultThroughput          } },
+    { Model::Result::Type::TASK_UTILIZATION,           { Model::Object::Type::TASK,          "Utilization", "util", &LQIO::DOM::DocumentObject::getResultUtilization         } },
+    { Model::Result::Type::THROUGHPUT_BOUND,           { Model::Object::Type::ENTRY,         "Bound",       "bond", &LQIO::DOM::DocumentObject::getResultThroughputBound     } }
 };
 
 const std::map<Model::Object::Type, const std::string> Model::Object::__object_type =
@@ -291,7 +293,11 @@ Model::Result::TypeName( const std::string& in, const std::pair<std::string,Mode
 {
     std::string out = in;
     if ( !in.empty() ) out += ",";
-    return out + "\"" + __results.at(result.second).name + "\"";
+    out += "\"";
+    if ( precision == 0 || 5 < precision ) out += __results.at(result.second).name;
+    else out += __results.at(result.second).abbreviation;
+    out += "\"";
+    return out;
 }
 
 
@@ -322,7 +328,11 @@ Model::Print::operator()( double item )
     } else {
 	_output << ",";
 	if ( item != std::numeric_limits<double>::quiet_NaN() && item != std::numeric_limits<double>::signaling_NaN() ) {
-	    _output << item;
+	    if ( precision > 0 ) {
+		_output << std::setprecision(precision) << item;
+	    } else {
+		_output << item;
+	    }
 	} else {
 	    _output << "NULL";
 	}

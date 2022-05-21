@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15502 2022-04-03 13:59:13Z greg $
+ * $Id: lqn2csv.cc 15586 2022-05-21 11:30:51Z greg $
  *
  * Command line processing.
  *
@@ -43,6 +43,7 @@
 int gnuplot_flag    = 0;
 int no_header       = 0;
 size_t limit	    = 0;
+int precision	    = 0;
 
 const std::vector<struct option> longopts = {
     /* name */ /* has arg */ /*flag */ /* val */
@@ -76,6 +77,7 @@ const std::vector<struct option> longopts = {
     { "gnuplot",               no_argument,       &gnuplot_flag, 1 },
     { "limit",		       required_argument, nullptr, 0x100+'l' },
     { "no-header",             no_argument,       &no_header,    1 },
+    { "precision",	       required_argument, nullptr, 0x100+'p' },
     { "help",		       no_argument,	  nullptr, 0x100+'h' },
     { "version",	       no_argument,	  nullptr, 0x100+'v' },
     { nullptr,                 0,                 nullptr, 0 }
@@ -116,6 +118,7 @@ const static std::map<int,const std::string> help_str
     { '@', "Read the argument list from <arg>.  --output-file and --arguments are ignored." },
     { 0x100+'h', "Print out this list." },
     { 0x100+'l', "Limit output to the first <arg> files read." },
+    { 0x100+'p', "Set the precision for output to <arg>." },
     { 0x100+'v', "Print out version numbder." }
 };
 
@@ -202,6 +205,10 @@ main( int argc, char *argv[] )
 
 	case 0x100+'l':
 	    limit = strtol( optarg, &endptr, 10 );
+	    break;
+	    
+	case 0x100+'p':
+	    precision = strtol( optarg, &endptr, 10 );
 	    break;
 	    
 	case 0x100+'v':

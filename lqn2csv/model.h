@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: model.h 15502 2022-04-03 13:59:13Z greg $
+ * $Id: model.h 15586 2022-05-21 11:30:51Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -98,6 +98,7 @@ namespace Model {
 	struct result_fields {
 	    Object::Type type;
 	    const std::string name;
+	    const std::string abbreviation;
 	    fptr f;
 	};
 	
