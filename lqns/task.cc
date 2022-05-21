@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15581 2022-05-20 21:12:19Z greg $
+ * $Id: task.cc 15584 2022-05-21 00:57:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -943,7 +943,7 @@ Task::saveClientResults( const MVASubmodel& submodel )
     /* Other results (only useful for references tasks. */
 
     if ( isReferenceTask() && !isCalled() ) {
-	if ( submodel.hasClosedModel() ) {
+	if ( isInClosedModel() ) {
 	    std::for_each( entries().begin(), entries().end(), Exec3<Entry,const MVASubmodel&, const Server&,unsigned>( &Entry::saveClientResults, submodel, *clientStation( n ), clientChains( n )[1] ) );
 	}
 	computeUtilization();
