@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 15322 2022-01-02 15:35:27Z greg $
+ * $Id: submodel.cc 15579 2022-05-20 12:30:36Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -280,7 +280,8 @@ MVASubmodel::build()
     /* --------------------- Count the stations. ---------------------- */
 
     const unsigned n_stations  = _clients.size() + _servers.size();
-    _closedStation.resize(_clients.size() + std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isInClosedModel ) ) );
+    _closedStation.resize( std::count_if( _clients.begin(), _clients.end(), Predicate<Entity>( &Entity::isInClosedModel ) )
+			  + std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isInClosedModel ) ) );
     _openStation.resize( std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isInOpenModel ) ) );
 
     /* ----------------------- Create Chains.  ------------------------ */
@@ -294,8 +295,10 @@ MVASubmodel::build()
 
     unsigned closedStnNo = 0;
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	closedStnNo += 1;
-	_closedStation[closedStnNo] = (*client)->makeClient( nChains(), number() );
+	if ( (*client)->isInClosedModel() ) {
+	    closedStnNo += 1;
+	    _closedStation[closedStnNo] = (*client)->makeClient( nChains(), number() );
+	}
     }
 
     /* ------------------- Create servers for model. ------------------ */
@@ -942,10 +945,12 @@ MVASubmodel::printClosedModel( std::ostream& output ) const
     unsigned stnNo = 1;
 
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	output << "[closed=" << stnNo << "] " << **client << std::endl
-	       << Task::print_client_chains( **client, number() )
-	       << *(*client)->clientStation( number() ) << std::endl;
-	stnNo += 1;
+	if ( (*client)->isInClosedModel() ) {
+	    output << "[closed=" << stnNo << "] " << **client << std::endl
+		   << Task::print_client_chains( **client, number() )
+		   << *(*client)->clientStation( number() ) << std::endl;
+	    stnNo += 1;
+	}
     }
 
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {

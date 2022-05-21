@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 15515 2022-04-05 13:08:46Z greg $
+ * $Id: mva.cc 15582 2022-05-20 21:48:39Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -2154,7 +2154,7 @@ SchweitzerCommon::initialize()
 		double temp = 1.0;
 		if ( J != 0 ) {
 		    temp += ( Lk[m] - L[n][m][e][k] / NCust[k] ) / J;
-		} else if ( Q[m]->infiniteServer() == 0 ) {
+		} else if ( !Q[m]->infiniteServer() ) {
 		    temp += ( Lk[m] - L[n][m][e][k] / NCust[k] );
 		}
 		temp *= Q[m]->S(e,k) * Q[m]->V(e,k);

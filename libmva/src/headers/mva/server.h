@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: server.h 15551 2022-04-18 15:37:05Z greg $
+ * $Id: server.h 15582 2022-05-20 21:48:39Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -107,8 +107,8 @@ public:
     virtual unsigned int marginalProbabilitiesSize() const { return 0; }
     virtual void setMarginalProbabilitiesSize( const Population& ) { return; }
     virtual int vectorProbabilities() const { return 0; }
-    virtual int infiniteServer() const { return 0; }
-    virtual int priorityServer() const { return 0; }
+    virtual bool infiniteServer() const { return false; }
+    virtual bool priorityServer() const { return false; }
 
     virtual const char * typeStr() const = 0;
 
@@ -181,7 +181,7 @@ public:
 	
     virtual double alpha( const unsigned ) const;
 
-    virtual int infiniteServer() const { return 1; }
+    virtual bool infiniteServer() const { return true; }
 
     virtual const char * typeStr() const { return "Infinite_Server"; }
 };
@@ -234,7 +234,7 @@ public:
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "PR_PS_Server"; }
 };
 
@@ -252,7 +252,7 @@ public:
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "HOL_PS_Server"; }
 };
 
@@ -290,7 +290,7 @@ public:
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "PR_FCFS_Server"; }
 };
 
@@ -308,7 +308,7 @@ public:
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "HOL_FCFS_Server"; }
 };
 
@@ -359,7 +359,7 @@ public:
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "PR_HVFCFS_Server"; }
 
 };
@@ -378,7 +378,7 @@ public:
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "HOL_HVFCFS_Server"; }
 
 };

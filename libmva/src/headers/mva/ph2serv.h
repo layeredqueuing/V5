@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: ph2serv.h 14305 2020-12-31 14:51:49Z greg $
+ * $Id: ph2serv.h 15582 2022-05-20 21:48:39Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -87,7 +87,7 @@ public:
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "HOL_Rolia_Phased_Server"; }
 };
 
@@ -105,7 +105,7 @@ public:
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "PR_Rolia_Phased_Server"; }
 };
 
@@ -147,7 +147,7 @@ public:
 	
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "HOL_HVFCFS_Rolia_Phased_Server"; }
 };
 
@@ -165,7 +165,7 @@ public:
 	
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "PR_HVFCFS_Rolia_Phased_Server"; }
 };
 
@@ -205,7 +205,7 @@ public:
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "HOL_Simple_Phased_Server"; }
 };
 
@@ -223,7 +223,7 @@ public:
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "PR_Simple_Phased_Server"; }
 };
 
@@ -265,7 +265,7 @@ public:
 	
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "HOL_HVFCFS_Simple_Phased_Server"; }
 };
 
@@ -281,7 +281,7 @@ public:
 	
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "PR_HVFCFS_Simple_Phased_Server"; }
 };
 
@@ -333,7 +333,7 @@ public:
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "HOL_Markov_Phased_Server"; }
 };
 
@@ -351,7 +351,7 @@ public:
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "PR_Markov_Phased_Server"; }
 };
 
@@ -393,7 +393,7 @@ public:
 	
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "HOL_HVFCFS_Markov_Phased_Server"; }
 };
 
@@ -409,7 +409,7 @@ public:
 	
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
-    virtual int priorityServer() const { return 1; }
+    virtual bool priorityServer() const { return true; }
     virtual const char * typeStr() const { return "PR_HVFCFS_Markov_Phased_Server"; }
 };
 #endif

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 15524 2022-04-11 22:01:41Z greg $
+ * $Id: phase.cc 15580 2022-05-20 12:57:52Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -563,9 +563,6 @@ Phase::rendezvous( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 {
     if ( callDOM != nullptr && toEntry->setIsCalledBy( Entry::RequestType::RENDEZVOUS ) ) {
 	Task * client = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
-	if ( client != nullptr ) {
-	    client->isPureServer( false );
-	}
 		
 	Call * aCall = findOrAddCall( toEntry, &Call::hasRendezvousOrNone  );
 	aCall->rendezvous( callDOM );
@@ -617,9 +614,6 @@ Phase::sendNoReply( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 {
     if ( callDOM != nullptr && toEntry->setIsCalledBy( Entry::RequestType::SEND_NO_REPLY ) ) {
 	Task * client = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
-	if ( client != nullptr ) {
-	    client->isPureServer( false );
-	}
 
 	Call * aCall = findOrAddCall( toEntry, &Call::hasSendNoReplyOrNone );
 	aCall->sendNoReply( callDOM );
@@ -658,9 +652,6 @@ Phase::forwardedRendezvous( const Call * fwdCall, const double value )
 {
     const Entry * toEntry = fwdCall->dstEntry();
     if ( value > 0.0 && const_cast<Entry *>(toEntry)->setIsCalledBy( Entry::RequestType::RENDEZVOUS) ) {
-	if ( owner() ) {
-	    const_cast<Entity *>(owner())->isPureServer( false );
-	}
 	Call * aCall = findOrAddFwdCall( toEntry, fwdCall );
 	LQIO::DOM::Phase* aDOM = getDOM();
 	LQIO::DOM::Call* rendezvousCall = new LQIO::DOM::Call( aDOM->getDocument(), LQIO::DOM::Call::Type::RENDEZVOUS,
@@ -682,9 +673,6 @@ Phase::forward( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 {
     if ( callDOM != nullptr && toEntry->setIsCalledBy( Entry::RequestType::RENDEZVOUS ) ) {
 	Task * client = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
-	if ( client != nullptr ) {
-	    client->isPureServer( false );
-	}
 
 	Call * aCall = findOrAddCall( toEntry, &Call::hasForwardingOrNone );
 	aCall->forward( callDOM );

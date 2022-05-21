@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: open.cc 15091 2021-10-22 17:01:44Z greg $
+ * $Id: open.cc 15582 2022-05-20 21:48:39Z greg $
  *
  * Open Network solver.
  *
@@ -7,7 +7,7 @@
  * Department of Systems and Computer Engineering,
  * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
  *
- * $Date: 2021-10-22 13:01:44 -0400 (Fri, 22 Oct 2021) $
+ * $Date: 2022-05-20 17:48:39 -0400 (Fri, 20 May 2022) $
  * ----------------------------------------------------------------------
  * Conventions:
  *    E - (scalar) number of entries for a given station.
@@ -113,6 +113,7 @@ Open::convert( const Population& N ) const
     const unsigned n = N.sum();
 	
     for ( unsigned m = 1; m <= M; ++m ) {
+	if ( Q[m]->infiniteServer() ) continue;
 	
 	try {
 	    const double num = Q[m]->alpha( n - 1 );

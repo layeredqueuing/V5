@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 15439 2022-02-14 02:25:30Z greg $
+ * $Id: entity.h 15580 2022-05-20 12:57:52Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -19,6 +19,7 @@
 
 #include <vector>
 #include <set>
+#include <map>
 #include <lqio/dom_entity.h>
 #include <lqio/input.h>
 #include <mva/prob.h>
@@ -44,6 +45,15 @@ int operator==( const Entity&, const Entity& );
 
 class Entity {
     friend class Generate;
+
+    enum class Attributes {
+	initialized,		/* Task was initialized.	*/
+	closed_model,		/* Stn in in closed model.	*/
+	open_model,		/* Stn is in open model.	*/
+	deterministic,		/* an entry has det. phase.	*/
+ 	variance		/* an entry has Cv_sqn != 1.	*/
+    };
+
 
 protected:
     /*
@@ -168,8 +178,9 @@ public:
 
     /* Queries */
 
-    virtual bool hasVariance() const { return attributes.variance; }
-    bool hasDeterministicPhases() const { return attributes.deterministic; }
+    virtual bool hasVariance() const { return _attributes.at(Attributes::variance); }
+    Entity& setVarianceAttribute( const bool yesOrNo ) { _attributes.at(Attributes::variance) = yesOrNo; return *this; }
+    bool hasDeterministicPhases() const { return _attributes.at(Attributes::deterministic); }
     bool hasSecondPhase() const { return (bool)(_maxPhase > 1); }
     bool hasOpenArrivals() const;
     
@@ -179,16 +190,12 @@ public:
     bool hasThreads() const { return nThreads() > 1; }
     virtual bool hasSynchs() const { return false; }
 
-    bool isInOpenModel() const { return attributes.open_model ? true : false; }
-    Entity& isInOpenModel( const bool yesOrNo ) { attributes.open_model = yesOrNo; return *this; }
-    bool isInClosedModel() const { return attributes.closed_model ? true : false; }
-    Entity& isInClosedModel( const bool yesOrNo ) { attributes.closed_model = yesOrNo; return *this; }
-    Entity& isPureServer( const bool yesOrNo ) { attributes.pure_server = yesOrNo; return *this; }
-    bool isPureServer() const { return (bool)attributes.pure_server; }
-    Entity& isPureDelay( const bool yesOrNo ) { attributes.pure_delay = yesOrNo; return *this; }
-    bool isPureDelay() const { return (bool)attributes.pure_delay; }
-    Entity& initialized( const bool yesOrNo ) { attributes.initialized = yesOrNo; return *this; }
-    bool initialized() const { return (bool)attributes.initialized; }
+    bool isInOpenModel() const { return _attributes.at(Attributes::open_model); }
+    Entity& isInOpenModel( const bool yesOrNo ) { _attributes.at(Attributes::open_model) = yesOrNo; return *this; }
+    bool isInClosedModel() const { return _attributes.at(Attributes::closed_model); }
+    Entity& isInClosedModel( const bool yesOrNo ) { _attributes.at(Attributes::closed_model) = yesOrNo; return *this; }
+    Entity& initialized( const bool yesOrNo ) { _attributes.at(Attributes::initialized) = yesOrNo; return *this; }
+    bool initialized() const { return _attributes.at(Attributes::initialized); }
     virtual bool isUsed() const { return submodel() > 0; }
 
     virtual bool isTask() const          { return false; }
@@ -295,17 +302,8 @@ protected:
     double _thinkTime;			/* Think time.			*/
     Server * _station;			/* Servers by submodel.		*/
 
-    struct {
-	unsigned initialized:1;		/* Task was initialized.	*/
-	unsigned closed_model:1;	/* Stn in in closed model.	*/
-	unsigned open_model:1;		/* Stn is in open model.	*/
-	unsigned deterministic:1;	/* an entry has det. phase.	*/
-	unsigned pure_delay:1;		/* Wierd task.			*/
-	unsigned pure_server:1;		/* Can use FCFS schedulging.	*/
- 	unsigned variance:1;		/* an entry has Cv_sqn != 1.	*/
-    } attributes;
-
 private:
+    std::map<Attributes,bool> _attributes;
     Interlock _interlock;		/* For interlock calculation.	*/
     unsigned _submodel;			/* My submodel, 0 == ref task.	*/
     unsigned _maxPhase;			/* Largest phase.		*/
