@@ -11,7 +11,7 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 14817 2021-06-15 16:51:27Z greg $
+ * $Id: processor.h 15603 2022-05-27 18:30:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -71,7 +71,6 @@ public:
 
     virtual bool isProcessor() const { return true; }
     bool isInteresting() const;
-    virtual unsigned nClients() const { return _tasks.size(); }
     virtual bool hasVariance() const;
     bool hasPriorities() const;
     virtual unsigned validScheduling() const;
@@ -80,18 +79,19 @@ public:
 
     /* Model Building. */
 
-    Processor& addGroup( Group * aGroup ) { _groups.insert( aGroup ); return *this; }
+    Processor& addGroup( Group * group ) { _groups.insert( group ); return *this; }
     const std::set<Group *>& groups() const { return _groups; }
 
     Processor& expand();
     
     Server * makeServer( const unsigned nChains );
-    virtual Entity& saveServerResults( const MVASubmodel&, double );
+    virtual double computeUtilization( const MVASubmodel& );
 
     /* DOM insertion of results */
 
     virtual const Processor& insertDOMResults() const;
     virtual std::ostream& print( std::ostream& ) const;
+    std::ostream& printTasks( std::ostream& output, unsigned int submodel ) const;
 
 public:
     static Processor * find( const std::string&, unsigned int=1 );
@@ -104,10 +104,7 @@ public:
     static bool __prune;
 
 private:
-    std::set<Task *> _tasks;		/* List of processor's tasks	*/
     std::set<Group *> _groups;		/* List of processor's Group	*/
-
-    double _utilization;		/* Processor Utilization	*/
 };
 
 

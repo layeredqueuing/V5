@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 15579 2022-05-20 12:30:36Z greg $
+ * $Id: submodel.cc 15600 2022-05-27 15:32:49Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -73,6 +73,14 @@
 /*                        Merged Partition Model                        */
 /*----------------------------------------------------------------------*/
 
+Submodel::Submodel( const unsigned n ) :
+    _submodel_number(n),
+    _n_chains(0),
+    _customers(),
+    _thinkTime(),
+    _priority()
+{
+}
 
 /*
  * Set my submodel number to n.  Reset submodel numbers of all servers.
@@ -280,9 +288,9 @@ MVASubmodel::build()
     /* --------------------- Count the stations. ---------------------- */
 
     const unsigned n_stations  = _clients.size() + _servers.size();
-    _closedStation.resize( std::count_if( _clients.begin(), _clients.end(), Predicate<Entity>( &Entity::isInClosedModel ) )
-			  + std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isInClosedModel ) ) );
-    _openStation.resize( std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isInOpenModel ) ) );
+    _closedStation.resize( std::count_if( _clients.begin(), _clients.end(), Predicate<Entity>( &Entity::isClosedModelClient ) )
+			  + std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isClosedModelServer ) ) );
+    _openStation.resize( std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isOpenModelServer ) ) );
 
     /* ----------------------- Create Chains.  ------------------------ */
 
@@ -295,7 +303,7 @@ MVASubmodel::build()
 
     unsigned closedStnNo = 0;
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	if ( (*client)->isInClosedModel() ) {
+	if ( (*client)->isClosedModelClient() ) {
 	    closedStnNo += 1;
 	    _closedStation[closedStnNo] = (*client)->makeClient( nChains(), number() );
 	}
@@ -307,11 +315,11 @@ MVASubmodel::build()
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
 	if ( (*server)->nEntries() == 0 ) continue;	/* Null server. */
 	Server * aStation = (*server)->makeServer( nChains() );
-	if ( (*server)->isInClosedModel() ) {
+	if ( (*server)->isClosedModelServer() ) {
 	    closedStnNo += 1;
 	    _closedStation[closedStnNo] = aStation;
 	}
-	if ( (*server)->isInOpenModel() ) {
+	if ( (*server)->isOpenModelServer() ) {
 	    openStnNo += 1;
 	    _openStation[openStnNo] = aStation;
 	}
@@ -596,8 +604,8 @@ MVASubmodel::makeChains()
 
 	    size_t new_size = _customers.size() + threads;
 	    _customers.resize( new_size ); /* N.B. -- Vector class.  Must*/
-	    _thinkTime.resize( new_size ); /* grow() explicitly.	*/
-	    _priority.resize( new_size );
+	    _thinkTime.resize( new_size, 0.0 ); /* grow() explicitly.	*/
+	    _priority.resize( new_size, 0.0 );
 
 	    for ( unsigned i = 1; i <= threads; ++i ) {
 		k += 1;				// Add one chain.
@@ -628,8 +636,8 @@ MVASubmodel::makeChains()
 
 	    size_t new_size = _customers.size() + sz;
 	    _customers.resize( new_size );   //Expand vectors to accomodate
-	    _thinkTime.resize( new_size );   //new chains.
-	    _priority.resize( new_size );
+	    _thinkTime.resize( new_size, 0.0 );   //new chains.
+	    _priority.resize( new_size, 0.0 );
 
 	    /*
 	     * Do all the chains for to a server at once.  This makes
@@ -920,17 +928,29 @@ MVASubmodel::print( std::ostream& output ) const
 	output << std::setw(2) << "  " << **client << std::endl;
     }
 
-    output << std::endl << "Servers: " << std::endl;
-    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	output << std::setw(2) << "  " << **server << std::endl;
+    if ( std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isClosedModelServer ) ) ) {
+	output << std::endl << "Closed Model Servers: " << std::endl;
+	std::for_each( _servers.begin(), _servers.end(), print_server( output, &Entity::isClosedModelServer ) );
+    }
+    if ( std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isOpenModelServer ) ) ) {
+	output << std::endl << "Open Model Servers: " << std::endl;
+	std::for_each( _servers.begin(), _servers.end(), print_server( output, &Entity::isOpenModelServer ) );
     }
 
     output << std::endl << "Calls: " << std::endl;
-    for ( std::set<Entry *>::const_iterator entry = Model::__entry.begin(); entry != Model::__entry.end(); ++entry ) {
-	(*entry)->printCalls( output, number() );
-    }
+    std::for_each( Model::__entry.begin(), Model::__entry.end(), ConstPrint1<Entry,unsigned int>( &Entry::printCalls, output, number() ) );
+    std::for_each( Model::__processor.begin(), Model::__processor.end(), ConstPrint1<Processor,unsigned int>( &Processor::printTasks, output, number() ) );
     output << std::endl;
     return output;
+}
+
+
+void
+MVASubmodel::print_server::operator()( const Entity * server ) const
+{
+    if ( (server->*_predicate)() ) {
+	_output << std::setw(2) << "  " << *server << std::endl;
+    }
 }
 
 
@@ -945,7 +965,7 @@ MVASubmodel::printClosedModel( std::ostream& output ) const
     unsigned stnNo = 1;
 
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	if ( (*client)->isInClosedModel() ) {
+	if ( (*client)->isClosedModelClient() ) {
 	    output << "[closed=" << stnNo << "] " << **client << std::endl
 		   << Task::print_client_chains( **client, number() )
 		   << *(*client)->clientStation( number() ) << std::endl;
@@ -954,7 +974,7 @@ MVASubmodel::printClosedModel( std::ostream& output ) const
     }
 
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	if ( (*server)->isInClosedModel() ) {
+	if ( (*server)->isClosedModelServer() ) {
 	    output << "[closed=" << stnNo << "] " << **server << std::endl
 		   << Entity::print_server_chains( **server )
 		   << *(*server)->serverStation() << std::endl;
@@ -976,7 +996,7 @@ MVASubmodel::printOpenModel( std::ostream& output ) const
 {
     unsigned stnNo = 1;
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	if ( (*server)->isInOpenModel() ) {
+	if ( (*server)->isOpenModelServer() ) {
 	    output << "[open=" << stnNo << "] " << **server << std::endl
 		   << *(*server)->serverStation() << std::endl;
 	    stnNo += 1;

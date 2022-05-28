@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15440 2022-03-02 01:56:46Z greg $
+ * $Id: task.cc 15594 2022-05-25 20:19:52Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -19,6 +19,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <limits>
 #include <string>
 #include <vector>

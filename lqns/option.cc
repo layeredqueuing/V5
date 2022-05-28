@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 15506 2022-04-04 00:54:15Z greg $
+ * $Id: option.cc 15600 2022-05-27 15:32:49Z greg $
  */
 
 #include "lqns.h"
@@ -26,7 +26,7 @@ const std::map<const std::string, const Options::Debug> Options::Debug::__table
     { "forks",      Debug( &Debug::forks,       &Help::debugForks ) },
     { "interlock",  Debug( &Debug::interlock,   &Help::debugInterlock ) },
 //    { "joins",      Debug( &Debug::joins,       &Help::debugJoins ) },
-    { "layers",     Debug( &Debug::layers,      &Help::debugLayers ) },
+    { "submodels",  Debug( &Debug::submodels,   &Help::debugSubmodels ) },
 #if DEBUG_MVA
     { "mva",	    Debug( &Debug::mva,		&Help::debugMVA ) },
 #endif
@@ -61,7 +61,7 @@ Options::Debug::all( const std::string& )
     _bits[FORKS]      = true;
     _bits[INTERLOCK]  = true;
 //    _bits[JOINS]      = true;
-    _bits[LAYERS]     = true;
+    _bits[SUBMODELS]  = true;
 #if HAVE_LIBGSL
     _bits[QUORUM]     = true;
 #endif

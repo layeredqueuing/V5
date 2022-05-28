@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 15046 2021-10-05 21:52:16Z greg $
+ * $Id: entry.h 15600 2022-05-27 15:32:49Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -137,6 +137,27 @@ protected:
 	const unsigned int _submodel;
     };
 
+
+private:
+    class SRVNManip {
+    public:
+	SRVNManip( std::ostream& (*f)( std::ostream&, const Entry& ), const Entry& entry ) : _f(f), _entry(entry) {}
+    private:
+	std::ostream& (*_f)( std::ostream&, const Entry& );
+	const Entry & _entry;
+
+	friend std::ostream& operator<<( std::ostream& os, const SRVNManip& m ) { return m._f(os,m._entry); }
+    };
+
+
+    struct print_call {
+	print_call( std::ostream& output, unsigned int submodel, const std::string& arrow ) : _output(output), _submodel(submodel), _arrow(arrow) {}
+	void operator()( const CallInfo::Item& call ) const;
+    private:
+	std::ostream& _output;
+	const unsigned int _submodel;
+	const std::string& _arrow;
+    };
 
 public:
     static bool joinsPresent;
@@ -321,6 +342,7 @@ public:
 
     /* Printing */
 
+    SRVNManip print_name() const { return SRVNManip( output_name, *this ); }
     std::ostream& printCalls( std::ostream& output, unsigned int submodel=0 ) const;
     std::ostream& printSubmodelWait( std::ostream& output, unsigned offset ) const;
     static std::string fold( const std::string& s1, const Entry * e2 );
@@ -330,6 +352,8 @@ protected:
 
 private:
     void setThroughput( const double throughput ) { _throughput = throughput; }
+
+    static std::ostream& output_name( std::ostream& output, const Entry& );
 
 protected:
     LQIO::DOM::Entry* _dom;	

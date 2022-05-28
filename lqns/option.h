@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: option.h 15194 2021-12-10 12:01:01Z greg $
+ * $Id: option.h 15602 2022-05-27 17:21:57Z greg $
  */
 
 #ifndef _OPTION_H
@@ -9,6 +9,7 @@
 
 #include <map>
 #include <vector>
+#include <lqio/dom_pragma.h>
 #include "help.h"
 
 namespace Options
@@ -33,7 +34,7 @@ namespace Options
     class Debug : public Option 
     {
     private:
-	enum { ACTIVITIES=0, CALLS=1, FORKS=2, INTERLOCK=3, JOINS=4, LAYERS=5, VARIANCE=6, QUORUM=7 };
+	enum { ACTIVITIES=0, CALLS=1, FORKS=2, INTERLOCK=3, JOINS=4, SUBMODELS=5, VARIANCE=6, QUORUM=7 };
 //	Debug( const Debug& ) = delete;
 	Debug& operator=( const Debug& ) = delete;
 
@@ -50,26 +51,28 @@ namespace Options
 	static bool forks() { return _bits[FORKS]; }
 	static bool interlock() { return _bits[INTERLOCK]; }
 //	static bool joins() { return _bits[JOINS]; }
-	static bool layers() { return _bits[LAYERS]; };
+	static bool submodels() { return _bits[SUBMODELS]; };
 	static bool variance() { return _bits[VARIANCE]; }
 #if HAVE_LIBGSL
 	static bool quorum() { return _bits[QUORUM]; };
 #endif
+
+    public:
+	static void submodels( const std::string& s ) { _bits[SUBMODELS] = LQIO::DOM::Pragma::isTrue( s ); }
 
     private:
 	static void all( const std::string& ); 
 	static void all2( const std::string& );
 //	static void activities( const std::string& ) { _bits[ACTIVITIES] = true; }
 //	static void calls( const std::string& ) { _bits[CALLS] = true; }
-	static void forks( const std::string& ) { _bits[FORKS] = true; }
-	static void interlock( const std::string& ) { _bits[INTERLOCK] = true; }
-//	static void joins( const std::string& ) { _bits[JOINS] = true; }
-	static void layers( const std::string& ) { _bits[LAYERS] = true; }
+	static void forks( const std::string& s ) { _bits[FORKS] = LQIO::DOM::Pragma::isTrue( s ); }
+	static void interlock( const std::string& s ) { _bits[INTERLOCK] = LQIO::DOM::Pragma::isTrue( s ); }
+//	static void joins( const std::string& ) { _bits[JOINS] = LQIO::DOM::Pragma::isTrue( s ); }
 	static void mva( const std::string& );
-	static void variance( const std::string& ) { _bits[VARIANCE] = true; }
+	static void variance( const std::string& s ) { _bits[VARIANCE] = LQIO::DOM::Pragma::isTrue( s ); }
 	static void overtaking( const std::string& );
 #if HAVE_LIBGSL
-	static void quorum( const std::string& ) { _bits[QUORUM] = true; }
+	static void quorum( const std::string& ) { _bits[QUORUM] = LQIO::DOM::Pragma::isTrue( s ); }
 #endif
 	static void xml( const std::string& );
 	static void lqx( const std::string& );

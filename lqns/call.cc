@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15322 2022-01-02 15:35:27Z greg $
+ * $Id: call.cc 15597 2022-05-27 01:03:45Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -470,7 +470,7 @@ Call::setLambda( const unsigned, const unsigned p, const double rate )
     const unsigned e = dstEntry()->index();
     if ( hasSendNoReply() ) {
 	aStation->addVisits( e, 0, p, getSource()->throughput() * sendNoReply() );
-    } else if ( hasRendezvous() && srcTask()->isInOpenModel() && srcTask()->isInfinite() ) {
+    } else if ( hasRendezvous() && srcTask()->isOpenModelServer() && srcTask()->isInfinite() ) {
 	aStation->addVisits( e, 0, p, getSource()->throughput() * rendezvous() );
     }
 }

@@ -1,6 +1,6 @@
 .\" t -*- nroff -*-
-.TH lqns 1 "10 October 2021" "5.22"
-.\" $Id: lqns.1 15379 2022-01-23 03:19:37Z greg $
+.TH lqns 1 "27 May 2022" "5.26"
+.\" $Id: lqns.1 15600 2022-05-27 15:32:49Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -46,7 +46,7 @@ This option is used to compute the ``Type 1 throughput bounds'' only.
 These bounds are computed assuming no contention anywhere in the model
 and represent the guaranteed not to exceed values.
 .TP
-\fB\-c\fP, \fB\-\-convergence\fR=\fIarg\fR
+\fB\-c\fP, \fB\-\-convergence-value\fR=\fIarg\fR
 Set the convergence value to \fIarg\fP.  
 \fIArg\fP must be a number between 0.0 and 1.0.
 .TP
@@ -64,14 +64,14 @@ Print out the fork-join matching process.
 \fBinterlock\fR
 Print out the interlocking table and the interlocking between all tasks and processors.
 .TP
-\fBlayers\fR
-Print out the contents of all of the layers found in the model.
-.TP
 \fBlqx\fR
 Print out the actions the LQX parser while reading an LQX program.
 .TP
 \fBovertaking\fR
 Print the overtaking probabilities in the output file.
+.TP
+\fBsubmodels\fR
+Print out the contents of all of the submodels found in the model.
 .TP
 \fBvariance\fR
 Print out variance calculation.
@@ -103,11 +103,12 @@ In some instances, infinities  will be propogated within the solver.  Please ref
 \fBstop-on-message-loss\fP pragma below.
 .RE
 .TP
-\fB\-f\fP, \fB\-\-fast\fR
+\fB\-f\fP, \fB\-\-fast-linearizer\fR
 This option is used to set options for quick solution of a model using One-Step (Bard-Schweitzer) MVA.
 It is equivalent to setting \fBpragma\fP \fImva\fP=\fIone-step\fP, \fIlayering\fP=\fIbatched\fP, \fImultiserver\fP=\fIconway\fP
 .TP
 \fB\-H\fP, \fB\-\-help\fR=\fIarg\fR
+Print a summary of the command line options.  The optional argument shows help for -d, -t, -z, and -P respectively.
 .TP
 \fB\-h\fP, \fB\-\-huge\fR
 Solve using one-step-schweitzer, no interlocking, and Rolia multiserver.
@@ -239,11 +240,8 @@ Set the convergence value to \fIarg\fP.
 For multiple runs, reinitialize all service times at processors.
 .TP
 \fBgenerate\fR=\fIarg\fR
-This option is used for debugging the solver.
+This option is used to generate a queueing model for solver in the directory \fIarg\fP.
 A directory named \fIarg\fP will be created containing source code for invoking the MVA solver directly.
-.TP
-\fBignore-overhanging-threads\fR
-Ignore the effect of the overhanging threads.
 .TP
 \fBiteration-limit\fR=\fIarg\fR
 Set the maximum number of iterations to \fIarg\fP.
@@ -258,7 +256,7 @@ Otherwise, output is sent to stdout.
 \fBmin-steps\fR=\fIarg\fR
 Force the solver to iterate min-steps times.
 .TP
-\fBmol-ms-underrelaxation\fR=\fIarg\fR
+\fBmol-underrelaxation\fR=\fIarg\fR
 Set the under-relaxation factor to \fIarg\fP for the MOL multiserver approximation.
 \fIArg\fP must be a number between 0.0 and 1.0.
 The default value is 0.5..TP
@@ -529,10 +527,10 @@ This pragma is used to choose the MVA algorithm used to solve the submodels.
 \fIArg\fP must be one of: 
 .RS
 .TP
-\fBexact\fP
+\fBexact-mva\fP
 Exact MVA.  Not suitable for large systems.
 .TP
-\fBfast\fP
+\fBfast-linearizer\fP
 Fast Linearizer
 .TP
 \fBlinearizer\fP

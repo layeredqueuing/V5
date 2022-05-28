@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 15506 2022-04-04 00:54:15Z greg $
+ * $Id: model.cc 15600 2022-05-27 15:32:49Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -522,7 +522,7 @@ Model::initialize()
 	    initStations();		/* Init MVA values (pop&waits). */		/* -- Step 2 -- */
 	}
 
-	if ( Options::Debug::layers() ) {	/* Print out layers... 		*/
+	if ( Options::Debug::submodels() ) {	/* Print out layers... 		*/
 	    std::for_each( _submodels.begin(), _submodels.end(), ConstPrint<Submodel>( &Submodel::print, std::cout ) );
 	}
 

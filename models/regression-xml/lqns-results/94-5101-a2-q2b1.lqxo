@@ -1,14 +1,13 @@
 <?xml version="1.0"?>
-<!-- $Id: 94-5101-a2-q2b1.lqxo 14556 2021-03-17 18:08:06Z greg $ -->
-<!-- lqns -pragma=variance=mol,threads=hyper -no-warnings -no-advisories -parseable -->
-<lqn-model name="94-5101-a2-q2b1" description="lqns 5.19 solution for model from: 94-5101-a2-q2b1.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id: 94-5101-a2-q2b1.lqxo 15603 2022-05-27 18:30:56Z greg $ -->
+<!-- lqns -pragma=variance=mol,threads=hyper -->
+<lqn-model name="94-5101-a2-q2b1" description="lqns 5.26 solution for model from: 94-5101-a2-q2b1.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="  Experiment name: q2b1  SRVN description file: web-server.in  Comment: ''   Declared variables:  n_users = 225   Controlled parameters:  [9]  n_users  = 225 " conv_val="1e-05" it_limit="100" underrelax_coeff="0.9" print_int="10">
       <pragma param="multiserver" value="conway"/>
-      <pragma param="severity-level" value="run-time"/>
       <pragma param="threads" value="hyper"/>
       <pragma param="variance" value="mol"/>
-      <result-general solver-info="lqns 5.19" valid="true" conv-val="7.8559e-06" iterations="36" platform-info="Gregs-Retina-iMac.local Darwin 20.3.0" user-cpu-time=" 0:00:00.047" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.048">
-         <mva-info submodels="5" core="180" step="4840" step-squared="303646" wait="1.44511e+06" wait-squared="7.33497e+10" faults="0"/>
+      <result-general solver-info="" valid="true" conv-val="8.27333e-06" iterations="37" platform-info="lqns 5.26" user-cpu-time=" 0:00:00.011" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.013" max-rss="12032">
+         <mva-info submodels="5" core="185" step="4968" step-squared="311758" wait="1.74875e+06" wait-squared="8.89065e+10" faults="0"/>
       </result-general>
    </solver-params>
    <processor name="DB_CPU" scheduling="fcfs">
@@ -61,7 +60,7 @@
             <result-entry utilization="35.9963" throughput="0.0630012" squared-coeff-variation="2.45784" proc-utilization="0" throughput-bound="0.0740431"/>
             <entry-phase-activities>
                <activity name="User_1" phase="1" host-demand-mean="0">
-                  <result-activity proc-waiting="0" service-time="571.359" utilization="35.9963" service-time-variance="802366"/>
+                  <result-activity proc-waiting="0" service-time="571.359" utilization="35.9963" service-time-variance="802367"/>
                   <synch-call dest="Protocol" calls-mean="1">
                      <result-call waiting="445.751"/>
                   </synch-call>
@@ -77,7 +76,7 @@
          <entry name="Protocol" type="PH1PH2">
             <result-entry utilization="0.999216" throughput="0.0630012" squared-coeff-variation="0.523799" proc-utilization="0.390608" throughput-bound="0.16129"/>
             <forwarding dest="WebServer" prob="1">
-               <result-call waiting="3.9337"/>
+               <result-call waiting="3.93374"/>
             </forwarding>
             <entry-phase-activities>
                <activity name="Protocol_1" phase="1" host-demand-mean="6.2">
@@ -87,20 +86,20 @@
          </entry>
       </task>
       <task name="WebServer" scheduling="fcfs" multiplicity="10">
-         <result-task throughput="0.0630012" utilization="6.66644" phase1-utilization="6.66644" proc-utilization="0.618735"/>
+         <result-task throughput="0.0630012" utilization="6.66645" phase1-utilization="6.66645" proc-utilization="0.618735"/>
          <entry name="WebServer" type="PH1PH2">
-            <result-entry utilization="6.66644" throughput="0.0630012" squared-coeff-variation="7.45848" proc-utilization="0.618735" throughput-bound="0.307007"/>
+            <result-entry utilization="6.66645" throughput="0.0630012" squared-coeff-variation="7.45849" proc-utilization="0.618735" throughput-bound="0.307007"/>
             <entry-phase-activities>
                <activity name="WebServer_1" phase="1" host-demand-mean="9.821">
-                  <result-activity proc-waiting="31.0122" service-time="105.814" utilization="6.66644" service-time-variance="83510.5"/>
+                  <result-activity proc-waiting="31.0122" service-time="105.815" utilization="6.66645" service-time-variance="83510.6"/>
                   <synch-call dest="WS_Disk" calls-mean="1.51">
                      <result-call waiting="3.60796"/>
                   </synch-call>
                   <synch-call dest="CGI_Update" calls-mean="0.04">
-                     <result-call waiting="162.303"/>
+                     <result-call waiting="162.304"/>
                   </synch-call>
                   <synch-call dest="CGI_Read" calls-mean="0.06">
-                     <result-call waiting="162.303"/>
+                     <result-call waiting="162.304"/>
                   </synch-call>
                </activity>
             </entry-phase-activities>

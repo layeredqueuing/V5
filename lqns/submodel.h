@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 15584 2022-05-21 00:57:36Z greg $
+ * $Id: submodel.h 15600 2022-05-27 15:32:49Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -68,7 +68,7 @@ private:
     };
 
 public:
-    Submodel( const unsigned n ) : _submodel_number(n), _n_chains(0) {}
+    Submodel( const unsigned n );
     virtual ~Submodel() {}
 
 private:
@@ -150,6 +150,14 @@ inline std::ostream& operator<<( std::ostream& output, const Submodel& self) { r
 class MVASubmodel : public Submodel {
     friend class Generate;
 
+    struct print_server {
+	print_server( std::ostream& output, bool (Entity::*predicate)() const ) : _output(output), _predicate(predicate) {}
+	void operator()( const Entity * ) const;
+    private:
+	std::ostream& _output;
+	bool (Entity::*_predicate)() const;
+    };
+    
 public:
     MVASubmodel( const unsigned );
     virtual ~MVASubmodel();

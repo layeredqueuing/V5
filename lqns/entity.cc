@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15580 2022-05-20 12:57:52Z greg $
+ * $Id: entity.cc 15603 2022-05-27 18:30:56Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -87,11 +87,12 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
       _replica_number(1),		/* This object is not a replica	*/
       _pruned(false)
 {
-    _attributes[Attributes::initialized]    = false;	/* entity was initialized.	*/
-    _attributes[Attributes::closed_model]   = false;	/* Stn in in closed model.     	*/
-    _attributes[Attributes::open_model]	    = false;	/* Stn is in open model.	*/
-    _attributes[Attributes::deterministic]  = false;	/* an entry has det. phase[	*/
-    _attributes[Attributes::variance]       = false;	/* */
+    _attributes[Attributes::initialized]	= false;	/* entity was initialized.		*/
+    _attributes[Attributes::closed_server]   	= false;	/* Stn in server in closed model.     	*/
+    _attributes[Attributes::closed_client]   	= false;	/* Stn in client in closed model.     	*/
+    _attributes[Attributes::open_server]	= false;	/* Stn is server in open model.		*/
+    _attributes[Attributes::deterministic]  	= false;	/* an entry has det. phase[		*/
+    _attributes[Attributes::variance]		= false;	/* */
 }
 
 
@@ -160,7 +161,7 @@ Entity::findChildren( Call::stack& callStack, const bool ) const
     unsigned max_depth = std::max( submodel(), callStack.depth() );
 
 #if 0
-    std::cerr << "Entity::findChildren: " << name() << "." << getReplicaNumber() << "->setSubmodel(" << max_depth << ")" << std::endl;
+    std::cerr << "Entity::findChildren: " << print_name() << "->setSubmodel(" << max_depth << ")" << std::endl;
 #endif
     const_cast<Entity *>(this)->setSubmodel( max_depth );
     return max_depth;
@@ -307,26 +308,6 @@ Entity::throughput() const
 
 
 /*
- * Return utilization for this entity.  Compute from the entry utilization.
- */
-
-double
-Entity::utilization() const
-{
-#if !DEFERRED_UTILIZATION
-    const_cast<Entity *>(this)->_utilization = std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::utilization ) );
-    if ( Pragma::stopOnBogusUtilization() > 0. && !isInfinite() && _utilization / copies() > Pragma::stopOnBogusUtilization() ) {
-	std::ostringstream err;
-	err << name() << " utilization=" << _utilization << " exceeds multiplicity=" << copies();
-	throw std::range_error( err.str() );
-    }
-#endif
-    return _utilization;
-}
-
-
-
-/*
  * Return the "saturation" (normalized utilization)
  */
 
@@ -435,19 +416,12 @@ Entity::updateAllWaits( const Vector<Submodel *>& submodels )
 
 
 
-Entity&
-Entity::computeUtilization()
+double
+Entity::computeUtilization( const MVASubmodel& submodel )
 {
-#if DEFERRED_UTILIZATION
-    _utilization = std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::utilization ) );
-    if ( Pragma::stopOnBogusUtilization() > 0. && !isInfinite() && _utilization / copies() > Pragma::stopOnBogusUtilization() ) {
-	std::ostringstream err;
-	err << name() << " utilization=" << _utilization << " exceeds multiplicity=" << copies();
-	throw std::range_error( err.str() );
-    }
-#endif
-    return *this;
+    return std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::utilization ) );
 }
+
 
 /*
  * Calculate and set variance for entire entity.
@@ -611,7 +585,7 @@ Entity::initServerStation( Submodel& submodel )
 	}
 
 	/* -- Set service time for entries with visits only. -- */
-	if ( isInClosedModel() ) {
+	if ( isClosedModelServer() ) {
 	    for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
 		setServiceTime( (*entry), *k );
 	    }
@@ -622,7 +596,7 @@ Entity::initServerStation( Submodel& submodel )
 	 * and won't work in the above loop anyway)
 	 */
 
-	if ( isInOpenModel() ) {
+	if ( isOpenModelServer() ) {
 	    setServiceTime( (*entry), 0 );
 	}
 
@@ -637,7 +611,7 @@ Entity::initServerStation( Submodel& submodel )
 
     /* Set interlock */
 
-    if ( isInClosedModel() && Pragma::interlock() ) {
+    if ( isClosedModelServer() && Pragma::interlock() ) {
 	setInterlock( submodel );
     }
 
@@ -706,11 +680,12 @@ Entity::saveServerResults( const MVASubmodel& submodel, double relax )
 	const unsigned e = (*entry)->index();
 	double lambda = 0.0;
 
-	if ( isInOpenModel() ) {
+	if ( isOpenModelServer() ) {
 	    lambda = submodel.openModelThroughput( *station, e );		/* BUG_168 */
+	    (*entry)->saveOpenWait( station->R( e, 0 ) );
 	}
 
-	if ( isInClosedModel() ) {
+	if ( isClosedModelServer() ) {
 	    const double tput = submodel.closedModelThroughput( *station, e );
 	    if ( std::isfinite( tput ) ) {
 		lambda += tput;
@@ -721,13 +696,25 @@ Entity::saveServerResults( const MVASubmodel& submodel, double relax )
 		break;
 	    }
 	}
-	(*entry)->saveThroughput( lambda )
-	    .saveOpenWait( station->R( e, 0 ) );
+	(*entry)->saveThroughput( lambda );
     }
 
-    computeUtilization();
+    setUtilization( computeUtilization( submodel ) );
     setIdleTime( relax );
 
+    return *this;
+}
+
+
+Entity&
+Entity::setUtilization( double utilization )
+{
+    _utilization = utilization;
+    if ( Pragma::stopOnBogusUtilization() > 0. && !isInfinite() && _utilization / copies() > Pragma::stopOnBogusUtilization() ) {
+	std::ostringstream err;
+	err << name() << " utilization=" << _utilization << " exceeds multiplicity=" << copies();
+	throw std::range_error( err.str() );
+    }
     return *this;
 }
 
@@ -760,13 +747,26 @@ Entity::output_server_chains( std::ostream& output, const Entity& entity )
 Entity::output_entries( std::ostream& output, const Entity& entity )
 {
     const std::vector<Entry *>& entries = entity.entries();
-    output << std::accumulate( entries.begin(), entries.end(), std::string(), &Entry::fold );
+    const Entry& e1 = *entries.front();
+    std::ostringstream name;
+    name << e1.print_name();
+    output << std::accumulate( std::next(entries.begin()), entries.end(), name.str(), &Entry::fold );
     return output;
 }
 
 
 
-/* static */  std::ostream&
+/* static */ std::ostream&
+Entity::output_name( std::ostream& output, const Entity& entity )
+{
+    output << entity.name();
+    if ( entity.isReplicated() ) {
+	output << "." << entity.getReplicaNumber();
+    }
+    return output;
+}
+
+/* static */ std::ostream&
 Entity::output_info( std::ostream& output, const Entity& entity )
 {
     if ( entity.serverStation() ) {

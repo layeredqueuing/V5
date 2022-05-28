@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15322 2022-01-02 15:35:27Z greg $
+ * $Id: entry.cc 15600 2022-05-27 15:32:49Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1062,16 +1062,11 @@ Entry::insertDOMResults(double *phaseUtils) const
 std::ostream&
 Entry::printCalls( std::ostream& output, unsigned int submodel ) const
 {
-    CallInfo calls( *this, LQIO::DOM::Call::Type::RENDEZVOUS );
+    CallInfo rnv_calls( *this, LQIO::DOM::Call::Type::RENDEZVOUS );
+    std::for_each( rnv_calls.begin(), rnv_calls.end(), print_call( output, submodel, "->" ) );
 
-    for ( std::vector<CallInfo::Item>::const_iterator y = calls.begin(); y != calls.end(); ++y ) {
-	const Entry& src = *y->srcEntry();
-	const Entry& dst = *y->dstEntry();
-	if ( submodel != 0 && dst.owner()->submodel() != submodel ) continue;
-	if ( src.owner()->isPruned() && dst.owner()->isPruned() ) continue;
-	output << std::setw(2) << " " << src.name() << "." << src.getReplicaNumber()
-	       << " -> " << dst.name() << "." << dst.getReplicaNumber() << std::endl;
-    }
+    CallInfo snr_calls( *this, LQIO::DOM::Call::Type::SEND_NO_REPLY );
+    std::for_each( snr_calls.begin(), snr_calls.end(), print_call( output, submodel, "~>" ) );
 
 #if 0
     CallInfo fwds( *this, LQIO::DOM::Call::Type::FORWARD );
@@ -1084,6 +1079,16 @@ Entry::printCalls( std::ostream& output, unsigned int submodel ) const
     }
 #endif
     return output;
+}
+
+
+void
+Entry::print_call::operator()( const CallInfo::Item& call ) const
+{
+    const Entry& src = *call.srcEntry();
+    const Entry& dst = *call.dstEntry();
+    if ( (_submodel != 0 && dst.owner()->submodel() != _submodel ) || ( src.owner()->isPruned() && dst.owner()->isPruned() ) ) return;
+    _output << std::setw(2) << " " << src.print_name() << " " << _arrow << " " << dst.print_name() << std::endl;
 }
 
 
@@ -1115,9 +1120,21 @@ std::string
 Entry::fold( const std::string& s1, const Entry * e2 )
 {
     std::ostringstream s2;
-    s2 << e2->name() << "." << e2->getReplicaNumber();
+    s2 << e2->print_name();
     return s1 + "," + s2.str();
 }
+
+
+/* static */ std::ostream&
+Entry::output_name( std::ostream& output, const Entry& entry )
+{
+    output << entry.name();
+    if ( entry.owner()->isReplicated() ) {
+	output << "." << entry.getReplicaNumber();
+    }
+    return output;
+}
+
 
 /* --------------------------- Dynamic LQX  --------------------------- */
 

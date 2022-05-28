@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 15507 2022-04-04 01:16:58Z greg $
+ * $Id: generate.cc 15597 2022-05-27 01:03:45Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -195,12 +195,12 @@ Generate::print( std::ostream& output ) const
     }
     output << "    std::cout << std::endl << \"Servers:\" << std::endl;" << std::endl;
     for ( std::set<Entity *>::const_iterator server = _submodel._servers.begin(); server != _submodel._servers.end(); ++server ) {
-	if ( (*server)->isInClosedModel() ) {
+	if ( (*server)->isClosedModelServer() ) {
 	    ++closedStnNo;
 	    output << "    station[" << closedStnNo << "]\t= " << station_name( *(*server) ) << ";";
 	    output << "\tstd::cout << \"" << closedStnNo << ": " << *(*server) << "\" << std::endl;" << std::endl;
 	}
-	if ( (*server)->isInOpenModel() ) {
+	if ( (*server)->isOpenModelServer() ) {
 	    ++openStnNo;
 	    output << "    open_station[" << openStnNo << "]\t= " << station_name( *(*server) ) << ";" << std::endl;
 	}

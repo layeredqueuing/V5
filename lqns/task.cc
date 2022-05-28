@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15584 2022-05-21 00:57:36Z greg $
+ * $Id: task.cc 15603 2022-05-27 18:30:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -281,7 +281,7 @@ Task::configure( const unsigned nSubmodels )
     Entity::configure( nSubmodels );
 
     if ( hasOpenArrivals() ) {
-	isInOpenModel( true );
+	setOpenModelServer( true );
     }
     if ( Pragma::forceMultiserver( Pragma::ForceMultiserver::TASKS ) ) {
 	setVarianceAttribute( false );
@@ -383,7 +383,7 @@ Task::initPopulation()
     std::set<Task *> sources;		/* Cltn of tasks already visited. */
     _population = countCallers( sources );
 
-    if ( isInClosedModel() && ( _population == 0 || !std::isfinite( _population ) ) ) {
+    if ( isClosedModelClient() && ( _population == 0 || !std::isfinite( _population ) ) ) {
 	LQIO::solution_error( ERR_BOGUS_COPIES, _population, name().c_str() );
     }
     return *this;
@@ -695,7 +695,7 @@ Task::countCallers( std::set<Task *>& reject ) const
 
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	if ( hasOpenArrivals() ) {
-	    const_cast<Task *>(this)->isInOpenModel( true );
+	    const_cast<Task *>(this)->setOpenModelServer( true );
 	    if ( isInfinite() ) {
 		sum = std::numeric_limits<double>::infinity();
 	    }
@@ -712,20 +712,20 @@ Task::countCallers( std::set<Task *>& reject ) const
 		double delta = 0.0;
 		if ( client->isInfinite() ) {
 		    delta = client->countCallers( reject );
-		    if ( client->isInOpenModel() ) {
-			const_cast<Task *>(this)->isInOpenModel( true );	/* Inherit from caller */
+		    if ( client->isOpenModelServer() ) {
+			const_cast<Task *>(this)->setOpenModelServer( true );	/* Inherit from caller */
 		    }
-		    if ( client->isInClosedModel() ) {
-			const_cast<Task *>(this)->isInClosedModel( true  );	/* Inherit from caller */
+		    if ( client->isClosedModelClient() ) {
+			const_cast<Task *>(this)->setClosedModelServer( true  );	/* Inherit from caller */
 		    }
 		} else if ( client->isMultiServer() ) {
-		    client->isInClosedModel( true );
+		    client->setClosedModelClient( true );
 		    delta = client->countCallers( reject );
-		    const_cast<Task *>(this)->isInClosedModel( true );
+		    const_cast<Task *>(this)->setClosedModelServer( true );
 		} else {
-		    client->isInClosedModel( true );
+		    client->setClosedModelClient( true );
 		    delta = static_cast<double>(client->copies());
-		    const_cast<Task *>(this)->isInClosedModel( true );
+		    const_cast<Task *>(this)->setClosedModelServer( true );
 		}
 		if ( std::isfinite( sum ) ) {
 		    sum += delta * static_cast<double>(fanIn( client ));
@@ -733,16 +733,16 @@ Task::countCallers( std::set<Task *>& reject ) const
 
 	    } else if ( (*call)->hasSendNoReply() ) {
 
-		const_cast<Task *>(this)->isInOpenModel( true );
+		const_cast<Task *>(this)->setOpenModelServer( true );
 
 	    }
 	}
     }
 
-    if ( !isInfinite() && (sum > copies() || isInOpenModel() || !std::isfinite( sum ) || hasSecondPhase() ) ) {
+    if ( !isInfinite() && (sum > copies() || isOpenModelServer() || !std::isfinite( sum ) || hasSecondPhase() ) ) {
 	sum = static_cast<double>(copies());
     } else if ( isInfinite() && hasSecondPhase() && sum > 0.0 ) {
-	sum = 100000;		/* Should be a pragma. */
+	sum = std::numeric_limits<double>::infinity();
     }
     return sum;
 }
@@ -850,7 +850,7 @@ Task::initClientStation( Submodel& submodel )
     const std::vector<Entry *>& entries = this->entries();
 #endif
 
-    if ( isInClosedModel() ) {
+    if ( isClosedModelClient() ) {
 	const ChainVector& chains = clientChains( n );
 	for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
 	    for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
@@ -940,13 +940,13 @@ Task::saveClientResults( const MVASubmodel& submodel )
     callsPerform( &Call::saveWait, n );
     openCallsPerform( &Call::saveOpen, n );
 
-    /* Other results (only useful for references tasks. */
+    /* Other results (only useful for references tasks). */
 
     if ( isReferenceTask() && !isCalled() ) {
-	if ( isInClosedModel() ) {
+	if ( isClosedModelClient() ) {
 	    std::for_each( entries().begin(), entries().end(), Exec3<Entry,const MVASubmodel&, const Server&,unsigned>( &Entry::saveClientResults, submodel, *clientStation( n ), clientChains( n )[1] ) );
 	}
-	computeUtilization();
+	setUtilization( computeUtilization( submodel ) );
     }
     return *this;
 }
@@ -1611,7 +1611,7 @@ Task::printJoinDelay( std::ostream& output ) const
 ReferenceTask::ReferenceTask( LQIO::DOM::Task* dom, const Processor * processor, const Group * group, const std::vector<Entry *>& entries )
     : Task( dom, processor, group, entries )
 {
-    isInClosedModel(true);
+    setClosedModelClient( true );
 }
 
 
@@ -1906,7 +1906,7 @@ ServerTask::makeServer( const unsigned nChains )
 	    switch ( Pragma::multiserver() ) {
 	    default:
 	    case Pragma::Multiserver::DEFAULT:
-		if ( (copies() < 128 && nChains <= 5) || isInOpenModel() ) {
+		if ( (copies() < 128 && nChains <= 5) || isOpenModelServer() ) {
 		    if ( dynamic_cast<Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies() ) return nullptr;
 		    _station = new Conway_Multi_Server( copies(), nEntries(), nChains, maxPhase());
 		} else {
@@ -2328,13 +2328,13 @@ Task::print( std::ostream& output ) const
     std::ios_base::fmtflags oldFlags = output.setf( std::ios::left, std::ios::adjustfield );
 
     std::ostringstream ss;
-    ss << name() << "." << getReplicaNumber();
+    ss << print_name();
     output << std::setw(10) << ss.str()
 	   << " " << std::setw(15) << print_info()
 	   << " " << std::setw(9)  << print_type();
     ss.str("");
     if ( hasProcessor() ) {
-	ss << getProcessor()->name() << "." << getProcessor()->getReplicaNumber();
+	ss << getProcessor()->print_name();
     } else {
 	ss << "--";
     }

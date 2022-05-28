@@ -1,21 +1,50 @@
 <?xml version="1.0"?>
-<!-- Invoked as: lqns -Pvariance=mol,threads=mak 92-open.lqnx -->
-<lqn-model name="92-open" description="lqns 5.3 solution for model from: 92-open.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id: 92-open.lqxo 15603 2022-05-27 18:30:56Z greg $ -->
+<!-- lqns -pragma=variance=mol,threads=hyper -->
+<lqn-model name="92-open" description="lqns 5.26 solution for model from: 92-open.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
-      <result-general valid="YES" conv-val="4.38854e-18" iterations="2" platform-info="Gregs-MacBook.local Darwin 10.7.0" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00">
-         <mva-info submodels="3" core="4" step="37" step-squared="427" wait="12164" wait-squared="8.21062e+07" faults="0"/>
-      </result-general>
       <pragma param="stop-on-message-loss" value="false"/>
+      <pragma param="threads" value="hyper"/>
+      <pragma param="variance" value="mol"/>
+      <result-general solver-info="" valid="true" conv-val="0" iterations="3" platform-info="lqns 5.26" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000" max-rss="12080">
+         <mva-info submodels="3" core="3" step="38" step-squared="498" wait="15936" wait-squared="9.70936e+07" faults="0"/>
+      </result-general>
    </solver-params>
+   <processor name="choose" scheduling="inf">
+      <result-processor utilization="1e-07"/>
+      <task name="choose" scheduling="inf">
+         <result-task throughput="0.01" utilization="0.525995" phase1-utilization="0.525995" proc-utilization="1e-07"/>
+         <entry name="choose" type="PH1PH2" open-arrival-rate="0.01">
+            <result-entry utilization="0.525995" throughput="0.01" squared-coeff-variation="1.61101" proc-utilization="1e-07" throughput-bound="0.021777" open-wait-time="52.5327"/>
+            <entry-phase-activities>
+               <activity name="choose_ph1" phase="1" host-demand-mean="1e-05">
+                  <result-activity proc-waiting="0" service-time="52.5995" utilization="0.525995" service-time-variance="4457.19"/>
+                  <synch-call dest="DBD" calls-mean="1">
+                     <result-call waiting="1.23682"/>
+                  </synch-call>
+                  <synch-call dest="DBP" calls-mean="1">
+                     <result-call waiting="1.28972"/>
+                  </synch-call>
+                  <synch-call dest="WSD" calls-mean="1">
+                     <result-call waiting="0.616577"/>
+                  </synch-call>
+                  <synch-call dest="WSP" calls-mean="1">
+                     <result-call waiting="3.53637"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
    <processor name="DBD" scheduling="fcfs">
       <result-processor utilization="0.1052"/>
       <task name="DBD" scheduling="fcfs">
          <result-task throughput="0.01" utilization="0.1052" phase1-utilization="0.1052" proc-utilization="0.1052"/>
          <entry name="DBD" type="PH1PH2">
-            <result-entry utilization="0.1052" throughput="0.01" squared-coeff-variation="1" proc-utilization="0.1052"/>
+            <result-entry utilization="0.1052" throughput="0.01" squared-coeff-variation="1" proc-utilization="0.1052" throughput-bound="0.095057"/>
             <entry-phase-activities>
                <activity name="DBD_ph1" phase="1" host-demand-mean="10.52">
-                  <result-activity proc-waiting="0" service-time="10.52" service-time-variance="110.67" utilization="0.1052"/>
+                  <result-activity proc-waiting="0" service-time="10.52" utilization="0.1052" service-time-variance="110.67"/>
                </activity>
             </entry-phase-activities>
          </entry>
@@ -26,10 +55,10 @@
       <task name="DBP" scheduling="fcfs">
          <result-task throughput="0.01" utilization="0.1073" phase1-utilization="0.1073" proc-utilization="0.1073"/>
          <entry name="DBP" type="PH1PH2">
-            <result-entry utilization="0.1073" throughput="0.01" squared-coeff-variation="1" proc-utilization="0.1073"/>
+            <result-entry utilization="0.1073" throughput="0.01" squared-coeff-variation="1" proc-utilization="0.1073" throughput-bound="0.0931966"/>
             <entry-phase-activities>
                <activity name="DBP_ph1" phase="1" host-demand-mean="10.73">
-                  <result-activity proc-waiting="0" service-time="10.73" service-time-variance="115.133" utilization="0.1073"/>
+                  <result-activity proc-waiting="0" service-time="10.73" utilization="0.1073" service-time-variance="115.133"/>
                </activity>
             </entry-phase-activities>
          </entry>
@@ -40,10 +69,10 @@
       <task name="WSD" scheduling="fcfs">
          <result-task throughput="0.01" utilization="0.0755" phase1-utilization="0.0755" proc-utilization="0.0755"/>
          <entry name="WSD" type="PH1PH2">
-            <result-entry utilization="0.0755" throughput="0.01" squared-coeff-variation="1" proc-utilization="0.0755"/>
+            <result-entry utilization="0.0755" throughput="0.01" squared-coeff-variation="1" proc-utilization="0.0755" throughput-bound="0.13245"/>
             <entry-phase-activities>
                <activity name="WSD_ph1" phase="1" host-demand-mean="7.55">
-                  <result-activity proc-waiting="0" service-time="7.55" service-time-variance="57.0025" utilization="0.0755"/>
+                  <result-activity proc-waiting="0" service-time="7.55" utilization="0.0755" service-time-variance="57.0025"/>
                </activity>
             </entry-phase-activities>
          </entry>
@@ -54,36 +83,10 @@
       <task name="WSP" scheduling="fcfs">
          <result-task throughput="0.01" utilization="0.1712" phase1-utilization="0.1712" proc-utilization="0.1712"/>
          <entry name="WSP" type="PH1PH2">
-            <result-entry utilization="0.1712" throughput="0.01" squared-coeff-variation="1" proc-utilization="0.1712"/>
+            <result-entry utilization="0.1712" throughput="0.01" squared-coeff-variation="1" proc-utilization="0.1712" throughput-bound="0.0584112"/>
             <entry-phase-activities>
                <activity name="WSP_ph1" phase="1" host-demand-mean="17.12">
-                  <result-activity proc-waiting="0" service-time="17.12" service-time-variance="293.094" utilization="0.1712"/>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-   <processor name="choose" scheduling="inf">
-      <result-processor utilization="1e-07"/>
-      <task name="choose" scheduling="inf">
-         <result-task throughput="0.01" utilization="0.525995" phase1-utilization="0.525995" proc-utilization="1e-07"/>
-         <entry name="choose" type="PH1PH2" open-arrival-rate="0.01">
-            <result-entry utilization="0.525995" throughput="0.01" squared-coeff-variation="1.61101" proc-utilization="1e-07" open-wait-time="51.9315"/>
-            <entry-phase-activities>
-               <activity name="choose_ph1" phase="1" host-demand-mean="1e-05">
-                  <result-activity proc-waiting="0" service-time="52.5995" service-time-variance="4457.19" utilization="0.525995"/>
-                  <synch-call dest="DBD" calls-mean="1">
-                     <result-call waiting="1.23682" waiting-variance="0"/>
-                  </synch-call>
-                  <synch-call dest="DBP" calls-mean="1">
-                     <result-call waiting="1.28972" waiting-variance="0"/>
-                  </synch-call>
-                  <synch-call dest="WSD" calls-mean="1">
-                     <result-call waiting="0.616577" waiting-variance="0"/>
-                  </synch-call>
-                  <synch-call dest="WSP" calls-mean="1">
-                     <result-call waiting="3.53637" waiting-variance="0"/>
-                  </synch-call>
+                  <result-activity proc-waiting="0" service-time="17.12" utilization="0.1712" service-time-variance="293.094"/>
                </activity>
             </entry-phase-activities>
          </entry>
