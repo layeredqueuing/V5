@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15551 2022-04-18 15:37:05Z greg $
+ * $Id: multserv.cc 15606 2022-05-28 13:01:28Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -126,7 +126,7 @@ Reiser_Multi_Server::openWait() const
     double dem;
     double w;
 
-    if ( rho() >= 1.0 ) {
+    if ( rho() == 1.0 ) {
 	w = std::numeric_limits<double>::infinity();
     } else if ( J < 50 ) {
 	num = rho() * power( J * rho(), J - 1 );
@@ -202,8 +202,10 @@ Reiser_Multi_Server::A() const
 	sum     += product;
     }
 
-    if ( 1.0 - rho() > 0. ) {
+    if ( rho() < 1.0 ) {
 	sum += product * rho_J / ( static_cast<double>(J) * ( 1.0 - rho() ));
+    } else {
+	sum = std::numeric_limits<double>::infinity();
     }
 
     return sum;

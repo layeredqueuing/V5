@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: ph2serv.cc 14871 2021-07-03 03:20:32Z greg $
+ * $Id: ph2serv.cc 15606 2022-05-28 13:01:28Z greg $
  *
  * Server definitions for MVA.  More complicated that those in server.C
  *
@@ -68,7 +68,11 @@ Phased_Server::MGplusG1() const
 	sum += V(e,0) * square( S(e,0) );
     }
 	
-    return sum / (2.0 * (1.0 - rho()));
+    if ( rho() < 1.0 ) {
+	return sum / (2.0 * (1.0 - rho()));
+    } else {
+	return std::numeric_limits<double>::infinity();
+    }
 }
 
 

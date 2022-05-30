@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- * $Id: server.cc 15604 2022-05-27 18:37:40Z greg $
+ * $Id: server.cc 15606 2022-05-28 13:01:28Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -896,8 +896,9 @@ PS_Server::openWait() const
 {
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,0) ) continue;
+	const double wait = rho() < 1.0 ? S(e,0) / ( 1.0 - rho()) : std::numeric_limits<double>::infinity();
 	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
-	    W[e][0][p] = S(e,0) / ( 1.0 - rho() );
+	    W[e][0][p] = wait;
 	}
     }
 }
@@ -1007,8 +1008,9 @@ FCFS_Server::openWait() const
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,0) ) continue;
 
+	const double wait = rho() < 1.0 ? S(0) / ( 1.0 - rho()) : std::numeric_limits<double>::infinity();
 	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
-	    W[e][0][p] = S(0) / ( 1.0 - rho() );
+	    W[e][0][p] = wait;
 	}
     }
 }
@@ -1225,10 +1227,10 @@ HVFCFS_Server::MG1( const unsigned e ) const
 
     if ( sum == 0 ) {
 	return 0.0;		/* No service time, so no queue. */
-    } else if ( rho() == 1.0 ) {
-	return std::numeric_limits<double>::infinity();
-    } else {
+    } else if ( rho() < 1.0 ) {
 	return rho() * ( sum + myVariance[e][0][0] / sum ) / (2.0 * (1.0 - rho()));
+    } else {
+	return std::numeric_limits<double>::infinity();
     }
 }
 
