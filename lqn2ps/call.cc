@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15262 2021-12-26 18:55:49Z greg $
+ * $Id: call.cc 15610 2022-05-31 11:02:21Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -2472,7 +2472,12 @@ wait_of_str( Label& aLabel, const Call& aCall )
 	if ( p != 1 ) {
 	    aLabel << ',';
 	}
-	aLabel << opt_pct(aCall.waiting(p));
+	const double w = aCall.waiting(p);
+	if ( !std::isfinite(w) ) {
+	    aLabel << _infty();
+	} else {
+	    aLabel << opt_pct(w);
+	}
     }
     return aLabel;
 }

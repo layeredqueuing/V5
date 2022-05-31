@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.h 15572 2022-04-28 19:16:13Z greg $
+ * $Id: glblerr.h 15609 2022-05-30 17:19:07Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -128,6 +128,7 @@ namespace LQIO {
 	WRN_NO_SPEX_OBSERVATIONS,
         WRN_QUANTUM_SCHEDULING,
         WRN_DEFINED_NE_SPECIFIED_X,
+	WRN_INFINITE_SERVER_OPEN_ARRIVALS,
 	WRN_PRAGMA_UNKNOWN,
 	WRN_PRAGMA_ARGUMENT_INVALID,
         WRN_MULTIPLE_SPECIFICATION,

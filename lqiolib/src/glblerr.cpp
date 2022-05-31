@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.cpp 15572 2022-04-28 19:16:13Z greg $
+ * $Id: glblerr.cpp 15609 2022-05-30 17:19:07Z greg $
  *
  * Error messages common to solvers.
  *
@@ -116,6 +116,7 @@ namespace LQIO {
 	{ WARNING_ONLY,  "No SPEX Observations were specified in the input model." },						    /* WRN_NO_SPEX_OBSERVATIONS		    */
         { WARNING_ONLY,  "Processor \"%s\" using \"%s\" scheduling has a non-zero quantum specified." },                            /* WRN_QUANTUM_SCHEDULING               */
         { WARNING_ONLY,  "Number of %s defined (%d) does not match number specified (%d)." },                                       /* WRN_DEFINED_NE_SPECIFIED_X           */
+	{ WARNING_ONLY,  "Infinite server \"%s\" accepts either asynchronous messages or open arrivals." },		            /* WRN_INFINITE_SERVER_OPEN_ARRIVALS    */
 	{ WARNING_ONLY,  "Pragma \"%s\" is not recognized." },									    /* WRN_PRAGMA_UNKNOWN		    */
 	{ WARNING_ONLY,  "Pragma \"%s\": invalid argument \"%s\"." },								    /* WRN_PRAGMA_ARGUMENT_INVALID	    */
         { WARNING_ONLY,  "Parameter is specified multiple times." },                                                                /* WRN_MULTIPLE_SPECIFICATION           */

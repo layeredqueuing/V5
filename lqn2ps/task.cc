@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15594 2022-05-25 20:19:52Z greg $
+ * $Id: task.cc 15610 2022-05-31 11:02:21Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1846,7 +1846,13 @@ Task::label()
 		myLabel->newLine() << begin_math();
 		print_goop = true;
 	    }
-	    *myLabel << _rho() << "=" << opt_pct(utilization());
+	    const double u = utilization();
+	    *myLabel << _rho() << "=";
+	    if (!std::isfinite( u )) {
+		*myLabel << _infty();
+	    } else {
+		*myLabel << opt_pct(u);
+	    }
 	    if ( hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
 		myLabel->colour(Graphic::Colour::RED);
 	    }

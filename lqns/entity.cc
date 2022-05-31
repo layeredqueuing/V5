@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15603 2022-05-27 18:30:56Z greg $
+ * $Id: entity.cc 15609 2022-05-30 17:19:07Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -128,6 +128,7 @@ Entity::~Entity()
 {
     delete _station;
 }
+
 
 
 

@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15603 2022-05-27 18:30:56Z greg $
+ * $Id: task.cc 15609 2022-05-30 17:19:07Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1809,13 +1809,13 @@ ServerTask::check() const
 	LQIO::solution_error( LQIO::WRN_INFINITE_MULTI_SERVER, "Task", name().c_str(), copies() );
     }
 
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	if ( (*entry)->hasOpenArrivals() ) {
-	    Entry::totalOpenArrivals += 1;
-	} else if ( !(*entry)->isCalled() ) {
-	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, (*entry)->name().c_str() );
-	}
+    /* */
+
+    if ( isInfinite() && (std::any_of( entries().begin(), entries().end(), Predicate1<Entry,Entry::RequestType>( &Entry::isCalledUsing, Entry::RequestType::SEND_NO_REPLY ) )
+			  || std::any_of( entries().begin(), entries().end(), Predicate1<Entry,Entry::RequestType>( &Entry::isCalledUsing, Entry::RequestType::OPEN_ARRIVAL ) ) ) ) {
+	LQIO::solution_error( LQIO::WRN_INFINITE_SERVER_OPEN_ARRIVALS, name().c_str() );
     }
+
     return true;
 }
 

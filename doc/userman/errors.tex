@@ -6,7 +6,7 @@
 %% Created:             Tue Jul 18 2006
 %%
 %% ----------------------------------------------------------------------
-%% $Id: errors.tex 13508 2020-02-26 03:22:06Z greg $
+%% $Id: errors.tex 15609 2022-05-30 17:19:07Z greg $
 %% ----------------------------------------------------------------------
 
 \chapter{Error Messages}
@@ -892,6 +892,13 @@ possible problems with the model which the solver has ignored.
   No service time\indexerror{service time} is specified for entry
   \emph{identifier}, phase $n$.
 
+% /* INFINITE_SERVER_OPEN_ARRIVALS */
+\item \texttt{Infinite server "}\emph{identifier}{" accepts either asynchronous messages or open arrivals.}
+
+  The task or processor, \emph{identifier}, is an infinite server.  It processes either asynchronous
+  messages or open arrivals.  If the arrival rate exceeds the service rate of the infinite server, the
+  number of instances of the infinite server will grow to infinity.
+  
 % /* WRN_NO_PHASE_FOR_HISTOGRAM         68 */
 \item \texttt{Histogram requested for entry "}\emph{identifier}\texttt{", phase~}\emph{n}\texttt{ -- phase is not present.}\marginpar{lqsim}
   
