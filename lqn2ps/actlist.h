@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 15255 2021-12-24 17:42:46Z greg $
+ * $Id: actlist.h 15614 2022-06-01 12:17:43Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -139,12 +139,12 @@ public:
 
     SequentialActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist ); 
     virtual ~SequentialActivityList();
-    Activity * getMyActivity() const { return myActivity; }
-    virtual unsigned size() const { return myActivity ? 1 : 0; }
+    Activity * getMyActivity() const { return _activity; }
+    virtual unsigned size() const { return _activity ? 1 : 0; }
     virtual SequentialActivityList& add( Activity * anActivity );
 
-    virtual Point srcPoint() const { return myArc->srcPoint(); }
-    virtual Point dstPoint() const { return myArc->dstPoint(); }
+    virtual Point srcPoint() const { return _arc->srcPoint(); }
+    virtual Point dstPoint() const { return _arc->dstPoint(); }
 
     virtual SequentialActivityList& scaleBy( const double, const double );
     virtual SequentialActivityList& translateY( const double );
@@ -159,8 +159,8 @@ protected:
     virtual Point findDstPoint() const;
 
 protected:
-    Activity * myActivity;
-    Arc * myArc;
+    Activity * _activity;
+    Arc * _arc;
 };
 
 /* -------------------------------------------------------------------- */
@@ -210,7 +210,7 @@ public:
 
     virtual size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const;
     virtual size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, const unsigned, const double ) const;
-    virtual void backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const { if ( myActivity ) myActivity->backtrack( forkStack, forkSet, joinSet ); }
+    virtual void backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const { if ( _activity ) _activity->backtrack( forkStack, forkSet, joinSet ); }
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
     virtual double getIndex() const;
@@ -239,11 +239,11 @@ public:
     ForkJoinActivityList( const Task * owner, const LQIO::DOM::ActivityList* );
     virtual ~ForkJoinActivityList();
     
-    const std::vector<Activity *> & activityList() const { return _activityList; }
+    const std::vector<Activity *> & activityList() const { return _activities; }
     virtual ForkJoinActivityList& add( Activity * anActivity );
     virtual ForkJoinActivityList& sort( compare_func_ptr compare );
 
-    virtual unsigned size() const { return _activityList.size(); }
+    virtual unsigned size() const { return _activities.size(); }
     std::string getName() const;
 	
     virtual Point srcPoint() const = 0;
@@ -261,9 +261,9 @@ protected:
     virtual Point findDstPoint() const;
 
 protected:
-    std::vector<Activity *> _activityList;
-    std::map<Activity *,Arc *> myArcList;
-    Node * myNode;
+    std::vector<Activity *> _activities;
+    std::map<Activity *,Arc *> _arcs;
+    Node * _node;
 };
 
 
@@ -327,7 +327,7 @@ protected:
     virtual const char * typeStr() const { return "+"; }
 
 private:
-    std::map<Activity *,Label *> _labelList;
+    std::map<Activity *,Label *> _labels;
 };
 
 /* -------------------------------------------------------------------- */
@@ -484,7 +484,7 @@ public:
     virtual ~RepeatActivityList();
     virtual RepeatActivityList& add( Activity * anActivity );
 	
-    const std::vector<Activity *> & activityList() const { return _activityList; }
+    const std::vector<Activity *> & activityList() const { return _activities; }
 
     virtual unsigned size() const;
     virtual size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const;
@@ -522,10 +522,10 @@ protected:
     const LQIO::DOM::ExternalVariable* rateBranch( const Activity * ) const;
 
 private:
-    std::vector<Activity *> _activityList;
-    std::map<Activity *,Arc *> myArcList;
-    std::map<Activity *,Label *> _labelList;
-    Node * myNode;
+    std::vector<Activity *> _activities;
+    std::map<Activity *,Arc *> _arcs;
+    std::map<Activity *,Label *> _labels;
+    Node * _node;
     ActivityList * prevLink;
 };
 

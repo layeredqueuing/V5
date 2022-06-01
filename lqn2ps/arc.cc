@@ -1,6 +1,6 @@
 /* arc.cc	-- Greg Franks Thu Jan 30 2003
  *
- * $Id: arc.cc 15263 2021-12-26 19:06:26Z greg $
+ * $Id: arc.cc 15614 2022-06-01 12:17:43Z greg $
  */
 
 #include "lqn2ps.h"
@@ -11,7 +11,7 @@
 #include "model.h"
 
 Arc *
-Arc::newArc( const unsigned size, const ArrowHead arrow )
+Arc::newArc( const unsigned size, const Arrowhead arrow )
 {
     static const std::map<const File_Format,Arc::create_func> new_arc = {
 	{ File_Format::EEPIC,	    ArcTeX::create },
@@ -60,7 +60,7 @@ Arc&
 Arc::operator=( const Arc &anArc )
 {
     if ( this == &anArc ) return *this;
-    myArrowhead = anArc.myArrowhead;
+    _arrowhead = anArc._arrowhead;
     std::vector<Point>::operator=( anArc );
     return *this;
 }
@@ -335,10 +335,10 @@ ArcGD::draw( std::ostream& output ) const
     /* Now draw the arrowhead */
     
     switch ( arrowhead() ) {
-    case Graphic::ArrowHead::CLOSED:
+    case Graphic::Arrowhead::CLOSED:
 	arrowHead( penultimatePoint(), dstPoint(), arrowScaling(), penColour(), penColour() );
 	break;
-    case Graphic::ArrowHead::OPEN:
+    case Graphic::Arrowhead::OPEN:
 	arrowHead( penultimatePoint(), dstPoint(), arrowScaling(), penColour(), Graphic::Colour::WHITE );
 	break;
     }

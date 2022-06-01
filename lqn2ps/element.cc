@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 15255 2021-12-24 17:42:46Z greg $
+ * $Id: element.cc 15613 2022-06-01 10:24:28Z greg $
  */
 
 #include "element.h"
@@ -23,8 +23,8 @@ const LQIO::DOM::ConstantExternalVariable Element::ONE(1.);
 Element::Element( const LQIO::DOM::DocumentObject * dom, const size_t id )
     : _documentObject( dom ),
       _elementId( id ),
-      myLabel(nullptr),
-      myNode(nullptr)
+      _label(nullptr),
+      _node(nullptr)
 {
 }
 
@@ -271,7 +271,7 @@ Element::hasClientOpenChain( unsigned k ) const
 Element&
 Element::moveBy( const double dx, const double dy )
 {
-    moveTo( myNode->left() + dx, myNode->bottom() + dy );
+    moveTo( _node->left() + dx, _node->bottom() + dy );
     return *this;
 }
 
@@ -280,8 +280,8 @@ Element::moveBy( const double dx, const double dy )
 Element&
 Element::scaleBy( const double sx, const double sy )
 {
-    myNode->scaleBy( sx, sy );
-    myLabel->scaleBy( sx, sy );
+    _node->scaleBy( sx, sy );
+    _label->scaleBy( sx, sy );
     return *this;
 }
 
@@ -290,8 +290,8 @@ Element::scaleBy( const double sx, const double sy )
 Element&
 Element::translateY( const double dy  )
 {
-    myNode->translateY( dy );
-    myLabel->translateY( dy );
+    _node->translateY( dy );
+    _label->translateY( dy );
     return *this;
 }
 
@@ -300,8 +300,8 @@ Element::translateY( const double dy  )
 Element&
 Element::depth( const unsigned depth  ) 
 {
-    myNode->depth( depth );
-    myLabel->depth( depth-1 );
+    _node->depth( depth );
+    _label->depth( depth-1 );
     return *this;
 }
 

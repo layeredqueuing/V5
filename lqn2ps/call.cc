@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15610 2022-05-31 11:02:21Z greg $
+ * $Id: call.cc 15614 2022-06-01 12:17:43Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -452,9 +452,9 @@ Call::merge( Phase& phase, const unsigned int p, const Call& src, const double r
 
     if ( _arc ) {
 	if ( hasSendNoReply() ) {
-	    _arc->arrowhead(Graphic::ArrowHead::OPEN);
+	    _arc->arrowhead(Graphic::Arrowhead::OPEN);
 	} else {
-	    _arc->arrowhead(Graphic::ArrowHead::CLOSED);
+	    _arc->arrowhead(Graphic::Arrowhead::CLOSED);
 	    if ( hasForwarding() ) {
 		_arc->linestyle(Graphic::LineStyle::DASHED);
 	    }
@@ -543,9 +543,9 @@ Call::setArcType()
 {
     if ( _arc ) {
 	if ( hasSendNoReply() ) {
-	    _arc->arrowhead(Graphic::ArrowHead::OPEN);
+	    _arc->arrowhead(Graphic::Arrowhead::OPEN);
 	} else {
-	    _arc->arrowhead(Graphic::ArrowHead::CLOSED);
+	    _arc->arrowhead(Graphic::Arrowhead::CLOSED);
 	    if ( hasForwarding() ) {
 		_arc->linestyle(Graphic::LineStyle::DASHED);
 	    }
@@ -593,7 +593,7 @@ Call::rendezvous( const unsigned p, const LQIO::DOM::Call * value )
 	_callType = LQIO::DOM::Call::Type::RENDEZVOUS;
 	_calls[p-1] = value;
 	if ( _arc ) {
-	    _arc->arrowhead(Graphic::ArrowHead::CLOSED);
+	    _arc->arrowhead(Graphic::Arrowhead::CLOSED);
 	}
     }
     return *this;
@@ -608,7 +608,7 @@ Call::rendezvous( const unsigned p, const double value )
 	_callType = LQIO::DOM::Call::Type::RENDEZVOUS;
 	const_cast<LQIO::DOM::Call *>(_calls[p-1])->setCallMeanValue(value);
 	if ( _arc ) {
-	    _arc->arrowhead(Graphic::ArrowHead::CLOSED);
+	    _arc->arrowhead(Graphic::Arrowhead::CLOSED);
 	}
     }
     return *this;
@@ -641,7 +641,7 @@ Call::sendNoReply( const unsigned p, const LQIO::DOM::Call * value )
 	_callType = LQIO::DOM::Call::Type::SEND_NO_REPLY;
 	_calls[p-1] = value;
 	if ( _arc ) {
-	    _arc->arrowhead(Graphic::ArrowHead::OPEN);
+	    _arc->arrowhead(Graphic::Arrowhead::OPEN);
 	}
     }
     return *this;
@@ -656,7 +656,7 @@ Call::sendNoReply( const unsigned p, const double value )
 	_callType = LQIO::DOM::Call::Type::SEND_NO_REPLY;
 	const_cast<LQIO::DOM::Call *>(_calls[p-1])->setCallMeanValue(value);
 	if ( _arc ) {
-	    _arc->arrowhead(Graphic::ArrowHead::OPEN);
+	    _arc->arrowhead(Graphic::Arrowhead::OPEN);
 	}
     }
     return *this;
@@ -676,7 +676,7 @@ Call::forward( const LQIO::DOM::Call * value )
     if ( !hasSendNoReply() ) {
 	_forwarding = value;
 	if ( _arc ) {
-	    _arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DASHED);
+	    _arc->arrowhead(Graphic::Arrowhead::CLOSED).linestyle(Graphic::LineStyle::DASHED);
 	    if ( !Flags::print_forwarding_by_depth && _arc->nPoints() == 2 ) {
 		_arc->resize( 4 );
 	    }
@@ -725,7 +725,7 @@ bool
 Call::hasWaiting() const
 {
     for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	LQIO::DOM::Call * dom = const_cast<LQIO::DOM::Call *>(getDOM(p));
+	const LQIO::DOM::Call * dom = const_cast<LQIO::DOM::Call *>(getDOM(p));
 	if ( dom && dom->getCallMean() != nullptr ) return true;
     }
 
@@ -978,7 +978,7 @@ Call::label()
 	}
     }
     if ( Flags::have_results ) {
-	Graphic::Colour c = (hasDropProbability() || hasInfiniteWait()) ? Graphic::Colour::RED : Graphic::Colour::DEFAULT;
+	const Graphic::Colour c = (hasDropProbability() || hasInfiniteWait()) ? Graphic::Colour::RED : Graphic::Colour::DEFAULT;
 	if ( Flags::print[WAITING].opts.value.b && hasWaiting() ) {
 	    _label->newLine().colour(c) << begin_math() << print_wait(*this) << end_math();
 	}
@@ -1313,7 +1313,7 @@ ProxyEntryCall::ProxyEntryCall( const Entry * fromEntry, const Entry * toEntry )
     : EntryCall( fromEntry, toEntry ), myProxy(0)
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DOTTED);
+	_arc->arrowhead(Graphic::Arrowhead::CLOSED).linestyle(Graphic::LineStyle::DOTTED);
     }
 }
 
@@ -1321,7 +1321,7 @@ PseudoEntryCall::PseudoEntryCall( const Entry * fromEntry, const Entry * toEntry
     : EntryCall( fromEntry, toEntry )
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DASHED_DOTTED);
+	_arc->arrowhead(Graphic::Arrowhead::CLOSED).linestyle(Graphic::LineStyle::DASHED_DOTTED);
     }
 }
 
@@ -1471,7 +1471,7 @@ ProxyActivityCall::ProxyActivityCall( const Activity * fromActivity, const Entry
     : ActivityCall( fromActivity, toEntry ), myProxy(0)
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DOTTED);
+	_arc->arrowhead(Graphic::Arrowhead::CLOSED).linestyle(Graphic::LineStyle::DOTTED);
     }
 }
 
@@ -1479,7 +1479,7 @@ Reply::Reply( const Activity * fromActivity, const Entry * toEntry )
     : ActivityCall( fromActivity, toEntry )
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DOTTED);
+	_arc->arrowhead(Graphic::Arrowhead::CLOSED).linestyle(Graphic::LineStyle::DOTTED);
     }
     const_cast<Entry *>(toEntry)->addActivityReplyArc( this );
 }
@@ -1577,7 +1577,7 @@ TaskCall::rendezvous( const LQIO::DOM::ConstantExternalVariable& value )
 {
     _rendezvous = value;
     if ( _arc ) {
-	_arc->arrowhead(Graphic::ArrowHead::CLOSED);
+	_arc->arrowhead(Graphic::Arrowhead::CLOSED);
     }
     return *this;
 }
@@ -1595,7 +1595,7 @@ TaskCall::sendNoReply( const LQIO::DOM::ConstantExternalVariable& value )
 {
     _sendNoReply = value;
     if ( !hasRendezvous() && !hasForwarding() && _arc ) {
-	_arc->arrowhead(Graphic::ArrowHead::OPEN);
+	_arc->arrowhead(Graphic::Arrowhead::OPEN);
     }
     return *this;
 }
@@ -1628,7 +1628,7 @@ TaskCall::taskForward( const LQIO::DOM::ConstantExternalVariable& value)
 {
     _forwarding = value;
     if ( !hasRendezvous() && _arc ) {
-	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DASHED);
+	_arc->arrowhead(Graphic::Arrowhead::CLOSED).linestyle(Graphic::LineStyle::DASHED);
 	if ( !Flags::print_forwarding_by_depth && _arc->nPoints() == 2 ) {
 	    _arc->resize( 4 );
 	}
@@ -1768,7 +1768,7 @@ TaskCall::label()
 	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
 	    if ( !(*entry)->hasQueueingTime() ) continue;
 	    if ( print ) _label->newLine();
-	    *_label << (*entry)->name() << " w=" << print_queueing_time(**entry);
+	    *_label << (*entry)->name() << " w=" << queueing_time_of(**entry);
 	    print = true;
 	}
     }
@@ -1794,7 +1794,7 @@ ProxyTaskCall::ProxyTaskCall( const Task * fromTask, const Task * toTask )
     : TaskCall( fromTask, toTask )
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DOTTED);
+	_arc->arrowhead(Graphic::Arrowhead::CLOSED).linestyle(Graphic::LineStyle::DOTTED);
     }
 }
 
@@ -1803,7 +1803,7 @@ PseudoTaskCall::PseudoTaskCall( const Task * fromTask, const Task * toTask )
     : TaskCall( fromTask, toTask )
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DASHED_DOTTED);
+	_arc->arrowhead(Graphic::Arrowhead::CLOSED).linestyle(Graphic::LineStyle::DASHED_DOTTED);
     }
 }
 
@@ -1984,43 +1984,40 @@ ProcessorCall::moveDst( const Point& aPoint )
 ProcessorCall&
 ProcessorCall::label()
 {
+    bool do_newline = false;
     if ( Flags::print_input_parameters() && Flags::prune ) {
 	if ( (hasRendezvous() || hasSendNoReply()) && _demand.visits() != nullptr ) {	/* Ignore the default */
 	    *_label << '(' << *_demand.visits() << ')';
+	    do_newline = true;
 	}
     } 
-    if ( !Flags::have_results ) return *this;
-    const Task& src = *srcTask();
-    const std::vector<Entry *>& entries = src.entries();
-    const std::vector<Activity *>& activities = src.activities();
-    bool do_newline = false;
-    if ( Flags::print[ENTRY_UTILIZATION].opts.value.b && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
+    if ( Flags::have_results && Flags::print[PROCESSOR_QUEUEING].opts.value.b ) {
+	const Task& src = *srcTask();
+	const std::vector<Entry *>& entries = src.entries();
+	const std::vector<Activity *>& activities = src.activities();
+	std::set<double> w;
 	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
-	    if ( !(*entry)->hasQueueingTime() || (*entry)->isActivityEntry() ) continue;
-	    if ( do_newline ) _label->newLine();
-	    *_label << "U[" << (*entry)->name() << "]=" << opt_pct((*entry)->processorUtilization());
-	    do_newline = true;
+	    if ( (*entry)->isActivityEntry() ) continue;
+	    for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
+		if ( (*entry)->hasServiceTime(p) ) {
+		    w.insert( (*entry)->queueingTime(p) );
+		}
+	    }
 	}
 	for ( std::vector<Activity *>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity ) {
-	    if ( !(*activity)->hasQueueingTime() ) continue;
-	    if ( do_newline ) _label->newLine();
-	    *_label << "U[" << (*activity)->name() << "]=" << opt_pct( (*activity)->processorUtilization() );
-	    do_newline = true;
+	    if ( !(*activity)->hasServiceTime() ) continue;
+	    w.insert( (*activity)->queueingTime() );
 	}
-    }
-    if ( src.hasQueueingTime() && Flags::print[PROCESSOR_QUEUEING].opts.value.b ) {
-	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
-	    if ( !(*entry)->hasQueueingTime() || (*entry)->isActivityEntry() ) continue;
-	    if ( do_newline ) _label->newLine();
-	    *_label << "W[" << (*entry)->name() << "]=" << print_queueing_time(**entry);
-	    do_newline = true;
+	if ( w.empty() ) w.insert( 0. );	// No waiting, so insert a zero.
+	if ( do_newline ) _label->newLine();
+	const double t1 = *w.begin();
+	const double t2 = *std::prev(w.end());
+	const Graphic::Colour c = std::isfinite( t2 ) ? Graphic::Colour::DEFAULT : Graphic::Colour::RED;
+	_label->colour(c) << begin_math() << opt_pct( t1 );
+	if ( t1 != t2 ) {
+	    *_label << " - " << opt_pct( t2 );
 	}
-	for ( std::vector<Activity *>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity ) {
-	    if ( !(*activity)->hasQueueingTime() ) continue;
-	    if ( do_newline ) _label->newLine();
-	    *_label << "W[" << (*activity)->name() << "]=" << opt_pct( (*activity)->queueingTime() );
-	    do_newline = true;
-	}
+	*_label << end_math();
     }
     return *this;
 }
@@ -2097,7 +2094,7 @@ PseudoProcessorCall::PseudoProcessorCall( const Task * fromTask, const Processor
     : ProcessorCall( fromTask, toProcessor )
 {
     if ( _arc ) {
-	_arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DASHED_DOTTED);
+	_arc->arrowhead(Graphic::Arrowhead::CLOSED).linestyle(Graphic::LineStyle::DASHED_DOTTED);
     }
 }
 
@@ -2108,7 +2105,7 @@ OpenArrival::OpenArrival( const OpenArrivalSource * from, const Entry * to )
       _source(from),
       _destination(to)
 {
-    _arc->arrowhead(Graphic::ArrowHead::OPEN);
+    _arc->arrowhead(Graphic::Arrowhead::OPEN);
 }
 
 
@@ -2466,102 +2463,97 @@ fanout_of_str( std::ostream& output, const Call& aCall )
 
 
 static Label&
-wait_of_str( Label& aLabel, const Call& aCall )
+wait_of_str( Label& label, const Call& call )
 {
-    for ( unsigned p = 1; p <= aCall.maxPhase(); ++p ) {
+    for ( unsigned p = 1; p <= call.maxPhase(); ++p ) {
 	if ( p != 1 ) {
-	    aLabel << ',';
+	    label << ',';
 	}
-	const double w = aCall.waiting(p);
-	if ( !std::isfinite(w) ) {
-	    aLabel << _infty();
-	} else {
-	    aLabel << opt_pct(w);
-	}
+	label << opt_pct(call.waiting(p));
     }
-    return aLabel;
+    return label;
 }
 
 
 
 static Label&
-drop_probability_of_str( Label& aLabel, const Call& aCall )
+drop_probability_of_str( Label& label, const Call& call )
 {
-    for ( unsigned p = 1; p <= aCall.maxPhase(); ++p ) {
-	if ( !aCall.hasDropProbability( p ) ) break;
+    for ( unsigned p = 1; p <= call.maxPhase(); ++p ) {
+	if ( !call.hasDropProbability( p ) ) break;
 	if ( p != 1 ) {
-	    aLabel << ',';
+	    label << ',';
 	}
-	aLabel << opt_pct(aCall.dropProbability(p));
+	label << opt_pct(call.dropProbability(p));
     }
-    return aLabel;
+    return label;
 }
 
 
 
 static std::ostream&
-calls_of_str( std::ostream& output, const Call& aCall )
+calls_of_str( std::ostream& output, const Call& call )
 {
 
-    if ( aCall.hasRendezvous() ) {
-	rendezvous_of_str( output, aCall );
-    } else if ( aCall.hasSendNoReply() ) {
-	sendnoreply_of_str( output, aCall );
+    if ( call.hasRendezvous() ) {
+	rendezvous_of_str( output, call );
+    } else if ( call.hasSendNoReply() ) {
+	sendnoreply_of_str( output, call );
     } else {
-	forwarding_of_str( output, aCall );
+	forwarding_of_str( output, call );
     }
     return output;
 }
 
 
 static SRVNCallManip
-print_calls( const Call& aCall )
+print_calls( const Call& call )
 {
-    return SRVNCallManip( &calls_of_str, aCall );
+    return SRVNCallManip( &calls_of_str, call );
 }
 
 SRVNCallManip
-print_rendezvous( const Call& aCall )
+print_rendezvous( const Call& call )
 {
-    return SRVNCallManip( &rendezvous_of_str, aCall );
+    return SRVNCallManip( &rendezvous_of_str, call );
 }
 
 SRVNCallManip
-print_sendnoreply( const Call& aCall )
+print_sendnoreply( const Call& call )
 {
-    return SRVNCallManip( &sendnoreply_of_str, aCall );
+    return SRVNCallManip( &sendnoreply_of_str, call );
 }
 
 SRVNCallManip
-print_forwarding( const Call& aCall )
+print_forwarding( const Call& call )
 {
-    return SRVNCallManip( &forwarding_of_str, aCall );
-}
-
-
-SRVNCallManip
-print_fanin( const Call& aCall )
-{
-    return SRVNCallManip( &fanin_of_str, aCall );
+    return SRVNCallManip( &forwarding_of_str, call );
 }
 
 
 SRVNCallManip
-print_fanout( const Call& aCall )
+print_fanin( const Call& call )
 {
-    return SRVNCallManip( &fanout_of_str, aCall );
+    return SRVNCallManip( &fanin_of_str, call );
+}
+
+
+SRVNCallManip
+print_fanout( const Call& call )
+{
+    return SRVNCallManip( &fanout_of_str, call );
 }
 
 
 LabelCallManip
-print_wait( const Call& aCall )
+print_wait( const Call& call )
 {
-    return LabelCallManip( &wait_of_str, aCall );
+    return LabelCallManip( &wait_of_str, call );
 }
 
 
 static LabelCallManip
-print_drop_probability( const Call& aCall )
+print_drop_probability( const Call& call )
 {
-    return LabelCallManip( &drop_probability_of_str, aCall );
+    return LabelCallManip( &drop_probability_of_str, call );
 }

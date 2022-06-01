@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 15476 2022-03-30 13:20:14Z greg $
+ * $Id: lqn2ps.cc 15612 2022-06-01 01:06:26Z greg $
  *
  * Command line processing.
  *
@@ -13,16 +13,17 @@
  */
 
 #include "lqn2ps.h"
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
+#include <errno.h>
+#include <libgen.h>
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#include <fstream>
-#include <stdexcept>
-#include <cstdlib>
-#include <errno.h>
-#include <cstring>
-#include <sstream>
-#include <libgen.h>
 #include <lqio/filename.h>
 #if !HAVE_GETSUBOPT
 #include <lqio/getsbopt.h>
@@ -207,7 +208,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2022-03-30 09:20:14 -0400 (Wed, 30 Mar 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-05-31 21:06:26 -0400 (Tue, 31 May 2022) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -1005,17 +1006,6 @@ temp_indent_str( std::ostream& output, const int anInt )
     return output;
 }
 
-std::ostream&
-opt_pct_str( std::ostream& output, const double aDouble )
-{
-    output << aDouble;
-    if ( difference_output() ) {
-	output << "%";
-    }
-    return output;
-}
-
-
 static std::ostream&
 conf_level_str( std::ostream& output, const int fill, const int level )
 {
@@ -1029,7 +1019,6 @@ IntegerManip indent( const int i ) { return IntegerManip( &indent_str, i ); }
 IntegerManip temp_indent( const int i ) { return IntegerManip( &temp_indent_str, i ); }
 Integer2Manip conf_level( const int fill, const int level ) { return Integer2Manip( &conf_level_str, fill, level ); }
 StringPlural plural( const std::string& s, const unsigned i ) { return StringPlural( &pluralize, s, i ); }
-DoubleManip opt_pct( const double aDouble ) { return DoubleManip( &opt_pct_str, aDouble ); }
 
 /*
  * construct the error message.

@@ -1,6 +1,6 @@
 /* -*- c++ -*- node.h	-- Greg Franks
  *
- * $Id: label.h 15262 2021-12-26 18:55:49Z greg $
+ * $Id: label.h 15612 2022-06-01 01:06:26Z greg $
  */
 
 #ifndef _LABEL_H
@@ -10,11 +10,12 @@
 #include <config.h>
 #endif
 #include <sstream>
+#include <vector>
 #include "point.h"
 #include "graphic.h"
-#include <vector>
 
 class Call;
+class Entry;
 class Label;
 class LabelStringManip;
 class SRVNEntryManip;
@@ -460,8 +461,8 @@ private:
     Label& (*f)( Label&, const Call & );
     const Call & myCall;
 
-    friend Label& operator<<(Label & aLabel, const LabelCallManip& m )
-	{ return m.f(aLabel,m.myCall); }
+    friend Label& operator<<(Label & label, const LabelCallManip& m )
+	{ return m.f(label,m.myCall); }
 };
 
 class LabelEntryManip {
@@ -472,8 +473,20 @@ private:
     Label& (*f)( Label&, const Entry & );
     const Entry & myEntry;
 
-    friend Label& operator<<(Label & aLabel, const LabelEntryManip& m )
-	{ return m.f(aLabel,m.myEntry); }
+    friend Label& operator<<(Label & label, const LabelEntryManip& m )
+	{ return m.f(label,m.myEntry); }
+};
+
+class LabelDoubleManip {
+public:
+    LabelDoubleManip( Label& (*ff)(Label&, double value ), double value  )
+	: f(ff), _value(value) {}
+private:
+    Label& (*f)( Label&, double );
+    const double _value;
+
+    friend Label& operator<<(Label & label, const LabelDoubleManip& m )
+	{ return m.f(label,m._value); }
 };
 
 LabelManip begin_math( labelFuncPtr = 0 );
@@ -486,4 +499,9 @@ LabelManip _percent();
 LabelManip _rho();
 LabelManip _sigma();
 LabelManip _times();
+LabelDoubleManip opt_pct( double );
+
+LabelEntryManip execution_time_of( const Entry& entry );
+LabelEntryManip queueing_time_of( const Entry& entry );
+LabelEntryManip variance_of( const Entry& entry );
 #endif

@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 15255 2021-12-24 17:42:46Z greg $
+ * $Id: entry.h 15614 2022-06-01 12:17:43Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -33,6 +33,7 @@ class Label;
 class Processor;
 class Task;
 class SRVNEntryManip;
+class LabelEntryManip;
 
 extern "C" {
     typedef void (* err_func_t)( unsigned err, ... );
@@ -41,9 +42,12 @@ extern "C" {
 /* -------------------- Nodes in the graph are... --------------------- */
 
 class Entry : public Element {
-    friend class Call;
     friend class Task;
-    friend std::ostream& histogram_of_str( std::ostream& output, const Entry& anEntry );
+    friend LabelEntryManip execution_time_of( const Entry& entry );
+    friend LabelEntryManip variance_of( const Entry& entry );
+    friend SRVNEntryManip service_time_of( const Entry& entry );
+    friend SRVNEntryManip think_time_of( const Entry& entry );
+    friend LabelEntryManip queueing_time_of( const Entry& entry );
     typedef SRVNEntryManip (* print_func_ptr)( const Entry& );
 
 public:
@@ -265,7 +269,12 @@ private:
 #endif
 
     std::ostream& printSRVNLine( std::ostream& output, char code, print_func_ptr func ) const;
-
+    static Label& print_execution_time( Label&, const Entry& );
+    static Label& print_queueing_time( Label&, const Entry& );
+    static Label& print_variance( Label&, const Entry& );
+    static std::ostream& print_service_time( std::ostream&, const Entry& );
+    static std::ostream& print_think_time( std::ostream&, const Entry& );
+    
 public:
     static std::set<Entry *,LT<Entry> > __entries;
     static std::map<std::string,unsigned> __key_table;		/* For squish	*/
@@ -320,12 +329,8 @@ private:
 };
 
 SRVNEntryManip compute_service_time( const Entry & anEntry );
-SRVNEntryManip print_number_slices( const Entry& anEntry );
-SRVNEntryManip print_queueing_time( const Entry& anEntry );
-SRVNEntryManip print_service_time( const Entry& anEntry );
-SRVNEntryManip print_slice_time( const Entry& anEntry );
-SRVNEntryManip print_think_time( const Entry& anEntry );
-SRVNEntryManip print_variance( const Entry& anEntry );
+SRVNEntryManip service_time_of( const Entry& anEntry );
+SRVNEntryManip think_time_of( const Entry& anEntry );
 
 bool map_entry_names( const char * from_entry_name, Entry * & fromEntry, const char * to_entry_name, Entry * & toEntry,  err_func_t err_func );
 #endif

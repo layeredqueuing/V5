@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * graphic.h	-- Greg Franks
  *
- * $Id: graphic.h 15382 2022-01-25 01:42:07Z greg $
+ * $Id: graphic.h 15614 2022-06-01 12:17:43Z greg $
  */
 
 #ifndef _GRAPHIC_H
@@ -139,7 +139,7 @@ public:
 	RED,
 	GOLD };
     enum class LineStyle { DEFAULT, SOLID, DASHED, DOTTED, DASHED_DOTTED };
-    enum class ArrowHead { NONE, CLOSED, OPEN };
+    enum class Arrowhead { NONE, CLOSED, OPEN };
     enum class Fill { NONE, DEFAULT, ZERO, NINETY, SOLID, TINT };
     enum class Font { DEFAULT, NORMAL, OBLIQUE, BOLD, SPECIAL };
 
@@ -250,12 +250,12 @@ protected:
     class ArrowManip
     {
     public:
-	ArrowManip( std::ostream& (*ff)(std::ostream&, const Graphic::ArrowHead arrow ),
-		    const Graphic::ArrowHead arrow )
+	ArrowManip( std::ostream& (*ff)(std::ostream&, const Graphic::Arrowhead arrow ),
+		    const Graphic::Arrowhead arrow )
 	    : f(ff), myArrow(arrow) {}
     private:
-	std::ostream& (*f)( std::ostream&, const Graphic::ArrowHead arrow );
-	const Graphic::ArrowHead myArrow;
+	std::ostream& (*f)( std::ostream&, const Graphic::Arrowhead arrow );
+	const Graphic::Arrowhead myArrow;
 
 	friend std::ostream& operator<<(std::ostream & os, const ArrowManip& m )
 	    { return m.f( os, m.myArrow ); }
@@ -281,7 +281,7 @@ public:
 
 protected:
     std::ostream& polyline( std::ostream& output, const std::vector<Point>& points, Graphic::Colour pen_colour,
-			    Graphic::LineStyle linestyle=Graphic::LineStyle::DEFAULT, Graphic::ArrowHead=Graphic::ArrowHead::NONE, double scale=1 ) const;
+			    Graphic::LineStyle linestyle=Graphic::LineStyle::DEFAULT, Graphic::Arrowhead=Graphic::Arrowhead::NONE, double scale=1 ) const;
     std::ostream& polygon( std::ostream& output, const std::vector<Point>& points,
 			   Graphic::Colour pen_colour, Graphic::Colour fill_colour ) const;
     std::ostream& rectangle( std::ostream& output, const Point&, const Point&, Graphic::Colour pen_colour, Graphic::Colour fill_colour, Graphic::LineStyle=Graphic::LineStyle::DEFAULT ) const;
@@ -385,7 +385,7 @@ protected:
     std::ostream& polyline( std::ostream& output, const std::vector<Point>& points,
 			    int sub_type, Graphic::Colour pen_colour, Graphic::Colour fill_colour, int depth,
 			    Graphic::LineStyle linestyle=Graphic::LineStyle::DEFAULT,
-			    Graphic::ArrowHead=Graphic::ArrowHead::NONE, double scale=1.0 ) const;
+			    Graphic::Arrowhead=Graphic::Arrowhead::NONE, double scale=1.0 ) const;
     std::ostream& circle( std::ostream& output, const Point& c, const double r, int sub_type,
 			  Graphic::Colour pen_colour, Graphic::Colour fill_colour, int depth, Graphic::Fill fill_style=Graphic::Fill::DEFAULT ) const;
     std::ostream& rectangle( std::ostream& output, const Point&, const Point&, Graphic::Colour pen_colour, Graphic::Colour fill_colour, int depth, Graphic::LineStyle line_style=Graphic::LineStyle::DEFAULT ) const;
@@ -405,7 +405,7 @@ private:
 			Graphic::Colour pen_colour, Graphic::Colour fill_colour,
 			Graphic::LineStyle line_style, Graphic::Fill, int depth ) const;
     static PointManip moveto( const Point& );
-    static std::ostream& arrowHead( std::ostream& output, Graphic::ArrowHead, const double scale );
+    static std::ostream& arrowHead( std::ostream& output, Graphic::Arrowhead, const double scale );
     static std::ostream& point( std::ostream& output, const Point& aPoint );
 
     static const std::map<const Graphic::Colour, const int> __colour;
@@ -413,7 +413,7 @@ private:
     static const std::map<const Graphic::Font, const int> __postscript_font;
     static const std::map<const Graphic::Font, const int> __tex_font;
     static const std::map<const Graphic::Fill, const int> __fill;
-    static const std::map<const Graphic::ArrowHead, const arrowhead_defn> __arrowhead;
+    static const std::map<const Graphic::Arrowhead, const arrowhead_defn> __arrowhead;
 };
 
 #if HAVE_GD_H && HAVE_LIBGD
@@ -471,7 +471,7 @@ public:
 
 protected:
     std::ostream& polyline( std::ostream& output, const std::vector<Point>& points, Graphic::Colour pen_colour,
-			    Graphic::LineStyle linestyle=Graphic::LineStyle::DEFAULT, Graphic::ArrowHead=Graphic::ArrowHead::NONE, double scale=1 ) const;
+			    Graphic::LineStyle linestyle=Graphic::LineStyle::DEFAULT, Graphic::Arrowhead=Graphic::Arrowhead::NONE, double scale=1 ) const;
     std::ostream& polygon( std::ostream& output, const std::vector<Point>& points,
 			   Graphic::Colour pen_colour, Graphic::Colour fill_colour ) const;
     std::ostream& rectangle( std::ostream& output, const Point&, const Point&, Graphic::Colour pen_colour, Graphic::Colour fill_colour, Graphic::LineStyle=Graphic::LineStyle::DEFAULT ) const;
@@ -517,7 +517,7 @@ public:
 
 protected:
     std::ostream& polyline( std::ostream& output, const std::vector<Point>& points, Graphic::Colour pen_colour,
-			    Graphic::LineStyle linestyle=Graphic::LineStyle::DEFAULT, Graphic::ArrowHead=Graphic::ArrowHead::NONE, double scale=1 ) const;
+			    Graphic::LineStyle linestyle=Graphic::LineStyle::DEFAULT, Graphic::Arrowhead=Graphic::Arrowhead::NONE, double scale=1 ) const;
     std::ostream& polygon( std::ostream& output, const std::vector<Point>& points,
 			   Graphic::Colour pen_colour, Graphic::Colour fill_colour ) const;
     std::ostream& rectangle( std::ostream& output, const Point&, const Point&, Graphic::Colour pen_colour, Graphic::Colour fill_colour, Graphic::LineStyle=Graphic::LineStyle::DEFAULT ) const;
@@ -558,7 +558,7 @@ public:
 
 protected:
     std::ostream& polyline( std::ostream& output, const std::vector<Point>& points, Graphic::Colour pen_colour,
-			    Graphic::LineStyle linestyle=Graphic::LineStyle::DEFAULT, Graphic::ArrowHead=Graphic::ArrowHead::NONE, double scale=1 ) const;
+			    Graphic::LineStyle linestyle=Graphic::LineStyle::DEFAULT, Graphic::Arrowhead=Graphic::Arrowhead::NONE, double scale=1 ) const;
     std::ostream& polygon( std::ostream& output, const std::vector<Point>& points,
 			   Graphic::Colour pen_colour, Graphic::Colour fill_colour ) const;
     std::ostream& rectangle( std::ostream& output, const Point&, const Point&, Graphic::Colour pen_colour, Graphic::Colour fill_colour, Graphic::LineStyle=Graphic::LineStyle::DEFAULT ) const;
@@ -572,10 +572,10 @@ protected:
 private:
     std::ostream& init( std::ostream& output, const char * object_name,
 			Graphic::Colour pen_colour, Graphic::Colour fill_colour,
-			Graphic::LineStyle line_style, Graphic::ArrowHead=Graphic::ArrowHead::NONE ) const;
+			Graphic::LineStyle line_style, Graphic::Arrowhead=Graphic::Arrowhead::NONE ) const;
     std::ostream& drawline( std::ostream& output, const std::vector<Point>& points ) const;
 
-    static ArrowManip arrow_style( const Graphic::ArrowHead );
+    static ArrowManip arrow_style( const Graphic::Arrowhead );
     static BoxManip box( const Point&, const Point& );
     static ColourManip setfill( const Graphic::Colour );
     static ColourManip stroke_colour( const Graphic::Colour );
@@ -587,7 +587,7 @@ private:
     static XMLString::StringManip end_style();
     static XMLString::StringManip start_style( const std::string&, const std::string& );
 
-    static std::ostream& arrow_style_str( std::ostream& output, const Graphic::ArrowHead );
+    static std::ostream& arrow_style_str( std::ostream& output, const Graphic::Arrowhead );
     static std::ostream& box_str( std::ostream& output, const Point& origin, const Point& extent );
     static std::ostream& draw_layer_str( std::ostream& output, const std::string&, const std::string& );
     static std::ostream& end_style_str( std::ostream& output, const std::string&, const std::string& );
@@ -610,7 +610,7 @@ class TeX : private RGB
 {
 protected:
     std::ostream& polyline( std::ostream& output, const std::vector<Point>& points, Graphic::Colour pen_colour,
-			    Graphic::LineStyle linestyle=Graphic::LineStyle::DEFAULT, Graphic::ArrowHead=Graphic::ArrowHead::NONE, double scale=1 ) const;
+			    Graphic::LineStyle linestyle=Graphic::LineStyle::DEFAULT, Graphic::Arrowhead=Graphic::Arrowhead::NONE, double scale=1 ) const;
     std::ostream& polygon( std::ostream& output, const std::vector<Point>& points,
 			   Graphic::Colour pen_colour, Graphic::Colour fill_colour ) const;
     std::ostream& rectangle( std::ostream& output, const Point&, const Point&, Graphic::Colour pen_colour, Graphic::Colour fill_colour, Graphic::LineStyle=Graphic::LineStyle::DEFAULT ) const;

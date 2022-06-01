@@ -1,6 +1,6 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 15255 2021-12-24 17:42:46Z greg $
+ * $Id: open.cc 15613 2022-06-01 10:24:28Z greg $
  */
 
 #include "lqn2ps.h"
@@ -30,8 +30,8 @@ OpenArrivalSource::OpenArrivalSource( Entry * source )
     const_cast<Entry *>(source)->addDstCall( aCall );
     __source.push_back( this );
 
-    myNode = Node::newNode( Flags::icon_width, Flags::graphical_output_style == Output_Style::TIMEBENCH ? Flags::icon_height : Flags::entry_height );
-    myLabel = Label::newLabel();
+    _node = Node::newNode( Flags::icon_width, Flags::graphical_output_style == Output_Style::TIMEBENCH ? Flags::icon_height : Flags::entry_height );
+    _label = Label::newLabel();
 }
 
 
@@ -127,7 +127,7 @@ OpenArrivalSource::radius() const
 OpenArrivalSource&
 OpenArrivalSource::moveTo( const double x, const double y )
 {
-    myNode->moveTo( x, y );
+    _node->moveTo( x, y );
     moveSrc( bottomCenter() );
     return *this;
 }
@@ -191,15 +191,15 @@ OpenArrivalSource::label()
 	if ( queueing_output() ) {
 	    bool print_goop = false;
 	    if ( Flags::print_input_parameters() ) {
-		*myLabel << (*call)->dstName() << " (" << (*call)->openArrivalRate() << ")";
-		myLabel->newLine();
+		*_label << (*call)->dstName() << " (" << (*call)->openArrivalRate() << ")";
+		_label->newLine();
 	    }
 	    if ( Flags::have_results && Flags::print[WAITING].opts.value.b ) {
-		*myLabel << (*call)->dstName() << "=" << opt_pct((*call)->openWait());
-		myLabel->newLine();
+		*_label << (*call)->dstName() << "=" << opt_pct((*call)->openWait());
+		_label->newLine();
 	    }
 	    if ( print_goop ) {
-		myLabel->newLine();
+		_label->newLine();
 	    }
 	} else {
 	    (*call)->label();
@@ -230,10 +230,10 @@ OpenArrivalSource::draw( std::ostream& output ) const
     aComment += "========== Open Arrival Source ";
     aComment += name();
     aComment += " ==========";
-    myNode->comment( output, aComment );
+    _node->comment( output, aComment );
 
-    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
-    myNode->circle( output, center(), radius() );
+    _node->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
+    _node->circle( output, center(), radius() );
 
     for ( std::vector<OpenArrival *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	output << **call;
@@ -256,10 +256,10 @@ OpenArrivalSource::print( std::ostream& output ) const
 std::ostream&
 OpenArrivalSource::drawClient( std::ostream& output, const bool is_in_open_model, const bool is_in_closed_model ) const
 {
-    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
-    myNode->open_source( output, bottomCenter(), Entity::radius() );
-    myLabel->moveTo( bottomCenter() ).justification( Justification::LEFT );
-    myLabel->moveBy( Entity::radius() * 1, radius() * myNode->direction() );
-    output << *myLabel;
+    _node->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
+    _node->open_source( output, bottomCenter(), Entity::radius() );
+    _label->moveTo( bottomCenter() ).justification( Justification::LEFT );
+    _label->moveBy( Entity::radius() * 1, radius() * _node->direction() );
+    output << *_label;
     return output;
 }

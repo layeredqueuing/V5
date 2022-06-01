@@ -1,6 +1,6 @@
 /* graphic.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: graphic.cc 15436 2022-02-09 22:31:36Z greg $
+ * $Id: graphic.cc 15614 2022-06-01 12:17:43Z greg $
  */
 
 #include <cassert>
@@ -330,7 +330,7 @@ EMF::terminate( std::ostream& output )
 std::ostream&
 EMF::polyline( std::ostream& output, const std::vector<Point>& points,
 	       Graphic::Colour pen_colour, Graphic::LineStyle line_style,
-	       Graphic::ArrowHead arrowhead, double scale ) const
+	       Graphic::Arrowhead arrowhead, double scale ) const
 {
     const unsigned int n_points = points.size();
     if ( n_points > 1 ) {
@@ -350,10 +350,10 @@ EMF::polyline( std::ostream& output, const std::vector<Point>& points,
 	/* Now draw the arrowhead */
 
 	switch ( arrowhead ) {
-	case Graphic::ArrowHead::CLOSED:
+	case Graphic::Arrowhead::CLOSED:
 	    arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, pen_colour );
 	    break;
-	case Graphic::ArrowHead::OPEN:
+	case Graphic::Arrowhead::OPEN:
 	    arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, Graphic::Colour::WHITE );
 	    break;
 	}
@@ -964,11 +964,11 @@ const std::map<const Graphic::LineStyle, const int> Fig::__linestyle =
     { Graphic::LineStyle::DASHED_DOTTED,    4 }	
 };
 
-const std::map<const Graphic::ArrowHead, const Fig::arrowhead_defn> Fig::__arrowhead =
+const std::map<const Graphic::Arrowhead, const Fig::arrowhead_defn> Fig::__arrowhead =
 {
-    { Graphic::ArrowHead::NONE,	    {0, 0} },
-    { Graphic::ArrowHead::CLOSED,   {2, 1} },
-    { Graphic::ArrowHead::OPEN,	    {2, 0} } 
+    { Graphic::Arrowhead::NONE,	    {0, 0} },
+    { Graphic::Arrowhead::CLOSED,   {2, 1} },
+    { Graphic::Arrowhead::OPEN,	    {2, 0} } 
 };
 
 const std::map<const Graphic::Font, const int> Fig::__postscript_font =
@@ -1112,7 +1112,7 @@ Fig::endCompound( std::ostream& output ) const
 std::ostream&
 Fig::polyline( std::ostream& output, const std::vector<Point>& points,
 	       int sub_type, Graphic::Colour pen_colour, Graphic::Colour fill_colour, int depth,
-	       Graphic::LineStyle line_style, Graphic::ArrowHead arrowhead, double scaling ) const
+	       Graphic::LineStyle line_style, Graphic::Arrowhead arrowhead, double scaling ) const
 {
     const size_t n_points = points.size();
     init( output, 2, sub_type, pen_colour, fill_colour, line_style, Graphic::Fill::DEFAULT, depth );
@@ -1126,15 +1126,15 @@ Fig::polyline( std::ostream& output, const std::vector<Point>& points,
     }
 
     switch ( arrowhead ) {
-    case Graphic::ArrowHead::CLOSED:
-    case Graphic::ArrowHead::OPEN:
+    case Graphic::Arrowhead::CLOSED:
+    case Graphic::Arrowhead::OPEN:
 	output << " 1"	// int	forward_arrow		(0: off, 1: on)
 	       << " 0 "	// int	backward_arrow		(0: off, 1: on)
 	       << (sub_type == POLYGON ? n_points + 1 : n_points )
 	       << std::endl;
 	arrowHead( output, arrowhead, scaling );
 	break;
-    case Graphic::ArrowHead::NONE:
+    case Graphic::Arrowhead::NONE:
 	output << " 0"
 	       << " 0 "
 	       << (sub_type == POLYGON ? n_points + 1 : n_points )
@@ -1226,7 +1226,7 @@ Fig::text( std::ostream& output, const Point& c, const std::string& s, Graphic::
 
 
 std::ostream&
-Fig::arrowHead( std::ostream& output, Graphic::ArrowHead style, const double scale )
+Fig::arrowHead( std::ostream& output, Graphic::Arrowhead style, const double scale )
 {
     output << '\t' << __arrowhead.at(style).type		// int 	arrow_type	(enumeration type)
 	   << ' '  << __arrowhead.at(style).style		// int	arrow_style	(enumeration type)
@@ -1754,7 +1754,7 @@ PostScript::init( std::ostream& output )
 std::ostream&
 PostScript::polyline( std::ostream& output, const std::vector<Point>& points,
 		      Graphic::Colour pen_colour, Graphic::LineStyle line_style,
-		      Graphic::ArrowHead arrowhead, double scale ) const
+		      Graphic::Arrowhead arrowhead, double scale ) const
 {
     const size_t n_points = points.size();
     output << linestyle( line_style )
@@ -1769,10 +1769,10 @@ PostScript::polyline( std::ostream& output, const std::vector<Point>& points,
     /* Now draw the arrowhead */
 
     switch ( arrowhead ) {
-    case Graphic::ArrowHead::CLOSED:
+    case Graphic::Arrowhead::CLOSED:
 	arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, pen_colour );
 	break;
-    case Graphic::ArrowHead::OPEN:
+    case Graphic::Arrowhead::OPEN:
 	arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, Graphic::Colour::WHITE );
 	break;
     }
@@ -2089,7 +2089,7 @@ SVG::init( std::ostream& output )
 std::ostream&
 SVG::polyline( std::ostream& output, const std::vector<Point>& points,
 		      Graphic::Colour pen_colour, Graphic::LineStyle line_style,
-		      Graphic::ArrowHead arrowhead, double scale ) const
+		      Graphic::Arrowhead arrowhead, double scale ) const
 {
     /* sodipodi doesn't like polylines of 2 points */
     const size_t n_points = points.size();
@@ -2117,10 +2117,10 @@ SVG::polyline( std::ostream& output, const std::vector<Point>& points,
     /* Now draw the arrowhead */
 
     switch ( arrowhead ) {
-    case Graphic::ArrowHead::CLOSED:
+    case Graphic::Arrowhead::CLOSED:
 	arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, pen_colour );
 	break;
-    case Graphic::ArrowHead::OPEN:
+    case Graphic::Arrowhead::OPEN:
 	arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, Graphic::Colour::WHITE );
 	break;
     }
@@ -2538,89 +2538,89 @@ SXD::init( std::ostream& output )
 
     output << start_style( "gr15", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLACK ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr16", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLUE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr17", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::GREEN ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr18", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::ORANGE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr19", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::RED ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << std::endl;
 
     output << start_style( "gr20", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLACK ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::OPEN ) << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::OPEN ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr21", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLUE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::OPEN ) << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::OPEN ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr22", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::GREEN ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::OPEN ) << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::OPEN ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr23", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::ORANGE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::OPEN ) << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::OPEN ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr24", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::RED ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::OPEN ) << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::OPEN ) << "/>" << std::endl
 	   << end_style() << std::endl;
     output << std::endl;
 
     output << start_style( "gr25", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLACK ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dashed << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << draw_dashed << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr26", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLUE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dashed << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << draw_dashed << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr27", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::GREEN ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dashed << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << draw_dashed << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr28", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::ORANGE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dashed << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << draw_dashed << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr29", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::RED ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dashed << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << draw_dashed << "/>" << std::endl
 	   << end_style() << std::endl;
     output << std::endl;
 
     output << start_style( "gr30", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLACK ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dotted << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << draw_dotted << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr31", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::BLUE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dotted << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << draw_dotted << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr32", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::GREEN ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dotted << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << draw_dotted << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr33", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::ORANGE ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dotted << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << draw_dotted << "/>" << std::endl
 	   << end_style() << std::endl;
     output << start_style( "gr34", graphics_family ) << std::endl
 	   << style_properties( 0 ) << stroke_colour( Graphic::Colour::RED ) << setfill( Graphic::Colour::TRANSPARENT )
-	   << arrow_style( Graphic::ArrowHead::CLOSED ) << draw_dotted << "/>" << std::endl
+	   << arrow_style( Graphic::Arrowhead::CLOSED ) << draw_dotted << "/>" << std::endl
 	   << end_style() << std::endl;
     output << std::endl;
 
@@ -2651,7 +2651,7 @@ SXD::init( std::ostream& output )
 std::ostream&
 SXD::init( std::ostream& output, const char * object_name,
 	   Graphic::Colour pen_colour, Graphic::Colour fill_colour,
-	   Graphic::LineStyle line_style, Graphic::ArrowHead arrow ) const
+	   Graphic::LineStyle line_style, Graphic::Arrowhead arrow ) const
 {
     output << indent( 0 ) << "<draw:" << object_name << " draw:style-name=\"";
     if ( fill_colour != Graphic::Colour::TRANSPARENT ) {
@@ -2676,7 +2676,7 @@ SXD::init( std::ostream& output, const char * object_name,
 	    }
 	    break;
 
-	case Graphic::ArrowHead::CLOSED:
+	case Graphic::Arrowhead::CLOSED:
 	    switch ( pen_colour ) {
 	    default:              	    output << "gr15"; break;
 	    case Graphic::Colour::BLUE:     output << "gr16"; break;
@@ -2686,7 +2686,7 @@ SXD::init( std::ostream& output, const char * object_name,
 	    }
 	    break;
 
-	case Graphic::ArrowHead::OPEN:
+	case Graphic::Arrowhead::OPEN:
 	    switch ( pen_colour ) {
 	    default:                	    output << "gr20"; break;
 	    case Graphic::Colour::BLUE:     output << "gr21"; break;
@@ -2739,7 +2739,7 @@ SXD::init( std::ostream& output, const char * object_name,
 std::ostream&
 SXD::polyline( std::ostream& output, const std::vector<Point>& points,
 		      Graphic::Colour pen_colour, Graphic::LineStyle line_style,
-		      Graphic::ArrowHead arrowhead, double scale ) const
+		      Graphic::Arrowhead arrowhead, double scale ) const
 {
     const size_t n_points = points.size();
     /* OpenOffice doesn't like polylines of 2 points */
@@ -2767,7 +2767,7 @@ std::ostream&
 SXD::polygon( std::ostream& output, const std::vector<Point>& points,
 	      Graphic::Colour pen_colour, Graphic::Colour fill_colour ) const
 {
-    init( output, "polygon", pen_colour, fill_colour, Graphic::LineStyle::SOLID, Graphic::ArrowHead::NONE );
+    init( output, "polygon", pen_colour, fill_colour, Graphic::LineStyle::SOLID, Graphic::Arrowhead::NONE );
     return drawline( output, points );
 }
 
@@ -2824,7 +2824,7 @@ SXD::rectangle( std::ostream& output, const Point& origin, const Point& extent, 
     const unsigned n_points = 5;
     std::vector<Point> points(n_points);
     box_to_points( origin, extent, points );
-    init( output, "polygon", pen_colour, fill_colour, line_style, Graphic::ArrowHead::NONE );
+    init( output, "polygon", pen_colour, fill_colour, line_style, Graphic::Arrowhead::NONE );
     return drawline( output, points );
 }
 
@@ -2873,13 +2873,13 @@ SXD::text( std::ostream& output, const Point&, const std::string& s, Graphic::Fo
  */
 
 std::ostream&
-SXD::arrow_style_str( std::ostream& output, Graphic::ArrowHead arrowhead )
+SXD::arrow_style_str( std::ostream& output, Graphic::Arrowhead arrowhead )
 {
     switch ( arrowhead ) {
-    case Graphic::ArrowHead::CLOSED:
+    case Graphic::Arrowhead::CLOSED:
 	output << "draw:marker-end=\"Arrow concave\" draw:marker-end-width=\"0.2cm\" ";
 	break;
-    case Graphic::ArrowHead::OPEN:
+    case Graphic::Arrowhead::OPEN:
 	output << "draw:marker-end=\"Line Arrow\" draw:marker-end-width=\"0.2cm\" ";
 	break;
     }
@@ -3020,7 +3020,7 @@ SXD::style_properties_str( std::ostream& output, const unsigned int j )
 
 
 RGB::ArrowManip
-SXD::arrow_style( const Graphic::ArrowHead arrow )
+SXD::arrow_style( const Graphic::Arrowhead arrow )
 {
     return RGB::ArrowManip( arrow_style_str, arrow );
 }
@@ -3099,7 +3099,7 @@ SXD::start_style( const std::string& name, const std::string& family )
 std::ostream&
 TeX::polyline( std::ostream& output, const std::vector<Point>& points,
 		      Graphic::Colour pen_colour, Graphic::LineStyle line_style,
-		      Graphic::ArrowHead arrowhead, double scale ) const
+		      Graphic::Arrowhead arrowhead, double scale ) const
 {
     const size_t n_points = points.size();
     output << setcolour( pen_colour );
@@ -3123,10 +3123,10 @@ TeX::polyline( std::ostream& output, const std::vector<Point>& points,
     /* Now draw the arrowhead */
 
     switch ( arrowhead ) {
-    case Graphic::ArrowHead::CLOSED:
+    case Graphic::Arrowhead::CLOSED:
 	arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, pen_colour );
 	break;
-    case Graphic::ArrowHead::OPEN:
+    case Graphic::Arrowhead::OPEN:
 	arrowHead( output, points[n_points-2], points[n_points-1], scale, pen_colour, Graphic::Colour::WHITE );
 	break;
     }

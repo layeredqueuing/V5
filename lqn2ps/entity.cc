@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15434 2022-02-09 00:28:27Z greg $
+ * $Id: entity.cc 15614 2022-06-01 12:17:43Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -84,8 +84,8 @@ Entity::Entity( const LQIO::DOM::Entity* domEntity, const size_t id )
 
 Entity::~Entity()
 {	
-    delete myNode;
-    delete myLabel;
+    delete _node;
+    delete _label;
 }
 
 
@@ -339,7 +339,13 @@ Entity::colour() const
     switch ( Flags::colouring() ) {
     case Colouring::RESULTS:
 	if ( Flags::have_results ) {
-	    return colourForUtilization( isInfinite() ? 0.0 : utilization() / copiesValue() );
+	    if ( !std::isfinite( utilization() ) ) {
+		return Graphic::Colour::RED;
+	    } else if ( isInfinite() ) {
+		return Graphic::Colour::DEFAULT;
+	    } else {
+		return colourForUtilization( utilization() / copiesValue() );
+	    }
 	}
 	break;
 
@@ -367,15 +373,15 @@ Entity::colour() const
 Entity&
 Entity::label()
 {
-    *myLabel << name();
+    *_label << name();
     if ( Flags::print_input_parameters() ) {
 	if ( isMultiServer() ) {
-	    *myLabel << " {" << copies() << "}";
+	    *_label << " {" << copies() << "}";
 	} else if ( isInfinite() ) {
-	    *myLabel << " {" << _infty() << "}";
+	    *_label << " {" << _infty() << "}";
 	}
 	if ( isReplicated() ) {
-	    *myLabel << " <" << replicas() << ">";
+	    *_label << " <" << replicas() << ">";
 	}
     }
     return *this;
@@ -447,12 +453,12 @@ Entity::drawQueueingNetwork( std::ostream& output, const double max_x, const dou
 
 	    std::stringstream aComment;
 	    aComment << "---------- Chain " << *k << ": " << name() << " -> " <<  (*client)->name() << " ----------";
-	    myNode->comment( output, aComment.str() );
+	    _node->comment( output, aComment.str() );
 	    drawServerToClient( output, max_x, max_y, (*client), chain, *k );
 	    
 	    aComment.seekp(17, std::ios::beg);		// rewind.
 	    aComment << *k << ": " << (*client)->name() << " -> " <<  name() << " ----------";
-	    myNode->comment( output, aComment.str() );
+	    _node->comment( output, aComment.str() );
 	    drawClientToServer( output, (*client), chain, *k, lastArc );
 	}
     }
@@ -473,30 +479,30 @@ Entity::drawServer( std::ostream& output ) const
     aComment += "========== ";
     aComment += name();
     aComment += " ==========";
-    myNode->comment( output, aComment );
-    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
+    _node->comment( output, aComment );
+    _node->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
 
     /* Draw the queue. */
 
     if ( !isInfinite() ) {
-	myNode->draw_queue( output, bottomCenter(), radius() );
+	_node->draw_queue( output, bottomCenter(), radius() );
     }
 
     /* Draw the server. */
 
     if ( isMultiServer() || isInfinite() ) {
-	myNode->multi_server( output, bottomCenter(), radius() );
+	_node->multi_server( output, bottomCenter(), radius() );
     } else {
-	Point aPoint = bottomCenter().moveBy( 0, radius() * myNode->direction() );
-	myNode->circle( output, aPoint, radius() );
+	Point aPoint = bottomCenter().moveBy( 0, radius() * _node->direction() );
+	_node->circle( output, aPoint, radius() );
     }
 
     /* Draw the label */
 
-    myLabel->moveTo( bottomCenter() )
+    _label->moveTo( bottomCenter() )
 	.justification( Justification::LEFT )
-	.moveBy( radius() * 1.5, radius() * 3.0 * myNode->direction() );
-    output << *myLabel;
+	.moveBy( radius() * 1.5, radius() * 3.0 * _node->direction() );
+    output << *_label;
 
     return output;
 }
@@ -514,8 +520,8 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
     if ( !hasServerChain( k ) ) return output;
 
     Arc * outArc = Arc::newArc( 6 );
-    outArc->scaleBy( Model::scaling(), Model::scaling() ).penColour( chainColour( k ) ).depth( myNode->depth() );
-    const double direction = static_cast<double>(myNode->direction());
+    outArc->scaleBy( Model::scaling(), Model::scaling() ).penColour( chainColour( k ) ).depth( _node->depth() );
+    const double direction = static_cast<double>(_node->direction());
     const double spacing = Flags::y_spacing() * Model::scaling();
 
     if ( aClient->hasClientClosedChain(k) ) {
@@ -535,7 +541,7 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
 
 	Label * aLabel = 0;
 	if ( !chain[k] ) {
-	    outArc->arrowhead( Graphic::ArrowHead::CLOSED );
+	    outArc->arrowhead( Graphic::Arrowhead::CLOSED );
 	    x = max_x + offset * (max_k - k);
 	    outArc->pointAt(2).moveTo( x, y );
 
@@ -559,7 +565,7 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
 	    aLabel->moveTo( outArc->pointAt(4) ).moveBy( 2.0 * offset, 0 ).backgroundColour( Graphic::Colour::DEFAULT );
 	    (*aLabel) << k;
 	} else {
-	    outArc->arrowhead( Graphic::ArrowHead::NONE );
+	    outArc->arrowhead( Graphic::Arrowhead::NONE );
 	    Node * aNode = Node::newNode( 0, 0 );
 
 	    aNode->penColour( chainColour( k ) ).fillColour( chainColour( k ) ).fillStyle( Graphic::Fill::SOLID );
@@ -595,7 +601,7 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
 	outArc->resize(3);
 	output << *outArc;		/* Warning -- print can delete points! */
 	Point aPoint( x, min_y - (radius() * direction * 3.0) );
-	myNode->open_sink( output, aPoint, radius() );
+	_node->open_sink( output, aPoint, radius() );
     }
     delete outArc;
     return output;
@@ -612,9 +618,9 @@ Entity::drawClientToServer( std::ostream& output, const Entity * aClient, std::v
     const unsigned N_POINTS = 5;
     Arc * inArc  = Arc::newArc( N_POINTS );
 
-    inArc->scaleBy( Model::scaling(), Model::scaling() ).depth( myNode->depth() ).penColour( chainColour( k ) );
+    inArc->scaleBy( Model::scaling(), Model::scaling() ).depth( _node->depth() ).penColour( chainColour( k ) );
 
-    const double direction = static_cast<double>(myNode->direction());
+    const double direction = static_cast<double>(_node->direction());
     const double offset = radius() / 2.0;
 
     double x = aClient->bottomCenter().x();
@@ -642,7 +648,7 @@ Entity::drawClientToServer( std::ostream& output, const Entity * aClient, std::v
     x = bottomCenter().x() - radius() + offsetOf( myServerChains, k ) * 2.0 * radius() / ( 1.0 + myServerChains.size() );
     inArc->pointAt(2).moveTo( x, y );
 
-    y = bottomCenter().y() + 4.0 * radius() * myNode->direction();
+    y = bottomCenter().y() + 4.0 * radius() * _node->direction();
     inArc->pointAt(3).moveTo( x, y );
 
     Label * aLabel = Label::newLabel();
@@ -651,7 +657,7 @@ Entity::drawClientToServer( std::ostream& output, const Entity * aClient, std::v
 
     if ( isInfinite() ) {
 	x = bottomCenter().x();
-	y = bottomCenter().y() + 2.0 * radius() * myNode->direction();
+	y = bottomCenter().y() + 2.0 * radius() * _node->direction();
 	inArc->pointAt(4).moveTo( x, y );
     } else {
 	inArc->pointAt(4) = inArc->pointAt(3);

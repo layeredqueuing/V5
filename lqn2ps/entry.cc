@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15524 2022-04-11 22:01:41Z greg $
+ * $Id: entry.cc 15614 2022-06-01 12:17:43Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -25,15 +25,15 @@
 #include <lqio/error.h>
 #include <lqio/dom_extvar.h>
 #include <lqio/dom_document.h>
-#include "errmsg.h"
-#include "entry.h"
-#include "call.h"
-#include "task.h"
 #include "activity.h"
-#include "processor.h"
-#include "model.h"
-#include "label.h"
 #include "arc.h"
+#include "call.h"
+#include "entry.h"
+#include "errmsg.h"
+#include "label.h"
+#include "model.h"
+#include "processor.h"
+#include "task.h"
 
 std::set<Entry *,LT<Entry> > Entry::__entries;
 std::map<std::string,unsigned> Entry::__key_table;		/* For squishName 	*/
@@ -43,8 +43,6 @@ unsigned Entry::max_phases		= 0;
 
 const char * Entry::phaseTypeFlagStr [] = { "Stochastic", "Determin" };
 
-static LabelEntryManip label_execution_time( const Entry& anEntry );
-
 template <> struct Exec<Phase>
 {
     typedef Phase& (Phase::*funcPtr)();
@@ -53,7 +51,6 @@ template <> struct Exec<Phase>
 private:
     funcPtr _f;
 };
-
 
 /* ------------------------ Constructors etc. ------------------------- */
 
@@ -79,8 +76,8 @@ Entry::Entry( const LQIO::DOM::DocumentObject * dom )
 	    _phases[p].initialize( this, p );
 	}
     }
-    myNode = Node::newNode( Flags::entry_width, Flags::entry_height );
-    myLabel = Label::newLabel();
+    _node = Node::newNode( Flags::entry_width, Flags::entry_height );
+    _label = Label::newLabel();
 }
 
 
@@ -101,8 +98,8 @@ Entry::Entry( const Entry& src )
       _activityCall(nullptr),
       _activityCallers()
 {
-    myNode = Node::newNode( Flags::entry_width, Flags::entry_height );
-    myLabel = Label::newLabel();
+    _node = Node::newNode( Flags::entry_width, Flags::entry_height );
+    _label = Label::newLabel();
 }
 
 
@@ -167,8 +164,8 @@ Entry::~Entry()
     /* Release forward links */
 
     std::for_each( _calls.begin(), _calls.end(), Delete<Call *> );
-    delete myNode;
-    delete myLabel;
+    delete _node;
+    delete _label;
 
     if ( _activityCall ) {
 	delete _activityCall;
@@ -1684,7 +1681,7 @@ Entry&
 Entry::moveTo( const double x, const double y )
 {
     Element::moveTo( x, y );
-    myLabel->moveTo( myNode->center() );
+    _label->moveTo( _node->center() );
 
     moveSrc();		/* Move Arcs	*/
     moveDst();
@@ -1741,7 +1738,7 @@ Entry::moveSrc()
     sort( _calls.begin(), _calls.end(), Call::compareSrc );
 
     const int nFwd = countArcs( &GenericCall::hasForwardingLevel );
-    Point aPoint = myNode->bottomLeft();
+    Point aPoint = _node->bottomLeft();
     const double delta = width() / static_cast<double>(countArcs() + 1 - nFwd );
 
     for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
@@ -1770,7 +1767,7 @@ Entry&
 Entry::moveDst()
 {
     std::sort( _callers.begin(), _callers.end(), Call::compareDst );
-    Point aPoint = myNode->topLeft();
+    Point aPoint = _node->topLeft();
 
     if ( Flags::print_forwarding_by_depth ) {
 	const double delta = width() / static_cast<double>(countCallers() + 1 );
@@ -1902,31 +1899,34 @@ Entry::depth( const unsigned depth  )
 Entry&
 Entry::label()
 {
-    *myLabel << name();
+    *_label << name();
     if ( !startActivity() && Flags::print_input_parameters() ) {
-	myLabel->newLine() << '[' << print_service_time(*this)  << ']';
+	_label->newLine() << '[' << service_time_of(*this)  << ']';
 	if ( hasThinkTime() ) {
-	    *myLabel << ",Z=" << print_think_time(*this);
+	    *_label << ",Z=" << think_time_of(*this);
 	}
     }
     if ( Flags::have_results ) {
 	if ( Flags::print[SERVICE].opts.value.b ) {
-	    myLabel->newLine() << begin_math() << label_execution_time(*this) << end_math();
+	    _label->newLine() << begin_math() << execution_time_of(*this) << end_math();
 	}
 	if ( Flags::print[VARIANCE].opts.value.b && Model::variancePresent ) {
-	    myLabel->newLine() << begin_math( &Label::sigma ) << "=" << print_variance(*this) << end_math();
+	    _label->newLine() << begin_math( &Label::sigma ) << "=" << variance_of(*this) << end_math();
 	}
 	if ( Flags::print[SERVICE_EXCEEDED].opts.value.b && serviceExceeded() > 0. ) {
-	    myLabel->newLine() << "!=";
+	    _label->newLine() << "!=";
 	}
 	if ( Flags::print[THROUGHPUT_BOUNDS].opts.value.b && Model::boundsPresent ) {
-	    myLabel->newLine() << begin_math() << "L=" << opt_pct(throughputBound()) << end_math();
+	    _label->newLine() << begin_math() << "L=" << opt_pct(throughputBound()) << end_math();
 	}
 	if ( Flags::print[ENTRY_THROUGHPUT].opts.value.b ) {
-	    myLabel->newLine() << begin_math( &Label::lambda ) << "=" << opt_pct(throughput()) << end_math();
+	    _label->newLine() << begin_math( &Label::lambda ) << "=" << opt_pct(throughput()) << end_math();
 	}
 	if ( Flags::print[ENTRY_UTILIZATION].opts.value.b ) {
-	    myLabel->newLine() << begin_math( &Label::mu ) << "=" << opt_pct(utilization()) << end_math();
+	    _label->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(utilization()) << end_math();
+	}
+	if ( Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
+	    _label->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(processorUtilization()) << end_math();
 	}
     }
 
@@ -1980,7 +1980,7 @@ Entry::labelQueueingNetworkWaiting( Label& aLabel )
 Entry&
 Entry::labelQueueingNetworkService( Label& aLabel ) 
 {
-    aLabel.newLine() << name() << "[" << print_service_time(*this) << "]";
+    aLabel.newLine() << name() << "[" << service_time_of(*this) << "]";
     return *this;
 }
 
@@ -2276,51 +2276,51 @@ Entry::draw( std::ostream& output ) const
     if ( _startActivity ) {
 	aComment << " A " << _startActivity->name();
     } else {
-	aComment << " s [" << print_service_time( *this ) << "]";
+	aComment << " s [" << service_time_of( *this ) << "]";
     };
 #if defined(BUG_375)
     aComment << " span=" << span() << ", index=" << index();
 #endif
-    myNode->comment( output, aComment.str() );
+    _node->comment( output, aComment.str() );
 
     const double dx = adjustForSlope( fabs(height()) );
 
-    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );	/* fillColour ignored since its a line. */
+    _node->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );	/* fillColour ignored since its a line. */
     std::vector<Point> points;
     if ( Flags::graphical_output_style == Output_Style::JLQNDEF ) {
 	points.resize(4);
-	points[0] = myNode->topRight();
-	points[1] = myNode->topLeft().moveBy( dx, 0 );
-	points[2] = myNode->bottomLeft();
-	points[3] = myNode->bottomRight().moveBy( -dx, 0 );
-	myNode->polygon( output, points );
+	points[0] = _node->topRight();
+	points[1] = _node->topLeft().moveBy( dx, 0 );
+	points[2] = _node->bottomLeft();
+	points[3] = _node->bottomRight().moveBy( -dx, 0 );
+	_node->polygon( output, points );
     } else {
 	if ( drawLeft && drawRight ) {
 	    points.resize(4);
-	    points[0] = myNode->topLeft().moveBy( dx, 0 );
-	    points[1] = myNode->bottomLeft();
-	    points[2] = myNode->bottomRight().moveBy( -dx, 0 );
-	    points[3] = myNode->topRight();
+	    points[0] = _node->topLeft().moveBy( dx, 0 );
+	    points[1] = _node->bottomLeft();
+	    points[2] = _node->bottomRight().moveBy( -dx, 0 );
+	    points[3] = _node->topRight();
 	} else if ( drawLeft ) {
 	    points.resize(3);
-	    points[0] = myNode->topLeft().moveBy( dx, 0 );
-	    points[1] = myNode->bottomLeft();
-	    points[2] = myNode->bottomRight().moveBy( -dx, 0 );
+	    points[0] = _node->topLeft().moveBy( dx, 0 );
+	    points[1] = _node->bottomLeft();
+	    points[2] = _node->bottomRight().moveBy( -dx, 0 );
 	} else if ( drawRight ) {
 	    points.resize(3);
-	    points[0] = myNode->bottomLeft();
-	    points[1] = myNode->bottomRight().moveBy( -dx, 0 );
-	    points[2] = myNode->topRight();
+	    points[0] = _node->bottomLeft();
+	    points[1] = _node->bottomRight().moveBy( -dx, 0 );
+	    points[2] = _node->topRight();
 	} else {
 	    points.resize(2);
-	    points[0] = myNode->bottomLeft();
-	    points[1] = myNode->bottomRight().moveBy( -dx, 0 );
+	    points[0] = _node->bottomLeft();
+	    points[1] = _node->bottomRight().moveBy( -dx, 0 );
 	}
-	myNode->polyline( output, points );
+	_node->polyline( output, points );
     }
 
-    myLabel->backgroundColour( colour() ).comment( output, aComment.str() );
-    output << *myLabel;
+    _label->backgroundColour( colour() ).comment( output, aComment.str() );
+    output << *_label;
 
     Call * lastCall = nullptr;
     for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
@@ -2466,36 +2466,45 @@ format( std::ostream& output, int p ) {
 }
 
 
-static Label&
-execution_time_of_label( Label& aLabel, const Entry& anEntry )
+Label&
+Entry::print_execution_time( Label& label, const Entry& entry )
 {
-    for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
-	if ( p > 1 ) {
-	    aLabel << ",";
-	}
-	aLabel << opt_pct(anEntry.executionTime(p));
+    for ( unsigned p = 1; p <= entry.maxPhase(); ++p ) {
+	if ( p > 1 ) label << ",";
+	label << opt_pct(entry.executionTime(p));
     }
-    return aLabel;
+    return label;
 }
 
 
-static std::ostream&
-queueing_time_of_str( std::ostream& output, const Entry& anEntry )
+Label&
+Entry::print_queueing_time( Label& label, const Entry& entry )
 {
-    for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
-	format( output, p ) << opt_pct(anEntry.queueingTime(p));
+    for ( unsigned p = 1; p <= entry.maxPhase(); ++p ) {
+	if ( p > 1 ) label << ",";
+	label << opt_pct(entry.queueingTime(p));
     }
-    return output;
+    return label;
 }
 
 
-static std::ostream&
-service_time_of_str( std::ostream& output, const Entry& anEntry )
+Label&
+Entry::print_variance( Label& label, const Entry& entry )
 {
-    for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
+    for ( unsigned p = 1; p <= entry.maxPhase(); ++p ) {
+	if ( p > 1 ) label << ",";
+	label << opt_pct(entry.variance(p));
+    }
+    return label;
+}
+
+std::ostream&
+Entry::print_service_time( std::ostream& output, const Entry& entry )
+{
+    for ( unsigned p = 1; p <= entry.maxPhase(); ++p ) {
 	format( output, p );
-	if ( anEntry.hasServiceTime(p) ) {
-	    output << anEntry.serviceTime(p);
+	if ( entry.hasServiceTime(p) ) {
+	    output << entry.serviceTime(p);
 	} else {
 	    output << 0.0;
 	}
@@ -2504,86 +2513,19 @@ service_time_of_str( std::ostream& output, const Entry& anEntry )
 }
 
 
-static std::ostream&
-think_time_of_str( std::ostream& output, const Entry& anEntry )
+std::ostream&
+Entry::print_think_time( std::ostream& output, const Entry& entry )
 {
     for ( unsigned p = 1; p <= Entry::max_phases; ++p ) {
 	format( output, p );
-	if ( anEntry.hasThinkTime(p) ) {
-	    output << anEntry.thinkTime(p);
+	if ( entry.hasThinkTime(p) ) {
+	    output << entry.thinkTime(p);
 	} else {
 	    output << 0.0;
 	}
-    }
-    return output;
-}
-
-static std::ostream&
-variance_of_str( std::ostream& output, const Entry& anEntry )
-{
-    for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
-	format( output, p ) << opt_pct(anEntry.variance(p));
-    }
-    return output;
-}
-
-
-static std::ostream&
-slice_time_of_str( std::ostream& output, const Entry& anEntry )
-{
-    for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
-	format( output, p ) << anEntry.sliceTime(p);
-    }
-    return output;
-}
-
-static std::ostream&
-number_slices_of_str( std::ostream& output, const Entry& anEntry )
-{
-    for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
-	format( output, p ) << anEntry.numberSlices(p);
     }
     return output;
 }
 
-SRVNEntryManip
-print_service_time( const Entry& anEntry )
-{
-    return SRVNEntryManip( &service_time_of_str, anEntry );
-}
-
-SRVNEntryManip
-print_think_time( const Entry& anEntry )
-{
-    return SRVNEntryManip( &think_time_of_str, anEntry );
-}
-
-static LabelEntryManip
-label_execution_time( const Entry& anEntry )
-{
-    return LabelEntryManip( &execution_time_of_label, anEntry );
-}
-
-SRVNEntryManip
-print_number_slices( const Entry& anEntry )
-{
-    return SRVNEntryManip( &number_slices_of_str, anEntry );
-}
-
-SRVNEntryManip
-print_slice_time( const Entry& anEntry )
-{
-    return SRVNEntryManip( &slice_time_of_str, anEntry );
-}
-
-SRVNEntryManip
-print_queueing_time( const Entry& anEntry )
-{
-    return SRVNEntryManip( &queueing_time_of_str, anEntry );
-}
-
-SRVNEntryManip
-print_variance( const Entry& anEntry )
-{
-    return SRVNEntryManip( &variance_of_str, anEntry );
-}
+SRVNEntryManip service_time_of( const Entry& entry ) { return SRVNEntryManip( &Entry::print_service_time, entry ); }
+SRVNEntryManip think_time_of( const Entry& entry ) { return SRVNEntryManip( &Entry::print_think_time, entry ); }

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15609 2022-05-30 17:19:07Z greg $
+ * $Id: entity.cc 15612 2022-06-01 01:06:26Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -510,10 +510,10 @@ Entity::setIdleTime( const double relax )
 const Entity&
 Entity::sanityCheck() const
 {
-    if ( !isInfinite() && utilization() > copies() * 1.05 ) {
-	LQIO::solution_error( ADV_INVALID_UTILIZATION, utilization(),
-			      getDOM()->getTypeName(),
-			      name().c_str(), copies() );
+    if ( !std::isfinite( utilization() ) ) {
+	LQIO::solution_error( ADV_INFINITE_UTILIZATION, getDOM()->getTypeName(), name().c_str() );
+    } else if ( !isInfinite() && utilization() > copies() * 1.05 ) {
+	LQIO::solution_error( ADV_INVALID_UTILIZATION, getDOM()->getTypeName(), name().c_str(), copies(), utilization() );
     }
     return *this;
 }

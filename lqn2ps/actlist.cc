@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 15555 2022-04-18 21:06:51Z greg $
+ * $Id: actlist.cc 15614 2022-06-01 12:17:43Z greg $
  */
 
 
@@ -144,15 +144,15 @@ ActivityList::colour() const
 /* -------------------------------------------------------------------- */
 
 SequentialActivityList::SequentialActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist ) 
-    : ActivityList( owner,dom_activitylist), myActivity(0) 
+    : ActivityList( owner,dom_activitylist), _activity(nullptr) 
 {
-    myArc = Arc::newArc();
+    _arc = Arc::newArc();
 }
 
 
 SequentialActivityList::~SequentialActivityList()
 {
-    delete myArc;
+    delete _arc;
 }
 
 
@@ -161,9 +161,9 @@ SequentialActivityList::~SequentialActivityList()
  */
 
 SequentialActivityList&
-SequentialActivityList::add( Activity * anActivity )
+SequentialActivityList::add( Activity * activity )
 {
-    myActivity = anActivity;
+    _activity = activity;
     return *this;
 }
 
@@ -171,7 +171,7 @@ SequentialActivityList::add( Activity * anActivity )
 SequentialActivityList& 
 SequentialActivityList::scaleBy( const double sx, const double sy )
 {
-    myArc->scaleBy( sx, sy );
+    _arc->scaleBy( sx, sy );
     return *this;
 }
 
@@ -180,7 +180,7 @@ SequentialActivityList::scaleBy( const double sx, const double sy )
 SequentialActivityList& 
 SequentialActivityList::translateY( const double dy )
 {
-    myArc->translateY( dy );
+    _arc->translateY( dy );
     return *this;
 }
 
@@ -189,7 +189,7 @@ SequentialActivityList::translateY( const double dy )
 SequentialActivityList& 
 SequentialActivityList::depth( const unsigned curDepth )
 {
-    myArc->depth( curDepth );
+    _arc->depth( curDepth );
     return *this;
 }
 
@@ -197,7 +197,7 @@ SequentialActivityList::depth( const unsigned curDepth )
 Point
 SequentialActivityList::findSrcPoint() const
 {
-    Point aPoint = myActivity->topCenter();
+    Point aPoint = _activity->topCenter();
     aPoint.moveBy( 0, height() );
     return aPoint;
 }
@@ -205,7 +205,7 @@ SequentialActivityList::findSrcPoint() const
 Point
 SequentialActivityList::findDstPoint() const
 {
-    Point aPoint = myActivity->bottomCenter();
+    Point aPoint = _activity->bottomCenter();
     aPoint.moveBy( 0, -height() );
     return aPoint;
 }
@@ -215,9 +215,9 @@ SequentialActivityList::findDstPoint() const
 const SequentialActivityList&
 SequentialActivityList::draw( std::ostream& output ) const
 {
-    if ( myActivity && myArc->srcPoint() != myArc->secondPoint() ) {
-	myArc->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() );
-	myArc->draw( output );
+    if ( _activity && _arc->srcPoint() != _arc->secondPoint() ) {
+	_arc->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() );
+	_arc->draw( output );
     }
     return *this;
 }
@@ -245,8 +245,8 @@ ForkActivityList::clone() const
 size_t
 ForkActivityList::findChildren( CallStack& callStack, const unsigned directPath, std::deque<const Activity *>& activityStack ) const
 {
-    if ( myActivity ) {
-	return myActivity->findChildren( callStack, directPath, activityStack );
+    if ( _activity ) {
+	return _activity->findChildren( callStack, directPath, activityStack );
     } else {
 	return callStack.size();
     }
@@ -255,8 +255,8 @@ ForkActivityList::findChildren( CallStack& callStack, const unsigned directPath,
 size_t
 ForkActivityList::findActivityChildren( std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack, Entry * anEntry, size_t depth, const unsigned p, const double rate ) const
 {
-    if ( myActivity ) {
-	return myActivity->findActivityChildren( activityStack, forkStack, anEntry, depth, p, rate );
+    if ( _activity ) {
+	return _activity->findActivityChildren( activityStack, forkStack, anEntry, depth, p, rate );
     } else {
 	return depth;
     }
@@ -271,8 +271,8 @@ ForkActivityList::findActivityChildren( std::deque<const Activity *>& activitySt
 double
 ForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, std::deque<const Activity *>& activityStack, aggregateFunc aFunc ) 
 {
-    if ( myActivity ) {
-	return myActivity->aggregate( anEntry, curr_p, next_p, rate, activityStack, aFunc );
+    if ( _activity ) {
+	return _activity->aggregate( anEntry, curr_p, next_p, rate, activityStack, aFunc );
     } else {
 	return 0.0;
     }
@@ -282,8 +282,8 @@ ForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned& n
 unsigned
 ForkActivityList::setChain( std::deque<const Activity *>& activityStack, unsigned curr_k, unsigned next_k, const Entity * aServer, const callPredicate aFunc ) const
 {
-    if ( myActivity ) {
-	return myActivity->setChain( activityStack, curr_k, next_k, aServer, aFunc );
+    if ( _activity ) {
+	return _activity->setChain( activityStack, curr_k, next_k, aServer, aFunc );
     } else {
 	return next_k;
     }
@@ -318,7 +318,7 @@ ForkActivityList::reconnect( Activity *, Activity * )
 ForkActivityList&
 ForkActivityList::moveSrcTo( const Point& src, Activity * )
 { 
-    myArc->moveSrc( src );
+    _arc->moveSrc( src );
     return *this; 
 } 
 
@@ -326,10 +326,10 @@ ForkActivityList::moveSrcTo( const Point& src, Activity * )
 ForkActivityList&
 ForkActivityList::moveDstTo( const Point& dst, Activity * )
 { 
-    myArc->moveDst( dst );
+    _arc->moveDst( dst );
     if ( prev() ) {
 	const Point src( prev()->findDstPoint() );
-	myArc->moveSrc( src );
+	_arc->moveSrc( src );
 	prev()->moveDstTo( src );
     }
     return *this;
@@ -343,7 +343,7 @@ ForkActivityList::moveDstTo( const Point& dst, Activity * )
 double
 ForkActivityList::align() const
 {
-    return prev()->findDstPoint().x() - myArc->dstPoint().x();
+    return prev()->findDstPoint().x() - _arc->dstPoint().x();
 }
 
 /* -------------------------------------------------------------------- */
@@ -406,8 +406,8 @@ JoinActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned& n
 
 	    /* Simple sequence -- aggregate */
 	    
-	    Activity * nextActivity = dynamic_cast<ForkActivityList *>(next())->myActivity;
-	    myActivity->merge( *nextActivity ).disconnect( nextActivity );
+	    Activity * nextActivity = dynamic_cast<ForkActivityList *>(next())->_activity;
+	    _activity->merge( *nextActivity ).disconnect( nextActivity );
 	    delete nextActivity;
 	} 
 	return count;
@@ -432,8 +432,8 @@ JoinActivityList::setChain( std::deque<const Activity *>& activityStack, unsigne
 double
 JoinActivityList::getIndex() const
 {
-    if ( myActivity ) {
-	return myActivity->index();
+    if ( _activity ) {
+	return _activity->index();
     } else {
 	return std::numeric_limits<double>::max();
     }
@@ -448,7 +448,7 @@ JoinActivityList&
 JoinActivityList::reconnect( Activity * curr,  Activity * next ) 
 {
     ActivityList::reconnect( curr, next );
-    myActivity = next;
+    _activity = next;
     return *this;
 }
 
@@ -473,11 +473,11 @@ JoinActivityList::moveSrcTo( const Point& src, Activity * )
 { 
     if ( next() ) {
 	if ( dynamic_cast<ForkActivityList *>(next()) ) {
-	    myArc->arrowhead( Graphic::ArrowHead::NONE );
+	    _arc->arrowhead( Graphic::Arrowhead::NONE );
 	}
-	myArc->moveSrc( src ); 
+	_arc->moveSrc( src ); 
 	const Point dst( next()->findSrcPoint() );
-	myArc->moveDst( dst );
+	_arc->moveDst( dst );
 	next()->moveSrcTo( dst );
     }
     return *this; 
@@ -488,7 +488,7 @@ JoinActivityList::moveSrcTo( const Point& src, Activity * )
 JoinActivityList&
 JoinActivityList::moveDstTo( const Point& dst, Activity * )
 { 
-    myArc->moveDst( dst );
+    _arc->moveDst( dst );
     return *this;
 }
 
@@ -499,15 +499,15 @@ JoinActivityList::moveDstTo( const Point& dst, Activity * )
 ForkJoinActivityList::ForkJoinActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist ) 
     : ActivityList( owner, dom_activitylist )
 {
-    myNode = Node::newNode( 12.0, 12.0 );
+    _node = Node::newNode( 12.0, 12.0 );
 }
 
 
 ForkJoinActivityList::~ForkJoinActivityList()
 {
-    delete myNode;
-    _activityList.clear();
-    for ( std::map<Activity *,Arc *>::iterator arc = myArcList.begin(); arc != myArcList.end(); ++arc ) {
+    delete _node;
+    _activities.clear();
+    for ( std::map<Activity *,Arc *>::iterator arc = _arcs.begin(); arc != _arcs.end(); ++arc ) {
 	delete arc->second;
     }
 }
@@ -518,10 +518,10 @@ ForkJoinActivityList::~ForkJoinActivityList()
  */
 
 ForkJoinActivityList&
-ForkJoinActivityList::add( Activity * anActivity )
+ForkJoinActivityList::add( Activity * activity )
 {
-    _activityList.push_back( anActivity );
-    myArcList[anActivity] = Arc::newArc();
+    _activities.push_back( activity );
+    _arcs[activity] = Arc::newArc();
     return *this;
 }
 
@@ -529,8 +529,8 @@ ForkJoinActivityList::add( Activity * anActivity )
 ForkJoinActivityList& 
 ForkJoinActivityList::scaleBy( const double sx, const double sy )
 {
-    for_each( myArcList.begin(), myArcList.end(), ExecXY<Arc>( &Arc::scaleBy, sx, sy ) );
-    myNode->scaleBy( sx, sy );
+    for_each( _arcs.begin(), _arcs.end(), ExecXY<Arc>( &Arc::scaleBy, sx, sy ) );
+    _node->scaleBy( sx, sy );
     return *this;
 }
 
@@ -539,8 +539,8 @@ ForkJoinActivityList::scaleBy( const double sx, const double sy )
 ForkJoinActivityList& 
 ForkJoinActivityList::translateY( const double dy )
 {
-    for_each( myArcList.begin(), myArcList.end(), ExecX<Arc,std::pair<Activity *,Arc *>,double>( &Arc::translateY, dy ) );
-    myNode->translateY( dy );
+    for_each( _arcs.begin(), _arcs.end(), ExecX<Arc,std::pair<Activity *,Arc *>,double>( &Arc::translateY, dy ) );
+    _node->translateY( dy );
     return *this;
 }
 
@@ -549,8 +549,8 @@ ForkJoinActivityList::translateY( const double dy )
 ForkJoinActivityList& 
 ForkJoinActivityList::depth( unsigned depth )
 {
-    for_each( myArcList.begin(), myArcList.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,unsigned>( &Graphic::depth, depth ) );
-    myNode->depth( depth-2 );
+    for_each( _arcs.begin(), _arcs.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,unsigned>( &Graphic::depth, depth ) );
+    _node->depth( depth-2 );
     return *this;
 }
 
@@ -575,7 +575,7 @@ ForkJoinActivityList::findDstPoint() const
 double
 ForkJoinActivityList::radius() const
 {
-    return fabs( myNode->height() ) / 2.0;
+    return fabs( _node->height() ) / 2.0;
 }
 
 
@@ -583,20 +583,20 @@ const ForkJoinActivityList&
 ForkJoinActivityList::draw( std::ostream& output ) const
 {
     const Graphic::Colour pen_colour = colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour();
-    for_each( myArcList.begin(), myArcList.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,Graphic::Colour>( &Graphic::penColour, pen_colour ) );
-    const Point ctr( myNode->center() );
-    myNode->penColour( pen_colour ).fillColour( colour() );
-    myNode->circle( output, ctr, radius() );
-    Point aPoint( ctr.x(), (ctr.y() + myNode->bottom()) / 2. );
+    for_each( _arcs.begin(), _arcs.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,Graphic::Colour>( &Graphic::penColour, pen_colour ) );
+    const Point ctr( _node->center() );
+    _node->penColour( pen_colour ).fillColour( colour() );
+    _node->circle( output, ctr, radius() );
+    Point aPoint( ctr.x(), (ctr.y() + _node->bottom()) / 2. );
 
-    myNode->text( output, aPoint, typeStr() );
+    _node->text( output, aPoint, typeStr() );
 
     return *this;
 }
 
 ForkJoinActivityList& ForkJoinActivityList::sort( compare_func_ptr compare )
 {
-    std::sort( _activityList.begin(), _activityList.end(), compare );
+    std::sort( _activities.begin(), _activities.end(), compare );
     return *this;
 }
 
@@ -671,7 +671,7 @@ AndOrForkActivityList::reconnect( Activity *, Activity * )
 Point
 AndOrForkActivityList::srcPoint() const
 {
-    return myNode->topCenter();
+    return _node->topCenter();
 }
 
 Point
@@ -690,9 +690,9 @@ AndOrForkActivityList&
 AndOrForkActivityList::moveSrcTo( const Point& src, Activity * )
 { 
     // std::cerr << "AndOrForkActivityList::moveSrcTo( " << src.x() << ", " << src.y() << ")" << std::endl;
-    myNode->moveTo( src.x() - radius(), src.y() - 2 * radius() );
-    const Point ctr( myNode->center() );
-    for ( std::map<Activity *,Arc *>::iterator arc = myArcList.begin(); arc != myArcList.end(); ++arc ) {
+    _node->moveTo( src.x() - radius(), src.y() - 2 * radius() );
+    const Point ctr( _node->center() );
+    for ( std::map<Activity *,Arc *>::iterator arc = _arcs.begin(); arc != _arcs.end(); ++arc ) {
 	arc->second->moveSrc( ctr );
 	const Point src2 = arc->second->srcIntersectsCircle( ctr, radius() );
 	arc->second->moveSrc( src2 );
@@ -703,25 +703,25 @@ AndOrForkActivityList::moveSrcTo( const Point& src, Activity * )
 
 
 AndOrForkActivityList&
-AndOrForkActivityList::moveDstTo( const Point& dst, Activity * anActivity )
+AndOrForkActivityList::moveDstTo( const Point& dst, Activity * activity )
 { 
-    const std::map<Activity *,Arc *>::const_iterator arc = myArcList.find( anActivity );
+    const std::map<Activity *,Arc *>::const_iterator arc = _arcs.find( activity );
 
-    if ( arc != myArcList.end() && prev() ) {
+    if ( arc != _arcs.end() && prev() ) {
 	const Point p1( activityList().front()->topCenter() );
 	const Point p2( activityList().back()->topCenter() );
 	// std::cerr << "AndOrForkActivityList::moveDstTo( "
 	// 	  << (p1.x() + p2.x()) / 2. - radius() << ", "
 	// 	  << prev()->findSrcPoint().y() << ")" << std::endl;
-	myNode->moveTo( (p1.x() + p2.x()) / 2. - radius(), prev()->findSrcPoint().y() );
-	const Point src = myNode->center(); // 
+	_node->moveTo( (p1.x() + p2.x()) / 2. - radius(), prev()->findSrcPoint().y() );
+	const Point src = _node->center(); // 
 
 	arc->second->moveDst( dst );
 	arc->second->moveSrc( src );
 	const Point p3 = arc->second->dstIntersectsCircle( src, radius() );
 	arc->second->moveSrc( p3 );
 
-	prev()->moveDstTo( myNode->topCenter() );
+	prev()->moveDstTo( _node->topCenter() );
     }
     return *this;
 }
@@ -742,7 +742,7 @@ const AndOrForkActivityList&
 AndOrForkActivityList::draw( std::ostream& output ) const
 {
     ForkJoinActivityList::draw( output );
-    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
+    for_each( _arcs.begin(), _arcs.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
     return *this;
 }
 
@@ -766,27 +766,27 @@ OrJoinActivityList::clone() const
 
 OrForkActivityList::~OrForkActivityList()
 {
-    for ( std::map<Activity *, Label *>::iterator label = _labelList.begin(); label != _labelList.end(); ++label ) {
+    for ( std::map<Activity *, Label *>::iterator label = _labels.begin(); label != _labels.end(); ++label ) {
 	delete label->second;
     }
 }
 
 
 const LQIO::DOM::ExternalVariable& 
-OrForkActivityList::prBranch( const Activity * anActivity ) const
+OrForkActivityList::prBranch( const Activity * activity ) const
 {
-    return *getDOM()->getParameter(dynamic_cast<const LQIO::DOM::Activity *>(anActivity->getDOM()));
+    return *getDOM()->getParameter(dynamic_cast<const LQIO::DOM::Activity *>(activity->getDOM()));
 }
 
 
 OrForkActivityList&
-OrForkActivityList::add( Activity * anActivity )
+OrForkActivityList::add( Activity * activity )
 {
-    ForkJoinActivityList::add( anActivity );
-    Label * aLabel = Label::newLabel();
-    if ( aLabel ) {
-	_labelList[anActivity] = aLabel;
-	aLabel->justification( Flags::label_justification );
+    ForkJoinActivityList::add( activity );
+    Label * label = Label::newLabel();
+    if ( label ) {
+	_labels[activity] = label;
+	label->justification( Flags::label_justification );
     }
     return *this;
 }
@@ -864,9 +864,9 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 
 	/* Success */
 
-	/* Aggregate everything into joinList->next()->myActivity */
+	/* Aggregate everything into joinList->next()->_activity */
 
-	Activity * nextActivity = dynamic_cast<ForkActivityList *>(joinList->next())->myActivity;
+	Activity * nextActivity = dynamic_cast<ForkActivityList *>(joinList->next())->_activity;
 	size_t currLevel = 0;
 	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	    currLevel = std::max( currLevel, (*activity)->level() );
@@ -888,7 +888,7 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 	/* 
 	 * Delete the or fork and join lists.  DON'T delete the
 	 * originator here, because we need to access
-	 * myActivityList 
+	 * _activities 
 	 */
 
 	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
@@ -915,7 +915,7 @@ OrForkActivityList&
 OrForkActivityList::translateY( const double dy )
 {
     ForkJoinActivityList::translateY( dy );
-    for_each( _labelList.begin(), _labelList.end(), ExecX<Label,std::pair<Activity *,Label *>,double>( &Label::translateY, dy ) );
+    for_each( _labels.begin(), _labels.end(), ExecX<Label,std::pair<Activity *,Label *>,double>( &Label::translateY, dy ) );
     return *this;
 }
 
@@ -924,7 +924,7 @@ OrForkActivityList&
 OrForkActivityList::scaleBy( const double sx, const double sy )
 {
     ForkJoinActivityList::scaleBy( sx, sy );
-    for_each( _labelList.begin(), _labelList.end(), ExecXY<Label>( &Label::scaleBy, sx, sy ) );
+    for_each( _labels.begin(), _labels.end(), ExecXY<Label>( &Label::scaleBy, sx, sy ) );
     return *this;
 }
 
@@ -935,7 +935,7 @@ OrForkActivityList::label()
 {
     if ( Flags::print_input_parameters() ) {
 	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	    *(_labelList[*activity]) << prBranch( *activity );
+	    *(_labels[*activity]) << prBranch( *activity );
 	}
     }
     return *this;
@@ -944,13 +944,13 @@ OrForkActivityList::label()
 
 
 OrForkActivityList&
-OrForkActivityList::moveSrcTo( const Point& src, Activity * anActivity )
+OrForkActivityList::moveSrcTo( const Point& src, Activity * activity )
 {
-    AndOrForkActivityList::moveSrcTo( src, anActivity );
+    AndOrForkActivityList::moveSrcTo( src, activity );
 #if 0
     for ( unsigned int i = 1; i <= size(); ++i ) {
-	Point aPoint = myArcList[i]->pointFromDst(height()/3.0);
-	_labelList[i]->moveTo( aPoint );
+	Point aPoint = _arcs[i]->pointFromDst(height()/3.0);
+	_labels[i]->moveTo( aPoint );
     }
 #endif
     return *this;
@@ -959,12 +959,12 @@ OrForkActivityList::moveSrcTo( const Point& src, Activity * anActivity )
 
 
 OrForkActivityList&
-OrForkActivityList::moveDstTo( const Point& dst, Activity * anActivity )
+OrForkActivityList::moveDstTo( const Point& dst, Activity * activity )
 {
-    AndOrForkActivityList::moveDstTo( dst, anActivity );
-    for ( std::map<Activity *,Arc *>::iterator arc = myArcList.begin(); arc != myArcList.end(); ++arc ) {
+    AndOrForkActivityList::moveDstTo( dst, activity );
+    for ( std::map<Activity *,Arc *>::iterator arc = _arcs.begin(); arc != _arcs.end(); ++arc ) {
 	Point aPoint = arc->second->pointFromDst(height()/3.0);
-	_labelList[arc->first]->moveTo( aPoint );
+	_labels[arc->first]->moveTo( aPoint );
     }
     return *this;
 }
@@ -975,8 +975,8 @@ const OrForkActivityList&
 OrForkActivityList::draw( std::ostream& output ) const
 {
     AndOrForkActivityList::draw( output );
-    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
-    for_each( _labelList.begin(), _labelList.end(), ConstExecX<Label,std::pair<Activity *,Label *>,std::ostream&>( &Label::draw, output ) );
+    for_each( _arcs.begin(), _arcs.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
+    for_each( _labels.begin(), _labels.end(), ConstExecX<Label,std::pair<Activity *,Label *>,std::ostream&>( &Label::draw, output ) );
     return *this;
 }
 
@@ -996,9 +996,9 @@ AndForkActivityList::clone() const
 
 
 AndForkActivityList&
-AndForkActivityList::add( Activity * anActivity )
+AndForkActivityList::add( Activity * activity )
 {
-    ForkJoinActivityList::add( anActivity );
+    ForkJoinActivityList::add( activity );
     return *this;
 
 }
@@ -1137,7 +1137,7 @@ AndOrJoinActivityList&
 AndOrJoinActivityList::reconnect( Activity * curr, Activity * next )
 {
     ActivityList::reconnect( curr, next );
-    std::vector<Activity *>::iterator activity = std::find( _activityList.begin(), _activityList.end(), curr );
+    std::vector<Activity *>::iterator activity = std::find( _activities.begin(), _activities.end(), curr );
     if ( activity != activityList().end() ) {
 	*activity = next;
     }
@@ -1157,7 +1157,7 @@ AndOrJoinActivityList::srcPoint() const
 Point
 AndOrJoinActivityList::dstPoint() const
 {
-    return myNode->bottomCenter(); 
+    return _node->bottomCenter(); 
 }
 
 
@@ -1178,22 +1178,22 @@ AndOrJoinActivityList::height() const
  */
 
 AndOrJoinActivityList&
-AndOrJoinActivityList::moveSrcTo( const Point& src, Activity * anActivity )
+AndOrJoinActivityList::moveSrcTo( const Point& src, Activity * activity )
 { 
-    const std::map<Activity *,Arc *>::const_iterator arc = myArcList.find( anActivity );
+    const std::map<Activity *,Arc *>::const_iterator arc = _arcs.find( activity );
 
-    if ( arc != myArcList.end() && next() ) {
+    if ( arc != _arcs.end() && next() ) {
 	const Point p1( activityList().front()->topCenter() );
 	const Point p2( activityList().back()->topCenter() );
-	myNode->moveTo( (p1.x() + p2.x()) / 2. - radius(), next()->findSrcPoint().y() );
-	const Point dst = myNode->center(); // 
+	_node->moveTo( (p1.x() + p2.x()) / 2. - radius(), next()->findSrcPoint().y() );
+	const Point dst = _node->center(); // 
 
 	arc->second->moveSrc( src );
 	arc->second->moveDst( dst );
 	const Point p3 = arc->second->dstIntersectsCircle( dst, radius() );
 	arc->second->moveDst( p3 );
 
-	next()->moveSrcTo( myNode->bottomCenter() );
+	next()->moveSrcTo( _node->bottomCenter() );
     }
 
     return *this; 
@@ -1203,9 +1203,9 @@ AndOrJoinActivityList::moveSrcTo( const Point& src, Activity * anActivity )
 AndOrJoinActivityList&
 AndOrJoinActivityList::moveDstTo( const Point& dst, Activity * )
 { 
-    myNode->moveTo( dst.x() - radius(), dst.y() - 2 * radius() );
-    const Point ctr( myNode->center() );
-    for ( std::map<Activity *,Arc *>::iterator arc = myArcList.begin(); arc != myArcList.end(); ++arc ) {
+    _node->moveTo( dst.x() - radius(), dst.y() - 2 * radius() );
+    const Point ctr( _node->center() );
+    for ( std::map<Activity *,Arc *>::iterator arc = _arcs.begin(); arc != _arcs.end(); ++arc ) {
 	arc->second->moveDst( ctr );
 	const Point dst2 = arc->second->srcIntersectsCircle( ctr, radius() );
 	arc->second->moveDst( dst2 );
@@ -1218,7 +1218,7 @@ const AndOrJoinActivityList&
 AndOrJoinActivityList::draw( std::ostream& output ) const
 {
     ForkJoinActivityList::draw( output );
-    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
+    for_each( _arcs.begin(), _arcs.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
     return *this;
 }
 
@@ -1227,9 +1227,9 @@ AndOrJoinActivityList::draw( std::ostream& output ) const
 /* -------------------------------------------------------------------- */
 
 OrJoinActivityList&
-OrJoinActivityList::add( Activity * anActivity )
+OrJoinActivityList::add( Activity * activity )
 {
-    ForkJoinActivityList::add( anActivity );
+    ForkJoinActivityList::add( activity );
     return *this;
 }
 
@@ -1317,10 +1317,10 @@ AndJoinActivityList::clone() const
 
 
 AndJoinActivityList&
-AndJoinActivityList::add( Activity * anActivity )
+AndJoinActivityList::add( Activity * activity )
 {
     Activity::hasJoins = true;
-    ForkJoinActivityList::add( anActivity );
+    ForkJoinActivityList::add( activity );
     return *this;
 }
 
@@ -1477,10 +1477,10 @@ AndJoinActivityList::joinVariance() const
 
 
 AndJoinActivityList&
-AndJoinActivityList::moveSrcTo( const Point& src, Activity * anActivity )
+AndJoinActivityList::moveSrcTo( const Point& src, Activity * activity )
 {
-    AndOrJoinActivityList::moveSrcTo( src, anActivity );
-    _label->moveTo( myNode->center() ).moveBy( radius(), 0.0 ).justification( Justification::LEFT );
+    AndOrJoinActivityList::moveSrcTo( src, activity );
+    _label->moveTo( _node->center() ).moveBy( radius(), 0.0 ).justification( Justification::LEFT );
     return *this;
 }
 
@@ -1521,7 +1521,7 @@ const AndJoinActivityList&
 AndJoinActivityList::draw( std::ostream& output ) const
 {
     AndOrJoinActivityList::draw( output );
-    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
+    for_each( _arcs.begin(), _arcs.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
     output << *_label;
     return *this;
 }
@@ -1534,17 +1534,17 @@ RepeatActivityList::RepeatActivityList( const Task * owner, const LQIO::DOM::Act
     : ForkActivityList( owner, dom_activitylist ), 
       prevLink(0)
 {
-    myNode = Node::newNode( 12.0, 12.0 );
+    _node = Node::newNode( 12.0, 12.0 );
 }
 
 
 RepeatActivityList::~RepeatActivityList()
 {
-    delete myNode;
-    for ( std::map<Activity *,Arc *>::iterator arc = myArcList.begin(); arc != myArcList.end(); ++arc ) {
+    delete _node;
+    for ( std::map<Activity *,Arc *>::iterator arc = _arcs.begin(); arc != _arcs.end(); ++arc ) {
 	delete arc->second;
     }
-    for ( std::map<Activity *,Label *>::iterator label = _labelList.begin(); label != _labelList.end(); ++label ) {
+    for ( std::map<Activity *,Label *>::iterator label = _labels.begin(); label != _labels.end(); ++label ) {
 	delete label->second;
     }
 }
@@ -1564,7 +1564,7 @@ RepeatActivityList&
 RepeatActivityList::label()
 {
     if ( Flags::print_input_parameters() ) {
-	for ( std::map<Activity *,Label *>::iterator label = _labelList.begin(); label != _labelList.end(); ++label ) {
+	for ( std::map<Activity *,Label *>::iterator label = _labels.begin(); label != _labels.end(); ++label ) {
 	    const LQIO::DOM::ExternalVariable * var = rateBranch(label->first);
 	    if ( var ) {
 		*label->second << *var;
@@ -1619,40 +1619,40 @@ RepeatActivityList::setChain( std::deque<const Activity *>& activityStack, unsig
  */
  
 RepeatActivityList&
-RepeatActivityList::add( Activity * anActivity )
+RepeatActivityList::add( Activity * activity )
 {
-    const LQIO::DOM::Activity * dom = dynamic_cast<const LQIO::DOM::Activity *>(anActivity->getDOM());
+    const LQIO::DOM::Activity * dom = dynamic_cast<const LQIO::DOM::Activity *>(activity->getDOM());
     if ( dom ) {
 //	const LQIO::DOM::ExternalVariable * arg = getDOM()->getParameter(dom);
 
-	_activityList.push_back(anActivity);
+	_activities.push_back(activity);
 
-	Label * aLabel = Label::newLabel();
-	if ( aLabel ) {
-	    _labelList[anActivity] = aLabel;
-	    aLabel->justification( Flags::label_justification );
+	Label * label = Label::newLabel();
+	if ( label ) {
+	    _labels[activity] = label;
+	    label->justification( Flags::label_justification );
 	}
 
-	Arc * anArc = Arc::newArc();
-	if ( anArc ) {
-	    anArc->linestyle( Graphic::LineStyle::DASHED );
-	    myArcList[anActivity] = anArc;
+	Arc * arc = Arc::newArc();
+	if ( arc ) {
+	    arc->linestyle( Graphic::LineStyle::DASHED );
+	    _arcs[activity] = arc;
 	}
 
     } else {
 
 	/* End of list */
 
-	ForkActivityList::add( anActivity );
+	ForkActivityList::add( activity );
     }
 
     return *this;
 }
 
 const LQIO::DOM::ExternalVariable *
-RepeatActivityList::rateBranch( const Activity * anActivity ) const
+RepeatActivityList::rateBranch( const Activity * activity ) const
 {
-    return getDOM()->getParameter(dynamic_cast<const LQIO::DOM::Activity *>(anActivity->getDOM()));
+    return getDOM()->getParameter(dynamic_cast<const LQIO::DOM::Activity *>(activity->getDOM()));
 }
 
 
@@ -1699,11 +1699,11 @@ RepeatActivityList::getIndex() const
 RepeatActivityList& 
 RepeatActivityList::scaleBy( const double sx, const double sy )
 {
-    myArc->scaleBy( sx, sy );
-    for_each( myArcList.begin(), myArcList.end(), ExecXY<Arc>( &Arc::scaleBy, sx, sy ) );
-    for_each( _labelList.begin(), _labelList.end(), ExecXY<Label>( &Label::scaleBy, sx, sy ) );
+    _arc->scaleBy( sx, sy );
+    for_each( _arcs.begin(), _arcs.end(), ExecXY<Arc>( &Arc::scaleBy, sx, sy ) );
+    for_each( _labels.begin(), _labels.end(), ExecXY<Label>( &Label::scaleBy, sx, sy ) );
     if ( activityList().size() ) {
-	myNode->scaleBy( sx, sy );
+	_node->scaleBy( sx, sy );
     }
     return *this;
 }
@@ -1713,11 +1713,11 @@ RepeatActivityList::scaleBy( const double sx, const double sy )
 RepeatActivityList& 
 RepeatActivityList::translateY( const double dy )
 {
-    myArc->translateY( dy );
-    for_each( myArcList.begin(), myArcList.end(), ExecX<Arc,std::pair<Activity *,Arc *>,double>( &Arc::translateY, dy ) );
-    for_each( _labelList.begin(), _labelList.end(), ExecX<Label,std::pair<Activity *,Label *>,double>( &Label::translateY, dy ) );
+    _arc->translateY( dy );
+    for_each( _arcs.begin(), _arcs.end(), ExecX<Arc,std::pair<Activity *,Arc *>,double>( &Arc::translateY, dy ) );
+    for_each( _labels.begin(), _labels.end(), ExecX<Label,std::pair<Activity *,Label *>,double>( &Label::translateY, dy ) );
     if ( activityList().size() ) {
-	myNode->translateY( dy );
+	_node->translateY( dy );
     }
     return *this;
 }
@@ -1727,11 +1727,11 @@ RepeatActivityList::translateY( const double dy )
 RepeatActivityList& 
 RepeatActivityList::depth( unsigned depth )
 {
-    myArc->depth( depth );
-    for_each( myArcList.begin(), myArcList.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,unsigned>( &Graphic::depth, depth ) );
-    for_each( _labelList.begin(), _labelList.end(), ExecX<Graphic,std::pair<Activity *,Label *>,unsigned>( &Graphic::depth, depth ) );
+    _arc->depth( depth );
+    for_each( _arcs.begin(), _arcs.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,unsigned>( &Graphic::depth, depth ) );
+    for_each( _labels.begin(), _labels.end(), ExecX<Graphic,std::pair<Activity *,Label *>,unsigned>( &Graphic::depth, depth ) );
     if ( activityList().size() ) {
-	myNode->depth( depth );
+	_node->depth( depth );
     }
     return *this;
 }
@@ -1746,8 +1746,8 @@ RepeatActivityList::findSrcPoint() const
 	return Point( (p1.x() + p2.x()) / 2.0, p1.y() + height() );
     } else if ( activityList().size() == 1 ) {
 	Point p2( activityList().at(0)->topCenter() );
-	if ( myActivity ) {
-	    Point p1( myActivity->topCenter() );
+	if ( _activity ) {
+	    Point p1( _activity->topCenter() );
 	    return Point( (p1.x() + p2.x()) / 2.0, p1.y() + height() );
 	} else {
 	    return Point( p2.x(), p2.y() + height() );
@@ -1762,22 +1762,22 @@ RepeatActivityList::findSrcPoint() const
  */
 
 RepeatActivityList&
-RepeatActivityList::moveSrcTo( const Point& src, Activity * anActivity )
+RepeatActivityList::moveSrcTo( const Point& src, Activity * activity )
 { 
-    myNode->moveTo( src.x() - radius(), src.y() - 2 * radius());
-    const Point ctr( myNode->center() );
-    myArc->moveSrc( ctr );
-    const Point src2 = myArc->srcIntersectsCircle( ctr, radius() );
-    myArc->moveSrc( src2 );
+    _node->moveTo( src.x() - radius(), src.y() - 2 * radius());
+    const Point ctr( _node->center() );
+    _arc->moveSrc( ctr );
+    const Point src2 = _arc->srcIntersectsCircle( ctr, radius() );
+    _arc->moveSrc( src2 );
     
     /* Now move the arc for the sub activity */
 
-    for ( std::map<Activity *,Arc *>::iterator arc = myArcList.begin(); arc != myArcList.end(); ++arc ) {
+    for ( std::map<Activity *,Arc *>::iterator arc = _arcs.begin(); arc != _arcs.end(); ++arc ) {
 	arc->second->moveSrc( src );
 	const Point src3 = arc->second->srcIntersectsCircle( src, radius() );
 	arc->second->moveSrc( src3 );
 	const Point aPoint = arc->second->pointFromDst(height()/3.0);
-	_labelList[arc->first]->moveTo( aPoint );
+	_labels[arc->first]->moveTo( aPoint );
     }
 
     return *this; 
@@ -1785,13 +1785,13 @@ RepeatActivityList::moveSrcTo( const Point& src, Activity * anActivity )
 
 
 RepeatActivityList&
-RepeatActivityList::moveDstTo( const Point& dst, Activity * anActivity )
+RepeatActivityList::moveDstTo( const Point& dst, Activity * activity )
 { 
-    if ( anActivity == myActivity ) {
-	myArc->moveDst( dst );
+    if ( activity == _activity ) {
+	_arc->moveDst( dst );
     } else {
-	std::map<Activity *,Arc *>::const_iterator arc = myArcList.find(anActivity);
-	if ( arc != myArcList.end() ) {
+	std::map<Activity *,Arc *>::const_iterator arc = _arcs.find(activity);
+	if ( arc != _arcs.end() ) {
 	    arc->second->moveDst( dst );
 	}
     }
@@ -1802,7 +1802,7 @@ RepeatActivityList::moveDstTo( const Point& dst, Activity * anActivity )
 double
 RepeatActivityList::radius() const
 {
-    return fabs( myNode->height() ) / 2.0;
+    return fabs( _node->height() ) / 2.0;
 }
 
 
@@ -1811,17 +1811,17 @@ const RepeatActivityList&
 RepeatActivityList::draw( std::ostream& output ) const
 {
     const Graphic::Colour pen_colour = colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour();
-    for_each( myArcList.begin(), myArcList.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,Graphic::Colour>( &Graphic::penColour, pen_colour ) );
+    for_each( _arcs.begin(), _arcs.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,Graphic::Colour>( &Graphic::penColour, pen_colour ) );
 
     ForkActivityList::draw( output );
-    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
-    for_each( _labelList.begin(), _labelList.end(), ConstExecX<Label,std::pair<Activity *,Label *>,std::ostream&>( &Label::draw, output ) );
+    for_each( _arcs.begin(), _arcs.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
+    for_each( _labels.begin(), _labels.end(), ConstExecX<Label,std::pair<Activity *,Label *>,std::ostream&>( &Label::draw, output ) );
 
-    const Point ctr( myNode->center() );
-    myNode->penColour( pen_colour ).fillColour( colour() );
-    myNode->circle( output, ctr, radius() );
-    Point aPoint( ctr.x(), (ctr.y() + myNode->bottom()) / 2. );
-    myNode->text( output, aPoint, typeStr() );
+    const Point ctr( _node->center() );
+    _node->penColour( pen_colour ).fillColour( colour() );
+    _node->circle( output, ctr, radius() );
+    Point aPoint( ctr.x(), (ctr.y() + _node->bottom()) / 2. );
+    _node->text( output, aPoint, typeStr() );
 
     return *this;
 }

@@ -2,7 +2,7 @@
  * element.h	-- Greg Franks
  *
  * ------------------------------------------------------------------------
- * $Id: element.h 15255 2021-12-24 17:42:46Z greg $
+ * $Id: element.h 15613 2022-06-01 10:24:28Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -64,21 +64,21 @@ public:
 
     virtual Graphic::Colour colour() const = 0;
 
-    Point center() const { return myNode->center(); }
-    Point bottomLeft() const { return myNode->bottomLeft(); }
-    Point bottomCenter() const { return myNode->bottomCenter(); }
-    Point bottomRight() const { return myNode->bottomRight(); }
-    Point topCenter() const { return myNode->topCenter(); }
-    Point topLeft() const { return myNode->topLeft(); }
-    Point topRight() const { return myNode->topRight(); }
-    double width() const { return myNode->width(); }
-    double height() const { return myNode->height(); }
-    double left() const { return myNode->left(); }
-    double right() const { return myNode->left() + myNode->width(); }
-    double top() const { return myNode->bottom() + myNode->height(); }
-    double bottom() const { return myNode->bottom(); }
+    Point center() const { return _node->center(); }
+    Point bottomLeft() const { return _node->bottomLeft(); }
+    Point bottomCenter() const { return _node->bottomCenter(); }
+    Point bottomRight() const { return _node->bottomRight(); }
+    Point topCenter() const { return _node->topCenter(); }
+    Point topLeft() const { return _node->topLeft(); }
+    Point topRight() const { return _node->topRight(); }
+    double width() const { return _node->width(); }
+    double height() const { return _node->height(); }
+    double left() const { return _node->left(); }
+    double right() const { return _node->left() + _node->width(); }
+    double top() const { return _node->bottom() + _node->height(); }
+    double bottom() const { return _node->bottom(); }
 
-    virtual Element& moveTo( const double x, const double y ) { myNode->moveTo( x, y ); return *this; }
+    virtual Element& moveTo( const double x, const double y ) { _node->moveTo( x, y ); return *this; }
     virtual Element& moveBy( const double, const double );
     virtual Element& scaleBy( const double, const double );
     virtual Element& translateY( const double );
@@ -115,8 +115,8 @@ private:
     const size_t _elementId;		/* Index			*/
 
 protected:
-    Label * myLabel;			/* Label (for drawing).		*/
-    Node * myNode;			/* Graphical thingy.		*/
+    Label * _label;			/* Label (for drawing).		*/
+    Node * _node;			/* Graphical thingy.		*/
 
     std::set<unsigned> myPaths;		/* Who calls me.		*/
     std::set<unsigned> myClientOpenChains;	/* Chains when I am a client 	*/

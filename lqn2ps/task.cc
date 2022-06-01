@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15610 2022-05-31 11:02:21Z greg $
+ * $Id: task.cc 15614 2022-06-01 12:17:43Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -101,8 +101,8 @@ Task::Task( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * a
 	const_cast<Processor *>(aProc)->addTask( this );
     }
 
-    myNode = Node::newNode( Flags::icon_width, Flags::graphical_output_style == Output_Style::TIMEBENCH ? Flags::icon_height : Flags::entry_height );
-    myLabel = Label::newLabel();
+    _node = Node::newNode( Flags::icon_width, Flags::graphical_output_style == Output_Style::TIMEBENCH ? Flags::icon_height : Flags::entry_height );
+    _label = Label::newLabel();
 }
 
 
@@ -1345,10 +1345,10 @@ Task::format()
 
     /* Compute width of task.  Move entries */
 
-    const double ty = myNode->height() + height();
+    const double ty = _node->height() + height();
     _entryWidthInPts = 0;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	(*entry)->moveTo( _entryWidthInPts + myNode->left(), ty - (*entry)->height() );
+	(*entry)->moveTo( _entryWidthInPts + _node->left(), ty - (*entry)->height() );
 	_entryWidthInPts += (*entry)->width() - adjustForSlope( fabs( (*entry)->height() ) );
     }
     if ( Flags::graphical_output_style == Output_Style::JLQNDEF ) {
@@ -1361,11 +1361,11 @@ Task::format()
 	    layer->sort( Activity::compare ).format( 0 );
 	}
 
-	const double x = myNode->left() + adjustForSlope( fabs( height() ) ) + Flags::act_x_spacing / 4;
+	const double x = _node->left() + adjustForSlope( fabs( height() ) ) + Flags::act_x_spacing / 4;
 
 	/* Start from bottom and work up.  Reformat will realign the activities */
 
-	double y = myNode->bottom();
+	double y = _node->bottom();
 	for ( std::vector<ActivityLayer>::reverse_iterator layer = _layers.rbegin(); layer != _layers.rend(); ++layer ) {
 	    layer->moveTo( x, y );
 	    y += layer->height();  /* grow down */
@@ -1378,7 +1378,7 @@ Task::format()
 
 	y += Flags::icon_height;
 	if ( !(queueing_output() && Flags::flatten_submodel) ) {
-	    myNode->setHeight( y );
+	    _node->setHeight( y );
 	}
 
 	/* Calculate the space needed for the activities */
@@ -1397,7 +1397,7 @@ Task::format()
 
     /* Modify extent  */
 
-    myNode->setWidth( std::max( std::max( aWidth, _entryWidthInPts + adjustForSlope( height() ) ), width() ) );
+    _node->setWidth( std::max( std::max( aWidth, _entryWidthInPts + adjustForSlope( height() ) ), width() ) );
 
     return *this;
 }
@@ -1412,8 +1412,8 @@ Task::reformat()
 {
     std::sort( _entries.begin(), _entries.end(), Entry::compare );
 
-    const double x = myNode->left() + adjustForSlope( height() );
-    double y = myNode->bottom();
+    const double x = _node->left() + adjustForSlope( height() );
+    double y = _node->bottom();
     const double offset = adjustForSlope( (height() - fabs(entries().front()->height())));
     const double fill = std::max( ((width() - adjustForSlope( height() )) - _entryWidthInPts) / (nEntries() + 1.0), 0.0 );
 
@@ -1429,7 +1429,7 @@ Task::reformat()
     /* Move entries */
 
     const double ty = y + height();
-    double tx = myNode->left() + offset + fill;
+    double tx = _node->left() + offset + fill;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	(*entry)->moveTo( tx, ty - (*entry)->height() );
 	tx += (*entry)->width() - adjustForSlope( fabs( (*entry)->height() ) ) + fill;
@@ -1601,8 +1601,8 @@ Task::alignActivities()
 Task&
 Task::moveBy( const double dx, const double dy )
 {
-    myNode->moveBy( dx, dy );
-    myLabel->moveBy( dx, dy );
+    _node->moveBy( dx, dy );
+    _label->moveBy( dx, dy );
     for_each( entries().begin(), entries().end(), ExecXY<Element>( &Entry::moveBy, dx, dy ) );    		/* Move entries */
     for_each( _layers.begin(), _layers.end(), ExecXY<ActivityLayer>( &ActivityLayer::moveBy, dx, dy ) );	/* Move activities */
     for_each( _layers.rbegin(), _layers.rend(), ExecXY<ActivityLayer>( &ActivityLayer::moveBy, 0, 0 ) );	/* clean up.*/
@@ -1622,25 +1622,25 @@ Task::moveBy( const double dx, const double dy )
 Task&
 Task::moveTo( const double x, const double y )
 {
-    myNode->moveTo( x, y );
+    _node->moveTo( x, y );
 
     reformat();
 
     if ( Flags::aggregation() == Aggregate::ENTRIES ) {
-	myLabel->moveTo( bottomCenter() ).moveBy( 0, height() / 2 );
+	_label->moveTo( bottomCenter() ).moveBy( 0, height() / 2 );
     } else if ( !queueing_output() ) {
 
 	/* Move Label -- do after X extent recalculated */
 
 	if ( Flags::graphical_output_style == Output_Style::JLQNDEF ) {
-	    myLabel->moveTo( topRight() ).moveBy( -(Flags::entry_width * JLQNDEF_TASK_BOX_SCALING * 0.5), -entries().front()->height()/2 );
+	    _label->moveTo( topRight() ).moveBy( -(Flags::entry_width * JLQNDEF_TASK_BOX_SCALING * 0.5), -entries().front()->height()/2 );
 	} else if ( _layers.size() ) {
-	    myLabel->moveTo( topCenter() ).moveBy( 0, -entries().front()->height() - 10 );
+	    _label->moveTo( topCenter() ).moveBy( 0, -entries().front()->height() - 10 );
 	} else {
-	    myLabel->moveTo( bottomCenter() ).moveBy( 0, height() / 5 );
+	    _label->moveTo( bottomCenter() ).moveBy( 0, height() / 5 );
 	}
     } else {
-	myLabel->moveTo( bottomCenter() ).moveBy( 0, height() / 5 );
+	_label->moveTo( bottomCenter() ).moveBy( 0, height() / 5 );
     }
 
     return *this;
@@ -1694,7 +1694,7 @@ Task::moveSrc()
 Task&
 Task::moveDst()
 {
-    Point aPoint = myNode->topLeft();
+    Point aPoint = _node->topLeft();
 
     if ( Flags::print_forwarding_by_depth ) {
 	const double delta = width() / static_cast<double>(countCallers() + 1);
@@ -1803,28 +1803,28 @@ Task::label()
 	    print_goop = true;
 	}
 	if ( print_goop ) {
-	    myLabel->newLine();
+	    _label->newLine();
 	}
     }
     Entity::label();
     if ( !queueing_output() ) {
-	myLabel->justification( Flags::label_justification );
+	_label->justification( Flags::label_justification );
     }
     if ( Flags::print_input_parameters() ) {
 	if ( queueing_output() ) {
 	    if ( !isSelected() ) {
 		const double Z = Flags::have_results ? (copiesValue() - utilization()) / throughput() : 0.0;
 		if ( Z > 0.0 ) {
-		    myLabel->newLine() << " Z = " << Z;
+		    _label->newLine() << " Z = " << Z;
 		}
 	    }
 	    labelQueueingNetwork( &Entry::labelQueueingNetworkService );
 	} else {
 	    if ( Flags::aggregation() == Aggregate::ENTRIES && Flags::print[PRINT_AGGREGATE].opts.value.b ) {
-		myLabel->newLine() << " [" << print_service_time( *entries().front() ) << ']';
+		_label->newLine() << " [" << service_time_of( *entries().front() ) << ']';
 	    }
 	    if ( hasThinkTime()  ) {
-		*myLabel << " Z=" << dynamic_cast<ReferenceTask *>(this)->thinkTime();
+		*_label << " Z=" << dynamic_cast<ReferenceTask *>(this)->thinkTime();
 	    }
 	}
 
@@ -1832,33 +1832,27 @@ Task::label()
     if ( Flags::have_results ) {
  	bool print_goop = false;
 	if ( Flags::print[TASK_THROUGHPUT].opts.value.b ) {
-	    myLabel->newLine();
+	    _label->newLine();
 	    if ( throughput() == 0.0 && Flags::colouring() != Colouring::NONE ) {
-		myLabel->colour( Graphic::Colour::RED );
+		_label->colour( Graphic::Colour::RED );
 	    }
-	    *myLabel << begin_math( &Label::lambda ) << "=" << opt_pct(throughput());
+	    *_label << begin_math( &Label::lambda ) << "=" << opt_pct(throughput());
 	    print_goop = true;
 	}
 	if ( Flags::print[TASK_UTILIZATION].opts.value.b ) {
 	    if ( print_goop ) {
-		*myLabel << ',';
+		*_label << ',';
 	    } else {
-		myLabel->newLine() << begin_math();
+		_label->newLine() << begin_math();
 		print_goop = true;
 	    }
-	    const double u = utilization();
-	    *myLabel << _rho() << "=";
-	    if (!std::isfinite( u )) {
-		*myLabel << _infty();
-	    } else {
-		*myLabel << opt_pct(u);
-	    }
+	    *_label << _rho() << "=" << opt_pct(utilization());
 	    if ( hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
-		myLabel->colour(Graphic::Colour::RED);
+		_label->colour(Graphic::Colour::RED);
 	    }
 	}
 	if ( print_goop ) {
-	    *myLabel << end_math();
+	    *_label << end_math();
 	}
     }
 
@@ -1880,16 +1874,16 @@ Task::label()
 Task&
 Task::labelBCMPModel( const BCMP::Model::Station::Class::map_t& demand, const std::string& class_name )
 {
-    *myLabel << name();
-    myLabel->newLine();
+    *_label << name();
+    _label->newLine();
     if ( isMultiServer() ) {		/* copies() will be NULL if not */
-	*myLabel << "[" << copies() << "]";
+	*_label << "[" << copies() << "]";
     } else {
-	*myLabel << "[1]";
+	*_label << "[1]";
     }
     const BCMP::Model::Station::Class& reference = demand.at(class_name);
-    myLabel->newLine();
-    *myLabel << "(" << *reference.visits() << "," << *reference.service_time() << ")";
+    _label->newLine();
+    *_label << "(" << *reference.visits() << "," << *reference.service_time() << ")";
     return *this;
 }
 
@@ -1902,7 +1896,7 @@ Task::labelBCMPModel( const BCMP::Model::Station::Class::map_t& demand, const st
 Task&
 Task::labelQueueingNetwork( entryLabelFunc aFunc )
 {
-    for_each( _entries.begin(), _entries.end(), Exec1<Entry,Label&>( aFunc, *myLabel ) );
+    for_each( _entries.begin(), _entries.end(), Exec1<Entry,Label&>( aFunc, *_label ) );
     return *this;
 }
 
@@ -2418,16 +2412,16 @@ Task::draw( std::ostream& output ) const
 #if defined(BUG_375)
     aComment << " span=" << span() << ", index=" << index();
 #endif
-    myNode->comment( output, aComment.str() );
-    myNode->fillColour( colour() );
+    _node->comment( output, aComment.str() );
+    _node->fillColour( colour() );
     if ( Flags::colouring() == Colouring::NONE ) {
-	myNode->penColour( Graphic::Colour::DEFAULT );			// No colour.
+	_node->penColour( Graphic::Colour::DEFAULT );			// No colour.
     } else if ( Flags::have_results && throughput() == 0.0 ) {
-	myNode->penColour( Graphic::Colour::RED );
+	_node->penColour( Graphic::Colour::RED );
     } else if ( colour() == Graphic::Colour::GREY_10 ) {
-	myNode->penColour( Graphic::Colour::BLACK );
+	_node->penColour( Graphic::Colour::BLACK );
     } else {
-	myNode->penColour( colour() );
+	_node->penColour( colour() );
     }
 
     std::vector<Point> points(4);
@@ -2439,25 +2433,25 @@ Task::draw( std::ostream& output ) const
 
     if ( isMultiServer() || isInfinite() || isReplicated() ) {
 	std::vector<Point> copies = points;
-	const double delta = -2.0 * Model::scaling() * myNode->direction();
+	const double delta = -2.0 * Model::scaling() * _node->direction();
 	for_each( copies.begin(), copies.end(), ExecXY<Point>( &Point::moveBy, 2.0 * Model::scaling(), delta ) );
-	const int aDepth = myNode->depth();
-	myNode->depth( aDepth + 1 );
-	myNode->polygon( output, copies );
-	myNode->depth( aDepth );
+	const int aDepth = _node->depth();
+	_node->depth( aDepth + 1 );
+	_node->polygon( output, copies );
+	_node->depth( aDepth );
     }
     if ( Flags::graphical_output_style == Output_Style::JLQNDEF ) {
 	const double shift = width() - (Flags::entry_width * JLQNDEF_TASK_BOX_SCALING * Model::scaling());
 	points[0].moveBy( shift, 0 );
 	points[3].moveBy( shift, 0 );
 	if ( Flags::colouring() == Colouring::NONE ) {
-	    myNode->fillColour( Graphic::Colour::GREY_10 );
+	    _node->fillColour( Graphic::Colour::GREY_10 );
 	}
     }
-    myNode->polygon( output, points );
+    _node->polygon( output, points );
 
-    myLabel->backgroundColour( colour() ).comment( output, aComment.str() );
-    output << *myLabel;
+    _label->backgroundColour( colour() ).comment( output, aComment.str() );
+    output << *_label;
 
     if ( Flags::aggregation() != Aggregate::ENTRIES ) {
 	for_each( entries().begin(), entries().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
@@ -2485,26 +2479,26 @@ Task::drawClient( std::ostream& output, const bool is_in_open_model, const bool 
     aComment += "========== ";
     aComment += name();
     aComment += " ==========";
-    myNode->comment( output, aComment );
-    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
+    _node->comment( output, aComment );
+    _node->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
 
-    myLabel->moveTo( bottomCenter() )
+    _label->moveTo( bottomCenter() )
 	.justification( Justification::LEFT );
     if ( is_in_open_model && is_in_closed_model ) {
 	Point aPoint = bottomCenter();
 	aPoint.moveBy( radius() * -3.0, 0 );
-	myNode->multi_server( output, aPoint, radius() );
+	_node->multi_server( output, aPoint, radius() );
 	aPoint = bottomCenter().moveBy( radius() * 1.0, 0.0 );
-	myNode->open_source( output, aPoint, radius() );
-	myLabel->moveBy( radius() * 0.5, radius() * 4.0 * myNode->direction() );
+	_node->open_source( output, aPoint, radius() );
+	_label->moveBy( radius() * 0.5, radius() * 4.0 * _node->direction() );
     } else if ( is_in_open_model ) {
-	myNode->open_source( output, bottomCenter(), radius() );
-	myLabel->moveBy( radius() * 0.5, radius() * myNode->direction() );
+	_node->open_source( output, bottomCenter(), radius() );
+	_label->moveBy( radius() * 0.5, radius() * _node->direction() );
     } else {
-	myNode->multi_server( output, bottomCenter(), radius() );
-	myLabel->moveBy( radius() * 0.5, radius() * 4.0 * myNode->direction() );
+	_node->multi_server( output, bottomCenter(), radius() );
+	_label->moveBy( radius() * 0.5, radius() * 4.0 * _node->direction() );
     }
-    output << *myLabel;
+    output << *_label;
     return output;
 }
 
@@ -2572,10 +2566,10 @@ ReferenceTask::colour() const
     case Colouring::RESULTS:
 	if ( hasBogusUtilization() ) {
 	    return Entity::colour();	/* Punt to superclass */
-	} else if ( processor != nullptr ) {
-	    return processor->colour();
+	} else {
+	    return Graphic::Colour::DEFAULT;
 	}
-	/* Fall through */
+	break;
 
     default:
 	return Task::colour();

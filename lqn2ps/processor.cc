@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 15304 2021-12-31 15:51:38Z greg $
+ * $Id: processor.cc 15614 2022-06-01 12:17:43Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -74,8 +74,8 @@ Processor::Processor( const LQIO::DOM::Processor* dom )
     }
 
     const double r = Flags::graphical_output_style == Output_Style::TIMEBENCH ? Flags::icon_height : Flags::entry_height;
-    myNode = Node::newNode( r, r );
-    myLabel = Label::newLabel();
+    _node = Node::newNode( r, r );
+    _label = Label::newLabel();
 }
 
 
@@ -310,8 +310,8 @@ Processor::getIndex() const
 Processor&
 Processor::moveBy( const double dx, const double dy )
 {
-    myNode->moveBy( dx, dy );
-    myLabel->moveBy( dx, dy );
+    _node->moveBy( dx, dy );
+    _label->moveBy( dx, dy );
 
     moveDst();
 
@@ -328,8 +328,8 @@ Processor::moveBy( const double dx, const double dy )
 Processor&
 Processor::moveTo( const double x, const double y )
 {
-    myNode->moveTo( x, y );
-    myLabel->moveTo( center() );
+    _node->moveTo( x, y );
+    _label->moveTo( center() );
 
     sort();		/* Reorder arcs */
     moveDst();
@@ -386,46 +386,45 @@ Processor::colour() const
 Processor&
 Processor::label()
 {
-    *myLabel << name();
+    *_label << name();
     if ( Flags::print_input_parameters() && queueing_output() ) {
 	for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
 	    const Task * aTask = *nextTask;
 	    for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
-		myLabel->newLine();
-		*myLabel << (*entry)->name() << " [" << print_service_time( *(*entry) ) << "]";
+		_label->newLine() << (*entry)->name() << " [" << service_time_of( **entry ) << "]";
 	    }
 	}
     } else {
 	if ( scheduling() != SCHEDULE_FIFO && !isInfinite() ) {
-	    *myLabel << "*";
+	    *_label << "*";
 	}
 	if ( Flags::print_input_parameters() ) {
 	    bool newline = false;
 	    if ( isMultiServer() ) {
 		if ( !processor_output() ) {
-		    myLabel->newLine();
+		    _label->newLine();
 		    newline = true;
 		}
-		*myLabel << "{" << copies() << "}";
+		*_label << "{" << copies() << "}";
 	    } else if ( isInfinite() ) {
 		if ( !processor_output() ) {
-		    myLabel->newLine();
+		    _label->newLine();
 		    newline = true;
 		}
-		*myLabel << "{" << _infty() << "}";
+		*_label << "{" << _infty() << "}";
 	    }
 	    if ( isReplicated() ) {
 		if ( !newline && !processor_output() ) {
-		    myLabel->newLine();
+		    _label->newLine();
 		}
-		*myLabel << " <" << replicas() << ">";
+		*_label << " <" << replicas() << ">";
 	    }
 	}
     }
     if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
-	myLabel->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(utilization()) << end_math();
+	_label->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(utilization()) << end_math();
 	if ( hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
-	    myLabel->colour(Graphic::Colour::RED);
+	    _label->colour(Graphic::Colour::RED);
 	}
     }
     return *this;
@@ -441,15 +440,15 @@ Processor::label()
 Processor&
 Processor::labelBCMPModel( const BCMP::Model::Station::Class::map_t& demands, const std::string& )
 {
-    *myLabel << name();
+    *_label << name();
     if ( isMultiServer() ) {
-	*myLabel << "{" << copies() << "}";
+	*_label << "{" << copies() << "}";
     } else if ( isInfinite() ) {
-	*myLabel << "{" << _infty() << "}";
+	*_label << "{" << _infty() << "}";
     }
     for ( BCMP::Model::Station::Class::map_t::const_iterator demand = demands.begin(); demand != demands.end(); ++demand ) {
-	myLabel->newLine();
-	*myLabel << demand->first << "(" << *demand->second.visits() << "," << *demand->second.service_time() << ")";
+	_label->newLine();
+	*_label << demand->first << "(" << *demand->second.visits() << "," << *demand->second.service_time() << ")";
     }
     return *this;
 }
@@ -544,23 +543,23 @@ Processor::draw( std::ostream& output ) const
     aComment << "Processor "
 	     << name() 
 	     << proc_scheduling_of( *this );
-    myNode->comment( output, aComment.str() );
+    _node->comment( output, aComment.str() );
 
     Point aPoint = center();
     double r = fabs( height() / 2.0 );
-    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
+    _node->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
     /* draw bottom first because we're going to overwrite */
     if ( isMultiServer() || isInfinite() || isReplicated() ) {
-	int aDepth = myNode->depth();
-	myNode->depth( myNode->depth() + 1 );
-	aPoint.moveBy( 2.0 * Model::scaling(), -2.0 * Model::scaling() * myNode->direction() );
-	myNode->circle( output, aPoint, r );
-	myNode->depth( aDepth );
+	int aDepth = _node->depth();
+	_node->depth( _node->depth() + 1 );
+	aPoint.moveBy( 2.0 * Model::scaling(), -2.0 * Model::scaling() * _node->direction() );
+	_node->circle( output, aPoint, r );
+	_node->depth( aDepth );
     }
-    myNode->circle( output, center(), r );
+    _node->circle( output, center(), r );
 
-    myLabel->backgroundColour( colour() ).comment( output, aComment.str() );
-    output << *myLabel;
+    _label->backgroundColour( colour() ).comment( output, aComment.str() );
+    output << *_label;
     return *this;
 }
 

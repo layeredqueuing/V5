@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: label.cc 15423 2022-02-03 02:10:02Z greg $
+ * $Id: label.cc 15612 2022-06-01 01:06:26Z greg $
  */
 
 #include "lqn2ps.h"
@@ -12,16 +12,16 @@
 #if HAVE_IEEEFP_H && !defined(MSDOS)
 #include <ieeefp.h>
 #endif
-#include <lqio/dom_extvar.h>
-#include "label.h"
-#include "entry.h"
-#include "call.h"
 #if HAVE_GD_H
 #include <gdfontt.h>
 #include <gdfonts.h>
 #include <gdfontl.h>
 #include <gdfontg.h>
 #endif
+#include <lqio/dom_extvar.h>
+#include "label.h"
+#include "entry.h"
+#include "call.h"
 
 class LabelStringManip {
 public:
@@ -1365,31 +1365,46 @@ Label::Line& Label::Line::operator<<( const TaskCallManip& m ) { _string << m; r
 Label::Line& Label::Line::operator<<( const DoubleManip& m ) { _string << m; return *this; }
 
 static Label&
-beginMathFunc( Label& aLabel, labelFuncPtr aFunc )
+beginMathFunc( Label& label, labelFuncPtr aFunc )
 {
-    aLabel.beginMath();
+    label.beginMath();
     if ( aFunc ) {
-	(aLabel.*aFunc)();
+	(label.*aFunc)();
     }
-    return aLabel;
+    return label;
 }
 
 static Label&
-endMathFunc( Label& aLabel, labelFuncPtr )
+endMathFunc( Label& label, labelFuncPtr )
 {
-    aLabel.endMath();
-    return aLabel;
+    label.endMath();
+    return label;
 }
 
 static Label&
-mathFunc( Label& aLabel, labelFuncPtr aFunc )
+mathFunc( Label& label, labelFuncPtr f )
 {
-    (aLabel.*aFunc)();
-    return aLabel;
+    (label.*f)();
+    return label;
 }
 
-LabelManip begin_math( labelFuncPtr aFunc ) {  return LabelManip( &beginMathFunc, aFunc ); }
-LabelManip end_math() { return LabelManip( &endMathFunc, 0 ); }
+static Label&
+opt_pct_str( Label& label, const double value )
+{
+    if ( std::isfinite(value) ) {
+	label << value;
+	if ( difference_output() ) {
+	    label << "%";
+	}
+    } else {
+	label << _infty();
+    }
+    return label;
+}
+
+
+LabelManip begin_math( labelFuncPtr f ) {  return LabelManip( &beginMathFunc, f ); }
+LabelManip end_math() { return LabelManip( &endMathFunc, nullptr ); }
 LabelManip _epsilon() { return LabelManip( &mathFunc, &Label::epsilon ); }
 LabelManip _infty() { return LabelManip( &mathFunc, &Label::infty ); }
 LabelManip _lambda() { return LabelManip( &mathFunc, &Label::lambda ); }
@@ -1398,3 +1413,8 @@ LabelManip _percent() { return LabelManip( &mathFunc, &Label::percent ); }
 LabelManip _rho() { return LabelManip( &mathFunc, &Label::rho ); }
 LabelManip _sigma() { return LabelManip( &mathFunc, &Label::sigma ); }
 LabelManip _times() { return LabelManip( &mathFunc, &Label::times ); }
+LabelDoubleManip opt_pct( const double aDouble ) { return LabelDoubleManip( &opt_pct_str, aDouble ); }
+
+LabelEntryManip execution_time_of( const Entry& entry ) { return LabelEntryManip( &Entry::print_execution_time, entry ); }
+LabelEntryManip queueing_time_of( const Entry& entry ) { return LabelEntryManip( &Entry::print_queueing_time, entry ); }
+LabelEntryManip variance_of( const Entry& entry ) { return LabelEntryManip( &Entry::print_variance, entry ); }

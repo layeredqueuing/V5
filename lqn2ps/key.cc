@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: key.cc 15262 2021-12-26 18:55:49Z greg $
+ * $Id: key.cc 15614 2022-06-01 12:17:43Z greg $
  */
 
 #include "key.h"
@@ -47,7 +47,7 @@ Key::label()
     unsigned int i = 0;
     if ( Model::rendezvousCount[0] > 0 ) {
 	Arc * arc = Arc::newArc();
-	arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::SOLID);
+	arc->arrowhead(Graphic::Arrowhead::CLOSED).linestyle(Graphic::LineStyle::SOLID);
 	Label * label = Label::newLabel();
 	label->justification( Justification::LEFT );
 	*label << "Synchronous request";
@@ -57,7 +57,7 @@ Key::label()
     }
     if ( Model::sendNoReplyCount[0] > 0 ) {
 	Arc * arc = Arc::newArc();
-	arc->arrowhead(Graphic::ArrowHead::OPEN).linestyle(Graphic::LineStyle::SOLID);
+	arc->arrowhead(Graphic::Arrowhead::OPEN).linestyle(Graphic::LineStyle::SOLID);
 	Label * label = Label::newLabel();
 	label->justification( Justification::LEFT );
 	*label << "Asynchronous request";
@@ -67,7 +67,7 @@ Key::label()
     }
     if ( Model::forwardingCount > 0 ) {
 	Arc * arc = Arc::newArc();
-	arc->arrowhead(Graphic::ArrowHead::CLOSED).linestyle(Graphic::LineStyle::DASHED);
+	arc->arrowhead(Graphic::Arrowhead::CLOSED).linestyle(Graphic::LineStyle::DASHED);
 	Label * label = Label::newLabel();
 	label->justification( Justification::LEFT );
 	*label << "Forwarded request";

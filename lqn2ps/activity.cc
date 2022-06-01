@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 15255 2021-12-24 17:42:46Z greg $
+ * $Id: activity.cc 15613 2022-06-01 10:24:28Z greg $
  */
 
 #include "activity.h"
@@ -66,8 +66,8 @@ Activity::Activity( const Task * aTask, const LQIO::DOM::DocumentObject * dom )
       _level(0),
       _reachableFrom(nullptr)
 {
-    myNode = Node::newNode( Flags::entry_width - Flags::act_x_spacing / 2., Flags::entry_height );
-    myLabel = Label::newLabel();
+    _node = Node::newNode( Flags::entry_width - Flags::act_x_spacing / 2., Flags::entry_height );
+    _label = Label::newLabel();
 }
 
 
@@ -84,8 +84,8 @@ Activity::~Activity()
 	delete reply->second;
     }
 
-    delete myNode;
-    delete myLabel;
+    delete _node;
+    delete _label;
 }
 
 
@@ -887,7 +887,7 @@ Activity&
 Activity::moveTo( const double x, const double y )
 {
     Element::moveTo( x, y );
-    myLabel->moveTo( center() );
+    _label->moveTo( center() );
 
     sort();
 
@@ -1006,16 +1006,16 @@ Activity::align() const
 Activity&
 Activity::label()
 {
-    *myLabel << name();
+    *_label << name();
     if ( Flags::print_input_parameters() && hasServiceTime() ) {
-	myLabel->newLine() << '[' << serviceTime()  << ']';
+	_label->newLine() << '[' << serviceTime()  << ']';
     }
     if ( Flags::have_results ) {
 	if ( Flags::print[SERVICE].opts.value.b ) {
-	    myLabel->newLine() << begin_math() << opt_pct(executionTime()) << end_math();
+	    _label->newLine() << begin_math() << opt_pct(executionTime()) << end_math();
 	}
 	if ( Flags::print[VARIANCE].opts.value.b ) {
-	    myLabel->newLine() << begin_math( &Label::sigma ) << "=" << opt_pct(variance()) << end_math();
+	    _label->newLine() << begin_math( &Label::sigma ) << "=" << opt_pct(variance()) << end_math();
 	}
     }
 
@@ -1156,14 +1156,14 @@ Activity::draw( std::ostream & output ) const
     }
     aComment << " level=" << level();
 
-    myNode->comment( output, aComment.str() );
-    myNode->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
-    myNode->rectangle( output );
+    _node->comment( output, aComment.str() );
+    _node->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
+    _node->rectangle( output );
 
     for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,std::ostream&>( &GenericCall::draw, output ) );
 
-    myLabel->backgroundColour( colour() );
-    output << *myLabel;
+    _label->backgroundColour( colour() );
+    output << *_label;
 
     /* Don't draw reply arcs here ... draw from entry (for layering purposes) */
 

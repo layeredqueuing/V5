@@ -1,6 +1,6 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 15435 2022-02-09 21:40:09Z greg $
+ * $Id: group.cc 15613 2022-06-01 10:24:28Z greg $
  */
 
 #include <algorithm>
@@ -21,15 +21,15 @@ std::vector<Group *> Group::__groups;
 Group::Group( unsigned int nLayers, const std::string& s )
     : _layers(nLayers), myName(s), used(false)
 {
-    myNode = Node::newNode( 0, 0 );
-    myLabel = Label::newLabel();
+    _node = Node::newNode( 0, 0 );
+    _label = Label::newLabel();
 }
 
 
 Group::~Group()
 {
-    delete myNode;
-    delete myLabel;
+    delete _node;
+    delete _label;
 }
 
 bool
@@ -114,7 +114,7 @@ Group::populate()
 Group&
 Group::resizeBox()
 {
-    myNode->resizeBox( -4.5, -(4.5 + Flags::font_size() * 1.2), 9.0, 9.0 + Flags::font_size() * 1.2 );
+    _node->resizeBox( -4.5, -(4.5 + Flags::font_size() * 1.2), 9.0, 9.0 + Flags::font_size() * 1.2 );
     return *this;
 }
 
@@ -122,8 +122,8 @@ Group::resizeBox()
 Group const&
 Group::positionLabel() const
 {
-    myLabel->moveTo( myNode->left() + myNode->width() / 2.0,
-		     myNode->bottom() + Flags::font_size() * 0.6 );
+    _label->moveTo( _node->left() + _node->width() / 2.0,
+		     _node->bottom() + Flags::font_size() * 0.6 );
     return *this;
 }
 
@@ -131,7 +131,7 @@ Group::positionLabel() const
 Group&
 Group::label()
 {
-    *myLabel << myName;
+    *_label << myName;
     return *this;
 }
 
@@ -139,7 +139,7 @@ Group::label()
 Group&
 Group::origin( const double an_x, const double a_y )
 {
-    myNode->moveTo( an_x, a_y );
+    _node->moveTo( an_x, a_y );
     return *this;
 }
 
@@ -147,7 +147,7 @@ Group::origin( const double an_x, const double a_y )
 Group&
 Group::extent( const double x, const double y )
 {
-    myNode->setWidth( x ).setHeight( y );
+    _node->setWidth( x ).setHeight( y );
     return *this;
 }
 
@@ -155,7 +155,7 @@ Group::extent( const double x, const double y )
 Group&
 Group::originMin( const double x, const double y )
 {
-    myNode->originMin( x, y );
+    _node->originMin( x, y );
     return *this;
 }
 
@@ -163,7 +163,7 @@ Group::originMin( const double x, const double y )
 Group&
 Group::extentMax( const double w, const double h )
 {
-    myNode->extentMax( w, h );
+    _node->extentMax( w, h );
     return *this;
 }
 
@@ -171,8 +171,8 @@ Group::extentMax( const double w, const double h )
 Group&
 Group::moveBy( const double dx, const double dy )
 {
-    myNode->moveBy( dx, dy );
-    myLabel->moveBy( dx, dy );
+    _node->moveBy( dx, dy );
+    _label->moveBy( dx, dy );
     return *this;
 }
 
@@ -188,8 +188,8 @@ Group::moveGroupBy( const double dx, const double dy )
 Group&
 Group::scaleBy( const double sx, const double sy )
 {
-    myNode->scaleBy( sx, sy );
-    myLabel->scaleBy( sx, sy );
+    _node->scaleBy( sx, sy );
+    _label->scaleBy( sx, sy );
     return *this;
 }
 
@@ -198,8 +198,8 @@ Group::scaleBy( const double sx, const double sy )
 Group&
 Group::translateY( const double dy )
 {
-    myNode->translateY( dy );
-    myLabel->translateY( dy );
+    _node->translateY( dy );
+    _label->translateY( dy );
     return *this;
 }
 
@@ -214,11 +214,11 @@ Group::draw( std::ostream& output ) const
 {
     if ( isUsed() ) {
 	const Colour colour = processor() ?  processor()->colour() : Graphic::Colour::DEFAULT;
-	myNode->penColour( colour == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour ).fillColour( colour ).linestyle( linestyle() ).depth( depth() + 1 );
-	myLabel->depth( depth() );
+	_node->penColour( colour == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour ).fillColour( colour ).linestyle( linestyle() ).depth( depth() + 1 );
+	_label->depth( depth() );
 
-	myNode->roundedRectangle( output );
-	output << *myLabel;
+	_node->roundedRectangle( output );
+	output << *_label;
     }
 
     return output;
@@ -251,21 +251,21 @@ GroupByProcessor::GroupByProcessor( const unsigned nLayers, const Processor * pr
 GroupByProcessor&
 GroupByProcessor::label()
 {
-    *myLabel << myProcessor->name();
+    *_label << myProcessor->name();
     if ( Flags::print_input_parameters() ) {
 	if ( myProcessor->isMultiServer() ) {
-	    *myLabel << " {" << myProcessor->copies() << "}";
+	    *_label << " {" << myProcessor->copies() << "}";
 	} else if ( myProcessor->isInfinite() ) {
-	    *myLabel << " {" << _infty() << "}";
+	    *_label << " {" << _infty() << "}";
 	}
 	if ( myProcessor->isReplicated() ) {
-	    *myLabel << " <" << myProcessor->replicas() << ">";
+	    *_label << " <" << myProcessor->replicas() << ">";
 	}
     }
     if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
-	myLabel->newLine() << begin_math( &Label::mu ) << "=" << myProcessor->utilization() << end_math();
+	_label->newLine() << begin_math( &Label::mu ) << "=" << myProcessor->utilization() << end_math();
 	if ( myProcessor->hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
-	    myLabel->colour(Graphic::Colour::RED);
+	    _label->colour(Graphic::Colour::RED);
 	}
     }
     return *this;
@@ -280,7 +280,7 @@ GroupByProcessor&
 GroupByProcessor::resizeBox()
 {
     if ( Flags::print[PROCESSOR_UTILIZATION].opts.value.b && Flags::have_results ) {
-	myNode->resizeBox( -4.5, -(4.5 + Flags::font_size() * 2.2), 9.0, 9.0 + Flags::font_size() * 2.2 );
+	_node->resizeBox( -4.5, -(4.5 + Flags::font_size() * 2.2), 9.0, 9.0 + Flags::font_size() * 2.2 );
     } else {
 	Group::resizeBox();
     }
@@ -292,8 +292,8 @@ GroupByProcessor const&
 GroupByProcessor::positionLabel() const
 {
     if ( Flags::print[PROCESSOR_UTILIZATION].opts.value.b && Flags::have_results ) {
-	myLabel->moveTo( myNode->left() + myNode->width() / 2.0,
-			 myNode->bottom() + Flags::font_size() * 1.4 );
+	_label->moveTo( _node->left() + _node->width() / 2.0,
+			 _node->bottom() + Flags::font_size() * 1.4 );
 
     } else {
 	Group::positionLabel();
@@ -339,8 +339,8 @@ GroupByShareDefault::format()
     Point oldOrigin(0,0);
     Point oldExtent(0,0);
     if ( isUsed() ) {
-	oldOrigin = myNode->getOrigin();
-	oldExtent = myNode->getExtent();
+	oldOrigin = _node->getOrigin();
+	oldExtent = _node->getExtent();
     }
 
     /* Now go through all groups with this processor and adjust the
@@ -420,7 +420,7 @@ GroupByShareGroup::positionLabel() const
 GroupByShareGroup&
 GroupByShareGroup::label()
 {
-    *myLabel << myShare->name() << " " << share()->share() * 100.0 << "%";
+    *_label << myShare->name() << " " << share()->share() * 100.0 << "%";
     return *this;
 }
 

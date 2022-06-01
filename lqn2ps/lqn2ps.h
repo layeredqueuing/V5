@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 15476 2022-03-30 13:20:14Z greg $
+ * $Id: lqn2ps.h 15612 2022-06-01 01:06:26Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -469,7 +469,6 @@ IntegerManip indent( const int anInt );				/* See main.cc */
 IntegerManip temp_indent( const int anInt );			/* See main.cc */
 Integer2Manip conf_level( const int, const int );		/* See main.cc */
 StringPlural plural( const std::string& s, const unsigned i );	/* See main.cc */
-DoubleManip opt_pct( const double aDouble );			/* See main.cc */
 
 /* ------------------------------------------------------------------------ */
 
