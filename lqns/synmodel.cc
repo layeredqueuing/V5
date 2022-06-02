@@ -1,6 +1,6 @@
 /*  -*- c++ -*-
  * synmodel.C	-- Greg Franks Fri Aug  7 1998
- * $Id: synmodel.cc 14857 2021-06-25 13:45:29Z greg $
+ * $Id: synmodel.cc 15618 2022-06-01 19:53:56Z greg $
  *
  * Special submodel to handle synchronization.  These delays are added into
  * the waiting time arrays in the usual fashion (I hope...)
@@ -13,6 +13,7 @@
 #include <cmath>
 #include <mva/fpgoop.h>
 #include "flags.h"
+#include "option.h"
 #include "pragma.h"
 #include "report.h"
 #include "synmodel.h"
@@ -46,13 +47,13 @@ SynchSubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 {
     MVAStats.start( nChains(), _servers.size() );
 
-    const bool trace = flags.trace_mva && (flags.trace_submodel == 0 || flags.trace_submodel == number() );
+    const bool trace = Options::Trace::mva( number() );
 	
     if ( trace ) {
 	std::cout << print_submodel_header( *this, iterations ) << std::endl;
     }
 
-    if ( flags.trace_delta_wait ) {
+    if ( Options::Trace::delta_wait( number() ) ) {
 	std::cout << "------ updateWait for submodel " << number() << ", iteration " << iterations << " ------" << std::endl;
     }
 		

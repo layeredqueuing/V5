@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: option.h 15602 2022-05-27 17:21:57Z greg $
+ * $Id: option.h 15618 2022-06-01 19:53:56Z greg $
  */
 
 #ifndef _OPTION_H
@@ -34,7 +34,7 @@ namespace Options
     class Debug : public Option 
     {
     private:
-	enum { ACTIVITIES=0, CALLS=1, FORKS=2, INTERLOCK=3, JOINS=4, SUBMODELS=5, VARIANCE=6, QUORUM=7 };
+	enum { ACTIVITIES=0, CALLS=1, FORKS=2, INTERLOCK=3, JOINS=4, VARIANCE=5, QUORUM=6 };
 //	Debug( const Debug& ) = delete;
 	Debug& operator=( const Debug& ) = delete;
 
@@ -46,39 +46,40 @@ namespace Options
 	static std::vector<char *> __options;
 	static const std::map<const std::string, const Debug> __table;
 
-//	static bool activities() { return _bits[ACTIVITIES]; }
-//	static bool calls() { return _bits[CALLS]; }
-	static bool forks() { return _bits[FORKS]; }
-	static bool interlock() { return _bits[INTERLOCK]; }
-//	static bool joins() { return _bits[JOINS]; }
-	static bool submodels() { return _bits[SUBMODELS]; };
-	static bool variance() { return _bits[VARIANCE]; }
+//	static bool activities() { return __bits[ACTIVITIES]; }
+//	static bool calls() { return __bits[CALLS]; }
+	static bool forks() { return __bits[FORKS]; }
+	static bool interlock() { return __bits[INTERLOCK]; }
+//	static bool joins() { return __bits[JOINS]; }
+	static bool submodels( unsigned long submodel = 0 ) { return (submodel == 0 && __submodels != 0) || (((1 << (submodel - 1)) & __submodels) != 0); }
+	static bool variance() { return __bits[VARIANCE]; }
 #if HAVE_LIBGSL
-	static bool quorum() { return _bits[QUORUM]; };
+	static bool quorum() { return __bits[QUORUM]; };
 #endif
-
-    public:
-	static void submodels( const std::string& s ) { _bits[SUBMODELS] = LQIO::DOM::Pragma::isTrue( s ); }
 
     private:
 	static void all( const std::string& ); 
 	static void all2( const std::string& );
-//	static void activities( const std::string& ) { _bits[ACTIVITIES] = true; }
-//	static void calls( const std::string& ) { _bits[CALLS] = true; }
-	static void forks( const std::string& s ) { _bits[FORKS] = LQIO::DOM::Pragma::isTrue( s ); }
-	static void interlock( const std::string& s ) { _bits[INTERLOCK] = LQIO::DOM::Pragma::isTrue( s ); }
-//	static void joins( const std::string& ) { _bits[JOINS] = LQIO::DOM::Pragma::isTrue( s ); }
+//	static void activities( const std::string& ) { __bits[ACTIVITIES] = true; }
+//	static void calls( const std::string& ) { __bits[CALLS] = true; }
+	static void forks( const std::string& s ) { __bits[FORKS] = LQIO::DOM::Pragma::isTrue( s ); }
+	static void interlock( const std::string& s ) { __bits[INTERLOCK] = LQIO::DOM::Pragma::isTrue( s ); }
+//	static void joins( const std::string& ) { __bits[JOINS] = LQIO::DOM::Pragma::isTrue( s ); }
 	static void mva( const std::string& );
-	static void variance( const std::string& s ) { _bits[VARIANCE] = LQIO::DOM::Pragma::isTrue( s ); }
+    public:
+	static void submodels( const std::string& s );
+    private:
+	static void variance( const std::string& s ) { __bits[VARIANCE] = LQIO::DOM::Pragma::isTrue( s ); }
 	static void overtaking( const std::string& );
 #if HAVE_LIBGSL
-	static void quorum( const std::string& ) { _bits[QUORUM] = LQIO::DOM::Pragma::isTrue( s ); }
+	static void quorum( const std::string& ) { __bits[QUORUM] = LQIO::DOM::Pragma::isTrue( s ); }
 #endif
 	static void xml( const std::string& );
 	static void lqx( const std::string& );
 
     private:
-	static std::vector<bool> _bits;
+	static std::vector<bool> __bits;
+	static unsigned long __submodels;
     };
 
     class Trace : public Option 
@@ -90,6 +91,9 @@ namespace Options
 	static void exec( const int ix, const std::string& );
 	static std::vector<char *> __options;
 	static std::map<const std::string, const Trace> __table;
+	static bool delta_wait( unsigned long submodel = 0 ) { return (submodel == 0 && __delta_wait != 0) || (((1 << (submodel - 1)) & __delta_wait) != 0); }
+	static bool mva( unsigned long submodel = 0 ) { return (submodel == 0 && __mva != 0) || (((1 << (submodel - 1)) & __mva) != 0); }
+	static bool verbose() { return __verbose; }
 
     private:
 	static void activities( const std::string& ); 
@@ -100,14 +104,24 @@ namespace Options
 	static void interlock( const std::string& );
 	static void intermediate( const std::string& );
 	static void joins( const std::string& );
-	static void mva( const std::string& );
+    public:
+	static void mva( const std::string& );		/* Used by main */
+    private:
 	static void overtaking( const std::string& );
 	static void quorum( const std::string& );
 	static void replication( const std::string& );
 	static void throughput( const std::string& );
 	static void variance( const std::string& );
+    public:
+	static void verbose( const std::string& );
+    private:
 	static void virtual_entry( const std::string& );
 	static void wait( const std::string& );
+
+    private:
+	static unsigned long __delta_wait;
+	static unsigned long __mva;			/* Print out MVA solutions.		*/
+	static bool __verbose;
     };
 
 

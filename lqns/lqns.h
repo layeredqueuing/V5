@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 14855 2021-06-25 13:06:59Z greg $
+ * $Id: lqns.h 15622 2022-06-02 01:47:23Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -49,7 +49,7 @@ template <typename Type> inline void Delete( Type x ) { delete x; }
  * adjustment.  
  */
 
-void under_relax( double& old_value, const double new_value, const double relax );
+double under_relax( const double old_value, const double new_value, const double relax );
 
 class exception_handled : public std::runtime_error
 {

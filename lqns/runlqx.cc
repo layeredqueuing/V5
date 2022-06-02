@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 15331 2022-01-02 21:51:30Z greg $
+ * $Id: runlqx.cc 15618 2022-06-01 19:53:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -17,7 +17,7 @@
 #include <mva/fpgoop.h>
 #include "runlqx.h"
 #include "model.h"
-#include "flags.h"
+#include "option.h"
 
 namespace SolverInterface
 {
@@ -56,9 +56,9 @@ namespace SolverInterface
 #endif
 
 	/* Tell the world the iteration number */
-	if ( flags.trace_mva ) {
+	if ( Options::Trace::mva() ) {
 	    std::cout << "\fSolving iteration #" << invocationCount << std::endl;
-	} else if ( flags.verbose ) {
+	} else if ( Options::Trace::verbose() ) {
 	    std::cerr << "Solving iteration #" << invocationCount << "..." << std::endl;
 	}
 

@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 15600 2022-05-27 15:32:49Z greg $
+ * $Id: option.cc 15618 2022-06-01 19:53:56Z greg $
  */
 
 #include "lqns.h"
@@ -10,7 +10,9 @@
 #include <cstdlib>
 #include <errno.h>
 #include <lqio/error.h>
+#include <lqio/srvn_spex.h>
 #include <lqio/dom_document.h>
+#include <lqio/dom_pragma.h>
 #include "generate.h"
 #include "help.h"
 #include "flags.h"
@@ -40,11 +42,13 @@ const std::map<const std::string, const Options::Debug> Options::Debug::__table
 };
 
 std::vector<char *> Options::Debug::__options;
-std::vector<bool> Options::Debug::_bits(Options::Debug::QUORUM+1);
+unsigned long Options::Debug::__submodels = 0x00L;
+std::vector<bool> Options::Debug::__bits(Options::Debug::QUORUM+1);
 
 void
 Options::Debug::initialize()
 {
+    __submodels = 0x00;
     if ( __options.empty() ) {
 	/* Populate for getsubopt */
 	for ( std::map<const std::string, const Options::Debug>::const_iterator next_opt = __table.begin(); next_opt != __table.end(); ++next_opt ) {
@@ -57,13 +61,13 @@ Options::Debug::initialize()
 void
 Options::Debug::all( const std::string& )
 {
+    __submodels = ~0;
 //    _bits[CALLS]      = true;
-    _bits[FORKS]      = true;
-    _bits[INTERLOCK]  = true;
+    __bits[FORKS]      = true;
+    __bits[INTERLOCK]  = true;
 //    _bits[JOINS]      = true;
-    _bits[SUBMODELS]  = true;
 #if HAVE_LIBGSL
-    _bits[QUORUM]     = true;
+    __bits[QUORUM]     = true;
 #endif
 }
 
@@ -100,6 +104,20 @@ Options::Debug::lqx( const std::string& )
 }
 
 void
+Options::Debug::submodels( const std::string& arg )
+{
+    if ( arg.empty() ) {
+	__submodels = ~0;	/* Do all submodels */
+    } else {
+	char * endptr = nullptr;
+	__submodels = static_cast<unsigned long>(strtol( arg.c_str(), &endptr, 10 ) );
+	if ( endptr != nullptr && *endptr != '\0' ) {
+	    throw std::invalid_argument( std::string( "submodels=<n> where n=\"" ) + arg + "\". Choose an unsigned integer bitset." ) ;
+	}
+    }
+}
+
+void
 Options::Debug::exec( const int ix, const std::string& arg )
 {
     (*__table.at(std::string(__options.at(ix))).func())( arg );
@@ -109,7 +127,7 @@ std::map<const std::string, const Options::Trace> Options::Trace::__table =
 {
     { "activities",    Trace( &Trace::activities,     false, &Help::traceActivities ) },
     { "convergence",   Trace( &Trace::convergence,    true,  &Help::traceConvergence ) },
-    { "delta_wait",    Trace( &Trace::delta_wait,     false, &Help::traceDeltaWait ) },
+    { "delta-wait",    Trace( &Trace::delta_wait,     false, &Help::traceDeltaWait ) },
     { "forks",	       Trace( &Trace::forks,          false, &Help::traceForks ) },
     { "idle-time",     Trace( &Trace::idle_time,      false, &Help::traceIdleTime ) },
     { "interlock",     Trace( &Trace::interlock,      false, &Help::traceInterlock ) },
@@ -128,10 +146,16 @@ std::map<const std::string, const Options::Trace> Options::Trace::__table =
 };
 
 std::vector<char *> Options::Trace::__options;
+unsigned long Options::Trace::__delta_wait = 0x00L;
+unsigned long Options::Trace::__mva = 0x00L;
+bool Options::Trace::__verbose = false;
 
 void
 Options::Trace::initialize()
 {
+    __verbose = false;
+    __mva = 0x0L;
+
     if ( !__options.empty() ) return;
     /* Populate for getsubopt */
     for ( std::map<const std::string, const Options::Trace>::const_iterator next_opt = __table.begin(); next_opt != __table.end(); ++next_opt ) {
@@ -156,7 +180,15 @@ Options::Trace::convergence( const std::string& arg )
 void
 Options::Trace::delta_wait( const std::string& arg )
 {
-    flags.trace_delta_wait = true;
+    if ( arg.empty() ) {
+	__delta_wait = ~0;	/* Do all submodels */
+    } else {
+	char * endptr = nullptr;
+	__delta_wait = static_cast<unsigned long>(strtol( arg.c_str(), &endptr, 10 ) );
+	if ( endptr != nullptr && *endptr != '\0' ) {
+	    throw std::invalid_argument( std::string( "delta-wait=<n> where n=\"" ) + arg + "\". Choose an unsigned integer bitset." );
+	}
+    }
 }
 
 void
@@ -192,14 +224,14 @@ Options::Trace::joins( const std::string& arg )
 void
 Options::Trace::mva( const std::string& arg )
 {
-    unsigned temp;
-    flags.trace_mva = true;
     if ( arg.empty() ) {
-	flags.trace_submodel = 0;	/* Do all submodels */
-    } else if ( 0 < ( temp = (unsigned)strtol( arg.c_str(), 0, 10 ) ) && temp < 100 ) {
-	flags.trace_submodel = temp;
+	__mva = ~0;	/* Do all submodels */
     } else {
-	std::cerr << LQIO::io_vars.lq_toolname << " -tmva=" << arg << " is invalid." << std::endl;
+	char * endptr = nullptr;
+	__mva = static_cast<unsigned long>(strtol( arg.c_str(), &endptr, 10 ) );
+	if ( endptr != nullptr && *endptr != '\0' ) {
+	    throw std::invalid_argument( std::string( "mva=<n> where n=\"" ) + arg + "\". Choose an unsigned integer bitset." );
+	}
     }
 }
 
@@ -232,6 +264,13 @@ void
 Options::Trace::variance( const std::string& arg )
 {
     flags.trace_variance = true;
+}
+
+void
+Options::Trace::verbose( const std::string& arg )
+{
+    __verbose = LQIO::DOM::Pragma::isTrue( arg );
+    LQIO::Spex::__verbose = __verbose;
 }
 
 void
@@ -298,7 +337,7 @@ Options::Special::convergence_value( const std::string& arg )
 	pragmas.insert(LQIO::DOM::Pragma::_convergence_value_,arg);
     }
     catch ( std::domain_error& e ) {
-	throw std::invalid_argument( std::string( "--convergence=" ) + arg + ", choose a non-negative real." );
+	throw std::invalid_argument( std::string( "convergence=<n.n> where n.n=\"" ) + arg + "\". Choose a non-negative real." );
     }
 }
 
@@ -336,7 +375,7 @@ Options::Special::iteration_limit( const std::string& arg )
 	pragmas.insert(LQIO::DOM::Pragma::_iteration_limit_,arg);
     }
     catch ( std::domain_error& e ) {
-	throw std::invalid_argument( std::string( "--iteration-limit=" ) + arg + ", choose a non-negative integer." );
+	throw std::invalid_argument( std::string( "iteration-limit=<n> where n=\"" ) + arg + "\".  Choose a non-negative integer." );
     }
 }
 
@@ -394,7 +433,7 @@ Options::Special::mol_ms_underrelaxation( const std::string& arg )
 	pragmas.insert(LQIO::DOM::Pragma::_mol_underrelaxation_,arg);
     }
     catch ( std::domain_error& e ) {
-	throw std::invalid_argument ( std::string( "--mol-underrelaxation=" ) + arg + ", choose a real between 0.0 and 1.0." );
+	throw std::invalid_argument ( std::string( "mol-underrelaxation=<n.n> where n.n=\"" ) + arg + "\". Choose a real between 0.0 and 1.0." );
     }
 }
 
@@ -409,7 +448,7 @@ Options::Special::print_interval( const std::string& arg )
 {
     char * endptr = nullptr;
     if ( !arg.empty() && (Model::__print_interval = (unsigned)strtol( arg.c_str(), &endptr, 10 )) == 0 || *endptr != '\0' ) {
-	throw std::invalid_argument( std::string( "--print-interval=" ) + arg + "choose an integer greater than 0." );
+	throw std::invalid_argument( std::string( "print-interval=<n> where n=\"" ) + arg + "\".  Choose an integer greater than 0." );
     }
     flags.trace_intermediate = true;
 }
@@ -421,7 +460,7 @@ Options::Special::single_step( const std::string& arg )
     if ( arg.empty() ) {
 	flags.single_step = 1;
     } else if ( (flags.single_step = (unsigned)strtol( arg.c_str(), &endptr, 10 )) == 0 || *endptr != '\0' ) {
-	throw std::invalid_argument( std::string( "--step=" ) + arg + "choose a non-negative integer." );
+	throw std::invalid_argument( std::string( "step=<n> where n=\"" ) + arg + "\".  Choose a non-negative integer." );
     }
 }
 
@@ -432,6 +471,6 @@ Options::Special::underrelaxation( const std::string& arg )
 	pragmas.insert(LQIO::DOM::Pragma::_underrelaxation_,arg);
     }
     catch ( std::domain_error& e ) {
-	throw std::invalid_argument( std::string( "--underrelaxation=" ) + arg + "choose a number between 0 and 2." );
+	throw std::invalid_argument( std::string( "underrelaxation=<n.n> where n.n=\"" ) + arg + "\".  Choose a number between 0 and 2." );
     }
 }

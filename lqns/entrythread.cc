@@ -1,5 +1,5 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 15322 2022-01-02 15:35:27Z greg $
+ * $Id: entrythread.cc 15622 2022-06-02 01:47:23Z greg $
  *
  */
 
@@ -165,7 +165,7 @@ Thread::setIdleTime( const double relax )
 		  << ", calculated (root Entry) throughput= " << throughput()
 		  << " Idle Time: " << z << std::endl;
     }
-    under_relax( _think_time, z, relax );
+    _think_time = under_relax( _think_time, z, relax );
     return *this;
 }
 

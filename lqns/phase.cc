@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 15600 2022-05-27 15:32:49Z greg $
+ * $Id: phase.cc 15622 2022-06-02 01:47:23Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -921,9 +921,9 @@ Phase::updateWait( const Submodel& submodel, const double relax )
 
     /* Now update waiting values */
 
-    under_relax( _wait[n], newWait, relax );
+    _wait[n] = under_relax( _wait[n], newWait, relax );
 
-    if ( oldWait && flags.trace_delta_wait ) {
+    if ( oldWait && Options::Trace::delta_wait( n ) ) {
 	std::cout << "Phase::updateWait(" << n << "," << relax << ") for " << name() << std::endl;
 	std::cout << "        Sum of wait=" << newWait << ", _wait[" << n << "]=" << _wait[n] << std::endl;
     }
@@ -1114,7 +1114,7 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 	}
 
 	delta = std::max( delta, square( (_surrogateDelay[*k] - newWait) * throughput() ) );
-	under_relax( _surrogateDelay[*k], newWait, 1.0 );
+	_surrogateDelay[*k] = under_relax( _surrogateDelay[*k], newWait, 1.0 );
 	
 	if ( flags.trace_replication ) {
 	    std::cout << std::endl << "SurrogateDelay of current master chain " << k << " =" << _surrogateDelay[*k] << std::endl
