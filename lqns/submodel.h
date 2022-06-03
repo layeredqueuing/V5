@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 15600 2022-05-27 15:32:49Z greg $
+ * $Id: submodel.h 15626 2022-06-02 13:36:09Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -89,10 +89,6 @@ public:
 
     virtual Vector<double> * getOverlapFactor() const { return nullptr; } 
     unsigned nChains() const { return _n_chains; }
-    unsigned customers( const unsigned i ) const { return _customers[i]; }
-    double thinkTime( const unsigned i ) const { return _thinkTime[i]; }
-    void setThinkTime( unsigned int i, double thinkTime ) { _thinkTime[i] = thinkTime; }
-    unsigned priority( const unsigned i ) const { return _priority[i]; }
 
     Submodel& addClients();
     virtual Submodel& initServers( const Model& ) { return *this; }
@@ -134,12 +130,9 @@ private:
     unsigned _submodel_number;		/* Submodel number.  Set once.	*/
     unsigned _n_chains;			/* Number of chains K		*/
 	
-protected:
+private:
     /* MVA Stuff */
 
-    Population _customers;		/* Customers by chain k		*/
-    Vector<double> _thinkTime;		/* Think time for chain k	*/
-    Vector<unsigned> _priority;		/* Priority for chain k.	*/
 };
 
 inline std::ostream& operator<<( std::ostream& output, const Submodel& self) { return self.print( output ); }
@@ -170,6 +163,15 @@ public:
     virtual MVASubmodel& build();
     virtual MVASubmodel& rebuild();
 		
+    unsigned customers( const unsigned k ) const { return _customers[k]; }
+    double thinkTime( const unsigned k ) const { return _thinkTime[k]; }
+#if 0
+    void setThinkTime( unsigned int k, double thinkTime );
+#else
+    void setThinkTime( unsigned int k, double thinkTime ) { _thinkTime[k] = thinkTime; }
+#endif
+    unsigned priority( const unsigned k ) const { return _priority[k]; }
+
     virtual unsigned n_closedStns() const { return _closedStation.size(); }
     virtual unsigned n_openStns() const { return _openStation.size(); }
     virtual Vector<double> * getOverlapFactor() const { return _overlapFactor; } 
@@ -216,6 +218,10 @@ private:
 
     /* MVA Stuff */
 	
+    Population _customers;		/* Customers by chain k		*/
+    Vector<double> _thinkTime;		/* Think time for chain k	*/
+    Vector<unsigned int> _priority;	/* Priority for chain k.	*/
+
     Vector<Server *> _closedStation;
     Vector<Server *> _openStation;
     MVA * _closedModel;

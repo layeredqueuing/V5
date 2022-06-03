@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15565 2022-04-19 15:07:39Z greg $
+# $Id: Makefile.am 15629 2022-06-02 20:11:29Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -119,12 +119,12 @@ check-syntax:
 
 check-verbose:
 	@-echo $(OBJS) | tr -s " " "\n" > .files
-	srvndiff -A +t -@.files ../../models/regression/{sim,lqns}-results .
+	srvndiff -a +t -@.files ../../models/regression/{sim,lqns}-results .
 	@-rm .files
 
 check-summary:	$(OBJS)
 	@-echo $(OBJS) | tr -s " " "\n" > .files
-	srvndiff -IA -S10. -T +t -@.files ../../models/regression/{sim,lqns}-results .
+	srvndiff -Ia -S10. -T +t -@.files ../../models/regression/{sim,lqns}-results .
 	@-rm .files
 
 disttest: disttest.o randomvar.o

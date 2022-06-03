@@ -1,5 +1,5 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 15622 2022-06-02 01:47:23Z greg $
+ * $Id: entrythread.cc 15630 2022-06-02 23:04:29Z greg $
  *
  */
 
@@ -131,11 +131,12 @@ Thread::waitExceptChain( const unsigned submodel, const unsigned k, const unsign
 Thread&
 Thread::setIdleTime( const double relax )
 {
-    double z;
-
-    if ( utilization() >= owner()->population() ) {
-	z = 0.0;
+    if ( !std::isfinite(owner()->population()) ) {
+	_think_time = 0.0;
+    } else if ( utilization() >= owner()->population() ) {
+	_think_time = 0.0;
     } else if ( throughput() > 0.0 ) {
+	double z = 0.0;
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
 	switch ( Pragma::getQuorumIdleTime() ) {
 
@@ -153,9 +154,10 @@ Thread::setIdleTime( const double relax )
 #else
 	z = ( owner()->population() - utilization() ) /  throughput();
 #endif
+	_think_time = under_relax( _think_time, z, relax );
 
     } else {
-	z = std::numeric_limits<double>::infinity();	/* INFINITY */
+	_think_time = std::numeric_limits<double>::infinity();
     }
 
     if ( flags.trace_idle_time || flags.trace_throughput  ) {
@@ -163,9 +165,8 @@ Thread::setIdleTime( const double relax )
 		  << "  utilization=" << utilization()
 		  << ", population=" << owner()->population()
 		  << ", calculated (root Entry) throughput= " << throughput()
-		  << " Idle Time: " << z << std::endl;
+		  << " Idle Time: " << _think_time << std::endl;
     }
-    _think_time = under_relax( _think_time, z, relax );
     return *this;
 }
 

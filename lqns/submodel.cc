@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 15618 2022-06-01 19:53:56Z greg $
+ * $Id: submodel.cc 15628 2022-06-02 17:40:08Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -75,10 +75,7 @@
 
 Submodel::Submodel( const unsigned n ) :
     _submodel_number(n),
-    _n_chains(0),
-    _customers(),
-    _thinkTime(),
-    _priority()
+    _n_chains(0)
 {
 }
 
@@ -94,6 +91,15 @@ Submodel::setSubmodelNumber( const unsigned n )
     return *this;
 }
 
+#if 0
+// DEBUG
+void
+Submodel::setThinkTime( unsigned int k, double thinkTime )
+{
+    std::cerr << "Submodel " << number() << " chain " << k << ": think time = " << thinkTime << std::endl;
+    _thinkTime[k] = thinkTime;
+}
+#endif
 
 /*
  * Now create client tables which are simply all callers to
@@ -147,12 +153,12 @@ Submodel::debug_stop( const unsigned long iterations, const double delta ) const
 
 
 std::ostream&
-Submodel::submodel_header_str( std::ostream& output, const Submodel& aSubmodel, const unsigned long iterations )
+Submodel::submodel_header_str( std::ostream& output, const Submodel& submodel, const unsigned long iterations )
 {
     output << "========== Iteration " << iterations << ", "
-	   << aSubmodel.submodelType() << " " << aSubmodel.number() << ": "
-	   << aSubmodel._clients.size() << " client" << (aSubmodel._clients.size() != 1 ? "s, " : ", ")
-	   << aSubmodel._servers.size() << " server" << (aSubmodel._servers.size() != 1 ? "s."  : ".")
+	   << submodel.submodelType() << " " << submodel.number() << ": "
+	   << submodel._clients.size() << " client" << (submodel._clients.size() != 1 ? "s, " : ", ")
+	   << submodel._servers.size() << " server" << (submodel._servers.size() != 1 ? "s."  : ".")
 	   << "==========";
     return output;
 }
@@ -170,6 +176,9 @@ MVASubmodel::MVASubmodel( const unsigned n )
       _hasThreads(false),
       _hasSynchs(false),
       _hasReplicas(false),
+      _customers(),
+      _thinkTime(),
+      _priority(),
       _closedStation(),
       _openStation(),
       _closedModel(nullptr),
@@ -602,10 +611,10 @@ MVASubmodel::makeChains()
 	    /* ---------------- Simple case --------------- */
 #endif
 
-	    size_t new_size = _customers.size() + threads;
+	    const size_t new_size = _customers.size() + threads;
 	    _customers.resize( new_size ); /* N.B. -- Vector class.  Must*/
-	    _thinkTime.resize( new_size, 0.0 ); /* grow() explicitly.	*/
-	    _priority.resize( new_size, 0.0 );
+	    _thinkTime.resize( new_size, static_cast<double>(0.0) ); /* grow() explicitly.	*/
+	    _priority.resize( new_size, static_cast<unsigned int>(0) );
 
 	    for ( unsigned i = 1; i <= threads; ++i ) {
 		k += 1;				// Add one chain.
@@ -634,10 +643,10 @@ MVASubmodel::makeChains()
 	    //!!! fanins, modify delta_chains and Entity::fanIn()
 	    //!!! for the entry-to-entry case.
 
-	    size_t new_size = _customers.size() + sz;
+	    const size_t new_size = _customers.size() + sz;
 	    _customers.resize( new_size );   //Expand vectors to accomodate
-	    _thinkTime.resize( new_size, 0.0 );   //new chains.
-	    _priority.resize( new_size, 0.0 );
+	    _thinkTime.resize( new_size, static_cast<double>(0.0) ); /* grow() explicitly.	*/
+	    _priority.resize( new_size, static_cast<unsigned int>(0) );
 
 	    /*
 	     * Do all the chains for to a server at once.  This makes
@@ -769,7 +778,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		catch ( const std::range_error& error ) {
 		    MVAStats.faults += 1;
 		    if ( Pragma::stopOnMessageLoss() && std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::openModelInfinity ) ) ) {
-			throw exception_handled( "MVA::submodel -- open model overflow" );
+			throw;
 		    }
 		}
 	    }
@@ -803,7 +812,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    } 
 	    catch ( const std::range_error& error ) {
 		if ( Pragma::stopOnMessageLoss() && std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::openModelInfinity ) ) ) {
-		    throw exception_handled( "MVA::submodel -- open model overflow" );
+		    throw;
 		}
 	    }
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 15304 2021-12-31 15:51:38Z greg $
+ *  $Id: srvn_output.cpp 15631 2022-06-03 09:55:34Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -3020,7 +3020,7 @@ namespace LQIO {
 		    } else if ( _meanFunc ) {
 			const DOM::Entry * dest = call->getDestinationEntry();
                         if ( count == 0 ) {
-                            _output << entity_name( *(ep.second), print_task_name ) << activity_separator(__maxStrLen) << newline;
+                            _output << entity_name( *(ep.second), print_task_name ) << activity_separator(0) << newline;
                             count += 1;
                         }
                         _output << std::setw(__maxStrLen) << " "  << std::setw(__maxStrLen-1) << activity->getName() << " " << entry_name( *dest ) << std::setw(__maxDblLen-1);

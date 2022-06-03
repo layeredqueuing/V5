@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 14969 2021-09-12 11:53:28Z greg $
+ * $Id: call.h 15631 2022-06-03 09:55:34Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -208,10 +208,11 @@ public:
 #endif
     double elapsedTime() const;
     double queueingTime() const;
-    virtual const Call& insertDOMResults() const;
 #if PAN_REPLICATION
     double nrFactor( const Submodel& aSubmodel, const unsigned k ) const;
 #endif
+    double dropProbability() const;
+    virtual const Call& insertDOMResults() const;
 
     /* Computation */
 

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 15622 2022-06-02 01:47:23Z greg $
+ * $Id: entity.h 15628 2022-06-02 17:40:08Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -306,7 +306,7 @@ protected:
     
     double _population;			/* customers when I'm a client	*/
     double _variance;			/* Computed variance.		*/
-    Positive _thinkTime;		/* Think time.			*/
+    double _thinkTime;			/* Think time.			*/
     Server * _station;			/* Servers by submodel.		*/
 
 private:

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15622 2022-06-02 01:47:23Z greg $
+ * $Id: entity.cc 15628 2022-06-02 17:40:08Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -485,7 +485,9 @@ Entity::deltaUtilization() const
 void
 Entity::setIdleTime( const double relax )
 {
-    if ( utilization() >= population() ) {
+    if ( !std::isfinite( population() ) ) {
+	_thinkTime = 0.0;
+    } else if ( utilization() >= population() ) {
 	_thinkTime = 0.0;
     } else if ( throughput() > 0.0 ) {
 	_thinkTime = under_relax( _thinkTime, (population() - utilization()) / throughput(), relax );

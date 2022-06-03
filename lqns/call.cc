@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15597 2022-05-27 01:03:45Z greg $
+ * $Id: call.cc 15631 2022-06-03 09:55:34Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -365,12 +365,36 @@ Call::queueingTime() const
 }
 
 
+/*
+ * Return the probability of dropping messages.
+ */
+
+double
+Call::dropProbability() const
+{
+    double src_tput = getSource()->throughput();
+    if ( !hasSendNoReply() || !std::isfinite(src_tput) || src_tput == 0.0) return 0.0;
+
+    src_tput *= sendNoReply();
+    const double dst_tput = dstEntry()->throughput();
+    if ( src_tput > dst_tput ) {
+	return 1.0 - dst_tput / src_tput;
+    } else {
+	return 0.0;
+    }
+}
+
+
 const Call&
 Call::insertDOMResults() const
 {
     if ( getSource()->getReplicaNumber() != 1 ) return *this;		/* NOP */
 
     const_cast<LQIO::DOM::Call *>(getDOM())->setResultWaitingTime(queueingTime());
+    const double drop_probability = dropProbability();
+    if ( drop_probability > 0. ) {
+	const_cast<LQIO::DOM::Call *>(getDOM())->setResultDropProbability( drop_probability );
+    }
     return *this;
 }
 

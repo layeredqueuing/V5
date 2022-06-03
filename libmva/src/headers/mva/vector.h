@@ -1,12 +1,8 @@
 /* -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/libmva/src/headers/mva/vector.h $
+ * $Id: vector.h 15626 2022-06-02 13:36:09Z greg $
  *
- * Vectors.  Used for scalar types.  See Cltn for other types.  Range checked.
- * Initialize.  Range from 1..n.
- *
- * Vector2:  Used for non-pointer COMPLEX types.  There is a subtle
- * difference in the [] operator!  Use Cltn/Vector for pointers and
- * scalars respectively.
+ * Vector.  Range checked from 1..n (and not from 0..n-1).
+ * VectorMath.  Adds the operators +, -, *, /, square, sum (so only use on numbers).
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -14,8 +10,8 @@
  *
  * November, 1994
  * July 2007
+ * June 2022
  *
- * $Id: vector.h 14870 2021-07-03 03:16:42Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -38,7 +34,6 @@ template <typename Type>
 class Vector {
 public:
     typedef Type value_type;
-    typedef size_t size_type;
 
     typedef Type * iterator;
     typedef const Type * const_iterator;
@@ -54,8 +49,8 @@ public:
     const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
     
 public: 
-    explicit Vector( size_type size=0 ) : ia(0), sz(0), mx(0) { resize( size ); }
-    Vector( const Type *ar, size_type sz ) { init(ar,sz); }
+    explicit Vector( size_t size=0 ) : ia(nullptr), sz(0), mx(0) { resize( size ); }
+    Vector( const Type *ar, size_t sz ) { init(ar,sz); }
     Vector( const Vector<Type> &iA ) { init( iA.ia, iA.sz ); }
     virtual ~Vector() { clear(); }
     void clear()
@@ -64,15 +59,15 @@ public:
 		ia += 1;		/* Fix offset before deletion.	*/
 		delete [] ia;
 	    }
-	    ia = 0;
+	    ia = nullptr;
 	    sz = 0;
 	    mx = 0;
 	}
 
     bool operator==( const Vector<Type>& arg ) const
 	{
-	    const unsigned n = size();
-	    for ( unsigned i = 1; i <= n; ++i ) {
+	    const size_t n = size();
+	    for ( size_t i = 1; i <= n; ++i ) {
 		if ( !(ia[i] == arg.ia[i] ) ) return false;	/* Just require == operator, and not != */
 	    }
 	    return true;
@@ -87,8 +82,8 @@ public:
 
     Vector<Type>& operator=( const Type& arg )
 	{
-	    const unsigned n = size();
-	    for ( unsigned i = 1; i <= n; ++i ) {
+	    const size_t n = size();
+	    for ( size_t i = 1; i <= n; ++i ) {
 		ia[i] = arg;
 	    }
 	    return *this;
@@ -96,16 +91,16 @@ public:
 
     const_iterator find( const Type& elem ) const	/* temp */
 	{
-	    for ( unsigned ix = 1; ix <= sz; ++ix ) {
+	    for ( size_t ix = 1; ix <= sz; ++ix ) {
 		if ( elem == ia[ix] ) return &ia[ix];
 	    }
 	    return &ia[sz+1];
 	}
 
     bool empty() const { return sz == 0; }
-    size_type size() const { return sz; }
-    size_type max_size() const { return mx; }
-    void resize( size_type amt, const value_type val = value_type() )
+    size_t size() const { return sz; }
+    size_t max_size() const { return mx; }
+    void resize( size_t amt, const value_type val = value_type() )
 	{
 	    if ( amt > size() ) {
 		grow( amt - size(), val );
@@ -113,18 +108,18 @@ public:
 		shrink( size() > amt );
 	    }
 	}
-    void insert( const unsigned index, const Type& value )
+    void insert( const size_t index, const Type& value )
 	{
 	    Type *oldia = ia;
-	    unsigned oldSize = sz;
-	    unsigned newSize = oldSize + 1;
-	    unsigned ix;
+	    size_t oldSize = sz;
+	    size_t newSize = oldSize + 1;
+	    size_t ix;
 
 	    sz = newSize;
 	    if ( sz > mx ) {
 		mx = sz * 2;
 		ia = new Type[mx];
-		assert ( ia != 0 );
+		assert ( ia != nullptr );
 	
 		ia -= 1;				/* Offset to allow 1..n index	*/
 
@@ -140,7 +135,7 @@ public:
 	    assert ( 0 < index && index <= newSize );
 	    ia[index] = value;				/* Add new element.		*/
     
-	    if ( oldia && oldia != ia ) {
+	    if ( oldia != nullptr && oldia != ia ) {
 		oldia += 1;				/* Fix offset before deletion.	*/
 		delete [] oldia;
 	    }
@@ -159,7 +154,7 @@ public:
     std::ostream& print( std::ostream& output = std::cout ) const
 	{
 	    output << '(';
-	    for ( unsigned ix = 1; ix <= sz; ++ix ) {
+	    for ( size_t ix = 1; ix <= sz; ++ix ) {
 		output << ia[ix];
 		if ( ix != sz ) output << ',';
 	    }
@@ -171,75 +166,76 @@ public:
     Type& first() const { assert( sz > 0 ); return ia[1]; }
     Type& last() { assert( sz > 0 ); return ia[sz]; }
     Type& last() const { assert( sz > 0 ); return ia[sz]; }
-    Type& operator[](const unsigned ix) { assert( ix && ix <= sz ); return ia[ix]; }
-    Type& operator[](const unsigned ix) const { assert( ix && ix <= sz ); return ia[ix]; }
+    Type& operator[](const size_t ix) { assert( ix && ix <= sz ); return ia[ix]; }
+    Type& operator[](const size_t ix) const { assert( ix && ix <= sz ); return ia[ix]; }
 
 protected:
-    void grow( size_type amt, const value_type val )
+    void grow( size_t amt, const value_type val )
 	{
 	    if ( amt == 0 ) return;		/* No operation.		*/
 	
 	    Type *oldia = ia;
-	    const unsigned oldSize = sz;
-	    const unsigned newSize = (int)(oldSize + amt) >= 0 ? oldSize + amt : 0;
-	    const unsigned minSize = std::min( oldSize, newSize );
+	    const size_t oldSize = sz;
+	    sz = oldSize + amt;
+	    const size_t minSize = std::min( oldSize, sz );
 
-	    sz = newSize;
 	    if ( sz > mx ) {
 		mx = sz * 2;
 		ia = new Type[mx];
-		assert ( ia != 0 );
+		assert ( ia != nullptr );
 		ia -= 1;			/* Offset to allow 1..n index	*/
 
-		for ( unsigned ix = 1; ix <= minSize; ++ix ) {
+		for ( size_t ix = 1; ix <= minSize; ++ix ) {
 		    ia[ix] = oldia[ix];		/* Copy to new array.		*/
 		}
-		for ( unsigned ix = minSize + 1; ix <= newSize; ++ix ) {
-		    ia[ix] = val;
+		for ( size_t ix = minSize + 1; ix <= mx; ++ix ) {
+		    ia[ix] = val;		/* Clear everything afterwards */
 		}
 	    }
 
-	    if ( oldia && oldia != ia ) {
+	    if ( oldia != nullptr && oldia != ia ) {
 		oldia += 1;			/* Fix offset before deletion.	*/
 		delete [] oldia;
 	    }
 	}
-    void shrink( size_type amt )
+    void shrink( size_t amt )
 	{
-	    assert( amt <= sz );
 	    if ( amt == 0 ) return;		/* No operation.		*/
 
+	    assert( amt <= sz );
+
 	    Type *oldia = ia;
-	    unsigned oldSize = sz;
+	    const size_t oldSize = sz;
 	    sz = oldSize - amt;
 
 	    if ( sz ) {
+		mx = sz;
 		ia = new Type[sz];
-		assert ( ia != 0 );
+		assert ( ia != nullptr );
 		ia -= 1;			/* Offset to allow 1..n index	*/
 
-		for ( unsigned ix = 1; ix <= sz; ++ix ) {
+		for ( size_t ix = 1; ix <= sz; ++ix ) {
 		    ia[ix] = oldia[ix];
 		}
 	    } else {
-		ia = 0;
+		ia = nullptr;
 	    }
 
-	    if ( oldia ) {
+	    if ( oldia != nullptr ) {
 		oldia += 1;		/* Fix offset before deletion.	*/
 		delete [] oldia;
 	    }
 	}
     
 private:
-    void init( const Type* vector, const size_type size )
+    void init( const Type* vector, const size_t size )
 	{
 	    sz = size;
 	    mx = size;
 	    ia = new Type[mx];
-	    assert( ia != 0 );
+	    assert( ia != nullptr );
 	    ia -= 1;			/* Offset for 1..n addressing	*/
-	    for ( size_type ix = 1; ix <= sz; ++ix ) {
+	    for ( size_t ix = 1; ix <= sz; ++ix ) {
 		ia[ix] = vector[ix];
 	    }
 	}
@@ -248,8 +244,8 @@ protected:
     Type *ia;
 
 private:
-    size_type sz;
-    size_type mx;
+    size_t sz;
+    size_t mx;
 };
 
 
@@ -258,8 +254,8 @@ template <typename Type>
 class VectorMath : public Vector<Type> {
 	
 public:
-    explicit VectorMath<Type>( unsigned size=0, Type init=0 ) : Vector<Type>() { this->grow( size, init ); }
-    VectorMath<Type>( const Type *ar, unsigned sz ) : Vector<Type>( ar, sz ) {}
+    explicit VectorMath<Type>( size_t size=0, Type init=0 ) : Vector<Type>() { this->grow( size, init ); }
+    VectorMath<Type>( const Type *ar, size_t sz ) : Vector<Type>( ar, sz ) {}
     VectorMath<Type>( const VectorMath<Type> &iA ) : Vector<Type>( iA ) {}
 
     VectorMath<Type>& operator=( const Vector<Type>& arg ) { Vector<Type>::operator=( arg ); return *this; }
@@ -269,10 +265,10 @@ public:
     VectorMath<Type> operator+( const VectorMath<Type>& addend ) const
 	{
 	    assert( addend.size() == Vector<Type>::size() );
-	    const unsigned n = Vector<Type>::size();
+	    const size_t n = Vector<Type>::size();
 	    VectorMath<Type> sum( n );
 
-	    for ( unsigned i = 1; i <= n; ++i ) {
+	    for ( size_t i = 1; i <= n; ++i ) {
 		sum.ia[i] = Vector<Type>::ia[i] + addend.ia[i];
 	    }
 	    return sum;
@@ -280,30 +276,30 @@ public:
     VectorMath<Type> operator-( const VectorMath<Type>& subtrahend ) const
 	{
 	    assert( subtrahend.size() == Vector<Type>::size() );
-	    const unsigned n = Vector<Type>::size();
+	    const size_t n = Vector<Type>::size();
 	    VectorMath<Type> difference( n );
 
-	    for ( unsigned i = 1; i <= n; ++i ) {
+	    for ( size_t i = 1; i <= n; ++i ) {
 		difference.ia[i] = Vector<Type>::ia[i] - subtrahend.ia[i];
 	    }
 	    return difference;
 	}
     VectorMath<Type> operator*( const Type multiplier ) const
 	{
-	    const unsigned n = Vector<Type>::size();
+	    const size_t n = Vector<Type>::size();
 	    VectorMath<Type> product( n );
 
-	    for ( unsigned i = 1; i <= n; ++i ) {
+	    for ( size_t i = 1; i <= n; ++i ) {
 		product.ia[i] = multiplier * Vector<Type>::ia[i];
 	    }
 	    return product;
 	}
     VectorMath<Type> square() const
 	{
-	    const unsigned n = Vector<Type>::size();
+	    const size_t n = Vector<Type>::size();
 	    VectorMath<Type> square( n );
 
-	    for ( unsigned i = 1; i <= n; ++i ) {
+	    for ( size_t i = 1; i <= n; ++i ) {
 		square.ia[i] = Vector<Type>::ia[i] * Vector<Type>::ia[i];
 	    }
 	    return square;
@@ -312,8 +308,8 @@ public:
     VectorMath<Type>& operator+=( const VectorMath<Type>& addend )
 	{
 	    assert( Vector<Type>::size() == addend.size() );
-	    const unsigned n = Vector<Type>::size();
-	    for ( unsigned ix = 1; ix <= n; ++ix ) {
+	    const size_t n = Vector<Type>::size();
+	    for ( size_t ix = 1; ix <= n; ++ix ) {
 		Vector<Type>::ia[ix] += addend.ia[ix];
 	    }
 	    return *this;
@@ -321,24 +317,24 @@ public:
     VectorMath<Type>& operator-=( const VectorMath<Type>& subtrahend )
 	{
 	    assert( Vector<Type>::size() == subtrahend.size() );
-	    const unsigned n = Vector<Type>::size();
-	    for ( unsigned ix = 1; ix <= n; ++ix ) {
+	    const size_t n = Vector<Type>::size();
+	    for ( size_t ix = 1; ix <= n; ++ix ) {
 		Vector<Type>::ia[ix] -= subtrahend.ia[ix];
 	    }
 	    return *this;
 	}
     VectorMath<Type>& operator*=( const Type multiplier )
 	{
-	    const unsigned n = Vector<Type>::size();
-	    for ( unsigned ix = 1; ix <= n; ++ix ) {
+	    const size_t n = Vector<Type>::size();
+	    for ( size_t ix = 1; ix <= n; ++ix ) {
 		Vector<Type>::ia[ix] *= multiplier;
 	    }
 	    return *this;
 	}
     VectorMath<Type>& operator/=( const Type divisor )
 	{
-	    const unsigned n = Vector<Type>::size();
-	    for ( unsigned ix = 1; ix <= n; ++ix ) {
+	    const size_t n = Vector<Type>::size();
+	    for ( size_t ix = 1; ix <= n; ++ix ) {
 		Vector<Type>::ia[ix] /= divisor;
 	    }
 	    return *this;
@@ -348,8 +344,8 @@ public:
 	{
 	    Type sum = 0;
 
-	    const unsigned n = Vector<Type>::size();
-	    for ( unsigned ix = 1; ix <= n; ++ix ) {
+	    const size_t n = Vector<Type>::size();
+	    for ( size_t ix = 1; ix <= n; ++ix ) {
 		sum += Vector<Type>::ia[ix];
 	    }
 	    return sum;
