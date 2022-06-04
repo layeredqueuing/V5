@@ -13,6 +13,7 @@
  */
 
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <limits>
 #include <numeric>
@@ -327,14 +328,12 @@ Model::Print::operator()( double item )
 	}
     } else {
 	_output << ",";
-	if ( item != std::numeric_limits<double>::quiet_NaN() && item != std::numeric_limits<double>::signaling_NaN() ) {
-	    if ( precision > 0 ) {
-		_output << std::setprecision(precision) << item;
-	    } else {
-		_output << item;
-	    }
-	} else {
+	if ( std::isnan( item ) ) {
 	    _output << "NULL";
+	} else if ( precision > 0 ) {
+	    _output << std::setprecision(precision) << item;
+	} else {
+	    _output << item;
 	}
     }
 }

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15586 2022-05-21 11:30:51Z greg $
+ * $Id: lqn2csv.cc 15641 2022-06-03 18:38:52Z greg $
  *
  * Command line processing.
  *
@@ -279,7 +279,7 @@ process( std::ostream& output, int argc, char **argv, const std::vector<Model::R
 	if ( argc - optind == 1 && is_directory( argv[optind] ) ) {
 	    process_directory( output, argv[optind], Model::Process( output, results, limit, Model::Mode::DIRECTORY, plot.getSplotXIndex() ) );
 	} else {
-	    std::for_each( &argv[optind], &argv[argc], Model::Process( output, results, limit, Model::Mode::FILENAME, plot.getSplotXIndex() ) );
+	    std::for_each( &argv[optind+1], &argv[argc], Model::Process( output, results, limit, Model::Mode::FILENAME, plot.getSplotXIndex() ) );
 	}
 
 	if ( gnuplot_flag ) {

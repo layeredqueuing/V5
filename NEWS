@@ -2,6 +2,12 @@
 365 	lqns	 	The warning for zero service time should be suppressed for reference tasks with think time. 
 369 	petrisrv 	Segmentation violation with --overtaking 
 370 	lqiolib 	Activity parameters probabilities and rates are constants. 
+379 	lqns	 	V5 Regression. 	
+372 	lqiolib 	Result variables can be reused. 
+374 	lqns 		Asynchronous Cycles #1 	
+375 	lqns 		Asynchronous Cycles #1 	
+376 	lqn2xxx 	Overloaded infinite servers with open arrivals... 
+378 	lqn2xxx 	Activity throughput not initialized. 
 
 * Bugs fixed in 5.25
 338 	lqns 		Queuing time not equal to zero when NCust = NServers for Zhou multiserver. 
