@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15641 2022-06-03 18:38:52Z greg $
+ * $Id: lqn2csv.cc 15646 2022-06-04 11:43:11Z greg $
  *
  * Command line processing.
  *
@@ -44,6 +44,7 @@ int gnuplot_flag    = 0;
 int no_header       = 0;
 size_t limit	    = 0;
 int precision	    = 0;
+int width	    = 0;
 
 const std::vector<struct option> longopts = {
     /* name */ /* has arg */ /*flag */ /* val */
@@ -78,6 +79,7 @@ const std::vector<struct option> longopts = {
     { "limit",		       required_argument, nullptr, 0x100+'l' },
     { "no-header",             no_argument,       &no_header,    1 },
     { "precision",	       required_argument, nullptr, 0x100+'p' },
+    { "width",		       required_argument, nullptr, 0x100+'w' },
     { "help",		       no_argument,	  nullptr, 0x100+'h' },
     { "version",	       no_argument,	  nullptr, 0x100+'v' },
     { nullptr,                 0,                 nullptr, 0 }
@@ -118,6 +120,7 @@ const static std::map<int,const std::string> help_str
     { '@', "Read the argument list from <arg>.  --output-file and --arguments are ignored." },
     { 0x100+'h', "Print out this list." },
     { 0x100+'l', "Limit output to the first <arg> files read." },
+    { 0x100+'w', "Set the width of the result columns to <arg>.  Suppress commas." },
     { 0x100+'p', "Set the precision for output to <arg>." },
     { 0x100+'v', "Print out version numbder." }
 };
@@ -160,7 +163,7 @@ static void process_directory( std::ostream& output, const std::string& dirname,
 static void fetch_arguments( const std::string& filename, std::vector<Model::Result::result_t>& results );
 static void usage();
 static std::string makeopts( const std::vector<struct option>& );
-
+static size_t max_strlen( size_t l, const char * const s ) { return std::max( l, s != nullptr ? strlen( s ) : 0 ); }
 std::string toolname;
 std::string output_file_name;
 
@@ -190,7 +193,9 @@ main( int argc, char *argv[] )
 	std::map<int,Model::Result::Type>::const_iterator result = result_type.find( c );
 	if ( optarg != nullptr && result != result_type.end() ) {
 	    results.emplace_back( optarg, result->second );
+	    continue;
 	}
+
 	switch ( c ) {
 	case 0: break;
 
@@ -218,6 +223,10 @@ main( int argc, char *argv[] )
             std::cout << "  Carleton University, Ottawa, Ontario, Canada. K1S 5B6" << std::endl << std::endl;
             break;
 	    
+	case 0x100+'w':
+	    width = strtol( optarg, &endptr, 10 );
+	    break;
+	    
 	case '@':
 	    fetch_arguments( optarg, results );
 	    break;
@@ -234,6 +243,10 @@ main( int argc, char *argv[] )
 	}
     }
 
+    if ( gnuplot_flag ) {
+	width = 0;
+    }
+    
     if ( optind == argc ) {
 	std::cerr << toolname << ": arg count" << std::endl;
 	exit ( 1 );
@@ -261,25 +274,30 @@ static void
 process( std::ostream& output, int argc, char **argv, const std::vector<Model::Result::result_t>& results, size_t limit )
 {
     extern int optind;
+    const Model::Mode mode = argc - optind == 1 && is_directory( argv[optind] ) ? Model::Mode::DIRECTORY : Model::Mode::FILENAME;
+    
     Model::GnuPlot plot( output, output_file_name, results );
 
     /* Load results, then got through results printing them out. */
+
+    const size_t min_header_column_width = 6;
+    const size_t header_column_width = (width == 1) ? 1 : (mode == Model::Mode::FILENAME) ? std::accumulate( &argv[optind], &argv[argc], min_header_column_width, &max_strlen ) : min_header_column_width;
     
     if ( gnuplot_flag ) {
 	plot.preamble();
     } else if ( no_header == 0 ) {
-	output << std::accumulate( results.begin(), results.end(), std::string("Object"), Model::Result::ObjectType ) << std::endl;
-	output << std::accumulate( results.begin(), results.end(), std::string("Name"),   Model::Result::ObjectName ) << std::endl;
-	output << std::accumulate( results.begin(), results.end(), std::string("Result"), Model::Result::TypeName   ) << std::endl;
+	Model::Result::printHeader( output, "Object", results, &Model::Result::getObjectType, header_column_width );
+	Model::Result::printHeader( output, "Name",   results, &Model::Result::getObjectName, header_column_width );
+	Model::Result::printHeader( output, "Result", results, &Model::Result::getTypeName,   header_column_width  );
     }
 
     /* For all files do... */
 
     try {
-	if ( argc - optind == 1 && is_directory( argv[optind] ) ) {
-	    process_directory( output, argv[optind], Model::Process( output, results, limit, Model::Mode::DIRECTORY, plot.getSplotXIndex() ) );
+	if ( mode == Model::Mode::DIRECTORY ) {
+	    process_directory( output, argv[optind], Model::Process( output, results, limit, header_column_width, mode, plot.getSplotXIndex() ) );
 	} else {
-	    std::for_each( &argv[optind+1], &argv[argc], Model::Process( output, results, limit, Model::Mode::FILENAME, plot.getSplotXIndex() ) );
+	    std::for_each( &argv[optind], &argv[argc], Model::Process( output, results, limit, header_column_width, mode, plot.getSplotXIndex() ) );
 	}
 
 	if ( gnuplot_flag ) {
@@ -406,13 +424,33 @@ fetch_arguments( const std::string& filename, std::vector<Model::Result::result_
 	    continue;
 	}
 
+	char * endptr = nullptr;
+
 	/* Ignore non-results options with args. (-o, -a...) */
 	switch ( c ) {
 	case EOF:
 	    break;
+
+	case 0x100+'w':
+	    width = strtol( optarg, &endptr, 10 );
+	    break;
+
+	case 0x100+'p':
+	    precision = strtol( optarg, &endptr, 10 );
+	    break;
+	    
+	case 0x100+'l':
+	    limit = strtol( optarg, &endptr, 10 );
+	    break;
+	    
 	case '?':
 	    std::cerr << toolname << ": File " << filename << ", line " << line_no << ": invalid argument -- " << str << "." << std::endl; // 
 	    break;
+	}
+
+	if ( endptr != 0 && *endptr != '\0' ) {
+	    std::cerr << toolname << ": File " << filename << ", line " << line_no << ": invalid argument -- " << str << "." << std::endl; // 
+	    exit( 1 );
 	}
     }
     optind = saved_optind;

@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: model.h 15586 2022-05-21 11:30:51Z greg $
+ * $Id: model.h 15646 2022-06-04 11:43:11Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -103,6 +103,7 @@ namespace Model {
 	};
 	
 	typedef std::pair<std::string,Model::Result::Type> result_t;
+	typedef const std::string& (*get_field)( const std::pair<std::string,Model::Result::Type>& result_t );
 
     private:
 //	Result( const Result& ) = delete;
@@ -111,12 +112,16 @@ namespace Model {
     public:
 	Result( const LQIO::DOM::Document& dom ) : _dom(dom) {}
 	std::vector<double> operator()( const std::vector<double>&, const std::pair<std::string,Model::Result::Type>& ) const;
-	static std::string ObjectType( const std::string&, const std::pair<std::string,Model::Result::Type>& );
 	static std::string ObjectName( const std::string&, const std::pair<std::string,Model::Result::Type>& );
 	static std::string TypeName( const std::string&, const std::pair<std::string,Model::Result::Type>& );
 	static bool equal( Type, Type );
 	static bool isIndependentVariable( Type );
 	static bool isDependentVariable( Type );
+	static void printHeader( std::ostream&, const std::string&, const std::vector<Model::Result::result_t>& results, Result::get_field f, size_t width );
+
+	static const std::string& getObjectType( const std::pair<std::string,Model::Result::Type>& );
+	static const std::string& getObjectName( const std::pair<std::string,Model::Result::Type>& );
+	static const std::string& getTypeName( const std::pair<std::string,Model::Result::Type>& );
 
     private:
 	const LQIO::DOM::Document& dom() const { return _dom; }
@@ -140,7 +145,7 @@ namespace Model {
 
     class Process {
     public:
-	Process( std::ostream& output, const std::vector<Model::Result::result_t>& results, size_t limit, Mode mode, const std::pair<size_t,double>& x_index ) : _output(output), _results(results), _limit(limit), _mode(mode), _x_index(x_index), _i(0) {}
+	Process( std::ostream& output, const std::vector<Model::Result::result_t>& results, size_t limit, size_t header_column_width, Mode mode, const std::pair<size_t,double>& x_index ) : _output(output), _results(results), _limit(limit), _header_column_width(header_column_width), _mode(mode), _x_index(x_index), _i(0) {}
 
 	void operator()( const std::string& filename );
 
@@ -153,22 +158,30 @@ namespace Model {
 	std::ostream& _output;
 	const std::vector<Model::Result::result_t>& _results;
 	const size_t _limit;
+	const size_t _header_column_width;
 	const Mode _mode;
 	std::pair<size_t,double> _x_index;	/* For splot output */
 	unsigned int _i;			/* Record number */
     };
 
-    class Print {
+    class PrintHeader {
     public:
-	Print( std::ostream& output, Mode mode, const std::string& filename ) : _output(output), _mode(mode), _filename(filename), _first(true) {}
-	
-	void operator()( double );
+	PrintHeader( std::ostream& output, Result::get_field f ) : _output(output), _f(f) {}
+	void operator()( const std::pair<std::string,Model::Result::Type>& ) const;
 
     private:
 	std::ostream& _output;
-	const Mode _mode;
-	const std::string& _filename;
-	bool _first;
+	const Result::get_field _f;
+    };
+
+    class PrintLine {
+    public:
+	PrintLine( std::ostream& output ) : _output(output) {}
+	void operator()( double ) const;
+
+    private:
+	std::ostream& _output;
+
     };
 }
 #endif

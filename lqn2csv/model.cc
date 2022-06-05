@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 15586 2022-05-21 11:30:51Z greg $
+ * $Id: model.cc 15647 2022-06-05 10:46:05Z greg $
  *
  * Command line processing.
  *
@@ -98,6 +98,30 @@ bool Model::Result::isDependentVariable( Model::Result::Type type )
 {
     return type != Type::NONE && !isIndependentVariable( type );
 }
+
+void Model::Result::printHeader( std::ostream& output, const std::string& name, const std::vector<Model::Result::result_t>& results, Result::get_field f, size_t header_column_width )
+{
+    if ( width == 0 ) {
+	output << "\"" << name << "\"";
+    } else {
+	const std::ios_base::fmtflags flags = output.setf( std::ios::left, std::ios::adjustfield );
+	output << std::setw( header_column_width ) << name;
+	output.flags(flags);
+    }
+    std::for_each( results.begin(), results.end(), Model::PrintHeader( output, f ) );
+    output << std::endl;
+}
+
+
+void
+Model::PrintHeader::operator()( const std::pair<std::string,Model::Result::Type>& result ) const
+{
+    if ( width == 0 ) {
+	_output << ",\"" << (*_f)( result ) << "\"";
+    } else {
+	_output << " " << std::setw( width-1 ) << (*_f)( result );
+    }
+}
 
 /*
  * Load a file then extract results using Model::Result::operator().
@@ -113,12 +137,11 @@ void Model::Process::operator()( const std::string& filename )
     if ( !dom ) {
 	throw std::runtime_error( "Input model was not loaded successfully." );
     }
+    _i += 1;
 
     /* Extract into vector of doubles */
 
-    _i += 1;
     std::vector<double> data;
-    data.push_back( static_cast<double>(_i) );			// File (record) number
     data = std::accumulate( _results.begin(), _results.end(), data, Model::Result( *dom ) );
 
     /* We now have a vector of doubles */
@@ -131,7 +154,20 @@ void Model::Process::operator()( const std::string& filename )
 	}
     }
 
-    std::for_each( data.begin(), data.end(), Model::Print( _output, _mode, filename ) );
+    if ( _mode == Mode::FILENAME ) {
+	const std::ios_base::fmtflags flags = _output.setf( std::ios::left, std::ios::adjustfield );
+	if ( width != 0 ) {
+	    _output << std::setw(_header_column_width) << filename;
+	} else {
+	    _output << "\"" << filename << "\"";
+	}
+	_output.flags(flags);
+    } else {
+	_output << _i;				// File (record) number
+    }
+
+    std::for_each( data.begin(), data.end(), Model::PrintLine( _output ) );
+
     _output << std::endl;
 }
 
@@ -269,40 +305,6 @@ Model::Result::findActivity( const LQIO::DOM::Task * task, const std::string& ac
 
 
 
-std::string
-Model::Result::ObjectType( const std::string& in, const std::pair<std::string,Model::Result::Type>& result )
-{
-    std::string out = in;
-    if ( !in.empty() ) out += ",";
-    return out + "\"" + Model::Object::__object_type.at(__results.at(result.second).type) + "\"";
-}
-
-
-
-std::string
-Model::Result::ObjectName( const std::string& in, const std::pair<std::string,Model::Result::Type>& result )
-{
-    std::string out = in;
-    if ( !in.empty() ) out += ",";
-    return out + "\"" + result.first + "\"";
-}
-
-
-
-std::string
-Model::Result::TypeName( const std::string& in, const std::pair<std::string,Model::Result::Type>& result )
-{
-    std::string out = in;
-    if ( !in.empty() ) out += ",";
-    out += "\"";
-    if ( precision == 0 || 5 < precision ) out += __results.at(result.second).name;
-    else out += __results.at(result.second).abbreviation;
-    out += "\"";
-    return out;
-}
-
-
-
 bool
 Model::Result::equal( Model::Result::Type type_1, Model::Result::Type type_2 )
 {
@@ -313,27 +315,41 @@ Model::Result::equal( Model::Result::Type type_1, Model::Result::Type type_2 )
 	|| (waiting( type_1 ) && waiting( type_2 ));
 }
 
+const std::string&
+Model::Result::getObjectType( const std::pair<std::string,Model::Result::Type>& result )
+{
+    return Model::Object::__object_type.at(__results.at(result.second).type);
+}
+
+const std::string&
+Model::Result::getObjectName( const std::pair<std::string,Model::Result::Type>& result )
+{
+    return result.first;
+}
+
+const std::string&
+Model::Result::getTypeName( const std::pair<std::string,Model::Result::Type>& result )
+{
+    if ( precision == 0 || 5 < precision ) return __results.at(result.second).name;
+    else return __results.at(result.second).abbreviation;
+}
+
 /* Output an item, separated by commas. */
 
 void
-Model::Print::operator()( double item )
+Model::PrintLine::operator()( double item ) const
 {
-    if ( _first ) {
-	/* The first item is the index value */
-	_first = false;
-	if ( _mode == Mode::FILENAME ) {
-	    _output << "\"" << _filename << "\"";
-	} else {
-	    _output << item;
-	}
-    } else {
+    if ( width == 0 ) {
 	_output << ",";
-	if ( std::isnan( item ) ) {
-	    _output << "NULL";
-	} else if ( precision > 0 ) {
-	    _output << std::setprecision(precision) << item;
-	} else {
-	    _output << item;
-	}
+    } else {
+	_output << " ";
+	_output.width( width-1 );
+    }
+    if ( std::isnan( item ) ) {
+	_output << "NULL";
+    } else if ( precision > 0 ) {
+	_output << std::setprecision(precision) << item;
+    } else {
+	_output << item;
     }
 }

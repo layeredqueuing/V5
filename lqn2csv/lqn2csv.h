@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: lqn2csv.h 15586 2022-05-21 11:30:51Z greg $
+ * $Id: lqn2csv.h 15645 2022-06-04 01:59:46Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -25,4 +25,5 @@
 
 extern std::string toolname;
 extern int precision;
+extern int width;
 #endif
