@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15299 2021-12-30 21:36:22Z greg $
+# $Id: Makefile.am 15649 2022-06-07 15:12:54Z greg $
 #----------------------------------------------------------------------
 
 SUBDIRS		= regression 
@@ -32,7 +32,7 @@ if HAVE_PS2PDF
 install-data-local:	lqns.pdf
 
 lqns.pdf:	$(man1_MANS)
-		groff -t -man  $< | ps2pdf - $@
+		groff -t -man $(man1_MANS) | ps2pdf - $@
 endif
 
 lqns.html:	$(man1_MANS)

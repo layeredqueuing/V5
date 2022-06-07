@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 15597 2022-05-27 01:03:45Z greg $
+ * $Id: generate.cc 15656 2022-06-07 21:19:49Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <errno.h>
+#include <getopt.h>
 #if HAVE_SYS_UTSNAME_H
 #include <sys/utsname.h>
 #endif
@@ -42,7 +43,11 @@
 #include "task.h"
 
 const std::vector<std::string> Generate::__includes = {
+    "<iostream>",
+    "<iomanip>",
+    "<map>",
     "<unistd.h>",
+    "<getopt.h>",
     "\"mva.h\"",
     "\"open.h\"",
     "\"server.h\"",
@@ -54,9 +59,41 @@ const std::vector<std::string> Generate::__includes = {
     "\"fpgoop.h\""
 };
 
-std::string Generate::__directory_name;
+const std::vector<struct option> Generate::__longopts = {
+    { "fraction D", no_argument, nullptr, 'd' },
+    { "queue-length", no_argument, nullptr, 'l' },
+    { "customers", no_argument, nullptr, 'n' },
+    { "marginals", no_argument, nullptr, 'p' },
+    { "utilization", no_argument, nullptr, 'u' },
+    { "waiting", no_argument, nullptr, 'w' },
+    { "throughput", no_argument, nullptr, 'x' },
+    { "exact-mva",  no_argument, nullptr, 'E' },
+    { "schweitzer", no_argument, nullptr, 'S' },
+    { "linearizer", no_argument, nullptr, 'L' },
+    { "help",	 no_argument, nullptr, 'h' }
+};
 
-static const std::map<const Pragma::MVA,const std::string> solvers = {
+const std::map<const char, const std::string> Generate::__help = {
+    { 'd', "print the linearizer variable D." },
+    { 'l', "print the the queue length at all the stations." },
+    { 'n', "print the number of customers for all the classes." },
+    { 'p', "print the marginal probabilities." },
+    { 'u', "print the utiliation for all the stations." },
+    { 'w', "print the waiting time for all the stations." },
+    { 'x', "print the throughput for all the classes." },
+    { 'E', "Use Exact MVA." },
+    { 'S', "Use Schweitzer approximate MVA." },
+    { 'L', "Use Linearizer approximage MVA." },
+    { 'h', "Print this help." }
+};
+
+const std::map<const int,const std::string> Generate::__argument_type = {
+    { no_argument,       "no_argument"       },
+    { required_argument, "required_argument" },
+    { optional_argument, "optional_argument" }
+};
+
+const std::map<const Pragma::MVA,const std::string> Generate::__solvers = {
     { Pragma::MVA::EXACT, 		"ExactMVA" },
     { Pragma::MVA::FAST, 		"Linearizer2" },
     { Pragma::MVA::LINEARIZER,		"Linearizer" },
@@ -64,6 +101,15 @@ static const std::map<const Pragma::MVA,const std::string> solvers = {
     { Pragma::MVA::ONESTEP_LINEARIZER, 	"OneStepLinearizer" },
     { Pragma::MVA::SCHWEITZER, 		"Schweitzer" }
 };
+
+
+const std::map<const std::string,const Pragma::Multiserver> __mutliservers =
+{
+    { "default", Pragma::Multiserver::DEFAULT }
+};
+
+std::string Generate::__directory_name;
+
 
 /*
  * Constructor
@@ -88,6 +134,28 @@ Generate::print( std::ostream& output ) const
 	output << "#include " << s << std::endl;
     }
 	
+    std::string opts;
+    output << std::endl << "const std::vector<struct option> longopts = {" << std::endl;
+    for ( std::vector<struct option>::const_iterator o = __longopts.begin(); o != __longopts.end(); ++o  ) {
+	opts.append( 1, static_cast<char>(o->val) );
+	if ( o->has_arg == required_argument ) opts.append( ":" );
+	output << "    { \"" << o->name << "\", " 
+	       << __argument_type.at(o->has_arg)
+	       << ", nullptr, "
+	       << "'" << static_cast<char>(o->val) << "' }";
+	if ( std::next( o ) != __longopts.end() ) output << ",";
+	output << std::endl;
+    }
+    output << "};" << std::endl;
+
+    output << std::endl << "const std::map<const char, const std::string> help = {" << std::endl;
+    for ( std::map<const char, const std::string>::const_iterator h = __help.begin(); h != __help.end(); ++h ) {
+	output << "    { '" << h->first << "', \"" << h->second << "\" }";
+	if ( std::next( h ) != __help.end() ) output << ",";
+	output << std::endl;
+    }
+    output << "};" << std::endl;
+    
     output << std::endl << "int main ( int argc, char* argv[] )" << std::endl << "{" << std::endl;
 
     if ( _submodel.n_openStns() ) {
@@ -105,14 +173,14 @@ Generate::print( std::ostream& output ) const
 	if ( _submodel._overlapFactor ) {
 	    output << "    Probability *** prOt;\t\t//Overtaking Probabilities" << std::endl << std::endl;
 	}
-	output << "    MVA::new_solver solver = " << solvers.at(Pragma::mva()) << "::create;" << std::endl;
+	output << "    MVA::new_solver solver = " << __solvers.at(Pragma::mva()) << "::create;" << std::endl;
     }
     output << std::endl;
 	
     /* Argument handling */
     
     output << "    for ( ;; ) {" << std::endl;
-    output << "        const int c = getopt( argc, argv, \"dlnpuwxELS\" );" << std::endl;
+    output << "        const int c = getopt_long( argc, argv, \"" << opts << "\", longopts.data(), nullptr );" << std::endl;
     output << "        if ( c == -1 ) break;" << std::endl;
     output << "        switch ( c ) {" << std::endl;
     output << "        case 'd': MVA::debug_D = true; break;" << std::endl;
@@ -126,7 +194,10 @@ Generate::print( std::ostream& output ) const
     output << "        case 'S': solver = Schweitzer::create; break;" << std::endl;
     output << "        case 'L': solver = Linearizer::create; break;" << std::endl;
     output << "        default:" << std::endl;
-    output << "             std::cerr << \"Usage: \" << argv[0] << \" -[dlnpwxELS]\" << std::endl;" << std::endl;
+    output << "             std::cerr << \"Options:\";" << std::endl;
+    output << "             for ( const auto& o : longopts ) {" << std::endl;
+    output << "                 std::cerr << \"-\" << static_cast<char>(o.val) << \", --\" << std::left << std::setw( 16 ) << o.name << help.at(o.val) << std::endl;" << std::endl;
+    output << "             }" << std::endl;
     output << "             exit( 1 );" << std::endl;
     output << "         }" << std::endl;
     output << "    }" << std::endl;
@@ -454,7 +525,12 @@ Generate::makefile( const unsigned nSubmodels )
 
     const std::string defines = "-g -std=c++11 -Wall -DDEBUG_MVA=1 -DHAVE_CONFIG_H=1 -I$(LQNDIR)/libmva -I$(LQNDIR)/libmva/src/headers/mva";
      
-    output << "LQNDIR=$(HOME)/usr/src" << std::endl
+    /* try to find libmva in the directory path */
+    std::string path = ".";
+    if ( !find_libmva( path ) ) {
+	path = "$(HOME)/usr/src";
+    }
+    output << "LQNDIR=" << path << std::endl
 	   << "CXX = g++" << std::endl
 	   << "CPPFLAGS = " << defines << std::endl
 	   << "OBJS = fpgoop.o multserv.o  mva.o  open.o  ph2serv.o  pop.o  prob.o  server.o" << std::endl
@@ -496,6 +572,23 @@ Generate::makefile( const unsigned nSubmodels )
     output << std::endl
 	   << "$(SRCS):" << std::endl
 	   << "\t@if test ! -f $@; then ln -s $(LQNDIR)/libmva/src/$@ .; fi" << std::endl;
+}
+
+
+/*
+ * Look for libmva
+ */
+
+bool
+Generate::find_libmva( std::string& pathname )
+{
+    if ( access( pathname.c_str(), F_OK ) == 0 ) {			/* Directory exists? 	*/
+	std::string filename = pathname + "/libmva";
+	pathname.insert( 0, "../" );
+	if ( access( filename.c_str(), F_OK ) == 0 ) return true;	/* libmva found		*/
+	return find_libmva( pathname );					/* try parent 		*/
+    } 
+    return false;							/* Not found		*/
 }
 
 /* ---------------------------------------------------------------------- */

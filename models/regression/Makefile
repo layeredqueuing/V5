@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 # $Header$
 # ------------------------------------------------------------------------
-# $Id: Makefile 13871 2020-09-25 15:49:17Z greg $
+# $Id: Makefile 15648 2022-06-07 13:48:29Z greg $
 # ------------------------------------------------------------------------
 
 SUBDIRS = lqns-results  petri-results   sim-results    

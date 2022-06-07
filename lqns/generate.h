@@ -7,7 +7,7 @@
  *
  * November, 1994
  *
- * $Id: generate.h 15506 2022-04-04 00:54:15Z greg $
+ * $Id: generate.h 15656 2022-06-07 21:19:49Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,6 +18,7 @@ class MVASubmodel;
 
 #include <map>
 #include <lqio/dom_phase.h>
+#include "pragma.h"
 
 /* -------------------------------------------------------------------- */
 /* Funky Formatting functions for inline with <<.			*/
@@ -55,6 +56,9 @@ public:
 
 private:
     Generate( const MVASubmodel& );
+
+    static bool find_libmva( std::string& pathname );
+    
     std::ostream& print( std::ostream& ) const;
     std::ostream& printClientStation( std::ostream& output, const Task& aClient ) const;
     std::ostream& printServerStation( std::ostream& output, const Entity& aServer ) const;
@@ -75,4 +79,9 @@ private:
     const MVASubmodel& _submodel;
     const unsigned K;			/* Number of chains */
     static const std::vector<std::string> __includes;
+    static const std::vector<struct option> __longopts;
+    static const std::map<const char, const std::string> __help;
+    static const std::map<const int,const std::string> __argument_type;
+    static const std::map<const Pragma::MVA,const std::string> __solvers;
+    static const std::map<const std::string,const Pragma::Multiserver> __mutliservers;
 };

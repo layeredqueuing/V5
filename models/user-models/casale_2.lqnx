@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lqn-model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="model" xsi:noNamespaceSchemaLocation="lqn.xsd">
+   <solver-params comment="0" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <pragma param="cycles" value="t"/>
+   </solver-params>
+   <processor multiplicity="1" name="OpenWorkload_0_source_p" scheduling="fcfs" speed-factor="1">
+      <task multiplicity="1" name="OpenWorkload_0_source_t" scheduling="ref" think-time="2">
+         <entry name="OpenWorkload_0_generate_e" type="NONE"/>
+         <task-activities>
+            <activity bound-to-entry="OpenWorkload_0_generate_e" call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="OpenWorkload_0_generate_a1">
+               <asynch-call calls-mean="1" dest="OpenWorkload_0_start_e"/>
+            </activity>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="OpenWorkload_0_arrival_p" scheduling="inf" speed-factor="1">
+      <task name="OpenWorkload_0_arrival_t" scheduling="inf">
+         <entry name="OpenWorkload_0_start_e" type="NONE"/>
+         <task-activities>
+            <activity bound-to-entry="OpenWorkload_0_start_e" call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="OpenWorkload_0_start_a1">
+               <synch-call calls-mean="1" dest="con_ConnectsTo_0_i1_e"/>
+            </activity>
+            <activity call-order="STOCHASTIC" host-demand-cvsq="1" host-demand-mean="10" name="OpenWorkload_0_start_a2"/>
+            <activity call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="OpenWorkload_0_start_a3">
+               <synch-call calls-mean="1" dest="con_ConnectsTo_1_i1_e"/>
+            </activity>
+            <activity call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="OpenWorkload_0_start_a4">
+               <synch-call calls-mean="1" dest="con_ConnectsTo_0_i2_e"/>
+            </activity>
+            <activity call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="OpenWorkload_0_start_a5">
+               <synch-call calls-mean="1" dest="con_ConnectsTo_1_i2_e"/>
+            </activity>
+            <precedence>
+               <pre>
+                  <activity name="OpenWorkload_0_start_a1"/>
+               </pre>
+               <post>
+                  <activity name="OpenWorkload_0_start_a2"/>
+               </post>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="OpenWorkload_0_start_a2"/>
+               </pre>
+               <post>
+                  <activity name="OpenWorkload_0_start_a3"/>
+               </post>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="OpenWorkload_0_start_a3"/>
+               </pre>
+               <post>
+                  <activity name="OpenWorkload_0_start_a4"/>
+               </post>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="OpenWorkload_0_start_a4"/>
+               </pre>
+               <post>
+                  <activity name="OpenWorkload_0_start_a5"/>
+               </post>
+            </precedence>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="AwsS3Bucket_0_p" scheduling="inf" speed-factor="1">
+      <task name="AwsS3Bucket_0_t" scheduling="inf">
+         <entry name="AwsS3Bucket_0_get_e" type="NONE"/>
+         <entry name="AwsS3Bucket_0_put_e" type="NONE"/>
+         <entry name="AwsS3Bucket_0_delete_e" type="NONE"/>
+         <task-activities>
+            <activity bound-to-entry="AwsS3Bucket_0_get_e" call-order="STOCHASTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="AwsS3Bucket_0_get_a1"/>
+            <activity bound-to-entry="AwsS3Bucket_0_put_e" call-order="STOCHASTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="AwsS3Bucket_0_put_a1"/>
+            <activity call-order="STOCHASTIC" host-demand-cvsq="1" host-demand-mean="0.104" name="AwsS3Bucket_0_put_a2"/>
+            <activity call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="AwsS3Bucket_0_put_a3">
+               <asynch-call calls-mean="1" dest="con_AwsTriggers_0_i1_e"/>
+            </activity>
+            <activity bound-to-entry="AwsS3Bucket_0_delete_e" call-order="STOCHASTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="AwsS3Bucket_0_delete_a1"/>
+            <precedence>
+               <pre>
+                  <activity name="AwsS3Bucket_0_put_a1"/>
+               </pre>
+               <post>
+                  <activity name="AwsS3Bucket_0_put_a2"/>
+               </post>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="AwsS3Bucket_0_put_a2"/>
+               </pre>
+               <post>
+                  <activity name="AwsS3Bucket_0_put_a3"/>
+               </post>
+            </precedence>
+            <reply-entry name="AwsS3Bucket_0_get_e">
+               <reply-activity name="AwsS3Bucket_0_get_a1"/>
+            </reply-entry>
+            <reply-entry name="AwsS3Bucket_0_put_e">
+               <reply-activity name="AwsS3Bucket_0_put_a1"/>
+            </reply-entry>
+            <reply-entry name="AwsS3Bucket_0_delete_e">
+               <reply-activity name="AwsS3Bucket_0_delete_a1"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="AwsS3Bucket_1_p" scheduling="inf" speed-factor="1">
+      <task name="AwsS3Bucket_1_t" scheduling="inf">
+         <entry name="AwsS3Bucket_1_get_e" type="NONE"/>
+         <entry name="AwsS3Bucket_1_put_e" type="NONE"/>
+         <entry name="AwsS3Bucket_1_delete_e" type="NONE"/>
+         <task-activities>
+            <activity bound-to-entry="AwsS3Bucket_1_get_e" call-order="STOCHASTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="AwsS3Bucket_1_get_a1"/>
+            <activity bound-to-entry="AwsS3Bucket_1_put_e" call-order="STOCHASTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="AwsS3Bucket_1_put_a1"/>
+            <activity call-order="STOCHASTIC" host-demand-cvsq="1" host-demand-mean="0.104" name="AwsS3Bucket_1_put_a2"/>
+            <activity bound-to-entry="AwsS3Bucket_1_delete_e" call-order="STOCHASTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="AwsS3Bucket_1_delete_a1"/>
+            <precedence>
+               <pre>
+                  <activity name="AwsS3Bucket_1_put_a1"/>
+               </pre>
+               <post>
+                  <activity name="AwsS3Bucket_1_put_a2"/>
+               </post>
+            </precedence>
+            <reply-entry name="AwsS3Bucket_1_get_e">
+               <reply-activity name="AwsS3Bucket_1_get_a1"/>
+            </reply-entry>
+            <reply-entry name="AwsS3Bucket_1_put_e">
+               <reply-activity name="AwsS3Bucket_1_put_a1"/>
+            </reply-entry>
+            <reply-entry name="AwsS3Bucket_1_delete_e">
+               <reply-activity name="AwsS3Bucket_1_delete_a1"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+   <processor multiplicity="1" name="AwsLambdaFunction_0_p" scheduling="fcfs" speed-factor="1">
+      <task multiplicity="1" name="AwsLambdaFunction_0_t" scheduling="fcfs">
+         <entry name="AwsLambdaFunction_0_execute_e" type="NONE"/>
+         <task-activities>
+            <activity bound-to-entry="AwsLambdaFunction_0_execute_e" call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.066" name="AwsLambdaFunction_0_execute_a1">
+               <synch-call calls-mean="1" dest="con_ConnectsTo_2_i1_e"/>
+            </activity>
+            <activity call-order="STOCHASTIC" host-demand-cvsq="1" host-demand-mean="2.311" name="AwsLambdaFunction_0_execute_a2"/>
+            <activity call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.083" name="AwsLambdaFunction_0_execute_a3">
+               <synch-call calls-mean="1" dest="con_ConnectsTo_3_i1_e"/>
+            </activity>
+            <precedence>
+               <pre>
+                  <activity name="AwsLambdaFunction_0_execute_a1"/>
+               </pre>
+               <post>
+                  <activity name="AwsLambdaFunction_0_execute_a2"/>
+               </post>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="AwsLambdaFunction_0_execute_a2"/>
+               </pre>
+               <post>
+                  <activity name="AwsLambdaFunction_0_execute_a3"/>
+               </post>
+            </precedence>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="con_ConnectsTo_0_p" scheduling="inf" speed-factor="1">
+      <task name="con_ConnectsTo_0_t" scheduling="inf">
+         <entry name="con_ConnectsTo_0_i1_e" type="NONE"/>
+         <entry name="con_ConnectsTo_0_i2_e" type="NONE"/>
+         <task-activities>
+            <activity bound-to-entry="con_ConnectsTo_0_i1_e" call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.197" name="con_ConnectsTo_0_i1_a1">
+               <synch-call calls-mean="1" dest="AwsS3Bucket_0_put_e"/>
+            </activity>
+            <activity bound-to-entry="con_ConnectsTo_0_i2_e" call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.103" name="con_ConnectsTo_0_i2_a1">
+               <synch-call calls-mean="1" dest="AwsS3Bucket_0_delete_e"/>
+            </activity>
+            <reply-entry name="con_ConnectsTo_0_i1_e">
+               <reply-activity name="con_ConnectsTo_0_i1_a1"/>
+            </reply-entry>
+            <reply-entry name="con_ConnectsTo_0_i2_e">
+               <reply-activity name="con_ConnectsTo_0_i2_a1"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="con_ConnectsTo_1_p" scheduling="inf" speed-factor="1">
+      <task name="con_ConnectsTo_1_t" scheduling="inf">
+         <entry name="con_ConnectsTo_1_i1_e" type="NONE"/>
+         <entry name="con_ConnectsTo_1_i2_e" type="NONE"/>
+         <task-activities>
+            <activity bound-to-entry="con_ConnectsTo_1_i1_e" call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.107" name="con_ConnectsTo_1_i1_a1">
+               <synch-call calls-mean="1" dest="AwsS3Bucket_1_get_e"/>
+            </activity>
+            <activity bound-to-entry="con_ConnectsTo_1_i2_e" call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.035" name="con_ConnectsTo_1_i2_a1">
+               <synch-call calls-mean="1" dest="AwsS3Bucket_1_delete_e"/>
+            </activity>
+            <reply-entry name="con_ConnectsTo_1_i1_e">
+               <reply-activity name="con_ConnectsTo_1_i1_a1"/>
+            </reply-entry>
+            <reply-entry name="con_ConnectsTo_1_i2_e">
+               <reply-activity name="con_ConnectsTo_1_i2_a1"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="con_AwsTriggers_0_p" scheduling="inf" speed-factor="1">
+      <task name="con_AwsTriggers_0_t" scheduling="inf">
+         <entry name="con_AwsTriggers_0_i1_e" type="NONE"/>
+         <task-activities>
+            <activity bound-to-entry="con_AwsTriggers_0_i1_e" call-order="STOCHASTIC" host-demand-cvsq="1" host-demand-mean="1.019" name="con_AwsTriggers_0_i1_a1"/>
+            <activity call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.001" name="con_AwsTriggers_0_i1_a2">
+               <asynch-call calls-mean="1" dest="AwsLambdaFunction_0_execute_e"/>
+            </activity>
+            <precedence>
+               <pre>
+                  <activity name="con_AwsTriggers_0_i1_a1"/>
+               </pre>
+               <post>
+                  <activity name="con_AwsTriggers_0_i1_a2"/>
+               </post>
+            </precedence>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="con_ConnectsTo_2_p" scheduling="inf" speed-factor="1">
+      <task name="con_ConnectsTo_2_t" scheduling="inf">
+         <entry name="con_ConnectsTo_2_i1_e" type="NONE"/>
+         <task-activities>
+            <activity bound-to-entry="con_ConnectsTo_2_i1_e" call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.022" name="con_ConnectsTo_2_i1_a1">
+               <synch-call calls-mean="1" dest="AwsS3Bucket_0_get_e"/>
+            </activity>
+            <reply-entry name="con_ConnectsTo_2_i1_e">
+               <reply-activity name="con_ConnectsTo_2_i1_a1"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="con_ConnectsTo_3_p" scheduling="inf" speed-factor="1">
+      <task name="con_ConnectsTo_3_t" scheduling="inf">
+         <entry name="con_ConnectsTo_3_i1_e" type="NONE"/>
+         <task-activities>
+            <activity bound-to-entry="con_ConnectsTo_3_i1_e" call-order="DETERMINISTIC" host-demand-cvsq="1" host-demand-mean="0.045" name="con_ConnectsTo_3_i1_a1">
+               <synch-call calls-mean="1" dest="AwsS3Bucket_1_put_e"/>
+            </activity>
+            <reply-entry name="con_ConnectsTo_3_i1_e">
+               <reply-activity name="con_ConnectsTo_3_i1_a1"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+</lqn-model>

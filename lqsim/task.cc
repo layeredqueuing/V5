@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15456 2022-03-09 15:06:35Z greg $
+ * $Id: task.cc 15650 2022-06-07 17:32:49Z greg $
  */
 
 #include "lqsim.h"
@@ -784,6 +784,13 @@ Server_Task::set_synchronization_server()
 }
 
 
+bool
+Server_Task::is_aysnc_inf_server() const
+{
+    return std::any_of( _entry.begin(), _entry.end(), Predicate<Entry>( &Entry::is_send_no_reply ) );
+}
+
+
 /*
  * Define task type at run time.  It may change because of LQX
  * execution.  Simple servers are more efficient than multi-servers
@@ -797,6 +804,9 @@ Server_Task::create_instance()
 	_task = new srn_multiserver( this, name(), ~0 );
 	_worker_port = ps_allocate_port( name(), _task->task_id() );
 	_type = Task::Type::INFINITE_SERVER;
+	if ( is_aysnc_inf_server() ) {
+	    LQIO::solution_error( LQIO::WRN_INFINITE_SERVER_OPEN_ARRIVALS, name() );
+	}
     } else if ( is_multiserver() ) {
 	_task = new srn_multiserver( this, name(), multiplicity() );
 	_worker_port = ps_allocate_port( name(), _task->task_id() );

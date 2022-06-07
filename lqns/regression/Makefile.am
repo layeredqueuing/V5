@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15629 2022-06-02 20:11:29Z greg $
+# $Id: Makefile.am 15648 2022-06-07 13:48:29Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -30,7 +30,8 @@ MULTI=	20-multiserver.lqxo \
 	21-multiserver.lqxo \
 	22-multiserver.lqxo \
 	23-multiserver.lqxo
-OVER=	31-overtaking.lqxo
+OVER=	31-overtaking.lqxo \
+	32-async-inf.lqxo \
 ACT=	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \

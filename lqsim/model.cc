@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15456 2022-03-09 15:06:35Z greg $
+ * $Id: model.cc 15650 2022-06-07 17:32:49Z greg $
  */
 
 #include "lqsim.h"
@@ -142,9 +142,8 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
     LQX::Program * program = nullptr;
     FILE * output = nullptr;
     try { 
-	if ( !model.prepare() ) throw std::runtime_error( "Model::prepare" );
-
 	document->mergePragmas( pragmas.getList() );       /* Save pragmas */
+	if ( !model.prepare() ) throw std::runtime_error( "Model::prepare" );
 
 #if BUG_313
 	extend();			/* convert entry think times	*/
@@ -798,7 +797,7 @@ Model::rms_confidence()
     double n = 0;
 
     for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-	if ( (*task)->type() == Task::Type::OPEN_ARRIVAL_SOURCE ) continue;		/* Skip. */
+	if ( (*task)->type() == Task::Type::OPEN_ARRIVAL_SOURCE || (*task)->is_aysnc_inf_server() ) continue;		/* Skip. */
 
 	for ( std::vector<Entry *>::const_iterator nextEntry = (*task)->_entry.begin(); nextEntry != (*task)->_entry.end(); ++nextEntry ) {
 	    double temp = normalized_conf95( (*nextEntry)->r_cycle );
@@ -850,44 +849,47 @@ void Model::simulation_parameters::set( const std::map<std::string,std::string>&
 	__model->_document->addPragma(LQIO::DOM::Pragma::_seed_value_,value.str());	/* set value in DOM */
 
     }
-    if ( set( _run_time, pragmas, LQIO::DOM::Pragma::_run_time_ ) ) {
-	_max_blocks = 1;
+    unsigned long initial_loops = 0;
+    if ( set( _precision, pragmas, LQIO::DOM::Pragma::_precision_ ) ) {
+	/* if initial loops NOT set and run-time set then -A, otherwise -C */
 
-    } else {
-	unsigned long initial_loops = 0;
-	if ( set( _precision, pragmas, LQIO::DOM::Pragma::_precision_ ) ) {
+	if ( !set( initial_loops, pragmas, LQIO::DOM::Pragma::_initial_loops_ ) && set( _run_time, pragmas, LQIO::DOM::Pragma::_run_time_ ) ) {
+	    set( _initial_delay, pragmas, LQIO::DOM::Pragma::_initial_delay_ );
+	    return;		 // run_time set;
+	} else {
 	    /* -C */
 	    _max_blocks = MAX_BLOCKS;
-	    if ( !set( initial_loops, pragmas, LQIO::DOM::Pragma::_initial_loops_ ) ) {
-		initial_loops = static_cast<unsigned long>(INITIAL_LOOPS / _precision);
-	    }
 	    _initial_delay = minimum_cycle_time * initial_loops * 2;
 	    if ( !set( _run_time, pragmas, LQIO::DOM::Pragma::_run_time_ ) ) {
 		_block_period = _initial_delay * 100;
 	    } else {
 		_block_period = (_run_time - _initial_delay) / _max_blocks;
+		return;		 // run_time set;
 	    }
-
-	} else if ( set( _max_blocks, pragmas, LQIO::DOM::Pragma::_max_blocks_ ) ) {
-	    /* -B */
-	    if ( !set( _block_period, pragmas, LQIO::DOM::Pragma::_block_period_ ) ) {
-		_block_period = DEFAULT_TIME;
-	    }
-	    set( _initial_delay, pragmas, LQIO::DOM::Pragma::_initial_delay_ );
-
-	} else if ( set( _block_period, pragmas, LQIO::DOM::Pragma::_block_period_ ) ) {
-	    /* -A */
-	    if ( !set( _precision, pragmas, LQIO::DOM::Pragma::_precision_ ) ) {
-		_precision = 1.0;
-	    }
-	    set( _initial_delay, pragmas, LQIO::DOM::Pragma::_initial_delay_ );
-
-	} else {
-	    /* full auto */
 	}
 
-	_run_time = _initial_delay + _max_blocks * _block_period;
+    } else if ( set( _max_blocks, pragmas, LQIO::DOM::Pragma::_max_blocks_ ) ) {
+	/* -B */
+	if ( !set( _block_period, pragmas, LQIO::DOM::Pragma::_block_period_ ) ) {
+	    _block_period = DEFAULT_TIME;
+	}
+	set( _initial_delay, pragmas, LQIO::DOM::Pragma::_initial_delay_ );
+
+    } else if ( set( _block_period, pragmas, LQIO::DOM::Pragma::_block_period_ ) ) {
+	/* -A */
+	if ( !set( _precision, pragmas, LQIO::DOM::Pragma::_precision_ ) ) {
+	    _precision = 1.0;
+	}
+	set( _initial_delay, pragmas, LQIO::DOM::Pragma::_initial_delay_ );
+
+    } else if ( set( _run_time, pragmas, LQIO::DOM::Pragma::_run_time_ ) ) {
+	/* -T */
+	_max_blocks = 1;
+	return;			// run_time set.
     }
+
+    /* Set run_time. */
+    _run_time = _initial_delay + _max_blocks * _block_period;
 }
 
 
