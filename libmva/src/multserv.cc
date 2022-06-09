@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15606 2022-05-28 13:01:28Z greg $
+ * $Id: multserv.cc 15658 2022-06-08 18:00:22Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -64,6 +64,7 @@ bool Conway_Multi_Server::debug_XE = false;
 #endif
 
 /* --- Simple Multi-Server.  All chains have identical service time --- */
+const std::string Reiser_Multi_Server::__type_str = "Reiser_Multi_Server";
 
 /*
  * Some preliminary checking.
@@ -251,6 +252,7 @@ Reiser_Multi_Server::printHeading( std::ostream& output ) const
 }
 
 /* -------------------- Phased Simple Multi-Server -------------------- */
+const std::string Phased_Reiser_Multi_Server::__type_str = "Phased_Reiser_Multi_Server";
 
 /*
  * Waiting time expression for server no entries but phases.
@@ -290,6 +292,7 @@ Phased_Reiser_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, co
 }
 
 /* -----------------Markov Phased Simple Multi-Server ----------------- */
+const std::string Markov_Phased_Reiser_Multi_Server::__type_str = "Markov_Phased_Reiser_Multi_Server";
 
 /*
  * Waiting time expression for server with one entry and phases.
@@ -314,6 +317,7 @@ Markov_Phased_Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, co
 }
 
 /* ----------------- Processor Sharing Multi Server ------------------- */
+const std::string Reiser_PS_Multi_Server::__type_str = "Reiser_PS_Multi_Server";
 
 void
 Reiser_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
@@ -346,6 +350,8 @@ Reiser_PS_Multi_Server::sumOf_L( const MVA& solver, const Population& N, const u
 /*----------------------------------------------------------------------*/
 /*                         Conway Multi Server.                         */
 /*----------------------------------------------------------------------*/
+
+const std::string Conway_Multi_Server::__type_str = "Conway_Multi_Server";
 
 /*
  * Waiting time expressions as per de Souza e Silva and Muntz, (19).
@@ -508,7 +514,7 @@ Conway_Multi_Server::printXR( std::ostream& output, const Population& N, const u
 #endif
 
 /* ----------------------Phased Multi-Server -------------------------- */
-
+const std::string Phased_Conway_Multi_Server::__type_str = "Phased_Conway_Multi_Server";
 /*
  * Waiting time expressions as per de Souza e Silva and Muntz, (19).
  * Also: Conway (2.7)
@@ -530,6 +536,7 @@ Phased_Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const Pop
 }
 
 /* ----------------- Markov Phased Conway Multi Server ---------------- */
+const std::string Markov_Phased_Conway_Multi_Server::__type_str = "Markov_Phased_Conway_Multi_Server";
 
 /*
  * Waiting time expressions as per de Souza e Silva and Muntz, (19).
@@ -614,6 +621,7 @@ Markov_Phased_Conway_Multi_Server::meanMinimumOvertaking( const MVA& solver, con
 /*----------------------------------------------------------------------*/
 /*                          Rolia Multi Server                          */
 /*----------------------------------------------------------------------*/
+const std::string Rolia_Multi_Server::__type_str = "Rolia_Multi_Server";
 
 /*
  * Waiting time expressions as per [rolia], page 157.
@@ -685,6 +693,7 @@ Rolia_Multi_Server::filter( const MVA& solver, const double w, const unsigned e,
 }
 
 /* ------------------------ Rolia Multi Server  ----------------------- */
+const std::string Rolia_PS_Multi_Server::__type_str = "Rolia_PS_Multi_Server";
 
 /*
  * Waiting time expressions as per [rolia], page 157.
@@ -721,6 +730,7 @@ Rolia_PS_Multi_Server::sumOf_L( const MVA& solver, const Population& N, const un
 }
 
 /* ------------------------ Rolia Multi Server  ----------------------- */
+const std::string Phased_Rolia_Multi_Server::__type_str = "Phased_Rolia_Multi_Server";
 
 /*
  * Waiting time expressions as per [rolia], page 157.
@@ -757,6 +767,7 @@ Phased_Rolia_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, con
 }
 
 /* --------------------- Markov Rolia Multi Server  ------------------- */
+const std::string Markov_Phased_Rolia_Multi_Server::__type_str = "Markov_Phased_Rolia_Multi_Server";
 
 /*
  * Waiting time expressions as per [rolia], page 157.
@@ -783,6 +794,7 @@ Markov_Phased_Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, con
 }
 
 /* ------------------------ Rolia Multi Server  ----------------------- */
+const std::string Phased_Rolia_PS_Multi_Server::__type_str = "Phased_Rolia_PS_Multi_Server";
 
 /*
  * Waiting time expressions as per [rolia], page 157.
@@ -819,6 +831,7 @@ Phased_Rolia_PS_Multi_Server::sumOf_L( const MVA& solver, const Population& N, c
 }
 
 /* ------------------------ Rolia Multi Server  ----------------------- */
+const std::string Markov_Phased_Rolia_PS_Multi_Server::__type_str = "Phased_Rolia_PS_Multi_Server";
 
 /*
  * Waiting time expressions as per [rolia], page 157.
@@ -847,6 +860,7 @@ Markov_Phased_Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, 
 /*----------------------------------------------------------------------*/
 /*                          Zhou Multi Server.                          */
 /*----------------------------------------------------------------------*/
+const std::string Zhou_Multi_Server::__type_str = "Zhou_Multi_Server";
 
 /*
  * This is the same as the Rolia multi server.  Subclass?  But there are
@@ -1008,15 +1022,20 @@ Zhou_Multi_Server::P_mean( const MVA& solver, const Population& N ) const
     return sumOf_R / (sumOf_R + sumOf_Z);			// (R/X)/((R/X+Z/X) = (R/X)/((R+Z)/X) = R/(R+Z)
 #endif
 }
-
+
 /* -------------------- Phased Simple Multi-Server -------------------- */
+
+const std::string Phased_Zhou_Multi_Server::__type_str = "Phased_Zhou_Multi_Server";
 
 void
 Phased_Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     throw LibMVA::not_implemented( "Phased_Zhou_Multi_Server::wait", __FILE__, __LINE__ );
 }
+
+/* -------------------- Phased Simple Multi-Server -------------------- */
 
+const std::string Markov_Phased_Zhou_Multi_Server::__type_str = "Markov_Phased_Zhou_Multi_Server";
 
 void
 Markov_Phased_Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
@@ -1028,6 +1047,7 @@ Markov_Phased_Zhou_Multi_Server::wait( const MVA& solver, const unsigned k, cons
 /*                         Bruell Multi Server.                         */
 /*----------------------------------------------------------------------*/
 
+const std::string Bruell_Multi_Server::__type_str = "Bruell_Multi_Server";
 
 /*
  * Set the size of the marginal probabilities needed based on the incoming
@@ -1079,6 +1099,7 @@ Bruell_Multi_Server::wait( const MVA& solver, const unsigned k, const Population
 /*                         Schmidt Multi Server.                        */
 /*----------------------------------------------------------------------*/
 
+const std::string Schmidt_Multi_Server::__type_str = "Schmidt_Multi_Server";
 
 void
 Schmidt_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
@@ -1121,6 +1142,7 @@ Schmidt_Multi_Server::muS( const Population& N, const unsigned k ) const
 /*                           Suri Multi Server                          */
 /*----------------------------------------------------------------------*/
 
+const std::string Suri_Multi_Server::__type_str = "Suri_Multi_Server";
 const double Suri_Multi_Server::alpha = 4.464;		// Eqn (17), Suri et. al.
 const double Suri_Multi_Server::beta  = 0.676;
 
@@ -1162,6 +1184,7 @@ Suri_Multi_Server::openWait() const
 }
 
 /* ----------------- Markov Phased Franks Multi Server  --------------- */
+const std::string Markov_Phased_Suri_Multi_Server::__type_str = "Markov_Phased_Suri_Multi_Server";
 
 /*
  * Waiting time expressions as per [franks], page 157.

@@ -7,7 +7,7 @@
  *
  * November, 1994
  *
- * $Id: generate.h 15656 2022-06-07 21:19:49Z greg $
+ * $Id: generate.h 15659 2022-06-09 01:05:42Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -25,6 +25,8 @@ class MVASubmodel;
 /* -------------------------------------------------------------------- */
 
 class Generate {
+
+    enum class Multiserver { DEFAULT, CONWAY, REISER, REISER_PS, ROLIA, ROLIA_PS, ZHOU };
 
     class ArgsManip {
     public:
@@ -83,5 +85,6 @@ private:
     static const std::map<const char, const std::string> __help;
     static const std::map<const int,const std::string> __argument_type;
     static const std::map<const Pragma::MVA,const std::string> __solvers;
-    static const std::map<const std::string,const Pragma::Multiserver> __mutliservers;
+    static const std::map<const Pragma::Multiserver,const Generate::Multiserver> __multiservers;
+    static const std::map<const Pragma::Multiserver,const std::pair<const std::string&,const std::string&> > __stations;
 };

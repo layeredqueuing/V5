@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15646 2022-06-04 11:43:11Z greg $
+ * $Id: lqn2csv.cc 15661 2022-06-09 15:01:03Z greg $
  *
  * Command line processing.
  *
@@ -413,44 +413,47 @@ fetch_arguments( const std::string& filename, std::vector<Model::Result::result_
 	    argv.at(i) = const_cast<char *>(tokens.at(i-1).c_str());
 	}
 
-	/* Run the option processor.  */
 	optind = 1;				/* Reset getopt_long processing */
-	const int c = getopt_long( argc, argv.data(), opts.c_str(), longopts.data(), nullptr );
 
-	/* Handle all result args (and result options --gnuplot,...) */
-	std::map<int,Model::Result::Type>::const_iterator result = result_type.find( c );
-	if ( optarg != nullptr && result != result_type.end() ) {
-	    results.emplace_back( optarg, result->second );
-	    continue;
-	}
+	/* Run the option processor.  */
+	for ( ;; ) {
+	    char * endptr = nullptr;
+	    const int c = getopt_long( argc, argv.data(), opts.c_str(), longopts.data(), nullptr );
+	    if ( c == EOF ) break;
 
-	char * endptr = nullptr;
+	    /* Handle all result args (and result options --gnuplot,...) */
+	    std::map<int,Model::Result::Type>::const_iterator result = result_type.find( c );
+	    if ( optarg != nullptr && result != result_type.end() ) {
+		results.emplace_back( optarg, result->second );
+		continue;
+	    }
 
-	/* Ignore non-results options with args. (-o, -a...) */
-	switch ( c ) {
-	case EOF:
-	    break;
+	    /* Ignore non-results options with args. (-o, -a...) */
+	    switch ( c ) {
+	    case EOF:
+		break;
 
-	case 0x100+'w':
-	    width = strtol( optarg, &endptr, 10 );
-	    break;
+	    case 0x100+'w':
+		width = strtol( optarg, &endptr, 10 );
+		break;
 
-	case 0x100+'p':
-	    precision = strtol( optarg, &endptr, 10 );
-	    break;
+	    case 0x100+'p':
+		precision = strtol( optarg, &endptr, 10 );
+		break;
 	    
-	case 0x100+'l':
-	    limit = strtol( optarg, &endptr, 10 );
-	    break;
+	    case 0x100+'l':
+		limit = strtol( optarg, &endptr, 10 );
+		break;
 	    
-	case '?':
-	    std::cerr << toolname << ": File " << filename << ", line " << line_no << ": invalid argument -- " << str << "." << std::endl; // 
-	    break;
-	}
+	    case '?':
+		std::cerr << toolname << ": File " << filename << ", line " << line_no << ": invalid argument -- " << str << "." << std::endl; // 
+		    break;
+	    }
 
-	if ( endptr != 0 && *endptr != '\0' ) {
-	    std::cerr << toolname << ": File " << filename << ", line " << line_no << ": invalid argument -- " << str << "." << std::endl; // 
-	    exit( 1 );
+	    if ( endptr != 0 && *endptr != '\0' ) {
+		std::cerr << toolname << ": File " << filename << ", line " << line_no << ": invalid argument -- " << str << "." << std::endl; // 
+		    exit( 1 );
+	    }
 	}
     }
     optind = saved_optind;

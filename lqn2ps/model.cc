@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15569 2022-04-19 20:22:57Z greg $
+ * $Id: model.cc 15661 2022-06-09 15:01:03Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -427,7 +427,7 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 	break;
 
     case Layering::PROCESSOR:
-	Flags::set_processors( Processors::NONE );
+	if ( graphical_output() ) Flags::set_processors( Processors::NONE );
 	break;
 
     default:

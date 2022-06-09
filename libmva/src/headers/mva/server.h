@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: server.h 15582 2022-05-20 21:48:39Z greg $
+ * $Id: server.h 15658 2022-06-08 18:00:22Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -110,7 +110,7 @@ public:
     virtual bool infiniteServer() const { return false; }
     virtual bool priorityServer() const { return false; }
 
-    virtual const char * typeStr() const = 0;
+    virtual const std::string& typeStr() const = 0;
 
     /* Computation -- closed */
 
@@ -183,7 +183,10 @@ public:
 
     virtual bool infiniteServer() const { return true; }
 
-    virtual const char * typeStr() const { return "Infinite_Server"; }
+    virtual const std::string& typeStr() const { return __type_str; }
+
+public:
+    static const std::string __type_str;
 };
 
 
@@ -198,7 +201,9 @@ public:
     virtual ~Client() {}
 
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
-    virtual const char * typeStr() const { return "Client"; }
+    virtual const std::string& typeStr() const { return __type_str; }
+
+    static const std::string __type_str;
 };
 
 
@@ -216,7 +221,9 @@ public:
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
-    virtual const char * typeStr() const { return "PS_Server"; }
+    virtual const std::string& typeStr() const { return __type_str; }
+
+    static const std::string __type_str;
 };
 
 
@@ -235,7 +242,9 @@ public:
     virtual void openWait() const;
 
     virtual bool priorityServer() const { return true; }
-    virtual const char * typeStr() const { return "PR_PS_Server"; }
+    virtual const std::string& typeStr() const { return __type_str; }
+
+    static const std::string __type_str;
 };
 
 
@@ -253,7 +262,9 @@ public:
     virtual void openWait() const;
 
     virtual bool priorityServer() const { return true; }
-    virtual const char * typeStr() const { return "HOL_PS_Server"; }
+    virtual const std::string& typeStr() const { return __type_str; }
+
+    static const std::string __type_str;
 };
 
 
@@ -272,7 +283,9 @@ public:
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
-    virtual const char * typeStr() const { return "FCFS_Server"; }
+    virtual const std::string& typeStr() const { return __type_str; }
+
+    static const std::string __type_str;
 };
 
 
@@ -291,7 +304,9 @@ public:
     virtual void openWait() const;
 
     virtual bool priorityServer() const { return true; }
-    virtual const char * typeStr() const { return "PR_FCFS_Server"; }
+    virtual const std::string& typeStr() const { return __type_str; }
+
+    static const std::string __type_str;
 };
 
 
@@ -309,7 +324,9 @@ public:
     virtual void openWait() const;
 
     virtual bool priorityServer() const { return true; }
-    virtual const char * typeStr() const { return "HOL_FCFS_Server"; }
+    virtual const std::string& typeStr() const { return __type_str; }
+
+    static const std::string __type_str;
 };
 
 
@@ -331,7 +348,9 @@ public:
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
-    virtual const char * typeStr() const { return "HVFCFS_Server"; }
+    virtual const std::string& typeStr() const { return __type_str; }
+
+    static const std::string __type_str;
 
 protected:
     virtual std::ostream& printInput( std::ostream&, const unsigned, const unsigned ) const;
@@ -360,8 +379,9 @@ public:
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual bool priorityServer() const { return true; }
-    virtual const char * typeStr() const { return "PR_HVFCFS_Server"; }
+    virtual const std::string& typeStr() const { return __type_str; }
 
+    static const std::string __type_str;
 };
 
 
@@ -379,7 +399,8 @@ public:
     virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual bool priorityServer() const { return true; }
-    virtual const char * typeStr() const { return "HOL_HVFCFS_Server"; }
+    virtual const std::string& typeStr() const { return __type_str; }
 
+    static const std::string __type_str;
 };
 #endif
