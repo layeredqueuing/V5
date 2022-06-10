@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 15618 2022-06-01 19:53:56Z greg $
+ * $Id: option.cc 15667 2022-06-10 10:51:30Z greg $
  */
 
 #include "lqns.h"
@@ -352,10 +352,10 @@ Options::Special::full_reinitialize( const std::string& )
 void
 Options::Special::generate_queueing_model( const std::string& arg )
 {
+    flags.generate = true;
     if ( arg.empty() ) {
-	throw std::invalid_argument( "--generate, requires a directory name argument." );
+	Generate::__directory_name = "debug";
     } else {
-	flags.generate = true;
 	Generate::__directory_name = arg;
     }
 }

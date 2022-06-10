@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 15628 2022-06-02 17:40:08Z greg $
+ * $Id: submodel.cc 15668 2022-06-10 15:25:59Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -756,7 +756,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 #endif
 
 	if ( flags.generate ) {			// Print out MVA model as C++ source file.
-	    Generate::print( *this );
+	    Generate::program( *this );
 	}
 
 	/* ----------------- Solve the model. ----------------- */

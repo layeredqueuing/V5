@@ -7,7 +7,7 @@
  *
  * November, 1994
  *
- * $Id: generate.h 15659 2022-06-09 01:05:42Z greg $
+ * $Id: generate.h 15668 2022-06-10 15:25:59Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -53,7 +53,7 @@ class Generate {
     };
     
 public:
-    static void print( const MVASubmodel& );
+    static void program( const MVASubmodel& );
     static void makefile( const unsigned );
 
 private:
@@ -74,6 +74,8 @@ private:
     static std::ostream& print_station_args( std::ostream& output, const unsigned e, const unsigned k, const unsigned p );
     static std::ostream& print_overtaking_args( std::ostream& output, const unsigned e, const unsigned k, const unsigned p );
 
+    static char remap( char );
+
 public:
     static std::string __directory_name;
     
@@ -85,6 +87,6 @@ private:
     static const std::map<const char, const std::string> __help;
     static const std::map<const int,const std::string> __argument_type;
     static const std::map<const Pragma::MVA,const std::string> __solvers;
-    static const std::map<const Pragma::Multiserver,const Generate::Multiserver> __multiservers;
+    static std::map<const Pragma::Multiserver,std::string> __multiservers;
     static const std::map<const Pragma::Multiserver,const std::pair<const std::string&,const std::string&> > __stations;
 };

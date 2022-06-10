@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 15660 2022-06-09 01:09:12Z greg $
+ * $Id: generate.cc 15668 2022-06-10 15:25:59Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -44,22 +44,9 @@
 #include "submodel.h"
 #include "task.h"
 
-const std::vector<std::string> Generate::__includes = {
-    "<iostream>",
-    "<iomanip>",
-    "<map>",
-    "<unistd.h>",
-    "<getopt.h>",
-    "\"mva.h\"",
-    "\"open.h\"",
-    "\"server.h\"",
-    "\"ph2serv.h\"",
-    "\"multserv.h\"",
-    "\"pop.h\"",
-    "\"prob.h\"",
-    "\"vector.h\"",
-    "\"fpgoop.h\""
-};
+/*
+ * Command line options which are output into the generated code.
+ */
 
 const std::vector<struct option> Generate::__longopts = {
     { "fraction", no_argument, nullptr, 'd' },
@@ -97,6 +84,31 @@ const std::map<const int,const std::string> Generate::__argument_type = {
     { optional_argument, "optional_argument" }
 };
 
+/*
+ * All the includes needed by the generated code.
+ */
+
+const std::vector<std::string> Generate::__includes = {
+    "<iostream>",
+    "<iomanip>",
+    "<map>",
+    "<unistd.h>",
+    "<getopt.h>",
+    "\"mva.h\"",
+    "\"open.h\"",
+    "\"server.h\"",
+    "\"ph2serv.h\"",
+    "\"multserv.h\"",
+    "\"pop.h\"",
+    "\"prob.h\"",
+    "\"vector.h\"",
+    "\"fpgoop.h\""
+};
+
+/*
+ * Map the pragma to the class name of the solver.
+ */
+
 const std::map<const Pragma::MVA,const std::string> Generate::__solvers = {
     { Pragma::MVA::EXACT, 		"ExactMVA" },
     { Pragma::MVA::FAST, 		"Linearizer2" },
@@ -106,33 +118,150 @@ const std::map<const Pragma::MVA,const std::string> Generate::__solvers = {
     { Pragma::MVA::SCHWEITZER, 		"Schweitzer" }
 };
 
-const std::map<const Pragma::Multiserver,const Generate::Multiserver> Generate::__multiservers =
+/*
+ * Map the pragma enum to our local (which is output into
+ * submodel-?.cc) by Generate::print so that we don't have to drag
+ * they lqns header files into the generated code.
+ */
+
+std::map<const Pragma::Multiserver,std::string> Generate::__multiservers =
 {
-    { Pragma::Multiserver::DEFAULT, Multiserver::DEFAULT },
-    { Pragma::Multiserver::CONWAY,  Multiserver::CONWAY  },
-    { Pragma::Multiserver::REISER,  Multiserver::REISER  },
-    { Pragma::Multiserver::ROLIA,   Multiserver::ROLIA   },
-    { Pragma::Multiserver::ZHOU,    Multiserver::ZHOU    }
+    { Pragma::Multiserver::DEFAULT,   "" },
+    { Pragma::Multiserver::CONWAY,    "" },
+    { Pragma::Multiserver::REISER,    "" },
+    { Pragma::Multiserver::REISER_PS, "" },
+    { Pragma::Multiserver::ROLIA,     "" },
+    { Pragma::Multiserver::ROLIA_PS,  "" },
+    { Pragma::Multiserver::ZHOU,      "" }
 };
 
+
+/*
+ * Map the pragma enum in lqns/pragma.h to the class name of the
+ * multiserver (the __type_str is the class name, defined for each
+ * server subclass).  The multi-phase version is used if there is more
+ * than one phase for an entry at the station.
+ */
 
 const std::map<const Pragma::Multiserver,const std::pair<const std::string&,const std::string&> > Generate::__stations =
 {
-    { Pragma::Multiserver::CONWAY,  { Conway_Multi_Server::__type_str, Markov_Phased_Conway_Multi_Server::__type_str } },
-    { Pragma::Multiserver::REISER,  { Reiser_Multi_Server::__type_str, Markov_Phased_Reiser_Multi_Server::__type_str } },
-    { Pragma::Multiserver::ROLIA,   { Rolia_Multi_Server::__type_str,  Markov_Phased_Rolia_Multi_Server::__type_str  } },
-    { Pragma::Multiserver::ZHOU,    { Zhou_Multi_Server::__type_str,   Markov_Phased_Zhou_Multi_Server::__type_str   } }
+    { Pragma::Multiserver::CONWAY,    { Conway_Multi_Server::__type_str,    Markov_Phased_Conway_Multi_Server::__type_str    } },
+    { Pragma::Multiserver::REISER,    { Reiser_Multi_Server::__type_str,    Markov_Phased_Reiser_Multi_Server::__type_str    } },
+    { Pragma::Multiserver::REISER_PS, { Reiser_PS_Multi_Server::__type_str, Markov_Phased_Reiser_Multi_Server::__type_str    } },	/* !! */
+    { Pragma::Multiserver::ROLIA,     { Rolia_Multi_Server::__type_str,     Markov_Phased_Rolia_Multi_Server::__type_str     } },
+    { Pragma::Multiserver::ROLIA_PS,  { Rolia_PS_Multi_Server::__type_str,  Markov_Phased_Rolia_PS_Multi_Server::__type_str  } },
+    { Pragma::Multiserver::ZHOU,      { Zhou_Multi_Server::__type_str,      Markov_Phased_Zhou_Multi_Server::__type_str      } }
 };
 
-std::string Generate::__directory_name;
+/*
+ * The directory name where the generated code will go.  By default "debug".
+ */
 
+std::string Generate::__directory_name;
 
+/* ------------------------------------------------------------------------ */
+
+/*
+ * Make a test program based on the current layer.  Note that solver may overwrite the
+ * same file over and over again.  Use -zstep to extract an intermediate model.
+ */
+
+/* static */ void
+Generate::program( const MVASubmodel& submodel ) 
+{
+    std::ostringstream fileName;
+    fileName << __directory_name << "/submodel-" << submodel.number() << ".cc";
+
+    std::ofstream output;
+    output.open( fileName.str().c_str(), std::ios::out );
+
+    if ( !output ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << fileName.str() << " - " << strerror( errno ) << std::endl;
+    } else {
+	Generate program( submodel );
+	program.print( output );
+    }
+
+    output.close();
+}
+
+
+/*
+ * Make a makefile for the test program(s).
+ */
+
+/* static */ void
+Generate::makefile( const unsigned nSubmodels )
+{
+    const std::string makefileName = __directory_name + "/Makefile";
+	
+    std::ofstream output;
+    output.open( makefileName.c_str(), std::ios::out );
+
+    if ( !output ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << makefileName << " - " << strerror( errno ) << std::endl;
+	return;
+    }
+
+    const std::string defines = "-g -std=c++11 -Wall -DDEBUG_MVA=1 -DHAVE_CONFIG_H=1 -I$(LQNDIR)/libmva -I$(LQNDIR)/libmva/src/headers/mva";
+     
+    /* try to find libmva in the directory path */
+    std::string path = ".";
+    if ( !find_libmva( path ) ) {
+	path = "$(HOME)/usr/src";
+    }
+    output << "LQNDIR=" << path << std::endl
+	   << "CXX = g++" << std::endl
+	   << "CPPFLAGS = " << defines << std::endl
+	   << "OBJS = fpgoop.o multserv.o  mva.o  open.o  ph2serv.o  pop.o  prob.o  server.o" << std::endl
+	   << "SRCS = fpgoop.cc multserv.cc mva.cc open.cc ph2serv.cc pop.cc prob.cc server.cc" << std::endl;
+
+    output << std::endl
+	   << "all:\t";
+    for ( unsigned i = 1; i <= nSubmodels; ++i ) {
+	output << "submodel-" << i << " ";
+    }
+    output << std::endl;
+
+    for ( unsigned i = 1; i <= nSubmodels; ++i ) {
+	std::ostringstream fileName;
+	fileName << "submodel-" << i;
+	output << std::endl
+	       << fileName.str() << ":\t$(SRCS) $(OBJS) " << fileName.str() << ".o" << std::endl
+	       << "\t$(CXX) $(CXXFLAGS) -I. -o " << fileName.str() << " $(OBJS) " << fileName.str() << ".o -lm" << std::endl;
+    }
+
+    output << std::endl
+	   << "clean:" << std::endl
+	   << "\trm -f $(OBJS) *~";
+    for ( unsigned i = 1; i <= nSubmodels; ++i ) {
+	std::ostringstream fileName;
+	fileName << "submodel-" << i;
+	output << " " << fileName.str() << " " << fileName.str() << ".o";
+    }
+    output << std::endl;
+
+    output << std::endl
+	   << "really-clean:\tclean" << std::endl
+	   << "\tfor i in $(SRCS) $(INCS); do \\" << std::endl
+	   << "\t  if test -L $$i; then \\" << std::endl
+	   << "\t    rm $$i; \\" << std::endl
+	   << "\t  fi \\" << std::endl
+	   << "\tdone" << std::endl;
+
+    output << std::endl
+	   << "$(SRCS):" << std::endl
+	   << "\t@if test ! -f $@; then ln -s $(LQNDIR)/libmva/src/$@ .; fi" << std::endl;
+}
+
+/* ------------------------------------------------------------------------ */
+
 /*
  * Constructor
  */
 
-Generate::Generate( const MVASubmodel& aSubModel )
-    : _submodel( aSubModel ),  K(aSubModel.nChains())
+Generate::Generate( const MVASubmodel& submodell )
+    : _submodel( submodell ),  K(submodell.nChains())
 {
 }
 
@@ -146,10 +275,16 @@ Generate::Generate( const MVASubmodel& aSubModel )
 std::ostream& 
 Generate::print( std::ostream& output ) const
 {
+    /* Output the includes needed */
+    
     for ( const auto& s : __includes ) {
 	output << "#include " << s << std::endl;
     }
 	
+    /*
+     * Output the options used by the testprogram submodel-<n>.cc
+     */
+
     std::string opts;
     output << std::endl << "const std::vector<struct option> longopts = {" << std::endl;
     for ( std::vector<struct option>::const_iterator o = __longopts.begin(); o != __longopts.end(); ++o  ) {
@@ -172,29 +307,38 @@ Generate::print( std::ostream& output ) const
     }
     output << "};" << std::endl;
     
-    output << std::endl << "enum class Multiserver {null";
+    /* Output the enum of multiservers supported */
+       
+    output << std::endl << "enum class Multiserver {DEFAULT";
     for ( std::map<const std::string,const Pragma::Multiserver>::const_iterator m = Pragma::__multiserver_pragma.begin(); m != Pragma::__multiserver_pragma.end(); ++m ) {
-	if ( Generate::__multiservers.find(m->second) == Generate::__multiservers.end() ) continue;
+	std::map<const Pragma::Multiserver,std::string>::iterator s = Generate::__multiservers.find(m->second);
+	if ( s == Generate::__multiservers.end() ) continue;
+	const std::string& src = m->first;
+	std::string& dst = s->second;
+	dst.clear();
+	std::transform( src.begin(), src.end(), back_inserter(s->second), remap );		/* Map to enum */
 	output << ",";
-	output << m->first;
+	output << s->second;
     }
     output << "};" << std::endl;
+    
+    /* Output the map from the pragma name to the enum */
     
     output << std::endl << "const std::map<const std::string,const Multiserver> multiservers = {";
     bool first = true;
     for ( std::map<const std::string,const Pragma::Multiserver>::const_iterator m = Pragma::__multiserver_pragma.begin(); m != Pragma::__multiserver_pragma.end(); ++m ) {
-	if ( Generate::__multiservers.find(m->second) == Generate::__multiservers.end() ) continue;
+	if ( __multiservers.find(m->second) == __multiservers.end() ) continue;
 	if ( !first ) output << ",";
 	first = false;
-	output << std::endl << "    { \"" << m->first << "\", Multiserver::" << m->first << " }";
+	output << std::endl << "    { \"" << m->first << "\", Multiserver::" << __multiservers.at(m->second) << " }";
     }
     output << std::endl << "};" << std::endl;
 
-//    output << std::endl << "static Server * new_Multi_Server( Multiserver multiserver, unsigned int copies, unsigned int e, unsigned k, unsigned int p );" << std::endl;
+    /* The main line. */
     
     output << std::endl << "int main ( int argc, char* argv[] )" << std::endl << "{" << std::endl
 	   << "    extern char *optarg;" << std::endl
-	   << "    Multiserver multiserver = Multiserver::null;" << std::endl;
+	   << "    Multiserver multiserver = Multiserver::DEFAULT;" << std::endl;
 
     if ( _submodel.n_openStns() ) {
 	output << "    const unsigned n_open_stations\t= " << _submodel.n_openStns() << ";" << std::endl;
@@ -430,13 +574,15 @@ Generate::printServerStation( std::ostream& output, const Entity& server ) const
 	
     output << "    Server * " << station_name( server );
     if ( server.isMultiServer() ) {
-	output << ";" << std::endl << "    switch ( multiserver ) {" << std::endl
-	       << "    default: " << station_name( server ) << " = new " << aStation->typeStr() << '(' << server.copies() << ',' << station_args( E, K, P ) << "); break;" << std::endl;
-	for ( std::map<const std::string,const Pragma::Multiserver>::const_iterator m = Pragma::__multiserver_pragma.begin(); m != Pragma::__multiserver_pragma.end(); ++m ) {
-	    if ( Generate::__multiservers.find(m->second) == Generate::__multiservers.end() ) continue;
-	    output << "    case Multiserver::" << m->first << ": " << station_name( server ) << " = new ";
-	    if ( P == 1 ) output << __stations.at(m->second).first;	/* Single phase */
-	    else output << __stations.at(m->second).second;		/* Two phase */
+	output << ";" << std::endl << "    switch ( multiserver ) {" << std::endl;
+	for ( std::map<const Pragma::Multiserver,std::string>::const_iterator m = __multiservers.begin(); m != __multiservers.end(); ++m ) {
+	    if ( m->first == Pragma::Multiserver::DEFAULT ) {
+		output << "    default: " << station_name( server ) << " = new " << aStation->typeStr();
+	    } else {
+		output << "    case Multiserver::" << m->second << ": " << station_name( server ) << " = new ";
+		if ( P == 1 ) output << __stations.at(m->first).first;	/* Single phase */
+		else output << __stations.at(m->first).second;		/* Two phase */
+	    }
 	    output << '(' << server.copies() << ',' << station_args( E, K, P ) << "); break;" << std::endl;
 	}
 	output << "    }" << std::endl;
@@ -537,96 +683,14 @@ Generate::printInterlock( std::ostream& output, const Entity& server ) const
     }
     return output;
 }
+
+/* ---------------------------------------------------------------------- */
 
-
-/*
- * Make a test program based on the current layer.  Note that solver may overwrite the
- * same file over and over again.  Use -zstep to extract an intermediate model.
- */
-
-void
-Generate::print( const MVASubmodel& aSubModel ) 
+char
+Generate::remap( char c )
 {
-    std::ostringstream fileName;
-    fileName << __directory_name << "/submodel-" << aSubModel.number() << ".cc";
-
-    std::ofstream output;
-    output.open( fileName.str().c_str(), std::ios::out );
-
-    if ( !output ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << fileName.str() << " - " << strerror( errno ) << std::endl;
-    } else {
-	Generate aCModel( aSubModel );
-	aCModel.print( output );
-    }
-
-    output.close();
-}
-
-
-
-void
-Generate::makefile( const unsigned nSubmodels )
-{
-    const std::string makefileName = __directory_name + "/Makefile";
-	
-    std::ofstream output;
-    output.open( makefileName.c_str(), std::ios::out );
-
-    if ( !output ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << makefileName << " - " << strerror( errno ) << std::endl;
-	return;
-    }
-
-    const std::string defines = "-g -std=c++11 -Wall -DDEBUG_MVA=1 -DHAVE_CONFIG_H=1 -I$(LQNDIR)/libmva -I$(LQNDIR)/libmva/src/headers/mva";
-     
-    /* try to find libmva in the directory path */
-    std::string path = ".";
-    if ( !find_libmva( path ) ) {
-	path = "$(HOME)/usr/src";
-    }
-    output << "LQNDIR=" << path << std::endl
-	   << "CXX = g++" << std::endl
-	   << "CPPFLAGS = " << defines << std::endl
-	   << "OBJS = fpgoop.o multserv.o  mva.o  open.o  ph2serv.o  pop.o  prob.o  server.o" << std::endl
-	   << "SRCS = fpgoop.cc multserv.cc mva.cc open.cc ph2serv.cc pop.cc prob.cc server.cc" << std::endl;
-
-    output << std::endl
-	   << "all:\t";
-    for ( unsigned i = 1; i <= nSubmodels; ++i ) {
-	output << "submodel-" << i << " ";
-    }
-    output << std::endl;
-
-    for ( unsigned i = 1; i <= nSubmodels; ++i ) {
-	std::ostringstream fileName;
-	fileName << "submodel-" << i;
-	output << std::endl
-	       << fileName.str() << ":\t$(SRCS) $(OBJS) " << fileName.str() << ".o" << std::endl
-	       << "\t$(CXX) $(CXXFLAGS) -I. -o " << fileName.str() << " $(OBJS) " << fileName.str() << ".o -lm" << std::endl;
-    }
-
-    output << std::endl
-	   << "clean:" << std::endl
-	   << "\trm -f $(OBJS) *~";
-    for ( unsigned i = 1; i <= nSubmodels; ++i ) {
-	std::ostringstream fileName;
-	fileName << "submodel-" << i;
-	output << " " << fileName.str() << " " << fileName.str() << ".o";
-    }
-    output << std::endl;
-
-    output << std::endl
-	   << "really-clean:\tclean" << std::endl
-	   << "\tfor i in $(SRCS) $(INCS); do \\" << std::endl
-	   << "\t  if test -L $$i; then \\" << std::endl
-	   << "\t    rm $$i; \\" << std::endl
-	   << "\t  fi \\" << std::endl
-	   << "\tdone" << std::endl;
-
-    output << std::endl
-	   << "$(SRCS):" << std::endl
-	   << "\t@if test ! -f $@; then ln -s $(LQNDIR)/libmva/src/$@ .; fi" << std::endl;
+    if ( c == '-' ) return '_';
+    else return toupper( c );
 }
 
 
@@ -645,8 +709,7 @@ Generate::find_libmva( std::string& pathname )
     } 
     return false;							/* Not found		*/
 }
-
-/* ---------------------------------------------------------------------- */
+
 
 /*
  * Manufacture a station name.
@@ -664,6 +727,7 @@ Generate::print_station_name( std::ostream& output, const Entity& anEntity )
     return output;
 }
 
+
 /*
  * Manufacture an argument string.
  */
@@ -674,6 +738,10 @@ Generate::print_station_args( std::ostream& output, const unsigned e, const unsi
     output << e << "," << k << "," << p;
     return output; 
 }
+
+/*
+ * Manufacture an array string.
+ */
 
 /* static */ std::ostream&
 Generate::print_overtaking_args( std::ostream& output, const unsigned e, const unsigned k, const unsigned p )

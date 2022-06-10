@@ -3,7 +3,7 @@
  * If invoked as lqngen, generate a model.
  * In invoked as lqn2lqx, convert model to lqx.
  *
- * $Id: lqngen.cc 15491 2022-04-01 15:54:49Z greg $
+ * $Id: lqngen.cc 15666 2022-06-10 10:38:00Z greg $
  */
 
 #include "lqngen.h"
