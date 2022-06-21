@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 15570 2022-04-20 21:40:58Z greg $
+ *  $Id: dom_pragma.cpp 15679 2022-06-21 17:46:11Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -282,8 +282,8 @@ namespace LQIO {
 	/* Args */
 	
 	const std::set<std::string> Pragma::__bcmp_args = { _lqn_, _extended_, _true_, _yes_, _false_, _no_, "t", "y", "f", "n", "" };
-	const std::set<std::string> Pragma::__force_infinite_args = { _none_, _fixed_rate_, _multiservers_, _all_ };
-	const std::set<std::string> Pragma::__force_multiserver_args = { _none_, _processors_, _tasks_, _all_, _true_, _yes_, _false_, _no_, "t", "y", "f", "n", "" };
+	const std::set<std::string> Pragma::__force_infinite_args = { _none_, _fixed_rate_, _multiservers_, _all_, "" };
+	const std::set<std::string> Pragma::__force_multiserver_args = { _none_, _processors_, _tasks_, _all_, "" };
 	const std::set<std::string> Pragma::__layering_args = { _batched_, _batched_back_, _mol_, _mol_back_, _processor_, _share_, _squashed_, _srvn_, _hwsw_ };
 	const std::set<std::string> Pragma::__multiserver_args = { _bruell_, _conway_, _default_, _experimental_, _reiser_, _reiser_ps_, _rolia_, _rolia_ps_, _schmidt_, _suri_, _zhou_ };
 	const std::set<std::string> Pragma::__mva_args = { _bounds_, _exact_, _linearizer_, _schweitzer_, _fast_, _one_step_, _one_step_linearizer_ };

@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 15677 2022-06-21 14:56:19Z greg $
+ * $Id: help.cc 15680 2022-06-21 18:23:52Z greg $
  */
 
 #include "lqns.h"
@@ -587,10 +587,10 @@ Help::print( std::ostream& output ) const
     table_row( output, "Forwarding", LQIO::DOM::Pragma::_yes_, "forwarding" );
     table_row( output, "Multi-servers", LQIO::DOM::Pragma::_yes_, "multi-server" );
     table_row( output, "Infinite-servers", LQIO::DOM::Pragma::_yes_, "infinite server" );
-    table_row( output, "Max Entries", "1000", "entry!maximum" );
-    table_row( output, "Max Tasks", "1000", "task!maximum" );
-    table_row( output, "Max Processors", "1000", "processor!maximum" );
-    table_row( output, "Max Entries per Task", "1000" );
+    table_row( output, "Max Entries", "unlimited", "entry!maximum" );
+    table_row( output, "Max Tasks", "unlimited", "task!maximum" );
+    table_row( output, "Max Processors", "unlimited", "processor!maximum" );
+    table_row( output, "Max Entries per Task", "unlimited" );
     table_footer( output );
 
     section( output, "DIAGNOSTICS", "Diagnostics" );
@@ -617,6 +617,8 @@ Help::print( std::ostream& output ) const
     trailer( output );
     return output;
 }
+
+/* ------------------------------------------------------------------------ */
 
 std::ostream&
 Help::flagAdvisory( std::ostream& output, bool verbose ) const
@@ -1045,6 +1047,8 @@ Help::flagXML( std::ostream& output, bool verbose ) const
     return output;
 }
 
+/* ------------------------------------------------------------------------ */
+
 std::ostream&
 Help::debugAll( std::ostream & output, bool verbose ) const
 {
@@ -1156,6 +1160,8 @@ Help::debugXML( std::ostream & output, bool verbose ) const
     output << "Print out the actions of the Expat parser while reading XML input." << std::endl;
     return output;
 }
+
+/* ------------------------------------------------------------------------ */
 
 std::ostream&
 Help::traceActivities( std::ostream & output, bool verbose ) const
@@ -1363,6 +1369,8 @@ Help::specialFullReinitialize( std::ostream & output, bool verbose ) const
     output << "For multiple runs, reinitialize all service times at processors." << std::endl;
     return output;
 }
+
+/* ------------------------------------------------------------------------ */
 
 std::ostream&
 Help::pragmaConvergenceValue( std::ostream & output, bool verbose ) const
@@ -1374,6 +1382,8 @@ Help::pragmaConvergenceValue( std::ostream & output, bool verbose ) const
     return output;
 }
 
+/* -- */
+
 std::ostream&
 Help::pragmaCycles( std::ostream& output, bool verbose ) const
 {
@@ -1383,225 +1393,6 @@ Help::pragmaCycles( std::ostream& output, bool verbose ) const
     return output;
 }
 
-std::ostream&
-Help::pragmaForceInfinite( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to force the use of a infinite" << ix(*this, "infinite!force" ) << std::endl
-	   << "server instead of a fixed-rate server and/or multiserver for all the tasks in the model." << std::endl
-	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaForceMultiserver( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to force the use of a multiserver" << ix(*this, "multiserver!force" ) << std::endl
-	   << "instead of a fixed-rate server whenever the multiplicity of a server is one." << std::endl
-	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaInterlock( std::ostream& output, bool verbose ) const
-{
-    output << "The interlocking" << ix( *this, "interlock" ) << " is used to correct the throughputs" << ix( *this, "throughput!interlock" ) << " at stations as a" << std::endl
-	   << "result of solving the model using layers" << cite( *this, "perf:franks-95-ipds-interlock" ) << ".  This pragma is used to" << std::endl
-	   << "choose the algorithm used." << std::endl
-	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaIterationLimit( std::ostream & output, bool verbose ) const
-{
-    output << "Set the maximum number of iterations to " << emph( *this, "arg" ) << "." << std::endl;
-    if ( verbose ) {
-	output << emph( *this, "Arg" ) << " must be an integer greater than 0.  The default value is 50." << std::endl;
-    }
-    return output;
-}
-
-std::ostream&
-Help::pragmaLayering( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to select the layering strategy" << ix( *this, "layering!strategy" ) << " used by the solver." << std::endl
-	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaMOLUnderrelaxation( std::ostream & output, bool verbose ) const
-{
-    output << "Set the under-relaxation factor to " << emph( *this, "arg" ) << " for the MOL multiserver approximation." << std::endl;
-    if ( verbose ) {
-	output << emph( *this, "Arg" ) << " must be a number between 0.0 and 1.0." << std::endl
-	       << "The default value is 0.5." << std::endl;
-    }
-    return output;
-}
-
-std::ostream&
-Help::pragmaMultiserver( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to choose the algorithm for solving multiservers" << ix( *this, "multiserver!algorithm" ) << "." << std::endl
-	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaMVA( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to choose the MVA" << ix( *this, "MVA" ) << " algorithm used to solve the submodels." << std::endl
-	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
-    return output;
-}
-
-#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-std::ostream&
-Help::pragmaQuorumDistribution( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to choose the Quorum algorithm used to approximate " ;
-    output <<"\nthe thread service time distibution." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaQuorumDelayedCalls( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to choose the Quorum semantics for the delayed calls" << std::endl; ;
-
-    return output;
-}
-
-std::ostream&
-Help::pragmaIdleTime( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to choose throughput used to calculate " ;
-    output <<"\nthreads idle times." << std::endl;
-    return output;
-}
-//// end tomari quorum idle time
-#endif
-
-std::ostream&
-Help::pragmaOvertaking( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is usesd to choose the overtaking" << ix( *this, LQIO::DOM::Pragma::_overtaking_ ) << " approximation." << std::endl
-	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaProcessor( std::ostream& output, bool verbose ) const
-{
-    output << "Force the scheduling type" << ix( *this, "scheduling!processor" ) << ix( *this, "processor!scheduling" ) << " of all uni-processors to the type specfied." << std::endl;
-    return output;
-}
-
-#if RESCHEDULE
-std::ostream&
-Help::pragmaReschedule( std::ostream& output, bool verbose ) const
-{
-    output << "Tasks are normally blocked after every rendezvous request, but" << std::endl
-	   << "continue to execute after for send-no-reply.  This option changes" << std::endl
-	   << "this behaviour." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaRescheduleTrue( std::ostream& output, bool verbose ) const
-{
-    output << "Reschedule after an asynchronous send." << std::endl;
-    return output;
-}
-
-
-std::ostream&
-Help::pragmaRescheduleFalse( std::ostream& output, bool verbose ) const
-{
-    output << "Don't reschedule after an asynchronous send." << std::endl;
-    return output;
-}
-#endif
-
-std::ostream&
-Help::pragmaStopOnMessageLoss( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to control the operation of the solver when the" << std::endl
-	   << "arrival rate" << ix( *this, "arrival rate" ) << " exceeds the service rate of a server." << std::endl
-	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaTau( std::ostream& output, bool verbose ) const
-{
-    output << "Set the tau adjustment factor to " << emph( *this, "arg" ) << "." << std::endl
-	   << emph( *this, "Arg" ) << " must be an integer between 0 and 25." << std::endl
-	   << "A value of " << emph( *this, "zero" ) << " disables the adjustment." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaThreads( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to change the behaviour of the solver when solving" << std::endl
-	   << "models with fork-join" << ix( *this, "fork" ) << ix( *this, "join" ) << " interactions." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaUnderrelaxation( std::ostream & output, bool verbose ) const
-{
-    output << "Set the underrelaxation to " << emph( *this, "arg" ) << "." << std::endl;
-    if ( verbose ) {
-	output << emph( *this, "Arg" ) << " must be a number between 0.0 and 1.0." << std::endl
-	       << "The default value is 0.9." << std::endl;
-    }
-    return output;
-}
-
-std::ostream&
-Help::pragmaVariance( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to choose the variance" << ix( *this, LQIO::DOM::Pragma::_variance_ ) << " calculation used by the solver." << std::endl;
-    return output;
-}
-
-
-std::ostream&
-Help::pragmaSeverityLevel( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to enable or disable warning messages." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaSpexComment( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to enable or disable the comment line of SPEX output." << std::endl
-	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaSpexHeader( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to enable or disable the header line of SPEX output." << std::endl
-	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaPrune( std::ostream& output, bool verbose ) const
-{
-    output << "This pragma is used to prune \"useless\" processors when solving the model.  Useless" << std::endl
-	   << "processors are any processor which will always have a queue length of zero (i.e., delay servers" << std::endl
-	   << "and processors with only one task, etc.)" << std::endl
-	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
-    return output;
-}
-
 std::ostream&
 Help::pragmaCyclesAllow( std::ostream& output, bool verbose ) const
 {
@@ -1613,6 +1404,58 @@ std::ostream&
 Help::pragmaCyclesDisallow( std::ostream& output, bool verbose ) const
 {
     output << "Disallow cycles in the call graph." << std::endl;
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaForceInfinite( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to force the use of an infinite" << ix(*this, "infinite!force" ) << std::endl
+	   << "server instead of a fixed-rate server and/or multiserver for all the tasks in the model." << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaForceInfiniteNone( std::ostream& output, bool verbose ) const
+{
+    output << "Do not change and fixed-rate or multiserver task to an infinite server." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaForceInfiniteFixedRate( std::ostream& output, bool verbose ) const
+{
+    output << "Change all fixed-rate tasks to infinite servers." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaForceInfiniteMultiServers( std::ostream& output, bool verbose ) const
+{
+    output << "Change all multiserver tasks to infinite servers." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaForceInfiniteAll( std::ostream& output, bool verbose ) const
+{
+    output << "Change all tasks to infinite servers." << std::endl;
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaForceMultiserver( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to force the use of a multiserver" << ix(*this, "multiserver!force" ) << std::endl
+	   << "instead of a fixed-rate server whenever the multiplicity of a server is one." << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
     return output;
 }
 
@@ -1650,45 +1493,15 @@ Help::pragmaForceMultiserverAll( std::ostream& output, bool verbose ) const
     return output;
 }
 
-std::ostream&
-Help::pragmaForceInfiniteNone( std::ostream& output, bool verbose ) const
-{
-    output << "Do not change and fixed-rate or multiserver task to an infinite server." << std::endl;
-    return output;
-}
+/* -- */
 
 std::ostream&
-Help::pragmaForceInfiniteFixedRate( std::ostream& output, bool verbose ) const
+Help::pragmaInterlock( std::ostream& output, bool verbose ) const
 {
-    output << "Change all fixed-rate tasks to infinite servers." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaForceInfiniteMultiServers( std::ostream& output, bool verbose ) const
-{
-    output << "Change all multiserver tasks to infinite servers." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaForceInfiniteAll( std::ostream& output, bool verbose ) const
-{
-    output << "Change all tasks to infinite servers." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaStopOnMessageLossFalse( std::ostream& output, bool verbose ) const
-{
-    output << "Ignore queue overflows" << ix( *this, "overflow" ) << " for open arrivals" << ix( *this, "open arrival!overflow" ) << " and send-no-reply" << ix( *this, "send-no-reply!overflow" ) << " requests.  If a queue overflows, its waiting times is reported as infinite." << ix( *this, "infinity" ) << "";
-    return output;
-}
-
-std::ostream&
-Help::pragmaStopOnMessageLossTrue( std::ostream& output, bool verbose ) const
-{
-    output << "Stop if messages are lost." << std::endl;
+    output << "The interlocking" << ix( *this, "interlock" ) << " is used to correct the throughputs" << ix( *this, "throughput!interlock" ) << " at stations as a" << std::endl
+	   << "result of solving the model using layers" << cite( *this, "perf:franks-95-ipds-interlock" ) << ".  This pragma is used to" << std::endl
+	   << "choose the algorithm used." << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
     return output;
 }
 
@@ -1705,7 +1518,27 @@ Help::pragmaInterlockNone( std::ostream& output, bool verbose ) const
     output << "Do not perform interlock adjustment." << std::endl;
     return output;
 }
+ 
+/* -- */
 
+
+std::ostream&
+Help::pragmaIterationLimit( std::ostream & output, bool verbose ) const
+{
+    output << "Set the maximum number of iterations to " << emph( *this, "arg" ) << "." << std::endl;
+    if ( verbose ) {
+	output << emph( *this, "Arg" ) << " must be an integer greater than 0.  The default value is 50." << std::endl;
+    }
+    return output;
+}
+
+std::ostream&
+Help::pragmaLayering( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to select the layering strategy" << ix( *this, "layering!strategy" ) << " used by the solver." << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
+    return output;
+}
 
 std::ostream&
 Help::pragmaLayeringBatched( std::ostream& output, bool verbose ) const
@@ -1756,6 +1589,30 @@ Help::pragmaLayeringSquashed( std::ostream& output, bool verbose ) const
 {
     output << "Squashed layers" << ix( *this, "squashed layers" ) << ix( *this, "layering!squashed" ) << " -- All the tasks and processors are placed into one submodel." << std::endl
 	   << "Solution speed may suffer because this method generates the most number of chains in the MVA solution.  See also " << flag( *this, "P" ) << emph( *this, LQIO::DOM::Pragma::_mva_ ) << "." << std::endl;
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaMOLUnderrelaxation( std::ostream & output, bool verbose ) const
+{
+    output << "Set the under-relaxation factor to " << emph( *this, "arg" ) << ix( *this, "multiserver!MOL")
+	   << " for the MOL (Rolia) multiserver approximation.  If the approximation is failing, lower this value." << std::endl;
+    if ( verbose ) {
+	output << emph( *this, "Arg" ) << " must be a number between 0.0 and 1.0." << std::endl
+	       << "The default value is 0.5." << std::endl;
+    }
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaMultiserver( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to choose the algorithm for solving multiservers" << ix( *this, "multiserver!algorithm" ) << "." << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
     return output;
 }
 
@@ -1822,6 +1679,16 @@ Help::pragmaMultiServerSuri( std::ostream& output, bool verbose ) const
     return output;
 }
 
+/* -- */
+
+std::ostream&
+Help::pragmaMVA( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to choose the MVA" << ix( *this, "MVA!algorithm" ) << " algorithm used to solve the submodels." << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
+    return output;
+}
+
 std::ostream&
 Help::pragmaMVALinearizer( std::ostream& output, bool verbose ) const
 {
@@ -1864,6 +1731,16 @@ Help::pragmaMVAOneStepLinearizer( std::ostream& output, bool verbose ) const
     return output;
 }
 
+/* -- */
+
+std::ostream&
+Help::pragmaOvertaking( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is usesd to choose the overtaking" << ix( *this, LQIO::DOM::Pragma::_overtaking_ ) << " approximation." << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
+    return output;
+}
+
 std::ostream&
 Help::pragmaOvertakingMarkov( std::ostream& output, bool verbose ) const
 {
@@ -1896,6 +1773,15 @@ std::ostream&
 Help::pragmaOvertakingNone( std::ostream& output, bool verbose ) const
 {
     output << "Disable all second phase servers.  All stations are modeled as having a single phase by summing the phase information." << std::endl;
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaProcessor( std::ostream& output, bool verbose ) const
+{
+    output << "Force the scheduling type" << ix( *this, "scheduling!processor" ) << ix( *this, "processor!scheduling" ) << " of all uni-processors to the type specfied." << std::endl;
     return output;
 }
 
@@ -1934,6 +1820,175 @@ Help::pragmaProcessorPS( std::ostream& output, bool verbose ) const
     return output;
 }
 
+/* -- */
+
+std::ostream&
+Help::pragmaPrune( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to prune \"useless\" processors when solving the model.  Useless" << std::endl
+	   << "processors are any processor which will always have a queue length of zero (i.e., delay servers" << std::endl
+	   << "and processors with only one task, etc.)" << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaPruneFalse( std::ostream& output, bool verbose ) const
+{
+    output << "Solve model with all processors present." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaPruneTrue( std::ostream& output, bool verbose ) const
+{
+    output << "Solve model without including \"useless\" processors." << std::endl;
+    return output;
+}
+
+/* -- */
+
+#if RESCHEDULE
+std::ostream&
+Help::pragmaReschedule( std::ostream& output, bool verbose ) const
+{
+    output << "Tasks are normally blocked after every rendezvous request, but" << std::endl
+	   << "continue to execute after for send-no-reply.  This option changes" << std::endl
+	   << "this behaviour for send-no-reply requests." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaRescheduleTrue( std::ostream& output, bool verbose ) const
+{
+    output << "Reschedule after an asynchronous send." << std::endl;
+    return output;
+}
+
+
+std::ostream&
+Help::pragmaRescheduleFalse( std::ostream& output, bool verbose ) const
+{
+    output << "Don't reschedule after an asynchronous send." << std::endl;
+    return output;
+}
+#endif
+
+/* -- */
+
+std::ostream&
+Help::pragmaSeverityLevel( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to enable or disable warning messages." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaSeverityLevelWarnings( std::ostream& output, bool verbose ) const
+{
+    return output;
+}
+
+std::ostream&
+Help::pragmaSeverityLevelRunTime( std::ostream& output, bool verbose ) const
+{
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaSpexComment( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to enable or disable the comment line of SPEX output." << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaSpexCommentFalse( std::ostream& output, bool verbose ) const
+{
+    output << "Do not output a comment line (the output can then be fed into gnuplot easily)." << std::endl;
+    return output;
+}
+ 
+std::ostream&
+Help::pragmaSpexCommentTrue( std::ostream& output, bool verbose ) const
+{
+    output << "Output the model comment in the SPEX output." << std::endl;
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaSpexHeader( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to enable or disable the header line of SPEX output." << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaSpexHeaderFalse( std::ostream& output, bool verbose ) const
+{
+    output << "Do not output a header line (the output can then be fed into gnuplot easily)." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaSpexHeaderTrue( std::ostream& output, bool verbose ) const
+{
+    output << "Output a header line consisting of the names of all of the variables used in the Result section on the input file." << std::endl;
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaStopOnMessageLoss( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to control the operation of the solver when the" << std::endl
+	   << "arrival rate" << ix( *this, "arrival rate" ) << " exceeds the service rate of a server." << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaStopOnMessageLossFalse( std::ostream& output, bool verbose ) const
+{
+    output << "Ignore queue overflows" << ix( *this, "overflow" ) << " for open arrivals" << ix( *this, "open arrival!overflow" ) << " and send-no-reply" << ix( *this, "send-no-reply!overflow" ) << " requests.  If a queue overflows, its waiting times is reported as infinite." << ix( *this, "infinity" ) << "";
+    return output;
+}
+
+std::ostream&
+Help::pragmaStopOnMessageLossTrue( std::ostream& output, bool verbose ) const
+{
+    output << "Stop if messages are lost." << std::endl;
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaTau( std::ostream& output, bool verbose ) const
+{
+    output << "Set the tau adjustment factor to " << emph( *this, "arg" ) << "." << std::endl
+	   << emph( *this, "Arg" ) << " must be an integer between 0 and 25." << std::endl
+	   << "A value of " << emph( *this, "zero" ) << " disables the adjustment." << std::endl;
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaThreads( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to change the behaviour of the solver when solving" << std::endl
+	   << "models with fork-join" << ix( *this, "fork" ) << ix( *this, "join" ) << " interactions." << std::endl;
+    return output;
+}
+
 std::ostream&
 Help::pragmaThreadsNone( std::ostream& output, bool verbose ) const
 {
@@ -1969,6 +2024,27 @@ Help::pragmaThreadsDefault( std::ostream& output, bool verbose ) const
     output << "?" << std::endl;
     return output;
 }
+
+/* -- */
+
+std::ostream&
+Help::pragmaUnderrelaxation( std::ostream & output, bool verbose ) const
+{
+    output << "Set the underrelaxation to " << emph( *this, "arg" ) << "." << std::endl;
+    if ( verbose ) {
+	output << emph( *this, "Arg" ) << " must be a number between 0.0 and 1.0." << std::endl
+	       << "The default value is 0.9." << std::endl;
+    }
+    return output;
+}
+
+std::ostream&
+Help::pragmaVariance( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to choose the variance" << ix( *this, LQIO::DOM::Pragma::_variance_ ) << " calculation used by the solver." << std::endl;
+    return output;
+}
+
 
 std::ostream&
 Help::pragmaVarianceDefault( std::ostream& output, bool verbose ) const
@@ -2011,61 +2087,27 @@ Help::pragmaVarianceInitOnly( std::ostream& output, bool verbose ) const
     return output;
 }
 
-std::ostream&
-Help::pragmaSeverityLevelWarnings( std::ostream& output, bool verbose ) const
-{
-    return output;
-}
-
-std::ostream&
-Help::pragmaSeverityLevelRunTime( std::ostream& output, bool verbose ) const
-{
-    return output;
-}
-
-std::ostream&
-Help::pragmaSpexCommentFalse( std::ostream& output, bool verbose ) const
-{
-    output << "Do not output a comment line (the output can then be fed into gnuplot easily)." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaSpexCommentTrue( std::ostream& output, bool verbose ) const
-{
-    output << "Output the model comment in the SPEX output." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaSpexHeaderFalse( std::ostream& output, bool verbose ) const
-{
-    output << "Do not output a header line (the output can then be fed into gnuplot easily)." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaSpexHeaderTrue( std::ostream& output, bool verbose ) const
-{
-    output << "Output a header line consisting of the names of all of the variables used in the Result section on the input file." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaPruneFalse( std::ostream& output, bool verbose ) const
-{
-    output << "Solve model with all processors present." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::pragmaPruneTrue( std::ostream& output, bool verbose ) const
-{
-    output << "Solve model without including \"useless\" processors." << std::endl;
-    return output;
-}
+/* -- */
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+std::ostream&
+Help::pragmaQuorumDelayedCalls( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to choose the Quorum semantics for the delayed calls" << std::endl; ;
+
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaQuorumDistribution( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to choose the Quorum algorithm used to approximate " ;
+    output << "the thread service time distibution." << std::endl;
+    return output;
+}
+
 std::ostream&
 Help::pragmaQuorumDistributionDefault( std::ostream& output, bool verbose ) const
 {
@@ -2101,6 +2143,8 @@ Help::pragmaQuorumDistributionClosedformDet( std::ostream& output, bool verbose 
     return output;
 }
 
+/* -- */
+
 std::ostream&
 Help::pragmaDelayedThreadsKeepAll( std::ostream& output, bool verbose ) const
 {
@@ -2126,6 +2170,16 @@ std::ostream&
 Help::pragmaDelayedThreadsAbortRemoteOnly( std::ostream& output, bool verbose ) const
 {
     output <<  "abort delayed remote calls and keep delayed local calls running after the quorum join." << std::endl;
+    return output;
+}
+
+/* -- */
+
+std::ostream&
+Help::pragmaIdleTime( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to choose throughput used to calculate " ;
+    output <<"threads idle times." << std::endl;
     return output;
 }
 
@@ -2169,7 +2223,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 15677 2022-06-21 14:56:19Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 15680 2022-06-21 18:23:52Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2468,7 +2522,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 15677 2022-06-21 14:56:19Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 15680 2022-06-21 18:23:52Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

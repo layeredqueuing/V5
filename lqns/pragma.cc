@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15677 2022-06-21 14:56:19Z greg $ *
+ * $Id: pragma.cc 15679 2022-06-21 17:46:11Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -142,6 +142,7 @@ void Pragma::setConvergenceValue(const std::string& value)
 void Pragma::setForceInfinite(const std::string& value)
 {
     static const std::map<const std::string,const ForceInfinite> __force_infinite_pragma = {
+	{ "",					ForceInfinite::ALL },
 	{ LQIO::DOM::Pragma::_all_,		ForceInfinite::ALL },
 	{ LQIO::DOM::Pragma::_fixed_rate_,	ForceInfinite::FIXED_RATE },
 	{ LQIO::DOM::Pragma::_multiservers_,	ForceInfinite::MULTISERVERS },
@@ -159,6 +160,7 @@ void Pragma::setForceInfinite(const std::string& value)
 void Pragma::setForceMultiserver(const std::string& value)
 {
     static const std::map<const std::string,const Pragma::ForceMultiserver> __force_multiserver = {
+	{ "",					ForceMultiserver::ALL },
 	{ LQIO::DOM::Pragma::_all_,		ForceMultiserver::ALL },
 	{ LQIO::DOM::Pragma::_none_,		ForceMultiserver::NONE },
 	{ LQIO::DOM::Pragma::_tasks_,		ForceMultiserver::TASKS },
@@ -168,8 +170,6 @@ void Pragma::setForceMultiserver(const std::string& value)
     const std::map<const std::string,const Pragma::ForceMultiserver>::const_iterator pragma = __force_multiserver.find( value );
     if ( pragma != __force_multiserver.end() ) {
 	_force_multiserver = pragma->second;
-    } else if ( LQIO::DOM::Pragma::isTrue( value ) ) {
-	_force_multiserver = ForceMultiserver::ALL;
     } else {
 	throw std::invalid_argument( value );
     }
@@ -516,13 +516,22 @@ void Pragma::setVariance(const std::string& value)
 std::ostream&
 Pragma::usage( std::ostream& output )
 {
+    static const std::map<const std::string, const std::string> default_args = {
+	{ LQIO::DOM::Pragma::_convergence_value_,	    "<n.n>" },
+	{ LQIO::DOM::Pragma::_iteration_limit_,		    "<n>" },
+	{ LQIO::DOM::Pragma::_mol_underrelaxation_,	    "<n.n>" },
+	{ LQIO::DOM::Pragma::_stop_on_bogus_utilization_,   "<n.n>" },
+	{ LQIO::DOM::Pragma::_tau_,			    "<n>" },
+    };
+    
     output << "Valid pragmas: " << std::endl;
     std::ios_base::fmtflags flags = output.setf( std::ios::left, std::ios::adjustfield );
 
     for ( std::map<const std::string,const fptr>::const_iterator i = __set_pragma.begin(); i != __set_pragma.end(); ++i ) {
 	output << "\t" << std::setw(20) << i->first;
-	if ( i->first == LQIO::DOM::Pragma::_tau_ ) {
-	    output << " = <int>" << std::endl;
+	const std::map<const std::string, const std::string>::const_iterator arg = default_args.find( i->first );
+	if ( arg != default_args.end() ) {
+	    output << " = " << arg->second << std::endl;
 	} else {
 	    const std::set<std::string>* args = LQIO::DOM::Pragma::getValues( i->first );
 	    if ( args != nullptr && args->size() > 1 ) {
@@ -537,7 +546,7 @@ Pragma::usage( std::ostream& output )
 		}
 		output << "}" << std::endl;
 	    } else {
-		output << " = <arg>" << std::endl;
+		abort();
 	    }
 	}
     }
