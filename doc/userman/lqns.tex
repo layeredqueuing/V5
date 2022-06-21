@@ -6,7 +6,7 @@
 %% Created:             21 June 2022
 %%
 %% ----------------------------------------------------------------------
-%% $Id: lqns.tex 15677 2022-06-21 14:56:19Z greg $
+%% $Id: lqns.tex 15683 2022-06-21 18:38:42Z greg $
 %% ----------------------------------------------------------------------
 
 \chapter{Invoking the Analytic Solver ``lqns''}
@@ -102,7 +102,7 @@ By default, if the suffix of the input filename is one of: \emph{.in}, \emph{.lq
 \item[\flag{j}{}, \longopt{json}]~\\
 Generate JSON output regardless of input format.
 \item[\flag{M}{}, \longopt{mol-underrelaxation}=\emph{arg}]~\\
-Set the under-relaxation factor to \emph{arg} for the MOL multiserver approximation.
+Set the under-relaxation factor to \emph{arg}\index{multiserver!MOL} for the MOL (Rolia) multiserver approximation.  If the approximation is failing, lower this value.
 \emph{Arg} must be a number between 0.0 and 1.0.
 The default value is 0.5.
 \item[\flag{n}{}, \longopt{no-execute}]~\\
@@ -150,8 +150,9 @@ The print interval field in the input is ignored otherwise.
 \item[\optarg{joins}{}]
 Print out computed join delay and join overlap table prior to submodel solution.
 \item[\optarg{mva}{=\emph{arg}}]
-Print out the MVA submodel and its solution.
-A numeric argument supplied to this option will print out only the specified MVA submodel, otherwise, all submodels will be printed.
+Output the inputs and results of each MVA submodel for every iteration of the solver.\index{MVA!trace}
+The optional argument is a bit set of the submodels to output.  Submodel 1 is 0x1, 
+submodel 2 is 0x2, submodel 3 is 0x4, etc.  By default all submodels are traced.
 \item[\optarg{overtaking}{}]
 Print out overtaking calculations.
 \item[\optarg{quorum}{}]
@@ -252,7 +253,7 @@ Output the intermediate solution of the model after <n> iterations.
 \item[\longopt{reset-mva}]~\\
 Reset the MVA calculation prior to solving a submodel.
 \item[\longopt{trace-mva}=\emph{arg}]~\\
-Output the inputs and results of each MVA submodel for every iteration of the solver.
+Output the inputs and results of each MVA submodel for every iteration of the solver.\index{MVA!trace}
 The optional argument is a bit set of the submodels to output.  Submodel 1 is 0x1, 
 submodel 2 is 0x2, submodel 3 is 0x4, etc.  By default all submodels are traced.
 \item[\longopt{debug-submodels}]~\\
@@ -311,7 +312,7 @@ Allow cycles in the call graph.  The interlock\index{interlock} adjustment is di
 \end{description}
 The default is no.
 \item[\optarg{force-infinite}{=\emph{arg}}]~\\
-This pragma is used to force the use of a infinite\index{infinite!force}
+This pragma is used to force the use of an infinite\index{infinite!force}
 server instead of a fixed-rate server and/or multiserver for all the tasks in the model.
 \emph{Arg} must be one of: 
 \begin{description}
@@ -385,7 +386,7 @@ This method of solution is comparable to the technique used by the \textbf{srvn}
 \end{description}
 The default is batched.
 \item[\optarg{mol-underrelaxation}{=\emph{arg}}]~\\
-Set the under-relaxation factor to \emph{arg} for the MOL multiserver approximation.
+Set the under-relaxation factor to \emph{arg}\index{multiserver!MOL} for the MOL (Rolia) multiserver approximation.  If the approximation is failing, lower this value.
 \emph{Arg} must be a number between 0.0 and 1.0.
 The default value is 0.5.
 \item[\optarg{multiserver}{=\emph{arg}}]~\\
@@ -412,7 +413,7 @@ experimental.
 The default multiserver\index{multiserver!default} calculation uses the the Conway multiserver for multiservers with less than five servers, and the Rolia multiserver otherwise.
 
 \item[\optarg{mva}{=\emph{arg}}]~\\
-This pragma is used to choose the MVA\index{MVA} algorithm used to solve the submodels.
+This pragma is used to choose the MVA\index{MVA!algorithm} algorithm used to solve the submodels.
 \emph{Arg} must be one of: 
 \begin{description}
 \item[\optarg{exact-mva}{}]
@@ -589,10 +590,10 @@ value supplied is the same as the default.
     Forwarding\index{ forwarding} & yes\\
     Multi-servers\index{ multi-server} & yes\\
     Infinite-servers\index{ infinite server} & yes\\
-    Max Entries\index{ entry!maximum} & 1000\\
-    Max Tasks\index{ task!maximum} & 1000\\
-    Max Processors\index{ processor!maximum} & 1000\\
-    Max Entries per Task & 1000\\
+    Max Entries\index{ entry!maximum} & unlimited\\
+    Max Tasks\index{ task!maximum} & unlimited\\
+    Max Processors\index{ processor!maximum} & unlimited\\
+    Max Entries per Task & unlimited\\
     \hline
   \end{tabular}
   \caption{\label{tab:lqns-model-limits}LQNS Model Limits\index{limits!lqns}.}

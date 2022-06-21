@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 15680 2022-06-21 18:23:52Z greg $
+ * $Id: help.cc 15682 2022-06-21 18:37:02Z greg $
  */
 
 #include "lqns.h"
@@ -1007,10 +1007,7 @@ Help::flagTrace( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::flagTraceMVA( std::ostream& output, bool verbose ) const
 {
-    output << "Output the inputs and results of each MVA submodel for every iteration of the solver." << std::endl
-	   << "The optional argument is a bit set of the submodels to output.  Submodel 1 is 0x1, " << std::endl
-	   << "submodel 2 is 0x2, submodel 3 is 0x4, etc.  By default all submodels are traced." << std::endl;
-    return output;
+    return traceMVA( output, verbose );
 }
 
 std::ostream&
@@ -1228,11 +1225,12 @@ Help::traceJoins( std::ostream & output, bool verbose ) const
 }
 
 std::ostream&
-Help::traceMva( std::ostream & output, bool verbose ) const
+Help::traceMVA( std::ostream & output, bool verbose ) const
 {
-    output << "Print out the MVA submodel and its solution." << std::endl;
+    output << "Output the inputs and results of each MVA submodel for every iteration of the solver." << ix( *this, "MVA!trace" ) << std::endl;
     if ( verbose ) {
-	output << "A numeric argument supplied to this option will print out only the specified MVA submodel, otherwise, all submodels will be printed." << std::endl;
+	output << "The optional argument is a bit set of the submodels to output.  Submodel 1 is 0x1, " << std::endl
+	       << "submodel 2 is 0x2, submodel 3 is 0x4, etc.  By default all submodels are traced." << std::endl;
     }
     return output;
 }
@@ -1957,7 +1955,8 @@ Help::pragmaStopOnMessageLoss( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::pragmaStopOnMessageLossFalse( std::ostream& output, bool verbose ) const
 {
-    output << "Ignore queue overflows" << ix( *this, "overflow" ) << " for open arrivals" << ix( *this, "open arrival!overflow" ) << " and send-no-reply" << ix( *this, "send-no-reply!overflow" ) << " requests.  If a queue overflows, its waiting times is reported as infinite." << ix( *this, "infinity" ) << "";
+    output << "Ignore queue overflows" << ix( *this, "overflow" ) << " for open arrivals" << ix( *this, "open arrival!overflow" ) << " and send-no-reply"
+	   << ix( *this, "send-no-reply!overflow" ) << " requests.  If a queue overflows, its waiting times is reported as infinite." << ix( *this, "infinity" ) << "";
     return output;
 }
 
@@ -2223,7 +2222,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 15680 2022-06-21 18:23:52Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 15682 2022-06-21 18:37:02Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2522,7 +2521,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 15680 2022-06-21 18:23:52Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 15682 2022-06-21 18:37:02Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

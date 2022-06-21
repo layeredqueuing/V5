@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 15677 2022-06-21 14:56:19Z greg $
+ * $Id: help.h 15682 2022-06-21 18:37:02Z greg $
  */
 
 #ifndef _HELP_H
@@ -205,7 +205,7 @@ public:
     std::ostream& traceInterlock( std::ostream & output, bool verbose ) const;
     std::ostream& traceIntermediate( std::ostream & output, bool verbose ) const;
     std::ostream& traceJoins( std::ostream & output, bool verbose ) const;
-    std::ostream& traceMva( std::ostream & output, bool verbose ) const;
+    std::ostream& traceMVA( std::ostream & output, bool verbose ) const;
     std::ostream& traceOvertaking( std::ostream & output, bool verbose ) const;
     std::ostream& traceQuorum( std::ostream & output, bool verbose ) const;
     std::ostream& traceReplication( std::ostream & output, bool verbose ) const;

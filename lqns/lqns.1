@@ -1,6 +1,6 @@
 .\" t -*- nroff -*-
 .TH lqns 1 "21 June 2022" "5.27"
-.\" $Id: lqns.1 15677 2022-06-21 14:56:19Z greg $
+.\" $Id: lqns.1 15683 2022-06-21 18:38:42Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -126,7 +126,7 @@ By default, if the suffix of the input filename is one of: \fI.in\fP, \fI.lqn\fP
 Generate JSON output regardless of input format.
 .TP
 \fB\-M\fP, \fB\-\-mol-underrelaxation\fR=\fIarg\fR
-Set the under-relaxation factor to \fIarg\fP for the MOL multiserver approximation.
+Set the under-relaxation factor to \fIarg\fP for the MOL (Rolia) multiserver approximation.  If the approximation is failing, lower this value.
 \fIArg\fP must be a number between 0.0 and 1.0.
 The default value is 0.5.
 .TP
@@ -189,8 +189,9 @@ The print interval field in the input is ignored otherwise.
 Print out computed join delay and join overlap table prior to submodel solution.
 .TP
 \fBmva\fR=\fIarg\fR
-Print out the MVA submodel and its solution.
-A numeric argument supplied to this option will print out only the specified MVA submodel, otherwise, all submodels will be printed.
+Output the inputs and results of each MVA submodel for every iteration of the solver.
+The optional argument is a bit set of the submodels to output.  Submodel 1 is 0x1, 
+submodel 2 is 0x2, submodel 3 is 0x4, etc.  By default all submodels are traced.
 .TP
 \fBovertaking\fR
 Print out overtaking calculations.
@@ -396,7 +397,7 @@ The default is no.
 .RE
 .TP
 \fBforce-infinite\fR=\fIarg\fR
-This pragma is used to force the use of a infinite
+This pragma is used to force the use of an infinite
 server instead of a fixed-rate server and/or multiserver for all the tasks in the model.
 \fIArg\fP must be one of: 
 .RS
@@ -496,7 +497,7 @@ The default is batched.
 .RE
 .TP
 \fBmol-underrelaxation\fR=\fIarg\fR
-Set the under-relaxation factor to \fIarg\fP for the MOL multiserver approximation.
+Set the under-relaxation factor to \fIarg\fP for the MOL (Rolia) multiserver approximation.  If the approximation is failing, lower this value.
 \fIArg\fP must be a number between 0.0 and 1.0.
 The default value is 0.5.
 .TP
@@ -809,22 +810,22 @@ T}
 T{
 Max Entries
 T}&T{
-1000
+unlimited
 T}
 T{
 Max Tasks
 T}&T{
-1000
+unlimited
 T}
 T{
 Max Processors
 T}&T{
-1000
+unlimited
 T}
 T{
 Max Entries per Task
 T}&T{
-1000
+unlimited
 T}
 _
 .TE

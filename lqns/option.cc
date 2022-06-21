@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 15677 2022-06-21 14:56:19Z greg $
+ * $Id: option.cc 15682 2022-06-21 18:37:02Z greg $
  */
 
 #include "lqns.h"
@@ -133,7 +133,7 @@ std::map<const std::string, const Options::Trace> Options::Trace::__table =
     { "interlock",     Trace( &Trace::interlock,      false, &Help::traceInterlock ) },
     { "intermediate",  Trace( &Trace::intermediate,   false, &Help::traceIntermediate ) },
     { "joins",	       Trace( &Trace::joins,          false, &Help::traceJoins ) },
-    { "mva",	       Trace( &Trace::mva,            true,  &Help::traceMva ) },
+    { "mva",	       Trace( &Trace::mva,            true,  &Help::traceMVA ) },
     { "overtaking",    Trace( &Trace::overtaking,     false, &Help::traceOvertaking ) },
     { "quorum",        Trace( &Trace::quorum,         false, &Help::traceQuorum ) },
     { "replication",   Trace( &Trace::replication,    false, &Help::traceReplication ) },
