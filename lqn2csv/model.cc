@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 15647 2022-06-05 10:46:05Z greg $
+ * $Id: model.cc 15674 2022-06-15 21:51:46Z greg $
  *
  * Command line processing.
  *
@@ -71,14 +71,13 @@ const std::map<Model::Result::Type,Model::Result::result_fields> Model::Result::
     { Model::Result::Type::THROUGHPUT_BOUND,           { Model::Object::Type::ENTRY,         "Bound",       "bond", &LQIO::DOM::DocumentObject::getResultThroughputBound     } }
 };
 
-const std::map<Model::Object::Type, const std::string> Model::Object::__object_type =
-{
-    { Model::Object::Type::ACTIVITY,  "Activity"  },
-    { Model::Object::Type::ENTRY,     "Entry"     },
-    { Model::Object::Type::JOIN,      "Join"      },
-    { Model::Object::Type::PHASE,     "Phase"     },
-    { Model::Object::Type::PROCESSOR, "Processor" },
-    { Model::Object::Type::TASK,      "Task"      }
+const std::map<const Model::Object::Type,const std::pair<const std::string,const std::string>> Model::Object::__object_type = {
+    { Model::Object::Type::ACTIVITY,  { "Activity",  "Act"   } },
+    { Model::Object::Type::ENTRY,     { "Entry",     "Entry" } },
+    { Model::Object::Type::JOIN,      { "Join",      "Join"  } },
+    { Model::Object::Type::PHASE,     { "Phase",     "Phase" } },
+    { Model::Object::Type::PROCESSOR, { "Processor", "Proc"  } },
+    { Model::Object::Type::TASK,      { "Task",      "Task"  } }
 };
 
 bool Model::Result::isIndependentVariable( Model::Result::Type type )
@@ -318,7 +317,8 @@ Model::Result::equal( Model::Result::Type type_1, Model::Result::Type type_2 )
 const std::string&
 Model::Result::getObjectType( const std::pair<std::string,Model::Result::Type>& result )
 {
-    return Model::Object::__object_type.at(__results.at(result.second).type);
+    if ( precision == 0 || 5 < precision ) return Model::Object::__object_type.at(__results.at(result.second).type).first;
+    else return Model::Object::__object_type.at(__results.at(result.second).type).second;
 }
 
 const std::string&

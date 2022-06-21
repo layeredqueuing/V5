@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 15624 2022-06-02 01:57:44Z greg $
+ * $Id: help.cc 15677 2022-06-21 14:56:19Z greg $
  */
 
 #include "lqns.h"
@@ -50,6 +50,7 @@ static const std::map<const std::string,const std::string> opt_help = {
     { "rtf",					"Output results in Rich Text Format instead of plain text." },
     { "trace",					"Trace solver operation.  See -Ht." },
     { LQIO::DOM::Pragma::_underrelaxation_,	"Set the under-relaxation value to <n.n>." },
+    { LQIO::DOM::Pragma::_mol_underrelaxation_, "Set the under-relaxation value for the MOL multiserver approximation to <n.n>." },
     { "verbose",				"Output on standard error the progress of the solver." },
     { "version",				"Print the version of the solver." },
     { "no-warnings",				"Do not output warning messages." },
@@ -98,6 +99,7 @@ const std::map<const int,const Help::help_fptr> Help::__option_table =
     { 'I',	&Help::flagInputFormat },
     { 'i',	&Help::flagIterationLimit },
     { 'j',	&Help::flagJSON },
+    { 'M',	&Help::flagMOLUnderrelaxation },
     { 'n',	&Help::flagNoExecute },
     { 'o',	&Help::flagOutput },
     { 'p',	&Help::flagParseable },
@@ -142,11 +144,14 @@ const std::map<const int,const Help::help_fptr> Help::__option_table =
 
 const Help::pragma_map_t Help::__pragmas =
 {
+    { LQIO::DOM::Pragma::_convergence_value_,       pragma_info( &Help::pragmaConvergenceValue ) },
     { LQIO::DOM::Pragma::_cycles_,		    pragma_info( &Help::pragmaCycles, &__cycles_args ) },
     { LQIO::DOM::Pragma::_force_infinite_,	    pragma_info( &Help::pragmaForceInfinite, &__force_infinite_args ) },
     { LQIO::DOM::Pragma::_force_multiserver_,	    pragma_info( &Help::pragmaForceMultiserver, &__force_multiserver_args ) },
     { LQIO::DOM::Pragma::_interlocking_,	    pragma_info( &Help::pragmaInterlock, &__interlock_args ) },
+    { LQIO::DOM::Pragma::_iteration_limit_,         pragma_info( &Help::pragmaIterationLimit ) },
     { LQIO::DOM::Pragma::_layering_,		    pragma_info( &Help::pragmaLayering, &__layering_args ) },
+    { LQIO::DOM::Pragma::_mol_underrelaxation_,     pragma_info( &Help::pragmaMOLUnderrelaxation ) },
     { LQIO::DOM::Pragma::_multiserver_,		    pragma_info( &Help::pragmaMultiserver, &__multiserver_args ) },
     { LQIO::DOM::Pragma::_mva_,			    pragma_info( &Help::pragmaMVA, &__mva_args ) },
     { LQIO::DOM::Pragma::_overtaking_,		    pragma_info( &Help::pragmaOvertaking, &__overtaking_args ) },
@@ -166,6 +171,7 @@ const Help::pragma_map_t Help::__pragmas =
     { LQIO::DOM::Pragma::_stop_on_message_loss_,    pragma_info( &Help::pragmaStopOnMessageLoss, &__stop_on_message_loss_args ) },
     { LQIO::DOM::Pragma::_tau_,			    pragma_info( &Help::pragmaTau ) },
     { LQIO::DOM::Pragma::_threads_,		    pragma_info( &Help::pragmaThreads, &__threads_args ) },
+    { LQIO::DOM::Pragma::_underrelaxation_,         pragma_info( &Help::pragmaUnderrelaxation ) },
     { LQIO::DOM::Pragma::_variance_,		    pragma_info( &Help::pragmaVariance, &__variance_args ) },
 };
 
@@ -328,6 +334,7 @@ usage ( const char * optarg )
 		s += o->name;
 		switch ( o->val ) {
 		case 'c':
+		case 'M':
 		case 'u':
 		    s += "=<n.n>";
 		    break;
@@ -373,13 +380,18 @@ usage ( const char * optarg )
 	    s += *o;
 	    if ( *(o+1) == ':' ) {
 		switch ( *o ) {
-		default:  s += "<file>"; break;
-		case 'H': s += "[dztP]"; break;
-		case 'd': s += "<debug>"; break;
-		case 'e': s += "[adiw]"; break;
-		case 't': s += "<trace>"; break;
-		case 'z': s += "<special>"; break;
-		case 'P': s += "<pragma>"; break;
+		case 'c': /* Fall through */
+		case 'M': /* Fall through */
+		case 'u': s += "=<n.n>"; break;
+		case 'I': s += "=<ARG>"; break;
+		case 'H': s += "=[dztP]"; break;
+		case 'P': s += "=<pragma>"; break;
+		case 'd': s += "=<debug>"; break;
+		case 'e': s += "=[adiw]"; break;
+		case 'o': s += "=FILE"; break;
+		case 't': s += "=<trace>"; break;
+		case 'z': s += "=<special>"; break;
+		case 'i': s += "=<n>";
 		}
 		++o;	/* Skip ':' */
 	    }
@@ -633,9 +645,7 @@ Help::flagBound( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::flagConvergence( std::ostream& output, bool verbose ) const
 {
-    help_fptr f = Options::Special::__table["convergence-value"].help();
-    (this->*f)(output,verbose) << ix( *this, "convergence!value" );
-    return output;
+    return pragmaConvergenceValue( output, verbose );
 }
 
 std::ostream&
@@ -779,9 +789,7 @@ Help::flagInputFormat( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::flagIterationLimit( std::ostream& output, bool verbose ) const
 {
-    help_fptr f = Options::Special::__table["iteration-limit"].help();
-    (this->*f)(output,verbose);
-    return output;
+    return pragmaIterationLimit( output, verbose );
 }
 
 std::ostream&
@@ -796,6 +804,12 @@ Help::flagMethoOfLayers( std::ostream& output, bool verbose ) const
 {
     output << "This option is to use the Method Of Layers solution approach to solving the layer submodels." << std::endl;
     return output;
+}
+
+std::ostream&
+Help::flagMOLUnderrelaxation( std::ostream& output, bool verbose ) const
+{
+    return pragmaMOLUnderrelaxation( output, verbose );
 }
 
 std::ostream&
@@ -1000,9 +1014,7 @@ Help::flagTraceMVA( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::flagUnderrelaxation( std::ostream& output, bool verbose ) const
 {
-    help_fptr f = Options::Special::__table[LQIO::DOM::Pragma::_underrelaxation_].help();
-    (this->*f)(output,verbose);
-    return output;
+    return pragmaUnderrelaxation( output, verbose );
 }
 
 std::ostream&
@@ -1269,16 +1281,6 @@ Help::traceWait( std::ostream & output, bool verbose ) const
 }
 
 std::ostream&
-Help::specialIterationLimit( std::ostream & output, bool verbose ) const
-{
-    output << "Set the maximum number of iterations to " << emph( *this, "arg" ) << "." << std::endl;
-    if ( verbose ) {
-	output << emph( *this, "Arg" ) << " must be an integer greater than 0.  The default value is 50." << std::endl;
-    }
-    return output;
-}
-
-std::ostream&
 Help::specialPrintInterval( std::ostream & output, bool verbose ) const
 {
     output << "Set the printing interval to " << emph( *this, "arg" ) << "." << std::endl;
@@ -1297,32 +1299,11 @@ Help::specialOvertaking( std::ostream & output, bool verbose ) const
 }
 
 std::ostream&
-Help::specialConvergenceValue( std::ostream & output, bool verbose ) const
-{
-    output << "Set the convergence value to " << emph( *this, "arg" ) << ".  " << std::endl;
-    if ( verbose ) {
-	output << emph( *this, "Arg" ) << " must be a number between 0.0 and 1.0." << std::endl;
-    }
-    return output;
-}
-
-std::ostream&
 Help::specialSingleStep( std::ostream & output, bool verbose ) const
 {
     output << "Stop after each MVA submodel is solved." << std::endl;
     if ( verbose ) {
 	output << "Any character typed at the terminal except end-of-file will resume the calculation.  End-of-file will cancel single-stepping altogether." << std::endl;
-    }
-    return output;
-}
-
-std::ostream&
-Help::specialUnderrelaxation( std::ostream & output, bool verbose ) const
-{
-    output << "Set the underrelaxation to " << emph( *this, "arg" ) << "." << std::endl;
-    if ( verbose ) {
-	output << emph( *this, "Arg" ) << " must be a number between 0.0 and 1.0." << std::endl
-	       << "The default value is 0.9." << std::endl;
     }
     return output;
 }
@@ -1334,17 +1315,6 @@ Help::specialGenerateQueueingModel( std::ostream & output, bool verbose ) const
     if ( verbose ) {
 	output << "A directory named " << emph( *this, "arg" )
 	       << " will be created containing source code for invoking the MVA solver directly."  << std::endl;
-    }
-    return output;
-}
-
-std::ostream&
-Help::specialMolMSUnderrelaxation( std::ostream & output, bool verbose ) const
-{
-    output << "Set the under-relaxation factor to " << emph( *this, "arg" ) << " for the MOL multiserver approximation." << std::endl;
-    if ( verbose ) {
-	output << emph( *this, "Arg" ) << " must be a number between 0.0 and 1.0." << std::endl
-	       << "The default value is 0.5.";
     }
     return output;
 }
@@ -1395,6 +1365,16 @@ Help::specialFullReinitialize( std::ostream & output, bool verbose ) const
 }
 
 std::ostream&
+Help::pragmaConvergenceValue( std::ostream & output, bool verbose ) const
+{
+    output << "Set the convergence value to " << emph( *this, "arg" ) << ".  " << std::endl;
+    if ( verbose ) {
+	output << emph( *this, "Arg" ) << " must be a number between 0.0 and 1.0." << std::endl;
+    }
+    return output;
+}
+
+std::ostream&
 Help::pragmaCycles( std::ostream& output, bool verbose ) const
 {
     output << "This pragma is used to enable or disable cycle detection" << ix( *this, "cycle!detection" ) << " in the call" << std::endl
@@ -1432,10 +1412,31 @@ Help::pragmaInterlock( std::ostream& output, bool verbose ) const
 }
 
 std::ostream&
+Help::pragmaIterationLimit( std::ostream & output, bool verbose ) const
+{
+    output << "Set the maximum number of iterations to " << emph( *this, "arg" ) << "." << std::endl;
+    if ( verbose ) {
+	output << emph( *this, "Arg" ) << " must be an integer greater than 0.  The default value is 50." << std::endl;
+    }
+    return output;
+}
+
+std::ostream&
 Help::pragmaLayering( std::ostream& output, bool verbose ) const
 {
     output << "This pragma is used to select the layering strategy" << ix( *this, "layering!strategy" ) << " used by the solver." << std::endl
 	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaMOLUnderrelaxation( std::ostream & output, bool verbose ) const
+{
+    output << "Set the under-relaxation factor to " << emph( *this, "arg" ) << " for the MOL multiserver approximation." << std::endl;
+    if ( verbose ) {
+	output << emph( *this, "Arg" ) << " must be a number between 0.0 and 1.0." << std::endl
+	       << "The default value is 0.5." << std::endl;
+    }
     return output;
 }
 
@@ -1546,6 +1547,17 @@ Help::pragmaThreads( std::ostream& output, bool verbose ) const
 {
     output << "This pragma is used to change the behaviour of the solver when solving" << std::endl
 	   << "models with fork-join" << ix( *this, "fork" ) << ix( *this, "join" ) << " interactions." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaUnderrelaxation( std::ostream & output, bool verbose ) const
+{
+    output << "Set the underrelaxation to " << emph( *this, "arg" ) << "." << std::endl;
+    if ( verbose ) {
+	output << emph( *this, "Arg" ) << " must be a number between 0.0 and 1.0." << std::endl
+	       << "The default value is 0.9." << std::endl;
+    }
     return output;
 }
 
@@ -2157,7 +2169,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 15624 2022-06-02 01:57:44Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 15677 2022-06-21 14:56:19Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2456,7 +2468,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 15624 2022-06-02 01:57:44Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 15677 2022-06-21 14:56:19Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

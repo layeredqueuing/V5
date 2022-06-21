@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15666 2022-06-10 10:38:00Z greg $
+ * $Id: lqns.cc 15677 2022-06-21 14:56:19Z greg $
  *
  * Command line processing.
  *
@@ -62,11 +62,12 @@ const struct option longopts[] =
     { "debug",					required_argument, nullptr, 'd' },
     { "error",					required_argument, nullptr, 'e' },
     { LQIO::DOM::Pragma::_fast_,		no_argument,	   nullptr, 'f' },
-    { "help",					optional_argument, nullptr, 'H' },
     { "huge",					no_argument,	   nullptr, 'h' },
+    { "help",					optional_argument, nullptr, 'H' },
     { LQIO::DOM::Pragma::_iteration_limit_,	required_argument, nullptr, 'i' },
-    { "json",					no_argument,	   nullptr, 'j' },
     { "input-format",				required_argument, nullptr, 'I' },
+    { "json",					no_argument,	   nullptr, 'j' },
+    { LQIO::DOM::Pragma::_mol_underrelaxation_, required_argument, nullptr, 'M' },
     { "no-execute",				no_argument,	   nullptr, 'n' },
     { "output",					required_argument, nullptr, 'o' },
     { "parseable",				no_argument,	   nullptr, 'p' },
@@ -110,7 +111,7 @@ const struct option longopts[] =
 #else
 const struct option * longopts = nullptr;
 #endif
-const char opts[]       = "abc:d:e:fhH:i:I:jno:pP:rt:u:vVwxz:";
+const char opts[]       = "abc:d:e:fhH:i:I:jM:no:pP:rt:u:vVwxz:";
 
 static void init_flags ();
 
@@ -139,7 +140,7 @@ int main (int argc, char *argv[])
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2022-06-10 06:38:00 -0400 (Fri, 10 Jun 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-06-21 10:56:19 -0400 (Tue, 21 Jun 2022) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = FP_IMMEDIATE_ABORT;
 
@@ -160,7 +161,7 @@ int main (int argc, char *argv[])
 	try {
 	    switch ( c ) {
 	    case 'a':
-		pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_run_time_);
+		pragmas.insert( LQIO::DOM::Pragma::_severity_level_, LQIO::DOM::Pragma::_run_time_ );
 		break;
 
 	    case 'b':
@@ -171,7 +172,7 @@ int main (int argc, char *argv[])
 		break;
 
 	    case 'c':
-		Options::Special::convergence_value( optarg );
+		pragmas.insert( LQIO::DOM::Pragma::_convergence_value_, optarg != nullptr ? optarg : std::string("") );
 		break;
 
 	    case 512+'c':
@@ -262,7 +263,7 @@ int main (int argc, char *argv[])
 		break;
 
 	    case 'i':
-		Options::Special::iteration_limit( optarg );
+		pragmas.insert( LQIO::DOM::Pragma::_iteration_limit_, optarg != nullptr ? optarg : std::string("") );
 		break;
 
 	    case 'j':
@@ -277,6 +278,10 @@ int main (int argc, char *argv[])
 		LQIO::DOM::Document::lqx_parser_trace(stderr);
 		break;
 
+	    case 'M':
+		pragmas.insert( LQIO::DOM::Pragma::_mol_underrelaxation_, optarg != nullptr ? optarg : std::string("") );
+		break;
+		
 	    case 256+'m':
 		pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_mol_);
 		break;
@@ -363,7 +368,7 @@ int main (int argc, char *argv[])
 		break;
 
 	    case 'u':
-		Options::Special::underrelaxation( optarg );
+		pragmas.insert( LQIO::DOM::Pragma::_underrelaxation_, optarg != nullptr ? optarg : std::string("") );
 		break;
 
 	    case 'v':

@@ -1,6 +1,6 @@
 .\" t -*- nroff -*-
-.TH lqns 1 "27 May 2022" "5.26"
-.\" $Id: lqns.1 15600 2022-05-27 15:32:49Z greg $
+.TH lqns 1 "21 June 2022" "5.27"
+.\" $Id: lqns.1 15677 2022-06-21 14:56:19Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -107,23 +107,28 @@ In some instances, infinities  will be propogated within the solver.  Please ref
 This option is used to set options for quick solution of a model using One-Step (Bard-Schweitzer) MVA.
 It is equivalent to setting \fBpragma\fP \fImva\fP=\fIone-step\fP, \fIlayering\fP=\fIbatched\fP, \fImultiserver\fP=\fIconway\fP
 .TP
-\fB\-H\fP, \fB\-\-help\fR=\fIarg\fR
-Print a summary of the command line options.  The optional argument shows help for -d, -t, -z, and -P respectively.
-.TP
 \fB\-h\fP, \fB\-\-huge\fR
 Solve using one-step-schweitzer, no interlocking, and Rolia multiserver.
+.TP
+\fB\-H\fP, \fB\-\-help\fR=\fIarg\fR
+Print a summary of the command line options.  The optional argument shows help for -d, -t, -z, and -P respectively.
 .TP
 \fB\-i\fP, \fB\-\-iteration-limit\fR=\fIarg\fR
 Set the maximum number of iterations to \fIarg\fP.
 \fIArg\fP must be an integer greater than 0.  The default value is 50.
 .TP
-\fB\-j\fP, \fB\-\-json\fR
-Generate JSON output regardless of input format.
-.TP
 \fB\-I\fP, \fB\-\-input-format\fR=\fIarg\fR
 This option is used to force the input file format to either \fIxml\fP or \fIlqn\fP.
 By default, if the suffix of the input filename is one of: \fI.in\fP, \fI.lqn\fP or \fI.xlqn\fP
 , then the LQN parser will be used.  Otherwise, input is assumed to be XML.
+.TP
+\fB\-j\fP, \fB\-\-json\fR
+Generate JSON output regardless of input format.
+.TP
+\fB\-M\fP, \fB\-\-mol-underrelaxation\fR=\fIarg\fR
+Set the under-relaxation factor to \fIarg\fP for the MOL multiserver approximation.
+\fIArg\fP must be a number between 0.0 and 1.0.
+The default value is 0.5.
 .TP
 \fB\-n\fP, \fB\-\-no-execute\fR
 Build the model, but do not solve.The input is checked for validity but no output is generated.
@@ -164,7 +169,7 @@ This option is useful for tracking the rate of convergence for a model.
 The optional numeric argument supplied to this option will print out the convergence value for the specified MVA submodel, otherwise,
 the convergence value for all submodels will be printed.
 .TP
-\fBdelta_wait\fR
+\fBdelta-wait\fR
 Print out difference in entry service time after each submodel is solved.
 .TP
 \fBforks\fR
@@ -232,20 +237,12 @@ This option is used to select special options.  Arguments of the form
 numbers.  \fIArg\fP can be any of the following:
 .RS
 .TP
-\fBconvergence-value\fR=\fIarg\fR
-Set the convergence value to \fIarg\fP.  
-\fIArg\fP must be a number between 0.0 and 1.0.
-.TP
 \fBfull-reinitialize\fR
 For multiple runs, reinitialize all service times at processors.
 .TP
 \fBgenerate\fR=\fIarg\fR
 This option is used to generate a queueing model for solver in the directory \fIarg\fP.
 A directory named \fIarg\fP will be created containing source code for invoking the MVA solver directly.
-.TP
-\fBiteration-limit\fR=\fIarg\fR
-Set the maximum number of iterations to \fIarg\fP.
-\fIArg\fP must be an integer greater than 0.  The default value is 50.
 .TP
 \fBman\fR=\fIarg\fR
 Output this manual page.  
@@ -256,10 +253,6 @@ Otherwise, output is sent to stdout.
 \fBmin-steps\fR=\fIarg\fR
 Force the solver to iterate min-steps times.
 .TP
-\fBmol-underrelaxation\fR=\fIarg\fR
-Set the under-relaxation factor to \fIarg\fP for the MOL multiserver approximation.
-\fIArg\fP must be a number between 0.0 and 1.0.
-The default value is 0.5..TP
 \fBovertaking\fR
 Print out overtaking probabilities.
 .TP
@@ -277,11 +270,6 @@ Output this manual page in LaTeX format.
 If an optional \fIarg\fP
 is supplied, output will be written to the file named \fIarg\fP.
 Otherwise, output is sent to stdout.
-.TP
-\fBunderrelaxation\fR=\fIarg\fR
-Set the underrelaxation to \fIarg\fP.
-\fIArg\fP must be a number between 0.0 and 1.0.
-The default value is 0.9.
 If any one of \fIconvergence\fP, \fIiteration-limit\fP, or\fIprint-interval\fP are used as arguments, the corresponding 
 value specified in the input file for general information, `G', is
 ignored.  
@@ -294,7 +282,7 @@ Use exact MVA instead of Linearizer for solving submodels.
 Use Bard-Schweitzer approximate MVA to solve all submodels.
 .TP
 \fB\-\-batch-layering\fR
-Default layering strategy.
+Default layering strategy where a submodel consists of the servers at a layer and each server's clients.
 .TP
 \fB\-\-hwsw-layering\fR
 Use HW/SW layering instead of batched layering.
@@ -340,8 +328,18 @@ Output the intermediate solution of the model after <n> iterations.
 \fB\-\-reset-mva\fR
 Reset the MVA calculation prior to solving a submodel.
 .TP
-\fB\-\-trace-mva\fR
+\fB\-\-trace-mva\fR=\fIarg\fR
 Output the inputs and results of each MVA submodel for every iteration of the solver.
+The optional argument is a bit set of the submodels to output.  Submodel 1 is 0x1, 
+submodel 2 is 0x2, submodel 3 is 0x4, etc.  By default all submodels are traced.
+.TP
+\fB\-\-debug-submodels\fR
+Print out submodels. <n> is a 64 bit number where the bit position is the submodel output.The output for each submodel consists of the number of customers for closed classes, closed class clients, 
+closed class servers, open class servers, and the calls from clients to servers in the submodel.
+Calls are shown from entries to entries, or from tasks to processors.
+Synchronous calls are shown using , 
+asynchronous calls are shownn using , and 
+processor calls are shown using .
 .TP
 \fB\-\-debug-json\fR
 Output JSON elements and attributes as they are being parsed.   Since the JSON parser usually stops when it encounters an error,
@@ -377,6 +375,10 @@ following pragmas are supported.  Invalid pragma specification at the
 command line will stop the solver.  Invalid pragmas defined in the
 environment variable or in the input file are ignored as they might be
 used by other solvers.
+.TP
+\fBconvergence-value\fR=\fIarg\fR
+Set the convergence value to \fIarg\fP.  
+\fIArg\fP must be a number between 0.0 and 1.0.
 .TP
 \fBcycles\fR=\fIarg\fR
 This pragma is used to enable or disable cycle detection in the call
@@ -457,6 +459,10 @@ Perform interlocking by adjusting throughputs.
 The default is yes.
 .RE
 .TP
+\fBiteration-limit\fR=\fIarg\fR
+Set the maximum number of iterations to \fIarg\fP.
+\fIArg\fP must be an integer greater than 0.  The default value is 50.
+.TP
 \fBlayering\fR=\fIarg\fR
 This pragma is used to select the layering strategy used by the solver.
 \fIArg\fP must be one of: 
@@ -488,6 +494,11 @@ This method of solution is comparable to the technique used by the \fBsrvn\fP so
 .LP
 The default is batched.
 .RE
+.TP
+\fBmol-underrelaxation\fR=\fIarg\fR
+Set the under-relaxation factor to \fIarg\fP for the MOL multiserver approximation.
+\fIArg\fP must be a number between 0.0 and 1.0.
+The default value is 0.5.
 .TP
 \fBmultiserver\fR=\fIarg\fR
 This pragma is used to choose the algorithm for solving multiservers.

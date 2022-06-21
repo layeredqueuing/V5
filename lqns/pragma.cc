@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15658 2022-06-08 18:00:22Z greg $ *
+ * $Id: pragma.cc 15677 2022-06-21 14:56:19Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -22,15 +22,15 @@ LQIO::DOM::Pragma pragmas;
 Pragma * Pragma::__cache = nullptr;
 const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
 {
-    { LQIO::DOM::Pragma::_cycles_,			&Pragma::setAllowCycles },
     { LQIO::DOM::Pragma::_convergence_value_,		&Pragma::setConvergenceValue },
+    { LQIO::DOM::Pragma::_cycles_,			&Pragma::setAllowCycles },
     { LQIO::DOM::Pragma::_force_infinite_,		&Pragma::setForceInfinite },
     { LQIO::DOM::Pragma::_force_multiserver_,		&Pragma::setForceMultiserver },
     { LQIO::DOM::Pragma::_interlocking_,		&Pragma::setInterlock },
     { LQIO::DOM::Pragma::_iteration_limit_,		&Pragma::setIterationLimit },
     { LQIO::DOM::Pragma::_layering_,			&Pragma::setLayering },
-    { LQIO::DOM::Pragma::_multiserver_,			&Pragma::setMultiserver },
     { LQIO::DOM::Pragma::_mol_underrelaxation_,		&Pragma::setMOLUnderrelaxation },
+    { LQIO::DOM::Pragma::_multiserver_,			&Pragma::setMultiserver },
     { LQIO::DOM::Pragma::_mva_,				&Pragma::setMva },
     { LQIO::DOM::Pragma::_overtaking_,			&Pragma::setOvertaking },
     { LQIO::DOM::Pragma::_processor_scheduling_,	&Pragma::setProcessorScheduling },
@@ -117,6 +117,9 @@ Pragma::set( const std::map<std::string,std::string>& list )
 	    catch ( const std::domain_error& e ) {
 		LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
 	    }
+	    catch ( const std::invalid_argument& e ) {
+		LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
+	    }
 	}
     }
 }
@@ -149,7 +152,7 @@ void Pragma::setForceInfinite(const std::string& value)
     if ( pragma != __force_infinite_pragma.end() ) {
 	_force_infinite = pragma->second;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 
@@ -168,7 +171,7 @@ void Pragma::setForceMultiserver(const std::string& value)
     } else if ( LQIO::DOM::Pragma::isTrue( value ) ) {
 	_force_multiserver = ForceMultiserver::ALL;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 
@@ -217,7 +220,7 @@ void Pragma::setLayering(const std::string& value)
 	/* NOP */
 #endif
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 
@@ -250,7 +253,7 @@ void Pragma::setMultiserver(const std::string& value)
     } else if ( value == LQIO::DOM::Pragma::_default_ ) {
 	_multiserver = Multiserver::DEFAULT;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 
@@ -269,7 +272,7 @@ void Pragma::setMva(const std::string& value)
     if ( pragma != __mva_pragma.end() ) {
 	_mva = pragma->second;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 
@@ -288,7 +291,7 @@ void Pragma::setOvertaking(const std::string& value)
     if ( pragma != __overtaking_pragma.end() ) {
 	_overtaking = pragma->second;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 
@@ -311,7 +314,7 @@ void Pragma::setProcessorScheduling(const std::string& value)
     } else if ( value == LQIO::DOM::Pragma::_default_ ) {
 	_default_processor_scheduling = true;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 
@@ -330,7 +333,7 @@ void Pragma::setQuorumDistribution(const std::string& value)
     if ( pragma != __quorum_distribution_pragma.end() ) {
 	_quorum_distribution = pragma->second;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 
@@ -349,7 +352,7 @@ void Pragma::setQuorumDelayedCalls(const std::string& value)
     if ( pragma != __quorum_delayed_calls_pragma.end() ) {
 	_quorum_delayed_calls = pragma->second;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 
@@ -365,7 +368,7 @@ void Pragma::setQuorumIdleTime(const std::string& value)
     if ( pragma != __quorum_idle_time_pragma.end() ) {
 	_quorum_idle_time = pragma->second;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 #endif
@@ -385,7 +388,7 @@ void Pragma::setReplication(const std::string& value)
     if ( pragma != __replication_pragma.end() ) {
 	_replication = pragma->second;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 
@@ -447,7 +450,7 @@ void Pragma::setTaskScheduling(const std::string& value)
     } else if ( value == LQIO::DOM::Pragma::_default_ ) {
 	_default_task_scheduling = true;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 
@@ -480,7 +483,7 @@ void Pragma::setThreads(const std::string& value)
     } else if ( value == LQIO::DOM::Pragma::_exponential_ ) {
 	_exponential_paths = true;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 
@@ -502,7 +505,7 @@ void Pragma::setVariance(const std::string& value)
     } else if ( value == LQIO::DOM::Pragma::_init_only_ ) {
 	_init_variance_only = true;
     } else {
-	throw std::domain_error( value );
+	throw std::invalid_argument( value );
     }
 }
 

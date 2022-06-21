@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 15666 2022-06-10 10:38:00Z greg $
+ * $Id: qnsolver.cc 15673 2022-06-14 19:33:15Z greg $
  */
 
 #include "config.h"
@@ -72,7 +72,8 @@ const static std::map<const std::string,const std::string> opthelp  = {
     { "verbose",				"" },
     { "help",					"Show this." },
     { "export-qnap2",				"Export a QNAP2 model.	Do not solve." },
-    { "debug-mva",				"Enable debug code." },
+    { "debug-lqx",				"Debug the LQX program." },
+    { "debug-mva",				"Enable debug code in the MVA solver." },
     { "debug-xml",				"Debug XML input." },
     { "debug-spex",				"Debug SPEX program." },
 };

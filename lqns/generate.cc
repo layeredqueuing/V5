@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 15668 2022-06-10 15:25:59Z greg $
+ * $Id: generate.cc 15677 2022-06-21 14:56:19Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -338,7 +338,9 @@ Generate::print( std::ostream& output ) const
     
     output << std::endl << "int main ( int argc, char* argv[] )" << std::endl << "{" << std::endl
 	   << "    extern char *optarg;" << std::endl
-	   << "    Multiserver multiserver = Multiserver::DEFAULT;" << std::endl;
+	   << "    Multiserver multiserver = Multiserver::DEFAULT;" << std::endl
+	   << "    extern double MVA::MOL_multiserver_underrelaxation = 0.5;	/* For MOL Multiservers */" << std::endl;
+
 
     if ( _submodel.n_openStns() ) {
 	output << "    const unsigned n_open_stations\t= " << _submodel.n_openStns() << ";" << std::endl;
@@ -378,7 +380,11 @@ Generate::print( std::ostream& output ) const
     output << "        case 'M':" << std::endl;
     output << "            if ( optarg != nullptr ) {" << std::endl;
     output << "                const std::map<const std::string,const Multiserver>::const_iterator m = multiservers.find(optarg);" << std::endl;
-    output << "                if ( m != multiservers.end() ) multiserver = m->second;" << std::endl;
+    output << "                if ( m == multiservers.end() ) {" << std::endl;
+    output << "                    std::cerr << \"Invalid argument \\\"\" << optarg << \"\\\" to --multiserver=<arg>\" << std::endl;" << std::endl;
+    output << "                    exit( 1 );" << std::endl;
+    output << "                }" << std::endl;
+    output << "                multiserver = m->second;" << std::endl;
     output << "            }" << std::endl;
     output << "            break;" << std::endl;
     output << "        default:" << std::endl;

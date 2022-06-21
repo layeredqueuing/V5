@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 15602 2022-05-27 17:21:57Z greg $
+ * $Id: help.h 15677 2022-06-21 14:56:19Z greg $
  */
 
 #ifndef _HELP_H
@@ -151,6 +151,7 @@ private:
     std::ostream& flagInputFormat( std::ostream& output, bool verbose ) const;
     std::ostream& flagIterationLimit( std::ostream& output, bool verbose ) const;
     std::ostream& flagJSON( std::ostream& output, bool verbose ) const;
+    std::ostream& flagMOLUnderrelaxation( std::ostream& output, bool verbose ) const;
     std::ostream& flagMethoOfLayers( std::ostream& output, bool verbose ) const;
     std::ostream& flagNoExecute( std::ostream& output, bool verbose ) const;
     std::ostream& flagNoHeader( std::ostream& output, bool verbose ) const;
@@ -213,31 +214,31 @@ public:
     std::ostream& traceVirtualEntry( std::ostream & output, bool verbose ) const;
     std::ostream& traceWait( std::ostream & output, bool verbose ) const;
 
-    std::ostream& specialIterationLimit( std::ostream & output, bool verbose ) const;
-    std::ostream& specialPrintInterval( std::ostream & output, bool verbose ) const;
-    std::ostream& specialOvertaking( std::ostream & output, bool verbose ) const;
-    std::ostream& specialConvergenceValue( std::ostream & output, bool verbose ) const;
-    std::ostream& specialSingleStep( std::ostream & output, bool verbose ) const;
-    std::ostream& specialUnderrelaxation( std::ostream & output, bool verbose ) const;
+    std::ostream& specialFullReinitialize( std::ostream & output, bool verbose ) const;
     std::ostream& specialGenerateQueueingModel( std::ostream & output, bool verbose ) const;
-    std::ostream& specialMolMSUnderrelaxation( std::ostream & output, bool verbose ) const;
-    std::ostream& speicalSkipLayer( std::ostream & output, bool verbose ) const;
+    std::ostream& specialIgnoreOverhangingThreads( std::ostream & output, bool verbose ) const;
     std::ostream& specialMakeMan( std::ostream & output, bool verbose ) const;
     std::ostream& specialMakeTex( std::ostream & output, bool verbose ) const;
     std::ostream& specialMinSteps( std::ostream & output, bool verbose ) const;
-    std::ostream& specialIgnoreOverhangingThreads( std::ostream & output, bool verbose ) const;
-    std::ostream& specialFullReinitialize( std::ostream & output, bool verbose ) const;
+    std::ostream& specialOvertaking( std::ostream & output, bool verbose ) const;
+    std::ostream& specialPrintInterval( std::ostream & output, bool verbose ) const;
+    std::ostream& specialSingleStep( std::ostream & output, bool verbose ) const;
+    std::ostream& speicalSkipLayer( std::ostream & output, bool verbose ) const;
 
+    std::ostream& pragmaConvergenceValue( std::ostream & output, bool verbose ) const;
     std::ostream& pragmaCycles( std::ostream& output, bool verbose ) const;
-    std::ostream& pragmaStopOnMessageLoss( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaForceInfinite( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaForceMultiserver( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaInterlock( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaIterationLimit( std::ostream & output, bool verbose ) const;
     std::ostream& pragmaLayering( std::ostream& output, bool verbose ) const;
-    std::ostream& pragmaMultiserver( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMOLUnderrelaxation( std::ostream & output, bool verbose ) const;
     std::ostream& pragmaMVA( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMultiserver( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaOvertaking( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaProcessor( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaPrune( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaStopOnMessageLoss( std::ostream& output, bool verbose ) const;
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     std::ostream& pragmaQuorumDistribution( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaQuorumDelayedCalls( std::ostream& output, bool verbose ) const;
@@ -248,13 +249,13 @@ public:
     std::ostream& pragmaRescheduleTrue( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaRescheduleFalse( std::ostream& output, bool verbose ) const;
 #endif
-    std::ostream& pragmaTau( std::ostream& output, bool verbose ) const;
-    std::ostream& pragmaThreads( std::ostream& output, bool verbose ) const;
-    std::ostream& pragmaVariance( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaSeverityLevel( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaSpexComment( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaSpexHeader( std::ostream& output, bool verbose ) const;
-    std::ostream& pragmaPrune( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaTau( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaThreads( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaUnderrelaxation( std::ostream & output, bool verbose ) const;
+    std::ostream& pragmaVariance( std::ostream& output, bool verbose ) const;
 
     std::ostream& pragmaCyclesAllow( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaCyclesDisallow( std::ostream& output, bool verbose ) const;

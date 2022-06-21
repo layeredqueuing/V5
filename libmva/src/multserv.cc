@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15658 2022-06-08 18:00:22Z greg $
+ * $Id: multserv.cc 15676 2022-06-17 11:17:16Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -726,7 +726,7 @@ Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const Populati
 Positive
 Rolia_PS_Multi_Server::sumOf_L( const MVA& solver, const Population& N, const unsigned k ) const
 {
-    return PBusy( solver, N, k ) * solver.sumOf_L_m( *this, N, k );
+    return PBusy( solver, N, k ) * solver.sumOf_L_m( *this, N, k ) / mu();
 }
 
 /* ------------------------ Rolia Multi Server  ----------------------- */
