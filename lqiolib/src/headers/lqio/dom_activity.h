@@ -1,5 +1,5 @@
-/*
- *  $Id: dom_activity.h 15220 2021-12-15 15:18:47Z greg $
+/* -*- c++ -*-
+ *  $Id: dom_activity.h 15685 2022-06-21 21:20:52Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -38,7 +38,7 @@ namespace LQIO {
 	    void setTask( DOM::Task * );
       
 	    /* Simple information covering start activities */
-	    bool isStartActivity() const { return this->getSourceEntry() != NULL; }
+	    bool isStartActivity() const { return this->getSourceEntry() != nullptr; }
 	    void outputTo(ActivityList* outputList);
 	    void inputFrom(ActivityList* inputList);
 	    ActivityList* getOutputToList() const { return _outputList; }

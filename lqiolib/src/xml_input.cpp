@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: xml_input.cpp 15220 2021-12-15 15:18:47Z greg $
+ * $Id: xml_input.cpp 15687 2022-06-22 14:39:28Z greg $
  *
  * Read in XML input files.
  *
@@ -29,12 +29,10 @@
 
 namespace XML
 {
-    void
-    invalid_argument( const std::string& attr, const std::string& arg )
+    void invalid_argument( const std::string& attr, const std::string& arg )
     {
 	throw std::invalid_argument( attr + "=" + arg );
     }
-
 
     double get_double( const char * attr, const char * val )
     {
@@ -47,18 +45,30 @@ namespace XML
     }
 
 #if HAVE_EXPAT_H
+    void throw_element_error( const std::string& name, const XML_Char ** attributes )
+    {
+	std::string s = name;
+	if ( *attributes != nullptr ) {
+	    s += " " + std::string( *attributes );
+	    if ( *(attributes+1) != nullptr ) {
+		s += "=\"" + std::string(*(attributes+1)) + "\"";
+	    }
+	}
+	throw element_error( s );
+    }
+    
     const XML_Char *
     getStringAttribute(const XML_Char ** attributes, const XML_Char * attribute, const XML_Char * default_value )
     {
 	for ( ; *attributes; attributes += 2 ) {
-	    if ( strcasecmp( *attributes, attribute ) == 0 ) {
+	    if ( strcasecmp( *attributes, attribute ) == 0 && *(attributes+1) != nullptr ) {
 		return *(attributes+1);
 	    }
 	}
 	if ( default_value ) {
 	    return default_value;
 	} else {
-	    throw LQIO::missing_attribute( attribute );
+	    throw missing_attribute( attribute );
 	}
     }
 
@@ -66,14 +76,14 @@ namespace XML
     getDoubleAttribute(const XML_Char ** attributes, const XML_Char * attribute, const double default_value )
     {
 	for ( ; *attributes; attributes += 2 ) {
-	    if ( strcasecmp( *attributes, attribute ) == 0 ) {
+	    if ( strcasecmp( *attributes, attribute ) == 0 && *(attributes+1) != nullptr ) {
 		return get_double( *attributes, *(attributes+1) );
 	    }
 	}
 	if ( default_value >= 0.0 ) {
 	    return default_value;
 	} else {
-	    throw LQIO::missing_attribute( attribute );
+	    throw missing_attribute( attribute );
 	}
     }
 
@@ -93,7 +103,7 @@ namespace XML
 	if ( default_value >= 0 ) {
 	    return default_value;
 	} else {
-	    throw LQIO::missing_attribute( attribute );
+	    throw missing_attribute( attribute );
 	}
     }
 
@@ -101,7 +111,7 @@ namespace XML
     getBoolAttribute( const XML_Char ** attributes, const XML_Char * attribute, const bool default_value )
     {
 	for ( ; *attributes; attributes += 2 ) {
-	    if ( strcasecmp( *attributes, attribute ) == 0 ) {
+	    if ( strcasecmp( *attributes, attribute ) == 0 && *(attributes+1) != nullptr ) {
 		return strcasecmp( *(attributes+1), "yes" ) == 0 || strcasecmp( *(attributes+1), "true" ) == 0 || strcmp( *(attributes+1), "1" ) == 0;
 	    }
 	}
@@ -112,7 +122,7 @@ namespace XML
     getTimeAttribute( const XML_Char ** attributes, const XML_Char * attribute )
     {
 	for ( ; *attributes; attributes += 2 ) {
-	    if ( strcasecmp( *attributes, attribute ) == 0 ) {
+	    if ( strcasecmp( *attributes, attribute ) == 0 && *(attributes+1) != nullptr ) {
 		unsigned long hrs   = 0;
 		unsigned long mins  = 0;
 		double secs         = 0;

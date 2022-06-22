@@ -62,6 +62,7 @@ public:
     ActivityList( Type, LQIO::DOM::ActivityList * );
     virtual ~ActivityList() {}
 
+    LQIO::DOM::ActivityList * get_dom() const { return _dom; }
     Type type() const { return _type; }
     unsigned int n_acts() const { return _n_acts; }
     char * fork_join_name() const;

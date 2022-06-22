@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_actlist.cpp 14603 2021-04-16 15:53:36Z greg $
+ *  $Id: dom_actlist.cpp 15687 2022-06-22 14:39:28Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -11,6 +11,7 @@
 #include "dom_task.h"
 #include "dom_extvar.h"
 #include "dom_histogram.h"
+#include "xml_input.h"
 
 namespace LQIO {
     namespace DOM {
@@ -65,15 +66,36 @@ namespace LQIO {
 
 	ActivityList& ActivityList::add(const Activity* activity, const ExternalVariable * arg )
 	{
+	    if ( _arguments.find(activity) != _arguments.end() ) {
+		/* duplicate */
+	    } else {
+		switch ( getListType() ) {
+		case Type::FORK:
+		case Type::JOIN:
+		    if ( _list.size() > 0 ) throw XML::element_error( std::string("activity name=\"") + activity->getName() + "\"" );
+		    else if ( arg != nullptr ) throw XML::unexpected_attribute( arg->getName() );
+		    break;
+		case Type::OR_FORK:
+		    if ( arg == nullptr ) throw XML::missing_attribute( activity->getName() );
+		    break;
+		case Type::OR_JOIN:
+		case Type::AND_JOIN:
+		    if ( arg != nullptr ) throw XML::unexpected_attribute( arg->getName() );
+		    break;
+		case Type::AND_FORK:
+		case Type::REPEAT:
+		    /* May or may not have arg.  Check later */
+		    break;
+		}
+	    }
 	    _list.push_back(activity);
 	    _arguments[activity] = arg;
 	    return *this;
 	}
 
-	void ActivityList::addValue(const Activity* activity, double arg )
+	ActivityList& ActivityList::addValue(const Activity* activity, double arg )
 	{
-	    _list.push_back(activity);
-	    _arguments[activity] = new ConstantExternalVariable( arg );
+	    return add( activity, new ConstantExternalVariable( arg ) );
 	}
 
 	const ExternalVariable * ActivityList::getParameter(const Activity* activity) const

@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 15613 2022-06-01 10:24:28Z greg $
+ * $Id: activity.cc 15691 2022-06-22 18:04:24Z greg $
  */
 
 #include "activity.h"
@@ -255,7 +255,7 @@ ActivityList *
 Activity::inputFrom( ActivityList * aList )
 {
     if ( inputFrom() ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, owner()->name().c_str(), name().c_str() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, owner()->name().c_str(), name().c_str(), inputFrom()->getDOM()->getLineNumber() );
     } else if ( isStartActivity() ) {
 	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
     } else {
@@ -274,7 +274,7 @@ ActivityList *
 Activity::outputTo( ActivityList * aList )
 {
     if ( outputTo() && aList != nullptr ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, owner()->name().c_str(), name().c_str() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, owner()->name().c_str(), name().c_str(), outputTo()->getDOM()->getLineNumber() );
     } else {
 	_outputTo = aList;
     }

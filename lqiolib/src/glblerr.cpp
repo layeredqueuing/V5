@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.cpp 15609 2022-05-30 17:19:07Z greg $
+ * $Id: glblerr.cpp 15691 2022-06-22 18:04:24Z greg $
  *
  * Error messages common to solvers.
  *
@@ -93,8 +93,8 @@ namespace LQIO {
         { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" is not reachable."},                                                         /* ERR_ACTIVITY_NOT_REACHABLE           */
         { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" makes a duplicate reply for entry \"%s\"." },                                /* ERR_DUPLICATE_REPLY                  */
         { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" makes invalid reply for entry \"%s\"." },                                    /* ERR_INVALID_REPLY                    */
-        { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" previously used in a fork." },                                               /* ERR_DUPLICATE_ACTIVITY_RVALUE        */
-        { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" previously used in a join." },                                               /* ERR_DUPLICATE_ACTIVITY_LVALUE        */
+        { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" previously used in the fork at line %d." },                                  /* ERR_DUPLICATE_ACTIVITY_RVALUE        */
+        { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" previously used in the join at line %d." },                                  /* ERR_DUPLICATE_ACTIVITY_LVALUE        */
         { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" replies to entry \"%s\" which does not accept rendezvous requests." },       /* ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY    */
         { RUNTIME_ERROR, "Task \"%s\", join \"%s\" does not match fork \"%s\"." },				                    /* ERR_JOIN_PATH_MISMATCH               */
 	{ RUNTIME_ERROR, "Task for entry \"%s\" has not been defined." },							    /* ERR_NO_TASK_FOR_ENTRY		    */
@@ -108,19 +108,19 @@ namespace LQIO {
         { WARNING_ONLY,  "%s \"%s\" is an infinite server with a multiplicity of %d." },                                            /* WRN_INFINITE_MULTI_SERVER            */
         { WARNING_ONLY,  "%s \"%s\" is not used." },                                                                                /* WRN_NOT_USED                         */
         { WARNING_ONLY,  "%s scheduling specified for %s \"%s\" is not supported." },                                               /* WRN_SCHEDULING_NOT_SUPPORTED         */
-        { WARNING_ONLY,  "Entry \"%s\" does not receive any requests." },                                                           /* WRN_NO_REQUESTS_TO_ENTRY             */
-        { WARNING_ONLY,  "Entry \"%s\" has no service time specified for any phase." },                                             /* WRN_NO_SERVICE_TIME                  */
 	{ WARNING_ONLY,  "Entry \"%s\" attribute type=\"%s\" - entry type should be \"%s\"." },					    /* WRN_ENTRY_TYPE_MISMATCH		    */
-        { WARNING_ONLY,  "Group \"%s\" specified for processor \"%s\" which is not running fair share scheduling." },               /* WRN_NON_CFS_PROCESSOR                */
+	{ WARNING_ONLY,  "Infinite server \"%s\" accepts either asynchronous messages or open arrivals." },		            /* WRN_INFINITE_SERVER_OPEN_ARRIVALS    */
 	{ WARNING_ONLY,  "Invalid phase, %d, specified for SPEX result \"%%%s\" for entry \"%s\"." },				    /* WRN_INVALID_SPEX_RESULT_PHASE	    */
 	{ WARNING_ONLY,  "No SPEX Observations were specified in the input model." },						    /* WRN_NO_SPEX_OBSERVATIONS		    */
-        { WARNING_ONLY,  "Processor \"%s\" using \"%s\" scheduling has a non-zero quantum specified." },                            /* WRN_QUANTUM_SCHEDULING               */
-        { WARNING_ONLY,  "Number of %s defined (%d) does not match number specified (%d)." },                                       /* WRN_DEFINED_NE_SPECIFIED_X           */
-	{ WARNING_ONLY,  "Infinite server \"%s\" accepts either asynchronous messages or open arrivals." },		            /* WRN_INFINITE_SERVER_OPEN_ARRIVALS    */
 	{ WARNING_ONLY,  "Pragma \"%s\" is not recognized." },									    /* WRN_PRAGMA_UNKNOWN		    */
 	{ WARNING_ONLY,  "Pragma \"%s\": invalid argument \"%s\"." },								    /* WRN_PRAGMA_ARGUMENT_INVALID	    */
+        { WARNING_ONLY,  "Entry \"%s\" does not receive any requests." },                                                           /* WRN_NO_REQUESTS_TO_ENTRY             */
+        { WARNING_ONLY,  "Entry \"%s\" has no service time specified for any phase." },                                             /* WRN_NO_SERVICE_TIME                  */
+        { WARNING_ONLY,  "Group \"%s\" specified for processor \"%s\" which is not running fair share scheduling." },               /* WRN_NON_CFS_PROCESSOR                */
+        { WARNING_ONLY,  "Number of %s defined (%d) does not match number specified (%d)." },                                       /* WRN_DEFINED_NE_SPECIFIED_X           */
         { WARNING_ONLY,  "Parameter is specified multiple times." },                                                                /* WRN_MULTIPLE_SPECIFICATION           */
         { WARNING_ONLY,  "Processor \"%s\" has no tasks." },                                                                        /* WRN_NO_TASKS_DEFINED_FOR_PROCESSOR   */
+        { WARNING_ONLY,  "Processor \"%s\" using \"%s\" scheduling has a non-zero quantum specified." },                            /* WRN_QUANTUM_SCHEDULING               */
         { WARNING_ONLY,  "Queue length parameter not supported for task \"%s\"." },                                                 /* WRN_QUEUE_LENGTH                     */
         { WARNING_ONLY,  "Reference task \"%s\" does not send any messages." },                                                     /* WRN_NO_SENDS_FROM_REF_TASK           */
         { WARNING_ONLY,  "Reference task \"%s\" has more than one entry defined." },                                                /* WRN_TOO_MANY_ENTRIES_FOR_REF_TASK    */

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 15527 2022-04-12 11:36:22Z greg $
+ * $Id: json_document.cpp 15687 2022-06-22 14:39:28Z greg $
  *
  * Read in JSON input files.
  *
@@ -411,7 +411,7 @@ namespace LQIO {
 			handleResults( processor, obj );
 		    }
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xprocessor, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -466,7 +466,7 @@ namespace LQIO {
 			handleResults( group, obj );
 		    }
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xgroup, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -548,7 +548,7 @@ namespace LQIO {
 		catch ( const undefined_symbol& attr ) {
 		    LQIO::solution_error( LQIO::ERR_NOT_DEFINED, attr.what() );
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xtask, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -677,7 +677,7 @@ namespace LQIO {
 		catch ( const undefined_symbol& attr ) {
 		    LQIO::solution_error( LQIO::ERR_NOT_DEFINED, attr.what() );
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xentry, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -709,7 +709,7 @@ namespace LQIO {
 		    // Need to get the phase number, and create the phase if necessary.
 		    if ( _createObjects ) {
 			const unsigned int p = get_opt_phase( obj );
-			if ( p == 0 ) throw missing_attribute( Xphase );
+			if ( p == 0 ) throw XML::missing_attribute( Xphase );
 			Phase * phase = entry.getPhase(p);
 			for (picojson::value::object::const_iterator i = obj.begin(); i != obj.end(); ++i) {
 			    const std::string& attr = i->first;
@@ -734,7 +734,7 @@ namespace LQIO {
 			}
 		    }
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xphase, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -778,7 +778,7 @@ namespace LQIO {
 			}
 		    }
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xactivity, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -834,7 +834,7 @@ namespace LQIO {
 			handleResults( activity, obj );
 		    }
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xactivity, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -904,7 +904,7 @@ namespace LQIO {
 			}
 		    }
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xprecedence, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -998,7 +998,7 @@ namespace LQIO {
 			if ( Document::__debugJSON ) Import::endAttribute( std::cerr, attr, i->second );
 		    }
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, call_type_table.at(call_type).c_str(), attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -1129,7 +1129,7 @@ namespace LQIO {
 					    get_double_attribute( Xwait_squared, obj ),
 					    get_long_attribute( Xfaults, obj ) );
 	    }
-	    catch ( const missing_attribute& e ) {
+	    catch ( const XML::missing_attribute& e ) {
 	    }
 	}
 
@@ -1152,7 +1152,7 @@ namespace LQIO {
 			LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xobserve, attr.c_str() );
 		    }
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xobserve, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -1184,7 +1184,7 @@ namespace LQIO {
 			LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xresults, attr.c_str() );
 		    }
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xresults, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -1245,7 +1245,7 @@ namespace LQIO {
 			}
 		    }
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xhistogram, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -1343,7 +1343,7 @@ namespace LQIO {
 			}
 		    }
 		}
-		catch ( const missing_attribute& attr ) {
+		catch ( const XML::missing_attribute& attr ) {
 		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xmax_service_time, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
@@ -1399,7 +1399,7 @@ namespace LQIO {
 	    if ( attr != obj.end() ) {
 		return attr->second.to_str();
 	    } else {
-		throw missing_attribute( name );
+		throw XML::missing_attribute( name );
 	    }
 	}
 
@@ -1408,7 +1408,7 @@ namespace LQIO {
 	{
 	    const std::map<std::string, picojson::value>::const_iterator attr = obj.find( name );
 	    if ( attr == obj.end() ) {
-		throw missing_attribute( name );
+		throw XML::missing_attribute( name );
 	    } else if ( attr->second.is<double>() ) {
 		const double value = attr->second.get<double>();
 		if ( value >= 0 && rint(value) == value ) {
@@ -1431,7 +1431,7 @@ namespace LQIO {
 	    const std::map<std::string, picojson::value>::const_iterator attr = obj.find( name );
 	    if ( Document::__debugJSON ) Import::beginAttribute( std::cerr, attr->first, attr->second );
 	    if ( attr == obj.end() ) {
-		throw missing_attribute( name );
+		throw XML::missing_attribute( name );
 	    } else if ( attr->second.is<double>() ) {
 		return attr->second.get<double>();
 	    } else if ( attr->second.is<std::string>() ) {
@@ -1452,7 +1452,7 @@ namespace LQIO {
 	    if ( attr != obj.end() ) {
 		return attr->second;
 	    } else {
-		throw missing_attribute( name );
+		throw XML::missing_attribute( name );
 	    }
 	}
 

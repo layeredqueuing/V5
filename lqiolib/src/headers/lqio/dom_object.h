@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: dom_object.h 15691 2022-06-22 18:04:24Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -44,7 +44,8 @@ namespace LQIO {
 
 	    /* Accessors and Mutators */
 	    virtual const char * getTypeName() const = 0;
-	    unsigned long getSequenceNumber() const { return _sequenceNumber; }
+	    size_t getSequenceNumber() const { return _sequenceNumber; }
+	    size_t getLineNumber() const { return _line_number; }
 	    const Document * getDocument() const { return _document; }
 	    const std::string& getName() const;
 	    void setName( const std::string& );
@@ -268,12 +269,13 @@ namespace LQIO {
 	    void subclass() const;
 
 	private:
-	    const Document * _document;			/* Pointer to the root. */
-	    const unsigned long _sequenceNumber;
+	    const Document * _document;		/* Pointer to the root. 	*/
+	    const size_t _sequenceNumber;
+	    const size_t _line_number;		/* Line object defined in input	*/
 	    std::string _name;
 	    std::string _comment;
 
-	    static unsigned long sequenceNumber;
+	    static size_t sequenceNumber;
 	};
     }
 }

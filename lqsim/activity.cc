@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 15558 2022-04-19 01:56:14Z greg $
+ * $Id: activity.cc 15691 2022-06-22 18:04:24Z greg $
  */
 
 #include "lqsim.h"
@@ -639,7 +639,7 @@ Activity::act_join_item( LQIO::DOM::ActivityList * dom )
     OutputActivityList * list = nullptr;
 
     if ( _output ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name(), _output->get_DOM()->getLineNumber() );
     } else {
 	Task * cp = task();
 	list = new OutputActivityList( ActivityList::Type::JOIN_LIST, dom );
@@ -660,7 +660,7 @@ ActivityList *
 Activity::act_and_join_list ( ActivityList* input_list, LQIO::DOM::ActivityList * dom )
 {
     if ( _output ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name(), _output->get_DOM()->getLineNumber() );
 	return input_list;
     } 
 
@@ -696,7 +696,7 @@ Activity::act_or_join_list ( ActivityList * input_list, LQIO::DOM::ActivityList 
     OutputActivityList * list = nullptr;
 
     if ( _output ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name(), _output->get_DOM()->getLineNumber() );
     } else if ( input_list == nullptr ) {
 	Task * cp = task();
 	list = new OutputActivityList( ActivityList::Type::OR_JOIN_LIST, dom );
@@ -720,7 +720,7 @@ Activity::act_fork_item( LQIO::DOM::ActivityList * dom )
     if ( _is_start_activity ) {
 	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, task()->name(), name() );
     } else if ( _input ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name(), _input->get_DOM()->getLineNumber() );
     } else {
 	Task * cp = task();
 	list = new ForkActivityList( ActivityList::Type::FORK_LIST, dom );
@@ -745,7 +745,7 @@ Activity::act_and_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList
     if ( _is_start_activity ) {
 	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, task()->name(), name() );
     } else if ( _input ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name(), _input->get_DOM()->getLineNumber() );
     } else if ( input_list == nullptr ) {
 	Task * cp = task();
 	list = new AndForkActivityList( ActivityList::Type::AND_FORK_LIST, dom );
@@ -774,7 +774,7 @@ Activity::act_or_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList 
     if ( _is_start_activity ) {
 	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, task()->name(), name() );
     } else if ( _input ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name(), _input->get_DOM()->getLineNumber() );
     } else if ( input_list == nullptr ) {
 	Task * cp = task();
 	list = new OrForkActivityList( ActivityList::Type::OR_FORK_LIST, dom );
@@ -802,7 +802,7 @@ Activity::act_loop_list ( ActivityList * input_list, LQIO::DOM::ActivityList * d
     if ( _is_start_activity ) {
 	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, task()->name(), name() );
     } else if ( _input ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name(), _input->get_DOM()->getLineNumber() );
     } else if ( input_list == nullptr ) {
 	Task * cp = task();
 	list = new LoopActivityList( ActivityList::Type::LOOP_LIST, dom );

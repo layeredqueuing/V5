@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 15480 2022-03-30 21:44:04Z greg $
+ * $Id: jmva_document.cpp 15687 2022-06-22 14:39:28Z greg $
  *
  * Read in XML input files.
  *
@@ -221,7 +221,7 @@ namespace BCMP {
 #endif
 	}
 	/* Halt on any error. */
-	catch ( const LQIO::element_error& e ) {
+	catch ( const XML::element_error& e ) {
 	    LQIO::input_error( "Unexpected element <%s> ", e.what() );
 	    rc = false;
 	}
@@ -270,10 +270,10 @@ namespace BCMP {
 	catch ( const LQIO::duplicate_symbol& e ) {
 	    LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, el, e.what() );
 	}
-	catch ( const LQIO::missing_attribute & e ) {
+	catch ( const XML::missing_attribute & e ) {
 	    LQIO::input_error2( LQIO::ERR_MISSING_ATTRIBUTE, el, e.what() );
 	}
-	catch ( const LQIO::unexpected_attribute & e ) {
+	catch ( const XML::unexpected_attribute & e ) {
 	    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, el, e.what() );
 	}
 	catch ( const LQIO::undefined_symbol & e ) {
@@ -444,7 +444,7 @@ namespace BCMP {
 	    LQIO::DOM::Document::__debugXML = (LQIO::DOM::Document::__debugXML || XML::getBoolAttribute(attributes,Xxml_debug));
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startModel,&JMVA_Document::endModel,object) );
 	} else {
-	    throw LQIO::element_error( element );
+	    XML::throw_element_error( element, attributes );
 	}
     }
 
@@ -479,7 +479,7 @@ namespace BCMP {
 	    setLQXProgramLineNumber(XML_GetCurrentLineNumber(_parser));
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startLQX) );
 	} else {
-	    throw LQIO::element_error( element );
+	    XML::throw_element_error( element, attributes );
 	}
     }
 
@@ -514,7 +514,7 @@ namespace BCMP {
 
     void JMVA_Document::startDescription( Object&, const XML_Char * element, const XML_Char ** attributes )
     {
-	throw LQIO::element_error( element );           	/* Should not get here. */
+	XML::throw_element_error( element, attributes );           	/* Should not get here. */
     }
 
 
@@ -546,7 +546,7 @@ namespace BCMP {
 	} else if ( strcasecmp( element, XReferenceStation ) == 0 ) {
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startReferenceStation) );
 	} else {
-	    throw LQIO::element_error( element );
+	    XML::throw_element_error( element, attributes );
 	}
     }
 
@@ -571,7 +571,7 @@ namespace BCMP {
 	    createOpenChain( attributes );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP) );
 	} else {
-	    throw LQIO::element_error( element );
+	    XML::throw_element_error( element, attributes );
 	}
     }
 
@@ -598,7 +598,7 @@ namespace BCMP {
 	} else if ( strcasecmp( element, Xldstation ) == 0 ) {
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,Object(createStation( Model::Station::Type::MULTISERVER, attributes )) ) );
 	} else { // multiserver???
-	    throw LQIO::element_error( element );
+	    XML::throw_element_error( element, attributes );
 	}
     }
 
@@ -622,7 +622,7 @@ namespace BCMP {
 	} else if ( strcasecmp( element, Xvisits ) == 0 ) {
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startVisits,station) );
 	} else {
-	    throw LQIO::element_error( element );
+	    XML::throw_element_error( element, attributes );
 	}
     }
 
@@ -643,14 +643,14 @@ namespace BCMP {
 	    const std::pair<Model::Station::Class::map_t::iterator,bool> result = demands.emplace( class_name, Model::Station::Class() );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startServiceTime,&JMVA_Document::endServiceTime,Object(&result.first->second) ) );
 	} else {
-	    throw LQIO::element_error( element );      		/* Should not get here. */
+	    XML::throw_element_error( element, attributes );      		/* Should not get here. */
 	}
     }
 
     void
     JMVA_Document::startServiceTime( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
-	throw LQIO::element_error( element );           	/* Should not get here. */
+	XML::throw_element_error( element, attributes );           	/* Should not get here. */
     }
 
     void JMVA_Document::endServiceTime( Object& object, const XML_Char * element )
@@ -673,7 +673,7 @@ namespace BCMP {
 	    const std::pair<Model::Station::Class::map_t::iterator,bool> result = demands.emplace( class_name, Model::Station::Class() );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startVisit,&JMVA_Document::endVisit,Object(&result.first->second) ) );
 	} else {
-	    throw LQIO::element_error( element );       	/* Should not get here. */
+	    XML::throw_element_error( element, attributes );       	/* Should not get here. */
 	}
     }
 
@@ -682,7 +682,7 @@ namespace BCMP {
     void
     JMVA_Document::startVisit( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
-	throw LQIO::element_error( element );           	/* Should not get here. */
+	XML::throw_element_error( element, attributes );           	/* Should not get here. */
     }
 
 
@@ -711,7 +711,7 @@ namespace BCMP {
 	    }
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP,object) );
 	} else {
-	    throw LQIO::element_error( element );
+	    XML::throw_element_error( element, attributes );
 	}
     }
 
@@ -731,7 +731,7 @@ namespace BCMP {
 	} else if ( strcasecmp( element, XcompareAlgs ) == 0 ) {
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP,object) );
 	} else {
-	    throw LQIO::element_error( element );
+	    XML::throw_element_error( element, attributes );
 	}
      }
 
@@ -755,7 +755,7 @@ namespace BCMP {
 	    checkAttributes( element, attributes, table );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startAlgorithm,object) );
 	} else {
-	    throw LQIO::element_error( element );
+	    XML::throw_element_error( element, attributes );
 	}
     }
 
@@ -773,7 +773,7 @@ namespace BCMP {
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startStationResults,mk_object) );
 	} else if ( strcasecmp( element, Xnormconst ) == 0 ) {
 	} else {
-	    throw LQIO::element_error( element );
+	    XML::throw_element_error( element, attributes );
 	}
     }
 
@@ -803,7 +803,7 @@ namespace BCMP {
 	    createMeasure( object, attributes );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP,object) );
 	} else {
-	    throw LQIO::element_error( element );
+	    XML::throw_element_error( element, attributes );
 	}
     }
 
@@ -820,7 +820,7 @@ namespace BCMP {
 	    createMeasure( object, attributes );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP,object) );
 	} else {
-	    throw LQIO::element_error( element );
+	    XML::throw_element_error( element, attributes );
 	}
     }
 
@@ -831,7 +831,7 @@ namespace BCMP {
     void
     JMVA_Document::startLQX( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
-	throw LQIO::element_error( element );             /* Should not get here. */
+	XML::throw_element_error( element, attributes );             /* Should not get here. */
     }
     
 
@@ -841,7 +841,7 @@ namespace BCMP {
     void
     JMVA_Document::startNOP( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
-	throw LQIO::element_error( element );             /* Should not get here. */
+	XML::throw_element_error( element, attributes );             /* Should not get here. */
     }
 
 
@@ -859,7 +859,7 @@ namespace BCMP {
 	if ( default_value >= 0.0 ) {
 	    return new LQIO::DOM::ConstantExternalVariable( default_value );
 	} else {
-	    throw LQIO::missing_attribute( attribute );
+	    throw XML::missing_attribute( attribute );
 	}
     }
 

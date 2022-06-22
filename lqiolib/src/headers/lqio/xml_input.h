@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: xml_input.h 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: xml_input.h 15687 2022-06-22 14:39:28Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -16,7 +16,29 @@ namespace XML {
     void invalid_argument( const std::string& attr, const std::string& arg );
     double get_double( const char *, const char * );
 
+    class element_error : public std::runtime_error
+    {
+    public:
+	explicit element_error( const std::string& s ) : runtime_error( s ) {}
+    };
+
+
+    class missing_attribute : public std::runtime_error
+    {
+    public:
+	explicit missing_attribute( const std::string& s ) : runtime_error( s ) {}
+    };
+
+
+    class unexpected_attribute : public std::runtime_error
+    {
+    public:
+	explicit unexpected_attribute( const std::string& s ) : runtime_error( s ) {}
+    };
+
+
 #if HAVE_EXPAT_H
+    void throw_element_error( const std::string&, const XML_Char ** attributes );
     const XML_Char * getStringAttribute( const XML_Char ** attributes, const XML_Char * Xcomment, const XML_Char * default_value=nullptr );
     const bool getBoolAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int, const bool default_value=false );
     const double getDoubleAttribute( const XML_Char ** attributes, const XML_Char * Xconv_val, const double default_value=-1.0 );

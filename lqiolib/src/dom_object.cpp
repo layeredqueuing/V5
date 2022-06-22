@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 14387 2021-01-21 14:09:16Z greg $
+ *  $Id: dom_object.cpp 15691 2022-06-22 18:04:24Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -15,22 +15,22 @@
 namespace LQIO {
     namespace DOM {
 
-	unsigned long DocumentObject::sequenceNumber = 0;
+	size_t DocumentObject::sequenceNumber = 0;
 
 	DocumentObject::DocumentObject() 
-	    : _document(nullptr), _sequenceNumber(0xDEAD0000DEAD0000), _name("null"), _comment()
+	    : _document(nullptr), _sequenceNumber(0xDEAD0000DEAD0000), _line_number(0), _name("null"), _comment()
 	{
 	}
 
 	DocumentObject::DocumentObject(const Document * document, const std::string& name ) 
-	    : _document(document), _sequenceNumber(sequenceNumber), _name(name), _comment()
+	    : _document(document), _sequenceNumber(sequenceNumber), _line_number(LQIO_lineno), _name(name), _comment()
 	{
 	    assert( document );
 	    sequenceNumber += 1;
 	}
 
 	DocumentObject::DocumentObject(const DocumentObject& src ) 
-	    : _document(src._document), _sequenceNumber(sequenceNumber), _name(), _comment()
+	    : _document(src._document), _sequenceNumber(sequenceNumber), _line_number(LQIO_lineno), _name(), _comment()
 	{
 	    assert( _document );
 	    sequenceNumber += 1;

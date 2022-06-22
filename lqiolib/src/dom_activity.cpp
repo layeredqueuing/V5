@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_activity.cpp 15304 2021-12-31 15:51:38Z greg $
+ *  $Id: dom_activity.cpp 15691 2022-06-22 18:04:24Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -7,6 +7,7 @@
  */
 
 #include "dom_activity.h"
+#include "dom_actlist.h"
 #include "dom_task.h"
 #include "dom_document.h"
 #include "glblerr.h"
@@ -73,7 +74,7 @@ namespace LQIO {
 	void Activity::outputTo(ActivityList* outputList)
 	{
 	    if (_outputList != nullptr && outputList != nullptr) {
-		input_error2( ERR_DUPLICATE_ACTIVITY_LVALUE, getTask()->getName().c_str(), getName().c_str() );
+		input_error2( ERR_DUPLICATE_ACTIVITY_LVALUE, getTask()->getName().c_str(), getName().c_str(), _outputList->getLineNumber() );
 	    } else {
 		_outputList = outputList;
 	    }
@@ -82,7 +83,7 @@ namespace LQIO {
 	void Activity::inputFrom(ActivityList* inputList)
 	{
 	    if (_inputList != nullptr && inputList != nullptr) {
-		input_error2( ERR_DUPLICATE_ACTIVITY_RVALUE, getTask()->getName().c_str(), getName().c_str() );
+		input_error2( ERR_DUPLICATE_ACTIVITY_RVALUE, getTask()->getName().c_str(), getName().c_str(), _inputList->getLineNumber() );
 	    } else if ( isStartActivity() ) {
 		input_error2( ERR_IS_START_ACTIVITY, getTask()->getName().c_str(), getName().c_str() );
 	    } else {

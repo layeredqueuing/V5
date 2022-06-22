@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_extvar.h 15557 2022-04-19 01:48:03Z greg $
+ *  $Id: dom_extvar.h 15687 2022-06-22 14:39:28Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -46,7 +46,7 @@ namespace LQIO {
 	    virtual void setString( const char * value ) = 0;
 	    virtual bool getValue(double& result) const = 0;
 	    virtual bool getString( const char *& result) const = 0;
-	    virtual const std::string& getName() const = 0;
+	    virtual const std::string getName() const = 0;
 	    virtual bool wasSet() const = 0;
 
 	    static bool isPresent( const ExternalVariable * );				/* Variable is present (may not be instantiated, but must be non-negative */
@@ -84,7 +84,7 @@ namespace LQIO {
 	    virtual void setString( const char * );
 	    virtual bool getValue(double& result) const;
 	    virtual bool getString( const char *& result) const;
-	    virtual const std::string& getName() const;
+	    virtual const std::string getName() const;
 	    virtual bool wasSet() const;
       
 	    virtual std::ostream& print( std::ostream& ) const;
@@ -130,7 +130,7 @@ namespace LQIO {
 	    virtual bool getValue(double& result) const;
 	    virtual bool getString(const char *& result) const;
 	    virtual bool wasSet() const;
-	    virtual const std::string& getName() const { return _name; }
+	    virtual const std::string getName() const { return _name; }
       
 	    virtual std::ostream& print( std::ostream& ) const;
 	    virtual std::ostream& printVariableName( std::ostream& ) const;
@@ -138,7 +138,7 @@ namespace LQIO {
 	    /* This one's a bit more complicated */
 	private:
 	    LQX::SymbolAutoRef _externalSymbol;
-	    std::string _name;
+	    const std::string _name;
 	};
     
 	double to_double( const LQIO::DOM::ExternalVariable& );
