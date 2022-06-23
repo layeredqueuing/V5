@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 15691 2022-06-22 18:04:24Z greg $
+ * $Id: activity.cc 15710 2022-06-23 20:02:33Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -73,34 +73,6 @@ Activity::Count_If::operator=( const Activity::Count_If& src )
     _sum = src._sum;
     return *this;
 }
-
-
-Activity::Children::Children( Call::stack& callStack, bool directPath, bool followCalls )
-    : _callStack(callStack),
-      _directPath(directPath),
-      _follow_calls(followCalls),
-      _activityStack(),
-      _forkStack(),
-      _rate(1.)
-{}
-
-Activity::Children::Children( const Children& src, double rate )
-    : _callStack(src._callStack),
-      _directPath(src._directPath),
-      _follow_calls(src._follow_calls),
-      _activityStack(src._activityStack),
-      _forkStack(src._forkStack),
-      _rate(src._rate * rate)
-{}
-
-Activity::Children::Children( const Children& src, std::deque<const AndOrForkActivityList *>& forkStack, double rate )
-    : _callStack(src._callStack),
-      _directPath(src._directPath),
-      _follow_calls(src._follow_calls),
-      _activityStack(src._activityStack),
-      _forkStack(forkStack),
-      _rate(src._rate * rate)
-{}
 
 /*----------------------------------------------------------------------*/
 /*                    Activities are like phases....                    */

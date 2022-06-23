@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 15560 2022-04-19 10:52:04Z greg $
+ * $Id: actlist.h 15710 2022-06-23 20:02:33Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -501,6 +501,7 @@ public:
     bool joinType( JoinType );
     virtual bool hasQuorum() const { return 0 < quorumCount() && quorumCount() < activityList().size(); }
 	
+    virtual unsigned findChildren( Activity::Children& path ) const;
     virtual void followInterlock( Interlock::CollectTable& ) const;
     virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const;
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
@@ -525,13 +526,10 @@ class RepeatActivityList : public ForkActivityList
 {
 private:
     struct find_children {
-	find_children( const Activity::Children& path ) : _path(path) {}
-	unsigned operator()( unsigned arg1, const Activity * arg2 ) const {
-	    std::deque<const AndOrForkActivityList *> forkStack;    // For matching forks/joins.
-	    Activity::Children path( _path, forkStack );
-	    return std::max( arg1, arg2->findChildren(path) );
-	}
+	find_children( const RepeatActivityList& self, const Activity::Children& path ) : _self(self), _path(path) {}
+	unsigned operator()( unsigned arg1, const Activity * arg2 ) const;
     private:
+	const RepeatActivityList& _self;
 	const Activity::Children& _path;
     };
 

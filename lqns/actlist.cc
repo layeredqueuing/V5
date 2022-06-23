@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 15706 2022-06-23 17:02:35Z greg $
+ * $Id: actlist.cc 15710 2022-06-23 20:02:33Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -653,6 +653,10 @@ AndOrForkActivityList::find_children::operator()( unsigned arg1, const Activity 
 		  << " -> " << arg2->name() << std::endl;
     }
     Activity::Children path( _path );
+    if ( dynamic_cast<const OrForkActivityList *>(&_self) != nullptr ) {
+	path.setReplyAllowed(false);
+	path.setRate(dynamic_cast<const OrForkActivityList *>(&_self)->prBranch( arg2 ) );
+    }
     return std::max( arg1, arg2->findChildren(path) );
 }
 
@@ -1652,7 +1656,7 @@ AndOrJoinActivityList::findChildren( Activity::Children& path ) const
 	/* Result should be all forks that match on all branches.  Take the one closest to top-of-stack */
 
 	const AndJoinActivityList * and_join_list = dynamic_cast<const AndJoinActivityList *>(this);
-	if ( resultSet.size() > 0 ) {
+	if ( !resultSet.empty() ) {
 
 	    for ( std::deque<const AndOrForkActivityList *>::const_reverse_iterator fork_list = forkStack.rbegin(); fork_list != forkStack.rend() && forkList() == nullptr; ++fork_list ) {
 		/* See if we can find a match on the fork stack in the result set of the right type */
@@ -1662,7 +1666,7 @@ AndOrJoinActivityList::findChildren( Activity::Children& path ) const
 
 		/* Set type for join */
 
-		if ( and_join_list != nullptr && !const_cast<AndJoinActivityList *>(and_join_list)->joinType( AndJoinActivityList::JoinType::INTERNAL_FORK_JOIN )) {
+		if ( and_join_list != nullptr && !const_cast<AndJoinActivityList *>(and_join_list)->joinType( AndJoinActivityList::JoinType::INTERNAL_FORK_JOIN ) ) {
 		    throw bad_internal_join( *this );
 		}
 
@@ -1776,6 +1780,22 @@ AndJoinActivityList::check() const
     return AndOrJoinActivityList::check() && rc;
 }
 
+
+/*
+ * disallow on or branches and repeat branches
+ */
+
+unsigned
+AndJoinActivityList::findChildren( Activity::Children& path ) const
+{
+    if ( !path.canReply() ) {
+	const Activity * activity = path.top_activity();
+	LQIO::solution_error( LQIO::ERR_JOIN_BAD_PATH, activity->owner()->name().c_str(), activity->name().c_str(), getName().c_str() );
+	return path.depth();
+    } else {
+	return AndOrJoinActivityList::findChildren( path );
+    }
+}
 
 /*
  * Follow the path.  We don't care about other paths.
@@ -1995,7 +2015,7 @@ RepeatActivityList::collectToEntry( const Activity * activity, VirtualEntry * en
 unsigned
 RepeatActivityList::findChildren( Activity::Children& path ) const
 {
-    return std::accumulate( activityList().begin(), activityList().end(), ForkActivityList::findChildren( path ), find_children( path ) );
+    return std::accumulate( activityList().begin(), activityList().end(), ForkActivityList::findChildren( path ), find_children( *this, path ) );
 }
 
 
@@ -2153,6 +2173,15 @@ RepeatActivityList::printSubmodelWait( std::ostream& output, unsigned offset ) c
 {
     std::for_each( _entryList.begin(), _entryList.end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, offset ) );
     return output;
+}
+
+
+unsigned
+RepeatActivityList::find_children::operator()( unsigned arg1, const Activity * arg2 ) const
+{
+    std::deque<const AndOrForkActivityList *> forkStack;    // For matching forks/joins.
+    Activity::Children path( _path, forkStack, _self.rateBranch( arg2 ) );
+    return std::max( arg1, arg2->findChildren(path) );
 }
 
 /* ------------------------ Exception Handling ------------------------ */

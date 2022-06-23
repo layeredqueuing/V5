@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15707 2022-06-23 17:08:51Z greg $
+# $Id: Makefile 15710 2022-06-23 20:02:33Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	err_arrival_rate.lqn \
@@ -25,6 +25,7 @@ SRCS=	err_arrival_rate.lqn \
 	err_is_start_activity-2.lqn \
 	err_is_start_activity.lqn \
 	err_join_bad_path.lqn \
+	err_join_bad_path-repeat.lqn \
 	err_mixed_entry_types.lqn \
 	err_no_reference_tasks.lqn \
 	err_no_start_activities.lqn \
@@ -50,7 +51,7 @@ lqns:
 	for i in $(SRCS); do (lqns $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
 
 lqsim:	
-	for i in $(SRCS); do (lqsim $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -eq 134; then echo $$i faulted; else echo $$i passed; fi; done
+	for i in $(SRCS); do (lqsim $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
 #	for i in $(SRCS); do (lqsim $$i > /dev/null 2>&1); echo $$?; done
 
 

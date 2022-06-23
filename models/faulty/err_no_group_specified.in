@@ -1,0 +1,32 @@
+# $Id: err_no_group_specified.in 15703 2022-06-23 15:34:08Z greg $
+# ------------------------------------------------------------------------
+
+G "CFS scheduling used -- no group keyword for the tasks." 1e-05 50 10 0.9 -1
+
+P 2
+  p client f i
+  p server c
+-1
+
+U 2
+  g group_1 0.8 server
+  g group_2 0.2 server
+-1
+
+T 3
+  t client r client -1 client
+  t server_1 n server_1 -1 server m 4 
+  t server_2 n server_2 -1 server 
+-1
+
+E 3
+# ---------- client ----------
+  s client 1 -1
+  y client server_1 1 -1
+  y client server_2 1 -1
+# ---------- server_1 ----------
+  s server_1 1 -1
+# ---------- server_2 ----------
+  s server_2 1 -1
+-1
+
