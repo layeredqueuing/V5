@@ -13,7 +13,7 @@
 #define _PETRISRVN_H
 
 /*
- * $Id: petrisrvn.h 15329 2022-01-02 20:46:57Z greg $
+ * $Id: petrisrvn.h 15695 2022-06-23 00:28:19Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -106,7 +106,6 @@ extern unsigned open_model_tokens;	/* Default global open queue max size	*/
 extern FILE * stddbg;			/* debugging output goes here.		*/
 
 static inline bool bit_test( unsigned flag, unsigned bits ) { return ((1 << flag) & bits ) != 0; }
-static inline void throw_bad_parameter() { throw std::domain_error( "invalid parameter" ); }
 
 template <class Type> struct Exec
 {

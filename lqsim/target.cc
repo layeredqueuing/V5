@@ -1,12 +1,13 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 15456 2022-03-09 15:06:35Z greg $
+ * $Id: target.cc 15697 2022-06-23 02:56:49Z greg $
  * ------------------------------------------------------------------------
  */
 
 #include "lqsim.h"
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <lqio/error.h>
 #include <lqio/input.h>
@@ -96,8 +97,18 @@ tar_t::configure()
     if ( _entry->task()->is_reference_task() ) {
 	LQIO::solution_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, _entry->task()->name(), _entry->name() );
     } else if ( _type == Type::call ) {
-	_calls = _dom._call->getCallMeanValue();
 	_reply = (_dom._call->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS || _dom._call->getCallType() == LQIO::DOM::Call::Type::FORWARD);
+	try { 
+	    _calls = _dom._call->getCallMeanValue();
+	    if ( _dom._call->getCallType() != LQIO::DOM::Call::Type::FORWARD && dynamic_cast<const LQIO::DOM::Phase *>(_dom._call->getSourceObject())->getPhaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && _calls != std::rint( _calls ) ) {
+		throw std::domain_error( "invalid integer" );
+	    } else if ( _dom._call->getCallType() == LQIO::DOM::Call::Type::FORWARD && _calls > 1.0 ) {
+		throw std::domain_error( "invalid probability" );
+	    }
+	}
+	catch ( const std::domain_error &e ) {
+	    _dom._call->throw_invalid_parameter( "mean value", e.what() );
+	}
     } else if ( _type != Type::constant ) {
 	abort();
     }
@@ -263,31 +274,9 @@ Targets::configure( const LQIO::DOM::DocumentObject * dom, bool normalize )
     _type = (dynamic_cast<const LQIO::DOM::Phase *>(dom) != nullptr) ? dynamic_cast<const LQIO::DOM::Phase *>(dom)->getPhaseTypeFlag() : LQIO::DOM::Phase::Type::STOCHASTIC;
     
     for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
-	const char * dstName = tp->entry()->name();
-	try {
-	    tp->configure();
-	    if ( _type == LQIO::DOM::Phase::Type::DETERMINISTIC && tp->calls() != trunc( tp->calls() ) ) throw std::domain_error( "invalid integer" );
-	}
-	catch ( const std::domain_error& e ) {
-	    if ( dynamic_cast<const LQIO::DOM::Entry *>(dom) ) {
-		const LQIO::DOM::Entry * src = dynamic_cast<const LQIO::DOM::Entry *>(dom);
-		LQIO::solution_error( LQIO::ERR_INVALID_FWDING_PARAMETER, src->getName().c_str(), dstName, e.what() );
-	    } else if ( dynamic_cast<const LQIO::DOM::Activity *>(dom) ) {
-		const LQIO::DOM::Activity * src = dynamic_cast<const LQIO::DOM::Activity *>(dom);
-		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", src->getTask()->getName().c_str(),
-				      "activity", srcName, dstName, e.what() );
-	    } else if ( dynamic_cast<const LQIO::DOM::Phase *>(dom) ) {
-		const LQIO::DOM::Phase * src = dynamic_cast<const LQIO::DOM::Phase *>(dom);
-		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", src->getSourceEntry()->getName().c_str(),
-				      "phase", srcName, dstName, e.what() );
-	    } else {
-		abort();
-	    }
-	    throw_bad_parameter();
-	}
+	tp->configure();
 	sum += tp->calls();
 	tp->_tprob = sum;
-
     }
 
     if ( _type != LQIO::DOM::Phase::Type::DETERMINISTIC ) {

@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 15353 2022-01-04 22:06:34Z greg $
+ * $Id: lqsim.cc 15694 2022-06-22 23:27:00Z greg $
  */
 
 #define STACK_TESTING
@@ -317,10 +317,10 @@ main( int argc, char * argv[] )
     /* Set the program name and revision numbers.			*/
 
 
-    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), LQIO::severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2022-01-04 17:06:34 -0500 (Tue, 04 Jan 2022) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2022-06-22 19:27:00 -0400 (Wed, 22 Jun 2022) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Handy defaults.						*/
@@ -351,7 +351,7 @@ main( int argc, char * argv[] )
 	    switch ( c ) {
 
 	    case 'a':
-		pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_run_time_);
+		pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_warning_);
 		break;
 		
 	    case 'A':		/* Auto blocking	*/
@@ -590,7 +590,7 @@ main( int argc, char * argv[] )
 		break;
 	    
 	    case 'w':
-		pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_advisory_);
+		pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_run_time_);
 		break;
 			
 	    case 'x':

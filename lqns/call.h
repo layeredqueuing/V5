@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 15631 2022-06-03 09:55:34Z greg $
+ * $Id: call.h 15697 2022-06-23 02:56:49Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -238,9 +238,6 @@ public:
     short index() const;
     double serviceTime() const;
 
-protected:
-    virtual void parameter_error( const std::string& ) const = 0;
-
 private:
     double getDOMValue() const;
 
@@ -264,7 +261,6 @@ public:
 
     virtual const std::string& srcName() const { static const std::string null("NULL"); return null; }
     virtual NullCall& initWait() { return *this; }
-    virtual void parameter_error( const std::string& ) const;
 };
 
 /* -------------------------------------------------------------------- */
@@ -273,7 +269,6 @@ class FromEntry : virtual protected Call {
 public:
     FromEntry( const Entry * entry ) : _entry(entry) {}
     const Entry * srcEntry() const { return _entry; }
-    virtual void parameter_error( const std::string& ) const;
 
 private:
     const Entry * _entry;
@@ -308,7 +303,6 @@ private:
 class FromActivity : virtual protected Call {
 public:
     FromActivity() {}
-    virtual void parameter_error( const std::string& ) const;
 };
 
 class ActivityCall : virtual public Call, protected FromActivity {

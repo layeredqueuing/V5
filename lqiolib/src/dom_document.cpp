@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 15475 2022-03-30 13:18:13Z greg $
+ *  $Id: dom_document.cpp 15694 2022-06-22 23:27:00Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -1069,20 +1069,20 @@ namespace LQIO {
 	}
     }
     
-    lqio_params_stats::lqio_params_stats( const char * version, void (*action)(unsigned) ) :
+    lqio_params_stats::lqio_params_stats( const char * version, void (*action)(error_severity) ) :
 	lq_toolname(),
 	lq_version(version),
 	lq_command_line(),
 	severity_action(action),
 	max_error(10),
 	error_count(0),
-	severity_level(LQIO::NO_ERROR),
+	severity_level(LQIO::error_severity::ALL),
 	error_messages()
     {
 	error_messages.insert( error_messages.begin(), global_error_messages, global_error_messages+LSTGBLERRMSG+1 );
     }
 
-    void lqio_params_stats::init( const std::string& version, const std::string& toolname, void (*sa)(unsigned), ErrorMessageType * local_error_messages, size_t size )
+    void lqio_params_stats::init( const std::string& version, const std::string& toolname, void (*sa)(error_severity), ErrorMessageType * local_error_messages, size_t size )
     {
 	lq_version = version;
 	lq_toolname = toolname;

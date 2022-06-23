@@ -1,14 +1,18 @@
 /*
- *  $Id: dom_call.cpp 15072 2021-10-15 13:06:06Z greg $
+ *  $Id: dom_call.cpp 15698 2022-06-23 11:44:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
 
-#include "dom_document.h"
-#include "dom_histogram.h"
 #include <cassert>
+#include "dom_activity.h"
+#include "dom_document.h"
+#include "dom_entry.h"
+#include "dom_histogram.h"
+#include "dom_task.h"
+#include "glblerr.h"
 
 namespace LQIO {
     namespace DOM {
@@ -59,6 +63,33 @@ namespace LQIO {
 	    return new Call( *this );
 	}
 
+	/*
+	 * Calls can go from phases, activities or entries, so generate the correct message.
+	 */
+	
+	void Call::throw_invalid_parameter( const std::string& parameter, const std::string& error ) const
+	{
+	    const DocumentObject * src = getSourceObject();
+	    const DocumentObject * dst = getDestinationEntry();
+	    if ( dynamic_cast<const Entry *>(src) ) {
+		solution_error2( LQIO::ERR_INVALID_FWDING_PARAMETER, getLineNumber(), getTypeName(), dst->getName().c_str(), error.c_str() );
+	    } else {
+		const DocumentObject * owner = nullptr;
+		if ( dynamic_cast<const Activity *>(src) != nullptr ) {
+		    owner = dynamic_cast<const Activity *>(src)->getTask();
+		} else if ( dynamic_cast<const Phase *>(src) != nullptr ) {
+		    owner = dynamic_cast<const Phase *>(src)->getSourceEntry();
+		} else {
+		    abort();
+		}
+		solution_error2( LQIO::ERR_INVALID_CALL_PARAMETER, getLineNumber(),
+				 owner->getTypeName(), owner->getName().c_str(),
+				 src->getTypeName(), src->getName().c_str(),
+				 dst->getName().c_str(), error.c_str() );
+	    }
+	    throw std::domain_error( std::string( "invalid parameter: " ) + error );
+	}
+	
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
     
 	const Call::Type Call::getCallType() const

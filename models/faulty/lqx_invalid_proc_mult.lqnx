@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
+<!-- $Id: lqx_invalid_proc_mult.lqnx 15703 2022-06-23 15:34:08Z greg $ -->
 <!-- lqngen -lqx-output -->
 <lqn-model name="lqx_set_negative" description="lqngen 5.13 solution for model from: lqx_set_negative.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Layers: 1, Customers: 0, Clients: 1, Tasks: 1, (Delay: 0), Processors: 1" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>

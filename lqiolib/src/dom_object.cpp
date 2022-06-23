@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 15691 2022-06-22 18:04:24Z greg $
+ *  $Id: dom_object.cpp 15695 2022-06-23 00:28:19Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -8,6 +8,7 @@
 
 #include "dom_object.h"
 #include "dom_document.h"
+#include "glblerr.h"
 #include <sstream>
 #include <cassert>
 #include <cmath>
@@ -38,6 +39,12 @@ namespace LQIO {
 
 	DocumentObject::~DocumentObject() 
 	{
+	}
+
+	void DocumentObject::throw_invalid_parameter( const std::string& parameter, const std::string& error ) const
+	{
+	    solution_error2( LQIO::ERR_INVALID_PARAMETER, getLineNumber(), parameter.c_str(), getTypeName(), getName().c_str(), error.c_str() );
+	    throw std::domain_error( std::string( "invalid parameter: " ) + error );
 	}
 
 	const std::string& DocumentObject::getName() const

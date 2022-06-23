@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 15679 2022-06-21 17:46:11Z greg $
+ *  $Id: dom_pragma.cpp 15694 2022-06-22 23:27:00Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -156,17 +156,17 @@ namespace LQIO {
 	 * Return the severity level 
 	 */
 
-	LQIO::severity_t Pragma::getSeverityLevel(const std::string& value )
+	LQIO::error_severity Pragma::getSeverityLevel(const std::string& value )
 	{
-	    static const std::map<const std::string,const LQIO::severity_t> __serverity_level_arg = {
-		{ "",					LQIO::NO_ERROR },	/* Report all	*/
-		{ LQIO::DOM::Pragma::_all_,		LQIO::NO_ERROR },	
-		{ LQIO::DOM::Pragma::_advisory_,	LQIO::ADVISORY_ONLY },	/* Report Runtime only */
-		{ LQIO::DOM::Pragma::_run_time_,	LQIO::RUNTIME_ERROR },	/* Report fatal only (!) */
-		{ LQIO::DOM::Pragma::_warning_,		LQIO::WARNING_ONLY }	/* Report Advisory & Runtime */
+	    static const std::map<const std::string,const LQIO::error_severity> __serverity_level_arg = {
+		{ "",				    LQIO::error_severity::ALL },	/* Report all	*/
+		{ LQIO::DOM::Pragma::_all_,	    LQIO::error_severity::ALL },	
+		{ LQIO::DOM::Pragma::_advisory_,    LQIO::error_severity::ADVISORY },	/* Report Runtime only */
+		{ LQIO::DOM::Pragma::_run_time_,    LQIO::error_severity::ERROR },	/* Report fatal only (!) */
+		{ LQIO::DOM::Pragma::_warning_,	    LQIO::error_severity::WARNING }	/* Report Advisory & Runtime */
 	    };
 
-	    const std::map<const std::string,const LQIO::severity_t>::const_iterator arg = __serverity_level_arg.find( value );
+	    const std::map<const std::string,const LQIO::error_severity>::const_iterator arg = __serverity_level_arg.find( value );
 	    if ( arg == __serverity_level_arg.end() ) throw std::domain_error( value );
 	    return arg->second;
 	}

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_call.h 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: dom_call.h 15697 2022-06-23 02:56:49Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -56,6 +56,8 @@ namespace LQIO {
 	    Call(const Document * document, Entry *source, Entry* destination, const ExternalVariable* callMean=nullptr );
 	    virtual ~Call();
 	    Call * clone() const;
+
+	    void throw_invalid_parameter( const std::string& parameter, const std::string& error ) const;
 
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 

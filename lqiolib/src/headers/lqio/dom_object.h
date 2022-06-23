@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 15691 2022-06-22 18:04:24Z greg $
+ *  $Id: dom_object.h 15695 2022-06-23 00:28:19Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -41,6 +41,8 @@ namespace LQIO {
 
 	public:
 	    virtual ~DocumentObject();
+
+	    virtual void throw_invalid_parameter( const std::string&, const std::string& ) const;
 
 	    /* Accessors and Mutators */
 	    virtual const char * getTypeName() const = 0;

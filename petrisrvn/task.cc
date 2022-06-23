@@ -353,7 +353,7 @@ int Task::priority() const
 	value = dynamic_cast<LQIO::DOM::Task *>(get_dom())->getPriorityValue();
     }
     catch ( const std::domain_error &e ) {
-	LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", get_dom()->getTypeName(), name(), e.what() );
+	get_dom()->throw_invalid_parameter( "priority", e.what() );
     }
     return value;
 }
@@ -365,7 +365,7 @@ double Task::think_time() const
 	    return dynamic_cast<LQIO::DOM::Task *>(get_dom())->getThinkTimeValue();
 	}
 	catch ( const std::domain_error &e ) {
-	    LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", get_dom()->getTypeName(), name(), e.what() );
+	    get_dom()->throw_invalid_parameter( "think time", e.what() );
 	}
     }
     return 0.;

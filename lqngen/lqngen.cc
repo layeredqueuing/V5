@@ -3,7 +3,7 @@
  * If invoked as lqngen, generate a model.
  * In invoked as lqn2lqx, convert model to lqx.
  *
- * $Id: lqngen.cc 15666 2022-06-10 10:38:00Z greg $
+ * $Id: lqngen.cc 15694 2022-06-22 23:27:00Z greg $
  */
 
 #include "lqngen.h"
@@ -122,7 +122,6 @@ option_type options[] =
 static int lqngen( int argc, char *argv[0] );
 int lqn2lqx( int argc, char *argv[0] );
 static void reset_RV( RV::RandomVariable ** rv, const RV::RandomVariable *, double mean );
-static void severity_action(unsigned severity);
 static void multi( const std::string& );
 static void execute( std::ostream& output, const std::string& file_name );
 static bool check_multiplicity( const RV::RandomVariable * );
@@ -185,7 +184,7 @@ main( int argc, char *argv[] )
 
     bool customers_set = false;
     
-    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action );
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), LQIO::severity_action );
 
     /* Set flags used by lqngen */
 
@@ -1163,15 +1162,15 @@ get_RV_args( RV::RandomVariable * dist, const std::string& arg )
  * What to do based on the severity of the error.
  */
 
-static void
-severity_action (unsigned severity)
+void
+LQIO::severity_action (error_severity severity)
 {
     switch( severity ) {
-	case LQIO::FATAL_ERROR:
+	case LQIO::error_severity::FATAL:
 	(void) abort();
 	break;
 
-    case LQIO::RUNTIME_ERROR:
+    case LQIO::error_severity::ERROR:
 	LQIO::io_vars.error_count += 1;
 	if  ( LQIO::io_vars.error_count >= LQIO::io_vars.max_error ) {
 	    throw std::runtime_error( "Too many errors" );

@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15650 2022-06-07 17:32:49Z greg $
+ * $Id: task.cc 15695 2022-06-23 00:28:19Z greg $
  */
 
 #include "lqsim.h"
@@ -332,8 +332,7 @@ Task::alloc_pool()
 	    size = getDOM()->getQueueLengthValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "pool size", "task", name(), e.what() );
-	    throw_bad_parameter();
+	    getDOM()->throw_invalid_parameter( "pool size", e.what() );
 	}
     }
     for ( unsigned int i = 0; i < size; ++i ) {
@@ -662,8 +661,7 @@ Task::multiplicity() const
 	    value = getDOM()->getCopiesValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", "task", name(), e.what() );
-	    throw_bad_parameter();
+	    getDOM()->throw_invalid_parameter( "multiplicity", e.what() );
 	}
     }
     return value;
@@ -677,8 +675,7 @@ Task::priority() const
 	return getDOM()->getPriorityValue();
     }
     catch ( const std::domain_error &e ) {
-	LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", "task", name(), e.what() );
-	throw_bad_parameter();
+	getDOM()->throw_invalid_parameter( "priority", e.what() );
     }
     return 0;
 }

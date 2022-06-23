@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pragma.h 15201 2021-12-13 01:31:53Z greg $
+ * $Id: pragma.h 15694 2022-06-22 23:27:00Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -49,7 +49,7 @@ public:
     static bool defaultProcessorScheduling() { assert( __cache != nullptr ); return __cache->_default_processor_scheduling; }
     static scheduling_type processorScheduling() { assert( __cache != nullptr ); return __cache->_processor_scheduling; }
     static bool prune();
-    static LQIO::severity_t severityLevel();
+    static LQIO::error_severity severityLevel();
     static bool spexHeader();
     static bool defaultTaskScheduling() { assert( __cache != nullptr ); return __cache->_default_task_scheduling; }
     static scheduling_type taskScheduling() { assert( __cache != nullptr ); return __cache->_task_scheduling; }

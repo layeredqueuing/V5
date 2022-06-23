@@ -71,8 +71,7 @@ unsigned int Place::multiplicity() const
 	err << "invalid integer";
     }
     if ( err.str().size() > 0 ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", get_dom()->getTypeName(), name(), err.str().c_str() );
-	throw_bad_parameter();
+	get_dom()->throw_invalid_parameter( "multiplicity", err.str() );
     }
     return static_cast<unsigned int>(value);
 }

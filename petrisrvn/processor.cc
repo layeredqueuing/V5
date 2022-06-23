@@ -137,8 +137,7 @@ double Processor::rate() const
 	    return dynamic_cast<LQIO::DOM::Processor *>(get_dom())->getRateValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "rate", "processor", name(), e.what() );
-	    throw_bad_parameter();
+	    get_dom()->throw_invalid_parameter( "rate", e.what() );
 	}
     }
     return 1.0;

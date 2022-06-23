@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 15603 2022-05-27 18:30:56Z greg $
+ * $Id: processor.cc 15695 2022-06-23 00:28:19Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -172,8 +172,7 @@ Processor::rate() const
 	    value = getDOM()->getRateValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "rate", getDOM()->getTypeName(), name().c_str(), e.what() );
-	    throw_bad_parameter();
+	    getDOM()->throw_invalid_parameter( "rate", e.what() );
 	}
     } 
     return value;

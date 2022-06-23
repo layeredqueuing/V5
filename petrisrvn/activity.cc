@@ -568,7 +568,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	}
 	if ( fabs( 1.0 - sum ) > EPSILON ) {
 	    char * aBuf = fork_list->fork_join_name();
-	    LQIO::solution_error( LQIO::ERR_MISSING_OR_BRANCH, aBuf, this->name(), sum );
+	    LQIO::solution_error( LQIO::ERR_OR_BRANCH_PROBABILITIES, aBuf, this->name(), sum );
 	    free( aBuf );
 	}
 	break;

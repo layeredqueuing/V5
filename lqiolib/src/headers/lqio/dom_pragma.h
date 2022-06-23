@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 15570 2022-04-20 21:40:58Z greg $
+ * $Id: dom_pragma.h 15694 2022-06-22 23:27:00Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -43,7 +43,7 @@ namespace LQIO {
 	    const std::string get( const std::string& ) const;
 	    static const std::set<std::string>* getValues( const std::string& );
 	    static bool isTrue(const std::string& value);
-	    static LQIO::severity_t getSeverityLevel( const std::string& value );
+	    static LQIO::error_severity getSeverityLevel( const std::string& value );
 
 	private:
 	    bool check( const std::string&, const std::string& ) const;

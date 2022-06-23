@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 15612 2022-06-01 01:06:26Z greg $
+ * $Id: errmsg.h 15694 2022-06-22 23:27:00Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -20,10 +20,6 @@
 #define	ERRMSG_H
 
 #include <lqio/glblerr.h>
-
-extern "C" {
-    extern void severity_action(unsigned severity);
-}
 
 /*
  * See glblerr.h for entries 1-49.

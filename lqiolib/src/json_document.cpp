@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 15687 2022-06-22 14:39:28Z greg $
+ * $Id: json_document.cpp 15694 2022-06-22 23:27:00Z greg $
  *
  * Read in JSON input files.
  *
@@ -247,7 +247,7 @@ namespace LQIO {
 	{
 	    va_list args;
 	    va_start( args, fmt );
-	    verrprintf( stderr, RUNTIME_ERROR, _input_file_name.c_str(),  0, 0, fmt, args );
+	    verrprintf( stderr, LQIO::error_severity::ERROR, _input_file_name.c_str(),  0, 0, fmt, args );
 	    va_end( args );
 	}
  
@@ -260,7 +260,7 @@ namespace LQIO {
 	{
 	    if ( !_dom.is<picojson::object>() ) throw std::runtime_error( "JSON object expected" );
 	    const picojson::value::object& obj = _dom.get<picojson::object>();
-	    Spex::__parameter_list = spex_list( 0, 0 );
+	    Spex::__parameter_list = spex_list( nullptr, nullptr );
 
 	    for (picojson::value::object::const_iterator i = obj.begin(); i != obj.end(); ++i) {
 		const std::string& attr = i->first;

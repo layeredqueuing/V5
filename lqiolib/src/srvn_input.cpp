@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 15337 2022-01-03 13:59:54Z greg $
+ *  $Id: srvn_input.cpp 15694 2022-06-22 23:27:00Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -1246,7 +1246,7 @@ LQIO_error( const char * fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
-    LQIO::verrprintf( stderr, LQIO::RUNTIME_ERROR, LQIO::DOM::Document::__input_file_name.c_str(), LQIO_lineno, 0, fmt, args );
+    LQIO::verrprintf( stderr, LQIO::error_severity::ERROR, LQIO::DOM::Document::__input_file_name.c_str(), LQIO_lineno, 0, fmt, args );
     va_end( args );
 }
 
@@ -1262,7 +1262,7 @@ srvnwarning( const char * fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
-    LQIO::verrprintf( stderr, LQIO::WARNING_ONLY, LQIO::DOM::Document::__input_file_name.c_str(), LQIO_lineno, 0, fmt, args );
+    LQIO::verrprintf( stderr, LQIO::error_severity::WARNING, LQIO::DOM::Document::__input_file_name.c_str(), LQIO_lineno, 0, fmt, args );
     va_end( args );
 }
 

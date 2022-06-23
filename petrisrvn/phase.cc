@@ -108,8 +108,7 @@ double Phase::s() const
 	    service_time = get_dom()->getServiceTimeValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "service time", get_dom()->getTypeName(), name(), e.what() );
-	    throw_bad_parameter();
+	    get_dom()->throw_invalid_parameter( "service time", e.what() );
 	}
 	if ( processor() ) {
 	    service_time = service_time / processor()->rate();
@@ -126,8 +125,7 @@ double Phase::think_time() const
 	    return get_dom()->getThinkTimeValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", get_dom()->getTypeName(), name(), e.what() );
-	    throw_bad_parameter();
+	    get_dom()->throw_invalid_parameter( "think time", e.what() );
 	}
     }
     return 0.0;
@@ -141,8 +139,7 @@ double Phase::coeff_of_var() const
 	    return get_dom()->getCoeffOfVariationSquaredValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "CVsqr", get_dom()->getTypeName(), name(), e.what() );
-	    throw_bad_parameter();
+	    get_dom()->throw_invalid_parameter( "CVsqr", e.what() );
 	}
     }
     return 1.;
@@ -940,9 +937,8 @@ Call::is_send_no_reply() const
 double
 Call::value( const Phase * src, double upper_limit ) const
 {
-    double value = 0.;
     try {
-	value = _dom->getCallMeanValue();
+	const double value = _dom->getCallMeanValue();
 	if ( !src->has_stochastic_calls() ) {
 	    if ( value != trunc(value) ) throw std::domain_error( "invalid integer" );
 	} else if ( 0 < upper_limit && upper_limit < value ) {
@@ -952,14 +948,8 @@ Call::value( const Phase * src, double upper_limit ) const
 	}
     }
     catch ( const std::domain_error &e ) {
-	const LQIO::DOM::Entry * dst = _dom->getDestinationEntry();
-	if ( src->is_activity() ) {
-	    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", src->task()->name(), _dom->getTypeName(), src->name(), dst->getName().c_str(), e.what() );
-	} else {
-	    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", src->entry()->name(), _dom->getTypeName(), src->name(), dst->getName().c_str(), e.what() );
-	}
-	throw_bad_parameter();
+	_dom->throw_invalid_parameter( "mean value", e.what() );
     }
-    return value;
+    return 0.;
 }
 

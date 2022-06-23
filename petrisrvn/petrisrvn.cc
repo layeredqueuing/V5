@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 15666 2022-06-10 10:38:00Z greg $
+ * $Id: petrisrvn.cc 15694 2022-06-22 23:27:00Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -180,7 +180,7 @@ main(int argc, char *argv[])
 
     int status  = NORMAL_TERMINATION;
 
-    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), LQIO::severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
     command_line = LQIO::io_vars.lq_toolname;
 
     /* Check for non-empty non-regular file "empty" -- used by GreatSPN */
@@ -356,7 +356,7 @@ main(int argc, char *argv[])
 	    break;
 
 	case 'w':
-	    LQIO::io_vars.severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
+	    pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_run_time_);
 	    break;
 
 	case 'x':
@@ -398,7 +398,7 @@ main(int argc, char *argv[])
     /* Quick check.  -zin-service requires that the customers are differentiated. */
 
     if ( ( inservice_match_pattern != nullptr ) && customers_flag ) {
-	if ( LQIO::io_vars.severity_level <= LQIO::WARNING_ONLY ) {
+	if ( LQIO::io_vars.severity_level == LQIO::error_severity::ERROR || LQIO::io_vars.severity_level == LQIO::error_severity::ALL ) {
 	    (void) fprintf( stdout, "%s: --overtaking is incompatible with multiple customer clients\n", LQIO::io_vars.toolname() );
 	    (void) fprintf( stdout, "\t--disjoint-customers assumed\n" );
 	}

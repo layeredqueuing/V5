@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 15560 2022-04-19 10:52:04Z greg $
+ * $Id: actlist.cc 15706 2022-06-23 17:02:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -705,7 +705,7 @@ OrForkActivityList::check() const
 
     const double sum = std::accumulate( activityList().begin(), activityList().end(), 0.0, add_prBranch( this ) );
     if ( sum < 1.0 - EPSILON || 1.0 + EPSILON < sum ) {
-        LQIO::solution_error( LQIO::ERR_MISSING_OR_BRANCH, getName().c_str(), owner()->name().c_str(), sum );
+        LQIO::solution_error( LQIO::ERR_OR_BRANCH_PROBABILITIES, getName().c_str(), owner()->name().c_str(), sum );
 	return false;
     }
     return true;

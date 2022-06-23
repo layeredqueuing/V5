@@ -116,7 +116,7 @@ double Entry::prob_fwd( const Entry * entry ) const
 	catch ( const std::domain_error& e ) {
 	    const LQIO::DOM::Entry * dst = call->getDestinationEntry();
 	    LQIO::solution_error( LQIO::ERR_INVALID_FWDING_PARAMETER, name(), dst->getName().c_str(), e.what() );
-	    throw_bad_parameter();
+	    throw std::domain_error( std::string( "invalid parameter: " ) + e.what() ); 
 	}
     }
     return 0.0;
@@ -247,7 +247,7 @@ Entry::initialize()
 	    if ( n_replies == 0 ) {
 		solution_error( LQIO::ERR_REPLY_NOT_GENERATED, name() );
 	    } else if ( fabs( n_replies - 1.0 ) > EPSILON ) {
-		solution_error( LQIO::ERR_NON_UNITY_REPLIES, n_replies, name() );
+		solution_error( LQIO::ERR_NON_UNITY_REPLIES, name(), n_replies );
 	    }
 	}
     } else {

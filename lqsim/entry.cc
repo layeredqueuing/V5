@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 15456 2022-03-09 15:06:35Z greg $
+ * $Id: entry.cc 15706 2022-06-23 17:02:35Z greg $
  */
 
 #include "lqsim.h"
@@ -108,7 +108,7 @@ Entry::configure()
 		    LQIO::solution_error( LQIO::ERR_REPLY_NOT_GENERATED, name() );
 		}
 	    } else if ( fabs( n_replies - 1.0 ) > EPSILON) {
-		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, n_replies, name() );
+		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, name(), n_replies );
 	    }
 	}
 
@@ -570,8 +570,7 @@ Pseudo_Entry::configure()
 	if ( arrival_rate == 0.0 ) throw std::domain_error( "zero" );
     }
     catch ( const std::domain_error& e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "arrival rate", "entry", name(), e.what() );
-	throw_bad_parameter();
+	get_DOM()->throw_invalid_parameter( "arrival rate", e.what() );
     }
     _phase[0].set_arrival_rate( 1.0 / arrival_rate );
 

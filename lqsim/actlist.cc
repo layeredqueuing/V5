@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: actlist.cc 15456 2022-03-09 15:06:35Z greg $
+ * $Id: actlist.cc 15706 2022-06-23 17:02:35Z greg $
  */
 
 #include "lqsim.h"
@@ -337,7 +337,7 @@ OrForkActivityList::find_children( std::deque<Activity *>& activity_stack, std::
     if ( fabs( 1.0 - prob ) > EPSILON ) {
 	Activity * ap = activity_stack.back();
 	const std::string name = get_name();
-	LQIO::solution_error( LQIO::ERR_MISSING_OR_BRANCH, name.c_str(), ap->task()->name(), prob );
+	LQIO::solution_error( LQIO::ERR_OR_BRANCH_PROBABILITIES, name.c_str(), ap->task()->name(), prob );
     }
     return sum;
 }

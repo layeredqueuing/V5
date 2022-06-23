@@ -2,7 +2,7 @@
  * pragma.h	-- Greg Franks
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.h 15317 2022-01-01 16:44:56Z greg $
+ * $Id: pragma.h 15694 2022-06-22 23:27:00Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -43,7 +43,7 @@ public:
     bool reschedule_on_async_send() const { return _reschedule_on_async_send; }
     int scheduling_model() const { return _scheduling_model; }
     double seed_value() const { return _seed_value; }
-    LQIO::severity_t severity_level() { return _severity_level; }
+    LQIO::error_severity severity_level() { return _severity_level; }
     bool spex_comment() const { return _spex_comment; }
     bool spex_header() const { return _spex_header; }
 
@@ -72,7 +72,7 @@ private:
     int _quorum_delayed_calls;
     bool _reschedule_on_async_send;
     int _scheduling_model;
-    LQIO::severity_t _severity_level;
+    LQIO::error_severity _severity_level;
     bool _spex_comment;
     bool _spex_header;
 

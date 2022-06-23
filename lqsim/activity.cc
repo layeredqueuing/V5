@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 15691 2022-06-22 18:04:24Z greg $
+ * $Id: activity.cc 15695 2022-06-23 00:28:19Z greg $
  */
 
 #include "lqsim.h"
@@ -121,8 +121,7 @@ Activity::service() const
 	return get_DOM()->getServiceTimeValue();
     }
     catch ( const std::domain_error& e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "service time", get_DOM()->getTypeName(), name(), e.what() );
-	throw_bad_parameter();
+	get_DOM()->throw_invalid_parameter( "service time", e.what() );
     }
     return 0.;
 }
@@ -146,11 +145,10 @@ Activity::configure()
 	    _think_time = _dom->getThinkTimeValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", get_DOM()->getTypeName(), name(), e.what() );
-	    throw_bad_parameter();
+	    get_DOM()->throw_invalid_parameter( "think time", e.what() );
 	}
-	if ( !_hist_data && (_dom->hasHistogram() || _dom->hasMaxServiceTimeExceeded()) ) {
-	    _hist_data = new Histogram( _dom->getHistogram() );
+	if ( !_hist_data && (get_DOM()->hasHistogram() || get_DOM()->hasMaxServiceTimeExceeded()) ) {
+	    _hist_data = new Histogram( get_DOM()->getHistogram() );
 	}
     }
 

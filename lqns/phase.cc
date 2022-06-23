@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 15622 2022-06-02 01:47:23Z greg $
+ * $Id: phase.cc 15695 2022-06-23 00:28:19Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -117,8 +117,7 @@ NullPhase::serviceTime() const
 	return getDOM()->getServiceTimeValue();
     }
     catch ( const std::domain_error& e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "service time", getDOM()->getTypeName(), name().c_str(), e.what() );
-	throw_bad_parameter();
+	getDOM()->throw_invalid_parameter( "service time", e.what() );
     }
     return 0.0;
 }
@@ -130,8 +129,7 @@ NullPhase::thinkTime() const
 	return getDOM()->getThinkTimeValue();
     }
     catch ( const std::domain_error& e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", getDOM()->getTypeName(), name().c_str(), e.what() );
-	throw_bad_parameter();
+	getDOM()->throw_invalid_parameter( "think time", e.what() );
     }
     return 0.;
 }
@@ -144,8 +142,7 @@ NullPhase::CV_sqr() const
 	    return getDOM()->getCoeffOfVariationSquaredValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "CVsqr", getDOM()->getTypeName(), name().c_str(), e.what() );
-	    throw_bad_parameter();
+	    getDOM()->throw_invalid_parameter( "CVsqr", e.what() );
 	}
     }
     return 1.;

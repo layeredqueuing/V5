@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15619 2022-06-01 20:39:05Z greg $
+ * $Id: entry.cc 15706 2022-06-23 17:02:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1366,7 +1366,7 @@ Entry::check() const
 		LQIO::solution_error( LQIO::ERR_REPLY_NOT_GENERATED, name().c_str() );
 		rc = false;
 	    } else if ( fabs( replies - 1.0 ) > EPSILON ) {
-		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, replies, name().c_str() );
+		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, name().c_str(), replies );
 		rc = false;
 	    }
 	    max_phases = std::max( maxPhase(), max_phases );		/* Set global value.	*/

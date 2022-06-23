@@ -9,7 +9,7 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 15456 2022-03-09 15:06:35Z greg $
+ * $Id: group.cc 15695 2022-06-23 00:28:19Z greg $
  */
 
 #include "lqsim.h"
@@ -52,8 +52,7 @@ Group::create()
 	share = _domGroup->getGroupShareValue();
     }
     catch ( const std::domain_error& e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "share", "group", name(), e.what() );
-	throw_bad_parameter();
+	getDOMGroup()->throw_invalid_parameter( "share", e.what() );
     }
 
     if ( _task_list.size() == 0 ) {

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: input.h 15220 2021-12-15 15:18:47Z greg $
+ * $Id: input.h 15694 2022-06-22 23:27:00Z greg $
  */
 
 #if	!defined(LQIO_INPUT_H)
@@ -72,20 +72,20 @@ namespace LQIO {
 
     typedef struct lqio_params_stats
     {
-	lqio_params_stats( const char * version, void (*action)(unsigned) );
+	lqio_params_stats( const char * version, void (*action)(error_severity) );
 	void reset() { error_count = 0; }
 	bool anError() const { return error_count > 0; }
 	const char * toolname() const { return lq_toolname.c_str(); }
-	void init( const std::string& version, const std::string& toolname, void (*sa)(unsigned), ErrorMessageType * local=nullptr, size_t size=0 );
+	void init( const std::string& version, const std::string& toolname, void (*sa)(error_severity), ErrorMessageType * local=nullptr, size_t size=0 );
 
 	std::string lq_toolname;                /* I:Name of tool for messages    */
 	std::string lq_version;			/* I: version number	          */
 	std::string lq_command_line;		/* I:Command line		  */
-	void (*severity_action)(unsigned);	/* I:Severity action              */
+	void (*severity_action)(LQIO::error_severity);	/* I:Severity action              */
 
 	unsigned max_error;			/* I:Maximum error ID number      */
 	mutable unsigned error_count;		/* IO:Number of errors            */
-	LQIO::severity_t severity_level;        /* I:Messages < severity_level ignored. */
+	LQIO::error_severity severity_level;    /* I:Messages < severity_level ignored. */
 
 	std::vector<ErrorMessageType> error_messages;	/* IO:Error Messages */
     } lqio_params_stats;

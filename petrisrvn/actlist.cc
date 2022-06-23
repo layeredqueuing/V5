@@ -581,7 +581,7 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 	    }
 	}
 	if ( sum < 1.0 - EPSILON || 1.0 + EPSILON < sum ) {
-	    LQIO::solution_error( LQIO::ERR_MISSING_OR_BRANCH, fork_join_name(), e->task()->name(), sum );
+	    LQIO::solution_error( LQIO::ERR_OR_BRANCH_PROBABILITIES, fork_join_name(), e->task()->name(), sum );
 	}
 	break;
 

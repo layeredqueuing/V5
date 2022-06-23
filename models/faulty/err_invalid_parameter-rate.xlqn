@@ -1,0 +1,31 @@
+# SRVN Model Description File, for file: err_src_equals_dst.in
+# $Id$
+# ------------------------------------------------------------------------
+
+#pragma spex-header=no
+
+$x = 1 - 2	# Force negative
+
+G "ERR_INVALID_PARAMETER" 1e-05 50 10 0.9 -1
+
+P 2
+  p p1 f R $x %u $u
+  p p2 f
+-1
+
+T 2
+  t t1 r e1 -1 p1
+  t t2 n e2 -1 p2
+-1
+
+E 2
+# ---------- t1 ----------
+  s e1 1 -1
+  y e1 e2 1.5 -1
+# ---------- t2 ----------
+  s e2 1 -1
+-1
+
+R 1
+  $u
+-1

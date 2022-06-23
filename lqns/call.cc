@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15631 2022-06-03 09:55:34Z greg $
+ * $Id: call.cc 15697 2022-06-23 02:56:49Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -188,18 +188,28 @@ Call::check() const
 }
 
 
+/*
+ * Common code for rendezvous, send-no-reply and forwarding.  Get and
+ * check the value returned.  Additional checks for valid forwarding
+ * probabilities, and a deterministic number of calls.
+ */
+
 double
 Call::getDOMValue() const
 {
-    const double value = getDOM()->getCallMeanValue();
-    if ( value < 0.0
-	 || (getDOM()->getCallType() != LQIO::DOM::Call::Type::FORWARD && getSource()->phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && value != std::floor( value ))
-	 || (getDOM()->getCallType() == LQIO::DOM::Call::Type::FORWARD && value > 1.0) ) {
-	std::ostringstream ss;
-	ss << value << " < " << value;
-	throw std::domain_error( ss.str() );
+    try {
+	const double value = getDOM()->getCallMeanValue();
+	if ( getDOM()->getCallType() != LQIO::DOM::Call::Type::FORWARD && getSource()->phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && value != std::rint( value ) ) {
+	    throw std::domain_error( "invalid integer" );
+	} else if ( getDOM()->getCallType() == LQIO::DOM::Call::Type::FORWARD && value > 1.0 ) {
+	    throw std::domain_error( "invalid probability" );
+	}
+	return value;
     }
-    return value;
+    catch ( const std::domain_error &e ) {
+	getDOM()->throw_invalid_parameter( "mean value", e.what() );
+    }
+    return 0.;
 }
 
 
@@ -574,27 +584,6 @@ Call::saveWait( const unsigned k, const unsigned p, const double )
 /*                              Phase Calls                             */
 /*----------------------------------------------------------------------*/
 
-void
-NullCall::parameter_error( const std::string& s ) const
-{
-    abort();
-}
-
-void
-FromEntry::parameter_error( const std::string& s ) const
-{
-    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", srcEntry()->name().c_str(), getSource()->getDOM()->getTypeName(),
-			  getSource()->getDOM()->getName().c_str(), dstName().c_str(), s.c_str() );
-    throw std::domain_error( s );
-}
-
-void
-FromActivity::parameter_error( const std::string& s ) const
-{
-    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", srcTask()->name().c_str(), getSource()->getDOM()->getTypeName(),
-			  getSource()->getDOM()->getName().c_str(), dstName().c_str(), s.c_str() );
-    throw std::domain_error( s );
-}
 
 /*----------------------------------------------------------------------*/
 /*                              Phase Calls                             */

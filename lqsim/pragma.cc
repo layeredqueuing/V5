@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 14995 2021-09-27 14:01:46Z greg $
+ * $Id: pragma.cc 15694 2022-06-22 23:27:00Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -36,11 +36,11 @@ const std::map<std::string,Pragma::fptr> Pragma::__set_pragma = {
 };
 
 Pragma::Pragma() :
-    _abort_on_dropped_message(true),  /* halt on dropped msgs.	*/
+    _abort_on_dropped_message(true),  	/* halt on dropped msgs.	*/
     _quorum_delayed_calls(false),	/* Quorum reply (BUG_311)	*/
     _reschedule_on_async_send(false),	/* force schedule after snr.	*/
     _scheduling_model(SCHEDULE_SLICE),
-    _severity_level(LQIO::NO_ERROR),
+    _severity_level(LQIO::error_severity::ALL),
     _spex_comment(false),
     _spex_header(true),
     _block_period(0.0),

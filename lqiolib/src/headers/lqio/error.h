@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: error.h 15687 2022-06-22 14:39:28Z greg $
+ * $Id: error.h 15695 2022-06-23 00:28:19Z greg $
  */
 
 #if	!defined(SRVNIO_LIB_ERROR_H)
@@ -89,16 +89,16 @@ namespace LQIO {
      *
      */
 
-    typedef enum error_severity {
-	NO_ERROR,
-	WARNING_ONLY,
-	ADVISORY_ONLY,
-	RUNTIME_ERROR,
-	FATAL_ERROR
-    } severity_t;
+    enum class error_severity {
+	ALL,
+	ADVISORY,
+	WARNING,
+	ERROR,
+	FATAL
+    };
 
     typedef struct error_message_type {     /* This is number three on the above */
-	severity_t severity;            /* list of things to provide */
+	error_severity severity;            /* list of things to provide */
 	const char * message;
     } error_message_type;
 
@@ -119,7 +119,6 @@ namespace LQIO {
      * This has been moved into input.h
      */
 
-    extern const char *severity_table[];    /* This is item number 4 on the above */
     /* list of requirements. */
 
 
@@ -191,11 +190,12 @@ namespace LQIO {
 
 
     void solution_error ( unsigned err, ... );
+    void solution_error2 ( unsigned err, unsigned line_no, ... );
     void internal_error ( const char * filename, const unsigned lineno, const char *, ... );
     void input_error (const char * fmt, ...);
     void input_error2 ( unsigned err, ... );
-    void severity_action ( unsigned severity );
-    void verrprintf ( FILE *, const severity_t, const char *, unsigned int, unsigned int, const char *, va_list );
+    void severity_action ( error_severity severity );
+    void verrprintf ( FILE *, error_severity, const char *, unsigned int, unsigned int, const char *, va_list );
                 
     class undefined_symbol : public std::runtime_error
     {

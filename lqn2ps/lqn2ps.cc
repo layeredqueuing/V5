@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 15666 2022-06-10 10:38:00Z greg $
+ * $Id: lqn2ps.cc 15694 2022-06-22 23:27:00Z greg $
  *
  * Command line processing.
  *
@@ -177,7 +177,7 @@ main(int argc, char *argv[])
     Flags::set_submodel(0);
     Flags::set_include_only( nullptr );
 
-    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), LQIO::severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line += LQIO::io_vars.lq_toolname;
 
@@ -208,7 +208,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2022-06-10 06:38:00 -0400 (Fri, 10 Jun 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-06-22 19:27:00 -0400 (Wed, 22 Jun 2022) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -583,7 +583,7 @@ main(int argc, char *argv[])
 		break;
 
 	    case 'W':
-		LQIO::io_vars.severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
+		LQIO::io_vars.severity_level = LQIO::error_severity::ERROR;		/* Ignore warnings. */
 		break;
 
 	    case 'X':
