@@ -31,6 +31,7 @@ struct LQIO::error_message_type local_error_messages[] =
     { LQIO::error_severity::ERROR, 	"Send-no-reply from \"%s\" to \"%s\" is not supported."},                                                              /* ERR_SEND_NO_REPLIES_PROHIBITED       */
     { LQIO::error_severity::ERROR, 	"Entry \"%s\" for reference task \"%s\" must have service time, think time, or deterministic phases."},                /* ERR_BOGUS_REFERENCE_TASK             */
     { LQIO::error_severity::ERROR, 	"Task \"%s\" provides external synchronization: it cannot be a multiserver."},                                         /* ERR_MULTI_SYNC_SERVER                */
+    { LQIO::error_severity::ERROR, 	"Task \"%s\": join from common entry \"%s\"."}, 							               /* ERR_COMMON_ENTRY_EXTERNAL_SYNC       */
     { LQIO::error_severity::WARNING,   	"Convergence problems for \"%s\"; precision is %g."},                                                                  /* WRN_CONVERGENCE                      */
     { LQIO::error_severity::WARNING,  	"Premptive scheduling for processor \"%s\" cannot be used with non-unity coefficient of variation at entry \"%s\"."},  /* WRN_PREEMPTIVE_SCHEDULING            */
     { LQIO::error_severity::ADVISORY, 	"Open-class messages are dropped at task \"%s\" with probability %g."},                                                /* ADV_MESSAGES_LOST                    */

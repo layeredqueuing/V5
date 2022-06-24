@@ -85,7 +85,7 @@ namespace SolverInterface
 	catch ( const std::runtime_error & error ) {
 	    throw LQX::RuntimeException( error.what() );
 	}
-	catch ( const std::logic_error& error ) {
+	catch ( const std::domain_error& error ) {
 	    throw LQX::RuntimeException( error.what() );
 	}
 	return LQX::Symbol::encodeBoolean(false);

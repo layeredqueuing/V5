@@ -204,10 +204,10 @@ Model::solve( solve_using solver_function, const std::string& inputFileName, LQI
 		LQIO::io_vars.error_count += 1;
 		status = EXCEPTION_EXIT;
 	    }
-	    catch ( const std::logic_error& error ) {
-		std::cerr << LQIO::io_vars.lq_toolname << ": logic error - " << error.what() << std::endl;
+	    catch ( const std::domain_error& error ) {
+		std::cerr << LQIO::io_vars.lq_toolname << ": domain error - " << error.what() << std::endl;
 		LQIO::io_vars.error_count += 1;
-		status = EXCEPTION_EXIT;
+		status = INVALID_INPUT;
 	    }
 	}
     }

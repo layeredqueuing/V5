@@ -131,7 +131,7 @@ Phase::thinkTime() const
 bool
 Phase::hasCV_sqr() const 
 {
-    return !LQIO::DOM::ExternalVariable::isDefault( getDOM()->getCoeffOfVariationSquared(), 1.0 );
+    return getDOM() != nullptr && !LQIO::DOM::ExternalVariable::isDefault( getDOM()->getCoeffOfVariationSquared(), 1.0 );
 }
 
 

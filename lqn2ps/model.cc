@@ -2651,7 +2651,7 @@ Batch_Model::layerize()
 
 	/* find who calls me and stick them in too */
 	for ( std::vector<Entry *>::const_iterator entry = (*task)->entries().begin(); entry != (*task)->entries().end(); ++entry ) {
-	    if ( (graphical_output() || queueing_output()) && (*entry)->hasOpenArrivalRate() ) {
+	    if ( (graphical_output() || queueing_output()) && (*task)->level() > 0 && (*entry)->hasOpenArrivalRate() ) {
 		_layers.at((*task)->level()-1).append( new OpenArrivalSource(*entry) );
 	    }
 	}

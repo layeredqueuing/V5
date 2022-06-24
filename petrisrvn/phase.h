@@ -63,7 +63,7 @@ public:
     typedef double (Phase::*util_fnptr)( unsigned );
 
 public:
-    Phase( LQIO::DOM::Phase * phase=0, Task * task = 0 );
+    Phase( LQIO::DOM::Phase * phase=nullptr, Task * task=nullptr );
     Phase& set_dom( LQIO::DOM::Phase * phase, Entry * entry );
     virtual ~Phase() {}
 

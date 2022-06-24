@@ -247,10 +247,10 @@ proc_sched_flag 	: 'f'	{ $$ = SCHEDULE_FIFO; }			/* First come first served.		*/
 			| 'r'	{ $$ = SCHEDULE_RAND; }			/* Random scheduling (!?!)		*/
     			| 'h'	{ $$ = SCHEDULE_HOL; }			/* Head of line.			*/
     			| 'p'	{ $$ = SCHEDULE_PPR; }			/* Priority, preemptive resume		*/
-    			| 'c'	{ $$ = SCHEDULE_CFS; }			/* Completely fair share		*/
     			;
 
-proc_sched_quantum 	: 's'	{ $$ = SCHEDULE_PS; }			/* Processor Sharing.			*/
+proc_sched_quantum 	: 'c'	{ $$ = SCHEDULE_CFS; }			/* Completely fair share		*/
+    			| 's'	{ $$ = SCHEDULE_PS; }			/* Processor Sharing.			*/
 			| 'H'	{ $$ = SCHEDULE_PS_HOL; }		/* Processor Sharing.			*/
 			| 'P'	{ $$ = SCHEDULE_PS_PPR; }		/* Processor Sharing.			*/
     			;

@@ -22,9 +22,10 @@
 #include <lqio/dom_actlist.h>
 #include <lqio/dom_extvar.h>
 #include "actlist.h"
-#include "task.h"
 #include "entry.h"
+#include "errmsg.h"
 #include "results.h"
+#include "task.h"
 
 static jmp_buf loop_env;
 
@@ -203,7 +204,7 @@ bool ActivityList::check_external_joins() const
     for ( e1 = 0; e1 + 1 < this->n_acts(); ++e1 ) {
 	for ( e2 = e1 + 1; e2 < this->n_acts(); ++e2 ) {
 	    if ( this->entry[e1] == this->entry[e2] ) {
-		solution_error( LQIO::ERR_JOIN_PATH_MISMATCH, this->list[e1]->name(), this->list[e2]->name() );
+		LQIO::solution_error( ERR_COMMON_ENTRY_EXTERNAL_SYNC, this->entry[e1]->task()->name(), this->entry[e1]->name() );
 		return false;
 	    }
 	}

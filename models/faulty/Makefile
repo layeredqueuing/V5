@@ -1,17 +1,18 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15710 2022-06-23 20:02:33Z greg $
+# $Id: Makefile 15714 2022-06-24 02:03:13Z greg $
 # ------------------------------------------------------------------------
 
-SRCS=	err_arrival_rate.lqn \
+SRCS=	err_activity_not_reachable.lqn \
+	err_arrival_rate.lqn \
 	err_cycle_in_activity_graph.lqn \
 	err_cycle_in_call_graph.lqn \
 	err_duplicate_activity_lvalue.lqn \
 	err_duplicate_activity_rvalue.lqn \
-	err_duplicate_processor.lqn \
 	err_duplicate_reply.lqn \
 	err_duplicate_start_activity.lqn \
+	err_duplicate_symbol-processor.lqn \
 	err_duplicate_symbol-entry.lqn \
 	err_duplicate_symbol-task.lqn \
 	err_entry_not_specified.lqn \
@@ -24,9 +25,10 @@ SRCS=	err_arrival_rate.lqn \
 	err_invalid_reply-loop.lqn \
 	err_is_start_activity-2.lqn \
 	err_is_start_activity.lqn \
-	err_join_bad_path.lqn \
 	err_join_bad_path-repeat.lqn \
+	err_join_bad_path.lqn \
 	err_mixed_entry_types.lqn \
+	err_no_group_specified.lqn \
 	err_no_reference_tasks.lqn \
 	err_no_start_activities.lqn \
 	err_non_ref_think_time.lqn \
@@ -54,6 +56,12 @@ lqsim:
 	for i in $(SRCS); do (lqsim $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
 #	for i in $(SRCS); do (lqsim $$i > /dev/null 2>&1); echo $$?; done
 
+
+petrisrvn:
+	for i in $(SRCS); do (petrisrvn $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+
+lqn2ps:
+	for i in $(SRCS); do (lqn2ps $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
 
 missing:
 	ls err_* | sed -e 's/\..*//' -e 's/-.*//' | sort | uniq > tests

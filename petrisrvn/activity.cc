@@ -143,14 +143,13 @@ Activity::find_children( std::deque<Activity *>& activity_stack, std::deque<Acti
 
 void Activity::activity_cycle_error( int err, const char *, std::deque<Activity *>& activity_stack )
 {
-    static char buf[BUFSIZ];
-    size_t l = 0;
+    std::string buf;
 
-    while ( !activity_stack.empty() ) {
-	Activity * ap = activity_stack.back();
-	l += snprintf( &buf[l], BUFSIZ-l, ", %s", ap->name() );
+    for ( const auto& ap : activity_stack ) {
+	if ( ap != activity_stack.front() ) buf += ", ";
+	buf += ap->name();
     }
-    LQIO::solution_error( err, name(), buf );
+    LQIO::solution_error( err, task()->name(), buf.c_str() );
 }
 
 /*
