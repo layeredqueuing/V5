@@ -8,7 +8,7 @@
  */
 
 /*
- * $Id: errmsg.h 13742 2020-08-06 14:53:34Z greg $
+ * $Id: errmsg.h 15718 2022-06-27 12:52:14Z greg $
  */
 
 #include <lqio/glblerr.h>
