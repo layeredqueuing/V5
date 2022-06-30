@@ -1,7 +1,7 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 15697 2022-06-23 02:56:49Z greg $
+ * $Id: target.cc 15734 2022-06-30 02:19:44Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -95,7 +95,7 @@ void
 tar_t::configure()
 {
     if ( _entry->task()->is_reference_task() ) {
-	LQIO::solution_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, _entry->task()->name(), _entry->name() );
+	_entry->task()->getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, _entry->name() );
     } else if ( _type == Type::call ) {
 	_reply = (_dom._call->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS || _dom._call->getCallType() == LQIO::DOM::Call::Type::FORWARD);
 	try { 
@@ -192,6 +192,7 @@ tar_t::insertDOMResults()
     }
 
     if ( number_blocks > 1 ) {
+
 	double varDelay, varDelayVariance;
 	const double meanLossVariance = r_loss_prob.variance();
 
@@ -279,14 +280,10 @@ Targets::configure( const LQIO::DOM::DocumentObject * dom, bool normalize )
 	tp->_tprob = sum;
     }
 
-    if ( _type != LQIO::DOM::Phase::Type::DETERMINISTIC ) {
-	if ( normalize ) {
-	    sum += 1.0;
-	    for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
-		tp->_tprob /= sum;
-	    }
-	} else if ( sum > 1. ) {
-	    LQIO::solution_error( LQIO::ERR_INVALID_FORWARDING_PROBABILITY, srcName, sum );
+    if ( _type != LQIO::DOM::Phase::Type::DETERMINISTIC && normalize ) {
+	sum += 1.0;
+	for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
+	    tp->_tprob /= sum;
 	}
     }
 

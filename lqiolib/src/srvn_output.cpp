@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 15631 2022-06-03 09:55:34Z greg $
+ *  $Id: srvn_output.cpp 15731 2022-06-29 18:22:10Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -1651,8 +1651,7 @@ namespace LQIO {
 		output << Input::is_integer_and_gt( " m ", processor.getCopies(), 1.0 );
 	    }
 	    catch ( const std::domain_error& e ) {
-		solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", "processor", processor.getName().c_str(), e.what() );
-		throw_bad_parameter();
+		processor.throw_invalid_parameter( "multiplicity", e.what() );
 	    }
 	}
         return output;
@@ -1665,8 +1664,7 @@ namespace LQIO {
 	    output << Input::is_integer_and_gt( " r ", processor.getReplicas(), 1.0 );
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "replicas", "processor", processor.getName().c_str(), e.what() );
-	    throw_bad_parameter();
+	    processor.throw_invalid_parameter( "replicas", e.what() );
 	}
         return output;
     }
@@ -1678,8 +1676,7 @@ namespace LQIO {
 	    output << Input::is_double_and_ne( " R ", dynamic_cast<const DOM::Processor&>(processor).getRate(), 1.0 );
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "rate", "processor", processor.getName().c_str(), e.what() );
-	    throw_bad_parameter();
+	    processor.throw_invalid_parameter( "rate", e.what() );
 	}
         return output;
     }
@@ -1903,41 +1900,37 @@ namespace LQIO {
     void
     SRVN::TaskOutput::printJoinDelay( const DOM::Task& task ) const
     {
-        const std::map<std::string,DOM::Activity*>& activities = task.getActivities();
-        if ( activities.size() > 0 ) {
-            bool print_task_name = true;
-            std::map<std::string,DOM::Activity*>::const_iterator nextActivity;
-            for ( nextActivity = activities.begin(); nextActivity != activities.end(); ++nextActivity ) {
-                const DOM::Activity * activity = nextActivity->second;
-                const DOM::AndJoinActivityList * activityList = dynamic_cast<DOM::AndJoinActivityList *>(activity->getOutputToList());
-                if ( !activityList ) continue;
-                const DOM::Activity * first;
-                const DOM::Activity * last;
-                activityList->activitiesForName( &first, &last );
-                if ( first != activity ) continue;
-                _output << entity_name( task, print_task_name )
-                        << std::setw(__maxStrLen-1) << first->getName() << " "
-                        << std::setw(__maxStrLen-1) << last->getName() << " "
-                        << std::setw(__maxDblLen-1) << activityList->getResultJoinDelay() << ' '
-                        << std::setw(__maxDblLen-1) << activityList->getResultVarianceJoinDelay()
-                        << newline;
-                if ( __conf95 ) {
-                    _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_95 )
-                            << std::setw(__maxDblLen-1) << (*__conf95)(activityList->getResultJoinDelayVariance()) << ' '
-                            << std::setw(__maxDblLen-1) << (*__conf95)(activityList->getResultVarianceJoinDelayVariance())
-                            << newline;
-                }
-                if ( __conf99 ) {
-                    _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_99 )
-                            << std::setw(__maxDblLen-1) << (*__conf99)(activityList->getResultJoinDelayVariance()) << ' '
-                            << std::setw(__maxDblLen-1) << (*__conf99)(activityList->getResultVarianceJoinDelayVariance())
-                            << newline;
-                }
-            }
-            if ( !print_task_name && __parseable ) {
-                _output << activityEOF << newline;
-            }
-        }
+        const std::set<DOM::ActivityList*>& activity_lists = task.getActivityLists();
+        std::set<DOM::ActivityList*>::const_iterator next_list;
+	bool print_task_name = true;
+        for ( std::set<DOM::ActivityList*>::const_iterator  list = activity_lists.begin(); list != activity_lists.end(); ++list ) {
+	    if ( !dynamic_cast<DOM::AndJoinActivityList *>( *list ) ) continue;
+	    const DOM::Activity * first;
+	    const DOM::Activity * last;
+	    (*list)->activitiesForName( first, last );
+	    _output << entity_name( task, print_task_name )
+		    << std::setw(__maxStrLen-1) << first->getName() << " "
+		    << std::setw(__maxStrLen-1) << last->getName() << " "
+		    << std::setw(__maxDblLen-1) << (*list)->getResultJoinDelay() << ' '
+		    << std::setw(__maxDblLen-1) << (*list)->getResultVarianceJoinDelay()
+		    << newline;
+	    if ( __conf95 ) {
+		_output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_95 )
+			<< std::setw(__maxDblLen-1) << (*__conf95)((*list)->getResultJoinDelayVariance()) << ' '
+			<< std::setw(__maxDblLen-1) << (*__conf95)((*list)->getResultVarianceJoinDelayVariance())
+			<< newline;
+	    }
+	    if ( __conf99 ) {
+		_output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_99 )
+			<< std::setw(__maxDblLen-1) << (*__conf99)((*list)->getResultJoinDelayVariance()) << ' '
+			<< std::setw(__maxDblLen-1) << (*__conf99)((*list)->getResultVarianceJoinDelayVariance())
+			<< newline;
+	    }
+	    print_task_name = false;
+	}
+	if ( !print_task_name && __parseable ) {
+	    _output << activityEOF << newline;
+	}
     }
 
 /*
@@ -2148,8 +2141,7 @@ namespace LQIO {
 		output << Input::is_integer_and_gt( " m ", task.getCopies(), 1.0 );
 	    }
 	    catch ( const std::domain_error& e ) {
-		solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", "task", task.getName().c_str(), e.what() );
-		throw_bad_parameter();
+		task.throw_invalid_parameter( "multiplicity", e.what() );
 	    }
         }
         return output;
@@ -2172,8 +2164,7 @@ namespace LQIO {
 		output << " " << Input::print_integer_parameter( task.getPriority(), 0 );
 	    }
 	    catch ( const std::domain_error& e ) {
-		solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", "task", task.getName().c_str(), e.what() );
-		throw_bad_parameter();
+		task.throw_invalid_parameter( "priority", e.what() );
 	    }
         }
         return output;
@@ -2187,8 +2178,7 @@ namespace LQIO {
 		output << " q " << Input::print_integer_parameter( task.getQueueLength(), 0 );
 	    }
 	    catch ( const std::domain_error& e ) {
-		solution_error( LQIO::ERR_INVALID_PARAMETER, "queue length", "task", task.getName().c_str(), e.what() );
-		throw_bad_parameter();
+		task.throw_invalid_parameter( "queue length", e.what() );
 	    }
         }
         return output;
@@ -2201,8 +2191,7 @@ namespace LQIO {
 	    output << Input::is_integer_and_gt( " r ", task.getReplicas(), 1.0 );
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "replicas", "task", task.getName().c_str(), e.what() );
-	    throw_bad_parameter();
+	    task.throw_invalid_parameter( "replicas", e.what() );
 	}
         return output;
     }
@@ -2376,8 +2365,7 @@ namespace LQIO {
 	    _output << entity_name( entity, print_task_name ) << entry_name( entry ) << open_arrivals( entry ) << newline;
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "open arrivals", "entry", entry.getName().c_str(), e.what() );
-	    throw_bad_parameter();
+	    entry.throw_invalid_parameter( "open arrivals", e.what() );
 	}
     }
 
@@ -2579,7 +2567,7 @@ namespace LQIO {
 		_output << "  a " << entry.getName() << " " << Input::print_double_parameter( entry.getOpenArrivalRate(), 0. ) << std::endl;
 	    }
 	    catch ( const std::domain_error& e ) {
-		solution_error( LQIO::ERR_INVALID_PARAMETER, "open arrivals", "entry", entry.getName().c_str(), e.what() );
+		entry.runtime_error( LQIO::ERR_INVALID_PARAMETER, "open arrivals", e.what() );
 	    }
         }
 
@@ -2670,8 +2658,7 @@ namespace LQIO {
 			<< " " << std::setw( ObjectInput::__maxEntLen ) << dst->getName() << number_of_calls( fwd ) << " -1" << std::endl;
 	    }
 	    catch ( const std::domain_error& e ) {
-		LQIO::solution_error( LQIO::ERR_INVALID_FWDING_PARAMETER, entry.getName().c_str(), dst->getName().c_str(), e.what() );
-		throw_bad_parameter();
+		fwd->throw_invalid_parameter( "probability", e.what() );
 	    }
         }
     }
@@ -2708,11 +2695,6 @@ namespace LQIO {
 		    _output << number_of_calls( calls_by_phase[p->first] );
 		}
 		catch ( const std::domain_error& e ) {
-		    static const char * const phase[] = { "0", "1", "2", "3" };
-		    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER,
-					  "entry", entry.getName().c_str(),
-					  "phase", phase[n],
-					  dst->getName().c_str(), e.what() );
 		    throw_bad_parameter();
 		}
 	    }
@@ -2750,8 +2732,7 @@ namespace LQIO {
 	    _output << " " << std::setw(ObjectInput::__maxInpLen) << Input::print_double_parameter( p.getCoeffOfVariationSquared(), 0. );
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "CV sq", p.getTypeName(), p.getName().c_str(), e.what() );
-	    throw_bad_parameter();
+	    p.throw_invalid_parameter( "CV sq", e.what() );
 	}
 
     }
@@ -2762,8 +2743,7 @@ namespace LQIO {
 	    _output << " " << std::setw(ObjectInput::__maxInpLen) << p.getMaxServiceTime();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "Exceeded", p.getTypeName(), p.getName().c_str(), e.what() );
-	    throw_bad_parameter();
+	    p.throw_invalid_parameter( "Exceeded", e.what() );
 	}
     }
 
@@ -2778,8 +2758,7 @@ namespace LQIO {
 	    _output << " " << std::setw(ObjectInput::__maxInpLen) << Input::print_double_parameter( p.getServiceTime(), 0. );
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "service time", p.getTypeName(), p.getName().c_str(), e.what() );
-	    throw_bad_parameter();
+	    p.throw_invalid_parameter( "service time", e.what() );
 	}
     }
 
@@ -2789,8 +2768,7 @@ namespace LQIO {
 	    _output << " " << std::setw(ObjectInput::__maxInpLen) << Input::print_double_parameter( p.getThinkTime(), 0. );
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "CV sq", p.getTypeName(), p.getName().c_str(), e.what() );
-	    throw_bad_parameter();
+	    p.throw_invalid_parameter( "CV sq", e.what() );
 	}
     }
 
@@ -3144,12 +3122,7 @@ namespace LQIO {
 	    _output << "  " << call_type( call ) << " " << src->getName() << " " << dst->getName() << number_of_calls( call );
 	}
 	catch ( const std::domain_error& e ) {
-	    const DOM::Task * task = src->getTask();
-	    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER,
-				  "task", task->getName().c_str(),
-				  src->getTypeName(), src->getName().c_str(),
-				  dst->getName().c_str(), e.what() );
-	    throw_bad_parameter();
+	    call->throw_invalid_parameter( "rate", e.what() );
 	}
 	if ( !call->getDocument()->instantiated() ) {
 	    printObservationVariables( _output, *call );
@@ -3216,15 +3189,13 @@ namespace LQIO {
         }
 
         const std::set<DOM::ActivityList*>& activity_lists = task->getActivityLists();
-        std::set<DOM::ActivityList*>::const_iterator nextActivityList;
-        for ( nextActivityList = activity_lists.begin(); nextActivityList != activity_lists.end(); ++nextActivityList ) {
-            const DOM::ActivityList * activityList = *nextActivityList;
-            if ( activityList->hasHistogram() ) {
+        for ( std::set<DOM::ActivityList*>::const_iterator  list = activity_lists.begin(); list != activity_lists.end(); ++list ) {
+            if ( (*list)->hasHistogram() ) {
                 const DOM::Activity * first;
                 const DOM::Activity * last;
-                activityList->activitiesForName( &first, &last );
+                (*list)->activitiesForName( first, last );
                 _output << "Histogram for task " << task->getName() << ", join activity list " << first->getName() << " to " << last->getName() << newline << newline;
-                (this->*_func)( *activityList->getHistogram() );
+                (this->*_func)( *(*list)->getHistogram() );
             }
         }
 

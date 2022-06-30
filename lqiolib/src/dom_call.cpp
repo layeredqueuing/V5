@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_call.cpp 15698 2022-06-23 11:44:22Z greg $
+ *  $Id: dom_call.cpp 15725 2022-06-28 16:23:33Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -63,17 +63,26 @@ namespace LQIO {
 	    return new Call( *this );
 	}
 
-	/*
-	 * Calls can go from phases, activities or entries, so generate the correct message.
-	 */
-	
-	void Call::throw_invalid_parameter( const std::string& parameter, const std::string& error ) const
+
+	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Error Handling] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+
+	void Call::runtime_error( unsigned code, ... ) const
 	{
-	    const DocumentObject * src = getSourceObject();
-	    const DocumentObject * dst = getDestinationEntry();
+	    const error_message_type& error = __error_messages.at(code);
+
+	    if ( !output_error_message( error.severity ) ) return;
+
+	    /* A little tricky because a call can from entry->entry, phase->entry, activity->entry */
+	    
+	    const DocumentObject * src = getSourceObject();	/* Entry, phase or activity	*/
+	    const DocumentObject * dst = getDestinationEntry();	/* Should be an entry :-)	*/
+	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(getLineNumber())
+		+ ": " + severity_table.at(error.severity) + ": ";
 	    if ( dynamic_cast<const Entry *>(src) ) {
-		solution_error2( LQIO::ERR_INVALID_FWDING_PARAMETER, getLineNumber(), getTypeName(), dst->getName().c_str(), error.c_str() );
+		buf += "Forwarding from \"" + getName() + "\"";
 	    } else {
+		std::string object_name = getTypeName();
+		object_name[0] = std::toupper( object_name[0] );
 		const DocumentObject * owner = nullptr;
 		if ( dynamic_cast<const Activity *>(src) != nullptr ) {
 		    owner = dynamic_cast<const Activity *>(src)->getTask();
@@ -82,12 +91,26 @@ namespace LQIO {
 		} else {
 		    abort();
 		}
-		solution_error2( LQIO::ERR_INVALID_CALL_PARAMETER, getLineNumber(),
-				 owner->getTypeName(), owner->getName().c_str(),
-				 src->getTypeName(), src->getName().c_str(),
-				 dst->getName().c_str(), error.c_str() );
+		buf += object_name + " from \"" + owner->getName() + "\", " + src->getTypeName() + " \"" + src->getName() + "\"";
 	    }
-	    throw std::domain_error( std::string( "invalid parameter: " ) + error );
+	    buf += std::string( " to entry \"" ) + dst->getName() + "\" " + error.message + ".\n";
+
+	    va_list args;
+	    va_start( args, code );
+	    vfprintf( stderr, buf.c_str(), args );
+	    va_end( args );
+
+	    if ( LQIO::io_vars.severity_action != nullptr ) LQIO::io_vars.severity_action( error.severity );
+	}
+
+	/*
+	 * Calls can go from phases, activities or entries, so generate the correct message.
+	 */
+	
+	void Call::throw_invalid_parameter( const std::string& parameter, const std::string& error ) const
+	{
+	    runtime_error( LQIO::ERR_INVALID_PARAMETER, parameter.c_str(), error.c_str() );
+	    throw std::domain_error( std::string( "invalid " ) + parameter + ": " + error );
 	}
 	
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */

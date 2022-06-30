@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 15694 2022-06-22 23:27:00Z greg $
+ * $Id: lqn2ps.cc 15722 2022-06-27 20:37:32Z greg $
  *
  * Command line processing.
  *
@@ -177,7 +177,8 @@ main(int argc, char *argv[])
     Flags::set_submodel(0);
     Flags::set_include_only( nullptr );
 
-    LQIO::io_vars.init( VERSION, basename( argv[0] ), LQIO::severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), LQIO::severity_action );
+    std::copy( local_error_messages.begin(), local_error_messages.end(), std::inserter( LQIO::error_messages, LQIO::error_messages.begin() ) );
 
     command_line += LQIO::io_vars.lq_toolname;
 
@@ -208,7 +209,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2022-06-22 19:27:00 -0400 (Wed, 22 Jun 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-06-27 16:37:32 -0400 (Mon, 27 Jun 2022) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H

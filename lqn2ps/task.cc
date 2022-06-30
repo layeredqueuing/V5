@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15694 2022-06-22 23:27:00Z greg $
+ * $Id: task.cc 15735 2022-06-30 03:18:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -725,21 +725,20 @@ bool
 Task::check() const
 {
     bool rc = true;
-    const std::string& srcName = name();
 
     /* Check prio/scheduling. */
 
     const Processor * processor = this->processor();
 
     if ( processor != nullptr && hasPriority() && !processor->hasPriorities() ) {
-	LQIO::solution_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, srcName.c_str(), processor->name().c_str() );
+	getDOM()->runtime_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, processor->name().c_str() );
     }
 
     /* Check replication */
 
     if ( Flags::output_format() == File_Format::PARSEABLE ) {
-	LQIO::io_vars.error_messages[ERR_REPLICATION].severity = LQIO::error_severity::WARNING;
-	LQIO::io_vars.error_messages[ERR_REPLICATION_PROCESSOR].severity = LQIO::error_severity::WARNING;
+	LQIO::error_messages.at(ERR_REPLICATION).severity = LQIO::error_severity::WARNING;
+	LQIO::error_messages.at(ERR_REPLICATION_PROCESSOR).severity = LQIO::error_severity::WARNING;
     }
 
     if ( processor != nullptr && processor->isReplicated() ) {
@@ -760,7 +759,7 @@ Task::check() const
 	}
 	if ( !ok ) {
 	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR,
-				  static_cast<int>(srcReplicasValue), srcName.c_str(),
+				  static_cast<int>(srcReplicasValue), name().c_str(),
 				  static_cast<int>(dstReplicasValue), processor->name().c_str() );
 	    if ( Flags::output_format() != File_Format::PARSEABLE ) {
 		rc = false;
@@ -770,106 +769,62 @@ Task::check() const
 
     /* Check entries */
 
+    const_cast<LQIO::DOM::DocumentObject *>(getDOM())->setSeverity( LQIO::WRN_ENTRY_HAS_NO_REQUESTS, LQIO::error_severity::ERROR );
     if ( scheduling() == SCHEDULE_SEMAPHORE ) {
 	if ( nEntries() != 2 ) {
-	    LQIO::solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, srcName.c_str(), nEntries(), N_SEMAPHORE_ENTRIES );
+	    getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, nEntries(), N_SEMAPHORE_ENTRIES );
 	    rc = false;
 	}
-	if ( !((entries().at(0)->isSignalEntry() && entries().at(1)->entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::WAIT))
-	       || (entries().at(0)->isWaitEntry() && entries().at(1)->entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::SIGNAL))
-	       || (entries().at(1)->isSignalEntry() && entries().at(0)->entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::WAIT))
-	       || (entries().at(1)->isWaitEntry() && entries().at(0)->entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::SIGNAL))) ) {
-	    LQIO::solution_error( LQIO::ERR_NO_SEMAPHORE, srcName.c_str() );
+	Entry& e1 = *entries().front();
+	Entry& e2 = *entries().back();
+	if ( !((e1.isSignalEntry() && e2.entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::WAIT))
+	       || (e1.isWaitEntry() && e2.entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::SIGNAL))
+	       || (e2.isSignalEntry() && e1.entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::WAIT))
+	       || (e2.isWaitEntry() && e1.entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::SIGNAL))) ) {
+	    getDOM()->solution_error( LQIO::ERR_NO_SEMAPHORE );
 	    rc = false;
-	} else if ( entries().at(0)->isCalled() && !entries().at(1)->isCalled() ) {
-	    LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::error_severity::ERROR; /* error_severity::WARNING; */
-	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, entries().at(1)->name().c_str() );
+	} else if ( e1.isCalled() && !e2.isCalled() ) {
+	    e2.getDOM()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
 	    rc = false;
-	} else if ( !entries().at(0)->isCalled() && entries().at(1)->isCalled() ) {
-	    LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::error_severity::ERROR; /* error_severity::WARNING; */
-	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, entries().at(0)->name().c_str() );
+	} else if ( !e1.isCalled() && e2.isCalled() ) {
+	    e1.getDOM()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
 	    rc = false;
 	}
-	LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::error_severity::WARNING;		/* Revert to normal */
 
     } else if ( scheduling() == SCHEDULE_RWLOCK ) {
 	if ( nEntries() != N_RWLOCK_ENTRIES ) {
-	    LQIO::solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, srcName.c_str(), nEntries(), N_RWLOCK_ENTRIES );
+	    getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, nEntries(), N_RWLOCK_ENTRIES );
 	    rc = false;
 	}
 
-	const Entry * E[N_RWLOCK_ENTRIES];
+	std::map<LQIO::DOM::Entry::RWLock,const Entry *> entry;
 
-	for ( unsigned int i=0;i<N_RWLOCK_ENTRIES;i++){
-	    E[i]=0;
-	}
-
-	for ( unsigned int i=0;i<N_RWLOCK_ENTRIES;i++){
-	    if ( entries().at(i)->is_r_unlock_Entry() ) {
-		if ( !E[0] ) {
-		    E[0]=entries().at(i);
-		} else { // duplicate entry TYPE error
-		    LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, srcName.c_str() );
-		    rc = false;
-		}
-	    } else if (entries().at(i)->is_r_lock_Entry() ) {
-		if ( !E[1] ) {
-		    E[1]=entries().at(i);
-		} else {
-		    LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, srcName.c_str() );
-		    rc = false;
-		}
-	    } else if ( entries().at(i)->is_w_unlock_Entry() ) {
-		if ( !E[2] ) {
-		    E[2]=entries().at(i);
-		} else {
-		    LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, srcName.c_str() );
-		    rc = false;
-		}
-	    } else if ( entries().at(i)->is_w_lock_Entry() ) {
-		if (!E[3]) {
-		    E[3]=entries().at(i);
-		} else {
-		    LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, srcName.c_str() );
-		    rc = false;
-		}
-	    } else {
-		LQIO::solution_error( LQIO::ERR_NO_RWLOCK, srcName.c_str() );
-		rc = false;
+	for ( std::vector<Entry *>::const_iterator e = entries().begin(); e != entries().end(); ++e ) {
+	    const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>((*e)->getDOM());
+	    if ( !entry.insert(std::pair<LQIO::DOM::Entry::RWLock,const Entry *>(dom->getRWLockFlag(),*e)).second ) {
+		dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	    }
 	}
 
 	/* Make sure both or neither entry is called */
 
-	if ( E[0]->isCalled() && !E[1]->isCalled() ) {
-	    LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::error_severity::ERROR; /* error_severity::WARNING; */
-	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, E[1]->name().c_str() );
-	} else if ( !E[0]->isCalled() && E[1]->isCalled() ) {
-	    LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::error_severity::ERROR; /* error_severity::WARNING; */
-	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, E[0]->name().c_str() );
+	const_cast<LQIO::DOM::DocumentObject *>(getDOM())->setSeverity( LQIO::WRN_ENTRY_HAS_NO_REQUESTS, LQIO::error_severity::ERROR );
+	if ( entry.at(LQIO::DOM::Entry::RWLock::READ_UNLOCK)->isCalled() && !entry.at(LQIO::DOM::Entry::RWLock::READ_LOCK)->isCalled() ) {
+	    entry.at(LQIO::DOM::Entry::RWLock::READ_LOCK)->getDOM()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
+	} else if ( !entry.at(LQIO::DOM::Entry::RWLock::READ_UNLOCK)->isCalled() && entry.at(LQIO::DOM::Entry::RWLock::READ_LOCK)->isCalled() ) {
+	    entry.at(LQIO::DOM::Entry::RWLock::READ_UNLOCK)->getDOM()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
 	}
-	if ( E[2]->isCalled() && !E[3]->isCalled() ) {
-	    LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::error_severity::ERROR; /* error_severity::WARNING; */
-	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, E[3]->name().c_str() );
-	} else if ( !E[2]->isCalled() && E[3]->isCalled() ) {
-	    LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::error_severity::ERROR; /* error_severity::WARNING; */
-	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, E[2]->name().c_str() );
+	if ( entry.at(LQIO::DOM::Entry::RWLock::WRITE_UNLOCK)->isCalled() && !entry.at(LQIO::DOM::Entry::RWLock::WRITE_LOCK)->isCalled() ) {
+	    entry.at(LQIO::DOM::Entry::RWLock::WRITE_LOCK)->getDOM()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
+	} else if ( !entry.at(LQIO::DOM::Entry::RWLock::WRITE_UNLOCK)->isCalled() && entry.at(LQIO::DOM::Entry::RWLock::WRITE_LOCK)->isCalled() ) {
+	    entry.at(LQIO::DOM::Entry::RWLock::WRITE_UNLOCK)->getDOM()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
 	}
-	LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::error_severity::WARNING;		/* Revert to normal */
     }
+    const_cast<LQIO::DOM::DocumentObject *>(getDOM())->setSeverity( LQIO::WRN_ENTRY_HAS_NO_REQUESTS, LQIO::error_severity::WARNING );
 
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	if ( !isReferenceTask() ) {
-	    if ( !(*entry)->hasOpenArrivalRate() && !(*entry)->isCalled() ) {
-		LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, (*entry)->name().c_str() );
-	    }
-	}
 	rc = (*entry)->check() && rc;
 	_maxPhase = std::max( _maxPhase, (*entry)->maxPhase() );
-    }
-
-    if ( scheduling() == SCHEDULE_SEMAPHORE ) {
-	LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::error_severity::WARNING;
     }
 
     rc = for_each( activities().begin(), activities().end(), AndPredicate<Activity>( &Activity::check ) ).result() && rc;
@@ -1262,7 +1217,7 @@ Task::create_customers::operator()( const Task * task )
     const ReferenceTask * client = dynamic_cast<const ReferenceTask *>(task);
     const LQIO::DOM::ExternalVariable * service_time = nullptr;
     if ( client != nullptr ) {
-	service_time = addExternalVariables( client->entries().at(0)->thinkTime(), &client->thinkTime() );
+	service_time = addExternalVariables( client->entries().front()->thinkTime(), &client->thinkTime() );
     }
     if ( task->processor() == nullptr ) {
 	// for all entries s += prVisit(e) * e->serviceTime ??
@@ -2558,7 +2513,6 @@ ReferenceTask::hasBogusUtilization() const
 Graphic::Colour
 ReferenceTask::colour() const
 {
-    const Processor * processor = this->processor(); 
     switch ( Flags::colouring() ) {
     case Colouring::SERVER_TYPE:
 	return Graphic::Colour::RED;
@@ -2732,81 +2686,81 @@ RWLockTask::clone( unsigned int replica, const std::string& aName, const Process
  */
 
 Task *
-Task::create( const LQIO::DOM::Task* domTask, std::vector<Entry *>& entries )
+Task::create( const LQIO::DOM::Task* task_dom, std::vector<Entry *>& entries )
 {
     /* Recover the old parameter information that used to be passed in */
-    const char* task_name = domTask->getName().c_str();
-    const LQIO::DOM::Group * domGroup = domTask->getGroup();
-    const scheduling_type sched_type = domTask->getSchedulingType();
+    const char* task_name = task_dom->getName().c_str();
+    const LQIO::DOM::Group * group_dom = task_dom->getGroup();
+    const scheduling_type sched_type = task_dom->getSchedulingType();
 
     if ( !task_name || strlen( task_name ) == 0 ) abort();
 
     if ( entries.size() == 0 ) {
-	LQIO::input_error2( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, task_name );
+	task_dom->runtime_error( LQIO::ERR_TASK_HAS_NO_ENTRIES );
 	return nullptr;
     }
     if ( std::any_of( __tasks.begin(), __tasks.end(), eqTaskStr( task_name ) ) ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Task", task_name );
+	task_dom->input_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	return nullptr;
     }
 
-    const std::string& processor_name = domTask->getProcessor()->getName();
-    Processor * aProcessor = Processor::find( processor_name );
-    if ( !aProcessor ) {
+    const std::string& processor_name = task_dom->getProcessor()->getName();
+    Processor * processor = Processor::find( processor_name );
+    if ( !processor ) {
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, processor_name.c_str() );
     }
 
-    const Share * aShare = 0;
-    if ( !domGroup && aProcessor->scheduling() == SCHEDULE_CFS ) {
+    const Share * share = 0;
+    if ( !group_dom && processor->scheduling() == SCHEDULE_CFS ) {
 	LQIO::input_error2( LQIO::ERR_NO_GROUP_SPECIFIED, task_name, processor_name.c_str() );
-    } else if ( domGroup ) {
-	std::set<Share *>::const_iterator nextShare = find_if( aProcessor->shares().begin(), aProcessor->shares().end(), EQStr<Share>( domGroup->getName() ) );
-	if ( nextShare == aProcessor->shares().end() ) {
-	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, domGroup->getName().c_str() );
+    } else if ( group_dom ) {
+	std::set<Share *>::const_iterator nextShare = find_if( processor->shares().begin(), processor->shares().end(), EQStr<Share>( group_dom->getName() ) );
+	if ( nextShare == processor->shares().end() ) {
+	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, group_dom->getName().c_str() );
 	} else {
-	    aShare = *nextShare;
+	    share = *nextShare;
 	}
     }
 
     /* Pick-a-task */
 
-    Task * aTask;
+    Task * task = nullptr;
     switch ( sched_type ) {
     case SCHEDULE_UNIFORM:
     case SCHEDULE_BURST:
     case SCHEDULE_CUSTOMER:
-	aTask = new ReferenceTask( domTask, aProcessor, aShare, entries );
+	task = new ReferenceTask( task_dom, processor, share, entries );
 	break;
 
     case SCHEDULE_FIFO:
     case SCHEDULE_PPR:
     case SCHEDULE_HOL:
     case SCHEDULE_DELAY:
-	aTask = new ServerTask( domTask, aProcessor, aShare, entries );
+	task = new ServerTask( task_dom, processor, share, entries );
 	break;
 
     case SCHEDULE_SEMAPHORE:
 	if ( entries.size() != 2 ) {
-	    ::LQIO::input_error2( LQIO::ERR_ENTRY_COUNT_FOR_TASK, task_name, entries.size(), 2 );
+	    task_dom->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, entries.size(), 2 );
 	}
-	aTask = new SemaphoreTask( domTask, aProcessor, aShare, entries );
+	task = new SemaphoreTask( task_dom, processor, share, entries );
 	break;
 
 	case SCHEDULE_RWLOCK:
 	if ( entries.size() != N_RWLOCK_ENTRIES ) {
-	    ::LQIO::input_error2( LQIO::ERR_ENTRY_COUNT_FOR_TASK, task_name, entries.size(), N_RWLOCK_ENTRIES );
+	    task_dom->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, entries.size(), N_RWLOCK_ENTRIES );
 	}
-	aTask = new RWLockTask( domTask, aProcessor, aShare, entries );
+	task = new RWLockTask( task_dom, processor, share, entries );
 	break;
 
     default:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[(unsigned)sched_type].str, "task", task_name );
-	aTask = new ServerTask( domTask, aProcessor, aShare, entries );
+	task_dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[(unsigned)sched_type].str );
+	task = new ServerTask( task_dom, processor, share, entries );
 	break;
     }
 
-    __tasks.insert( aTask );
-    return aTask;
+    __tasks.insert( task );
+    return task;
 }
 
 /* ---------------------------------------------------------------------- */

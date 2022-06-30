@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_call.h 15697 2022-06-23 02:56:49Z greg $
+ *  $Id: dom_call.h 15725 2022-06-28 16:23:33Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -57,6 +57,7 @@ namespace LQIO {
 	    virtual ~Call();
 	    Call * clone() const;
 
+	    virtual void runtime_error( unsigned code, ... ) const;
 	    void throw_invalid_parameter( const std::string& parameter, const std::string& error ) const;
 
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */

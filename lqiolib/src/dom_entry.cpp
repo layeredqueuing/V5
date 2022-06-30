@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 15304 2021-12-31 15:51:38Z greg $
+ *  $Id: dom_entry.cpp 15731 2022-06-29 18:22:10Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -295,15 +295,13 @@ namespace LQIO {
 		|| (_type == Entry::Type::STANDARD_NOT_DEFINED && newType == Entry::Type::STANDARD)
 		|| (_type == Entry::Type::ACTIVITY_NOT_DEFINED && newType == Entry::Type::ACTIVITY) ) {
 		_type = newType;
-		return true;
 	    } else if ( (_type == Entry::Type::STANDARD_NOT_DEFINED && newType != Entry::Type::STANDARD)
 			|| (_type == Entry::Type::ACTIVITY_NOT_DEFINED && newType != Entry::Type::ACTIVITY) ) {
 		const std::map<const Entry::Type,const std::string>::const_iterator i = entry_types.find(_type);
 		const std::map<const Entry::Type,const std::string>::const_iterator j = entry_types.find(newType);
 		assert ( i != entry_types.end() && j != entry_types.end() );
-		LQIO::solution_error( LQIO::WRN_ENTRY_TYPE_MISMATCH, getName().c_str(), i->second.c_str(), j->second.c_str() );
+		runtime_error( LQIO::WRN_ENTRY_TYPE_MISMATCH, i->second.c_str(), j->second.c_str() );
 		_type = newType;
-		return true;
 	    }
 	    return _type == newType;
 	}

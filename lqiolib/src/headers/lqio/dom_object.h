@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 15695 2022-06-23 00:28:19Z greg $
+ *  $Id: dom_object.h 15732 2022-06-29 22:24:46Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -10,6 +10,7 @@
 #define __LQIO_DOM_OBJECT__
 
 #include <string>
+#include "error.h"
 
 namespace LQIO {
     namespace DOM {
@@ -42,6 +43,8 @@ namespace LQIO {
 	public:
 	    virtual ~DocumentObject();
 
+	    virtual void input_error( unsigned code, ... ) const;
+	    virtual void runtime_error( unsigned code, ... ) const;
 	    virtual void throw_invalid_parameter( const std::string&, const std::string& ) const;
 
 	    /* Accessors and Mutators */
@@ -54,6 +57,8 @@ namespace LQIO {
 	    bool hasResults() const;
 	    void setComment( const std::string& );
 	    const std::string& getComment() const;
+	    error_severity getSeverity( unsigned code ) const;
+	    DocumentObject& setSeverity( unsigned code, error_severity );
 
 	protected:
 	    const ExternalVariable * checkIntegerVariable( const ExternalVariable * var, int floor_value ) const;
@@ -270,6 +275,9 @@ namespace LQIO {
 	private:
 	    void subclass() const;
 
+	protected:
+	    static std::map<unsigned, LQIO::error_message_type> __error_messages;
+	    
 	private:
 	    const Document * _document;		/* Pointer to the root. 	*/
 	    const size_t _sequenceNumber;
@@ -277,7 +285,7 @@ namespace LQIO {
 	    std::string _name;
 	    std::string _comment;
 
-	    static size_t sequenceNumber;
+	    static size_t __sequenceNumber;
 	};
     }
 }

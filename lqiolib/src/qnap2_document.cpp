@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 15220 2021-12-15 15:18:47Z greg $
+ * $Id: qnap2_document.cpp 15731 2022-06-29 18:22:10Z greg $
  *
  * Read in XML input files.
  *
@@ -336,7 +336,7 @@ namespace BCMP {
 		_output << qnap2_statement( "sched=" + __scheduling_str.at(station.scheduling()) ) << std::endl;
 	    }
 	    catch ( const std::out_of_range& ) {
-		LQIO::solution_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED,
+		LQIO::runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED,
 				      scheduling_label[static_cast<unsigned int>(station.scheduling())].str,
 				      "station",
 				      m.first.c_str() );

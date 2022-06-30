@@ -9,7 +9,7 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 15695 2022-06-23 00:28:19Z greg $
+ * $Id: group.cc 15725 2022-06-28 16:23:33Z greg $
  */
 
 #include "lqsim.h"
@@ -135,26 +135,26 @@ void
 Group::add( const std::pair<std::string,LQIO::DOM::Group*>& p )
 {
     const std::string& group_name = p.first;
-    LQIO::DOM::Group* domGroup = p.second;
+    LQIO::DOM::Group* dom = p.second;
+
+    if ( Group::find( group_name ) ) {
+	dom->input_error( LQIO::ERR_DUPLICATE_SYMBOL );
+	return;
+    }
 
     /* Extract variables from the DOM */
-    const char * processor_name = domGroup->getProcessor()->getName().c_str();
+    const char * processor_name = dom->getProcessor()->getName().c_str();
 
     const Processor* aProcessor = Processor::find(processor_name);
     if ( !aProcessor ) {
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, processor_name );
 	return;
     } else if ( aProcessor->discipline() != SCHEDULE_CFS ) {
-	LQIO::input_error2( LQIO::WRN_NON_CFS_PROCESSOR, domGroup->getName().c_str(), processor_name );
+	dom->input_error( LQIO::WRN_NON_CFS_PROCESSOR, processor_name );
     }
 
-    if ( Group::find( group_name ) ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Group", group_name.c_str() );
-	return;
-    }
-
-    Group * aGroup = new Group( domGroup, *aProcessor );
-//    aGroup->set_share( domGroup->getGroupShareValue() );		// set local copy. May update with multiserver.
+    Group * aGroup = new Group( dom, *aProcessor );
+//    aGroup->set_share( dom->getGroupShareValue() );		// set local copy. May update with multiserver.
     __groups.insert( aGroup );
 }
 

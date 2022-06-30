@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 15694 2022-06-22 23:27:00Z greg $
+ *  $Id: dom_pragma.cpp 15731 2022-06-29 18:22:10Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -108,19 +108,19 @@ namespace LQIO {
 	{
 	    const std::map<const std::string,const std::set<std::string>*>::const_iterator i = __pragmas.find( param );
 	    if ( i == __pragmas.end() ) {
-		LQIO::solution_error( LQIO::WRN_PRAGMA_UNKNOWN, param.c_str() );
+		runtime_error( LQIO::WRN_PRAGMA_UNKNOWN, param.c_str() );
 		return false;
 	    } else if ( i->second != nullptr ) {
 		const std::set<std::string>& values = *i->second;
 		if ( values.find( value ) == values.end() ) {
-		    LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), value.c_str() );
+		    runtime_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), value.c_str() );
 		    return false;
 		}
 	    } else {
 		char * endptr = nullptr;
 		strtod( value.c_str(), &endptr );
 		if ( *endptr != '\0' ) {
-		    LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), value.c_str() );
+		    runtime_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), value.c_str() );
 		    return false;
 		}
 	    }

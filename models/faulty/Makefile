@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15718 2022-06-27 12:52:14Z greg $
+# $Id: Makefile 15734 2022-06-30 02:19:44Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	err_activity_not_reachable.lqn \
@@ -11,10 +11,12 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_duplicate_activity_lvalue.lqn \
 	err_duplicate_activity_rvalue.lqn \
 	err_duplicate_reply.lqn \
+	err_duplicate_reply.lqnx \
 	err_duplicate_start_activity.lqn \
 	err_duplicate_symbol-processor.lqn \
 	err_duplicate_symbol-entry.lqn \
 	err_duplicate_symbol-task.lqn \
+	err_entry_count_for_task.lqn \
 	err_entry_not_specified.lqn \
 	err_external_sync-1.lqn \
 	err_external_sync-2.lqn \
@@ -22,7 +24,12 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_invalid_forwarding_probability.lqn \
 	err_invalid_parameter-calls.lqn \
 	err_invalid_parameter-rate.xlqn \
-	err_invalid_reply-loop.lqn \
+	err_invalid_parameter-proc.lqnx \
+	err_invalid_reply_from_branch-1.lqn \
+	err_invalid_reply_from_branch-2.lqn \
+	err_invalid_reply_from_branch.lqnx \
+	err_invalid_reply_duplicate.lqn \
+	err_invalid_reply_for_snr_entry.lqn \
 	err_is_start_activity-2.lqn \
 	err_is_start_activity.lqn \
 	err_join_bad_path-repeat.lqn \
@@ -35,6 +42,7 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_non_unity_replies-and.lqn \
 	err_non_unity_replies-or.lqn \
 	err_not_defined-activity.lqn \
+	err_not_defined-activity.lqnx \
 	err_open_and_closed_classes.lqn \
 	err_or_branch_probabilities-2.lqn \
 	err_or_branch_probabilities.lqn \
@@ -46,11 +54,17 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_replication.lqn \
 	err_replication_processor.lqn \
 	err_src_equals_dst.lqn \
-	err_wrong_task_for_entry.lqn
+	err_wrong_task_for_entry.lqn \
+	err_task_has_no_entries.lqnx \
+	wrn_infinite_multi_server.lqn \
+	wrn_entry_has_no_requests.lqn \
+	wrn_scheduling_not_supported.lqn
 
 lqns:	
-#	for i in $(SRCS); do (lqns $$i > /dev/null 2>&1); if test $$? -eq 0; then echo "$$i failed"; fi; done
 	for i in $(SRCS); do (lqns $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+
+lqns-verbose:
+	for i in $(SRCS); do (lqns $$i > /dev/null); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
 
 lqsim:	
 	for i in $(SRCS); do (lqsim $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
@@ -61,7 +75,10 @@ petrisrvn:
 	for i in $(SRCS); do (petrisrvn $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
 
 lqn2ps:
-	for i in $(SRCS); do (lqn2ps $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+	for i in $(SRCS); do (lqn2ps -Onull -o/dev/null $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+
+clean:
+	rm -rf *.out *.lqxo *.ps *.d nets empty
 
 missing:
 	ls err_* | sed -e 's/\..*//' -e 's/-.*//' | sort | uniq > tests

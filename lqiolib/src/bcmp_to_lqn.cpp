@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_to_lqn.cpp 15220 2021-12-15 15:18:47Z greg $
+ * $Id: bcmp_to_lqn.cpp 15724 2022-06-28 15:05:23Z greg $
  *
  * Read in XML input files.
  *
@@ -62,7 +62,7 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Chain::
     /* Create an entry */
     std::vector<DOM::Entry *> entries;
     DOM::Entry * entry = new DOM::Entry( &lqn(), name );
-    LQIO::DOM::Document::db_check_set_entry(entry, entry->getName(), LQIO::DOM::Entry::Type::STANDARD);
+    LQIO::DOM::Document::db_check_set_entry(entry, LQIO::DOM::Entry::Type::STANDARD);
     lqn().addEntry( entry );
     entries.push_back( entry );
     std::pair<entry_type::iterator,bool> item = client_entries().emplace( k.first, entry );
@@ -108,7 +108,7 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
 	std::ostringstream entry_name;
 	entry_name << name << "_" << e;	/* Station name, index for class */
 	DOM::Entry * entry = new DOM::Entry( &lqn(), entry_name.str() );
-	LQIO::DOM::Document::db_check_set_entry(entry, entry->getName(), LQIO::DOM::Entry::Type::STANDARD);
+	LQIO::DOM::Document::db_check_set_entry(entry, LQIO::DOM::Entry::Type::STANDARD);
 	lqn().addEntry( entry );
 	server_entries().emplace( m.first + k->first, entry );
 

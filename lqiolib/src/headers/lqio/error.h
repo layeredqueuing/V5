@@ -8,11 +8,13 @@
 /************************************************************************/
 
 /*
- * $Id: error.h 15695 2022-06-23 00:28:19Z greg $
+ * $Id: error.h 15731 2022-06-29 18:22:10Z greg $
  */
 
-#if	!defined(SRVNIO_LIB_ERROR_H)
-#define	SRVNIO_LIB_ERROR_H
+#if	!defined(LQIOLIB_ERROR_H)
+#define	LQIOLIB_ERROR_H
+
+#define solution_error runtime_error
 
 /*
  *	The user of error.c must supply several things:
@@ -53,6 +55,8 @@
 
 #include <cstdio>
 #include <stdexcept>
+#include <string>
+#include <map>
 
 namespace LQIO {
 
@@ -97,10 +101,12 @@ namespace LQIO {
 	FATAL
     };
 
-    typedef struct error_message_type {     /* This is number three on the above */
+    extern const std::map<const error_severity, const std::string> severity_table;
+    
+    struct error_message_type {     /* This is number three on the above */
 	error_severity severity;            /* list of things to provide */
 	const char * message;
-    } error_message_type;
+    };
 
     /*
      * The following messages must be implemented by the user of error.h if
@@ -116,8 +122,10 @@ namespace LQIO {
      *      (unsigned)RUNTIME_ERROR,"Reference task \"%s\" has more than one entry defined.",       -- input.y
      * };
      *
-     * This has been moved into input.h
      */
+
+    extern std::map<unsigned int, LQIO::error_message_type> error_messages;
+    
 
     /* list of requirements. */
 
@@ -189,12 +197,12 @@ namespace LQIO {
      */
 
 
-    void solution_error ( unsigned err, ... );
-    void solution_error2 ( unsigned err, unsigned line_no, ... );
+    void runtime_error ( unsigned err, ... );
     void internal_error ( const char * filename, const unsigned lineno, const char *, ... );
-    void input_error (const char * fmt, ...);
+//    void input_error (const char * fmt, ...);
     void input_error2 ( unsigned err, ... );
-    void severity_action ( error_severity severity );
+    bool output_error_message( error_severity );
+    void severity_action ( error_severity );
     void verrprintf ( FILE *, error_severity, const char *, unsigned int, unsigned int, const char *, va_list );
                 
     class undefined_symbol : public std::runtime_error

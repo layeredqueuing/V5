@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 15706 2022-06-23 17:02:35Z greg $
+ * $Id: entry.cc 15735 2022-06-30 03:18:14Z greg $
  */
 
 #include "lqsim.h"
@@ -80,8 +80,8 @@ double
 Entry::configure()
 {
     if ( !is_defined() ) {
-	LQIO::solution_error( LQIO::ERR_ENTRY_NOT_SPECIFIED, name() );
-	get_DOM()->setEntryType( LQIO::DOM::Entry::Type::STANDARD );
+	getDOM()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
+	getDOM()->setEntryType( LQIO::DOM::Entry::Type::STANDARD );
     }
 
     double total_calls = 0.0;
@@ -97,7 +97,7 @@ Entry::configure()
 	    ActivityList::Collect data( this, &Activity::count_replies );
 	    n_replies = _activity->collect( activity_stack, data );
 	} else {
-	    LQIO::solution_error( LQIO::ERR_ENTRY_NOT_SPECIFIED, name() );
+	    getDOM()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
 	}
 
 	if ( is_rendezvous() ) {
@@ -105,10 +105,10 @@ Entry::configure()
 		/* tomari: disable to allow a quorum use the default reply which
 		   is after all threads complete exection. */
 		if ( !Pragma::__pragmas->quorum_delayed_calls() ) {	/* Quorum reply (BUG_311)	*/
-		    LQIO::solution_error( LQIO::ERR_REPLY_NOT_GENERATED, name() );
+		    getDOM()->runtime_error( LQIO::ERR_REPLY_NOT_GENERATED );
 		}
 	    } else if ( fabs( n_replies - 1.0 ) > EPSILON) {
-		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, name(), n_replies );
+		getDOM()->runtime_error( LQIO::ERR_NON_UNITY_REPLIES, n_replies );
 	    }
 	}
 
@@ -141,29 +141,24 @@ Entry::configure()
     }
 
     _active.assign( MAX_PHASES, 0 );
-	
-    if ( (is_signal() || is_wait()) && task()->type() != Task::Type::SEMAPHORE ) {
-	LQIO::solution_error( LQIO::ERR_NOT_SEMAPHORE_TASK, task()->name(),
-			      (is_signal() ? "signal" : "wait"),
-			      name() );
+
+    if ( task()->type() != Task::Type::SEMAPHORE ) {
+	if ( is_signal() ) task()->getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, "signal", name() );
+	if ( is_wait() ) task()->getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, "wait", name() );
     }
 
     if ( (is_r_lock() || is_r_unlock() || is_w_lock() || is_w_unlock()) && task()->type() != Task::Type::RWLOCK ) {
 	if ( is_r_lock() || is_r_unlock() ) {
-	    LQIO::solution_error( LQIO::ERR_NOT_RWLOCK_TASK, task()->name(),
-				  (is_r_lock() ? "r_lock" : "r_unlock"),
-				  name() );
+	    task()->getDOM()->runtime_error( LQIO::ERR_NOT_RWLOCK_TASK, (is_r_lock() ? "r_lock" : "r_unlock"), name() );
 	} else {
-	    LQIO::solution_error( LQIO::ERR_NOT_RWLOCK_TASK, task()->name(),
-				  (is_w_lock() ? "w_lock" : "w_unlock"),
-				  name() );
+	    task()->getDOM()->runtime_error( LQIO::ERR_NOT_RWLOCK_TASK, (is_w_lock() ? "w_lock" : "w_unlock"), name() );
 	}
     } 
 
     /* forwarding component */
 			
     if ( is_rendezvous() ) {
-	_fwd.configure( get_DOM(), false );
+	_fwd.configure( getDOM(), false );
     }
 
     return total_calls;
@@ -222,58 +217,58 @@ Entry::initialize()
 bool 
 Entry::is_regular() const
 {
-    return get_DOM()->getEntryType() == LQIO::DOM::Entry::Type::STANDARD;
+    return getDOM()->getEntryType() == LQIO::DOM::Entry::Type::STANDARD;
 }
 
 bool 
 Entry::is_activity() const
 {
-    return get_DOM()->getEntryType() == LQIO::DOM::Entry::Type::ACTIVITY;
+    return getDOM()->getEntryType() == LQIO::DOM::Entry::Type::ACTIVITY;
 }
 
 bool Entry::is_semaphore() const
 {
-    return get_DOM()->getSemaphoreFlag() != LQIO::DOM::Entry::Semaphore::NONE;
+    return getDOM()->getSemaphoreFlag() != LQIO::DOM::Entry::Semaphore::NONE;
 }
 
 bool Entry::is_signal() const
 { 
-    return get_DOM()->getSemaphoreFlag() == LQIO::DOM::Entry::Semaphore::SIGNAL;
+    return getDOM()->getSemaphoreFlag() == LQIO::DOM::Entry::Semaphore::SIGNAL;
 }
 
 bool Entry::is_wait() const
 { 
-    return get_DOM()->getSemaphoreFlag() == LQIO::DOM::Entry::Semaphore::WAIT;
+    return getDOM()->getSemaphoreFlag() == LQIO::DOM::Entry::Semaphore::WAIT;
 }
 
 bool 
 Entry::is_rwlock() const
 {
-    return get_DOM()->getRWLockFlag() != LQIO::DOM::Entry::RWLock::NONE;
+    return getDOM()->getRWLockFlag() != LQIO::DOM::Entry::RWLock::NONE;
 }
 
 bool 
 Entry::is_r_unlock() const
 {
-    return get_DOM()->getRWLockFlag() == LQIO::DOM::Entry::RWLock::READ_UNLOCK;
+    return getDOM()->getRWLockFlag() == LQIO::DOM::Entry::RWLock::READ_UNLOCK;
 }
 
 bool 
 Entry::is_r_lock() const
 {
-    return get_DOM()->getRWLockFlag() == LQIO::DOM::Entry::RWLock::READ_LOCK;
+    return getDOM()->getRWLockFlag() == LQIO::DOM::Entry::RWLock::READ_LOCK;
 }
 
 bool 
 Entry::is_w_unlock() const
 {
-    return get_DOM()->getRWLockFlag() == LQIO::DOM::Entry::RWLock::WRITE_UNLOCK;
+    return getDOM()->getRWLockFlag() == LQIO::DOM::Entry::RWLock::WRITE_UNLOCK;
 }
 
 bool 
 Entry::is_w_lock() const
 {
-    return get_DOM()->getRWLockFlag() == LQIO::DOM::Entry::RWLock::WRITE_LOCK;
+    return getDOM()->getRWLockFlag() == LQIO::DOM::Entry::RWLock::WRITE_LOCK;
 }
 
 bool
@@ -297,7 +292,7 @@ Entry::has_think_time() const
 bool
 Entry::test_and_set( LQIO::DOM::Entry::Type type )
 {
-    const bool rc = get_DOM()->entryTypeOk( type );
+    const bool rc = getDOM()->entryTypeOk( type );
     if ( !rc ) {
 	input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, name() );
     }
@@ -308,7 +303,7 @@ bool
 Entry::test_and_set_recv( Type recv ) 
 {
     if ( _recv != Type::NONE && _recv != recv ) {
-	input_error2( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, name() );
+	getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
 	return false;
     } else {
 	_recv = recv;
@@ -319,7 +314,7 @@ Entry::test_and_set_recv( Type recv )
 bool
 Entry::test_and_set_semaphore( LQIO::DOM::Entry::Semaphore sema ) 
 {
-    const bool rc = get_DOM()->entrySemaphoreTypeOk( sema );
+    const bool rc = getDOM()->entrySemaphoreTypeOk( sema );
     if ( !rc ) {
 	input_error2( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
     } 
@@ -329,7 +324,7 @@ Entry::test_and_set_semaphore( LQIO::DOM::Entry::Semaphore sema )
 bool
 Entry::test_and_set_rwlock( LQIO::DOM::Entry::RWLock rw ) 
 {
-    const bool rc = get_DOM()->entryRWLockTypeOk( rw );
+    const bool rc = getDOM()->entryRWLockTypeOk( rw );
     if ( !rc ) {
 	input_error2( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
     } 
@@ -353,7 +348,7 @@ Entry::add_forwarding( Entry* to_entry, LQIO::DOM::Call * call )
 
     /* Do some checks for sanity */
     if ( task()->is_reference_task() ) {
-	LQIO::input_error2( LQIO::ERR_REF_TASK_FORWARDING, task()->name(), name() );
+	getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_FORWARDING, name() );
     } else {
 	_fwd.store_target_info( to_entry, call );
     }
@@ -562,15 +557,15 @@ Pseudo_Entry::Pseudo_Entry( LQIO::DOM::Entry * dom, Task * task )
 double
 Pseudo_Entry::configure()
 {
-    assert( get_DOM() && get_DOM()->hasOpenArrivalRate() );
+    assert( getDOM() && getDOM()->hasOpenArrivalRate() );
 
     double arrival_rate = 1.;
     try {
-	arrival_rate = get_DOM()->getOpenArrivalRateValue();
+	arrival_rate = getDOM()->getOpenArrivalRateValue();
 	if ( arrival_rate == 0.0 ) throw std::domain_error( "zero" );
     }
     catch ( const std::domain_error& e ) {
-	get_DOM()->throw_invalid_parameter( "arrival rate", e.what() );
+	getDOM()->throw_invalid_parameter( "arrival rate", e.what() );
     }
     _phase[0].set_arrival_rate( 1.0 / arrival_rate );
 
@@ -589,8 +584,8 @@ Pseudo_Entry::insertDOMResults()
 {
     for ( Targets::const_iterator tp = _phase[0]._calls.begin(); tp != _phase[0]._calls.end(); ++tp ) {
 	Entry * ep = tp->entry();
-	LQIO::DOM::Entry * dom = ep->get_DOM();
-	assert( dom == get_DOM() );
+	LQIO::DOM::Entry * dom = ep->getDOM();
+	assert( dom == getDOM() );
 	dom->setResultWaitingTime( tp->mean_delay() );
 	if ( number_blocks > 1 ) {
 	    dom->setResultWaitingTimeVariance( tp->variance_delay() );
@@ -608,18 +603,18 @@ Pseudo_Entry::insertDOMResults()
  */
 
 Entry *
-Entry::add( LQIO::DOM::Entry* domEntry, Task * task )
+Entry::add( LQIO::DOM::Entry* dom, Task * task )
 {
     Entry * ep = 0;	
     if ( Entry::__entries.size() >= MAX_PORTS ) {
 	input_error2( LQIO::ERR_TOO_MANY_X, "entries", MAX_PORTS );
     } else {
-	const char* entry_name = domEntry->getName().c_str();
+	const char* entry_name = dom->getName().c_str();
 	std::set<Entry *>::const_iterator entry = find_if( Entry::__entries.begin(), Entry::__entries.end(), eqEntryStr( entry_name ) );
 	if ( entry != Entry::__entries.end() ) {
-	    LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Entry", entry_name );
+	    dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	} else {
-	    ep = new Entry( domEntry, task );
+	    ep = new Entry( dom, task );
 	    Entry::__entries.insert( ep );
 	    ep->add_open_arrival_task();
 	}

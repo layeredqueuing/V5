@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 15614 2022-06-01 12:17:43Z greg $
+ * $Id: actlist.cc 15730 2022-06-29 16:35:46Z greg $
  */
 
 
@@ -1017,7 +1017,7 @@ AndForkActivityList::findActivityChildren( std::deque<const Activity *>& activit
 	}
     }
     catch ( const bad_internal_join& error ) {
-	LQIO::solution_error( LQIO::ERR_JOIN_PATH_MISMATCH, owner()->name().c_str(), error.what(), getName().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_FORK_JOIN_MISMATCH, "join", error.getDOM()->getListTypeName().c_str(), error.what(), error.getDOM()->getLineNumber() );
     }
     forkStack.pop_back();
     return nextLevel;
@@ -1408,13 +1408,13 @@ AndJoinActivityList::findActivityChildren( std::deque<const Activity *>& activit
 		if ( resultSet.find( *fork_list ) == resultSet.end() ) continue;
 	    
 		if ( !const_cast<AndJoinActivityList *>(this)->joinType( JoinType::INTERNAL_FORK_JOIN  ) ) {
-		    throw bad_internal_join( *this );
+		    throw bad_internal_join( getDOM() );
 		}
 		const_cast<AndForkActivityList *>(*fork_list)->myJoinList = this;		/* Random choice :-) */
 		const_cast<AndJoinActivityList *>(this)->_forkList = *fork_list;
 	    }
 	} else if ( !const_cast<AndJoinActivityList *>(this)->joinType( JoinType::SYNCHRONIZATION_POINT ) ) {
-	    throw bad_internal_join( *this );
+	    throw bad_internal_join( getDOM() );
 	}
     }
 
@@ -1828,8 +1828,8 @@ RepeatActivityList::draw( std::ostream& output ) const
 
 /* ------------------------ Exception Handling ------------------------ */
 
-bad_internal_join::bad_internal_join( const ForkJoinActivityList& list )
-    : std::runtime_error( list.getName() )
+bad_internal_join::bad_internal_join( const LQIO::DOM::ActivityList* list )
+    : std::runtime_error( list->getListName() ), _list(list)
 {
 }
 

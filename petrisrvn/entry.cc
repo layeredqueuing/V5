@@ -73,8 +73,8 @@ Entry::create( LQIO::DOM::Entry * dom, Task * task )
 {
     std::vector<Entry *>::const_iterator nextEntry = find_if( entry.begin(), entry.end(), eqEntryStr( dom->getName() ) );
     if ( nextEntry != entry.end() ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Entry", dom->getName().c_str() );
-	return 0;
+	dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL );
+	return nullptr;
     } else {
 	Entry * ep = new Entry( dom, task );
 	::entry.push_back( ep );
@@ -115,7 +115,7 @@ double Entry::prob_fwd( const Entry * entry ) const
 	}
 	catch ( const std::domain_error& e ) {
 	    const LQIO::DOM::Entry * dst = call->getDestinationEntry();
-	    LQIO::solution_error( LQIO::ERR_INVALID_FWDING_PARAMETER, name(), dst->getName().c_str(), e.what() );
+	    call->runtime_error( LQIO::ERR_INVALID_PARAMETER, e.what() );
 	    throw std::domain_error( std::string( "invalid parameter: " ) + e.what() ); 
 	}
     }
@@ -155,7 +155,7 @@ bool
 Entry::test_and_set_recv( requesting_type recv ) 
 {
     if ( _requests != NOT_CALLED && _requests != recv ) {
-	input_error2( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, name() );
+	get_dom()->input_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
 	return false;
     } else {
 	_requests = recv;
@@ -228,7 +228,7 @@ Entry::initialize()
 		has_deterministic_phases = true;
 	    }
 	    if ( calls > 0 && curr_phase->s() == 0.0 && task()->think_time() == 0. ) {
-		LQIO::solution_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "Entry", name(), get_dom()->getTypeName(), curr_phase->name(), "service" );
+		curr_phase->get_dom()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
 	    }
 	    if ( ( calls > 0 || curr_phase->s() > 0.0 ) && p > n_phases() ) {
 		_n_phases = p;
@@ -245,30 +245,28 @@ Entry::initialize()
 	    
 	if ( requests() == RENDEZVOUS_REQUEST ) {
 	    if ( n_replies == 0 ) {
-		solution_error( LQIO::ERR_REPLY_NOT_GENERATED, name() );
+		get_dom()->runtime_error( LQIO::ERR_REPLY_NOT_GENERATED );
 	    } else if ( fabs( n_replies - 1.0 ) > EPSILON ) {
-		solution_error( LQIO::ERR_NON_UNITY_REPLIES, name(), n_replies );
+		get_dom()->runtime_error( LQIO::ERR_NON_UNITY_REPLIES, n_replies );
 	    }
 	}
     } else {
-	solution_error( LQIO::ERR_ENTRY_NOT_SPECIFIED, name() );
+	get_dom()->runtime_error( LQIO::ERR_NOT_SPECIFIED, name() );
 	_n_phases = 1;
     }
 
     if ( !has_service_time ) {
 	if ( task()->type() == Task::Type::REF_TASK && !has_deterministic_phases ) {
-	    LQIO::solution_error( ERR_BOGUS_REFERENCE_TASK, name(), task()->name() );
+	    LQIO::runtime_error( ERR_BOGUS_REFERENCE_TASK, name(), task()->name() );
 	} else {
-	    solution_error( LQIO::WRN_NO_SERVICE_TIME, name() );
+	    LQIO::runtime_error( LQIO::WRN_NO_SERVICE_TIME, name() );
 	}
     }
 
     const_cast<Task *>(task())->set_n_phases( n_phases() );
 
-    if ( semaphore_type() != LQIO::DOM::Entry::Semaphore::NONE && task()->type() != Task::Type::SEMAPHORE ) {
-	solution_error( LQIO::ERR_NOT_SEMAPHORE_TASK, task()->name(),
-			(semaphore_type() == LQIO::DOM::Entry::Semaphore::SIGNAL ? "signal" : "wait"),
-			name() );
+    if ( task()->type() != Task::Type::SEMAPHORE && semaphore_type() != LQIO::DOM::Entry::Semaphore::NONE ) {
+	task()->get_dom()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, (semaphore_type() == LQIO::DOM::Entry::Semaphore::SIGNAL ? "signal" : "wait"), name() );
     }
 
     /* Deal with forwarding. */
@@ -283,7 +281,7 @@ Entry::initialize()
 	if ( _rel_prob > -EPSILON ) {
 	    _rel_prob = 0.0;	/* Call it FP truncation.	*/
 	} else {
-	    solution_error( LQIO::ERR_INVALID_FORWARDING_PROBABILITY, name(), 1.0 - _rel_prob );
+	    get_dom()->runtime_error( LQIO::ERR_INVALID_FORWARDING_PROBABILITY, 1.0 - _rel_prob );
 	}
     }
 }
@@ -469,18 +467,18 @@ Entry::check_open_result()
     Model::__open_class_error = false;
 #if defined(BUFFER_BY_ENTRY)
     if ( openArrivalRate() > 0.0 && fabs ( openArrivalRate() - throughput[1] ) / openArrivalRate() > 0.05 ) {
-	LQIO::solution_error( ADV_OPEN_ARRIVALS_DONT_MATCH, throughput[1], openArrivalRate(), name() );
+	LQIO::runtime_error( ADV_OPEN_ARRIVALS_DONT_MATCH, throughput[1], openArrivalRate(), name() );
 	Model::__open_class_error = true;
     } else if ( requests() == SEND_NO_REPLY_REQUEST && get_prob( 0, "ZZ%s", name() ) > EPSILON ) {
-	LQIO::solution_error( ADV_MESSAGES_LOST, name, get_prob( 0, "ZZ%s", name() ) );
+	LQIO::runtime_error( ADV_MESSAGES_LOST, name, get_prob( 0, "ZZ%s", name() ) );
 	Model::__open_class_error = true;
     }
 #else
     if ( openArrivalRate() > 0.0 && fabs ( openArrivalRate() - task()->multiplicity() * _throughput[0] ) / openArrivalRate() > 0.02 ) {
-	LQIO::solution_error( ADV_OPEN_ARRIVALS_DONT_MATCH, task()->multiplicity() * _throughput[0], openArrivalRate(), name() );
+	LQIO::runtime_error( ADV_OPEN_ARRIVALS_DONT_MATCH, task()->multiplicity() * _throughput[0], openArrivalRate(), name() );
 	Model::__open_class_error = true;
     } else if ( requests() == SEND_NO_REPLY_REQUEST && get_prob( 0, "ZZ%s", task()->name()) > EPSILON ) {
-	LQIO::solution_error( ADV_MESSAGES_LOST, task()->name(), get_prob( 0, "ZZ%s", task()->name() ) );
+	LQIO::runtime_error( ADV_MESSAGES_LOST, task()->name(), get_prob( 0, "ZZ%s", task()->name() ) );
 	Model::__open_class_error = true;
     }
 

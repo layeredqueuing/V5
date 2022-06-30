@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 15710 2022-06-23 20:02:33Z greg $
+ * $Id: actlist.h 15730 2022-06-29 16:35:46Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -38,15 +38,21 @@ namespace LQIO {
 class bad_internal_join : public std::runtime_error
 {
 public:
-    bad_internal_join( const ForkJoinActivityList& list );
+    bad_internal_join( const LQIO::DOM::ActivityList* list );
     virtual ~bad_internal_join() throw() {}
+    const LQIO::DOM::ActivityList* getDOM() const { return _list; }
+private:
+    const LQIO::DOM::ActivityList* _list;
 };
 
 class bad_external_join : public std::runtime_error
 {
 public:
-    bad_external_join( const ForkJoinActivityList& list );
+    bad_external_join( const LQIO::DOM::ActivityList* list );
     virtual ~bad_external_join() throw() {}
+    const LQIO::DOM::ActivityList* getDOM() const { return _list; }
+private:
+    const LQIO::DOM::ActivityList* _list;
 };
 
 
@@ -234,8 +240,6 @@ public:
 
     virtual bool operator==( const ActivityList& item ) const;
     const std::vector<const Activity *>& activityList() const { return _activityList; }
-
-    virtual std::string getName() const;
 
 private:
     std::vector<const Activity *> _activityList;

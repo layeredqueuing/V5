@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: input.h 15694 2022-06-22 23:27:00Z greg $
+ * $Id: input.h 15722 2022-06-27 20:37:32Z greg $
  */
 
 #if	!defined(LQIO_INPUT_H)
@@ -76,7 +76,7 @@ namespace LQIO {
 	void reset() { error_count = 0; }
 	bool anError() const { return error_count > 0; }
 	const char * toolname() const { return lq_toolname.c_str(); }
-	void init( const std::string& version, const std::string& toolname, void (*sa)(error_severity), ErrorMessageType * local=nullptr, size_t size=0 );
+	void init( const std::string& version, const std::string& toolname, void (*sa)(error_severity) );
 
 	std::string lq_toolname;                /* I:Name of tool for messages    */
 	std::string lq_version;			/* I: version number	          */
@@ -86,8 +86,6 @@ namespace LQIO {
 	unsigned max_error;			/* I:Maximum error ID number      */
 	mutable unsigned error_count;		/* IO:Number of errors            */
 	LQIO::error_severity severity_level;    /* I:Messages < severity_level ignored. */
-
-	std::vector<ErrorMessageType> error_messages;	/* IO:Error Messages */
     } lqio_params_stats;
 
     extern lqio_params_stats io_vars;

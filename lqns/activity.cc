@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 15710 2022-06-23 20:02:33Z greg $
+ * $Id: activity.cc 15734 2022-06-30 02:19:44Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -144,7 +144,7 @@ bool
 Activity::check() const
 {
     if ( !isSpecified() ) {
-	LQIO::solution_error( LQIO::ERR_ACTIVITY_NOT_SPECIFIED, owner()->name().c_str(), name().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
 	return false;
     } else {
 	return Phase::check();
@@ -160,7 +160,7 @@ bool
 Activity::isNotReachable() const
 {
     if ( isReachable() ) return false;
-    LQIO::solution_error( LQIO::ERR_ACTIVITY_NOT_REACHABLE, owner()->name().c_str(), name().c_str() );
+    getDOM()->runtime_error( LQIO::ERR_NOT_REACHABLE );
     return true;
 }
 
@@ -180,9 +180,9 @@ ActivityList *
 Activity::prevFork( ActivityList * aList )
 {
     if ( _prevFork ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, owner()->name().c_str(), name().c_str(), _prevFork->getDOM()->getLineNumber() );
+	getDOM()->input_error( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, _prevFork->getDOM()->getLineNumber() );
     } else if ( isStartActivity() && !entry()->isVirtualEntry() ) {
-	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
+	getDOM()->input_error( LQIO::ERR_IS_START_ACTIVITY );
     } else {
 	_prevFork = aList;
     }
@@ -199,7 +199,7 @@ ActivityList *
 Activity::nextJoin( ActivityList * aList )
 {
     if ( _nextJoin ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, owner()->name().c_str(), name().c_str(), _nextJoin->getDOM()->getLineNumber() );
+	getDOM()->input_error( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, _nextJoin->getDOM()->getLineNumber() );
     } else {
 	_nextJoin = aList;
     }
@@ -841,11 +841,11 @@ Activity::checkReplies( Activity::Count_If& data ) const
     const Entry * entry = data.entry();
     if ( repliesTo( entry ) ) {
 	if (  entry->isCalledUsing( Entry::RequestType::SEND_NO_REPLY ) || entry->isCalledUsing( Entry::RequestType::OPEN_ARRIVAL ) ) {
-	    LQIO::solution_error( LQIO::ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY, owner()->name().c_str(), name().c_str(), entry->name().c_str() );
+	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, entry->name().c_str() );
 	} else if ( !data.canReply() || data.rate() != 1 ) {
-	    LQIO::solution_error( LQIO::ERR_INVALID_REPLY, owner()->name().c_str(), name().c_str(), entry->name().c_str() );
+	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FROM_BRANCH, entry->name().c_str() );
 	} else if ( data.phase() > 1 ) {
-	    LQIO::solution_error( LQIO::ERR_DUPLICATE_REPLY, owner()->name().c_str(), name().c_str(), entry->name().c_str() );
+	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_DUPLICATE, entry->name().c_str() );
 	}
 	data.setPhase(2);
 	return true;
@@ -1037,7 +1037,7 @@ ActivityList *
 Activity::act_and_fork_list ( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist )
 {
     if ( isStartActivity() ) {
-        LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
+	getDOM()->input_error( LQIO::ERR_IS_START_ACTIVITY );
 	return activityList;
     } else if ( !activityList ) {
 	activityList = new AndForkActivityList( const_cast<Task *>(dynamic_cast<const Task *>(owner())), dom_activitylist );
@@ -1061,7 +1061,7 @@ ActivityList *
 Activity::act_or_fork_list ( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist )
 {
     if ( isStartActivity() ) {
-	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
+	getDOM()->input_error( LQIO::ERR_IS_START_ACTIVITY );
 	return activityList;
     } else if ( !activityList ) {
 	activityList = new OrForkActivityList( const_cast<Task *>(dynamic_cast<const Task *>(owner())), dom_activitylist );
@@ -1161,7 +1161,7 @@ Activity::add_calls()
 	/* Make sure all is well */
 	if (!destEntry) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
-	} else if (!destEntry->isReferenceTaskEntry()) {
+	} else if (!destEntry->owner()->isReferenceTask()) {
 	    isSpecified(true);
 	    if (domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY) {
 		sendNoReply(destEntry, domCall);
@@ -1189,9 +1189,9 @@ Activity::add_reply_list ()
 	if (myEntry == nullptr) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, (*domEntry)->getName().c_str() );
 	} else if ( owner()->isReferenceTask() ) {
-	    LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_REPLIES, owner()->name().c_str(), (*domEntry)->getName().c_str(), name().c_str() );
+	    getDOM()->input_error( LQIO::ERR_REFERENCE_TASK_REPLIES, (*domEntry)->getName().c_str(), name().c_str() );
 	} else if (myEntry->owner() != owner()) {
-	    LQIO::input_error2( LQIO::ERR_WRONG_TASK_FOR_ENTRY, (*domEntry)->getName().c_str(), owner()->name().c_str() );
+	    getDOM()->input_error( LQIO::ERR_WRONG_TASK_FOR_ENTRY, owner()->name().c_str() );
 	} else {
 	    _replyList.insert(myEntry);
 	}
@@ -1211,11 +1211,9 @@ Activity::add_activity_lists()
     /* May as well start with the nextJoin, this is done with various methods */
     LQIO::DOM::ActivityList* joinList = domAct->getOutputToList();
     ActivityList * localActivityList = nullptr;
-    if (joinList != nullptr && joinList->getProcessed() == false) {
+    if (joinList != nullptr && __domToNative.find(joinList) == __domToNative.end()) {
 	const std::vector<const LQIO::DOM::Activity*>& list = joinList->getList();
-	std::vector<const LQIO::DOM::Activity*>::const_iterator iter;
-	joinList->setProcessed(true);
-	for (iter = list.begin(); iter != list.end(); ++iter) {
+	for (std::vector<const LQIO::DOM::Activity*>::const_iterator iter = list.begin(); iter != list.end(); ++iter) {
 	    const LQIO::DOM::Activity* domAct = *iter;
 
 	    /* Add the activity to the appropriate list based on what kind of list we have */
@@ -1250,11 +1248,9 @@ Activity::add_activity_lists()
     /* Now we move onto the inputList, or the fork list */
     LQIO::DOM::ActivityList* forkList = domAct->getInputFromList();
     localActivityList = nullptr;
-    if (forkList != nullptr && forkList->getProcessed() == false) {
+    if (forkList != nullptr && __domToNative.find(forkList) == __domToNative.end()) {
 	const std::vector<const LQIO::DOM::Activity*>& list = forkList->getList();
-	std::vector<const LQIO::DOM::Activity*>::const_iterator iter;
-	forkList->setProcessed(true);
-	for (iter = list.begin(); iter != list.end(); ++iter) {
+	for (std::vector<const LQIO::DOM::Activity*>::const_iterator iter = list.begin(); iter != list.end(); ++iter) {
 	    const LQIO::DOM::Activity* domAct = *iter;
 	    Activity * nextActivity = task->findActivity( domAct->getName() );
 	    if ( !nextActivity ) {

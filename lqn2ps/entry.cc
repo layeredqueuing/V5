@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15706 2022-06-23 17:02:35Z greg $
+ * $Id: entry.cc 15735 2022-06-30 03:18:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -717,7 +717,7 @@ bool
 Entry::isCalledBy( const request_type requestType )
 {
     if ( _requestType != request_type::NOT_CALLED && _requestType != requestType ) {
-	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, name().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
 	return false;
     } else {
 	getPhase( 1 );        /* mark an entry which is called as being present */
@@ -735,7 +735,7 @@ Entry::isCalledBy( const request_type requestType )
 bool
 Entry::isReferenceTaskEntry() const {
     if ( owner() && owner()->isReferenceTask() ) {
-	LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, owner()->name().c_str(), name().c_str() );
+	owner()->getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, name().c_str() );
 	return true;
     } else {
 	return false;
@@ -1336,7 +1336,7 @@ Entry::findChildren( CallStack& callStack, const unsigned directPath ) const
 	    max_depth = std::max( anActivity->findChildren( callStack, directPath, activityStack ), max_depth );
 	}
 	catch ( const Activity::cycle_error& error ) {
-	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, owner()->name().c_str(), error.what() );
+	    owner()->getDOM()->runtime_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, error.what() );
 	    max_depth = std::max( max_depth, error.depth() );
 	}
     }
@@ -1363,10 +1363,10 @@ Entry::check() const
 	double replies = startActivity()->aggregate( const_cast<Entry *>(this), 1, next_p, 1.0, activityStack, &Activity::aggregateReplies );
 	if ( requestType() == request_type::RENDEZVOUS ) {
 	    if ( replies == 0.0 ) {
-		LQIO::solution_error( LQIO::ERR_REPLY_NOT_GENERATED, name().c_str() );
+		getDOM()->runtime_error( LQIO::ERR_REPLY_NOT_GENERATED );
 		rc = false;
 	    } else if ( fabs( replies - 1.0 ) > EPSILON ) {
-		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, name().c_str(), replies );
+		getDOM()->runtime_error( LQIO::ERR_NON_UNITY_REPLIES, name().c_str(), replies );
 		rc = false;
 	    }
 	    max_phases = std::max( maxPhase(), max_phases );		/* Set global value.	*/
@@ -1396,35 +1396,34 @@ Entry::check() const
 	Model::boundsPresent        = Model::boundsPresent        || throughputBound() > 0.0;
 
     } else {
-	LQIO::solution_error( LQIO::ERR_ENTRY_NOT_SPECIFIED, name().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
     }
 
-    if ( (isSignalEntry() || isWaitEntry()) && owner()->scheduling() != SCHEDULE_SEMAPHORE ) {
-	LQIO::solution_error( LQIO::ERR_NOT_SEMAPHORE_TASK, owner()->name().c_str(), (isSignalEntry() ? "signal" : "wait"), name().c_str() );
+    if ( owner()->scheduling() != SCHEDULE_SEMAPHORE && ( (isSignalEntry() || isWaitEntry()) ) ) {
+	owner()->getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, owner()->name().c_str(), (isSignalEntry() ? "signal" : "wait"), name().c_str() );
 	rc = false;
-    }
-
-    if ( (is_r_lock_Entry() || is_r_unlock_Entry() || is_w_unlock_Entry()|| is_w_lock_Entry() ) && owner()->scheduling() != SCHEDULE_RWLOCK ) {
+    } else if ( owner()->scheduling() != SCHEDULE_RWLOCK 
+		&& ( (is_r_lock_Entry() || is_r_unlock_Entry() || is_w_unlock_Entry()|| is_w_lock_Entry() ) ) ) {
 	if ( is_r_lock_Entry() || is_r_unlock_Entry() ) {
-	    LQIO::solution_error( LQIO::ERR_NOT_RWLOCK_TASK, owner()->name().c_str(),
-				  (is_r_lock_Entry() ? "r_lock" : "r_unlock"),
-				  name().c_str() );
+	    owner()->getDOM()->runtime_error( LQIO::ERR_NOT_RWLOCK_TASK, (is_r_lock_Entry() ? "r_lock" : "r_unlock"), name().c_str() );
 	    rc = false;
 	} else {
-	    LQIO::solution_error( LQIO::ERR_NOT_RWLOCK_TASK, owner()->name().c_str(),
-				  (is_w_lock_Entry() ? "w_lock" : "w_unlock"),
-				  name().c_str());
+	    owner()->getDOM()->runtime_error( LQIO::ERR_NOT_RWLOCK_TASK, (is_w_lock_Entry() ? "w_lock" : "w_unlock"), name().c_str());
 	    rc = false;
 	}
+    } else if ( !owner()->isReferenceTask() && !hasOpenArrivalRate() && !isCalled() ) {
+	getDOM()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
     }
+
+    
     /* Forwarding probabilities o.k.? */
 
     const double sum = for_each( calls().begin(), calls().end(), Sum<Call,LQIO::DOM::ExternalVariable>( &Call::forward ) ).sum();
     if ( sum < 0.0 || 1.0 < sum ) {
-	LQIO::solution_error(LQIO::ERR_INVALID_FORWARDING_PROBABILITY, name().c_str(), sum );
+	getDOM()->runtime_error(LQIO::ERR_INVALID_FORWARDING_PROBABILITY, sum );
 	rc = false;
     } else if ( sum != 0.0 && owner()->isReferenceTask() ) {
-	LQIO::solution_error( LQIO::ERR_REF_TASK_FORWARDING, owner()->name().c_str(), name().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_FORWARDING, owner()->name().c_str() );
 	rc = false;
     }
     return rc;
@@ -2423,14 +2422,14 @@ Entry::find( const std::string& name )
  */
 
 Entry *
-Entry::create( LQIO::DOM::Entry* domEntry )
+Entry::create( LQIO::DOM::Entry* dom )
 {
-    const std::string& entry_name = domEntry->getName();
+    const std::string& entry_name = dom->getName();
     if ( Entry::find( entry_name ) ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Entry", entry_name.c_str() );
+	dom->input_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	return nullptr;
     } else {
-	Entry * anEntry = new Entry( domEntry );
+	Entry * anEntry = new Entry( dom );
 	assert( anEntry != nullptr );
 	__entries.insert( anEntry );
 	return anEntry;

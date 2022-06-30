@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 15614 2022-06-01 12:17:43Z greg $
+ * $Id: actlist.h 15730 2022-06-29 16:35:46Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -35,7 +35,10 @@ std::ostream& operator<<( std::ostream&, const ActivityList& );
 class bad_internal_join : public std::runtime_error
 {
 public:
-    bad_internal_join( const ForkJoinActivityList& );
+    bad_internal_join( const LQIO::DOM::ActivityList * );
+    const LQIO::DOM::ActivityList * getDOM() const { return _list; }
+private:
+    const LQIO::DOM::ActivityList * _list;
 };
 
 /* -------------------------------------------------------------------- */

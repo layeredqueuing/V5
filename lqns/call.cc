@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15697 2022-06-23 02:56:49Z greg $
+ * $Id: call.cc 15735 2022-06-30 03:18:14Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -178,7 +178,7 @@ Call::check() const
 	if ( fanIn == 0 || fanOut == 0 || srcReplicas * fanOut != dstReplicas * fanIn ) {
 	    const std::string& srcName = srcTask()->name();
 	    const std::string& dstName = dstTask()->name();
-	    LQIO::solution_error( ERR_REPLICATION, 
+	    LQIO::runtime_error( ERR_REPLICATION, 
 				  fanOut, srcName.c_str(), srcReplicas,
 				  fanIn,  dstName.c_str(), dstReplicas );
 	    return false;
@@ -670,9 +670,9 @@ ForwardedCall::check() const
 	if ( fanIn == 0 || fanOut == 0 || srcReplicas * fanOut != dstReplicas * fanIn ) {
 	    const std::string& srcName = srcTask->name();
 	    const std::string& dstName = dstTask()->name();
-	    LQIO::solution_error( ERR_REPLICATION, 
-				  fanOut, srcName.c_str(), srcReplicas,
-				  fanIn,  dstName.c_str(), dstReplicas );
+	    LQIO::runtime_error( ERR_REPLICATION, 
+				 fanOut, srcName.c_str(), srcReplicas,
+				 fanIn,  dstName.c_str(), dstReplicas );
 	    return false;
 	}
     }

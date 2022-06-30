@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 15668 2022-06-10 15:25:59Z greg $
+ * $Id: submodel.cc 15735 2022-06-30 03:18:14Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -282,7 +282,7 @@ MVASubmodel::build()
     /* BUG 144 */
     if ( _servers.empty() ) {
 	if ( !Pragma::allowCycles()  ) {
-	    LQIO::solution_error( ADV_EMPTY_SUBMODEL, number() );
+	    LQIO::runtime_error( ADV_EMPTY_SUBMODEL, number() );
 	}
 	return *this;
     }
@@ -305,7 +305,7 @@ MVASubmodel::build()
 
     setNChains( makeChains() );
     if ( nChains() > MAX_CLASSES ) {
-	LQIO::solution_error( ADV_MANY_CLASSES, nChains(), number() );
+	LQIO::runtime_error( ADV_MANY_CLASSES, nChains(), number() );
     }
 
     /* --------------------- Create the clients. ---------------------- */
@@ -853,7 +853,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		deltaRep = sqrt( deltaRep / n_deltaRep );	/* Take RMS value over all phases */
 	    }
 	    if ( iter >= Model::__iteration_limit ) {
-		LQIO::solution_error( ADV_REPLICATION_ITERATION_LIMIT, number(), iter, deltaRep, Model::__convergence_value );
+		LQIO::runtime_error( ADV_REPLICATION_ITERATION_LIMIT, number(), iter, deltaRep, Model::__convergence_value );
 		deltaRep = 0;		/* Break out of loop */
 	    }
 	}

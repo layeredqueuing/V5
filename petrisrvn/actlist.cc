@@ -261,7 +261,7 @@ void ActivityList::find_fork_list( const Task * curr_task, std::deque<Activity *
 		int j = backtrack( this->list[i], fork_stack, this->list[i] );
 		if ( j >= 0 ) {
 		    if ( !this->set_join_type( JoinType::INTERNAL_FORK_JOIN ) ) {
-			path_error( LQIO::ERR_JOIN_BAD_PATH, curr_task->name(), activity_stack );
+			get_dom()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, this->list[i]->name() );
 		    } else if ( !this->u.join.fork[i] || std::find( fork_stack.begin(), fork_stack.end(), this->u.join.fork[i] ) != fork_stack.end() ) {
 			ActivityList * fork_list = fork_stack[j];
 			if ( (   fork_list->type() == Type::AND_FORK && this->type() == Type::AND_JOIN)
@@ -271,10 +271,11 @@ void ActivityList::find_fork_list( const Task * curr_task, std::deque<Activity *
 			    fork_list->u.fork.join = this;
 			} else if ( fork_list->type() == Type::OR_FORK && this->type() == Type::AND_JOIN ) {
 			    /* Or fork connected to AND join? */
-			    path_error( LQIO::ERR_JOIN_BAD_PATH, curr_task->name(), activity_stack );
+			    const LQIO::DOM::ActivityList * dom = fork_list->get_dom();
+			    get_dom()->runtime_error( LQIO::ERR_FORK_JOIN_MISMATCH, dom->getListTypeName().c_str(), dom->getListName().c_str(), dom->getLineNumber() );
 			} else {
 			    /* This one is o.k., but is causing grief.. */
-			    path_error( LQIO::ERR_JOIN_BAD_PATH, curr_task->name(), activity_stack );
+			    get_dom()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, this->list[i]->name() );
 			}
 		    }
 
@@ -296,9 +297,9 @@ void ActivityList::find_fork_list( const Task * curr_task, std::deque<Activity *
 		    }
 		} else {
 		    if ( !this->set_join_type( JoinType::SYNCHRONIZATION ) ) {
-			path_error( LQIO::ERR_JOIN_BAD_PATH, curr_task->name(), activity_stack );
+			get_dom()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, curr_activity->name() );
 		    } else if ( !add_to_join_list( j, activity_stack[0] ) ) {
-			path_error( LQIO::ERR_JOIN_BAD_PATH, curr_task->name(), activity_stack );
+			get_dom()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, curr_activity->name() );
 		    }
 		}
 	    }
@@ -582,7 +583,7 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 	    }
 	}
 	if ( sum < 1.0 - EPSILON || 1.0 + EPSILON < sum ) {
-	    LQIO::solution_error( LQIO::ERR_OR_BRANCH_PROBABILITIES, fork_join_name(), e->task()->name(), sum );
+	    get_dom()->runtime_error( LQIO::ERR_OR_BRANCH_PROBABILITIES, sum );
 	}
 	break;
 

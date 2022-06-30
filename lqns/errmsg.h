@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 15694 2022-06-22 23:27:00Z greg $
+ * $Id: errmsg.h 15731 2022-06-29 18:22:10Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -20,6 +20,7 @@
 #define	ERRMSG_H
 
 #include <lqio/glblerr.h>
+#include <vector>
 
 /*
  * See glblerr.h for entries 1-49.
@@ -28,7 +29,6 @@
 enum {
     ERR_ARRIVAL_RATE=LQIO::LSTGBLERRMSG+1,
     ERR_BOGUS_COPIES,
-    ERR_EXTERNAL_SYNC,
     ERR_REPLICATION,
     ERR_INVALID_FANINOUT_PARAMETER,
     ERR_NO_CALLS_TO_ENTRY,
@@ -53,5 +53,5 @@ enum {
     LSTLCLERRMSG=ADV_MVA_FAULTS
 };
 
-extern struct LQIO::error_message_type local_error_messages[];
+extern std::vector< std::pair<unsigned, LQIO::error_message_type> > local_error_messages;
 #endif

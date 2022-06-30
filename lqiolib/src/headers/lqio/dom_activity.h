@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_activity.h 15685 2022-06-21 21:20:52Z greg $
+ *  $Id: dom_activity.h 15724 2022-06-28 15:05:23Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -27,6 +27,9 @@ namespace LQIO {
 	    Activity( const Activity& );
 	    virtual ~Activity();
       
+	    virtual void input_error( unsigned code, ... ) const;
+	    virtual void runtime_error( unsigned code, ... ) const;
+
 	    /* Basic Activity Accessors and Mutators */
 	    const char * getTypeName() const { return __typeName; }
 

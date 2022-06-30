@@ -10,7 +10,7 @@
  * November 2020.
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.h 15331 2022-01-02 21:51:30Z greg $
+ * $Id: actlist.h 15726 2022-06-28 17:04:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -88,7 +88,7 @@ public:
     ActivityList::const_iterator begin() { return _list.begin(); }
     ActivityList::const_iterator end() { return _list.end(); }
     
-    LQIO::DOM::ActivityList * get_DOM() const { return _dom; }
+    LQIO::DOM::ActivityList * getDOM() const { return _dom; }
     const std::string get_name() const;
     
     virtual ActivityList& configure() { return *this; }

@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 15710 2022-06-23 20:02:33Z greg $
+ * $Id: actlist.cc 15735 2022-06-30 03:18:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -447,18 +447,6 @@ ForkJoinActivityList::add( Activity * anActivity )
     _activityList.push_back( anActivity );
     return *this;
 }
-
-
-
-/*
- * Construct a list name.
- */
-
-std::string
-ForkJoinActivityList::getName() const
-{
-    return std::accumulate( std::next( activityList().begin() ), activityList().end(), activityList().front()->name(), fold( typeStr() ) );
-}
 
 /* -------------------------------------------------------------------- */
 /*          Activity Lists that fork -- abstract superclass             */
@@ -570,7 +558,7 @@ AndOrForkActivityList::findChildren( Activity::Children& path ) const
 	max_depth = std::accumulate( activityList().begin(), activityList().end(), max_depth, find_children( *this, path ) );
     }
     catch ( const bad_internal_join& error ) {
-	LQIO::solution_error( LQIO::ERR_JOIN_PATH_MISMATCH, owner()->name().c_str(), error.what(), getName().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_FORK_JOIN_MISMATCH, error.getDOM()->getListTypeName().c_str(), error.what(), error.getDOM()->getLineNumber() );
     }
     path.pop_fork();
     return max_depth;
@@ -709,7 +697,7 @@ OrForkActivityList::check() const
 
     const double sum = std::accumulate( activityList().begin(), activityList().end(), 0.0, add_prBranch( this ) );
     if ( sum < 1.0 - EPSILON || 1.0 + EPSILON < sum ) {
-        LQIO::solution_error( LQIO::ERR_OR_BRANCH_PROBABILITIES, getName().c_str(), owner()->name().c_str(), sum );
+        getDOM()->runtime_error( LQIO::ERR_OR_BRANCH_PROBABILITIES, sum );
 	return false;
     }
     return true;
@@ -1581,9 +1569,9 @@ std::ostream&
 AndForkActivityList::printJoinDelay( std::ostream& output ) const
 {
     output << "   " << owner()->name()
-	   << ", Fork: " << getName();
+	   << ", Fork: " << getDOM()->getListName();
     if ( joinList() != nullptr ) {
-	output << " -> Join: " << joinList()->getName();
+	output << " -> Join: " << joinList()->getDOM()->getListName();
     } else {
 	output << " -> unterminated";
     }
@@ -1667,7 +1655,7 @@ AndOrJoinActivityList::findChildren( Activity::Children& path ) const
 		/* Set type for join */
 
 		if ( and_join_list != nullptr && !const_cast<AndJoinActivityList *>(and_join_list)->joinType( AndJoinActivityList::JoinType::INTERNAL_FORK_JOIN ) ) {
-		    throw bad_internal_join( *this );
+		    throw bad_internal_join( getDOM() );
 		}
 
 		/* Set the links */
@@ -1676,7 +1664,8 @@ AndOrJoinActivityList::findChildren( Activity::Children& path ) const
 		    if ( dynamic_cast<const AndJoinActivityList *>(this) ) std::cerr << "And ";
 		    else if ( dynamic_cast<const OrJoinActivityList *>(this) ) std::cerr << "Or ";
 		    else abort();
-		    std::cerr << std::setw( path.getActivityStack().size() ) << "Join: " << getName() << " -> Fork: " << (*fork_list)->getName() << std::endl;
+		    std::cerr << std::setw( path.getActivityStack().size() ) << "Join: " << getDOM()->getListName()
+			      << " -> Fork: " << (*fork_list)->getDOM()->getListName() << std::endl;
 		}
 		const_cast<AndOrForkActivityList *>(*fork_list)->setJoinList( this );
 		const_cast<AndOrJoinActivityList *>(this)->setForkList( *fork_list );	       	/* Will break loop */
@@ -1684,7 +1673,7 @@ AndOrJoinActivityList::findChildren( Activity::Children& path ) const
 
 	} else if ( (and_join_list != nullptr && !const_cast<AndJoinActivityList *>(and_join_list)->joinType( AndJoinActivityList::JoinType::SYNCHRONIZATION_POINT ))
 		    || dynamic_cast<const OrJoinActivityList *>(this) ) {
-	    throw bad_external_join( *this );
+	    throw bad_external_join( getDOM() );
 	}
     }
 
@@ -1774,7 +1763,7 @@ AndJoinActivityList::check() const
 {
     bool rc = true;
     if ( isSync() ) {
-	LQIO::solution_error( ERR_EXTERNAL_SYNC, getName().c_str(), owner()->name().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_NOT_SUPPORTED, "External join" ); // 
 	rc = false;
     }
     return AndOrJoinActivityList::check() && rc;
@@ -1789,8 +1778,12 @@ unsigned
 AndJoinActivityList::findChildren( Activity::Children& path ) const
 {
     if ( !path.canReply() ) {
-	const Activity * activity = path.top_activity();
-	LQIO::solution_error( LQIO::ERR_JOIN_BAD_PATH, activity->owner()->name().c_str(), activity->name().c_str(), getName().c_str() );
+	if ( path.top_fork() != nullptr ) {
+	    const LQIO::DOM::ActivityList * fork_list = path.top_fork()->getDOM();
+	    getDOM()->runtime_error( LQIO::ERR_FORK_JOIN_MISMATCH, fork_list->getListTypeName().c_str(), fork_list->getListName().c_str(), fork_list->getLineNumber() );
+	} else {
+	    getDOM()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, path.top_activity()->name().c_str() );
+	}
 	return path.depth();
     } else {
 	return AndOrJoinActivityList::findChildren( path );
@@ -2186,13 +2179,13 @@ RepeatActivityList::find_children::operator()( unsigned arg1, const Activity * a
 
 /* ------------------------ Exception Handling ------------------------ */
 
-bad_internal_join::bad_internal_join( const ForkJoinActivityList& list )
-    : std::runtime_error( list.getName() )
+bad_internal_join::bad_internal_join( const LQIO::DOM::ActivityList * list )
+    : std::runtime_error( list->getListName() ), _list(list)
 {
 }
 
 
-bad_external_join::bad_external_join( const ForkJoinActivityList& list )
-    : std::runtime_error( list.getName() )
+bad_external_join::bad_external_join( const LQIO::DOM::ActivityList * list )
+    : std::runtime_error( list->getListName() ), _list(list)
 {
 }

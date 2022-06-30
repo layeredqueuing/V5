@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 15600 2022-05-27 15:32:49Z greg $
+ * $Id: entry.h 15734 2022-06-30 02:19:44Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -264,7 +264,6 @@ public:
     bool isSignalEntry() const { return _semaphoreType == LQIO::DOM::Entry::Semaphore::SIGNAL; }
     bool isWaitEntry() const { return _semaphoreType == LQIO::DOM::Entry::Semaphore::WAIT; }
     bool isInterlocked( const Entry * ) const;
-    bool isReferenceTaskEntry() const;
 	
     bool hasDeterministicPhases() const { return getDOM()->hasDeterministicPhases(); }
     bool hasNonExponentialPhases() const { return getDOM()->hasNonExponentialPhases(); }

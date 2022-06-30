@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15695 2022-06-23 00:28:19Z greg $
+ * $Id: entity.cc 15735 2022-06-30 03:18:14Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -149,6 +149,15 @@ Entity::configure( const unsigned nSubmodels )
 }
 
 
+bool
+Entity::check() const
+{
+    if ( !schedulingIsOk( validScheduling() ) ) {
+	getDOM()->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[(unsigned)scheduling()].str );
+	getDOM()->setSchedulingType(defaultScheduling());
+    }
+    return true;
+}
 
 /*
  * Recursively find all children and grand children from `father'.  As
@@ -235,11 +244,11 @@ unsigned
 Entity::copies() const
 {
     unsigned int value = 1;
-    if ( !getDOM()->isInfinite() ) {
-	try {
-	    value = getDOM()->getCopiesValue();
-	}
-	catch ( const std::domain_error& e ) {
+    try {
+	value = getDOM()->getCopiesValue();
+    }
+    catch ( const std::domain_error& e ) {
+	if ( !isInfinite() || std::strcmp( e.what(), "infinity" ) != 0 || value != 1 ) {	/* Will throw iff value == infinity */
 	    getDOM()->throw_invalid_parameter( "multiplicity", e.what() );
 	}
     }
@@ -508,9 +517,9 @@ const Entity&
 Entity::sanityCheck() const
 {
     if ( !std::isfinite( utilization() ) ) {
-	LQIO::solution_error( ADV_INFINITE_UTILIZATION, getDOM()->getTypeName(), name().c_str() );
+	LQIO::runtime_error( ADV_INFINITE_UTILIZATION, getDOM()->getTypeName(), name().c_str() );
     } else if ( !isInfinite() && utilization() > copies() * 1.05 ) {
-	LQIO::solution_error( ADV_INVALID_UTILIZATION, getDOM()->getTypeName(), name().c_str(), copies(), utilization() );
+	LQIO::runtime_error( ADV_INVALID_UTILIZATION, getDOM()->getTypeName(), name().c_str(), copies(), utilization() );
     }
     return *this;
 }
@@ -528,7 +537,7 @@ Entity::openModelInfinity() const
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	const unsigned e = (*entry)->index();
 	if ( !std::isfinite( station->R(e,0) ) && station->V(e,0) != 0 && station->S(e,0) != 0 ) {
-	    LQIO::solution_error( ERR_ARRIVAL_RATE, station->V(e,0), (*entry)->name().c_str(), station->mu()/station->S(e,0) );
+	    LQIO::runtime_error( ERR_ARRIVAL_RATE, station->V(e,0), (*entry)->name().c_str(), station->mu()/station->S(e,0) );
 	    rc = true;
 	}
     }

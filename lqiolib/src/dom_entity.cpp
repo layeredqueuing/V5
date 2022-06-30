@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entity.cpp 14623 2021-05-08 12:52:15Z greg $
+ *  $Id: dom_entity.cpp 15723 2022-06-28 02:51:47Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -9,6 +9,7 @@
 #include "dom_entity.h"
 #include "dom_extvar.h"
 #include "dom_document.h"
+#include "glblerr.h"
 #include <cmath>
 
 namespace LQIO {

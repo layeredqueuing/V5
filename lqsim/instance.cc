@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 15456 2022-03-09 15:06:35Z greg $
+ * $Id: instance.cc 15735 2022-06-30 03:18:14Z greg $
  */
 
 /*
@@ -218,7 +218,7 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
 	if ( end_msg->reply_port == -1 ) {
 	    _cp->free_message( end_msg );
 	} else if ( ep->_join_list == nullptr && _cp->is_sync_server() ) {
-	    LQIO::solution_error( LQIO::ERR_REPLY_NOT_GENERATED, ep->name() );
+	    _cp->getDOM()->runtime_error( LQIO::ERR_REPLY_NOT_GENERATED );
 	}
     }
 

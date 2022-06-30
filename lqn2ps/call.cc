@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15614 2022-06-01 12:17:43Z greg $
+ * $Id: call.cc 15734 2022-06-30 02:19:44Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -430,7 +430,7 @@ Call::merge( Phase& phase, const unsigned int p, const Call& src, const double r
     if ( src._calls[0] == nullptr ) {
 	return *this;
     } else if ( !equalType( src ) ) {
-	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
+	dstEntry()->getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
     } else {
 	_callType = src._callType;
 	if ( p > _calls.size() ) {
@@ -553,7 +553,7 @@ Call::setArcType()
     }
 
     if ( (hasRendezvous() || hasForwarding()) && hasSendNoReply() ) {
- 	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
+ 	dstEntry()->getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
     }
 
     return *this;
@@ -588,7 +588,7 @@ Call&
 Call::rendezvous( const unsigned p, const LQIO::DOM::Call * value )
 {
     if ( hasSendNoReply() ) {
-	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
+	dstEntry()->getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
     } else if ( !_calls.at(p-1) ) {
 	_callType = LQIO::DOM::Call::Type::RENDEZVOUS;
 	_calls[p-1] = value;
@@ -603,7 +603,7 @@ Call&
 Call::rendezvous( const unsigned p, const double value )
 {
     if ( hasSendNoReply() ) {
-	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
+	dstEntry()->getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
     } else if ( !_calls.at(p-1) ) {
 	_callType = LQIO::DOM::Call::Type::RENDEZVOUS;
 	const_cast<LQIO::DOM::Call *>(_calls[p-1])->setCallMeanValue(value);
@@ -636,7 +636,7 @@ Call&
 Call::sendNoReply( const unsigned p, const LQIO::DOM::Call * value )
 {
     if ( hasRendezvous() || hasForwarding() ) {
-	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
+	dstEntry()->getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
     } else if ( !_calls.at(p-1) ) {
 	_callType = LQIO::DOM::Call::Type::SEND_NO_REPLY;
 	_calls[p-1] = value;
@@ -651,7 +651,7 @@ Call&
 Call::sendNoReply( const unsigned p, const double value )
 {
     if ( hasRendezvous() || hasForwarding() ) {
-	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
+	dstEntry()->getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
     } else if ( !_calls.at(p-1) ) {
 	_callType = LQIO::DOM::Call::Type::SEND_NO_REPLY;
 	const_cast<LQIO::DOM::Call *>(_calls[p-1])->setCallMeanValue(value);
@@ -682,7 +682,7 @@ Call::forward( const LQIO::DOM::Call * value )
 	    }
 	}
     } else {
-	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
+	dstEntry()->getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
     }
     return *this;
 }
@@ -1217,7 +1217,7 @@ EntryCall::check() const
 		if ( srcEntry()->phaseTypeFlag(p) == LQIO::DOM::Phase::Type::DETERMINISTIC && value != rint(value) ) throw std::domain_error( "invalid integer" );
 	    }
 	    catch ( const std::domain_error& e ) {
-		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", srcName().c_str(), "phase", p_str, dstName().c_str(), e.what() );
+		getDOM(p)->runtime_error( LQIO::ERR_INVALID_PARAMETER, "rate", e.what() );
 		rc = false;
 	    }
 	}
@@ -1370,7 +1370,7 @@ ActivityCall::check() const
 	    if ( srcActivity()->phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && value != rint(value) ) throw std::domain_error( "invalid integer" );
 	}
 	catch ( const std::domain_error& e ) {
-	    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", srcTask()->name().c_str(), "activity", srcName().c_str(), dstName().c_str(), e.what() );
+	    getDOM(0)->runtime_error( LQIO::ERR_INVALID_PARAMETER, "rate", e.what() );
 	    rc = false;
 	}
     }

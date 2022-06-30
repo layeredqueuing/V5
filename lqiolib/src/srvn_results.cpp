@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_results.cpp 15694 2022-06-22 23:27:00Z greg $
+ *  $Id: srvn_results.cpp 15722 2022-06-27 20:37:32Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -1264,12 +1264,12 @@ results_error( const char * fmt, ... )
     va_end( args );
 }
 
-static void
+void
 results_error2( unsigned err, ... )
 {
     va_list args;
     va_start( args, err );
-    LQIO::verrprintf( stderr, LQIO::io_vars.error_messages[err].severity, results_file_name, resultlineno, 0,
-		      LQIO::io_vars.error_messages[err].message, args );
+    LQIO::verrprintf( stderr, LQIO::error_messages.at(err).severity, results_file_name, resultlineno, 0,
+		      LQIO::error_messages.at(err).message, args );
     va_end( args );
 }

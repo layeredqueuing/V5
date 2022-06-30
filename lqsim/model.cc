@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15695 2022-06-23 00:28:19Z greg $
+ * $Id: model.cc 15735 2022-06-30 03:18:14Z greg $
  */
 
 #include "lqsim.h"
@@ -545,9 +545,8 @@ Model::start()
     }
     if ( messages_lost ) {
 	for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-	    const Task * cp = *task;
-	    if ( cp->has_lost_messages() )  {
-		LQIO::solution_error( LQIO::ADV_MESSAGES_DROPPED, cp->name() );
+	    if ( (*task)->has_lost_messages() )  {
+		(*task)->getDOM()->runtime_error( LQIO::ADV_MESSAGES_DROPPED );
 	    }
 	}
     }

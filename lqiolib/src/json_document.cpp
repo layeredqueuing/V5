@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 15694 2022-06-22 23:27:00Z greg $
+ * $Id: json_document.cpp 15724 2022-06-28 15:05:23Z greg $
  *
  * Read in JSON input files.
  *
@@ -628,12 +628,12 @@ namespace LQIO {
 				assert( task != nullptr );
 				Activity * activity = task->getActivity( name.c_str(), true );
 				entry->setStartActivity( activity );
-				_document.db_check_set_entry(entry, entry->getName(), Entry::Type::ACTIVITY);
+				_document.db_check_set_entry(entry, Entry::Type::ACTIVITY);
 			    } else {
 				XML::invalid_argument( Xstart_activity, i->second.to_str() );
 			    }
 			} else {
-			    _document.db_check_set_entry(entry, entry->getName(), Entry::Type::STANDARD);
+			    _document.db_check_set_entry(entry, Entry::Type::STANDARD);
 			}
 
 			for (picojson::value::object::const_iterator i = obj.begin(); i != obj.end(); ++i) {
@@ -644,7 +644,7 @@ namespace LQIO {
 			    } else if ( i->second.is<picojson::array>() ) {		/* Phase or forwarding list */
 				if ( attr == Xphase ) {
 				    /* If I have Xphase, then I am a standard entry.  Forwarding is also an array. */
-				    _document.db_check_set_entry(entry, entry->getName(), Entry::Type::STANDARD);
+				    _document.db_check_set_entry(entry, Entry::Type::STANDARD);
 				}
 				if ( Document::__debugJSON ) Import::beginAttribute( std::cerr, attr, i->second );
 				const picojson::value::array& arr = i->second.get<picojson::array>();
@@ -960,7 +960,7 @@ namespace LQIO {
 			    throw undefined_symbol( destination_name );
 			}
 		    }
-		    _document.db_check_set_entry(destination, destination_name.c_str());
+		    _document.db_check_set_entry( destination );
 
 		    /* Get the call */
 		    Call * call = 0;

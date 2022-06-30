@@ -1,7 +1,7 @@
-# $Id: err_join_bad_path.lqn 15734 2022-06-30 02:19:44Z greg $
+# $Id: err_fork_join_mismatch.lqn 15734 2022-06-30 02:19:44Z greg $
 # ------------------------------------------------------------------------
 
-G "ERR_JOIN_BAD_PATH" 	# Model comment 
+G "ERR_FORK_JOIN_MISMATCH" 	# Model comment 
 1e-05			# Convergence test value.
 50			# Maximum number of iterations.
 10			# Print intermediate results (see manual pages)
@@ -31,9 +31,8 @@ A t0
   s a2 0.6
   s a3 0.2
   s a4 0.5
-  s a5 0.5
 :
   a1 -> (0.25) a2 + (0.75) a3;
-  a2 + a3 + a5 -> a4;
+  a2 & a3 -> a4;
   a4[e0]
 -1

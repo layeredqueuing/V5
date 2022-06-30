@@ -1,7 +1,7 @@
-# $Id: err_invalid_reply-loop.lqn 15705 2022-06-23 16:18:56Z greg $
+# $Id: err_invalid_reply_from_branch-2.lqn 15728 2022-06-28 22:50:21Z greg $
 # ------------------------------------------------------------------------
 
-G "ERR_INVALID_REPLY (reply on loop)" 1e-06 50 5 0.9 -1
+G "ERR_INVALID_REPLY_FROM_BRANCH" 1e-06 50 5 0.9 -1
 
 P 2
   p p1 f i
@@ -26,7 +26,7 @@ A t2
   s a2 1
   s a3 1
   :
-  a1 -> 0.5 * a2, a3;
+  a1 -> (0.5) a2 + (0.5) a3;
   a2[e2]
 -1
 

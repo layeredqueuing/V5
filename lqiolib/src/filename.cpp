@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: filename.cpp 15299 2021-12-30 21:36:22Z greg $
+ * $Id: filename.cpp 15731 2022-06-29 18:22:10Z greg $
  *
  * File name generation.
  *
@@ -289,7 +289,7 @@ namespace LQIO {
 #endif
 		}
 		if ( rc < 0 ) {
-		    solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
+		    runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
 		}
 	    }
 	}

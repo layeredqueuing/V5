@@ -10,7 +10,7 @@
 /*
  * Activities (and phases).
  *
- * $Id: activity.h 15331 2022-01-02 21:51:30Z greg $
+ * $Id: activity.h 15726 2022-06-28 17:04:56Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -66,7 +66,7 @@ public:
     void set_arrival_rate( const double r ) { _arrival_rate = r; }
     double get_slice_time() { return (*_distribution)( _scale, _shape ); }
     Activity& set_DOM( LQIO::DOM::Phase* phaseInfo );
-    LQIO::DOM::Phase* get_DOM() const { return _dom; }
+    LQIO::DOM::Phase* getDOM() const { return _dom; }
     const std::vector<LQIO::DOM::Call*>& get_calls() const { return _dom->getCalls(); }
     
     Activity& rename( const std::string& );

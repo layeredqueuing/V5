@@ -154,12 +154,12 @@ Task::create( LQIO::DOM::Task * dom )
 
     Processor * processor = Processor::find( dom->getProcessor()->getName() );
     if ( !processor ) {
-	input_error2( LQIO::ERR_NOT_DEFINED, dom->getProcessor()->getName().c_str() );
-	return 0;
+	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, dom->getProcessor()->getName().c_str() );
+	return nullptr;
     }
 
     if ( !LQIO::DOM::Common_IO::is_default_value( dom->getPriority(), 0. ) && ( bit_test( processor->scheduling(), SCHED_FIFO_BIT|SCHED_PS_BIT|SCHED_RAND_BIT ) ) ) {
-	LQIO::input_error2( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, task_name.c_str(), processor->name() );
+	dom->input_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, processor->name() );
     }
 
     /* Override scheduling */
@@ -180,11 +180,11 @@ Task::create( LQIO::DOM::Task * dom )
     switch ( sched_type ) {
     case SCHEDULE_BURST:
     case SCHEDULE_UNIFORM:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str, dom->getTypeName(), task_name.c_str() );
+	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str );
 	/* fall through */
     case SCHEDULE_CUSTOMER:
 	if ( dom->hasQueueLength() ) {
-	    LQIO::input_error2( LQIO::WRN_QUEUE_LENGTH, task_name.c_str() );
+	    LQIO::input_error2( LQIO::WRN_TASK_QUEUE_LENGTH, task_name.c_str() );
 	}
 	if ( dom->isInfinite() ) {
 	    input_error2( LQIO::ERR_REFERENCE_TASK_IS_INFINITE, task_name.c_str() );
@@ -194,7 +194,7 @@ Task::create( LQIO::DOM::Task * dom )
 	
     case SCHEDULE_PPR:
     case SCHEDULE_HOL:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str, dom->getTypeName(), task_name.c_str() );
+	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str );
 	/* fall through */
     case SCHEDULE_FIFO:
     default:
@@ -209,24 +209,24 @@ Task::create( LQIO::DOM::Task * dom )
 	    input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name.c_str() );
 	}
 	if ( dom->hasQueueLength() ) {
-	    LQIO::input_error2( LQIO::WRN_QUEUE_LENGTH, task_name.c_str() );
+	    LQIO::input_error2( LQIO::WRN_TASK_QUEUE_LENGTH, task_name.c_str() );
 	}
 	if ( dom->isMultiserver() ) {
-	    LQIO::input_error2( LQIO::WRN_INFINITE_MULTI_SERVER, "Task", task_name.c_str(), dom->getCopiesValue() );
+	    dom->runtime_error( LQIO::WRN_INFINITE_MULTI_SERVER, dom->getCopiesValue() );
 	}	
 	task = new Task( dom, Task::Type::SERVER, processor );
 	break;
 
     case SCHEDULE_SEMAPHORE:
 	if ( dom->hasQueueLength() ) {
-	    LQIO::input_error2( LQIO::WRN_QUEUE_LENGTH, task_name.c_str() );
+	    LQIO::input_error2( LQIO::WRN_TASK_QUEUE_LENGTH, task_name.c_str() );
 	}
 	if ( dom->getCopiesValue() != 1 ) {
-	    input_error2( LQIO::ERR_INFINITE_TASK, task_name.c_str() );
+	    dom->runtime_error( LQIO::ERR_INFINITE_SERVER );
 	}
 #if 0
 	if ( n_copies <= 0 ) {
-	    LQIO::input_error2( LQIO::ERR_INFINITE_TASK, task_name.c_str() );
+	    dom->runtime_error( LQIO::ERR_INFINITE_SERVER );
 	    dom->setCopiesValue( 1 );
 	} else if ( n_copies > MAX_MULT ) {
 	    LQIO::input_error2( LQIO::ERR_TOO_MANY_X, "multi-server copies", MAX_MULT );
@@ -248,7 +248,7 @@ void
 Task::initialize() 
 {
     if ( !entries.size() ) {
-	LQIO::solution_error( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, name() );
+	get_dom()->runtime_error( LQIO::ERR_TASK_HAS_NO_ENTRIES );
     }
     if ( n_activities() ) {
 	bool hasActivityEntry = false;
@@ -260,32 +260,32 @@ Task::initialize()
 	for ( vector<Activity *>::const_iterator a = activities.begin(); a != activities.end(); ++a ) {
 	    double calls = (*a)->check();
 	    if ( !(*a)->is_specified() ) {
-		solution_error( LQIO::ERR_ACTIVITY_NOT_SPECIFIED, name(), (*a)->name() );
+		(*a)->get_dom()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
 	    }
 	    if ( calls > 0 && (*a)->s() == 0.0 ) {
-		solution_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "Task", name(), get_dom()->getTypeName(), (*a)->name() );
+		(*a)->get_dom()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
 	    }
 	}
 
 	if ( !hasActivityEntry ) {
-	    solution_error( LQIO::ERR_NO_START_ACTIVITIES, name() );
+	    get_dom()->runtime_error( LQIO::ERR_NO_START_ACTIVITIES );
 	}
     }
 
     if ( type() == Task::Type::SEMAPHORE ) {
 	if ( n_entries() != N_SEMAPHORE_ENTRIES ) {
-	    solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, name(), n_entries(), N_SEMAPHORE_ENTRIES );
+	    get_dom()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), N_SEMAPHORE_ENTRIES );
 	}
 	if ( entries[0]->semaphore_type() == LQIO::DOM::Entry::Semaphore::SIGNAL ) {
-	    if ( entries[1]->semaphore_type() !=LQIO::DOM:: Entry::Semaphore::WAIT ) {
-		solution_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
+	    if ( entries[1]->semaphore_type() !=  LQIO::DOM:: Entry::Semaphore::WAIT ) {
+		LQIO::runtime_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
 	    }
 	} else if ( entries[0]->semaphore_type() == LQIO::DOM::Entry::Semaphore::WAIT ) {
 	    if ( entries[1]->semaphore_type() != LQIO::DOM::Entry::Semaphore::SIGNAL ) {
-		solution_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
+		LQIO::runtime_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
 	    }
 	} else {
-	    solution_error( LQIO::ERR_NO_SEMAPHORE, name() );
+	    get_dom()->runtime_error( LQIO::ERR_NO_SEMAPHORE );
 	}
     }
 
@@ -309,7 +309,7 @@ Task::initialize()
     }
 
     if ( _sync_server && multiplicity() != 1 ) {
-	LQIO::solution_error( ERR_MULTI_SYNC_SERVER, name() );
+	LQIO::runtime_error( ERR_MULTI_SYNC_SERVER, name() );
     }
 
     /* Can't have in-service probabilites on single phase task! */
@@ -338,9 +338,9 @@ Task::initialize()
 	}
 
 	if ( ysum > 0.0 && zsum > 0.0 ) {
-	    solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, (*e)->name() );
+	    (*e)->get_dom()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
 	} else if ( ysum + zsum == 0.0 && is_server() ) {
-	    solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, (*e)->name() );
+	    (*e)->get_dom()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
 	}
     }
 }

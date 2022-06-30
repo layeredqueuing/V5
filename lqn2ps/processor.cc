@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 15614 2022-06-01 12:17:43Z greg $
+ * $Id: processor.cc 15723 2022-06-28 02:51:47Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -645,13 +645,13 @@ Processor *
 Processor::create( const std::pair<std::string,LQIO::DOM::Processor *>& p )
 {
     const std::string& name = p.first;
-    const LQIO::DOM::Processor* domProcessor = p.second;
+    const LQIO::DOM::Processor* dom = p.second;
     if ( Processor::find( name ) ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Processor", name.c_str() );
+	dom->input_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	return nullptr;
     }
 
-    Processor * aProcessor = new Processor( domProcessor );
+    Processor * aProcessor = new Processor( dom );
     __processors.insert( aProcessor );
     return aProcessor;
 }

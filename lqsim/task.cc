@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15695 2022-06-23 00:28:19Z greg $
+ * $Id: task.cc 15735 2022-06-30 03:18:14Z greg $
  */
 
 #include "lqsim.h"
@@ -125,9 +125,9 @@ Task::configure()
 
     for ( std::vector<Activity *>::const_iterator ap = _activity.begin(); ap != _activity.end(); ++ap ) {
 	if ( !(*ap)->is_reachable() ) {
-	    LQIO::solution_error( LQIO::WRN_NOT_USED, "Activity", (*ap)->name() );
+	    (*ap)->getDOM()->runtime_error( LQIO::WRN_NOT_USED, "Activity", (*ap)->name() );
 	} else if ( !(*ap)->is_specified() ) {
-	    LQIO::solution_error( LQIO::ERR_ACTIVITY_NOT_SPECIFIED, name(), (*ap)->name() );
+	    (*ap)->getDOM()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
 	}
     }
     return *this;
@@ -514,30 +514,31 @@ Task::insertDOMResults()
  */
 
 Task *
-Task::add( LQIO::DOM::Task* domTask )
+Task::add( LQIO::DOM::Task* dom )
 {
     /* Recover the old parameter information that used to be passed in */
-    const char* task_name = domTask->getName().c_str();
-    const LQIO::DOM::Group * domGroup = domTask->getGroup();
-    const scheduling_type sched_type = domTask->getSchedulingType();
+    const char* task_name = dom->getName().c_str();
 
     if ( !task_name || strlen( task_name ) == 0 ) abort();
 
     if ( Task::find( task_name ) ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Task", task_name );
+	dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL );
     }
-    if ( domTask->hasReplicas() ) {
-	LQIO::input_error2( ERR_REPLICATION, "task", task_name );
+    if ( dom->hasReplicas() ) {
+	dom->runtime_error( ERR_REPLICATION );
     }
 
-    Task * cp = 0;
-    const char* processor_name = domTask->getProcessor()->getName().c_str();
+    const LQIO::DOM::Group * domGroup = dom->getGroup();
+    const scheduling_type sched_type = dom->getSchedulingType();
+
+    Task * cp = nullptr;
+    const char* processor_name = dom->getProcessor()->getName().c_str();
     Processor * processor = Processor::find( processor_name );
 
-    if ( !LQIO::DOM::Common_IO::is_default_value( domTask->getPriority(), 0 ) && ( processor->discipline() == SCHEDULE_FIFO
+    if ( !LQIO::DOM::Common_IO::is_default_value( dom->getPriority(), 0 ) && ( processor->discipline() == SCHEDULE_FIFO
 										   || processor->discipline() == SCHEDULE_PS
 										   || processor->discipline() == SCHEDULE_RAND ) ) {
-	LQIO::input_error2( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, task_name, processor_name );
+	dom->input_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, processor_name );
     }
 
     Group * group = 0;
@@ -554,74 +555,74 @@ Task::add( LQIO::DOM::Task* domTask )
     case SCHEDULE_BURST:
     case SCHEDULE_UNIFORM:
     case SCHEDULE_CUSTOMER:
-	if ( domTask->hasQueueLength() ) {
-	    input_error2( LQIO::WRN_QUEUE_LENGTH, task_name );
+	if ( dom->hasQueueLength() ) {
+	    dom->runtime_error( LQIO::WRN_TASK_QUEUE_LENGTH );
 	}
-	if ( domTask->isInfinite() ) {
+	if ( dom->isInfinite() ) {
 	    input_error2( LQIO::ERR_REFERENCE_TASK_IS_INFINITE, task_name );
 	}
-	cp = new Reference_Task( Task::Type::CLIENT, domTask, processor, group );
+	cp = new Reference_Task( Task::Type::CLIENT, dom, processor, group );
 	break;
 
     case SCHEDULE_PPR:
     case SCHEDULE_HOL:
     case SCHEDULE_FIFO:
-	if ( domTask->hasThinkTime() ) {
+	if ( dom->hasThinkTime() ) {
 	    input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name );
 	}
 	Task::Type a_type;
 
-	if ( domTask->isInfinite() ) {
+	if ( dom->isInfinite() ) {
 	    a_type = Task::Type::INFINITE_SERVER;
-	} else if ( domTask->isMultiserver() ) {
+	} else if ( dom->isMultiserver() ) {
 	    a_type = Task::Type::MULTI_SERVER;
 	} else {
 	    a_type = Task::Type::SERVER;
 	}
-	cp = new Server_Task( a_type, domTask, processor, group );
+	cp = new Server_Task( a_type, dom, processor, group );
 	break;
 
     case SCHEDULE_DELAY:
-	if ( domTask->hasThinkTime() ) {
+	if ( dom->hasThinkTime() ) {
 	    input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name );
 	}
-	if ( domTask->isMultiserver() ) {
-	    LQIO::input_error2( LQIO::WRN_INFINITE_MULTI_SERVER, "Task", task_name, domTask->getCopiesValue() );
+	if ( dom->isMultiserver() ) {
+	    dom->runtime_error( LQIO::WRN_INFINITE_MULTI_SERVER, dom->getCopiesValue() );
 	}
-	if ( domTask->hasQueueLength() ) {
-	    LQIO::input_error2( LQIO::WRN_QUEUE_LENGTH, task_name );
+	if ( dom->hasQueueLength() ) {
+	    dom->runtime_error( LQIO::WRN_TASK_QUEUE_LENGTH );
 	}
-	cp = new Server_Task( Task::Type::INFINITE_SERVER, domTask, processor, group );
+	cp = new Server_Task( Task::Type::INFINITE_SERVER, dom, processor, group );
 	break;
 
 /*+ BUG_164 */
     case SCHEDULE_SEMAPHORE:
-	if ( domTask->hasQueueLength()  ) {
-	    input_error2( LQIO::WRN_QUEUE_LENGTH, task_name );
+	if ( dom->hasQueueLength()  ) {
+	    dom->runtime_error( LQIO::WRN_TASK_QUEUE_LENGTH );
 	}
-	if ( domTask->isInfinite() ) {
-	    input_error2( LQIO::ERR_INFINITE_TASK, task_name );
+	if ( dom->isInfinite() ) {
+	    dom->runtime_error( LQIO::ERR_INFINITE_SERVER );
 	}
- 	cp = new Semaphore_Task( Task::Type::SEMAPHORE, domTask, processor, group );
+ 	cp = new Semaphore_Task( Task::Type::SEMAPHORE, dom, processor, group );
 	break;
 /*- BUG_164 */
 
 /* reader_writer lock */
 
     case SCHEDULE_RWLOCK:
-	if ( domTask->hasQueueLength() ) {
-	    input_error2( LQIO::WRN_QUEUE_LENGTH, task_name );
+	if ( dom->hasQueueLength() ) {
+	    dom->runtime_error( LQIO::WRN_TASK_QUEUE_LENGTH );
 	}
-	if ( domTask->isInfinite() ) {
-	    input_error2( LQIO::ERR_INFINITE_TASK, task_name );
+	if ( dom->isInfinite() ) {
+	    dom->runtime_error( LQIO::ERR_INFINITE_SERVER );
 	}
- 	cp = new ReadWriteLock_Task( Task::Type::RWLOCK, domTask, processor, group );
+ 	cp = new ReadWriteLock_Task( Task::Type::RWLOCK, dom, processor, group );
 	break;
 /* reader_writer lock*/
 
     default:
-	cp = new Server_Task( Task::Type::SERVER, domTask, processor, group );		/* Punt... */
-	input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str, "task", task_name );
+	cp = new Server_Task( Task::Type::SERVER, dom, processor, group );		/* Punt... */
+	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str );
 	break;
     }
 
@@ -717,8 +718,8 @@ Task::derive_utilization() const
 
 /* ------------------------------------------------------------------------ */
 
-Reference_Task::Reference_Task( const Task::Type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup )
-    : Task( type, domTask, aProc, aGroup ), _think_time(0.0), _task_list()
+Reference_Task::Reference_Task( const Task::Type type, LQIO::DOM::Task* dom, Processor * aProc, Group * aGroup )
+    : Task( type, dom, aProc, aGroup ), _think_time(0.0), _task_list()
 {
 }
 
@@ -727,7 +728,7 @@ void
 Reference_Task::create_instance()
 {
     if ( n_entries() != 1 ) {
-	solution_error( LQIO::WRN_TOO_MANY_ENTRIES_FOR_REF_TASK, name() );
+	getDOM()->setSeverity( LQIO::ERR_TASK_ENTRY_COUNT, LQIO::error_severity::WARNING ).runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), 1 );
     }
     if ( getDOM()->hasThinkTime() ) {
 	_think_time = getDOM()->getThinkTimeValue();
@@ -760,8 +761,8 @@ Reference_Task::kill()
 
 /* ------------------------------------------------------------------------ */
 
-Server_Task::Server_Task( const Task::Type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup )
-    : Task( type, domTask, aProc, aGroup ),
+Server_Task::Server_Task( const Task::Type type, LQIO::DOM::Task* dom, Processor * aProc, Group * aGroup )
+    : Task( type, dom, aProc, aGroup ),
       _task(0),
       _worker_port(-1),
       _sync_server(false)
@@ -802,7 +803,7 @@ Server_Task::create_instance()
 	_worker_port = ps_allocate_port( name(), _task->task_id() );
 	_type = Task::Type::INFINITE_SERVER;
 	if ( is_aysnc_inf_server() ) {
-	    LQIO::solution_error( LQIO::WRN_INFINITE_SERVER_OPEN_ARRIVALS, name() );
+	    getDOM()->runtime_error( LQIO::WRN_INFINITE_SERVER_OPEN_ARRIVALS );
 	}
     } else if ( is_multiserver() ) {
 	_task = new srn_multiserver( this, name(), multiplicity() );
@@ -835,8 +836,8 @@ Server_Task::kill()
 
 /* ------------------------------------------------------------------------ */
 
-Semaphore_Task::Semaphore_Task( const Task::Type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup )
-    : Server_Task( type, domTask, aProc, aGroup ),
+Semaphore_Task::Semaphore_Task( const Task::Type type, LQIO::DOM::Task* dom, Processor * aProc, Group * aGroup )
+    : Server_Task( type, dom, aProc, aGroup ),
       r_hold(),
       r_hold_sqr(),
       r_hold_util(),
@@ -861,7 +862,7 @@ void
 Semaphore_Task::create_instance()
 {
     if ( n_entries() != N_SEMAPHORE_ENTRIES ) {
-	LQIO::solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, name(), n_entries(), N_SEMAPHORE_ENTRIES );
+	getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), N_SEMAPHORE_ENTRIES );
     }
     if ( _entry[0]->is_signal() ) {
 	if ( !_entry[1]->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::WAIT ) ) {
@@ -878,7 +879,7 @@ Semaphore_Task::create_instance()
 	    LQIO::solution_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[0]->name() );
 	}
     } else {
-	LQIO::solution_error( LQIO::ERR_NO_SEMAPHORE, name() );
+	getDOM()->runtime_error( LQIO::ERR_NO_SEMAPHORE );
 	std::cerr << "entry names: " << _entry[0]->name() << ", " << _entry[1]->name() << std::endl;
     }
     if ( !_hist_data && getDOM()->hasHistogram() ) {
@@ -967,8 +968,8 @@ Semaphore_Task::print( FILE * output ) const
 
 /* ------------------------------------------------------------------------ */
 
-ReadWriteLock_Task::ReadWriteLock_Task( const Task::Type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup )
-    : Semaphore_Task( type, domTask, aProc, aGroup ),
+ReadWriteLock_Task::ReadWriteLock_Task( const Task::Type type, LQIO::DOM::Task* dom, Processor * aProc, Group * aGroup )
+    : Semaphore_Task( type, dom, aProc, aGroup ),
       _reader(0),
       _writer(0),
       _signal_port2(-1),
@@ -981,7 +982,7 @@ void
 ReadWriteLock_Task::create_instance()
 {
     if ( n_entries() != N_RWLOCK_ENTRIES ) {
-	LQIO::solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, name(), n_entries(), N_RWLOCK_ENTRIES );
+	getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), N_RWLOCK_ENTRIES );
     }
 
     int E[N_RWLOCK_ENTRIES];

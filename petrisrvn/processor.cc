@@ -76,7 +76,7 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
     if ( processor_name.size() == 0 ) abort();
 
     if ( dom->getReplicasValue() != 1 ) {
-	LQIO::input_error2( ERR_REPLICATION, "processor", processor_name.c_str() );
+	LQIO::runtime_error( LQIO::ERR_NOT_SUPPORTED, "replication" );
     }
 
 
@@ -86,7 +86,7 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 	
     const scheduling_type scheduling_flag = dom->getSchedulingType();
     if ( !bit_test( scheduling_flag, SCHED_PPR_BIT|SCHED_HOL_BIT|SCHED_FIFO_BIT|SCHED_DELAY_BIT|SCHED_RAND_BIT|SCHED_PS_BIT ) ) {
-	input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling_flag].str, dom->getTypeName(), processor_name.c_str() );
+	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling_flag].str );
 	dom->setSchedulingType( SCHEDULE_FIFO );
     }
     
@@ -105,7 +105,7 @@ Processor::initialize()
 {
     if ( scheduling() == SCHEDULE_PS ) {
 	if ( n_tasks() > 1 || _tasks[0]->multiplicity() > 1 || _tasks[0]->n_threads() > 1 ) {
-	    input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling()].str, "processor", name() );
+	    get_dom()->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling()].str );
 	    get_dom()->setSchedulingType( SCHEDULE_FIFO );
 	}
     }

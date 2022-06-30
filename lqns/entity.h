@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 15628 2022-06-02 17:40:08Z greg $
+ * $Id: entity.h 15720 2022-06-27 17:49:12Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -139,7 +139,7 @@ public:
     /* Initialization */
 
     virtual Entity& configure( const unsigned );
-    virtual bool check() const = 0;
+    virtual bool check() const;
     virtual unsigned findChildren( Call::stack&, const bool ) const;
     virtual Entity& initWait();
     Entity& initInterlock();

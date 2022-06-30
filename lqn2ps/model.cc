@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15718 2022-06-27 12:52:14Z greg $
+ * $Id: model.cc 15734 2022-06-30 02:19:44Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -1085,7 +1085,7 @@ Model::generate()
 
     for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
 	if ( !(*task)->isReachable() ) {
-	    LQIO::solution_error( LQIO::WRN_NOT_USED, "Task", (*task)->name().c_str() );
+	    dynamic_cast<const LQIO::DOM::Task *>((*task)->getDOM())->runtime_error( LQIO::WRN_NOT_USED );
 	} else if ( (*task)->hasActivities() ) {
 	    (*task)->generate();
 	}
@@ -1119,7 +1119,7 @@ Model::topologicalSort()
 	}
 	catch( const Call::cycle_error& error ) {
 	    max_depth = std::max( error.depth(), max_depth );
-	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
+	    (*task)->getDOM()->runtime_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
 	}
 
 	i += 1;
@@ -2950,7 +2950,7 @@ Squashed_Model::generate()
     for ( std::set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
 	Processor * aProcessor = *nextProcessor;
 	if ( aProcessor->level() == 0 ) {
-	    LQIO::solution_error( LQIO::WRN_NOT_USED, "Processor", aProcessor->name().c_str() );
+	    dynamic_cast<const LQIO::DOM::Processor *>(aProcessor->getDOM())->runtime_error( LQIO::WRN_NOT_USED );
 	} else {
 	    aProcessor->setLevel( SERVER_LEVEL );
 	}

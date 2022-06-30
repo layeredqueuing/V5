@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 15695 2022-06-23 00:28:19Z greg $
+ * $Id: processor.cc 15731 2022-06-29 18:22:10Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -502,7 +502,7 @@ Processor::insertDOMResults()
 void
 Processor::add( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 {
-    LQIO::DOM::Processor* domProcessor = p.second;
+    LQIO::DOM::Processor* dom = p.second;
     const std::string& processor_name = p.first;
 
     /* Unroll some of the encapsulated information */
@@ -510,27 +510,27 @@ Processor::add( const std::pair<std::string,LQIO::DOM::Processor*>& p )
     assert( !processor_name.empty() );
 
     if ( Processor::find( processor_name ) ) {
-	input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Processor", processor_name.c_str() );
+	dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	return;
     }
 
-    if ( domProcessor->hasReplicas() ) {
+    if ( dom->hasReplicas() ) {
 	LQIO::input_error2( ERR_REPLICATION, "processor", processor_name.c_str() );
     }
 
-    const scheduling_type scheduling_flag = domProcessor->getSchedulingType();
+    const scheduling_type scheduling_flag = dom->getSchedulingType();
 
     switch( scheduling_flag ) {
     case SCHEDULE_DELAY:
-	if ( domProcessor->hasCopies() ) {
-	    input_error2( LQIO::WRN_INFINITE_MULTI_SERVER, "Processor", processor_name.c_str(), domProcessor->getCopiesValue() );
-	    domProcessor->setCopies(new LQIO::DOM::ConstantExternalVariable(1.0));
+	if ( dom->hasCopies() ) {
+	    dom->runtime_error( LQIO::WRN_INFINITE_MULTI_SERVER, dom->getCopiesValue() );
+	    dom->setCopies(new LQIO::DOM::ConstantExternalVariable(1.0));
 	}
 	/* Fall through */
     case SCHEDULE_FIFO:
     case SCHEDULE_HOL:
     case SCHEDULE_PPR:
-	if ( domProcessor->hasQuantum() ) {
+	if ( dom->hasQuantum() ) {
 	    input_error2( LQIO::WRN_QUANTUM_SCHEDULING, processor_name.c_str(), scheduling_label[(unsigned)scheduling_flag].str );
 	}
 	break;
@@ -539,24 +539,22 @@ Processor::add( const std::pair<std::string,LQIO::DOM::Processor*>& p )
     case SCHEDULE_PS_HOL:
     case SCHEDULE_PS_PPR:
     case SCHEDULE_CFS:
-	if ( !domProcessor->hasQuantum() ) {
+	if ( !dom->hasQuantum() ) {
 	    input_error2( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name.c_str(), scheduling_label[(unsigned)scheduling_flag].str );
 	}
 	break;
 
     default:
-	input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED,
-		      scheduling_label[(unsigned)scheduling_flag].str,
-		      "processor", processor_name.c_str() );
-	domProcessor->setSchedulingType( SCHEDULE_FIFO );
+	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[(unsigned)scheduling_flag].str );
+	dom->setSchedulingType( SCHEDULE_FIFO );
 	break;
     }
 
     Processor * processor = nullptr;
     if ( Pragma::__pragmas->scheduling_model() & SCHEDULE_CUSTOM ) {
-	processor = new Custom_Processor( domProcessor );
+	processor = new Custom_Processor( dom );
     } else {
-	processor = new Processor( domProcessor );
+	processor = new Processor( dom );
     }
     Processor::__processors.insert( processor );
 }

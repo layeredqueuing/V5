@@ -7,7 +7,7 @@
  * However, to eliminate code here, the spex construction functions will have to save the
  * LQX expressions and then construct the program.
  * ------------------------------------------------------------------------
- * $Id: generate.cc 15464 2022-03-11 01:36:58Z greg $
+ * $Id: generate.cc 15724 2022-06-28 15:05:23Z greg $
  */
 
 #include "lqngen.h"
@@ -484,7 +484,7 @@ Generate::addEntry( const std::string& name, const RV::Probability& pr_2nd_phase
 {
     LQIO::DOM::Entry* entry = new LQIO::DOM::Entry( _document, name.c_str() );
     _document->addEntry(entry);
-    _document->db_check_set_entry( entry, name, LQIO::DOM::Entry::Type::STANDARD );
+    _document->db_check_set_entry( entry, LQIO::DOM::Entry::Type::STANDARD );
     unsigned int n_phases = 1;
     if ( pr_2nd_phase() != 0.0 ) {
 	n_phases = 2;

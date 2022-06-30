@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: actlist.cc 15706 2022-06-23 17:02:35Z greg $
+ * $Id: actlist.cc 15730 2022-06-29 16:35:46Z greg $
  */
 
 #include "lqsim.h"
@@ -32,7 +32,6 @@
 #include "task.h"
 
 static inline int i_max( int a, int b ) { return a > b ? a : b; }
-static void activity_path_error( int, const ActivityList *, std::deque<Activity *>& activity_stack );
 static void activity_cycle_error( int err, const char * task_name, std::deque<Activity *>& activity_stack );
 
 const std::string
@@ -72,7 +71,7 @@ AndJoinActivityList::AndJoinActivityList( ActivityList::Type type, LQIO::DOM::Ac
       _quorum_count(0),
       _hist_data(nullptr)
 {
-    if ( get_DOM()->hasHistogram() ) {
+    if ( getDOM()->hasHistogram() ) {
 	// _hist_data = new Histogram();
     }
 }
@@ -146,9 +145,9 @@ AndForkActivityList::initialize()
 AndJoinActivityList&
 AndJoinActivityList::configure()
 {
-    _quorum_count = dynamic_cast<const LQIO::DOM::AndJoinActivityList*>(get_DOM())->getQuorumCountValue();
-    if ( !_hist_data && get_DOM()->hasHistogram() ) {
-	_hist_data = new Histogram( get_DOM()->getHistogram() );
+    _quorum_count = dynamic_cast<const LQIO::DOM::AndJoinActivityList*>(getDOM())->getQuorumCountValue();
+    if ( !_hist_data && getDOM()->hasHistogram() ) {
+	_hist_data = new Histogram( getDOM()->getHistogram() );
     }
     return *this;
 }
@@ -163,7 +162,7 @@ OrForkActivityList&
 OrForkActivityList::configure()
 {
     for ( std::vector<Activity *>::const_iterator i = _list.begin(); i != _list.end(); ++i ) {
-	_prob.at(i - _list.begin()) = get_DOM()->getParameterValue(dynamic_cast<LQIO::DOM::Activity *>((*i)->get_DOM()));
+	_prob.at(i - _list.begin()) = getDOM()->getParameterValue(dynamic_cast<LQIO::DOM::Activity *>((*i)->getDOM()));
     }
     return *this;
 }
@@ -173,7 +172,7 @@ LoopActivityList::configure()
 {
     _total = 0.0;
     for ( std::vector<Activity *>::const_iterator i = _list.begin(); i != _list.end(); ++i ) {
-	const double value = get_DOM()->getParameterValue(dynamic_cast<LQIO::DOM::Activity *>((*i)->get_DOM()) );
+	const double value = getDOM()->getParameterValue(dynamic_cast<LQIO::DOM::Activity *>((*i)->getDOM()) );
 	_count.at( i - _list.begin() ) = value;
 	_total += value;
     }
@@ -240,7 +239,7 @@ AndJoinActivityList::find_children( std::deque<Activity *>& activity_stack, std:
 		    /* Set type for join */
 	    
 		    if ( !set_join_type( Join::INTERNAL_FORK_JOIN ) ) {
-			activity_path_error( LQIO::ERR_JOIN_BAD_PATH, this, activity_stack );
+			getDOM()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, activity_stack.back()->name() );
 		    }
 
 		    if ( debug_flag ) {
@@ -267,7 +266,7 @@ AndJoinActivityList::find_children( std::deque<Activity *>& activity_stack, std:
 		
 	    } else {
 		if ( !set_join_type( Join::SYNCHRONIZATION ) ) {
-		    activity_path_error( LQIO::ERR_JOIN_BAD_PATH, this, activity_stack );
+		    getDOM()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, activity_stack.back()->name() );
 		} else {
 		    Server_Task * cp = dynamic_cast<Server_Task *>(ep->task());
 		    cp->set_synchronization_server();
@@ -335,9 +334,7 @@ OrForkActivityList::find_children( std::deque<Activity *>& activity_stack, std::
 	prob += _prob.at(i-_list.begin());
     }
     if ( fabs( 1.0 - prob ) > EPSILON ) {
-	Activity * ap = activity_stack.back();
-	const std::string name = get_name();
-	LQIO::solution_error( LQIO::ERR_OR_BRANCH_PROBABILITIES, name.c_str(), ap->task()->name(), prob );
+	getDOM()->runtime_error( LQIO::ERR_OR_BRANCH_PROBABILITIES, prob );
     }
     return sum;
 }
@@ -601,7 +598,7 @@ AndJoinActivityList::accumulate_data()
 AndJoinActivityList&
 AndJoinActivityList::insertDOMResults()
 {
-    LQIO::DOM::AndJoinActivityList * dom = dynamic_cast<LQIO::DOM::AndJoinActivityList *>(get_DOM());
+    LQIO::DOM::AndJoinActivityList * dom = dynamic_cast<LQIO::DOM::AndJoinActivityList *>(getDOM());
     
     dom->setResultJoinDelay(r_join.mean())
 	.setResultVarianceJoinDelay(r_join_sqr.mean());
@@ -672,23 +669,6 @@ activity_cycle_error( int err, const char * task_name, std::deque<Activity *>& a
 	buf += (*i)->name();
     }
     LQIO::solution_error( err, task_name, buf.c_str() );
-}
-
-
-static void
-activity_path_error( int err, const ActivityList * list, std::deque<Activity *>& activity_stack )
-{
-    std::string buf2 = list->get_name();
-    Activity * ap = activity_stack.back();
-    std::string buf;
-
-    for ( std::deque<Activity *>::const_reverse_iterator i = activity_stack.rbegin(); i != activity_stack.rend(); ++i ) {
-	if ( i != activity_stack.rbegin() ) {
-	    buf += ", ";
-	}
-	buf += (*i)->name();
-    }
-    LQIO::solution_error( err, buf2.c_str(), ap->task()->name(), buf.c_str() );
 }
 
 /* -------------------- Functions called by parser. --------------------- */

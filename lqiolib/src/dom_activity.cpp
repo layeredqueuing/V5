@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_activity.cpp 15691 2022-06-22 18:04:24Z greg $
+ *  $Id: dom_activity.cpp 15729 2022-06-29 01:57:06Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -43,6 +43,54 @@ namespace LQIO {
 	{
 	}
 
+	/*
+	 * Error detected during input processing.  Line number if found from parser.
+	 */
+	
+	void Activity::input_error( unsigned code, ... ) const
+	{
+	    const error_message_type& error = DocumentObject::__error_messages.at(code);
+	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(LQIO_lineno)
+		+ ": " + severity_table.at(error.severity)
+		+ ": Task \"" + getTask()->getName() + "\", activity \"" + getName() + "\" " + error.message;
+	    if ( code == LQIO::ERR_DUPLICATE_SYMBOL && getLineNumber() != LQIO_lineno ) {
+		buf += std::string( " at line " ) + std::to_string(getLineNumber());
+	    }
+	    buf += std::string( ".\n" );
+
+	    va_list args;
+	    va_start( args, code );
+	    vfprintf( stderr, buf.c_str(), args );
+	    va_end( args );
+
+	    if ( LQIO::io_vars.severity_action != nullptr ) LQIO::io_vars.severity_action( error.severity );
+	}
+
+	/*
+	 * Error detected during runtime.  Line number is found from object.
+	 */
+	
+	void Activity::runtime_error( unsigned code, ... ) const
+	{
+	    const error_message_type& error = __error_messages.at(code);
+
+	    if ( !output_error_message( error.severity ) ) return;
+
+	    std::string object_name = getTypeName();
+	    object_name[0] = std::toupper( object_name[0] );
+	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(getLineNumber())
+		+ ": " + severity_table.at(error.severity)
+		+ ": Task \"" + getTask()->getName() + "\", activity \"" + getName() + "\" " + error.message + ".\n";
+	    
+	    va_list args;
+	    va_start( args, code );
+	    vfprintf( stderr, buf.c_str(), args );
+	    va_end( args );
+
+	    if ( LQIO::io_vars.severity_action != nullptr ) LQIO::io_vars.severity_action( error.severity );
+	}
+
+    
 	std::vector<DOM::Entry*>& Activity::getReplyList() 
 	{
 	    /* Returns the ReplyList of the Activity */
@@ -74,7 +122,7 @@ namespace LQIO {
 	void Activity::outputTo(ActivityList* outputList)
 	{
 	    if (_outputList != nullptr && outputList != nullptr) {
-		input_error2( ERR_DUPLICATE_ACTIVITY_LVALUE, getTask()->getName().c_str(), getName().c_str(), _outputList->getLineNumber() );
+		input_error( ERR_DUPLICATE_ACTIVITY_LVALUE, _outputList->getLineNumber() );
 	    } else {
 		_outputList = outputList;
 	    }
@@ -83,9 +131,9 @@ namespace LQIO {
 	void Activity::inputFrom(ActivityList* inputList)
 	{
 	    if (_inputList != nullptr && inputList != nullptr) {
-		input_error2( ERR_DUPLICATE_ACTIVITY_RVALUE, getTask()->getName().c_str(), getName().c_str(), _inputList->getLineNumber() );
+		input_error( ERR_DUPLICATE_ACTIVITY_RVALUE, _inputList->getLineNumber() );
 	    } else if ( isStartActivity() ) {
-		input_error2( ERR_IS_START_ACTIVITY, getTask()->getName().c_str(), getName().c_str() );
+		input_error( ERR_IS_START_ACTIVITY );
 	    } else {
 		_inputList = inputList;
 	    }

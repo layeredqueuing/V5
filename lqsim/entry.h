@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol entry interface.
  *
- * $Id: entry.h 15331 2022-01-02 21:51:30Z greg $
+ * $Id: entry.h 15726 2022-06-28 17:04:56Z greg $
  */
 
 #ifndef ENTRY_H
@@ -103,7 +103,7 @@ public:
     
     void add_call( const unsigned int p, LQIO::DOM::Call* domCall );
 
-    virtual bool is_defined() const { return get_DOM()->getEntryType() != LQIO::DOM::Entry::Type::NOT_DEFINED; }
+    virtual bool is_defined() const { return getDOM()->getEntryType() != LQIO::DOM::Entry::Type::NOT_DEFINED; }
     virtual bool is_regular() const;
     virtual bool is_activity() const;
     virtual bool is_semaphore() const;
@@ -126,7 +126,7 @@ public:
     bool test_and_set_rwlock( LQIO::DOM::Entry::RWLock );
 
     Entry& set_DOM( unsigned ph, LQIO::DOM::Phase* phaseInfo );
-    LQIO::DOM::Entry * get_DOM() const { return _dom; }
+    LQIO::DOM::Entry * getDOM() const { return _dom; }
     Entry& add_forwarding( Entry* toEntry, LQIO::DOM::Call * value );
 
     Entry& reset_stats();

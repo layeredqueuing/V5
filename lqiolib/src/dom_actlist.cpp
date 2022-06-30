@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_actlist.cpp 15687 2022-06-22 14:39:28Z greg $
+ *  $Id: dom_actlist.cpp 15730 2022-06-29 16:35:46Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -7,23 +7,44 @@
  */
 
 #include <cmath>
+#include <numeric>
 #include "dom_actlist.h"
-#include "dom_task.h"
+#include "dom_document.h"
 #include "dom_extvar.h"
 #include "dom_histogram.h"
+#include "dom_task.h"
 #include "xml_input.h"
 
 namespace LQIO {
     namespace DOM {
 
 	const char * ActivityList::__typeName = "activity_list";
+	const std::map<const ActivityList::Type, const std::string> ActivityList::__op = {
+	    { ActivityList::Type::JOIN, "," },
+	    { ActivityList::Type::FORK, "," },
+	    { ActivityList::Type::AND_FORK, "&" },
+	    { ActivityList::Type::AND_JOIN, "&" },
+	    { ActivityList::Type::OR_FORK, "+" },
+	    { ActivityList::Type::OR_JOIN, "+" },
+	    { ActivityList::Type::REPEAT, "," }
+	};
+
+	const std::map<const ActivityList::Type, const std::string> ActivityList::__listTypeName = {
+	    { ActivityList::Type::JOIN, "join" },
+	    { ActivityList::Type::FORK, "fork" },
+	    { ActivityList::Type::AND_FORK, "and-fork" },
+	    { ActivityList::Type::AND_JOIN, "and-join" },
+	    { ActivityList::Type::OR_FORK, "or-fork" },
+	    { ActivityList::Type::OR_JOIN, "or-join" },
+	    { ActivityList::Type::REPEAT, "repeat" }
+	};
+
 	
 	ActivityList::ActivityList(const Document * document, const Task * task, ActivityList::Type type ) 
 	    : DocumentObject(document,""),		/* By default, no name :-) */
 	      _task(task), _list(), _arguments(), _type(type), 
-	      _next(nullptr), _prev(nullptr),
-	      _processed(false)
-	{
+	      _next(nullptr), _prev(nullptr)
+		{
 	    if ( task != nullptr ) {
 		const_cast<Task *>(task)->addActivityList(this);
 	    }
@@ -33,6 +54,60 @@ namespace LQIO {
 	{
 	}
 
+	/*
+	 * Error detected during input processing.  Line number if found from parser.
+	 */
+	
+	void ActivityList::input_error( unsigned code, ... ) const
+	{
+	    const error_message_type& error = DocumentObject::__error_messages.at(code);
+	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(LQIO_lineno)
+		+ ": " + severity_table.at(error.severity)
+		+ ": Task \"" + getTask()->getName() + "\", "
+		+ getListTypeName() + " \"" + getListName() + "\" "
+		+ error.message + ".\n";
+
+	    va_list args;
+	    va_start( args, code );
+	    vfprintf( stderr, buf.c_str(), args );
+	    va_end( args );
+
+	    if ( LQIO::io_vars.severity_action != nullptr ) LQIO::io_vars.severity_action( error.severity );
+	}
+
+	/*
+	 * Error detected during runtime.  Line number is found from object.
+	 */
+	
+	void ActivityList::runtime_error( unsigned code, ... ) const
+	{
+	    const error_message_type& error = __error_messages.at(code);
+
+	    if ( !output_error_message( error.severity ) ) return;
+
+	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(getLineNumber())
+		+ ": " + severity_table.at(error.severity)
+		+ ": Task \"" + getTask()->getName() + "\", "
+		+ getListTypeName() + " \"" + getListName() + "\" "
+		+ error.message + ".\n";
+	    
+	    va_list args;
+	    va_start( args, code );
+	    vfprintf( stderr, buf.c_str(), args );
+	    va_end( args );
+
+	    if ( LQIO::io_vars.severity_action != nullptr ) LQIO::io_vars.severity_action( error.severity );
+	}
+
+    
+	const std::string ActivityList::getListName() const
+	{
+	    std::string listName;
+
+	    return std::accumulate( std::next( _list.begin() ), _list.end(), _list.front()->getName(), fold( __op.at(_type) ) );
+	    
+	}
+	
 	bool ActivityList::isJoinList() const
 	{
 	    return _type == Type::JOIN || _type == Type::AND_JOIN || _type == Type::OR_JOIN;
@@ -63,6 +138,12 @@ namespace LQIO {
 	{
 	    return _type;
 	}
+
+	const std::string& ActivityList::getListTypeName() const
+	{
+	    return __listTypeName.at(getListType());
+	}
+
 
 	ActivityList& ActivityList::add(const Activity* activity, const ExternalVariable * arg )
 	{
@@ -135,10 +216,10 @@ namespace LQIO {
 	    return _prev;
 	}
 
-	void ActivityList::activitiesForName( const Activity** first, const Activity** last ) const
+	void ActivityList::activitiesForName( const Activity*& first, const Activity*& last ) const
 	{
-	    *first = _list[0];
-	    *last  = _list[_list.size()-1];
+	    first = _list.front();
+	    last  = _list.back();
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */

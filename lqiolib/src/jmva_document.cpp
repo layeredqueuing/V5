@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 15687 2022-06-22 14:39:28Z greg $
+ * $Id: jmva_document.cpp 15732 2022-06-29 22:24:46Z greg $
  *
  * Read in XML input files.
  *
@@ -193,7 +193,7 @@ namespace BCMP {
 	    if ( buffer != MAP_FAILED ) {
 		if ( !XML_Parse( _parser, buffer, statbuf.st_size, true ) ) {
 		    const char * error = XML_ErrorString(XML_GetErrorCode(_parser));
-		    LQIO::input_error( error );
+		    input_error( error );
 		    rc = false;
 		}
 	    } else {
@@ -211,7 +211,7 @@ namespace BCMP {
 			break;
 		    } else if (!XML_Parse(_parser, buffer, len, len == 0 )) {
 			const char * error = XML_ErrorString(XML_GetErrorCode(_parser));
-			LQIO::input_error( error );
+			input_error( error );
 			rc = false;
 			break;
 		    }
@@ -222,11 +222,11 @@ namespace BCMP {
 	}
 	/* Halt on any error. */
 	catch ( const XML::element_error& e ) {
-	    LQIO::input_error( "Unexpected element <%s> ", e.what() );
+	    input_error( "Unexpected element <%s> ", e.what() );
 	    rc = false;
 	}
 	catch ( const std::runtime_error& e ) {
-	    LQIO::input_error( "Runtime error: %s ", e.what() );
+	    input_error( "Runtime error: %s ", e.what() );
 	    rc = false;
 	}
 
@@ -239,6 +239,18 @@ namespace BCMP {
 	_parser = 0;
 	close( input_fd );
 	return rc;
+    }
+
+    void
+    JMVA_Document::input_error( const std::string& msg )
+    {
+	std::cerr << LQIO::DOM::Document::__input_file_name << ":" << std::to_string(LQIO_lineno) << ": error: " << msg << std::endl;
+    }
+
+    void
+    JMVA_Document::input_error( const std::string& msg, const std::string& arg )
+    {
+	std::cerr << LQIO::DOM::Document::__input_file_name << ":" << std::to_string(LQIO_lineno) << ": error: " << msg << ": " << arg << std::endl;
     }
 
     /*
@@ -280,10 +292,10 @@ namespace BCMP {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, e.what() );
 	}
 	catch ( const std::out_of_range& e ) {
-	    LQIO::input_error( "Undefined variable." );
+	    input_error( "Undefined variable." );
 	}
 	catch ( const std::domain_error & e ) {
-	    LQIO::input_error( "Domain error: %s ", e.what() );
+	    input_error( "Domain error: %s ", e.what() );
 	}
 	catch ( const std::invalid_argument & e ) {
 	    LQIO::input_error2( LQIO::ERR_INVALID_ARGUMENT, el, e.what() );
@@ -592,7 +604,7 @@ namespace BCMP {
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,Object(createStation( Model::Station::Type::DELAY, attributes )) ) );
 	} else if ( strcasecmp( element, Xlistation ) == 0 ) {
 	    if ( !LQIO::DOM::ExternalVariable::isDefault( getVariableAttribute( attributes, Xservers, 1 ), 1.0 ) ) {
-		solution_error( LQIO::ERR_INVALID_PARAMETER, Xservers, Xlistation, XML::getStringAttribute( attributes, Xname ), "Not equal to 1" );
+		runtime_error( LQIO::ERR_INVALID_PARAMETER, Xservers, Xlistation, XML::getStringAttribute( attributes, Xname ), "Not equal to 1" );
 	    }
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,Object(createStation( Model::Station::Type::LOAD_INDEPENDENT, attributes )) ) );
 	} else if ( strcasecmp( element, Xldstation ) == 0 ) {

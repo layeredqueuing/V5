@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15706 2022-06-23 17:02:35Z greg $
+ * $Id: entry.cc 15735 2022-06-30 03:18:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -182,40 +182,44 @@ Entry::check() const
     if ( isStandardEntry() ) {
 	std::for_each( _phase.begin(), _phase.end(), Predicate<Phase>( &Phase::check ) );
     } else if ( isActivityEntry() ) {
-	if ( !isVirtualEntry() && isCalledUsing( RequestType::RENDEZVOUS ) ) {
-	    std::deque<const Activity *> activityStack;
+	if ( !isVirtualEntry() ) {
 	    Activity::Count_If data( this, &Activity::checkReplies );
+
+	    std::deque<const Activity *> activityStack;
 	    const double replies = std::floor( getStartActivity()->count_if( activityStack, data ).sum() * precision ) / precision;
+
 	    //tomari: disable to allow a quorum use the default reply which is after all threads completes exection.
 	    //(replies == 1 || (replies == 0 && owner->hasQuorum()))
 	    //Only tasks have activity entries.
-	    if ( replies != 1.0 && (replies != 0.0 || !dynamic_cast<const Task *>(owner())->hasQuorum()) ) {
-		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, name().c_str(), replies );
+	    if ( isCalledUsing( RequestType::RENDEZVOUS ) && replies != 1.0 && (replies != 0.0 || !dynamic_cast<const Task *>(owner())->hasQuorum()) ) {
+		getDOM()->runtime_error( LQIO::ERR_NON_UNITY_REPLIES, replies );
 	    }
 	    assert( activityStack.size() == 0 );
 	}
     } else {
-	LQIO::solution_error( LQIO::ERR_ENTRY_NOT_SPECIFIED, name().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
     }
 
-    if ( (isSignalEntry() || isWaitEntry()) && owner()->scheduling() != SCHEDULE_SEMAPHORE ) {
-	LQIO::solution_error( LQIO::ERR_NOT_SEMAPHORE_TASK, owner()->name().c_str(), (isSignalEntry() ? "signal" : "wait"), name().c_str() );
+    if ( owner()->scheduling() != SCHEDULE_SEMAPHORE && (isSignalEntry() || isWaitEntry()) ) {
+	getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, (isSignalEntry() ? "signal" : "wait"), name().c_str() );
+	if ( isSignalEntry() ) owner()->getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, "signal", name().c_str() );
+	if ( isWaitEntry() ) owner()->getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, "wait", name().c_str() );
     }
     if ( maxPhase() > 1 && owner()->isInfinite() ) {
-	LQIO::solution_error( WRN_MULTI_PHASE_INFINITE_SERVER, name().c_str(), owner()->name().c_str(), maxPhase() );
+	LQIO::runtime_error( WRN_MULTI_PHASE_INFINITE_SERVER, name().c_str(), owner()->name().c_str(), maxPhase() );
     }
 
     if ( !owner()->isReferenceTask() && !isCalled() ) {
-	LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, name().c_str() );
+	getDOM()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
     }
 
     /* Forwarding probabilities o.k.? */
 
     double sum = std::accumulate( callList(1).begin(), callList(1).end(), 0.0, Call::add_forwarding );
     if ( sum < 0.0 || 1.0 < sum ) {
-	LQIO::solution_error( LQIO::ERR_INVALID_FORWARDING_PROBABILITY, name().c_str(), sum );
+	getDOM()->runtime_error( LQIO::ERR_INVALID_FORWARDING_PROBABILITY, sum );
     } else if ( sum != 0.0 && owner()->isReferenceTask() ) {
-	LQIO::solution_error( LQIO::ERR_REF_TASK_FORWARDING, owner()->name().c_str(), name().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_FORWARDING, name().c_str() );
     }
     return !LQIO::io_vars.anError();
 }
@@ -295,7 +299,7 @@ Entry::findChildren( Call::stack& callStack, const bool directPath ) const
 	    max_depth = std::max( max_depth, getStartActivity()->findChildren( path ) );
 	}
 	catch ( const activity_cycle& error ) {
-	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, owner()->name().c_str(), error.what() );
+	    getDOM()->runtime_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, error.what() );
 	}
 	catch ( const bad_external_join& error ) {
 	    abort();
@@ -469,7 +473,7 @@ bool
 Entry::setIsCalledBy(const RequestType callType )
 {
     if ( _calledBy != RequestType::NOT_CALLED && _calledBy != callType ) {
-	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, name().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
 	return false;
     } else {
 	_calledBy = callType;
@@ -964,19 +968,6 @@ Entry::getInterlockedTasks( Interlock::CollectTasks& path ) const
     }
 
     return found;
-}
-
-
-
-/*
- * Return true if this entry belongs to a reference task.
- * This is an error!
- */
-
-bool
-Entry::isReferenceTaskEntry() const
-{
-    return owner() && owner()->isReferenceTask();
 }
 
 
@@ -1702,19 +1693,19 @@ VirtualEntry::~VirtualEntry()
 }
 
 static bool
-map_entry_name( const std::string& entry_name, Entry * & outEntry, bool receiver, const LQIO::DOM::Entry::Type aType = LQIO::DOM::Entry::Type::NOT_DEFINED )
+map_entry_name( const std::string& entry_name, Entry * & entry, bool receiver, const LQIO::DOM::Entry::Type type = LQIO::DOM::Entry::Type::NOT_DEFINED )
 {
     bool rc = true;
-    outEntry = Entry::find( entry_name );
+    entry = Entry::find( entry_name );
 
-    if ( !outEntry ) {
+    if ( !entry ) {
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, entry_name.c_str() );
 	rc = false;
-    } else if ( receiver && outEntry->isReferenceTaskEntry() ) {
-	LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, outEntry->owner()->name().c_str(), entry_name.c_str() );
+    } else if ( receiver && entry->owner()->isReferenceTask() ) {
+	entry->owner()->getDOM()->input_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, entry_name.c_str() );
 	rc = false;
-    } else if ( aType != LQIO::DOM::Entry::Type::NOT_DEFINED && !outEntry->entryTypeOk( aType ) ) {
-	LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, entry_name.c_str() );
+    } else if ( type != LQIO::DOM::Entry::Type::NOT_DEFINED && !entry->entryTypeOk( type ) ) {
+	entry->getDOM()->input_error( LQIO::ERR_MIXED_ENTRY_TYPES );
     }
 
     return rc;
@@ -1730,7 +1721,7 @@ Entry::create(LQIO::DOM::Entry* dom, unsigned int index )
     const std::string& entry_name = dom->getName();
 
     if ( Entry::find( entry_name ) != nullptr ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, dom->getTypeName(), entry_name.c_str() );
+	dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, dom->getTypeName() );
 	return nullptr;
     } else {
 	Entry * entry = new TaskEntry( dom, index );
@@ -1781,7 +1772,7 @@ Entry::setForwardingInformation( Entry* toEntry, LQIO::DOM::Call * call )
 {
     /* Do some checks for sanity */
     if ( owner()->isReferenceTask() ) {
-	LQIO::input_error2( LQIO::ERR_REF_TASK_FORWARDING, owner()->name().c_str(), name().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_FORWARDING, name().c_str() );
     } else if ( forward( toEntry ) > 0.0 ) {
 	LQIO::input_error2( LQIO::WRN_MULTIPLE_SPECIFICATION );
     } else {

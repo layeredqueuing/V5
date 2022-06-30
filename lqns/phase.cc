@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 15695 2022-06-23 00:28:19Z greg $
+ * $Id: phase.cc 15735 2022-06-30 03:18:14Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -302,7 +302,7 @@ Phase::findChildren( Call::stack& callStack, const bool directPath ) const
 	catch ( const Call::call_cycle& error ) {
 	    if ( directPath && !Pragma::allowCycles() ) {
 		std::string msg = std::accumulate( callStack.rbegin(), callStack.rend(), callStack.back()->dstName(), &Call::stack::fold );
-		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, msg.c_str() );
+		getDOM()->runtime_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, msg.c_str() );
 	    }
 	}
     }
@@ -424,18 +424,18 @@ Phase::check() const
     
     /* Service time not zero? */
     if ( serviceTime() == 0 && !parent_has_think_time ) {
-	LQIO::solution_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, parent_type.c_str(), parent->getName().c_str(), getDOM()->getTypeName(), name().c_str(), "service" );
+	getDOM()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
     }
 
     /* Think time present and not zero? */
     if ( hasThinkTime() && thinkTime() == 0 ) {
-	LQIO::solution_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, parent_type.c_str(), parent->getName().c_str(), getDOM()->getTypeName(), name().c_str(), "think" );
+	getDOM()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "think" );
     }
 
     std::for_each( callList().begin(), callList().end(), Predicate<Call>( &Call::check ) );
 
     if ( phaseTypeFlag() == LQIO::DOM::Phase::STOCHASTIC && CV_sqr() != 1.0 ) {
-	LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, parent_type.c_str(), parent->getName().c_str(), getDOM()->getTypeName(), name().c_str() );
+	LQIO::runtime_error( WRN_COEFFICIENT_OF_VARIATION, parent_type.c_str(), parent->getName().c_str(), getDOM()->getTypeName(), name().c_str() );
     }
     return true;
 }
