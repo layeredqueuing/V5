@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15429 2022-02-04 23:04:05Z greg $ *
+ * $Id: pragma.cc 15737 2022-06-30 22:59:33Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -51,7 +51,7 @@ Pragma::set( const std::map<std::string,std::string>& list )
 		(__cache->*f)(i->second);
 	    }
 	    catch ( const std::domain_error& e ) {
-		LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
+		LQIO::runtime_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
 	    }
 	}
     }

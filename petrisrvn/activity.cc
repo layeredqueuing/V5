@@ -149,7 +149,7 @@ void Activity::activity_cycle_error( int err, const char *, std::deque<Activity 
 	if ( ap != activity_stack.front() ) buf += ", ";
 	buf += ap->name();
     }
-    LQIO::solution_error( err, task()->name(), buf.c_str() );
+    task()->get_dom()->runtime_error( err, buf.c_str() );
 }
 
 /*

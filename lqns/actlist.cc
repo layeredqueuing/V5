@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: actlist.cc 15737 2022-06-30 22:59:33Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -643,7 +643,12 @@ AndOrForkActivityList::find_children::operator()( unsigned arg1, const Activity 
     Activity::Children path( _path );
     if ( dynamic_cast<const OrForkActivityList *>(&_self) != nullptr ) {
 	path.setReplyAllowed(false);
-	path.setRate(dynamic_cast<const OrForkActivityList *>(&_self)->prBranch( arg2 ) );
+	try {
+	    path.setRate(dynamic_cast<const OrForkActivityList *>(&_self)->prBranch( arg2 ) );
+	}
+	catch ( const std::domain_error& e ) {
+	    _self.getDOM()->runtime_error( LQIO::ERR_INVALID_PARAMETER, e.what() );
+	}
     }
     return std::max( arg1, arg2->findChildren(path) );
 }

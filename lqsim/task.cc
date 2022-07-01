@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: task.cc 15738 2022-07-01 01:16:27Z greg $
  */
 
 #include "lqsim.h"
@@ -525,7 +525,7 @@ Task::add( LQIO::DOM::Task* dom )
 	dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL );
     }
     if ( dom->hasReplicas() ) {
-	dom->runtime_error( ERR_REPLICATION );
+	dom->runtime_error( LQIO::ERR_NOT_SUPPORTED, "replication" );
     }
 
     const LQIO::DOM::Group * domGroup = dom->getGroup();
@@ -864,23 +864,18 @@ Semaphore_Task::create_instance()
     if ( n_entries() != N_SEMAPHORE_ENTRIES ) {
 	getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), N_SEMAPHORE_ENTRIES );
     }
-    if ( _entry[0]->is_signal() ) {
-	if ( !_entry[1]->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::WAIT ) ) {
-	    LQIO::solution_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
-	}
-	if ( !_entry[1]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
-	    LQIO::solution_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[1]->name() );
-	}
-    } else if ( _entry[0]->is_wait() ) {
-	if ( !_entry[1]->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::SIGNAL ) ) {
-	    LQIO::solution_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
-	}
-	if ( !_entry[0]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
-	    LQIO::solution_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[0]->name() );
-	}
-    } else {
-	getDOM()->runtime_error( LQIO::ERR_NO_SEMAPHORE );
-	std::cerr << "entry names: " << _entry[0]->name() << ", " << _entry[1]->name() << std::endl;
+    if ( (_entry[0]->is_signal() && !_entry[1]->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::WAIT ) )
+	 || ( _entry[0]->is_wait() && !_entry[1]->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::SIGNAL ) ) ) {
+	getDOM()->runtime_error( LQIO::ERR_DUPLICATE_SEMAPHORE_ENTRY_TYPES,
+				 _entry[0]->getDOM()->getName().c_str(),
+				 _entry[1]->getDOM()->getName().c_str(),
+				 _entry[0]->is_signal() ? "signal" : "wait" );
+    }
+    if ( _entry[0]->is_wait() && !_entry[0]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
+	_entry[0]->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT );
+    }
+    if ( _entry[1]->is_wait() && !_entry[1]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
+	_entry[1]->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT );
     }
     if ( !_hist_data && getDOM()->hasHistogram() ) {
 	_hist_data = new Histogram( getDOM()->getHistogram() );

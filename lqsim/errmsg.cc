@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: errmsg.cc 15722 2022-06-27 20:37:32Z greg $
+ * $Id: errmsg.cc 15738 2022-07-01 01:16:27Z greg $
  */
 
 #include <cstdio>
@@ -27,7 +27,6 @@ std::vector< std::pair<unsigned, LQIO::error_message_type> > local_error_message
 {
     { FTL_ACTIVITY_STACK_FULL,		    { LQIO::error_severity::FATAL,  	"Activity stack for \"%s\" is full." } },
     { FTL_MSG_POOL_EMPTY,		    { LQIO::error_severity::FATAL,   	"Message pool is empty.  Sending from \"%s\" to \"%s\"." } },
-    { ERR_REPLICATION,		    	    { LQIO::error_severity::ERROR, 	"%s \"%s\": Replication not supported." } },
     { ERR_REPLY_NOT_FOUND,		    { LQIO::error_severity::ERROR, 	"Activity \"%s\" requests reply for entry \"%s\" but none pending." } },
     { ERR_CANNOT_CREATE_X,		    { LQIO::error_severity::ERROR, 	"Cannot create %s %s." } },
     { ERR_DELAY_MULTIPLY_DEFINED,	    { LQIO::error_severity::ERROR, 	"Delay from processor \"%s\" to processor \"%s\" previously specified." } },

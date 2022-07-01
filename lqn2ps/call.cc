@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15734 2022-06-30 02:19:44Z greg $
+ * $Id: call.cc 15740 2022-07-01 11:27:25Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -379,7 +379,7 @@ Call::checkReplication() const
 	const LQIO::DOM::ExternalVariable * fan_in = dynamic_cast<const LQIO::DOM::Task *>(dstTask()->getDOM())->getFanIn( srcName );
 	if ( fan_in != nullptr && fan_in->wasSet() ) fan_in->getValue( fanInValue );
 	if ( srcReplicasValue * fanOutValue != dstReplicasValue * fanInValue ) {
-	    LQIO::solution_error( ERR_REPLICATION,
+	    LQIO::runtime_error( ERR_REPLICATION,
 				  static_cast<int>(fanOutValue), srcName.c_str(), static_cast<int>(srcReplicasValue),
 				  static_cast<int>(fanInValue),  dstName.c_str(), static_cast<int>(dstReplicasValue) );
 	    return false;
@@ -2057,7 +2057,7 @@ ProcessorCall::updateRateFrom( const Call& call )
 	}
 	_callType = call.callType();
     } else if ( callType() != call.callType() ) {
-	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntity()->name().c_str() );
+	dstEntity()->getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
 	return *this;
     }
     /* Preserve variable if multiplier is one (1) (which is likely is) */

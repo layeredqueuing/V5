@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 15735 2022-06-30 03:18:14Z greg $
+ *  $Id: dom_object.cpp 15737 2022-06-30 22:59:33Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -50,26 +50,32 @@ namespace LQIO {
 	
 	std::map<unsigned, LQIO::error_message_type> DocumentObject::__error_messages = {
 	    { LQIO::ADV_MESSAGES_DROPPED,		{ LQIO::error_severity::ADVISORY, "dropped messages for open-class queues." } },
+	    { LQIO::ERR_ASYNC_REQUEST_TO_WAIT,		{ LQIO::error_severity::ERROR,    "(wait) cannot accept send-no-reply requests" } },
 	    { LQIO::ERR_BAD_PATH_TO_JOIN,		{ LQIO::error_severity::ERROR,    "activity %s is not reachable" } },
 	    { LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH,	{ LQIO::error_severity::ERROR, 	  "has a cycle in activity graph.  Backtrace is \"%s\"" } },
 	    { LQIO::ERR_CYCLE_IN_CALL_GRAPH,		{ LQIO::error_severity::ERROR,    "has a cycle in call graph,  backtrace is \"%s\"" } },
 	    { LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE,	{ LQIO::error_severity::ERROR,    "previously used in the join at line %d" } },
 	    { LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE,	{ LQIO::error_severity::ERROR,    "previously used in the fork at line %d" } },
+	    { LQIO::ERR_DUPLICATE_SEMAPHORE_ENTRY_TYPES,{ LQIO::error_severity::ERROR,    "both entry \"%s\" and entry \"%s\" are of semaphore type %s" } },
 	    { LQIO::ERR_DUPLICATE_SYMBOL,		{ LQIO::error_severity::ERROR,    "previously defined" } },
 	    { LQIO::ERR_FORK_JOIN_MISMATCH,		{ LQIO::error_severity::ERROR,    "does not match %s \"%s\" at line %d" } },
 	    { LQIO::ERR_INFINITE_SERVER, 		{ LQIO::error_severity::ERROR, 	  "cannot be an infinite server" } },
 	    { LQIO::ERR_INVALID_FORWARDING_PROBABILITY,	{ LQIO::error_severity::ERROR,    "has invalid forwarding probability of %g" } },
-	    { LQIO::ERR_INVALID_PARAMETER,		{ LQIO::error_severity::ERROR,    "invalid %s: %s" } },
+	    { LQIO::ERR_INVALID_OR_BRANCH_PROBABILITY,	{ LQIO::error_severity::ERROR,    "activity \"%s\" has invalid probability of %g" } },
+	    { LQIO::ERR_INVALID_PARAMETER,		{ LQIO::error_severity::ERROR,    "invalid %s: %g" } },
 	    { LQIO::ERR_INVALID_REPLY_DUPLICATE,	{ LQIO::error_severity::ERROR,    "makes a duplicate reply for entry \"%s\"" } },
 	    { LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY,	{ LQIO::error_severity::ERROR,    "makes an invalid reply for entry \"%s\" which does not accept rendezvous requests" } },
 	    { LQIO::ERR_INVALID_REPLY_FROM_BRANCH,	{ LQIO::error_severity::ERROR,    "makes an invalid reply from a branch for entry \"%s\"" } },
 	    { LQIO::ERR_IS_START_ACTIVITY,		{ LQIO::error_severity::ERROR,    "is a start activity" } },
 	    { LQIO::ERR_MIXED_ENTRY_TYPES,		{ LQIO::error_severity::ERROR,    "specified using both activity and phase methods" } },
+	    { LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES,	{ LQIO::error_severity::ERROR,    "is specified as both a lock and a unlock." } },
+	    { LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES,	{ LQIO::error_severity::ERROR,    "is specified as both a signal and a wait." } },
 	    { LQIO::ERR_NON_UNITY_REPLIES,		{ LQIO::error_severity::ERROR,    "generates %4.2f replies" } },
 	    { LQIO::ERR_NOT_REACHABLE,			{ LQIO::error_severity::ERROR,    "is not reachable"} },
 	    { LQIO::ERR_NOT_RWLOCK_TASK,		{ LQIO::error_severity::ERROR,    "cannot have a %s for entry \"%s\"" } },
 	    { LQIO::ERR_NOT_SEMAPHORE_TASK,		{ LQIO::error_severity::ERROR,    "cannot have a %s for entry \"%s\"" } },
 	    { LQIO::ERR_NOT_SPECIFIED,			{ LQIO::error_severity::ERROR,    "is not specified" } },
+	    { LQIO::ERR_NOT_SUPPORTED,			{ LQIO::error_severity::ERROR,    "does not support the %s feature" } },
 	    { LQIO::ERR_NO_SEMAPHORE,			{ LQIO::error_severity::ERROR,    "has neither a signal nor a wait entry specified" } },
 	    { LQIO::ERR_NO_START_ACTIVITIES,		{ LQIO::error_severity::ERROR,    "has activities but none are reachable" } },
 	    { LQIO::ERR_OPEN_AND_CLOSED_CLASSES,	{ LQIO::error_severity::ERROR,    "accepts both rendezvous and send-no-reply messages" } },

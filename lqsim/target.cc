@@ -1,7 +1,7 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 15734 2022-06-30 02:19:44Z greg $
+ * $Id: target.cc 15736 2022-06-30 10:41:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -271,7 +271,6 @@ double
 Targets::configure( const LQIO::DOM::DocumentObject * dom, bool normalize )
 {
     double sum	= 0.0;
-    const char * srcName = (dom != nullptr) ? dom->getName().c_str() : "-";
     _type = (dynamic_cast<const LQIO::DOM::Phase *>(dom) != nullptr) ? dynamic_cast<const LQIO::DOM::Phase *>(dom)->getPhaseTypeFlag() : LQIO::DOM::Phase::Type::STOCHASTIC;
     
     for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {

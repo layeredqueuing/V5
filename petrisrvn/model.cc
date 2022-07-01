@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 15718 2022-06-27 12:52:14Z greg $
+ * $Id: model.cc 15740 2022-07-01 11:27:25Z greg $
  *
  * Load the SRVN model.
  */
@@ -152,7 +152,7 @@ Model::solve( solve_using solver_function, const std::string& inputFileName, LQI
     if ( program != nullptr ) {
 	/* We can simply run if there's no control program */
 	if (program == nullptr) {
-	    LQIO::solution_error( LQIO::ERR_LQX_COMPILATION, inputFileName.c_str() );
+	    LQIO::runtime_error( LQIO::ERR_LQX_COMPILATION, inputFileName.c_str() );
 	    status = FILEIO_ERROR;
 	} else {
 	    document->registerExternalSymbolsWithProgram(program);
@@ -163,7 +163,7 @@ Model::solve( solve_using solver_function, const std::string& inputFileName, LQI
 	    if ( outputFileName.size() > 0 && outputFileName != "-" && LQIO::Filename::isRegularFile(outputFileName) ) {
 		output = fopen( outputFileName.c_str(), "w" );
 		if ( !output ) {
-		    LQIO::solution_error( LQIO::ERR_CANT_OPEN_FILE, outputFileName.c_str(), strerror( errno ) );
+		    LQIO::runtime_error( LQIO::ERR_CANT_OPEN_FILE, outputFileName.c_str(), strerror( errno ) );
 		    status = FILEIO_ERROR;
 		} else {
 		    program->getEnvironment()->setDefaultOutput( output );	/* Default is stdout */
@@ -173,11 +173,11 @@ Model::solve( solve_using solver_function, const std::string& inputFileName, LQI
 	    if ( status == 0 ) {
 		/* Invoke the LQX program itself */
 		if ( !program->invoke() ) {
-		    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, inputFileName.c_str() );
+		    LQIO::runtime_error( LQIO::ERR_LQX_EXECUTION, inputFileName.c_str() );
 		    status = FILEIO_ERROR;
 		} else if ( !SolverInterface::Solve::solveCallViaLQX ) {
 		    /* There was no call to solve the LQX */
-		    LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, inputFileName.c_str() );
+		    LQIO::runtime_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, inputFileName.c_str() );
 		    std::vector<LQX::SymbolAutoRef> args;
 		    program->getEnvironment()->invokeGlobalMethod("solve", &args);
 		}
@@ -191,7 +191,7 @@ Model::solve( solve_using solver_function, const std::string& inputFileName, LQI
     } else {
 	/* There is no control flow program, check for $-variables */
 	if (document->getSymbolExternalVariableCount() != 0) {
-	    LQIO::solution_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, inputFileName.c_str() );
+	    LQIO::runtime_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, inputFileName.c_str() );
 	    status = FILEIO_ERROR;
 	} else {
 	    try {
@@ -700,7 +700,7 @@ Model::reload()
     LQIO::Filename directory_name( has_output_file_name() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
 
     if ( access( directory_name().c_str(), R_OK|W_OK|X_OK ) < 0 ) {
-	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );
+	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
@@ -1439,7 +1439,7 @@ Model::build_open_arrivals ()
 	    phase->setServiceTimeValue( 1.0 / dst_dom->getOpenArrivalRateValue() );
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "open arrival rate", "entry", dst_entry->name(), e.what() );
+	    dst_entry->get_dom()->runtime_error( LQIO::ERR_INVALID_PARAMETER, "open arrival rate", "entry", e.what() );
 	    throw std::domain_error( std::string( "invalid parameter: " ) + e.what() ); 
 	}
 	phase->setName(buf);

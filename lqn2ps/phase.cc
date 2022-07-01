@@ -259,9 +259,9 @@ Phase::check() const
 
     if ( phaseTypeFlag() == LQIO::DOM::Phase::Type::STOCHASTIC && hasCV_sqr() ) {
 	if ( dynamic_cast<const Activity *>(this) ) {			/* c, phase_flag are incompatible  */
-	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Task", owner()->name().c_str(), getDOM()->getTypeName(), name().c_str() );
+	    LQIO::runtime_error( WRN_COEFFICIENT_OF_VARIATION, "Task", owner()->name().c_str(), getDOM()->getTypeName(), name().c_str() );
 	} else {
-	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Entry", entry()->name().c_str(), getDOM()->getTypeName(), name().c_str() );
+	    LQIO::runtime_error( WRN_COEFFICIENT_OF_VARIATION, "Entry", entry()->name().c_str(), getDOM()->getTypeName(), name().c_str() );
 	}
     }
 
@@ -387,7 +387,7 @@ Phase::merge( LQIO::DOM::Phase& dst, const LQIO::DOM::Phase& src, double rate )
 {
     dst.setServiceTimeValue( dst.getServiceTimeValue() + src.getServiceTimeValue() * rate );
     if ( (src.hasStochasticCalls() && dst.hasDeterministicCalls()) || (src.hasDeterministicCalls() && dst.hasStochasticCalls()) ) {
-//	LQIO::solution_error( WRN_MIXED_PHASE_TYPE, ... );
+//	LQIO::runtime_error( WRN_MIXED_PHASE_TYPE, ... );
     } else if ( src.hasDeterministicCalls() ) {
 	dst.setPhaseTypeFlag( LQIO::DOM::Phase::Type::DETERMINISTIC );
     }

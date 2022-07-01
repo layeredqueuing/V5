@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: task.cc 15737 2022-06-30 22:59:33Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -758,7 +758,7 @@ Task::check() const
 	    }
 	}
 	if ( !ok ) {
-	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR,
+	    LQIO::runtime_error( ERR_REPLICATION_PROCESSOR,
 				  static_cast<int>(srcReplicasValue), name().c_str(),
 				  static_cast<int>(dstReplicasValue), processor->name().c_str() );
 	    if ( Flags::output_format() != File_Format::PARSEABLE ) {
@@ -771,7 +771,7 @@ Task::check() const
 
     const_cast<LQIO::DOM::DocumentObject *>(getDOM())->setSeverity( LQIO::WRN_ENTRY_HAS_NO_REQUESTS, LQIO::error_severity::ERROR );
     if ( scheduling() == SCHEDULE_SEMAPHORE ) {
-	if ( nEntries() != 2 ) {
+	if ( nEntries() != N_SEMAPHORE_ENTRIES ) {
 	    getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, nEntries(), N_SEMAPHORE_ENTRIES );
 	    rc = false;
 	}
@@ -781,7 +781,10 @@ Task::check() const
 	       || (e1.isWaitEntry() && e2.entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::SIGNAL))
 	       || (e2.isSignalEntry() && e1.entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::WAIT))
 	       || (e2.isWaitEntry() && e1.entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::SIGNAL))) ) {
-	    getDOM()->solution_error( LQIO::ERR_NO_SEMAPHORE );
+	    getDOM()->runtime_error( LQIO::ERR_DUPLICATE_SEMAPHORE_ENTRY_TYPES,
+				     e1.getDOM()->getName().c_str(),
+				     e2.getDOM()->getName().c_str(),
+				     e1.isSignalEntry() ? "signal" : "wait" );
 	    rc = false;
 	} else if ( e1.isCalled() && !e2.isCalled() ) {
 	    e2.getDOM()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );

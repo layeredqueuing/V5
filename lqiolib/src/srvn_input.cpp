@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 15734 2022-06-30 02:19:44Z greg $
+ *  $Id: srvn_input.cpp 15737 2022-06-30 22:59:33Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -1090,7 +1090,7 @@ namespace LQIO {
 	    /* Configure the activity */
 	    double value = 0.;
 	    if ( probability->wasSet() && probability->getValue(value) && (value < 0. || 1. < value) ) {
-		input_error2( ERR_INVALID_PROBABILITY, probability );
+		activityList->input_error( ERR_INVALID_OR_BRANCH_PROBABILITY, activity->getName().c_str(), value );
 	    } else {
 		if (activity->isStartActivity()) {
 		    activity->input_error( ERR_IS_START_ACTIVITY );

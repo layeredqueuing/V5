@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: actlist.cc 15730 2022-06-29 16:35:46Z greg $
+ * $Id: actlist.cc 15737 2022-06-30 22:59:33Z greg $
  */
 
 #include "lqsim.h"
@@ -32,7 +32,7 @@
 #include "task.h"
 
 static inline int i_max( int a, int b ) { return a > b ? a : b; }
-static void activity_cycle_error( int err, const char * task_name, std::deque<Activity *>& activity_stack );
+static void activity_cycle_error( std::deque<Activity *>& activity_stack );
 
 const std::string
 ActivityList::get_name() const
@@ -274,8 +274,8 @@ AndJoinActivityList::find_children( std::deque<Activity *>& activity_stack, std:
 	    }
 	}
 	catch ( const cycle_error& e ) {
-	    Server_Task * cp = dynamic_cast<Server_Task *>(ep->task());
-	    activity_cycle_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, cp->name(), activity_stack );
+//	    Server_Task * cp = dynamic_cast<Server_Task *>(ep->task());
+	    activity_cycle_error( activity_stack );
 	}
     }
     return OutputActivityList::find_children( activity_stack, fork_stack, ep );
@@ -658,9 +658,10 @@ print_activity_connectivity( FILE * output, Activity * ap )
 
 
 static void
-activity_cycle_error( int err, const char * task_name, std::deque<Activity *>& activity_stack )
+activity_cycle_error( std::deque<Activity *>& activity_stack )
 {
     std::string buf;
+    Activity * ap = activity_stack.back();
 
     for ( std::deque<Activity *>::const_reverse_iterator i = activity_stack.rbegin(); i != activity_stack.rend(); ++i ) {
 	if ( i != activity_stack.rbegin() ) {
@@ -668,7 +669,7 @@ activity_cycle_error( int err, const char * task_name, std::deque<Activity *>& a
 	}
 	buf += (*i)->name();
     }
-    LQIO::solution_error( err, task_name, buf.c_str() );
+    ap->task()->getDOM()->runtime_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, buf.c_str() );
 }
 
 /* -------------------- Functions called by parser. --------------------- */

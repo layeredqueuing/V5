@@ -114,8 +114,7 @@ double Entry::prob_fwd( const Entry * entry ) const
 	    return value;
 	}
 	catch ( const std::domain_error& e ) {
-	    const LQIO::DOM::Entry * dst = call->getDestinationEntry();
-	    call->runtime_error( LQIO::ERR_INVALID_PARAMETER, e.what() );
+	    call->runtime_error( LQIO::ERR_INVALID_PARAMETER, "forwarding probability", e.what() );
 	    throw std::domain_error( std::string( "invalid parameter: " ) + e.what() ); 
 	}
     }
@@ -259,7 +258,7 @@ Entry::initialize()
 	if ( task()->type() == Task::Type::REF_TASK && !has_deterministic_phases ) {
 	    LQIO::runtime_error( ERR_BOGUS_REFERENCE_TASK, name(), task()->name() );
 	} else {
-	    LQIO::runtime_error( LQIO::WRN_NO_SERVICE_TIME, name() );
+	    get_dom()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
 	}
     }
 

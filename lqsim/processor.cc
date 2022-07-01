@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 15731 2022-06-29 18:22:10Z greg $
+ * $Id: processor.cc 15738 2022-07-01 01:16:27Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -515,7 +515,7 @@ Processor::add( const std::pair<std::string,LQIO::DOM::Processor*>& p )
     }
 
     if ( dom->hasReplicas() ) {
-	LQIO::input_error2( ERR_REPLICATION, "processor", processor_name.c_str() );
+	dom->runtime_error( LQIO::ERR_NOT_SUPPORTED, "replication" );
     }
 
     const scheduling_type scheduling_flag = dom->getSchedulingType();

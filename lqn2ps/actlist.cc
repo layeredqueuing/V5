@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 15730 2022-06-29 16:35:46Z greg $
+ * $Id: actlist.cc 15737 2022-06-30 22:59:33Z greg $
  */
 
 
@@ -808,7 +808,7 @@ OrForkActivityList::findActivityChildren( std::deque<const Activity *>& activity
 
     // if ( fabs( 1.0 - sum ) > EPSILON ) {
     // 	ForkJoinName aName( *this );
-    // 	LQIO::solution_error( LQIO::ERR_MISSING_OR_BRANCH, aName(), owner()->name().c_str(), sum );
+    // 	LQIO::runtime_error( LQIO::ERR_MISSING_OR_BRANCH, aName(), owner()->name().c_str(), sum );
     // }
 
     return nextLevel;
@@ -834,6 +834,10 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 	const LQIO::DOM::ExternalVariable& pr_branch = prBranch(*activity);
 	if ( pr_branch.wasSet() ) {
 	    pr_branch.getValue( prob );
+	    if ( prob < 0. || 1.0 < prob ) {
+		getDOM()->runtime_error( LQIO::ERR_INVALID_OR_BRANCH_PROBABILITY, (*activity)->name().c_str(), prob );
+		prob = 0.;
+	    } 
 	} else {
 	    prob = 1.0 / activityList().size();
 	}

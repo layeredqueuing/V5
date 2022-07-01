@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 15694 2022-06-22 23:27:00Z greg $
+ * $Id: pragma.cc 15737 2022-06-30 22:59:33Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -61,7 +61,7 @@ Pragma::set( const std::map<std::string,std::string>& list )
 		(__pragmas->*f)(i->second);
 	    }
 	    catch ( const std::domain_error& e ) {
-		LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
+		LQIO::runtime_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
 	    }
 	}
     }

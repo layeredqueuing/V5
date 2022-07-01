@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<!-- lqn2xml -->
+<lqn-model name="err_invalid_probability" description="lqn2xml 5.27 solution for model from: err_invalid_probability.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="ERR_INVALID_OR_BRANCH_PROBABILTIY" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
+   <processor name="c0" scheduling="inf">
+      <task name="c0" scheduling="ref">
+         <entry name="c0" type="NONE"/>
+         <task-activities>
+            <activity name="a0" bound-to-entry="c0" host-demand-mean="0.3"/>
+            <activity name="a1" host-demand-mean="0.6">
+               <synch-call dest="e0" calls-mean="2"/>
+            </activity>
+            <activity name="a2" host-demand-mean="0.4"/>
+            <activity name="a3" host-demand-mean="0.2"/>
+            <precedence>
+               <pre>
+                  <activity name="a0"/>
+               </pre>
+               <post-OR>
+                  <activity name="a2" prob="0.2"/>
+                  <activity name="a1" prob="2"/>
+               </post-OR>
+            </precedence>
+            <precedence>
+               <pre-OR>
+                  <activity name="a1"/>
+                  <activity name="a2"/>
+               </pre-OR>
+               <post>
+                  <activity name="a3"/>
+               </post>
+            </precedence>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="p0" scheduling="ps" quantum="0.1">
+      <task name="t0" scheduling="fcfs">
+         <entry name="e0" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e0_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

@@ -69,7 +69,7 @@ void Pragma::set_pragma( const std::pair<std::string,std::string>& p )
 	    (__cache->*f)(p.second);
 	}
 	catch ( const std::domain_error& e ) {
-	    LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
+	    LQIO::runtime_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
 	}
     }
 }

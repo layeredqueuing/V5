@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: entry.cc 15737 2022-06-30 22:59:33Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -838,7 +838,7 @@ Entry::entrySemaphoreTypeOk( const LQIO::DOM::Entry::Semaphore aType )
     const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
     const bool rc = const_cast<LQIO::DOM::Entry *>(dom)->entrySemaphoreTypeOk( aType );
     if ( !rc ) {
-	LQIO::input_error2( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES );
     }
     return rc;
 }
@@ -849,7 +849,7 @@ Entry::entryRWLockTypeOk( const LQIO::DOM::Entry::RWLock aType )
     const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
     const bool rc = const_cast<LQIO::DOM::Entry *>(dom)->entryRWLockTypeOk( aType );
     if ( !rc ) {
-	LQIO::input_error2( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
     }
     return rc;
 }
@@ -1386,7 +1386,7 @@ Entry::check() const
 	if ( !hasServiceTime ) {
 	    const_cast<Entry *>(this)->getPhase( 1 );	/* force phase presence. */
 	    if ( !owner()->hasThinkTime() ) {
-		LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME, name().c_str() );
+		getDOM()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
 	    }
 	}
 

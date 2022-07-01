@@ -9,7 +9,7 @@
 /************************************************************************/
 
 /*
- * $Id: errmsg.h 15722 2022-06-27 20:37:32Z greg $
+ * $Id: errmsg.h 15738 2022-07-01 01:16:27Z greg $
  */
 
 #include <lqio/glblerr.h>
@@ -17,7 +17,6 @@
 enum {
     FTL_ACTIVITY_STACK_FULL=LQIO::LSTGBLERRMSG+1,
     FTL_MSG_POOL_EMPTY,
-    ERR_REPLICATION,
     ERR_REPLY_NOT_FOUND,
     ERR_CANNOT_CREATE_X,
     ERR_DELAY_MULTIPLY_DEFINED,

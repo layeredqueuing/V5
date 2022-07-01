@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15734 2022-06-30 02:19:44Z greg $
+# $Id: Makefile 15739 2022-07-01 01:28:59Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	err_activity_not_reachable.lqn \
@@ -13,23 +13,25 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_duplicate_reply.lqn \
 	err_duplicate_reply.lqnx \
 	err_duplicate_start_activity.lqn \
-	err_duplicate_symbol-processor.lqn \
 	err_duplicate_symbol-entry.lqn \
+	err_duplicate_symbol-processor.lqn \
 	err_duplicate_symbol-task.lqn \
 	err_entry_count_for_task.lqn \
 	err_entry_not_specified.lqn \
 	err_external_sync-1.lqn \
 	err_external_sync-2.lqn \
 	err_external_sync-3.lqn \
+	err_fork_join_mismatch.lqn \
 	err_invalid_forwarding_probability.lqn \
+	err_invalid_from_branch.lqnx \
+	err_invalid_or_branch_probability.lqn \
+	err_invalid_or_branch_probability.lqnx \
 	err_invalid_parameter-calls.lqn \
-	err_invalid_parameter-rate.xlqn \
 	err_invalid_parameter-proc.lqnx \
-	err_invalid_reply_from_branch-1.lqn \
-	err_invalid_reply_from_branch-2.lqn \
-	err_invalid_reply_from_branch.lqnx \
 	err_invalid_reply_duplicate.lqn \
 	err_invalid_reply_for_snr_entry.lqn \
+	err_invalid_reply_from_branch-1.lqn \
+	err_invalid_reply_from_branch-2.lqn \
 	err_is_start_activity-2.lqn \
 	err_is_start_activity.lqn \
 	err_join_bad_path-repeat.lqn \
@@ -37,6 +39,7 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_mixed_entry_types.lqn \
 	err_no_group_specified.lqn \
 	err_no_reference_tasks.lqn \
+	err_no_requests_to_entry-1.lqn \
 	err_no_start_activities.lqn \
 	err_non_ref_think_time.lqn \
 	err_non_unity_replies-and.lqn \
@@ -49,16 +52,18 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_ref_task_forwarding.lqn \
 	err_reference_task_is_infinite.lqn \
 	err_reference_task_is_receiver.lqn \
+	err_reference_task_is_receiver.lqnx \
 	err_reference_task_open_arrivals.lqn \
 	err_reference_task_replies.lqn \
 	err_replication.lqn \
 	err_replication_processor.lqn \
 	err_src_equals_dst.lqn \
-	err_wrong_task_for_entry.lqn \
+	err_src_equals_dst.lqnx \
 	err_task_has_no_entries.lqnx \
-	wrn_infinite_multi_server.lqn \
+	err_wrong_task_for_entry.lqn \
 	wrn_entry_has_no_requests.lqn \
-	wrn_scheduling_not_supported.lqn
+	wrn_infinite_multi_server.lqn \
+	wrn_scheduling_not_supported.lqnx
 
 lqns:	
 	for i in $(SRCS); do (lqns $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done

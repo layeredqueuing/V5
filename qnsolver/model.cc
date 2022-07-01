@@ -130,7 +130,7 @@ Model::solve()
     expr_list result_vars;		/* needs to be scoped here, else println args are cleared */
     if ( program != nullptr ) {
 	if ( lqx != nullptr ) {
-	    LQIO::solution_error( LQIO::ERR_LQX_SPEX, _input.getInputFileName().c_str() );
+	    LQIO::runtime_error( LQIO::ERR_LQX_SPEX, _input.getInputFileName().c_str() );
 	    return false;
 	}
 		
@@ -156,7 +156,7 @@ Model::solve()
 	if ( !_output_file_name.empty() ) {
 	    output = fopen( _output_file_name.c_str(), "w" );
 	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
+		runtime_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 		return false;
 	    } else {
 		environment->setDefaultOutput( output );      /* Default is stdout */
@@ -164,11 +164,11 @@ Model::solve()
 	}
 	/* Invoke the LQX program itself */
 	if ( !lqx->invoke() ) {
-	    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, _input.getInputFileName().c_str() );
+	    LQIO::runtime_error( LQIO::ERR_LQX_EXECUTION, _input.getInputFileName().c_str() );
 	    ok = false;
 	} else if ( !SolverInterface::Solve::solveCallViaLQX ) {
 	    /* There was no call to solve the LQX */
-	    LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, _input.getInputFileName().c_str() );
+	    LQIO::runtime_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, _input.getInputFileName().c_str() );
 	    std::vector<LQX::SymbolAutoRef> args;
 	    environment->invokeGlobalMethod("solve", &args);
 	}
@@ -183,7 +183,7 @@ Model::solve()
 	    std::ofstream output;
 	    output.open( _output_file_name.c_str(), std::ios::out );
 	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
+		runtime_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 	    } else {
 		print ( output );
 	    }

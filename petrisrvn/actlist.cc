@@ -204,7 +204,7 @@ bool ActivityList::check_external_joins() const
     for ( e1 = 0; e1 + 1 < this->n_acts(); ++e1 ) {
 	for ( e2 = e1 + 1; e2 < this->n_acts(); ++e2 ) {
 	    if ( this->entry[e1] == this->entry[e2] ) {
-		LQIO::solution_error( ERR_COMMON_ENTRY_EXTERNAL_SYNC, this->entry[e1]->task()->name(), this->entry[e1]->name() );
+		LQIO::runtime_error( ERR_COMMON_ENTRY_EXTERNAL_SYNC, this->entry[e1]->task()->name(), this->entry[e1]->name() );
 		return false;
 	    }
 	}
@@ -574,7 +574,7 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 	    unsigned branch_phase = curr_phase;
 	    const double prob = LQIO::DOM::to_double(*this->u.fork.prob[i]);
 	    if ( prob < 0. || 1.0 < prob ) {
-		LQIO::solution_error( LQIO::ERR_INVALID_PROBABILITY, prob );
+		get_dom()->runtime_error( LQIO::ERR_INVALID_OR_BRANCH_PROBABILITY, list[i]->get_dom()->getName().c_str(), prob );
 		break;
 	    } 
 	    sum += this->list[i]->count_replies( activity_stack, e, rate * prob, curr_phase, branch_phase );
@@ -664,7 +664,7 @@ ActivityList::path_error( int err, const char * task_name, std::deque<Activity *
 	ap = activity_stack[i-1];
 	l += snprintf( &buf[l], BUFSIZ-l, ", %s", ap->name() );
     }
-    LQIO::solution_error( err, buf2, task_name, buf );
+    LQIO::runtime_error( err, buf2, task_name, buf );
     free( buf2 );
 }
 

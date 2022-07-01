@@ -76,7 +76,7 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
     if ( processor_name.size() == 0 ) abort();
 
     if ( dom->getReplicasValue() != 1 ) {
-	LQIO::runtime_error( LQIO::ERR_NOT_SUPPORTED, "replication" );
+	dom->runtime_error( LQIO::ERR_NOT_SUPPORTED, "replication" );
     }
 
 

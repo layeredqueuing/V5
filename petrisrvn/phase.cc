@@ -281,7 +281,7 @@ Phase::check()
     double zsum = 0;
     const Processor * curr_proc = task()->processor();
     if ( this->s() > 0.0 && this->coeff_of_var() != 1.0 && curr_proc->scheduling() == SCHEDULE_PPR ) {
-	LQIO::solution_error( WRN_PREEMPTIVE_SCHEDULING, curr_proc->name(), this->name() );
+	LQIO::runtime_error( WRN_PREEMPTIVE_SCHEDULING, curr_proc->name(), this->name() );
 //	curr_proc->scheduling = SCHEDULE_FIFO;
     }
 

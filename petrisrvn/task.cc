@@ -148,7 +148,7 @@ Task::create( LQIO::DOM::Task * dom )
     if ( task_name.size() == 0 ) abort();
 
     if ( dom->getReplicasValue() != 1 ) {
-	LQIO::input_error2( ERR_REPLICATION, "task", task_name.c_str() );
+	dom->runtime_error( LQIO::ERR_NOT_SUPPORTED, "replication" );
     }
 
 
@@ -276,16 +276,12 @@ Task::initialize()
 	if ( n_entries() != N_SEMAPHORE_ENTRIES ) {
 	    get_dom()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), N_SEMAPHORE_ENTRIES );
 	}
-	if ( entries[0]->semaphore_type() == LQIO::DOM::Entry::Semaphore::SIGNAL ) {
-	    if ( entries[1]->semaphore_type() !=  LQIO::DOM:: Entry::Semaphore::WAIT ) {
-		LQIO::runtime_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
-	    }
-	} else if ( entries[0]->semaphore_type() == LQIO::DOM::Entry::Semaphore::WAIT ) {
-	    if ( entries[1]->semaphore_type() != LQIO::DOM::Entry::Semaphore::SIGNAL ) {
-		LQIO::runtime_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
-	    }
-	} else {
-	    get_dom()->runtime_error( LQIO::ERR_NO_SEMAPHORE );
+	if ( ( entries[0]->semaphore_type() == LQIO::DOM::Entry::Semaphore::SIGNAL && entries[1]->semaphore_type() !=  LQIO::DOM::Entry::Semaphore::WAIT )
+	     || ( entries[0]->semaphore_type() == LQIO::DOM::Entry::Semaphore::WAIT && entries[1]->semaphore_type() != LQIO::DOM::Entry::Semaphore::SIGNAL ) ) {
+	    get_dom()->runtime_error( LQIO::ERR_DUPLICATE_SEMAPHORE_ENTRY_TYPES,
+				      entries[0]->get_dom()->getName().c_str(),
+				      entries[1]->get_dom()->getName().c_str(),
+				      entries[0]->semaphore_type() == LQIO::DOM::Entry::Semaphore::SIGNAL ? "signal" : "wait" );
 	}
     }
 
