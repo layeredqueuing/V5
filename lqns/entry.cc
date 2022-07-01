@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: entry.cc 15742 2022-07-01 12:09:52Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -176,9 +176,14 @@ bool
 Entry::check() const
 {
     const double precision = 100000.0;		/* round to nearest 1/precision */
+
     if ( hasOpenArrivals() ) {
+	if ( owner()->isReferenceTask() ) {
+	    owner()->getDOM()->input_error( LQIO::ERR_REFERENCE_TASK_OPEN_ARRIVALS, name().c_str() );
+	}
     	Entry::totalOpenArrivals += 1;
     }
+
     if ( isStandardEntry() ) {
 	std::for_each( _phase.begin(), _phase.end(), Predicate<Phase>( &Phase::check ) );
     } else if ( isActivityEntry() ) {
@@ -1140,29 +1145,6 @@ Entry::recalculateDynamicValues()
 {
     std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::recalculateDynamicValues ) );
     _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::serviceTime ) ) );
-    sanityCheckParameters();
-    return *this;
-}
-
-Entry&
-Entry::sanityCheckParameters()
-{
-    /*
-     * After we have finished recalculating we need to make sure once again that any of the dynamic
-     * parameters/late-bound parameters are still sane. The ones that could have changed are
-     * checked in the following order:
-     *
-     *   1. Entry Priority (No Constraints)
-     *   2. Open Arrival Rate
-     *
-     */
-
-    /* Make sure the open arrival rate is sane for the setup */
-    if ( getDOM() && getDOM()->hasOpenArrivalRate() ) {
-	if ( owner()->isReferenceTask() ) {
-	    LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_OPEN_ARRIVALS, owner()->name().c_str(), name().c_str() );
-	}
-    }
     return *this;
 }
 

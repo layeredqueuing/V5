@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: instance.cc 15741 2022-07-01 11:57:03Z greg $
  */
 
 /*
@@ -278,7 +278,7 @@ Virtual_Instance::create_task( Task * cp, const char * task_name )
 
     const int local_node_id = ps_build_node( task_name, 1, 1.0, 0.0, 0, true );
     if ( local_node_id < 0 ) {
-	LQIO::solution_error( ERR_CANNOT_CREATE_X, "processor for task", task_name );
+	LQIO::runtime_error( ERR_CANNOT_CREATE_X, "processor for task", task_name );
 	return 0;
     } else {
 	return ps_create( task_name, local_node_id, 0, Instance::start, cp->priority() );
@@ -556,7 +556,7 @@ srn_signal::run()
 
 	int rc = ps_receive( cp->signal_port(), IMMEDIATE, &worker_id, &worker_time, (char **)&worker_msg, &worker_port );
 	if ( rc == 0 ) {
-	    LQIO::solution_error( ERR_SIGNAL_NO_WAIT, cp->name() );
+	    LQIO::runtime_error( ERR_SIGNAL_NO_WAIT, cp->name() );
 	    continue;
 	} else if ( rc == SYSERR ) {
 	    abort();
@@ -895,7 +895,7 @@ srn_rwlock_server::run()
 	    int rc = ps_receive(cp->signal_port2(), IMMEDIATE, &writer_id,  &time_stamp, (char **)&msg1, &reply_port);
 		
 	    if ( rc == 0 ) {
-		LQIO::solution_error( ERR_SIGNAL_NO_WAIT, cp->name() );
+		LQIO::runtime_error( ERR_SIGNAL_NO_WAIT, cp->name() );
 		continue;
 
 	    } else if ( rc == SYSERR ) {     abort();  }
@@ -1435,7 +1435,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 		}
 
 	    } else {
-		LQIO::solution_error( ERR_REPLY_NOT_FOUND, ap->name(), reply_ep->name() );
+		LQIO::runtime_error( ERR_REPLY_NOT_FOUND, ap->name(), reply_ep->name() );
 	    }
 
 	}

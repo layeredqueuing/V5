@@ -10,7 +10,7 @@
  * Error processing for srvn program.
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: error.cpp 15737 2022-06-30 22:59:33Z greg $
+ * $Id: error.cpp 15742 2022-07-01 12:09:52Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -67,9 +67,6 @@ std::map<unsigned int, LQIO::error_message_type> LQIO::error_messages = {
     { LQIO::ERR_NON_REF_THINK_TIME,		{ LQIO::error_severity::ERROR,    "Non-reference task \"%s\" cannot have think time." } },
     { LQIO::ERR_TOO_MANY_X,			{ LQIO::error_severity::ERROR,    "Number of %s is outside of program limits of (1,%d)." } },
     { LQIO::ERR_DUPLICATE_X_LIST,		{ LQIO::error_severity::ERROR,    "Precedence \"%s\" list previously defined." } },
-    { LQIO::ERR_REFERENCE_TASK_OPEN_ARRIVALS,	{ LQIO::error_severity::ERROR,    "Reference task \"%s\", entry \"%s\" cannot have open arrival stream." } },
-    { LQIO::ERR_REFERENCE_TASK_IS_RECEIVER,	{ LQIO::error_severity::ERROR,    "Reference task \"%s\", entry \"%s\" receives requests." } },
-    { LQIO::ERR_REFERENCE_TASK_IS_INFINITE,	{ LQIO::error_severity::ERROR,    "Reference task \"%s\" must have a finite number of copies." } },
     { LQIO::ERR_DUPLICATE_START_ACTIVITY,	{ LQIO::error_severity::ERROR,    "Start activity for entry \"%s\" is already defined.  Activity \"%s\" is a duplicate." } },
     { LQIO::ERR_NOT_DEFINED,			{ LQIO::error_severity::ERROR,    "Symbol \"%s\" not previously defined." } },
     { LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH,	{ LQIO::error_severity::ERROR,    "Task \"%s\" has a cycle in activity graph.  Backtrace is \"%s\"." } },

@@ -8,13 +8,11 @@
 /************************************************************************/
 
 /*
- * $Id: error.h 15731 2022-06-29 18:22:10Z greg $
+ * $Id: error.h 15741 2022-07-01 11:57:03Z greg $
  */
 
 #if	!defined(LQIOLIB_ERROR_H)
 #define	LQIOLIB_ERROR_H
-
-#define solution_error runtime_error
 
 /*
  *	The user of error.c must supply several things:

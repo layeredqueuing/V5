@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: entry.cc 15741 2022-07-01 11:57:03Z greg $
  */
 
 #include "lqsim.h"
@@ -130,7 +130,7 @@ Entry::configure()
 	    if ( (phase->service() + phase->think_time()) > 0. || phase->_calls.size() > 0 ) {
 		task()->max_phases( p );
 	    } else if ( phase->_hist_data ) {
-		LQIO::solution_error( WRN_NO_PHASE_FOR_HISTOGRAM, name(), p );
+		LQIO::runtime_error( WRN_NO_PHASE_FOR_HISTOGRAM, name(), p );
 	    }
 
 	    phase->set_phase( p );

@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15738 2022-07-01 01:16:27Z greg $
+ * $Id: task.cc 15742 2022-07-01 12:09:52Z greg $
  */
 
 #include "lqsim.h"
@@ -120,7 +120,7 @@ Task::configure()
     total_calls += for_each( _entry.begin(), _entry.end(), ExecSum<Entry,double>( &Entry::configure ) ).sum();
 
     if ( total_calls == 0 && is_reference_task() ) {
-	LQIO::solution_error( LQIO::WRN_NO_SENDS_FROM_REF_TASK, name() );
+	LQIO::runtime_error( LQIO::WRN_NO_SENDS_FROM_REF_TASK, name() );
     }
 
     for ( std::vector<Activity *>::const_iterator ap = _activity.begin(); ap != _activity.end(); ++ap ) {
@@ -559,7 +559,7 @@ Task::add( LQIO::DOM::Task* dom )
 	    dom->runtime_error( LQIO::WRN_TASK_QUEUE_LENGTH );
 	}
 	if ( dom->isInfinite() ) {
-	    input_error2( LQIO::ERR_REFERENCE_TASK_IS_INFINITE, task_name );
+	    dom->input_error( LQIO::ERR_REFERENCE_TASK_IS_INFINITE );
 	}
 	cp = new Reference_Task( Task::Type::CLIENT, dom, processor, group );
 	break;
@@ -987,52 +987,52 @@ ReadWriteLock_Task::create_instance()
 	if ( _entry[i]->is_r_unlock() ) {
 	    if (E[0]== -1) { E[0]=i; }
 	    else{ // duplicate entry TYPE error
-		LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, name() );
+		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name() );
 	    }
 	} else if ( _entry[i]->is_r_lock() ) {
 	    if (E[1]== -1) { E[1]=i; }
 	    else{
-		LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, name() );
+		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name() );
 	    }
 	} else if ( _entry[i]->is_w_unlock() ) {
 	    if (E[2]== -1) { E[2]=i; }
 	    else{
-		LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, name() );
+		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name() );
 	    }
 	} else if ( _entry[i]->is_w_lock() ) {
 	    if (E[3]== -1) { E[3]=i; }
 	    else{
-		LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, name() );
+		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name() );
 	    }
 	} else {
-	    LQIO::solution_error( LQIO::ERR_NO_RWLOCK, name() );
+	    LQIO::runtime_error( LQIO::ERR_NO_RWLOCK, name() );
 	    std::cerr << "entry names: " << _entry[0]->name() << ", " << _entry[1]->name() <<", " << _entry[2]->name()<< ", " << _entry[3]->name() << std::endl;
 	}
     }
     //test reader lock entry
     if ( !_entry[E[1]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::READ_LOCK ) ) {
-	LQIO::solution_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
+	LQIO::runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
     }
     if ( !_entry[E[1]]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
-	LQIO::solution_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[E[1]]->name() );
+	LQIO::runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[E[1]]->name() );
     }
 
     //test reader unlock entry
     if ( !_entry[E[0]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::READ_UNLOCK ) ) {
-	LQIO::solution_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
+	LQIO::runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
     }
 
     //test writer lock entry
     if ( !_entry[E[3]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::WRITE_LOCK ) ) {
-	LQIO::solution_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
+	LQIO::runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
     }
     if ( !_entry[E[3]]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
-	LQIO::solution_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[E[3]]->name() );
+	LQIO::runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[E[3]]->name() );
     }
 
     //test writer unlock entry
     if ( !_entry[E[2]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::WRITE_UNLOCK ) ) {
-	LQIO::solution_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
+	LQIO::runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
     }
 
 

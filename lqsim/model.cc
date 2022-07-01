@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: model.cc 15741 2022-07-01 11:57:03Z greg $
  */
 
 #include "lqsim.h"
@@ -161,7 +161,7 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
 	    if ( !output_file_name.empty() && output_file_name != "-" && LQIO::Filename::isRegularFile(output_file_name) ) {
 		output = fopen( output_file_name.c_str(), "w" );
 		if ( !output ) {
-		    solution_error( LQIO::ERR_CANT_OPEN_FILE, output_file_name.c_str(), strerror( errno ) );
+		    runtime_error( LQIO::ERR_CANT_OPEN_FILE, output_file_name.c_str(), strerror( errno ) );
 		    status = FILEIO_ERROR;
 		} else {
 		    program->getEnvironment()->setDefaultOutput( output );	/* Default is stdout */
@@ -171,11 +171,11 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
 	    if ( status == 0 ) {
 		/* Invoke the LQX program itself */
 		if ( !program->invoke() ) {		/* Run simulation	*/
-		    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, input_file_name.c_str() );
+		    LQIO::runtime_error( LQIO::ERR_LQX_EXECUTION, input_file_name.c_str() );
 		    status = INVALID_INPUT;
 		} else if ( !SolverInterface::Solve::solveCallViaLQX ) {
 		    /* There was no call to solve the LQX */
-		    LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, input_file_name.c_str() );
+		    LQIO::runtime_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, input_file_name.c_str() );
 		    std::vector<LQX::SymbolAutoRef> args;
 		    SolverInterface::Solve::implicitSolve = true;
 		    program->getEnvironment()->invokeGlobalMethod("solve", &args);
@@ -185,7 +185,7 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
 	} else {
 	    /* There is no control flow program, check for $-variables */
 	    if ( document->getSymbolExternalVariableCount() != 0 ) {
-		LQIO::solution_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, input_file_name.c_str() );
+		LQIO::runtime_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, input_file_name.c_str() );
 		status = INVALID_INPUT;
 	    } else if ( !model.start() ) {		/* Run simulation	*/
 		status = INVALID_OUTPUT;
@@ -374,7 +374,7 @@ Model::create()
     for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::create ) );
 
     if ( std::none_of( Task::__tasks.begin(), Task::__tasks.end(), Predicate<Task>( &Task::is_reference_task ) ) && open_arrival_count == 0 ) {
-	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
+	LQIO::runtime_error( LQIO::ERR_NO_REFERENCE_TASKS );
     }
 
     if ( LQIO::io_vars.anError() ) return false;		/* Early termination */
@@ -541,7 +541,7 @@ Model::start()
     _document->print( _output_file_name, _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : std::string(""), _output_format, rtf_flag );
 
     if ( _confidence > _parameters._precision && _parameters._precision > 0.0 ) {
-	LQIO::solution_error( ADV_PRECISION, _parameters._precision, _parameters._block_period * number_blocks + _parameters._initial_delay, _confidence );
+	LQIO::runtime_error( ADV_PRECISION, _parameters._precision, _parameters._block_period * number_blocks + _parameters._initial_delay, _confidence );
     }
     if ( messages_lost ) {
 	for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
@@ -586,7 +586,7 @@ Model::reload()
     LQIO::Filename directory_name( getOutputFileName(), "d" );		/* Get the base file name */
 
     if ( access( directory_name().c_str(), R_OK|W_OK|X_OK ) < 0 ) {
-	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );
+	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
@@ -828,7 +828,7 @@ void
 ps_genesis(void *)
 {
     if (!Model::__model->run( ps_myself ) ) {
-	LQIO::solution_error( ERR_INITIALIZATION_FAILED );
+	LQIO::runtime_error( ERR_INITIALIZATION_FAILED );
     }
     ps_suspend( ps_myself );
 }

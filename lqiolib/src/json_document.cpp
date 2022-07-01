@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 15724 2022-06-28 15:05:23Z greg $
+ * $Id: json_document.cpp 15741 2022-07-01 11:57:03Z greg $
  *
  * Read in JSON input files.
  *
@@ -141,7 +141,7 @@ namespace LQIO {
 		    /* If we have an LQX program, then we need to compute */
 		    LQX::Program* program = LQX::Program::loadFromText(input_file_name.c_str(), document.getLQXProgramLineNumber(), program_text.c_str());
 		    if (program == nullptr) {
-			LQIO::solution_error( LQIO::ERR_LQX_COMPILATION, input_file_name.c_str() );
+			LQIO::runtime_error( LQIO::ERR_LQX_COMPILATION, input_file_name.c_str() );
 		    }
 		    document.setLQXProgram( program );
 		}
@@ -266,7 +266,7 @@ namespace LQIO {
 		const std::string& attr = i->first;
 		const std::map<const char *,const ImportModel>::const_iterator j = model_table.find( attr.c_str() );
 		if ( j == model_table.end() ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, "lqn-model", attr.c_str() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, "lqn-model", attr.c_str() );
 		} else {
 		    j->second( attr, *this, i->second );
 		}
@@ -335,7 +335,7 @@ namespace LQIO {
 		if ( j != general_table.end() ) {
 		    j->second(attr,*this,_document,i->second);		/* Handle attribute */
 		} else {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xgeneral, attr.c_str() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xgeneral, attr.c_str() );
 		}
 	    }
 	    const int iterations = _document.getResultIterations();
@@ -357,7 +357,7 @@ namespace LQIO {
 		if ( j != general_observation_table.end() ) {
 		    j->second(attr,*this,_document,i->second);		/* Handle attribute */
 		} else {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xgeneral, attr.c_str() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xgeneral, attr.c_str() );
 		}
 	    }
 	}
@@ -388,7 +388,7 @@ namespace LQIO {
 			    const std::string& attr = i->first;
 			    const std::map<const char *,const ImportProcessor>::const_iterator j = processor_table.find(attr.c_str());
 			    if ( j == processor_table.end() ) {
-				LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprocessor, attr.c_str() );
+				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprocessor, attr.c_str() );
 			    } else {
 				j->second(attr,*this,*processor,i->second);	/* Handle attribtue */
 			    }
@@ -397,28 +397,28 @@ namespace LQIO {
 			const scheduling_type scheduling_flag = processor->getSchedulingType();
 			if ( !processor->hasQuantum() ) {
 			    if ( scheduling_flag == SCHEDULE_CFS ) {
-				LQIO::solution_error( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name.c_str(), scheduling_label[scheduling_flag].str );
+				LQIO::runtime_error( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name.c_str(), scheduling_label[scheduling_flag].str );
 			    }
 			} else if ( scheduling_flag == SCHEDULE_FIFO
 				    || scheduling_flag == SCHEDULE_HOL
 				    || scheduling_flag == SCHEDULE_PPR
 				    || scheduling_flag == SCHEDULE_RAND ) {
-			    LQIO::solution_error( LQIO::WRN_QUANTUM_SCHEDULING, processor_name.c_str(), scheduling_label[scheduling_flag].str );
+			    LQIO::runtime_error( LQIO::WRN_QUANTUM_SCHEDULING, processor_name.c_str(), scheduling_label[scheduling_flag].str );
 			}
 		    } else if ( !processor ) {
-			LQIO::solution_error( LQIO::ERR_NOT_DEFINED, processor_name.c_str() );
+			LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, processor_name.c_str() );
 		    } else {
 			handleResults( processor, obj );
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xprocessor, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, Xprocessor, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xprocessor, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xprocessor, arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprocessor, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprocessor, arg.what() );
 		}
 	    } else {
 		XML::invalid_argument( Xprocessor, value.to_str() );
@@ -455,25 +455,25 @@ namespace LQIO {
 			    const std::string& attr = i->first;
 			    const std::map<const char *,const ImportGroup>::const_iterator j = group_table.find(attr.c_str());
 			    if ( j == group_table.end() ) {
-				LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xgroup, attr.c_str() );
+				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xgroup, attr.c_str() );
 			    } else {
 				j->second(attr,*this,*group,i->second);	/* Handle attribtue */
 			    }
 			}
 		    } else if ( !group ) {
-			LQIO::solution_error( LQIO::ERR_NOT_DEFINED, group_name.c_str() );
+			LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, group_name.c_str() );
 		    } else {
 			handleResults( group, obj );
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xgroup, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, Xgroup, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xgroup, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xgroup, arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xgroup, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xgroup, arg.what() );
 		}
 	    } else {
 		XML::invalid_argument( Xgroup, value.to_str() );
@@ -521,14 +521,14 @@ namespace LQIO {
 			    const std::string& attr = i->first;
 			    const std::map<const char *,const ImportTask>::const_iterator j = task_table.find(attr.c_str());
 			    if ( j == task_table.end() ) {
-				LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xtask, attr.c_str() );
+				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xtask, attr.c_str() );
 			    } else {
 				j->second(attr,*this,*task,i->second);	/* Handle attribtue */
 			    }
 			}
 			const scheduling_type scheduling_flag = task->getSchedulingType();
 			if ( task->hasThinkTime() && scheduling_flag != SCHEDULE_CUSTOMER ) {
-			    LQIO::solution_error( LQIO::ERR_NON_REF_THINK_TIME, task_name.c_str() );
+			    LQIO::runtime_error( LQIO::ERR_NON_REF_THINK_TIME, task_name.c_str() );
 			}
 
 			/* Do activities and precedences last so that entries are defined */
@@ -540,22 +540,22 @@ namespace LQIO {
 			}
 
 		    } else if ( !task ) {
-			LQIO::solution_error( LQIO::ERR_NOT_DEFINED, task_name.c_str() );
+			LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, task_name.c_str() );
 		    } else {
 			handleResults( task, obj );
 		    }
 		}
 		catch ( const undefined_symbol& attr ) {
-		    LQIO::solution_error( LQIO::ERR_NOT_DEFINED, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, attr.what() );
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xtask, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, Xtask, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xtask, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xtask, arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xtask, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xtask, arg.what() );
 		}
 	    } else {
 		XML::invalid_argument( Xtask, value.to_str() );
@@ -585,7 +585,7 @@ namespace LQIO {
 			XML::invalid_argument( Xfanin, value.to_str() );
 		    }
 		} else if ( obj.size() > 1 ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, (++i)->first.c_str() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, (++i)->first.c_str() );
 		}
 	    } else {
 		XML::invalid_argument( Xentry, value.to_str() );
@@ -640,7 +640,7 @@ namespace LQIO {
 			    const std::string& attr = i->first;
 			    const std::map<const char *,const ImportEntry>::const_iterator j = entry_table.find(attr.c_str());
 			    if ( j == entry_table.end() ) {
-				LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xentry, attr.c_str() );
+				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xentry, attr.c_str() );
 			    } else if ( i->second.is<picojson::array>() ) {		/* Phase or forwarding list */
 				if ( attr == Xphase ) {
 				    /* If I have Xphase, then I am a standard entry.  Forwarding is also an array. */
@@ -675,16 +675,16 @@ namespace LQIO {
 		    }
 		}
 		catch ( const undefined_symbol& attr ) {
-		    LQIO::solution_error( LQIO::ERR_NOT_DEFINED, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, attr.what() );
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xentry, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, Xentry, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xentry, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xentry, arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xentry, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xentry, arg.what() );
 		}
 	    } else {
 		XML::invalid_argument( Xentry, value.to_str() );
@@ -715,7 +715,7 @@ namespace LQIO {
 			    const std::string& attr = i->first;
 			    const std::map<const char *,const ImportPhase>::const_iterator j = phase_table.find(attr.c_str());
 			    if ( j == phase_table.end() ) {
-				LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xphase, attr.c_str() );
+				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xphase, attr.c_str() );
 			    } else if ( i->second.is<picojson::array>() ) {
 				const picojson::value::array& arr = i->second.get<picojson::array>();
 				for (picojson::value::array::const_iterator x = arr.begin(); x != arr.end(); ++x ) {
@@ -735,13 +735,13 @@ namespace LQIO {
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xphase, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, Xphase, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xphase, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xphase, arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xphase, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xphase, arg.what() );
 		}
 	    } else {
 		XML::invalid_argument( Xphase, value.to_str() );
@@ -771,7 +771,7 @@ namespace LQIO {
 			    const std::string& attr = i->first;
 			    const std::map<const char *,const ImportTaskActivity>::const_iterator j = task_activity_table.find(attr.c_str());
 			    if ( j == task_activity_table.end() ) {
-				LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xactivity, attr.c_str() );
+				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xactivity, attr.c_str() );
 			    } else {
 				j->second(attr,*this,task,i->second);		/* Handle attribute */
 			    }
@@ -779,13 +779,13 @@ namespace LQIO {
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xactivity, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, Xactivity, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xactivity, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xactivity, arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xactivity, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xactivity, arg.what() );
 		}
 	    } else {
 		XML::invalid_argument( Xactivity, value.to_str() );
@@ -818,7 +818,7 @@ namespace LQIO {
 			    const std::string& attr = i->first;
 			    const std::map<const char *,const ImportActivity>::const_iterator j = activity_table.find(attr.c_str());
 			    if ( j == activity_table.end() ) {
-				LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xactivity, attr.c_str() );
+				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xactivity, attr.c_str() );
 			    } else if ( i->second.is<picojson::array>() ) {
 				const picojson::value::array& arr = i->second.get<picojson::array>();
 				for (picojson::value::array::const_iterator x = arr.begin(); x != arr.end(); ++x ) {
@@ -829,19 +829,19 @@ namespace LQIO {
 			    }
 			}
 		    } else if ( !activity ) {
-			LQIO::solution_error( LQIO::ERR_NOT_DEFINED, activity_name.c_str() );
+			LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, activity_name.c_str() );
 		    } else {
 			handleResults( activity, obj );
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xactivity, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, Xactivity, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xactivity, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xactivity, arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xactivity, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xactivity, arg.what() );
 		}
 	    } else {
 		XML::invalid_argument( Xactivity, value.to_str() );
@@ -870,7 +870,7 @@ namespace LQIO {
 			const std::string& attr = i->first;
 			const std::map<const char *,const ImportPrecedence>::const_iterator j = precedence_table.find(attr.c_str());
 			if ( j == precedence_table.end() ) {
-			    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, attr.c_str() );
+			    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, attr.c_str() );
 			} else if ( i->second.is<picojson::array>() ) {
 			    if ( _createObjects ) {
 				if ( Document::__debugJSON ) Import::beginAttribute( std::cerr, i->first, i->second );
@@ -882,12 +882,12 @@ namespace LQIO {
 				}
 				if ( precedence->isJoinList() ) {
 				    if ( pre_list ) {
-					LQIO::solution_error( LQIO::ERR_DUPLICATE_X_LIST, "Xpre" );
+					LQIO::runtime_error( LQIO::ERR_DUPLICATE_X_LIST, "Xpre" );
 				    }
 				    pre_list = precedence;
 				} else {
 				    if ( post_list ) {
-					LQIO::solution_error( LQIO::ERR_DUPLICATE_X_LIST, "Xpost" );
+					LQIO::runtime_error( LQIO::ERR_DUPLICATE_X_LIST, "Xpost" );
 				    }
 				    post_list = precedence;
 				}
@@ -905,19 +905,19 @@ namespace LQIO {
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xprecedence, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, Xprecedence, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xprecedence, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xprecedence, arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, arg.what() );
 		}
 
 		/* Deferred op -- set quorum */
 		for ( std::map<const char *,picojson::value>::const_iterator i = deferred.begin(); i != deferred.end(); ++i ) {
 		    if ( dynamic_cast<AndJoinActivityList *>(pre_list) == nullptr ) {
-			LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, i->first );
+			LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, i->first );
 		    } else if ( i->first == Xquorum && i->second.is<double>() && _createObjects ) {
 			dynamic_cast<AndJoinActivityList *>(pre_list)->setQuorumCountValue( static_cast<int>(i->second.get<double>()) );
 		    } else if ( i->first == Xquorum && i->second.is<std::string>() && _createObjects ) {
@@ -927,7 +927,7 @@ namespace LQIO {
 		    } else if ( i->first == Xhistogram && i->second.is<picojson::object>() ) {
 			handleHistogram( pre_list, i->second );
 		    } else {
-			LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, i->first );
+			LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, i->first );
 		    }
 		}
 
@@ -991,7 +991,7 @@ namespace LQIO {
 			if ( Document::__debugJSON ) Import::beginAttribute( std::cerr, attr, i->second );
 			const std::map<const char *,const ImportCall>::const_iterator j = call_table.find(attr.c_str());
 			if ( j == call_table.end() ) {
-			    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, call_type_table.at(call_type).c_str(), attr.c_str() );
+			    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, call_type_table.at(call_type).c_str(), attr.c_str() );
 			} else {
 			    j->second( attr, *this, *call, i->second );
 			}
@@ -999,13 +999,13 @@ namespace LQIO {
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, call_type_table.at(call_type).c_str(), attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, call_type_table.at(call_type).c_str(), attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, call_type_table.at(call_type).c_str(), arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, call_type_table.at(call_type).c_str(), arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, call_type_table.at(call_type).c_str(), arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, call_type_table.at(call_type).c_str(), arg.what() );
 		}
 	    } else {
 		XML::invalid_argument( call_type_table.at(call_type).c_str(), value.to_str() );
@@ -1103,11 +1103,11 @@ namespace LQIO {
 		    if ( j != general_result_table.end() ) {
 			j->second(attr,*this,_document,i->second);		/* Handle attribute */
 		    } else {
-			LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xresults, attr.c_str() );
+			LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xresults, attr.c_str() );
 		    }
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xresults, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xresults, arg.what() );
 		}
 	    }
 	}
@@ -1149,17 +1149,17 @@ namespace LQIO {
 		    if ( j != observation_table.end() ) {
 			j->second(attr,*this,*parent,p,i->second);		/* Handle attribute */
 		    } else {
-			LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xobserve, attr.c_str() );
+			LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xobserve, attr.c_str() );
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xobserve, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, Xobserve, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xobserve, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xobserve, arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xobserve, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xobserve, arg.what() );
 		}
 	    }
 	}
@@ -1181,17 +1181,17 @@ namespace LQIO {
 		    if ( j != result_table.end() ) {
 			j->second(attr,*this,*parent,i->second);		/* Handle attribute */
 		    } else {
-			LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xresults, attr.c_str() );
+			LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xresults, attr.c_str() );
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xresults, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, Xresults, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xresults, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xresults, arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xresults, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xresults, arg.what() );
 		}
 	    }
 	}
@@ -1229,7 +1229,7 @@ namespace LQIO {
 			    if ( Document::__debugJSON ) Import::beginAttribute( std::cerr, attr, i->second );
 			    const std::map<const char *,const ImportHistogram>::const_iterator j = histogram_table.find(attr.c_str());
 			    if ( j == histogram_table.end() ) {
-				LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xtask, attr.c_str() );
+				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xtask, attr.c_str() );
 			    } else if ( i->second.is<picojson::array>() ) {
 				const picojson::value::array& arr = i->second.get<picojson::array>();
 				unsigned int n = 0;
@@ -1246,13 +1246,13 @@ namespace LQIO {
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xhistogram, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, Xhistogram, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xhistogram, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xhistogram, arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xhistogram, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xhistogram, arg.what() );
 		}
 	    } else if ( value.is<double>() ) {
 		/* For prob_exceed_max */
@@ -1326,7 +1326,7 @@ namespace LQIO {
 			    if ( Document::__debugJSON ) Import::beginAttribute( std::cerr, attr, i->second );
 			    const std::map<const char *,const ImportHistogram>::const_iterator j = histogram_table.find(attr.c_str());
 			    if ( j == histogram_table.end() ) {
-				LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xtask, attr.c_str() );
+				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xtask, attr.c_str() );
 			    } else if ( i->second.is<picojson::array>() ) {
 				const picojson::value::array& arr = i->second.get<picojson::array>();
 				unsigned int n = 0;
@@ -1344,13 +1344,13 @@ namespace LQIO {
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
-		    LQIO::solution_error( LQIO::ERR_MISSING_ATTRIBUTE, Xmax_service_time, attr.what() );
+		    LQIO::runtime_error( LQIO::ERR_MISSING_ATTRIBUTE, Xmax_service_time, attr.what() );
 		}
 		catch ( const std::invalid_argument& arg ) {
-		    LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, Xmax_service_time, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, Xmax_service_time, arg.what() );
 		}
 		catch ( const should_implement& arg ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xmax_service_time, arg.what() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xmax_service_time, arg.what() );
 		}
 	    }
 	}
@@ -1370,7 +1370,7 @@ namespace LQIO {
 	JSON_Document::connectEntry( Entry * entry, Task * task, const std::string& name )
 	{
 	    if ( !task ) {
-		LQIO::solution_error( ERR_NO_TASK_FOR_ENTRY, name.c_str() );
+		LQIO::runtime_error( ERR_NO_TASK_FOR_ENTRY, name.c_str() );
 	    } else {
 		const std::vector<Entry*>& entries = task->getEntryList();
 		const_cast<std::vector<Entry*>&>(entries).push_back(entry);
@@ -2182,7 +2182,7 @@ namespace LQIO {
 			list.addValue( activity, value.get<double>() );
 		    }
 		} else if ( obj.size() > 1 ) {
-		    LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, (++i)->first.c_str() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, (++i)->first.c_str() );
 		}
 	    } else {
 		XML::invalid_argument( attribute, value.to_str() );			// throws
@@ -2212,7 +2212,7 @@ namespace LQIO {
 		}
 	    }
 	    catch ( const std::invalid_argument& arg ) {
-		LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, attribute.c_str(), arg.what() );
+		LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, attribute.c_str(), arg.what() );
 	    }
 
 	    if ( Document::__debugJSON ) std::cerr << end_attribute( attribute, value );
@@ -2249,7 +2249,7 @@ namespace LQIO {
 		}
 	    }
 	    catch ( const std::invalid_argument& arg ) {
-		LQIO::solution_error( LQIO::ERR_INVALID_ARGUMENT, attribute.c_str(), arg.what() );
+		LQIO::runtime_error( LQIO::ERR_INVALID_ARGUMENT, attribute.c_str(), arg.what() );
 	    }
 
 	    if ( Document::__debugJSON ) std::cerr << end_attribute( attribute, value );
@@ -2407,7 +2407,7 @@ namespace LQIO {
 			if ( Document::__debugJSON ) Import::beginAttribute( std::cerr, attr, arg );
 			(dom_obj.*getGptr())( input.invert( arg.get<double>() ) );		/* Variance */
 		    } else {
-			LQIO::solution_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xresults, attr.c_str() );
+			LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xresults, attr.c_str() );
 		    }
 		}
 	    } else {

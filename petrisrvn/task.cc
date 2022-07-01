@@ -187,7 +187,7 @@ Task::create( LQIO::DOM::Task * dom )
 	    LQIO::input_error2( LQIO::WRN_TASK_QUEUE_LENGTH, task_name.c_str() );
 	}
 	if ( dom->isInfinite() ) {
-	    input_error2( LQIO::ERR_REFERENCE_TASK_IS_INFINITE, task_name.c_str() );
+	    dom->input_error( LQIO::ERR_REFERENCE_TASK_IS_INFINITE );
 	}
 	task = new Task( dom, Task::Type::REF_TASK, processor );
 	break;

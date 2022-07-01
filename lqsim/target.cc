@@ -1,7 +1,7 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 15736 2022-06-30 10:41:29Z greg $
+ * $Id: target.cc 15741 2022-07-01 11:57:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -84,7 +84,7 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
     } else {
 	ps_record_stat( r_loss_prob.raw, 1 );
 	if ( Pragma::__pragmas->abort_on_dropped_message() ) {
-	    LQIO::solution_error( FTL_MSG_POOL_EMPTY, src->name(), _entry->name() );
+	    LQIO::runtime_error( FTL_MSG_POOL_EMPTY, src->name(), _entry->name() );
 	} else {
 	    messages_lost = true;
 	}

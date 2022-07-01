@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 15734 2022-06-30 02:19:44Z greg $
+ * $Id: entry.h 15742 2022-07-01 12:09:52Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -328,7 +328,6 @@ public:
     /* of re-calculating what used to be static for all dynamically editable values */
 	
     Entry& recalculateDynamicValues();
-    Entry& sanityCheckParameters();
 	
     /* Sanity checks */
 
