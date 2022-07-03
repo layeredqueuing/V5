@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 15741 2022-07-01 11:57:03Z greg $
+ * $Id: entry.cc 15744 2022-07-03 11:22:39Z greg $
  */
 
 #include "lqsim.h"
@@ -326,7 +326,7 @@ Entry::test_and_set_rwlock( LQIO::DOM::Entry::RWLock rw )
 {
     const bool rc = getDOM()->entryRWLockTypeOk( rw );
     if ( !rc ) {
-	input_error2( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
+	getDOM()->input_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
     } 
     return rc;
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 15742 2022-07-01 12:09:52Z greg $
+ *  $Id: srvn_input.cpp 15745 2022-07-03 11:36:39Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -116,16 +116,20 @@ srvn_add_processor( const char *processor_name, scheduling_type scheduling_flag,
 //					  new LQIO::DOM::ConstantExternalVariable(1) );	/* Set the default to 1 */
 
     if ( !LQIO::DOM::Common_IO::is_default_value( static_cast<LQIO::DOM::ExternalVariable *>(cpu_quantum), 0. ) ) {
-	if ( scheduling_flag == SCHEDULE_FIFO
-	      || scheduling_flag == SCHEDULE_HOL
-	      || scheduling_flag == SCHEDULE_PPR
-	      || scheduling_flag == SCHEDULE_RAND ) {
-	    input_error2( LQIO::WRN_QUANTUM_SCHEDULING, processor_name, scheduling_label[scheduling_flag].str );
+	if ( scheduling_flag == SCHEDULE_DELAY
+	     || scheduling_flag == SCHEDULE_FIFO
+	     || scheduling_flag == SCHEDULE_HOL
+	     || scheduling_flag == SCHEDULE_PPR
+	     || scheduling_flag == SCHEDULE_RAND ) {
+	    processor->input_error( LQIO::WRN_QUANTUM_SCHEDULING, scheduling_label[scheduling_flag].str );
 	} else {
 	    processor->setQuantum( static_cast<LQIO::DOM::ExternalVariable *>(cpu_quantum) );
 	}
-    } else if ( scheduling_flag == SCHEDULE_CFS ) {
-	input_error2( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name, scheduling_label[scheduling_flag].str );
+    } else if ( scheduling_flag == SCHEDULE_CFS 
+		|| scheduling_flag == SCHEDULE_PS
+		|| scheduling_flag == SCHEDULE_PS_HOL
+		|| scheduling_flag == SCHEDULE_PS_PPR) {
+	processor->input_error( LQIO::ERR_NO_QUANTUM_SCHEDULING, scheduling_label[scheduling_flag].str );
     }
 
     /* Map into the document */
@@ -673,7 +677,7 @@ srvn_set_task_think_time( void * task_v, void * time )
     if ( schedule_customer( task->getSchedulingType() ) ) {
 	task->setThinkTime( static_cast<LQIO::DOM::ExternalVariable *>(time) );
     } else {
-	LQIO::input_error2( LQIO::ERR_NON_REF_THINK_TIME, task->getName().c_str() );
+	task->input_error( LQIO::ERR_NON_REF_THINK_TIME );
     }
 }
 

@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15742 2022-07-01 12:09:52Z greg $
+ * $Id: entry.cc 15744 2022-07-03 11:22:39Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -40,7 +40,6 @@
 #include "task.h"
 #include "variance.h"
 
-unsigned Entry::totalOpenArrivals   = 0;
 unsigned Entry::max_phases	    = 0;
 
 /* ------------------------ Constructors etc. ------------------------- */
@@ -122,7 +121,6 @@ Entry::~Entry()
 void
 Entry::reset()
 {
-    totalOpenArrivals	    = 0;
     max_phases		    = 0;
 }
 
@@ -177,11 +175,12 @@ Entry::check() const
 {
     const double precision = 100000.0;		/* round to nearest 1/precision */
 
-    if ( hasOpenArrivals() ) {
-	if ( owner()->isReferenceTask() ) {
+    if ( owner()->isReferenceTask() ) {
+	if ( hasOpenArrivals() ) {
 	    owner()->getDOM()->input_error( LQIO::ERR_REFERENCE_TASK_OPEN_ARRIVALS, name().c_str() );
+	} else if ( isCalled() ) {
+	    getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, name().c_str() );
 	}
-    	Entry::totalOpenArrivals += 1;
     }
 
     if ( isStandardEntry() ) {
@@ -207,15 +206,15 @@ Entry::check() const
 
     if ( owner()->scheduling() != SCHEDULE_SEMAPHORE && (isSignalEntry() || isWaitEntry()) ) {
 	getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, (isSignalEntry() ? "signal" : "wait"), name().c_str() );
-	if ( isSignalEntry() ) owner()->getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, "signal", name().c_str() );
-	if ( isWaitEntry() ) owner()->getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, "wait", name().c_str() );
+    }
+    if ( !owner()->isReferenceTask() && !isCalled() ) {
+	if ( owner()->scheduling() == SCHEDULE_SEMAPHORE ||  owner()->scheduling() == SCHEDULE_RWLOCK ) {
+	    getDOM()->setSeverity( LQIO::WRN_ENTRY_HAS_NO_REQUESTS, LQIO::error_severity::ERROR );
+	}
+	getDOM()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
     }
     if ( maxPhase() > 1 && owner()->isInfinite() ) {
 	LQIO::runtime_error( WRN_MULTI_PHASE_INFINITE_SERVER, name().c_str(), owner()->name().c_str(), maxPhase() );
-    }
-
-    if ( !owner()->isReferenceTask() && !isCalled() ) {
-	getDOM()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
     }
 
     /* Forwarding probabilities o.k.? */

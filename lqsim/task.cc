@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15742 2022-07-01 12:09:52Z greg $
+ * $Id: task.cc 15748 2022-07-03 22:25:03Z greg $
  */
 
 #include "lqsim.h"
@@ -120,7 +120,7 @@ Task::configure()
     total_calls += for_each( _entry.begin(), _entry.end(), ExecSum<Entry,double>( &Entry::configure ) ).sum();
 
     if ( total_calls == 0 && is_reference_task() ) {
-	LQIO::runtime_error( LQIO::WRN_NO_SENDS_FROM_REF_TASK, name() );
+	getDOM()->runtime_error( LQIO::WRN_NOT_USED );
     }
 
     for ( std::vector<Activity *>::const_iterator ap = _activity.begin(); ap != _activity.end(); ++ap ) {
@@ -541,7 +541,7 @@ Task::add( LQIO::DOM::Task* dom )
 	dom->input_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, processor_name );
     }
 
-    Group * group = 0;
+    Group * group = nullptr;
     if ( !domGroup && processor->discipline() == SCHEDULE_CFS ) {
 	LQIO::input_error2( LQIO::ERR_NO_GROUP_SPECIFIED, task_name, processor_name );
     } else if ( domGroup ) {
@@ -568,7 +568,7 @@ Task::add( LQIO::DOM::Task* dom )
     case SCHEDULE_HOL:
     case SCHEDULE_FIFO:
 	if ( dom->hasThinkTime() ) {
-	    input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name );
+	    dom->runtime_error( LQIO::ERR_NON_REF_THINK_TIME );
 	}
 	Task::Type a_type;
 
@@ -584,7 +584,7 @@ Task::add( LQIO::DOM::Task* dom )
 
     case SCHEDULE_DELAY:
 	if ( dom->hasThinkTime() ) {
-	    input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name );
+	    dom->runtime_error( LQIO::ERR_NON_REF_THINK_TIME );
 	}
 	if ( dom->isMultiserver() ) {
 	    dom->runtime_error( LQIO::WRN_INFINITE_MULTI_SERVER, dom->getCopiesValue() );
@@ -1011,28 +1011,28 @@ ReadWriteLock_Task::create_instance()
     }
     //test reader lock entry
     if ( !_entry[E[1]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::READ_LOCK ) ) {
-	LQIO::runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
+	_entry[E[1]]->getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
     }
     if ( !_entry[E[1]]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
-	LQIO::runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[E[1]]->name() );
+	_entry[E[1]]->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT  );
     }
 
     //test reader unlock entry
     if ( !_entry[E[0]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::READ_UNLOCK ) ) {
-	LQIO::runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
+	_entry[E[0]]->getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
     }
 
     //test writer lock entry
     if ( !_entry[E[3]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::WRITE_LOCK ) ) {
-	LQIO::runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
+	_entry[E[3]]->getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
     }
     if ( !_entry[E[3]]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
-	LQIO::runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[E[3]]->name() );
+	_entry[E[3]]->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT );
     }
 
     //test writer unlock entry
     if ( !_entry[E[2]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::WRITE_UNLOCK ) ) {
-	LQIO::runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
+	_entry[E[2]]->getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
     }
 
 

@@ -12,7 +12,7 @@
  * November, 1994
  *
  * ----------------------------------------------------------------------
- * $Id: errmsg.cc 15731 2022-06-29 18:22:10Z greg $
+ * $Id: errmsg.cc 15747 2022-07-03 22:18:52Z greg $
  * ----------------------------------------------------------------------
  */
 
@@ -31,7 +31,6 @@ std::vector< std::pair<unsigned, LQIO::error_message_type> > local_error_message
     {  ERR_BOGUS_COPIES,			{ LQIO::error_severity::ERROR,    "Derived population of %g for task \"%s\" is not valid." } },
     {  ERR_REPLICATION,				{ LQIO::error_severity::ERROR,    "Fan-out of %d from task \"%s\" with %d replicas does not match the fan-in of %d to task \"%s\" with %d replicas." } },
     {  ERR_INVALID_FANINOUT_PARAMETER,		{ LQIO::error_severity::ERROR,    "Invalid %s for task \"%s\" to task \"%s\": %s." } },
-    {  ERR_NO_CALLS_TO_ENTRY,			{ LQIO::error_severity::ERROR,    "No calls from %s \"%s\" to entry \"%s\"." } },
     {  ERR_REPLICATION_PROCESSOR,		{ LQIO::error_severity::ERROR,    "The number of replicas (%d) for task \"%s\" is not an integer multiple of the number of replicas (%d) for processor \"%s\"." } },
     {  WRN_COEFFICIENT_OF_VARIATION,		{ LQIO::error_severity::WARNING,  "Coefficient of variation is incompatible with phase type at %s \"%s\" %s \"%s\"." } },
     {  WRN_MULTI_PHASE_INFINITE_SERVER,		{ LQIO::error_severity::WARNING,  "Entry \"%s\" on infinite server \"%s\" has %d phases." } },

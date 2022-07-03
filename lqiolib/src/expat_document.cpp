@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 15732 2022-06-29 22:24:46Z greg $
+ * $Id: expat_document.cpp 15745 2022-07-03 11:36:39Z greg $
  *
  * Read in XML input files.
  *
@@ -1280,16 +1280,20 @@ namespace LQIO {
 
 		LQIO::DOM::ExternalVariable * quantum = getOptionalAttribute(attributes,Xquantum);
 		if ( !is_default_value( quantum, 0. ) ) {
-                    if ( scheduling_flag == SCHEDULE_FIFO
+                    if ( scheduling_flag == SCHEDULE_DELAY
+                         || scheduling_flag == SCHEDULE_FIFO
                          || scheduling_flag == SCHEDULE_HOL
                          || scheduling_flag == SCHEDULE_PPR
                          || scheduling_flag == SCHEDULE_RAND ) {
-                        input_error2( LQIO::WRN_QUANTUM_SCHEDULING, processor_name, scheduling_label[scheduling_flag].str );
+                        processor->input_error( LQIO::WRN_QUANTUM_SCHEDULING, scheduling_label[scheduling_flag].str );
                     } else {
                         processor->setQuantum( quantum );
                     }
-                } else if ( scheduling_flag == SCHEDULE_CFS ) {
-                    input_error2( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name, scheduling_label[scheduling_flag].str );
+                } else if ( scheduling_flag == SCHEDULE_CFS 
+			    || scheduling_flag == SCHEDULE_PS
+			    || scheduling_flag == SCHEDULE_PS_HOL
+			    || scheduling_flag == SCHEDULE_PS_PPR) {
+                    processor->input_error( LQIO::ERR_NO_QUANTUM_SCHEDULING, scheduling_label[scheduling_flag].str );
                 }
 
 
@@ -1434,7 +1438,7 @@ namespace LQIO {
                     if ( sched_type == SCHEDULE_CUSTOMER ) {
                         task->setThinkTime( think_time );
 		    } else {
-                        LQIO::input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name );
+                        task->input_error( LQIO::ERR_NON_REF_THINK_TIME );
                     }
                 }
 

@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15737 2022-06-30 22:59:33Z greg $
+ * $Id: task.cc 15748 2022-07-03 22:25:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2713,9 +2713,9 @@ Task::create( const LQIO::DOM::Task* task_dom, std::vector<Entry *>& entries )
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, processor_name.c_str() );
     }
 
-    const Share * share = 0;
+    const Share * share = nullptr;
     if ( !group_dom && processor->scheduling() == SCHEDULE_CFS ) {
-	LQIO::input_error2( LQIO::ERR_NO_GROUP_SPECIFIED, task_name, processor_name.c_str() );
+	task_dom->runtime_error( LQIO::ERR_NO_GROUP_SPECIFIED, processor_name.c_str() );
     } else if ( group_dom ) {
 	std::set<Share *>::const_iterator nextShare = find_if( processor->shares().begin(), processor->shares().end(), EQStr<Share>( group_dom->getName() ) );
 	if ( nextShare == processor->shares().end() ) {

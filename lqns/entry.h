@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 15742 2022-07-01 12:09:52Z greg $
+ * $Id: entry.h 15743 2022-07-02 16:57:45Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -162,7 +162,6 @@ private:
 public:
     static bool joinsPresent;
     static bool deterministicPhases;
-    static unsigned totalOpenArrivals;
     static unsigned max_phases;		/* maximum phase encountered.	*/
 	
     int operator==( const Entry& anEntry ) const;

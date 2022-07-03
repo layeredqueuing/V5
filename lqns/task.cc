@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: task.cc 15748 2022-07-03 22:25:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1708,11 +1708,6 @@ ReferenceTask::check() const
 	getDOM()->runtime_error( LQIO::ERR_NOT_SUPPORTED, "queue length" );
     }
 
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	if ( (*entry)->isCalled()  ) {
-	    getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, (*entry)->name().c_str() );
-	}
-    }
     return true;
 }
 
@@ -2181,13 +2176,6 @@ SemaphoreTask::check() const
 	rc = false;
     }
 
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	if ( (*entry)->hasOpenArrivals() ) {
-	    Entry::totalOpenArrivals += 1;
-	} else if ( !(*entry)->isCalled() ) {
-	    (*entry)->getDOM()->setSeverity( LQIO::WRN_ENTRY_HAS_NO_REQUESTS, LQIO::error_severity::ERROR ).runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
-	}
-    }
     return rc;
 }
 
@@ -2235,21 +2223,23 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
 
     const LQIO::DOM::Group * group_dom = dom->getGroup();
     Group * group = nullptr;
-
-    if ( group_dom ) {
+    if ( !group_dom && processor->scheduling() == SCHEDULE_CFS ) {
+	task_dom->runtime_error( LQIO::ERR_NO_GROUP_SPECIFIED, processor_name.c_str() );
+    } else if ( group_dom ) {
 	const std::string& group_name = group_dom->getName();
 	group = Group::find( group_name );
 	if ( !group ) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, group_name.c_str() );
 	}
     }
+
     /* Pick-a-task */
 
     Task * task = nullptr;
 
     const scheduling_type sched_type = dom->getSchedulingType();
     if ( sched_type != SCHEDULE_CUSTOMER && dom->hasThinkTime () ) {
-	LQIO::input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name.c_str() );
+	dom->runtime_error( LQIO::ERR_NON_REF_THINK_TIME );
     }
 
     switch ( sched_type ) {

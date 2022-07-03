@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 15741 2022-07-01 11:57:03Z greg $
+ * $Id: json_document.cpp 15745 2022-07-03 11:36:39Z greg $
  *
  * Read in JSON input files.
  *
@@ -396,14 +396,18 @@ namespace LQIO {
 
 			const scheduling_type scheduling_flag = processor->getSchedulingType();
 			if ( !processor->hasQuantum() ) {
-			    if ( scheduling_flag == SCHEDULE_CFS ) {
-				LQIO::runtime_error( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name.c_str(), scheduling_label[scheduling_flag].str );
+			    if ( scheduling_flag == SCHEDULE_CFS 
+				 || scheduling_flag == SCHEDULE_PS
+				 || scheduling_flag == SCHEDULE_PS_HOL
+				 || scheduling_flag == SCHEDULE_PS_PPR) {
+				processor->runtime_error( LQIO::ERR_NO_QUANTUM_SCHEDULING, scheduling_label[scheduling_flag].str );
 			    }
-			} else if ( scheduling_flag == SCHEDULE_FIFO
+			} else if ( scheduling_flag == SCHEDULE_DELAY
+				    || scheduling_flag == SCHEDULE_FIFO
 				    || scheduling_flag == SCHEDULE_HOL
 				    || scheduling_flag == SCHEDULE_PPR
 				    || scheduling_flag == SCHEDULE_RAND ) {
-			    LQIO::runtime_error( LQIO::WRN_QUANTUM_SCHEDULING, processor_name.c_str(), scheduling_label[scheduling_flag].str );
+			    processor->runtime_error( LQIO::WRN_QUANTUM_SCHEDULING, scheduling_label[scheduling_flag].str );
 			}
 		    } else if ( !processor ) {
 			LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, processor_name.c_str() );
@@ -528,7 +532,7 @@ namespace LQIO {
 			}
 			const scheduling_type scheduling_flag = task->getSchedulingType();
 			if ( task->hasThinkTime() && scheduling_flag != SCHEDULE_CUSTOMER ) {
-			    LQIO::runtime_error( LQIO::ERR_NON_REF_THINK_TIME, task_name.c_str() );
+			    task->runtime_error( LQIO::ERR_NON_REF_THINK_TIME );
 			}
 
 			/* Do activities and precedences last so that entries are defined */

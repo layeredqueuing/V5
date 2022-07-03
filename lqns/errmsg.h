@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 15731 2022-06-29 18:22:10Z greg $
+ * $Id: errmsg.h 15747 2022-07-03 22:18:52Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -31,7 +31,6 @@ enum {
     ERR_BOGUS_COPIES,
     ERR_REPLICATION,
     ERR_INVALID_FANINOUT_PARAMETER,
-    ERR_NO_CALLS_TO_ENTRY,
     ERR_REPLICATION_PROCESSOR,
     WRN_COEFFICIENT_OF_VARIATION,
     WRN_MULTI_PHASE_INFINITE_SERVER,

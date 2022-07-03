@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15734 2022-06-30 02:19:44Z greg $
+ * $Id: model.cc 15743 2022-07-02 16:57:45Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -1169,6 +1169,10 @@ Model::check() const
 {
     for_each( Processor::__processors.begin(), Processor::__processors.end(), Predicate<Entity>( &Entity::check ) );
     for_each( Task::__tasks.begin(), Task::__tasks.end(), Predicate<Entity>( &Entity::check ) );
+    if ( std::none_of( Task::__tasks.begin(), Task::__tasks.end(), Predicate<Task>( &Task::isReferenceTask ) ) && 
+	 std::none_of( Task::__tasks.begin(), Task::__tasks.end(), Predicate<Task>( &Task::hasOpenArrivals ) ) ) {
+	LQIO::runtime_error( LQIO::ERR_NO_REFERENCE_TASKS );
+    }
     return !LQIO::io_vars.anError();
 }
 

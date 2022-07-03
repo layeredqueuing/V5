@@ -10,7 +10,7 @@
  * Error processing for srvn program.
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: error.cpp 15742 2022-07-01 12:09:52Z greg $
+ * $Id: error.cpp 15748 2022-07-03 22:25:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -54,17 +54,13 @@ std::map<unsigned int, LQIO::error_message_type> LQIO::error_messages = {
     { LQIO::ERR_MISSING_ATTRIBUTE,		{ LQIO::error_severity::ERROR,    "Element \"%s\", missing attribute: \"%s\"."} },
     { LQIO::ERR_UNEXPECTED_ATTRIBUTE,		{ LQIO::error_severity::ERROR,    "Element \"%s\", unexpected attribute: \"%s\"." } },
     { LQIO::ERR_INVALID_ARGUMENT,		{ LQIO::error_severity::ERROR,    "Element \"%s\", invalid argument to attribute: \"%s\"." } },
-    { LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES,	{ LQIO::error_severity::ERROR,    "Entry \"%s\" specified as both a lock and a unlock." } },
     { LQIO::ERR_MIXED_ENTRY_TYPES,		{ LQIO::error_severity::ERROR,    "Entry \"%s\" specified using both activity and phase methods." } },
     { LQIO::ERR_LQX_VARIABLE_RESOLUTION,	{ LQIO::error_severity::ERROR,    "External variables are present in file \"%s\", but there is no LQX program to resolve them." } },
     { LQIO::ERR_HISTOGRAM_INVALID_MIN,		{ LQIO::error_severity::ERROR,    "Invalid lower range value for histogram of %g." } },
     { LQIO::ERR_HISTOGRAM_INVALID_MAX,		{ LQIO::error_severity::ERROR,    "Invalid upper range value for histogram of %g." } },
     { LQIO::ERR_INVALID_PARAMETER,		{ LQIO::error_severity::ERROR,    "Invalid %s for %s \"%s\": %s." } },
-    { LQIO::ERR_NO_GROUP_SPECIFIED,		{ LQIO::error_severity::ERROR,    "No group specified for task \"%s\" running on processor \"%s\" using fair share scheduling." } },
     { LQIO::ERR_NO_QUANTUM_SCHEDULING,		{ LQIO::error_severity::ERROR,    "No quantum is specified for processor \"%s\" with  \"%s\" scheduling."} },
     { LQIO::ERR_NO_REFERENCE_TASKS,		{ LQIO::error_severity::ERROR,    "No reference tasks have been specified in this model." } },
-    { LQIO::ERR_NO_RWLOCK,			{ LQIO::error_severity::ERROR,    "No lock or unlock specified for rwlock task \"%s\"." } },
-    { LQIO::ERR_NON_REF_THINK_TIME,		{ LQIO::error_severity::ERROR,    "Non-reference task \"%s\" cannot have think time." } },
     { LQIO::ERR_TOO_MANY_X,			{ LQIO::error_severity::ERROR,    "Number of %s is outside of program limits of (1,%d)." } },
     { LQIO::ERR_DUPLICATE_X_LIST,		{ LQIO::error_severity::ERROR,    "Precedence \"%s\" list previously defined." } },
     { LQIO::ERR_DUPLICATE_START_ACTIVITY,	{ LQIO::error_severity::ERROR,    "Start activity for entry \"%s\" is already defined.  Activity \"%s\" is a duplicate." } },
@@ -74,16 +70,12 @@ std::map<unsigned int, LQIO::error_message_type> LQIO::error_messages = {
     { LQIO::ADV_LQX_IMPLICIT_SOLVE,		{ LQIO::error_severity::ADVISORY, "No solve() call found in the lqx program in file: %s.  solve() was invoked implicitly." } },
     { LQIO::ADV_SPEX_UNUSED_RESULT_VARIABLE,	{ LQIO::error_severity::ADVISORY, "SPEX result variable \"%s\" was not used as an array or in an observation." } },
     { LQIO::ADV_TOO_MANY_GNUPLOT_VARIABLES,	{ LQIO::error_severity::ADVISORY, "Too many dependent variables to plot from \"%s\" onwards." } },
-    { LQIO::WRN_INFINITE_MULTI_SERVER,		{ LQIO::error_severity::WARNING,  "%s \"%s\" is an infinite server with a multiplicity of %d." } },
     { LQIO::WRN_SCHEDULING_NOT_SUPPORTED,	{ LQIO::error_severity::WARNING,  "%s scheduling specified for %s \"%s\" is not supported." } },
-    { LQIO::WRN_ENTRY_TYPE_MISMATCH,		{ LQIO::error_severity::WARNING,  "Entry \"%s\" attribute type=\"%s\" - entry type should be \"%s\"." } },
     { LQIO::WRN_INVALID_SPEX_RESULT_PHASE,	{ LQIO::error_severity::WARNING,  "Invalid phase, %d, specified for SPEX result \"%%%s\" for entry \"%s\"." } },
     { LQIO::WRN_NO_SPEX_OBSERVATIONS,		{ LQIO::error_severity::WARNING,  "No SPEX Observations were specified in the input model." } },
     { LQIO::WRN_MULTIPLE_SPECIFICATION,		{ LQIO::error_severity::WARNING,  "Parameter is specified multiple times." } },
     { LQIO::WRN_PRAGMA_UNKNOWN,			{ LQIO::error_severity::WARNING,  "Pragma \"%s\" is not recognized." } },
     { LQIO::WRN_PRAGMA_ARGUMENT_INVALID,	{ LQIO::error_severity::WARNING,  "Pragma \"%s\": invalid argument \"%s\"." } },
-    { LQIO::WRN_QUANTUM_SCHEDULING,		{ LQIO::error_severity::WARNING,  "using \"%s\" scheduling has a non-zero quantum specified." } },
-    { LQIO::WRN_NO_SENDS_FROM_REF_TASK,		{ LQIO::error_severity::WARNING,  "Reference task \"%s\" does not send any messages." } },
     { LQIO::ERR_NOT_SUPPORTED,			{ LQIO::error_severity::ERROR,    "The %s feature is not supported in this version." } },
 };
 

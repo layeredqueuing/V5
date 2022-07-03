@@ -199,14 +199,14 @@ Task::create( LQIO::DOM::Task * dom )
     case SCHEDULE_FIFO:
     default:
 	if ( dom->hasThinkTime() ) {
-	    input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name.c_str() );
+	    dom->runtime_error( LQIO::ERR_NON_REF_THINK_TIME );
 	}
         task = new Task( dom, Task::Type::SERVER, processor );
 	break;
 	
     case SCHEDULE_DELAY:
 	if ( dom->hasThinkTime() ) {
-	    input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name.c_str() );
+	    dom->runtime_error( LQIO::ERR_NON_REF_THINK_TIME );
 	}
 	if ( dom->hasQueueLength() ) {
 	    LQIO::input_error2( LQIO::WRN_TASK_QUEUE_LENGTH, task_name.c_str() );
