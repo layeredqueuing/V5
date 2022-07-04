@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15748 2022-07-03 22:25:03Z greg $
+ * $Id: task.cc 15749 2022-07-04 13:37:42Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2224,7 +2224,7 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
     const LQIO::DOM::Group * group_dom = dom->getGroup();
     Group * group = nullptr;
     if ( !group_dom && processor->scheduling() == SCHEDULE_CFS ) {
-	task_dom->runtime_error( LQIO::ERR_NO_GROUP_SPECIFIED, processor_name.c_str() );
+	dom->runtime_error( LQIO::ERR_NO_GROUP_SPECIFIED, processor_name.c_str() );
     } else if ( group_dom ) {
 	const std::string& group_name = group_dom->getName();
 	group = Group::find( group_name );
