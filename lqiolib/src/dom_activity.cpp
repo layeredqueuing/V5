@@ -1,11 +1,12 @@
 /*
- *  $Id: dom_activity.cpp 15729 2022-06-29 01:57:06Z greg $
+ *  $Id: dom_activity.cpp 15751 2022-07-04 21:39:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
 
+#include <cstdarg>
 #include "dom_activity.h"
 #include "dom_actlist.h"
 #include "dom_task.h"

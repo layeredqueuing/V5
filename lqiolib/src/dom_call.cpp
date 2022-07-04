@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_call.cpp 15725 2022-06-28 16:23:33Z greg $
+ *  $Id: dom_call.cpp 15751 2022-07-04 21:39:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -7,6 +7,7 @@
  */
 
 #include <cassert>
+#include <cstdarg>
 #include "dom_activity.h"
 #include "dom_document.h"
 #include "dom_entry.h"
