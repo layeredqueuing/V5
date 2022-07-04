@@ -1,18 +1,19 @@
 /*
- *  $Id: dom_object.cpp 15748 2022-07-03 22:25:03Z greg $
+ *  $Id: dom_object.cpp 15750 2022-07-04 21:14:29Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
 
-#include "dom_object.h"
-#include "dom_task.h"
-#include "dom_document.h"
-#include "glblerr.h"
-#include <sstream>
 #include <cassert>
 #include <cmath>
+#include <cstdarg>
+#include <sstream>
+#include "dom_document.h"
+#include "dom_object.h"
+#include "dom_task.h"
+#include "glblerr.h"
 
 namespace LQIO {
     namespace DOM {

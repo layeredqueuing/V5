@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.h 15737 2022-06-30 22:59:33Z greg $
+ * $Id: glblerr.h 15750 2022-07-04 21:14:29Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -14,10 +14,6 @@
 
 #if     !defined(LQIO_GLBLERR_H)
 #define LQIO_GLBLERR_H
-
-#if defined(HAVE_CONFIG_H)
-#include <config.h>
-#endif
 
 #include "error.h"
 
