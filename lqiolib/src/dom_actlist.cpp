@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_actlist.cpp 15730 2022-06-29 16:35:46Z greg $
+ *  $Id: dom_actlist.cpp 15752 2022-07-05 01:46:28Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -7,6 +7,7 @@
  */
 
 #include <cmath>
+#include <cstdarg>
 #include <numeric>
 #include "dom_actlist.h"
 #include "dom_document.h"
