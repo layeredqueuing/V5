@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 15731 2022-06-29 18:22:10Z greg $
+ *  $Id: dom_entry.cpp 15756 2022-07-24 12:50:26Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -420,7 +420,7 @@ namespace LQIO {
 	{
 	    /* Stores the given StartActivity of the Entry */ 
 	    if ( _startActivity && startActivity != nullptr ) {
-		input_error2( ERR_DUPLICATE_START_ACTIVITY, getName().c_str(), startActivity->getName().c_str() );
+		input_error( ERR_DUPLICATE_START_ACTIVITY, startActivity->getName().c_str() );
 	    } else {
 		_startActivity = startActivity;
 		if ( startActivity != nullptr ) {

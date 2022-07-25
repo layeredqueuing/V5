@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 15750 2022-07-04 21:14:29Z greg $
+ *  $Id: dom_object.cpp 15759 2022-07-25 02:02:34Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -58,6 +58,7 @@ namespace LQIO {
 	    { LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE,	{ LQIO::error_severity::ERROR,    "previously used in the join at line %d" } },
 	    { LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE,	{ LQIO::error_severity::ERROR,    "previously used in the fork at line %d" } },
 	    { LQIO::ERR_DUPLICATE_SEMAPHORE_ENTRY_TYPES,{ LQIO::error_severity::ERROR,    "both entry \"%s\" and entry \"%s\" are of semaphore type %s" } },
+	    { LQIO::ERR_DUPLICATE_START_ACTIVITY,	{ LQIO::error_severity::ERROR,    "has a start activity defined.  Activity \"%s\" is a duplicate" } },
 	    { LQIO::ERR_DUPLICATE_SYMBOL,		{ LQIO::error_severity::ERROR,    "previously defined" } },
 	    { LQIO::ERR_FORK_JOIN_MISMATCH,		{ LQIO::error_severity::ERROR,    "does not match %s \"%s\" at line %d" } },
 	    { LQIO::ERR_INFINITE_SERVER, 		{ LQIO::error_severity::ERROR, 	  "cannot be an infinite server" } },
@@ -68,16 +69,18 @@ namespace LQIO {
 	    { LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY,	{ LQIO::error_severity::ERROR,    "makes an invalid reply for entry \"%s\" which does not accept rendezvous requests" } },
 	    { LQIO::ERR_INVALID_REPLY_FROM_BRANCH,	{ LQIO::error_severity::ERROR,    "makes an invalid reply from a branch for entry \"%s\"" } },
 	    { LQIO::ERR_IS_START_ACTIVITY,		{ LQIO::error_severity::ERROR,    "is a start activity" } },
-	    { LQIO::ERR_MIXED_ENTRY_TYPES,		{ LQIO::error_severity::ERROR,    "specified using both activity and phase methods" } },
-	    { LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES,	{ LQIO::error_severity::ERROR,    "is specified as both a lock and a unlock." } },
-	    { LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES,	{ LQIO::error_severity::ERROR,    "is specified as both a signal and a wait." } },
-	    { LQIO::ERR_NON_REF_THINK_TIME,		{ LQIO::error_severity::ERROR,    "is not a reference task; it cannot have think time." } },
+	    { LQIO::ERR_MIXED_ENTRY_TYPES,		{ LQIO::error_severity::ERROR,    "is specified using both activity and phase methods" } },
+	    { LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES,	{ LQIO::error_severity::ERROR,    "is specified as both a lock and a unlock" } },
+	    { LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES,	{ LQIO::error_severity::ERROR,    "is specified as both a signal and a wait" } },
+	    { LQIO::ERR_NON_REF_THINK_TIME,		{ LQIO::error_severity::ERROR,    "is not a reference task; it cannot have think time" } },
 	    { LQIO::ERR_NON_UNITY_REPLIES,		{ LQIO::error_severity::ERROR,    "generates %4.2f replies" } },
 	    { LQIO::ERR_NOT_REACHABLE,			{ LQIO::error_severity::ERROR,    "is not reachable"} },
 	    { LQIO::ERR_NOT_RWLOCK_TASK,		{ LQIO::error_severity::ERROR,    "cannot have a %s for entry \"%s\"" } },
 	    { LQIO::ERR_NOT_SEMAPHORE_TASK,		{ LQIO::error_severity::ERROR,    "cannot have a %s for entry \"%s\"" } },
 	    { LQIO::ERR_NOT_SPECIFIED,			{ LQIO::error_severity::ERROR,    "is not specified" } },
 	    { LQIO::ERR_NOT_SUPPORTED,			{ LQIO::error_severity::ERROR,    "does not support the %s feature" } },
+	    { LQIO::ERR_NO_GROUP_SPECIFIED,		{ LQIO::error_severity::ERROR,    "running on processor \"%s\" using fair share scheduling has no group specified" } },
+	    { LQIO::ERR_NO_QUANTUM_SCHEDULING,		{ LQIO::error_severity::ERROR,    "with \"%s\" scheduling has no quantum specified."} },
 	    { LQIO::ERR_NO_SEMAPHORE,			{ LQIO::error_severity::ERROR,    "has neither a signal nor a wait entry specified" } },
 	    { LQIO::ERR_NO_START_ACTIVITIES,		{ LQIO::error_severity::ERROR,    "has activities but none are reachable" } },
 	    { LQIO::ERR_OPEN_AND_CLOSED_CLASSES,	{ LQIO::error_severity::ERROR,    "accepts both rendezvous and send-no-reply messages" } },
@@ -85,7 +88,6 @@ namespace LQIO {
 	    { LQIO::ERR_REFERENCE_TASK_FORWARDING,	{ LQIO::error_severity::ERROR,    "entry \"%s\" cannot forward requests" } },
 	    { LQIO::ERR_REFERENCE_TASK_IS_INFINITE,	{ LQIO::error_severity::ERROR,    "must have a finite number of copies" } },
 	    { LQIO::ERR_REFERENCE_TASK_IS_RECEIVER,	{ LQIO::error_severity::ERROR,    "entry \"%s\" receives requests" } },
-	    { LQIO::ERR_NO_GROUP_SPECIFIED,		{ LQIO::error_severity::ERROR,    "running on processor \"%s\" using fair share scheduling has no group specified" } },
 	    { LQIO::ERR_REFERENCE_TASK_OPEN_ARRIVALS,	{ LQIO::error_severity::ERROR,    "entry \"%s\" cannot have open arrivals" } },
 	    { LQIO::ERR_REFERENCE_TASK_REPLIES,		{ LQIO::error_severity::ERROR,    "replies to entry \"%s\" from activity \"%s\"" } },
 	    { LQIO::ERR_REPLY_NOT_GENERATED,		{ LQIO::error_severity::ERROR,    "must reply; the reply is not specified in the activity graph" } },
@@ -108,20 +110,7 @@ namespace LQIO {
 	void DocumentObject::input_error( unsigned code, ... ) const
 	{
 	    const error_message_type& error = __error_messages.at(code);
-
-	    std::string object_name = getTypeName();
-	    if ( dynamic_cast<const Task *>(this) && dynamic_cast<const Task *>(this)->getSchedulingType() == SCHEDULE_CUSTOMER ) {
-		object_name.insert( 0, "Reference " );
-	    } else {
-		object_name[0] = std::toupper( object_name[0] );
-	    }
-	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(LQIO_lineno)
-		+ ": " + severity_table.at(error.severity) 
-		+ ": " + object_name + " \"" + getName() + "\" " + error.message;
-	    if ( code == LQIO::ERR_DUPLICATE_SYMBOL && getLineNumber() != LQIO_lineno ) {
-		buf += std::string( " at line " ) + std::to_string(getLineNumber());
-	    }
-	    buf += std::string( ".\n" );
+	    const std::string buf = inputErrorPreamble( code );
 
 	    va_list args;
 	    va_start( args, code );
@@ -137,15 +126,7 @@ namespace LQIO {
 
 	    if ( !output_error_message( error.severity ) ) return;
 
-	    std::string object_name = getTypeName();
-	    if ( dynamic_cast<const Task *>(this) && dynamic_cast<const Task *>(this)->getSchedulingType() == SCHEDULE_CUSTOMER ) {
-		object_name.insert( 0, "Reference " );
-	    } else {
-		object_name[0] = std::toupper( object_name[0] );
-	    }
-	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(getLineNumber())
-		+ ": " + severity_table.at(error.severity)
-		+ ": " + object_name + " \"" + getName() + "\" " + error.message + ".\n";
+	    const std::string buf = runtimeErrorPreamble( code );
 	    
 	    va_list args;
 	    va_start( args, code );
@@ -160,6 +141,43 @@ namespace LQIO {
 	    runtime_error( LQIO::ERR_INVALID_PARAMETER, parameter.c_str(), error.c_str() );
 	    throw std::domain_error( std::string( "invalid " ) + parameter + ": " + error );
 	}
+
+	std::string DocumentObject::inputErrorPreamble( unsigned int code ) const
+	{
+	    const error_message_type& error = __error_messages.at(code);
+
+	    std::string object_name = getTypeName();
+	    if ( dynamic_cast<const Task *>(this) && dynamic_cast<const Task *>(this)->getSchedulingType() == SCHEDULE_CUSTOMER ) {
+		object_name.insert( 0, "Reference " );
+	    } else {
+		object_name[0] = std::toupper( object_name[0] );
+	    }
+	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(LQIO_lineno)
+		+ ": " + severity_table.at(error.severity) 
+		+ ": " + object_name + " \"" + getName() + "\" " + error.message;
+	    if ( code == LQIO::ERR_DUPLICATE_SYMBOL && getLineNumber() != LQIO_lineno ) {
+		buf += std::string( " at line " ) + std::to_string(getLineNumber());
+	    }
+	    buf += std::string( ".\n" );
+	    return buf;
+	}
+
+	std::string DocumentObject::runtimeErrorPreamble( unsigned int code ) const
+	{
+	    const error_message_type& error = __error_messages.at(code);
+
+	    std::string object_name = getTypeName();
+	    if ( dynamic_cast<const Task *>(this) && dynamic_cast<const Task *>(this)->getSchedulingType() == SCHEDULE_CUSTOMER ) {
+		object_name.insert( 0, "Reference " );
+	    } else {
+		object_name[0] = std::toupper( object_name[0] );
+	    }
+	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(getLineNumber())
+		+ ": " + severity_table.at(error.severity)
+		+ ": " + object_name + " \"" + getName() + "\" " + error.message + ".\n";
+	    return buf;
+	}
+
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
     

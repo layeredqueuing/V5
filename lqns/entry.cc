@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15744 2022-07-03 11:22:39Z greg $
+ * $Id: entry.cc 15755 2022-07-24 10:34:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1710,7 +1710,7 @@ Entry::create(LQIO::DOM::Entry* dom, unsigned int index )
 
 	/* Make sure that the entry type is set properly for all entries */
 	if (entry->entryTypeOk(static_cast<const LQIO::DOM::Entry::Type>(dom->getEntryType())) == false) {
-	    LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, entry_name.c_str() );
+	    dom->runtime_error( LQIO::ERR_MIXED_ENTRY_TYPES );
 	}
 
 	/* Set field width for entry names. */
@@ -1736,7 +1736,7 @@ Entry::add_call( const unsigned p, const LQIO::DOM::Call* domCall )
 
     /* Begin by mapping the entry names to their entry types */
     if ( !entryTypeOk(LQIO::DOM::Entry::Type::STANDARD) ) {
-	LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, name().c_str() );
+	getDOM()->runtime_error( LQIO::ERR_MIXED_ENTRY_TYPES );
     } else if ( map_entry_name( to_entry_name, toEntry, true ) ) {
 	if ( domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS) {
 	    rendezvous( toEntry, p, domCall );

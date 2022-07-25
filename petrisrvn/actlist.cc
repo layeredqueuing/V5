@@ -256,7 +256,7 @@ void ActivityList::find_fork_list( const Task * curr_task, std::deque<Activity *
     for ( unsigned int i = 0; i < this->n_acts(); ++i ) {
 	if ( this->list[i] != curr_activity ) {
 	    if ( setjmp( loop_env ) != 0 ) {
-		curr_activity->activity_cycle_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, curr_task->name(), activity_stack );
+		curr_activity->activity_cycle_error( activity_stack );
 	    } else {
 		int j = backtrack( this->list[i], fork_stack, this->list[i] );
 		if ( j >= 0 ) {

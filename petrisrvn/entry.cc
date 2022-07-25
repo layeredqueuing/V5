@@ -145,7 +145,7 @@ Entry::test_and_set( LQIO::DOM::Entry::Type type )
 {
     const bool rc = get_dom()->entryTypeOk( type );
     if ( !rc ) {
-	input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, name() );
+	get_dom()->input_error( LQIO::ERR_MIXED_ENTRY_TYPES);
     }
     return rc;
 }

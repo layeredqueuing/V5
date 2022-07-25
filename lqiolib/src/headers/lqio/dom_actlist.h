@@ -3,7 +3,7 @@
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
- *  $Id: dom_actlist.h 15730 2022-06-29 16:35:46Z greg $
+ *  $Id: dom_actlist.h 15753 2022-07-22 10:59:11Z greg $
  */
 
 #ifndef __LQIO_DOM_ACTLIST__
@@ -41,9 +41,11 @@ namespace LQIO {
 	    ActivityList(const Document * document,const Task *,ActivityList::Type type );
 	    virtual ~ActivityList();
       
-	    virtual void input_error( unsigned code, ... ) const;
-	    virtual void runtime_error( unsigned code, ... ) const;
+	private:
+	    ActivityList& operator=(const ActivityList&) = delete;
+	    ActivityList( const ActivityList& ) = delete;
 
+	public:
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
       
 	    /* Accessors and Mutators */
@@ -72,9 +74,8 @@ namespace LQIO {
 	    void setPrevious(ActivityList* previous);
 	    ActivityList* getPrevious() const;
       
-	private:
-	    ActivityList& operator=(const ActivityList&);
-	    ActivityList( const ActivityList& );
+	    virtual std::string inputErrorPreamble( unsigned int code ) const;
+	    virtual std::string runtimeErrorPreamble( unsigned int code ) const;
 
 	private:
 	    /* Instance variables */

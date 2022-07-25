@@ -118,7 +118,7 @@ Activity::find_children( std::deque<Activity *>& activity_stack, std::deque<Acti
 
     _is_reachable = true;
     if ( std::find( activity_stack.begin(), activity_stack.end(), this ) != activity_stack.end() ) {
-	activity_cycle_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, task()->name(), activity_stack );
+	activity_cycle_error( activity_stack );
 	return has_service_time;
     }
 
@@ -141,7 +141,7 @@ Activity::find_children( std::deque<Activity *>& activity_stack, std::deque<Acti
 
 
 
-void Activity::activity_cycle_error( int err, const char *, std::deque<Activity *>& activity_stack )
+void Activity::activity_cycle_error( const std::deque<Activity *>& activity_stack )
 {
     std::string buf;
 
@@ -149,7 +149,7 @@ void Activity::activity_cycle_error( int err, const char *, std::deque<Activity 
 	if ( ap != activity_stack.front() ) buf += ", ";
 	buf += ap->name();
     }
-    task()->get_dom()->runtime_error( err, buf.c_str() );
+    task()->get_dom()->runtime_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, buf.c_str() );
 }
 
 /*

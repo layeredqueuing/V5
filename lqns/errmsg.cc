@@ -12,7 +12,7 @@
  * November, 1994
  *
  * ----------------------------------------------------------------------
- * $Id: errmsg.cc 15747 2022-07-03 22:18:52Z greg $
+ * $Id: errmsg.cc 15757 2022-07-24 14:29:03Z greg $
  * ----------------------------------------------------------------------
  */
 
@@ -29,12 +29,8 @@ std::vector< std::pair<unsigned, LQIO::error_message_type> > local_error_message
 {
     {  ERR_ARRIVAL_RATE,			{ LQIO::error_severity::ERROR,    "Arrival rate of %g to entry \"%s\" exceeds service rate of %g." } },
     {  ERR_BOGUS_COPIES,			{ LQIO::error_severity::ERROR,    "Derived population of %g for task \"%s\" is not valid." } },
-    {  ERR_REPLICATION,				{ LQIO::error_severity::ERROR,    "Fan-out of %d from task \"%s\" with %d replicas does not match the fan-in of %d to task \"%s\" with %d replicas." } },
-    {  ERR_INVALID_FANINOUT_PARAMETER,		{ LQIO::error_severity::ERROR,    "Invalid %s for task \"%s\" to task \"%s\": %s." } },
-    {  ERR_REPLICATION_PROCESSOR,		{ LQIO::error_severity::ERROR,    "The number of replicas (%d) for task \"%s\" is not an integer multiple of the number of replicas (%d) for processor \"%s\"." } },
     {  WRN_COEFFICIENT_OF_VARIATION,		{ LQIO::error_severity::WARNING,  "Coefficient of variation is incompatible with phase type at %s \"%s\" %s \"%s\"." } },
     {  WRN_MULTI_PHASE_INFINITE_SERVER,		{ LQIO::error_severity::WARNING,  "Entry \"%s\" on infinite server \"%s\" has %d phases." } },
-    {  WRN_NO_REQUESTS_MADE,			{ LQIO::error_severity::WARNING,  "No requests made from \"%s\" to \"%s\"." } },
     {  ADV_CONVERGENCE_VALUE,			{ LQIO::error_severity::ADVISORY, "Invalid convergence value of %g, using %g." } },
     {  ADV_LARGE_CONVERGENCE_VALUE,		{ LQIO::error_severity::ADVISORY, "Convergence value of %g may be too large -- check results!" } },
     {  ADV_ITERATION_LIMIT,			{ LQIO::error_severity::ADVISORY, "Iteration limit of %d is too small, using %d." } },

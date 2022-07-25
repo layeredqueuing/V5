@@ -10,7 +10,7 @@
  * Error processing for srvn program.
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: error.cpp 15748 2022-07-03 22:25:03Z greg $
+ * $Id: error.cpp 15759 2022-07-25 02:02:34Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -41,32 +41,28 @@ const std::map<const LQIO::error_severity, const std::string> LQIO::severity_tab
 std::map<unsigned int, LQIO::error_message_type> LQIO::error_messages = {
     { LQIO::FTL_INTERNAL_ERROR,			{ LQIO::error_severity::FATAL,    "Internal error." } },
     { LQIO::FTL_NO_MEMORY,			{ LQIO::error_severity::FATAL,    "No more memory." } },
-    { LQIO::ERR_NO_OBJECT,			{ LQIO::error_severity::FATAL,    "Model has no %s." } },
-    { LQIO::ERR_NOT_A_CONSTANT, 		{ LQIO::error_severity::ERROR,    "%s is not a constant.\n" } },
+    { LQIO::ERR_CANT_OPEN_DIRECTORY,		{ LQIO::error_severity::ERROR,    "Cannot open directory \"%s\" -- %s." } },
+    { LQIO::ERR_CANT_OPEN_FILE,			{ LQIO::error_severity::ERROR,    "Cannot open file \"%s\" -- %s." } },
     { LQIO::ERR_DUPLICATE_SYMBOL,		{ LQIO::error_severity::ERROR,    "%s \"%s\" previously defined." } },
+    { LQIO::ERR_HISTOGRAM_INVALID_MAX,		{ LQIO::error_severity::ERROR,    "Invalid upper range value for histogram of %g." } },
+    { LQIO::ERR_HISTOGRAM_INVALID_MIN,		{ LQIO::error_severity::ERROR,    "Invalid lower range value for histogram of %g." } },
+    { LQIO::ERR_INVALID_ARGUMENT,		{ LQIO::error_severity::ERROR,    "Element \"%s\", invalid argument to attribute: \"%s\"." } },
+    { LQIO::ERR_INVALID_DECISION_TYPE,		{ LQIO::error_severity::ERROR,    "Decision %s has a decision type %s, which is not supported in this version." } },
+    { LQIO::ERR_INVALID_PARAMETER,		{ LQIO::error_severity::ERROR,    "Invalid %s for %s \"%s\": %s." } },
     { LQIO::ERR_LQX_COMPILATION,		{ LQIO::error_severity::ERROR,    "An error occurred while compiling the LQX program found in file: %s." } },
     { LQIO::ERR_LQX_EXECUTION,			{ LQIO::error_severity::ERROR,    "An error occurred executing the LQX program found in file: %s." } },
     { LQIO::ERR_LQX_SPEX,			{ LQIO::error_severity::ERROR,    "Both LQX and SPEX found in file %s.  Use one or the other." } },
-    { LQIO::ERR_CANT_OPEN_DIRECTORY,		{ LQIO::error_severity::ERROR,    "Cannot open directory \"%s\" -- %s." } },
-    { LQIO::ERR_CANT_OPEN_FILE,			{ LQIO::error_severity::ERROR,    "Cannot open file \"%s\" -- %s." } },
-    { LQIO::ERR_INVALID_DECISION_TYPE,		{ LQIO::error_severity::ERROR,    "Decision %s has a decision type %s, which is not supported in this version." } },
-    { LQIO::ERR_SRC_EQUALS_DST,			{ LQIO::error_severity::ERROR,    "Destination entry \"%s\" must be different from source entry \"%s\"." } },
-    { LQIO::ERR_MISSING_ATTRIBUTE,		{ LQIO::error_severity::ERROR,    "Element \"%s\", missing attribute: \"%s\"."} },
-    { LQIO::ERR_UNEXPECTED_ATTRIBUTE,		{ LQIO::error_severity::ERROR,    "Element \"%s\", unexpected attribute: \"%s\"." } },
-    { LQIO::ERR_INVALID_ARGUMENT,		{ LQIO::error_severity::ERROR,    "Element \"%s\", invalid argument to attribute: \"%s\"." } },
-    { LQIO::ERR_MIXED_ENTRY_TYPES,		{ LQIO::error_severity::ERROR,    "Entry \"%s\" specified using both activity and phase methods." } },
     { LQIO::ERR_LQX_VARIABLE_RESOLUTION,	{ LQIO::error_severity::ERROR,    "External variables are present in file \"%s\", but there is no LQX program to resolve them." } },
-    { LQIO::ERR_HISTOGRAM_INVALID_MIN,		{ LQIO::error_severity::ERROR,    "Invalid lower range value for histogram of %g." } },
-    { LQIO::ERR_HISTOGRAM_INVALID_MAX,		{ LQIO::error_severity::ERROR,    "Invalid upper range value for histogram of %g." } },
-    { LQIO::ERR_INVALID_PARAMETER,		{ LQIO::error_severity::ERROR,    "Invalid %s for %s \"%s\": %s." } },
-    { LQIO::ERR_NO_QUANTUM_SCHEDULING,		{ LQIO::error_severity::ERROR,    "No quantum is specified for processor \"%s\" with  \"%s\" scheduling."} },
-    { LQIO::ERR_NO_REFERENCE_TASKS,		{ LQIO::error_severity::ERROR,    "No reference tasks have been specified in this model." } },
-    { LQIO::ERR_TOO_MANY_X,			{ LQIO::error_severity::ERROR,    "Number of %s is outside of program limits of (1,%d)." } },
-    { LQIO::ERR_DUPLICATE_X_LIST,		{ LQIO::error_severity::ERROR,    "Precedence \"%s\" list previously defined." } },
-    { LQIO::ERR_DUPLICATE_START_ACTIVITY,	{ LQIO::error_severity::ERROR,    "Start activity for entry \"%s\" is already defined.  Activity \"%s\" is a duplicate." } },
+    { LQIO::ERR_MISSING_ATTRIBUTE,		{ LQIO::error_severity::ERROR,    "Element \"%s\", missing attribute: \"%s\"."} },
+    { LQIO::ERR_NOT_A_CONSTANT, 		{ LQIO::error_severity::ERROR,    "%s is not a constant.\n" } },
     { LQIO::ERR_NOT_DEFINED,			{ LQIO::error_severity::ERROR,    "Symbol \"%s\" not previously defined." } },
-    { LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH,	{ LQIO::error_severity::ERROR,    "Task \"%s\" has a cycle in activity graph.  Backtrace is \"%s\"." } },
-    { LQIO::ERR_NO_TASK_FOR_ENTRY,		{ LQIO::error_severity::ERROR,    "Task for entry \"%s\" has not been defined." } },
+    { LQIO::ERR_NO_OBJECT,			{ LQIO::error_severity::FATAL,    "Model has no %s." } },
+    { LQIO::ERR_NO_REFERENCE_TASKS,		{ LQIO::error_severity::ERROR,    "No reference tasks have been specified in this model." } },
+    { LQIO::ERR_REPLICATION,		    	{ LQIO::error_severity::ERROR,    "Fan-out of %d from task \"%s\" with %d replicas does not match the fan-in of %d to task \"%s\" with %d replicas." } },
+    { LQIO::ERR_REPLICATION_PROCESSOR,    	{ LQIO::error_severity::ERROR,    "The number of replicas (%d) for task \"%s\" is not an integer multiple of the number of replicas (%d) for processor \"%s\"." } },
+    { LQIO::ERR_SRC_EQUALS_DST,			{ LQIO::error_severity::ERROR,    "Destination entry \"%s\" must be different from source entry \"%s\"." } },
+    { LQIO::ERR_TOO_MANY_X,			{ LQIO::error_severity::ERROR,    "Number of %s is outside of program limits of (1,%d)." } },
+    { LQIO::ERR_UNEXPECTED_ATTRIBUTE,		{ LQIO::error_severity::ERROR,    "Element \"%s\", unexpected attribute: \"%s\"." } },
     { LQIO::ADV_LQX_IMPLICIT_SOLVE,		{ LQIO::error_severity::ADVISORY, "No solve() call found in the lqx program in file: %s.  solve() was invoked implicitly." } },
     { LQIO::ADV_SPEX_UNUSED_RESULT_VARIABLE,	{ LQIO::error_severity::ADVISORY, "SPEX result variable \"%s\" was not used as an array or in an observation." } },
     { LQIO::ADV_TOO_MANY_GNUPLOT_VARIABLES,	{ LQIO::error_severity::ADVISORY, "Too many dependent variables to plot from \"%s\" onwards." } },

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: errmsg.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: errmsg.cc 15757 2022-07-24 14:29:03Z greg $
  */
 
 #include "petrisrvn.h"
@@ -23,7 +23,6 @@
 std::vector< std::pair<unsigned, LQIO::error_message_type> > local_error_messages =
 {
     { FTL_TAG_TABLE_FULL,               { LQIO::error_severity::FATAL,      "Tag hash table overflow."} },
-    { ERR_DELAY_MULTIPLY_DEFINED,       { LQIO::error_severity::ERROR,      "Delay from processor \"%s\" to processor \"%s\" previously specified."} },
     { ERR_SEND_NO_REPLIES_PROHIBITED,   { LQIO::error_severity::ERROR,      "Send-no-reply from \"%s\" to \"%s\" is not supported."} },
     { ERR_BOGUS_REFERENCE_TASK,         { LQIO::error_severity::ERROR,      "Entry \"%s\" for reference task \"%s\" must have service time, think time, or deterministic phases."} },
     { ERR_MULTI_SYNC_SERVER,            { LQIO::error_severity::ERROR,      "Task \"%s\" provides external synchronization: it cannot be a multiserver."} },

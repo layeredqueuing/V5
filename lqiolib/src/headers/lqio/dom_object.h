@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 15732 2022-06-29 22:24:46Z greg $
+ *  $Id: dom_object.h 15753 2022-07-22 10:59:11Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -43,8 +43,8 @@ namespace LQIO {
 	public:
 	    virtual ~DocumentObject();
 
-	    virtual void input_error( unsigned code, ... ) const;
-	    virtual void runtime_error( unsigned code, ... ) const;
+	    void input_error( unsigned code, ... ) const;
+	    void runtime_error( unsigned code, ... ) const;
 	    virtual void throw_invalid_parameter( const std::string&, const std::string& ) const;
 
 	    /* Accessors and Mutators */
@@ -66,6 +66,9 @@ namespace LQIO {
 	    const ExternalVariable * checkDoubleVariable( const ExternalVariable * var, double floor_value, double ceiling_value = 0.0 ) const;
 	    double getDoubleValue( const ExternalVariable * var, double floor_value, double ceiling_value = 0.0 ) const;
 	    
+	    virtual std::string inputErrorPreamble( unsigned int code ) const;
+	    virtual std::string runtimeErrorPreamble( unsigned int code ) const;
+
 	public:
 	    virtual bool hasHistogram() const { return false; }		/* Any object could have a histogram... */
 	    virtual const Histogram* getHistogram() const { subclass(); return nullptr; }	/* But don't... */

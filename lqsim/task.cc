@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15748 2022-07-03 22:25:03Z greg $
+ * $Id: task.cc 15756 2022-07-24 12:50:26Z greg $
  */
 
 #include "lqsim.h"
@@ -230,7 +230,7 @@ Task::set_start_activity( LQIO::DOM::Entry* dom )
     if ( !ap ) {
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, activity_name );
     } else if ( ep->get_start_activity() != nullptr ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_START_ACTIVITY, entry_name, activity_name );
+	ep->getDOM()->input_error( LQIO::ERR_DUPLICATE_START_ACTIVITY, activity_name );
     } else {
 	ep->set_start_activity( ap );
 	ap->set_is_start_activity(true);

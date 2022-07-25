@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 15746 2022-07-03 11:37:54Z greg $
+ * $Id: processor.cc 15759 2022-07-25 02:02:34Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -540,7 +540,7 @@ Processor::add( const std::pair<std::string,LQIO::DOM::Processor*>& p )
     case SCHEDULE_PS_PPR:
     case SCHEDULE_CFS:
 	if ( !dom->hasQuantum() ) {
-	    input_error2( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name.c_str(), scheduling_label[(unsigned)scheduling_flag].str );
+	    dom->runtime_error( LQIO::ERR_NO_QUANTUM_SCHEDULING, scheduling_label[(unsigned)scheduling_flag].str );
 	}
 	break;
 

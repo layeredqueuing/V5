@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15749 2022-07-04 13:37:42Z greg $
+ * $Id: task.cc 15755 2022-07-24 10:34:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -205,25 +205,15 @@ Task::check() const
 
     /* Check replication */
 
-    const int srcReplicas = replicas();
-    const std::map<const std::string,const LQIO::DOM::ExternalVariable *>& fanOuts = getDOM()->getFanOuts();
-    const std::map<const std::string,const LQIO::DOM::ExternalVariable *>& fanIns = getDOM()->getFanIns();
-    if ( srcReplicas > 1 || !fanOuts.empty() || !fanIns.empty() ) {
-	const int dstReplicas = getProcessor()->replicas();
-	const double temp = static_cast<double>(srcReplicas) / static_cast<double>(dstReplicas);
-	if ( trunc( temp ) != temp  ) {			/* Integer multiple */
-	    LQIO::runtime_error( ERR_REPLICATION_PROCESSOR, srcReplicas, name().c_str(), dstReplicas, getProcessor()->name().c_str() );
+    const LQIO::DOM::Document* document = getDOM()->getDocument();
+    for ( const auto& dst : getDOM()->getFanOuts() ) {
+	if ( document->getTaskByName( dst.first ) == nullptr ) {
+	    LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, dst.first.c_str() );
 	}
-	const LQIO::DOM::Document* document = getDOM()->getDocument();
-	for ( const auto& dst : fanOuts ) {
-	    if ( document->getTaskByName( dst.first ) == nullptr ) {
-		LQIO::runtime_error( ERR_INVALID_FANINOUT_PARAMETER, "fan out", name().c_str(), dst.first.c_str(), "Destination task not defined" );
-	    }
-	}
-	for ( const auto& src : fanIns ) {
-	    if ( document->getTaskByName( src.first ) == nullptr ) {
-		LQIO::runtime_error( ERR_INVALID_FANINOUT_PARAMETER, "fan in", name().c_str(), src.first.c_str(), "Source task not defined" );
-	    }
+    }
+    for ( const auto& src : getDOM()->getFanIns() ) {
+	if ( document->getTaskByName( src.first ) == nullptr ) {
+	    LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, src.first.c_str() );
 	}
     }
 
@@ -474,7 +464,6 @@ Task::fanIn( const Task * aClient ) const
 	return getDOM()->getFanInValue( aClient->name() );
     }
     catch ( const std::domain_error& e ) {
-	LQIO::runtime_error( ERR_INVALID_FANINOUT_PARAMETER, "fan in", name().c_str(), aClient->name().c_str(), e.what() );
 	throw std::domain_error( std::string( "invalid parameter: " ) + e.what() );
     }
     return 1;
@@ -487,7 +476,6 @@ Task::fanOut( const Entity * aServer ) const
 	return getDOM()->getFanOutValue( aServer->name() );
     }
     catch ( const std::domain_error& e ) {
-	LQIO::runtime_error( ERR_INVALID_FANINOUT_PARAMETER, "fan out", name().c_str(), aServer->name().c_str(), e.what() );
 	throw std::domain_error( std::string( "invalid parameter: " ) + e.what() );
     }
     return 1;

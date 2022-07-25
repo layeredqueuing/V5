@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 15745 2022-07-03 11:36:39Z greg $
+ * $Id: json_document.cpp 15758 2022-07-24 18:22:23Z greg $
  *
  * Read in JSON input files.
  *
@@ -886,14 +886,16 @@ namespace LQIO {
 				}
 				if ( precedence->isJoinList() ) {
 				    if ( pre_list ) {
-					LQIO::runtime_error( LQIO::ERR_DUPLICATE_X_LIST, "Xpre" );
+					LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, "Precedence", attr.c_str() );
+				    } else {
+					pre_list = precedence;
 				    }
-				    pre_list = precedence;
 				} else {
 				    if ( post_list ) {
-					LQIO::runtime_error( LQIO::ERR_DUPLICATE_X_LIST, "Xpost" );
+					LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, "Precedence", attr.c_str() );
+				    } else {
+					post_list = precedence;
 				    }
-				    post_list = precedence;
 				}
 				const picojson::value::array& arr = i->second.get<picojson::array>();
 				for (picojson::value::array::const_iterator x = arr.begin(); x != arr.end(); ++x) {
@@ -1374,7 +1376,7 @@ namespace LQIO {
 	JSON_Document::connectEntry( Entry * entry, Task * task, const std::string& name )
 	{
 	    if ( !task ) {
-		LQIO::runtime_error( ERR_NO_TASK_FOR_ENTRY, name.c_str() );
+		LQIO::runtime_error( ERR_NOT_DEFINED, name.c_str() );
 	    } else {
 		const std::vector<Entry*>& entries = task->getEntryList();
 		const_cast<std::vector<Entry*>&>(entries).push_back(entry);

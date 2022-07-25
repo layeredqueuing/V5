@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_activity.h 15724 2022-06-28 15:05:23Z greg $
+ *  $Id: dom_activity.h 15753 2022-07-22 10:59:11Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -27,9 +27,6 @@ namespace LQIO {
 	    Activity( const Activity& );
 	    virtual ~Activity();
       
-	    virtual void input_error( unsigned code, ... ) const;
-	    virtual void runtime_error( unsigned code, ... ) const;
-
 	    /* Basic Activity Accessors and Mutators */
 	    const char * getTypeName() const { return __typeName; }
 
@@ -46,7 +43,12 @@ namespace LQIO {
 	    void inputFrom(ActivityList* inputList);
 	    ActivityList* getOutputToList() const { return _outputList; }
 	    ActivityList* getInputFromList() const { return _inputList; }
-      
+
+	protected:
+	    virtual std::string inputErrorPreamble( unsigned int code ) const;
+	    virtual std::string runtimeErrorPreamble( unsigned int code ) const;
+
+	public:
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [More Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
       
 	    /* Storage of the additional parameters */

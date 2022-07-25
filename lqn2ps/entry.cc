@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15737 2022-06-30 22:59:33Z greg $
+ * $Id: entry.cc 15755 2022-07-24 10:34:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -821,7 +821,7 @@ Entry::entryTypeOk( const LQIO::DOM::Entry::Entry::Type aType )
     const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
     const bool rc = const_cast<LQIO::DOM::Entry *>(dom)->entryTypeOk( aType );
     if ( !rc ) {
-	LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, name().c_str() );
+	dom->input_error( LQIO::ERR_MIXED_ENTRY_TYPES );
     }
     return rc;
 }

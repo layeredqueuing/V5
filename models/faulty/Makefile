@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15739 2022-07-01 01:28:59Z greg $
+# $Id: Makefile 15755 2022-07-24 10:34:56Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	err_activity_not_reachable.lqn \
@@ -37,6 +37,7 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_join_bad_path-repeat.lqn \
 	err_join_bad_path.lqn \
 	err_mixed_entry_types.lqn \
+	err_mixed_entry_types.lqnx \
 	err_no_group_specified.lqn \
 	err_no_reference_tasks.lqn \
 	err_no_requests_to_entry-1.lqn \

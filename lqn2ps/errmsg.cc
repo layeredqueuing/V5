@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.cc 15724 2022-06-28 15:05:23Z greg $
+ * $Id: errmsg.cc 15757 2022-07-24 14:29:03Z greg $
  *
  * Error messages.
  *
@@ -25,10 +25,7 @@
 
 std::vector< std::pair<unsigned, LQIO::error_message_type> > local_error_messages = {
     { FTL_LAYERIZATION,		    { LQIO::error_severity::FATAL,    "Layer %d exceeds maximum %d" } },
-    { ERR_REPLICATION_PROCESSOR,    { LQIO::error_severity::ERROR,    "The number of replicas (%d) for task \"%s\" is not an integer multiple of the number of replicas (%d) for processor \"%s\"." } },
-    { ERR_REPLICATION,		    { LQIO::error_severity::ERROR,    "Fan-out of %d from task \"%s\" with %d replicas does not match the fan-in of %d to task \"%s\" with %d replicas." } },
     { ERR_REPLICATION_NOT_SET,	    { LQIO::error_severity::ERROR,    "Replicas must be a constant for rep2flat:  %s." } },
-    { ERR_NO_CALLS_TO_ENTRY,	    { LQIO::error_severity::ERROR,    "No calls from %s \"%s\" to entry \"%s\"." } },
     { ERR_NO_OBJECTS,		    { LQIO::error_severity::ERROR,    "No objects selected to print." } },
     { ERR_NOT_IMPLEMENTED,	    { LQIO::error_severity::ERROR,    "\"%s\" -- Not implemented." } },
     { ERR_SHOULD_NOT_IMPLEMENT,	    { LQIO::error_severity::ERROR,    "\"%s\" -- Should not implement." } },

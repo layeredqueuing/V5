@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_actlist.cpp 15752 2022-07-05 01:46:28Z greg $
+ *  $Id: dom_actlist.cpp 15753 2022-07-22 10:59:11Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -59,7 +59,7 @@ namespace LQIO {
 	 * Error detected during input processing.  Line number if found from parser.
 	 */
 	
-	void ActivityList::input_error( unsigned code, ... ) const
+	std::string ActivityList::inputErrorPreamble( unsigned int code ) const
 	{
 	    const error_message_type& error = DocumentObject::__error_messages.at(code);
 	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(LQIO_lineno)
@@ -67,46 +67,29 @@ namespace LQIO {
 		+ ": Task \"" + getTask()->getName() + "\", "
 		+ getListTypeName() + " \"" + getListName() + "\" "
 		+ error.message + ".\n";
-
-	    va_list args;
-	    va_start( args, code );
-	    vfprintf( stderr, buf.c_str(), args );
-	    va_end( args );
-
-	    if ( LQIO::io_vars.severity_action != nullptr ) LQIO::io_vars.severity_action( error.severity );
+	    return buf;
 	}
 
 	/*
 	 * Error detected during runtime.  Line number is found from object.
 	 */
 	
-	void ActivityList::runtime_error( unsigned code, ... ) const
+	std::string ActivityList::runtimeErrorPreamble( unsigned int code ) const
 	{
 	    const error_message_type& error = __error_messages.at(code);
-
-	    if ( !output_error_message( error.severity ) ) return;
-
 	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(getLineNumber())
 		+ ": " + severity_table.at(error.severity)
 		+ ": Task \"" + getTask()->getName() + "\", "
 		+ getListTypeName() + " \"" + getListName() + "\" "
 		+ error.message + ".\n";
-	    
-	    va_list args;
-	    va_start( args, code );
-	    vfprintf( stderr, buf.c_str(), args );
-	    va_end( args );
-
-	    if ( LQIO::io_vars.severity_action != nullptr ) LQIO::io_vars.severity_action( error.severity );
+	    return buf;
 	}
 
     
 	const std::string ActivityList::getListName() const
 	{
 	    std::string listName;
-
 	    return std::accumulate( std::next( _list.begin() ), _list.end(), _list.front()->getName(), fold( __op.at(_type) ) );
-	    
 	}
 	
 	bool ActivityList::isJoinList() const

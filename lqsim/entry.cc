@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 15744 2022-07-03 11:22:39Z greg $
+ * $Id: entry.cc 15755 2022-07-24 10:34:56Z greg $
  */
 
 #include "lqsim.h"
@@ -294,7 +294,7 @@ Entry::test_and_set( LQIO::DOM::Entry::Type type )
 {
     const bool rc = getDOM()->entryTypeOk( type );
     if ( !rc ) {
-	input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, name() );
+	getDOM()->input_error( LQIO::ERR_MIXED_ENTRY_TYPES );
     }
     return rc;
 }

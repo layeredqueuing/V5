@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: processor.cc 15755 2022-07-24 10:34:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -76,7 +76,7 @@ Processor::check() const
     for ( std::set<const Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
 	double temp = static_cast<double>((*task)->replicas()) / static_cast<double>(proc_replicas);
 	if ( trunc( temp ) != temp  ) {			/* Integer multiple */
-	    LQIO::runtime_error( ERR_REPLICATION_PROCESSOR, (*task)->replicas(), (*task)->name().c_str(), proc_replicas, name().c_str() );
+	    LQIO::runtime_error( LQIO::ERR_REPLICATION_PROCESSOR, (*task)->replicas(), (*task)->name().c_str(), proc_replicas, name().c_str() );
 	}
     }
     

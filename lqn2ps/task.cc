@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15748 2022-07-03 22:25:03Z greg $
+ * $Id: task.cc 15755 2022-07-24 10:34:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -737,8 +737,8 @@ Task::check() const
     /* Check replication */
 
     if ( Flags::output_format() == File_Format::PARSEABLE ) {
-	LQIO::error_messages.at(ERR_REPLICATION).severity = LQIO::error_severity::WARNING;
-	LQIO::error_messages.at(ERR_REPLICATION_PROCESSOR).severity = LQIO::error_severity::WARNING;
+	LQIO::error_messages.at(LQIO::ERR_REPLICATION).severity = LQIO::error_severity::WARNING;
+	LQIO::error_messages.at(LQIO::ERR_REPLICATION_PROCESSOR).severity = LQIO::error_severity::WARNING;
     }
 
     if ( processor != nullptr && processor->isReplicated() ) {
@@ -758,9 +758,9 @@ Task::check() const
 	    }
 	}
 	if ( !ok ) {
-	    LQIO::runtime_error( ERR_REPLICATION_PROCESSOR,
-				  static_cast<int>(srcReplicasValue), name().c_str(),
-				  static_cast<int>(dstReplicasValue), processor->name().c_str() );
+	    LQIO::runtime_error( LQIO::ERR_REPLICATION_PROCESSOR,
+				 static_cast<int>(srcReplicasValue), name().c_str(),
+				 static_cast<int>(dstReplicasValue), processor->name().c_str() );
 	    if ( Flags::output_format() != File_Format::PARSEABLE ) {
 		rc = false;
 	    }

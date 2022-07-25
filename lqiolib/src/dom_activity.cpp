@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_activity.cpp 15751 2022-07-04 21:39:22Z greg $
+ *  $Id: dom_activity.cpp 15753 2022-07-22 10:59:11Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -48,7 +48,7 @@ namespace LQIO {
 	 * Error detected during input processing.  Line number if found from parser.
 	 */
 	
-	void Activity::input_error( unsigned code, ... ) const
+	std::string Activity::inputErrorPreamble( unsigned int code ) const
 	{
 	    const error_message_type& error = DocumentObject::__error_messages.at(code);
 	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(LQIO_lineno)
@@ -58,37 +58,20 @@ namespace LQIO {
 		buf += std::string( " at line " ) + std::to_string(getLineNumber());
 	    }
 	    buf += std::string( ".\n" );
-
-	    va_list args;
-	    va_start( args, code );
-	    vfprintf( stderr, buf.c_str(), args );
-	    va_end( args );
-
-	    if ( LQIO::io_vars.severity_action != nullptr ) LQIO::io_vars.severity_action( error.severity );
+	    return buf;
 	}
 
 	/*
 	 * Error detected during runtime.  Line number is found from object.
 	 */
 	
-	void Activity::runtime_error( unsigned code, ... ) const
+	std::string Activity::runtimeErrorPreamble( unsigned int code ) const
 	{
 	    const error_message_type& error = __error_messages.at(code);
-
-	    if ( !output_error_message( error.severity ) ) return;
-
-	    std::string object_name = getTypeName();
-	    object_name[0] = std::toupper( object_name[0] );
 	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(getLineNumber())
 		+ ": " + severity_table.at(error.severity)
 		+ ": Task \"" + getTask()->getName() + "\", activity \"" + getName() + "\" " + error.message + ".\n";
-	    
-	    va_list args;
-	    va_start( args, code );
-	    vfprintf( stderr, buf.c_str(), args );
-	    va_end( args );
-
-	    if ( LQIO::io_vars.severity_action != nullptr ) LQIO::io_vars.severity_action( error.severity );
+	    return buf;
 	}
 
     

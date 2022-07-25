@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 15722 2022-06-27 20:37:32Z greg $
+ * $Id: errmsg.h 15755 2022-07-24 10:34:56Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -26,8 +26,6 @@
 enum {
     FTL_LAYERIZATION=LQIO::LSTGBLERRMSG+1,
     ERR_ACTIVITY_NOT_REACHABLE,
-    ERR_REPLICATION_PROCESSOR,
-    ERR_REPLICATION,
     ERR_REPLICATION_NOT_SET,
     ERR_NO_CALLS_TO_ENTRY,
     ERR_NO_OBJECTS,

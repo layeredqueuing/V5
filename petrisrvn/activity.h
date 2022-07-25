@@ -63,7 +63,7 @@ public:
     virtual double residence_time() const;
     virtual void insert_DOM_results() const;
 
-    void activity_cycle_error( int err, const char *, std::deque<Activity *>& activity_stack );
+    void activity_cycle_error( const std::deque<Activity *>& activity_stack );
     static void complete_activity_connections();
 
 private:
