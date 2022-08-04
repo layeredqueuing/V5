@@ -1,14 +1,14 @@
-.TH SRVN 1 "21 March 2013"
+.TH SRVN 1 "4 August 2022"
 .\" $HeadURL$
 .SH NAME
 srvndiff \- compare SRVN results.
 .SH SYNOPSIS
 .br
 .B srvndiff
-[\fIOPTIONS\fR].\|.\|. \fIFILE1\fR [[[[[\fIFILE2\fR] \fIFILE3\fR] \fIFILE4\fR] \fIFILE5\fR]  \fIFILE6\fR] 
+[\fIOPTIONS\fR].\|.\|. \fIFILE\fR [.\|.\|.] 
 .sp
 .B srvndiff
-[\fIOPTIONS\fR].\|.\|. \fIDIR1\fR [[[[[\fIDIR2\fR] \fIDIR3\fR] \fIDIR4\fR] \fIDIR5\fR]  \fIDIR6\fR] 
+[\fIOPTIONS\fR].\|.\|. \fIDIR\fR [.\|.\|.] 
 .sp
 .B srvndiff
 [
@@ -27,7 +27,7 @@ names.  If the arguments are directory names, \fBsrvndiff\fR will
 search for all files ending in either \fI.p\fP or \fI.lqxo\fP and use the results for
 comparison. 
 
-From one to six file or directory arguments can be specified.
+From one to eight file or directory arguments can be specified.
 Directory and file arguments cannot be mixed.  Standard input may be
 specified using the file name \fB\-\fP.
 
@@ -47,45 +47,46 @@ Aggregate the throughput or utilizations of all tasks or processors
 that match the pattern specified by \fIname\fP.  Regular
 expressions are specified in the same manner as \fBed(1)\fP.
 .TP 12
-\fB(+|\-)A\fP, \fB\-\-[no\-]results
+\fB(+|\-)A\fP, \fB\-\-[no-]results
 Print either everything or nothing.  Options are processed from left
 to right: the last occurance of an option used to print a result takes
 precedence. 
 .TP
-\fB(+|\-)b\fP, \fB\-\-[no\-]processor-waiting
+\fB(+|\-)b\fP, \fB\-\-[no-]processor-waiting
 Print (don't print) the waiting time for processors.  The default is to not print this value.  
 .TP
 \fB\-C\fP, \fB\-\-no-confidence-intervals
 Don't print confidence intervals (if confidence intervals present).
 .TP
-\fB(+|\-)c\fR
+\fB(+|\-)c\fP, \fB\-\-[no-]coefficient-of-variation
 Print (don't print) coefficient of variation for all phases on an
 entry.  The default is to not print this value.  Confidence intervals
 are not available for this report.
-.TP
-\fB\-D\fR
+.TP 12
+\fB\-D\fP, \fB\-\-difference\fP
 Generate a parseable output file with the absolute difference between
 the results in filename1 and filename2.  This output can be used as
 input to other programs such as lqn2ps.
-.TP
-\fB(+|\-)d\fR
+.TP 
+\fB(+|\-)d\fR, \fB\-\-[no-]asynch-send-variance\fP
 Print (don't print) send-no-reply waiting time variances.  The default is to not print
 send-no-reply waiting time variances.
 .TP
-\fB(+|\-)E\fR 
+\fB(+|\-)E\fR, \fB\-\-[no-]errors\fP
 Print (don't print) error columns of report only.  The default is to
 print the error columns \fBand\fP the results.  Overrides \fB\-R\fP.
 .TP
-\fB(+|\-)e\fR
-Print (don't print) the probability that the maximum service time was
-exceeded (if present).
+\fB(+|\-)e\fR, \fB\-\-[no-]entry-throughput\fP
+Print (don't print) entry throughput.
 .TP
-\fB\-f\fI format\fR
-Set the output format for the specified column.
+\fB\-f\fP, \fB\-\-format=\fI\<col>\fB=\fI<arg>\fR
+Set the output format for the specified column, \fIcol\fP, to
+\fIarg\fP.  \fICol\fP can be separator, result, confidence, error, or
+percent-confidence. \fIarg\fP is passed to \fIprintf\fP(3) as a format.
 .RS
 .TP
 \fBseparator=\fIstring\fR
-Set column separator to \fIstring\fP.
+Set the column separator to \fIstring\fP.
 .TP
 \fBresult=\fIformat\fR
 Set the format string for the result columns to \fIformat\fP.
@@ -105,139 +106,172 @@ Report confidence intervals as percentages.  If specified, use \fIformat\fP as t
 format string.  Otherwise, use the default ``%8.3lf''.
 .RE
 .TP
-\fB\-F\fI fileglob\fR
+\fB\-F\fP, \fB\-\-select-files=\fI<fileglob>\fR
 Only select those files in the directory that match the shell glob
 expression \fIfileglob\fR.  Note that the glob expression is
 \fBnot\fR a regular expression.
 .TP
-\fB(+|\-)g\fR 
+\fB(+|\-)g\fR, \fB\-\-[no-]group-utilization\fR
 Print (don't print) group utilizations.  The default is to
 print the group utilization results.
 .TP
-\fB\-H\fR 
+\fB\-H\fR, \fB\-\-help\fP
 Print a summary of all options.
 .TP
-\fB(+|\-)h\fR 
-Print (don't print) semaphore waiting (hold) times.  The default is to
-not print the semaphore waiting times.
+\fB(+|\-)h\fR, \fB\-\-[no-]semaphore-utilization\fP
+Print (don't print) semaphore utilizations.  The default is to not
+print the semaphore utilizations.
 .TP
-\fB(+|\-)i\fR
-Print (don't print) the number of iterations needed to solve the
-model.  The default is to not print the number of iterations.
-.TP
-\fB\-I\fR
+\fB\-I\fR, \fB\-\-ignore-errors\fP
 Ignore non-convergence errors.  Normally, srvndiff will not report
 results from solutions that did not meet the specified convergence
 criteria for the solver.
 .TP
-\fB(+|\-)i\fR
-Print (don't print) solver iterations.  The default is to not print solver iterations.
+\fB(+|\-)i\fR, \fB\-\-[no-]iterations\fP
+Print (don't print) the number of iterations needed to solve the
+model.  The default is to not print the number of iterations.
 .TP
-\fB(+|\-)j\fR
+\fB(+|\-)j\fR, \fB\-\-[no-]join-delay\fP
 Print (don't print) join delays.  The default is to print join delays.
 .TP
-\fB(+|\-)k\fR
+\fB(+|\-)k\fR, \fB\-\-[no-]join-delay-variance\fP
 Print (don't print) join delay variance.  The default is to not print
 join delay variance.
 .TP
-\fB(+|\-)l\fR
+\fB\-L\fP, \fB--file-label=\fI<label>\fR
+Use \fIlabel\fR as file label.
+.TP
+\fB(+|\-)l\fR, \fB\-\-[no-]loss-probability\fR
 Print (don't print) message loss probabilities.  The default is to not print
 message loss probabilities.
 .TP
-\fB\-L\fI label\fR
-Use \fIlabel\fR as file label.
-.TP
-\fB\-M\fR
+\fB\-M\fR, \fB\-\-mean-absolute-errors\fP
 Print the absolute value of an error.
 .TP
-\fB(+|\-)m\fR
+\fB(+|\-)m\fR, \fB\-\-[no-]mva-wait\fP
 Print (don't print) the number of times the MVA wait() function was called.  The default is to not
 print this result.
 .TP
-\fB\-o\fI output\fR
-Direct output to the file named \fIoutput\fR.  By default, output goes
+\fB\-o\fR, \fB\-\-output=<filename>\fP
+Direct output to the file named \Ifilename\fR.  By default, output goes
 to standard output.
 .TP
-\fB\-P\fR
-Use normalized processor utilization.  Processor
-utilizations are normalized to one CPU with this option.  The default is to not
-print processor utilization.
-.TP
-\fB(+|\-)p\fR
+\fB(+|\-)p\fR, \fB\-\-[no-]processor-utilization\fP
 Print (don't print) processor utilization.  The default is to not
 print processor utilization.
 .TP
-\fB\-Q\fR
+\fB\-Q\fR, \fB\-\-quiet\fP
 Quiet - only print out a message if files differ.  The \fB\-S\fR flag can be
 used to set the amount the RMS error the files differ by before being flagged as
 being different.
 .TP
-\fB(+|\-)q\fR
+\fB(+|\-)q\fR, \fB\-\-[no-]queue-length\fR
 Print (don't print) open arrival queue lengths.  The default is to not
 print open arrival queue lengths.
 .TP
-\fB\-R\fR
+\fB\-R\fR, \fB\-\-rms-errors\fR
 Print Root Mean Square (RMS) errors only.  This option overrides \fB(+|\-)E\fP.
 .TP
-\fB(+|\-)r\fR
+\fB(+|\-)r\fR, \fB\-\-run-times\fP
 Print (don't print) solver run times.  The default is to not
 print solver run times.
 .TP
-\fB(+|\-)s\fR
-Print (don't print) entry service times.  The default is to not print
-entry service times.
-.TP
-\fB\-S\fI n.n\fR
+\fB\-S\fP, \fB\-\-error-threshold=\fI<n.n>\fR
 Set the error threshold to \fIn.n\fP.  If the difference any result is greater than
 \fIn.n\fP, srvndiff returns with a non-zero exit code.  
 .TP
-\fB-T\fR 
+\fB(+|\-)s\fR, \fB\-\-[no-]service-times\fR
+Print (don't print) entry service times.  The default is to not print
+entry service times.
+.TP
+\fB-T\fR, \fB\-\-no-total-rms-errors\fP
 Don't print the total RMS error values.  \fBSrvndiff\fP must be comparing
 the results from directories or this option has no effect.  The
 default is to print the totals.
 .TP
-\fB(+|\-)t\fR
+\fB(+|\-)t\fR, \fB\-\-[no-]throughputs\fP
 Print (don't print) task throughput. The default is to print task
 throughput. 
 .TP
-\fB-U\fR
+\fB-U\fR, \fB\-\-totals-only\fP
 Print the total error summary only.  The default is to print
 both the summary and the individual results.
 .TP
-\fB(+|\-)u\fR
+\fB(+|\-)u\fR, \fB\-\-[no-]utilizations\fP
 Print (don't print) task utilizations.  The default is to print task
 utilizations.
 .TP
-\fB(+|\-)v\fR
+\fB\-V\fR, \fB\-\-version\fP
+Print the version number.
+.TP
+\fB(+|\-)v\fR, \fB\-\-[no-]variances\fP
 Print (don't print) service time variance.  The default is to not print
 service time variances.
 .TP
-\fB\-V\fR
-Print version number.
-.TP
-\fB(+|\-)W\fR
+\fB(+|\-)W\fR 
 Print (don't print) read-write lock utilization.  The default is to not print
 this result.
 .TP
-\fB(+|\-)w\fR
+\fB(+|\-)w\fR, \fB\-\-[no-]waiting-times\fP
 Print (don't print) entry waiting times.  The default is to not print
 entry waiting times.
 .TP
-\fB\-x\fB (task|processor)=\fIname\fR
-Exclude the throughput or utilizations of all tasks or processors
-that match the pattern specified by \fIname\fP.  Regular
-expressions are specified in the same manner as \fBed(1)\fP.
-A task or processor that matches the aggregation pattern will be
-included in the results even if it also matches the exclusion
-pattern. 
+\fB\-X\fR, \fB\-\-exclude=\fI<regex>\fP
+Exclude any object whose name matches the regular expression
+\fIregex\fP from the results.  The object can be a processor, task or entry.
 .TP
-\fB(+|\-)y\fR
+\fB\-x\fP, \fB\-\-[no-]service-time-exceeded\fP
+Print (don't print) the probability that the maximum service time
+pararmeter was exceeded.  The default is to not print this value.
+.TP
+\fB\-Y\fP, \fB\-\-include=\fI<regex>\fR
+Only include objects whose name matches the regular expression
+\fIregex\fP from the results.  The object can be a processor, task or entry.
+.TP
+\fB(+|\-)y\fR, \fB\-\-[no-]waiting-time-variances\fP
 Print (don't print) waiting time variances.  The default is to not print
 entry waiting time variances.
 .TP
-\fB(+|\-)z\fR
+\fB(+|\-)z\fR, \fB\-\-[no-]asynch-send-waits\fP
 Print (don't print) send-no-reply waiting time results.  The default
 is to print send-no-reply waiting time results.
+.TP
+\fB\-\-compact\fP
+Use a more compact format for output. Generally, output fields are
+eight characters wide rather than the default sixteen.
+.TP
+\fB\-\-print-comment\P
+Print the model comment field.
+.TP
+\fB\-\-latex\fP
+Format output for LaTeX.
+.TP
+\fB\-\-heading=\fI<col>\fI=\fI<string>\fP
+Set the column heading fpr \fIcol\fP to \fIstring\fP.
+.TP
+\fB\-\-debug-xml\fP
+Output debugging information while parsing XML input.
+.TP
+\fB\-\-debug-json\fP
+Output debugging information while parsing JSON input.
+.TP
+\fB\-\-debug-srvn\fP
+Output debugging information while parsing SRVN results.
+.TP
+\fB\-\-no-replication\fP
+Strip replicas from ``flattend'' model from comparison.  See \fIrep2flat\fP(1).
+.TP
+\fB\-\-no-warnings\fP
+Ignore warnings when parsing results.
+.TP
+\fB\-\-verbose\fP
+Verbose output (direct differences to stderr).
 .PP
-The \fB\-S\fP flag has precedence over \fB+U\fP.  The \fB+U\fP flag has
-precedence over \fB\-R\fP.
+.SH EXIT STATUS
+\fBsrvndiff\fP returns 0 if no differences larger than the error
+threshold set using \fB\-S\fP were found (the default error threshold
+is zero).  \fBsrvndiff\fP returns 1 for any command line errors, 2 for
+problems opening files or directories and 3 if differences were found
+in any file.
+.SH SEE ALSO
+\fIlqn2csv\fP(1), \fIlqn2ps\fP(1), \fIprintf\fP(3)

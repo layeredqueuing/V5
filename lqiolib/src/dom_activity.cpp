@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_activity.cpp 15753 2022-07-22 10:59:11Z greg $
+ *  $Id: dom_activity.cpp 15769 2022-07-27 15:22:43Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -54,7 +54,7 @@ namespace LQIO {
 	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(LQIO_lineno)
 		+ ": " + severity_table.at(error.severity)
 		+ ": Task \"" + getTask()->getName() + "\", activity \"" + getName() + "\" " + error.message;
-	    if ( code == LQIO::ERR_DUPLICATE_SYMBOL && getLineNumber() != LQIO_lineno ) {
+	    if ( code == LQIO::ERR_DUPLICATE_SYMBOL && getLineNumber() != static_cast<size_t>(LQIO_lineno) ) {
 		buf += std::string( " at line " ) + std::to_string(getLineNumber());
 	    }
 	    buf += std::string( ".\n" );

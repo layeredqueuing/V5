@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: vector.h 15626 2022-06-02 13:36:09Z greg $
+ * $Id: vector.h 15768 2022-07-27 13:29:17Z greg $
  *
  * Vector.  Range checked from 1..n (and not from 0..n-1).
  * VectorMath.  Adds the operators +, -, *, /, square, sum (so only use on numbers).
@@ -33,8 +33,6 @@ const int VectorSize = 0;
 template <typename Type>
 class Vector {
 public:
-    typedef Type value_type;
-
     typedef Type * iterator;
     typedef const Type * const_iterator;
     typedef std::reverse_iterator<const_iterator>  const_reverse_iterator;
@@ -100,7 +98,7 @@ public:
     bool empty() const { return sz == 0; }
     size_t size() const { return sz; }
     size_t max_size() const { return mx; }
-    void resize( size_t amt, const value_type val = value_type() )
+    void resize( size_t amt, const Type val = Type() )
 	{
 	    if ( amt > size() ) {
 		grow( amt - size(), val );
@@ -170,7 +168,7 @@ public:
     Type& operator[](const size_t ix) const { assert( ix && ix <= sz ); return ia[ix]; }
 
 protected:
-    void grow( size_t amt, const value_type val )
+    void grow( size_t amt, const Type val )
 	{
 	    if ( amt == 0 ) return;		/* No operation.		*/
 	
@@ -254,7 +252,7 @@ template <typename Type>
 class VectorMath : public Vector<Type> {
 	
 public:
-    explicit VectorMath<Type>( size_t size=0, Type init=0 ) : Vector<Type>() { this->grow( size, init ); }
+    explicit VectorMath<Type>( size_t size=0, const Type init=Type() ) : Vector<Type>() { this->grow( size, init ); }
     VectorMath<Type>( const Type *ar, size_t sz ) : Vector<Type>( ar, sz ) {}
     VectorMath<Type>( const VectorMath<Type> &iA ) : Vector<Type>( iA ) {}
 

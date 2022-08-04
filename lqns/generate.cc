@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 15677 2022-06-21 14:56:19Z greg $
+ * $Id: generate.cc 15773 2022-07-29 00:51:05Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -339,7 +339,7 @@ Generate::print( std::ostream& output ) const
     output << std::endl << "int main ( int argc, char* argv[] )" << std::endl << "{" << std::endl
 	   << "    extern char *optarg;" << std::endl
 	   << "    Multiserver multiserver = Multiserver::DEFAULT;" << std::endl
-	   << "    extern double MVA::MOL_multiserver_underrelaxation = 0.5;	/* For MOL Multiservers */" << std::endl;
+	   << "    MVA::MOL_multiserver_underrelaxation = 0.5;	/* For MOL Multiservers */" << std::endl;
 
 
     if ( _submodel.n_openStns() ) {

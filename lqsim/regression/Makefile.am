@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15716 2022-06-24 12:26:34Z greg $
+# $Id: Makefile.am 15778 2022-07-29 12:48:51Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -82,13 +82,13 @@ SUFFIXES = .diff .d .lqxo .lqnx
 
 .lqnx.lqxo:
 	$(SRVN) $(OPTS) $<
-	@srvndiff -Q $(EPSILON) ../../models/regression/sim-results/$*.p $@ 
+	@srvndiff -Q $(EPSILON) ../../models/regression/sim-results/$@ $@ 
 
 .lqnx.d:
 	$(SRVN) $(OPTS) $<
 
 .lqxo.diff:
-	-srvndiff ../../models/regression/sim-results/$*.p $< > $@
+	-srvndiff ../../models/regression/sim-results/$< $< > $@
 
 check:	$(OBJS)
 	echo $(OBJS) | tr -s " " "\n" | srvndiff -Q $(EPSILON) -@- . ../../models/regression/sim-results

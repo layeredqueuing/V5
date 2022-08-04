@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 15674 2022-06-15 21:51:46Z greg $
+ * $Id: model.cc 15794 2022-08-04 00:07:05Z greg $
  *
  * Command line processing.
  *
@@ -68,6 +68,7 @@ const std::map<Model::Result::Type,Model::Result::result_fields> Model::Result::
     { Model::Result::Type::TASK_MULTIPLICITY,          { Model::Object::Type::TASK,          "Copies",      "mult", &LQIO::DOM::DocumentObject::getCopiesValueAsDouble       } },
     { Model::Result::Type::TASK_THROUGHPUT,            { Model::Object::Type::TASK,          "Throughput",  "tput", &LQIO::DOM::DocumentObject::getResultThroughput          } },
     { Model::Result::Type::TASK_UTILIZATION,           { Model::Object::Type::TASK,          "Utilization", "util", &LQIO::DOM::DocumentObject::getResultUtilization         } },
+    { Model::Result::Type::TASK_THINK_TIME,            { Model::Object::Type::TASK,          "Think Time",  "thnk", &LQIO::DOM::DocumentObject::getThinkTimeValue            } },
     { Model::Result::Type::THROUGHPUT_BOUND,           { Model::Object::Type::ENTRY,         "Bound",       "bond", &LQIO::DOM::DocumentObject::getResultThroughputBound     } }
 };
 
@@ -88,6 +89,7 @@ bool Model::Result::isIndependentVariable( Model::Result::Type type )
 	Type::ACTIVITY_DEMAND,
 	Type::ACTIVITY_REQUEST_RATE,
 	Type::TASK_MULTIPLICITY,
+	Type::TASK_THINK_TIME,
 	Type::PROCESSOR_MULTIPLICITY };
 
     return independent.find( type ) != independent.end();
@@ -126,13 +128,13 @@ Model::PrintHeader::operator()( const std::pair<std::string,Model::Result::Type>
  * Load a file then extract results using Model::Result::operator().
  */
 
-void Model::Process::operator()( const std::string& filename )
+void Model::Process::operator()( const std::string& pathname )
 {
     if ( _limit > 0 && _i >= _limit ) return;
     
     /* Load results */
     unsigned int error_code = 0;
-    LQIO::DOM::Document * dom = LQIO::DOM::Document::load( filename, LQIO::DOM::Document::InputFormat::AUTOMATIC, error_code, true );
+    LQIO::DOM::Document * dom = LQIO::DOM::Document::load( pathname, LQIO::DOM::Document::InputFormat::AUTOMATIC, error_code, true );
     if ( !dom ) {
 	throw std::runtime_error( "Input model was not loaded successfully." );
     }
@@ -153,21 +155,35 @@ void Model::Process::operator()( const std::string& filename )
 	}
     }
 
-    if ( _mode == Mode::FILENAME ) {
-	const std::ios_base::fmtflags flags = _output.setf( std::ios::left, std::ios::adjustfield );
-	if ( width != 0 ) {
-	    _output << std::setw(_header_column_width) << filename;
-	} else {
-	    _output << "\"" << filename << "\"";
-	}
-	_output.flags(flags);
-    } else {
+
+    if ( _mode == Mode::DIRECTORY ) {
 	_output << _i;				// File (record) number
+    } else if ( _mode == Mode::FILENAME_STRIP ) {
+	const std::string dirname = pathname.substr( 0, pathname.find_last_of( "/" ) );
+	print_filename( dirname );		// Directory name
+    } else if ( _mode == Mode::DIRECTORY_STRIP ) {
+	const std::string filename = pathname.substr(pathname.find_last_of( "/" ) );
+	print_filename( filename );		// File name
+    } else {
+	print_filename( pathname );
     }
 
     std::for_each( data.begin(), data.end(), Model::PrintLine( _output ) );
 
     _output << std::endl;
+}
+
+
+void
+Model::Process::print_filename( const std::string& filename ) const
+{
+    const std::ios_base::fmtflags flags = _output.setf( std::ios::left, std::ios::adjustfield );
+    if ( width != 0 ) {
+	_output << std::setw(_header_column_width) << filename;
+    } else {
+	_output << "\"" << filename << "\"";
+    }
+    _output.flags(flags);
 }
 
 /*

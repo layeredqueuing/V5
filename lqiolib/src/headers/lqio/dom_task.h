@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_task.h 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: dom_task.h 15788 2022-08-03 16:10:55Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -74,7 +74,7 @@ namespace LQIO {
 	    void setPriority(const ExternalVariable *);
 	    void setPriorityValue( int );
 	    bool hasPriority() const;
-	    double getThinkTimeValue() const;
+	    virtual double getThinkTimeValue() const;
 	    const ExternalVariable * getThinkTime() const;
 	    void setThinkTime(const ExternalVariable * thinkTime);
 	    void setThinkTimeValue( double value );

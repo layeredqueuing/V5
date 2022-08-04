@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 15697 2022-06-23 02:56:49Z greg $
+ * $Id: call.h 15769 2022-07-27 15:22:43Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,9 +18,10 @@
 #if	!defined(LQNS_CALL_H)
 #define LQNS_CALL_H
 
+#include <cmath>
+#include <deque>
 #include <lqio/input.h>
 #include <lqio/dom_call.h>
-#include <deque>
 #include "interlock.h"
 
 class Activity;
@@ -173,7 +174,7 @@ public:
     unsigned fanOut() const;
 
     double wait() const { return _wait; }
-    void setWait( double wait ) { _wait = wait; }
+    void setWait( double wait ) { if ( std::isnan( wait ) ) abort(); _wait = wait; }
 
 protected:
     Call& setSource( const Phase * source ) { _source = source; return *this; }

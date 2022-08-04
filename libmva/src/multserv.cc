@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15687 2022-06-22 14:39:28Z greg $
+ * $Id: multserv.cc 15772 2022-07-28 22:33:31Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -1049,15 +1049,13 @@ const std::string Bruell_Multi_Server::__type_str = "Bruell_Multi_Server";
 
 /*
  * Set the size of the marginal probabilities needed based on the incoming
- * population vector.
+ * population vector.  
  */
 
 void
 Bruell_Multi_Server::setMarginalProbabilitiesSize( const Population& N )
 {
-    Population::IteratorOffset next( N, N );
-
-    marginalSize = next.maxOffset();
+    marginalSize = Population::IteratorOffset( N, N ).maxOffset();
 }
 
 
@@ -1082,7 +1080,7 @@ Bruell_Multi_Server::muS( const Population& N, const unsigned k ) const
 void
 Bruell_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
-    const double sum = solver.sumOf_SP2( *this, N, k );
+    const double sum = solver.sumOf_SP( *this, N, k );
 
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
@@ -1098,20 +1096,6 @@ Bruell_Multi_Server::wait( const MVA& solver, const unsigned k, const Population
 /*----------------------------------------------------------------------*/
 
 const std::string Schmidt_Multi_Server::__type_str = "Schmidt_Multi_Server";
-
-void
-Schmidt_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
-{
-    const double sum = solver.sumOf_SP2( *this, N, k );
-
-    for ( unsigned e = 1; e <= E; ++e ) {
-	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
-	    W[e][k][p] = sum;
-	}
-    }
-}
-
-
 
 /*
  * `B' term: Eqn (6).  Our waiting times are expressed per visit,

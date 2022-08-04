@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15666 2022-06-10 10:38:00Z greg $
+ * $Id: lqn2csv.cc 15794 2022-08-04 00:07:05Z greg $
  *
  * Command line processing.
  *
@@ -14,6 +14,7 @@
 
 #include "config.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -73,7 +74,8 @@ const std::vector<struct option> longopts = {
     { "activity-variance",     required_argument, nullptr, 'V' }, 
     { "waiting",               required_argument, nullptr, 'w' }, 
     { "activity-waiting",      required_argument, nullptr, 'W' }, 
-    { "service-exceeded",      required_argument, nullptr, 'x' }, 
+    { "service-exceeded",      required_argument, nullptr, 'x' },
+    { "think-time",	       required_argument, nullptr, 'z' },
     { "arguments",	       required_argument, nullptr, '@' },
     { "gnuplot",               no_argument,       &gnuplot_flag, 1 },
     { "limit",		       required_argument, nullptr, 0x100+'l' },
@@ -117,6 +119,7 @@ const static std::map<int,const std::string> help_str
     { 'W', "print waiting time from source <task>, <activity> to destination <entry>." }, 
     { 'x', "print probability service time exceeded for <entry>, phase <n>." },
     { 'X', "print probability service time exceeded for <task>, <activity>." },
+    { 'z', "print think time for <task> (independent variable)" },
     { '@', "Read the argument list from <arg>.  --output-file and --arguments are ignored." },
     { 0x100+'h', "Print out this list." },
     { 0x100+'l', "Limit output to the first <arg> files read." },
@@ -153,6 +156,40 @@ const static std::map<int,Model::Result::Type> result_type
     { 'w', Model::Result::Type::PHASE_WAITING          }, 
     { 'x', Model::Result::Type::PHASE_PR_SVC_EXCD      }, 
     { 'X', Model::Result::Type::ACTIVITY_PR_SVC_EXCD   }, 
+    { 'z', Model::Result::Type::TASK_THINK_TIME	       }
+};
+
+enum class Disposition { handle, ignore, fault };
+
+struct max_strlen {
+    max_strlen( Model::Mode mode ) : _mode(mode) {}
+    size_t operator()( size_t l, const char * const s ) {
+	if ( s == nullptr ) return l;
+	const char * p = std::strrchr( s, '/' );
+	if ( _mode == Model::Mode::DIRECTORY_STRIP && p != nullptr ) {
+	    return std::max( l, static_cast<size_t>(p - s) );
+	} else if ( _mode == Model::Mode::FILENAME_STRIP && p != nullptr ) {
+	    return std::max( l, strlen( p ) );
+	} else {
+	    return std::strlen( s );
+	}
+    }
+private:
+    const Model::Mode _mode;
+};
+
+struct filename_match {
+    filename_match( const std::string& filename ) : _filename( filename.substr( filename.find_last_of( "/" ) ) ) {}
+    bool operator()( const char * filename ) { return filename != nullptr && _filename != filename; }
+private:
+    const std::string _filename;
+};
+    
+struct directory_match {
+    directory_match( const std::string& directory ) : _directory( directory.substr( 0, directory.find_last_of( "/" ) ) ) {}
+    bool operator()( const char * directory ) { return directory != nullptr && _directory != directory; }
+private:
+    const std::string _directory;
 };
     
 std::vector<Model::Result::result_t> results;
@@ -160,10 +197,11 @@ std::vector<Model::Result::result_t> results;
 static void process( std::ostream& output, int argc, char **argv, const std::vector<Model::Result::result_t>& results, size_t limit );
 static bool is_directory( const char * filename );
 static void process_directory( std::ostream& output, const std::string& dirname, const Model::Process& );
+static Model::Mode get_mode( int argc, char **argv, int optind );
 static void fetch_arguments( const std::string& filename, std::vector<Model::Result::result_t>& results );
+static void handle_arguments( int argc, char * argv[], Disposition, std::vector<Model::Result::result_t>& results );
 static void usage();
 static std::string makeopts( const std::vector<struct option>& );
-static size_t max_strlen( size_t l, const char * const s ) { return std::max( l, s != nullptr ? strlen( s ) : 0 ); }
 std::string toolname;
 std::string output_file_name;
 
@@ -178,26 +216,22 @@ main( int argc, char *argv[] )
     extern int optind;
     static char copyrightDate[20];
 
-    sscanf( "$Date: 2022-06-10 06:38:00 -0400 (Fri, 10 Jun 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-08-03 20:07:05 -0400 (Wed, 03 Aug 2022) $", "%*s %s %*s", copyrightDate );
 
     toolname = basename( argv[0] );
     opts = makeopts( longopts );	/* Convert to regular options */
     LQIO::io_vars.init( VERSION, toolname, nullptr );
 
+    /* Scan for all '-@' and others */
+    
+    std::vector<std::string> files;
+    
     for ( ;; ) {
-	char * endptr = nullptr;
 	const int c = getopt_long( argc, argv, opts.c_str(), longopts.data(), nullptr );
 	if ( c == EOF ) break;
 	
-	/* Find the option */
-	std::map<int,Model::Result::Type>::const_iterator result = result_type.find( c );
-	if ( optarg != nullptr && result != result_type.end() ) {
-	    results.emplace_back( optarg, result->second );
-	    continue;
-	}
-
 	switch ( c ) {
-	case 0: break;
+	case 0: break;		/* flags not handled by case */
 
 	case 'o':
 	    output_file_name = optarg;
@@ -208,14 +242,6 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	    break;
 
-	case 0x100+'l':
-	    limit = strtol( optarg, &endptr, 10 );
-	    break;
-	    
-	case 0x100+'p':
-	    precision = strtol( optarg, &endptr, 10 );
-	    break;
-	    
 	case 0x100+'v':
             std::cout << "Lqn2csv, Version " << VERSION << std::endl << std::endl;
             std::cout << "  Copyright " << copyrightDate << " the Real-Time and Distributed Systems Group," << std::endl;
@@ -223,24 +249,27 @@ main( int argc, char *argv[] )
             std::cout << "  Carleton University, Ottawa, Ontario, Canada. K1S 5B6" << std::endl << std::endl;
             break;
 	    
-	case 0x100+'w':
-	    width = strtol( optarg, &endptr, 10 );
-	    break;
-	    
 	case '@':
-	    fetch_arguments( optarg, results );
+	    files.push_back( optarg );
 	    break;
-	    
-	case '?':
-	    std::cerr << toolname << ": invalid argument -- " << argv[optind-1] << "." << std::endl; // 
-            usage();
-	    exit( 1 );
 	}
+    }
 
-	if ( endptr != 0 && *endptr != '\0' ) {
-	    std::cerr << toolname << ": invalid argument -- " << argv[optind-1] << "." << std::endl; // 
-	    exit( 1 );
-	}
+    /* Handle all -@ arguments */
+    
+    for ( const auto& filename : files ) {
+	fetch_arguments( filename, results );
+    }
+
+    /* Now do everything at the command line.  optind should be set to the first file */
+    
+    try {
+	handle_arguments( argc, argv, Disposition::ignore, results );
+    }
+    catch ( const std::invalid_argument& e ) {
+	std::cerr << toolname << ": " << e.what() << "." << std::endl;
+	usage();
+	exit( 1 );
     }
 
     if ( gnuplot_flag ) {
@@ -274,30 +303,29 @@ static void
 process( std::ostream& output, int argc, char **argv, const std::vector<Model::Result::result_t>& results, size_t limit )
 {
     extern int optind;
-    const Model::Mode mode = argc - optind == 1 && is_directory( argv[optind] ) ? Model::Mode::DIRECTORY : Model::Mode::FILENAME;
+    const Model::Mode mode = get_mode( argc, argv, optind );
     
     Model::GnuPlot plot( output, output_file_name, results );
 
     /* Load results, then got through results printing them out. */
 
-    const size_t min_header_column_width = 6;
-    const size_t header_column_width = (width == 1) ? 1 : (mode == Model::Mode::FILENAME) ? std::accumulate( &argv[optind], &argv[argc], min_header_column_width, &max_strlen ) : min_header_column_width;
+    const size_t filename_column_width = (width == 1) ? 1 : (mode == Model::Mode::DIRECTORY) ? width : std::accumulate( &argv[optind], &argv[argc], 1, max_strlen( mode ) );
     
     if ( gnuplot_flag ) {
 	plot.preamble();
     } else if ( no_header == 0 ) {
-	Model::Result::printHeader( output, "Object", results, &Model::Result::getObjectType, header_column_width );
-	Model::Result::printHeader( output, "Name",   results, &Model::Result::getObjectName, header_column_width );
-	Model::Result::printHeader( output, "Result", results, &Model::Result::getTypeName,   header_column_width  );
+	Model::Result::printHeader( output, "Object", results, &Model::Result::getObjectType, filename_column_width );
+	Model::Result::printHeader( output, "Name",   results, &Model::Result::getObjectName, filename_column_width );
+	Model::Result::printHeader( output, "Result", results, &Model::Result::getTypeName,   filename_column_width  );
     }
 
     /* For all files do... */
 
     try {
 	if ( mode == Model::Mode::DIRECTORY ) {
-	    process_directory( output, argv[optind], Model::Process( output, results, limit, header_column_width, mode, plot.getSplotXIndex() ) );
+	    process_directory( output, argv[optind], Model::Process( output, results, limit, filename_column_width, mode, plot.getSplotXIndex() ) );
 	} else {
-	    std::for_each( &argv[optind], &argv[argc], Model::Process( output, results, limit, header_column_width, mode, plot.getSplotXIndex() ) );
+	    std::for_each( &argv[optind], &argv[argc], Model::Process( output, results, limit, filename_column_width, mode, plot.getSplotXIndex() ) );
 	}
 
 	if ( gnuplot_flag ) {
@@ -321,31 +349,14 @@ process_directory( std::ostream& output, const std::string& dirname, const Model
 #if HAVE_GLOB
     /* look for foo-001.lqxo~001~, then for foo-001.lqxo, then foo.lqxo~00~,... (spex && print-interval, spex, print-interval). */
 
-    static const std::vector<std::string> patterns = { "-*.lqxo~*~", "-*.lqjo~*~", "-*.lqxo", "-*.lqjo", ".lqxo~*~", ".lqjo~*~",  };
-
-    /* if there is a / followed by a dot, take the stuff between the slash and the dot as filename
-     * else if there is no slash, but a dot, take the stuff up to the dot as filename
-     * else take it all as filename.
-     */
-    
-    std::string filename = dirname;
-    std::string::iterator back;
-    for ( back = std::prev(filename.end()); back != filename.begin() && *back == '/'; --back ) {
-	filename.erase(back);				/* Strip trailing slashes	*/
-    }
-
-    size_t i = filename.find_last_of( "/" );
-    if ( i != std::string::npos ) {
-	filename = filename.substr( i );		/* Strip everything up to and including last '/' */
-    }
-    filename.erase( filename.find_last_of( "." ) );	/* Strip suffix (if any)	*/
+    static const std::vector<std::string> patterns = { "*-*.lqxo", "*-*.lqjo", "*.lqxo~*~", "*.lqjo~*~",  };
 
     glob_t dir_list;
     dir_list.gl_offs = 0;
     dir_list.gl_pathc = 0;
     int rc = -1;
     for ( std::vector<std::string>::const_iterator match = patterns.begin(); match != patterns.end() && dir_list.gl_pathc == 0 ; ++match ) {
-	std::string pathname = dirname + "/" + filename + *match;
+	std::string pathname = dirname + "/" + *match;
 	rc = glob( pathname.c_str(), 0, NULL, &dir_list );
     }
 	  
@@ -382,8 +393,24 @@ is_directory( const char * filename )
 }
 
 
+
 /*
- * Read each line and store in results 
+ * Return the mode to be used.  If there are a set of filenames, and they are all the same, then strip them on output.
+ */
+ 
+static Model::Mode
+get_mode( int argc, char **argv, int optind )
+{
+    if ( argc - optind == 1 && is_directory( argv[optind] ) ) return Model::Mode::DIRECTORY;
+    else if ( std::all_of( &argv[optind+1], &argv[argc], directory_match( argv[optind] ) ) ) return Model::Mode::DIRECTORY_STRIP;
+    else if ( std::all_of( &argv[optind+1], &argv[argc], filename_match( argv[optind] ) ) ) return Model::Mode::FILENAME_STRIP;
+    else return Model::Mode::PATHNAME;
+}
+
+
+
+/*
+ * Read each line and store in results.
  */
 
 static void
@@ -396,7 +423,6 @@ fetch_arguments( const std::string& filename, std::vector<Model::Result::result_
 	return;
     }
 
-    const int saved_optind = optind;		/* getopt is not reenterant... */
     size_t line_no = 1;
     for ( std::string str; std::getline( input, str ); line_no += 1 ) {
 
@@ -413,52 +439,75 @@ fetch_arguments( const std::string& filename, std::vector<Model::Result::result_
 	    argv.at(i) = const_cast<char *>(tokens.at(i-1).c_str());
 	}
 
-	optind = 1;				/* Reset getopt_long processing */
+	try {
+	    handle_arguments( argc, argv.data(), Disposition::fault, results );
+	}
+	catch ( const std::invalid_argument& e ) {
+	    std::cerr << toolname << ": File " << filename << ", line " << line_no << ": " << e.what() << "." << std::endl;
+	    exit( 1 );
+	}
+    }
 
-	/* Run the option processor.  */
-	for ( ;; ) {
-	    char * endptr = nullptr;
-	    const int c = getopt_long( argc, argv.data(), opts.c_str(), longopts.data(), nullptr );
-	    if ( c == EOF ) break;
+    input.close();
+}
 
-	    /* Handle all result args (and result options --gnuplot,...) */
-	    std::map<int,Model::Result::Type>::const_iterator result = result_type.find( c );
-	    if ( optarg != nullptr && result != result_type.end() ) {
-		results.emplace_back( optarg, result->second );
-		continue;
-	    }
 
+static void
+handle_arguments( int argc, char * argv[], Disposition disposition, std::vector<Model::Result::result_t>& results )
+{
+#if __DARWIN_C_LEVEL >= 199209L
+    extern int optreset;
+    optreset = 1;
+#endif
+    extern int optind;
+    optind = 1;				/* Reset getopt_long processing */
+
+    /* Run the option processor.  */
+    for ( ;; ) {
+	char * endptr = nullptr;
+	const int c = getopt_long( argc, argv, opts.c_str(), longopts.data(), nullptr );
+	if ( c == EOF ) break;
+
+	/* Handle all result args (and result options --gnuplot,...) */
+	std::map<int,Model::Result::Type>::const_iterator result = result_type.find( c );
+	if ( optarg != nullptr && result != result_type.end() ) {
+	    results.emplace_back( optarg, result->second );
+	} else {
 	    /* Ignore non-results options with args. (-o, -a...) */
 	    switch ( c ) {
 	    case EOF:
 		break;
 
-	    case 0x100+'w':
-		width = strtol( optarg, &endptr, 10 );
-		break;
 
-	    case 0x100+'p':
-		precision = strtol( optarg, &endptr, 10 );
-		break;
-	    
 	    case 0x100+'l':
 		limit = strtol( optarg, &endptr, 10 );
 		break;
 	    
+	    case 0x100+'p':
+		precision = strtol( optarg, &endptr, 10 );
+		break;
+	    
+	    case 0x100+'w':
+		width = strtol( optarg, &endptr, 10 );
+		break;
+	    
+	    case 'o':
+	    case 0x100+'h':
+	    case 'v':
+	    case '@':
+		if ( disposition == Disposition::ignore ) break;
+		/* Fall through */
 	    case '?':
-		std::cerr << toolname << ": File " << filename << ", line " << line_no << ": invalid argument -- " << str << "." << std::endl; // 
-		    break;
+		throw std::invalid_argument( std::string( "invalid option -- " ) + static_cast<char>(c) );
 	    }
 
 	    if ( endptr != 0 && *endptr != '\0' ) {
-		std::cerr << toolname << ": File " << filename << ", line " << line_no << ": invalid argument -- " << str << "." << std::endl; // 
-		    exit( 1 );
+		throw std::invalid_argument( std::string( "invalid argument to -" ) + static_cast<char>(c) + "--" + optarg );
 	    }
 	}
     }
-    optind = saved_optind;
-    input.close();
 }
+
 
 
 /*

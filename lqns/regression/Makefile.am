@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15687 2022-06-22 14:39:28Z greg $
+# $Id: Makefile.am 15777 2022-07-29 12:33:57Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -89,16 +89,16 @@ SUFFIXES = .diff .d .lqxo .lqnx
 
 .lqnx.lqxo:
 	$(SRVN) $(OPTS) $<
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$*.p
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 
 .lqnx.d:
 	$(SRVN) $(OPTS) $<
 
 .lqxo.diff:
-	-if test -f ../../models/regression/petri-results/$*.p; \
-	then srvndiff -IC ../../models/regression/{petri,sim,lqns}-results/$*.p $< > $@; \
-	else srvndiff -IC ../../models/regression/{sim,lqns}-results/$*.p $< > $@; \
+	-if test -f ../../models/regression/petri-results/$@; \
+	then srvndiff -IC ../../models/regression/{petri,sim,lqns}-results/$@ $< > $@; \
+	else srvndiff -IC ../../models/regression/{sim,lqns}-results/$@ $< > $@; \
 	fi
 
 all:
@@ -146,19 +146,19 @@ distclean:	clean
 
 # 48-activities.lqxo: 48-activities.lqnx
 # 	$(SRVN) $(OPTS) -a $<
-# 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$*.p
+# 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 90-A01-novar.lqxo: 90-A01.lqnx
 	$(SRVN) -Pvariance=none -a -xo$@ $<
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/90-A01-novar.p 
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 90-A01-stoch.lqxo: 90-A01.lqnx
 	$(SRVN) -Pvariance=stochastic -a -xo$@ $<
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/90-A01-stoch.p
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 94-5101-a2-q2b1.lqxo: 94-5101-a2-q2b1.lqnx
 	$(SRVN) $(OPTS) -a $<
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$*.p
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 sanity:	$(SANITY)
 	echo $(SANITY) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/lqns-results

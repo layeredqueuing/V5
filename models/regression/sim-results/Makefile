@@ -1,86 +1,96 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15648 2022-06-07 13:48:29Z greg $
+# $Id: Makefile 15540 2022-04-17 13:26:30Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
-SEED=	-S1049217653
-OPTS=	-C1.0,1000 
+OPTS=	-C1.0,1000 -x
+SEED=	-S1049217653 
+#OPTS=	-B3,10000,1000 -M -S1049217653
 
-DST =	01-sanity.p \
-	02-sanity.p \
-	03-sanity.p \
-	04-sanity.p \
-	05-sanity.p \
-	06-sanity.p \
-	07-sanity.p \
-	08-sanity.p \
-	09-sanity.p \
-	10-interlock.p \
-	11-interlock.p \
-	12-interlock.p \
-	13-interlock.p \
-	15-split-interlock.p \
-	16-split-interlock.p \
-	20-multiserver.p \
-	21-multiserver.p \
-	22-multiserver.p \
-	23-multiserver.p \
-	31-overtaking.p \
-	32-async-inf.p \
-	40-activities.p \
-	41-activities.p \
-	42-activities.p \
-	43-activities.p \
-	44-activities.p \
-	45-activities.p \
-	46-activities.p \
-	47-activities.p \
-	48-activities.p \
-	50-replication.p \
-	51-replication.p \
-	52-replication.p \
-	55-replication.p \
-	56-replication.p \
-	60-semaphore.p \
-	61-semaphore.p \
-	62-semaphore.p \
-	63-sync.p \
-	65-buffer.p \
-	70-priority.p \
-	71-fair.p \
-	72-fair.p \
-	73-max-service.p \
-	74-histogram.p \
-	75-distributions.p \
-	76-distributions.p \
-	80-sync.p \
-	81-sync.p \
-	82-sync.p \
-	83-sync.p \
-	85-fork.p \
-	86-fork.p \
-	87-fork.p \
-	88-quorum.p \
-	89-quorum.p \
-	90-A01.p \
-	90-B07.p \
-	91-cs3-1.p \
-	92-open.p \
-	93-simple-ucm.p \
-	94-5101-a2-q2b1.p 
+SANITY=	01-sanity.lqxo \
+	02-sanity.lqxo \
+	03-sanity.lqxo \
+	04-sanity.lqxo \
+	05-sanity.lqxo \
+	06-sanity.lqxo \
+	07-sanity.lqxo \
+	08-sanity.lqxo \
+	09-sanity.lqxo
+DST =	$(SANITY) \
+	10-interlock.lqxo \
+	11-interlock.lqxo \
+	12-interlock.lqxo \
+	13-interlock.lqxo \
+	14-interlock.lqxo \
+	15-split-interlock.lqxo \
+	16-split-interlock.lqxo \
+	18-interlock.lqxo \
+	20-multiserver.lqxo \
+	21-multiserver.lqxo \
+	22-multiserver.lqxo \
+	23-multiserver.lqxo \
+	31-overtaking.lqxo \
+	40-activities.lqxo \
+	41-activities.lqxo \
+	42-activities.lqxo \
+	43-activities.lqxo \
+	44-activities.lqxo \
+	45-activities.lqxo \
+	46-activities.lqxo \
+	47-activities.lqxo \
+	48-activities.lqxo \
+	50-replication.lqxo \
+	51-replication.lqxo \
+	52-replication.lqxo \
+	55-replication.lqxo \
+	56-replication.lqxo \
+	60-semaphore.lqxo \
+	61-semaphore.lqxo \
+	62-semaphore.lqxo \
+	63-sync.lqxo \
+	65-buffer.lqxo \
+	66-rwlock.lqxo \
+	66W-rwlock.lqxo \
+	67-rwlock.lqxo \
+	68-rwlock.lqxo \
+	69-rwlock.lqxo \
+	70-priority.lqxo \
+	71-fair.lqxo \
+	72-fair.lqxo \
+	75-distributions.lqxo \
+	76-distributions.lqxo \
+	77-semaphore.lqxo \
+	80-sync.lqxo \
+	81-sync.lqxo \
+	82-sync.lqxo \
+	83-sync.lqxo \
+	85-fork.lqxo \
+	86-fork.lqxo \
+	87-fork.lqxo \
+	88-quorum.lqxo \
+	89-quorum.lqxo \
+	90-A01.lqxo \
+	90-B07.lqxo \
+	91-cs3-1.lqxo \
+	92-open.lqxo \
+	93-simple-ucm.lqxo \
+	95-async-inf.lqxo \
+	94-5101-a2-q2b1.lqxo 
 
-SRC = $(DST:.p=.in)
+SRC = $(DST:.lqxo=.lqnx)
 
 .SUFFIXES:
-.SUFFIXES: .diff .p .xml .in
+.SUFFIXES: .diff .lqxo .lqnx
 .PHONY:	.files
 
-.in.p:
-	$(SRVN) $(OPTS) $(SEED) -p -o $*.p $<
+.lqnx.lqxo:
+	$(SRVN) $(OPTS) $(SEED) -o $*.lqxo $<
 
 all:	$(DST) .files
+
+sanity: $(SANITY)
 
 diff:
 	srvndiff -@.files ../petri-results ../lqns-results .
@@ -89,32 +99,39 @@ diff:
 	@-rm .files
 	for i in $(DST); do echo $$i >> .files; done
 
-50-replication.p:	50-replication.in
-	rep2flat 50-replication.in
-	$(SRVN) $(OPTS) $(SEED) -p 50-replication-flat.in
-	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 50-replication-flat.in
+# ----
 
-51-replication.p:	51-replication.in
-	rep2flat 51-replication.in
-	$(SRVN) $(OPTS) $(SEED) -p 51-replication-flat.in
-	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 51-replication-flat.in
+50-replication-flat.lqnx:	50-replication.lqnx
+	rep2flat -Oxml $<
 
-52-replication.p:	52-replication.in
-	rep2flat 52-replication.in
-	$(SRVN) $(OPTS) $(SEED) -p 52-replication-flat.in
-	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 52-replication-flat.in
+50-replication.lqxo:	50-replication-flat.lqxo
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas 50-replication-flat.lqxo
 
-55-replication.p:	55-replication.in
-	rep2flat 55-replication.in
-	$(SRVN) $(OPTS) $(SEED) -p 55-replication-flat.in
-	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 55-replication-flat.in
+51-replication-flat.lqnx:	51-replication.lqnx
+	rep2flat -Oxml $<
 
-56-replication.p:	56-replication.in
-	rep2flat 56-replication.in
-	$(SRVN) $(OPTS) $(SEED) -p 56-replication-flat.in
-	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 56-replication-flat.in
+51-replication.lqxo:	51-replication-flat.lqxo
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas 51-replication-flat.lqxo
 
-94-5101-a2-q2b1.p: 	94-5101-a2-q2b1.in
-	$(SRVN) -C1.0,10000 $(SEED) -po $*.p $<
+52-replication-flat.lqnx:	52-replication.lqnx
+	rep2flat -Oxml $<
 
-repl:	50-replication.p 51-replication.p 52-replication.p 55-replication.p 56-replication.p 
+52-replication.lqxo:	52-replication-flat.lqxo
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas 52-replication-flat.lqxo
+
+55-replication-flat.lqnx:	55-replication.lqnx
+	rep2flat -Oxml $<
+
+55-replication.lqxo:	55-replication-flat.lqxo
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas 55-replication-flat.lqxo
+
+56-replication-flat.lqnx:	56-replication.lqnx
+	rep2flat -Oxml $<
+
+56-replication.lqxo:	56-replication-flat.lqxo
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas 56-replication-flat.lqxo
+
+94-5101-a2-q2b1.lqxo: 	94-5101-a2-q2b1.lqnx
+	$(SRVN) -C1.0,10000 $(SEED) -xo $*.lqxo $<
+
+repl:	50-replication.lqxo 51-replication.lqxo 52-replication.lqxo 55-replication.lqxo 56-replication.lqxo 

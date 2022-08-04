@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvndiff.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: srvndiff.h 15791 2022-08-03 16:49:20Z greg $
  */
 
 #if	!defined(SRVNDIFF_H)
@@ -26,8 +26,10 @@
 #define	FILE4	3
 #define FILE5   4
 #define FILE6   5
+#define FILE7   6
+#define FILE8   7
 
-#define	MAX_PASS	6		/* See FILE */
+#define	MAX_PASS	8		/* See FILE */
 #define MAX_PHASES	3
 
 typedef enum { SYST_TIME, USER_TIME, REAL_TIME } time_values;

@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15564 2022-04-19 15:06:14Z greg $
+# $Id: Makefile.am 15778 2022-07-29 12:48:51Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -64,12 +64,12 @@ SUFFIXES = .diff .d .lqxo .lqnx
 
 .lqnx.lqxo:
 	$(SRVN) $(OPTS) $<
-	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$*.p
+	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
 .lqnx.d:
 	$(SRVN) $(OPTS) $<
 
 .lqxo.diff:
-	-srvndiff ../../models/regression/{petri,sim}-results/$*.p $< > $@
+	-srvndiff ../../models/regression/{petri,sim}-results/$< $< > $@
 
 check:	$(OBJS)
 	echo $(OBJS) | tr -s " " "\n" | srvndiff -QI -S$(EPSILON) -@- . ../../models/regression/petri-results/

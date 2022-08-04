@@ -382,7 +382,7 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
     } else {
 	switch ( Pragma::multiserver() ) {
 	case Multiserver::CONWAY:
-	    if ( dynamic_cast<Conway_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
+	    if ( dynamic_cast<Conway_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->getMarginalProbabilitiesSize() ) {
 		Q(m) = replace_server( input.first, Q(m), new Conway_Multi_Server(copies,E,K) );
 	    }
 	    break;
@@ -391,11 +391,11 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
 	case Multiserver::REISER:
 	case Multiserver::REISER_PS:
 	    if ( station.scheduling() == SCHEDULE_FIFO ) {
-		if ( dynamic_cast<Reiser_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
+		if ( dynamic_cast<Reiser_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->getMarginalProbabilitiesSize() ) {
 		    Q(m) = replace_server( input.first, Q(m), new Reiser_Multi_Server(copies,E,K) );
 		}
 	    } else if ( station.scheduling() == SCHEDULE_PS ) {
-		if ( dynamic_cast<Reiser_PS_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->marginalProbabilitiesSize() ) {
+		if ( dynamic_cast<Reiser_PS_Multi_Server *>(Q(m)) == nullptr || copies != Q(m)->getMarginalProbabilitiesSize() ) {
 		    Q(m) = replace_server( input.first, Q(m), new Reiser_PS_Multi_Server(copies,E,K) );
 		}
 	    } else {

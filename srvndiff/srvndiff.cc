@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 15666 2022-06-10 10:38:00Z greg $
+ * $Id: srvndiff.cc 15787 2022-08-03 15:10:34Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -401,61 +401,61 @@ static struct {
     const char * description;
     const bool * value;
 } flag_info[] = {
-    { "files",                       '@', false, required_argument, "List of files for input.", nullptr },
-    { "no-confidence-intervals",     'C', false, no_argument, 	    "Print confidence intervals.", &print_confidence_intervals },
+    { "files",                       '@', false, required_argument, "List of files for input", nullptr },
+    { "no-confidence-intervals",     'C', false, no_argument, 	    "Print confidence intervals", &print_confidence_intervals },
 #if DIFFERENCE_MODE
-    { "difference",                  'D', false, no_argument,       "Output absolute difference between two files in parseable output format.", nullptr },
+    { "difference",                  'D', false, no_argument,       "Output absolute difference between two files in parseable output format", nullptr },
 #endif
-    { "errors",                      'E', true,  no_argument,       "Print errors (or results) only.", &print_error_only },
-    { "select-files",                'F', false, required_argument, "Select files for comparison.", nullptr },
-    { "help",                        'H', false, no_argument,       "Print help.", nullptr },
-    { "ignore-errors",               'I', false, no_argument,       "Ignore invalid input file errors.", &ignore_invalid_result_error },
-    { "file-label",                  'L', false, required_argument, "File label.", nullptr },
-    { "mean-absolute-errors",        'M', false, no_argument,       "Print mean absolute values errors.", &print_error_absolute_value },
-    { "quiet",                       'Q', false, no_argument,       "Quiet - print only if differences found.", &print_quiet },
-    { "rms-errors",                  'R', false, no_argument,       "Print RMS errors only.", &print_rms_error_only },
-    { "error-threshold",             'S', false, required_argument, "Set error threShold for output to N.n.", nullptr },
-    { "total-rms-errors",            'T', false, no_argument,       "Print total RMS errors.", &print_total_rms_error },
-    { "totals-only",                 'U', false, no_argument,       "Print totals only.", &print_totals_only },
-    { "version",                     'V', false, no_argument,       "Print tool Version.", &print_copyright },
-    { "exclude",                     'X', false, required_argument, "Exclude <obj> with <regex> from results.  Object can be task, processor, or entry.", nullptr },
-    { "include",		     'Y', false, required_argument, "Include only <obj> with <regex> from results.  Object can be task, processor, or entry.", nullptr },
-    { "results",                     'a', true,  no_argument,       "Print all/no results.", nullptr },
-    { "processor-waiting",           'b', true,  no_argument,       "Print processor waiting times.", &print_processor_waiting },
-    { "coefficient-of-variation",    'c', true,  no_argument,       "Pring coefficient of variation results.", &print_cv_square },
-    { "asynch-send-variance",        'd', true,  no_argument,       "Print send-no-reply waiting time variance.", &print_snr_waiting_variance },
-    { "entry-throughput", 	     'e', true,  no_argument,       "Print entry throughput.", &print_entry_throughput },
-    { "format",                      'f', false, required_argument, "Set the output format for <col> to <arg>. Column can be separator, result, confidence, error, or percent-confidence. <arg> is passed to printf() as a format.", nullptr },
-    { "group-utilization",	     'g', true,  no_argument,       "Print processor group utilizations.", &print_group_util },
-    { "semaphore-utilization",       'h', true,  no_argument,       "Print semaphore utilization.", &print_sema_util },
-    { "iterations",                  'i', true,  no_argument,       "Print solver iterations.", &print_iterations },
-    { "join-delay",                  'j', true,  no_argument,       "Print join delays.", &print_join_delay },
-    { "join-delay-variance",         'k', true,  no_argument,       "Print join join delay variances.", &print_join_variance },
-    { "loss-probability",            'l', true,  no_argument,       "Print message Loss probability.", &print_loss_probability },
-    { "mva-wait",		     'm', true,  no_argument,	    "Print the number of times the MVA wait() function was called.", &print_mva_waits },
-    { "rwlock-utilization",	     'n', true,  no_argument,       "Print rwlock utilization.", &print_rwlock_util },
-    { "output",                      'o', false, required_argument, "Redirect output to ARG.", nullptr },
-    { "processor-utilization",       'p', true,  no_argument,       "Print processor utilization results.", &print_processor_util },
-    { "queue-length",                'q', true,  no_argument,       "Print queue length for open arrival results.", &print_open_wait },
-    { "run-times",                   'r', true,  no_argument,       "Print solver Run times.", &print_runtimes },
-    { "service-times",               's', true,  no_argument,       "Print service time results.", &print_service },
-    { "throughputs",                 't', true,  no_argument,       "Print task Throughput results.", &print_task_throughput },
-    { "utilizations",                'u', true,  no_argument,       "Print task Utilzation result.", &print_task_util },
-    { "variances",                   'v', true,  no_argument,       "Print variance results.", &print_variance },
-    { "waiting-times",               'w', true,  no_argument,       "Print waiting time results.", &print_waiting },
-    { "service-time-exceeded",       'x', true,  no_argument,       "Print max service time exceeded.", &print_exceeded },
-    { "waiting-time-variances",      'y', true,  no_argument,       "Print waiting time variance results.", &print_waiting_variance },
-    { "asynch-send-waits",           'z', true,  no_argument,       "Print send-no-reply waiting time results.", &print_snr_waiting },
-    { "compact",		 512+'k', false, no_argument,	    "Use a more compact format for output.", nullptr },
-    { "print-comment",		 512+'c', false, no_argument,	    "Print model comment field.", nullptr },
-    { "latex",			 512+'l', false, no_argument,	    "Format output for LaTeX.", nullptr },
-    { "heading",		 512+'h', false, required_argument, "Set column heading <col> to <string>.", nullptr },
-    { "debug-xml",               512+'x', false, no_argument,       "Output debugging information while parsing XML input.", nullptr },
-    { "debug-json",              512+'j', false, no_argument,       "Output debugging information while parsing JSON input.", nullptr },
-    { "debug-srvn",		 512+'s', false, no_argument,	    "Output debugging information while parsing SRVN results.", nullptr },
-    { "no-replication",		 512+'r', false, no_argument,       "Strip replicas from \"flattend\" model from comparison.", nullptr },
-    { "no-warnings",		 512+'w', false, no_argument,       "Ignore warnings when parsing results.", nullptr },
-    { "verbose",                 512+'v', false, no_argument,       "Verbose output (direct differences to stderr).", nullptr },
+    { "errors",                      'E', true,  no_argument,       "Print errors (or results) only", &print_error_only },
+    { "select-files",                'F', false, required_argument, "Select files for comparison", nullptr },
+    { "help",                        'H', false, no_argument,       "Print help", nullptr },
+    { "ignore-errors",               'I', false, no_argument,       "Ignore invalid input file errors", &ignore_invalid_result_error },
+    { "file-label",                  'L', false, required_argument, "File label", nullptr },
+    { "mean-absolute-errors",        'M', false, no_argument,       "Print mean absolute values errors", &print_error_absolute_value },
+    { "quiet",                       'Q', false, no_argument,       "Quiet - print only if differences found", &print_quiet },
+    { "rms-errors",                  'R', false, no_argument,       "Print RMS errors only", &print_rms_error_only },
+    { "error-threshold",             'S', false, required_argument, "Set error threShold for output to N.n", nullptr },
+    { "no-total-rms-errors",         'T', false, no_argument,       "Print total RMS errors", &print_total_rms_error },
+    { "totals-only",                 'U', false, no_argument,       "Print totals only", &print_totals_only },
+    { "version",                     'V', false, no_argument,       "Print tool Version", &print_copyright },
+    { "exclude",                     'X', false, required_argument, "Exclude <obj> with <regex> from results.  Object can be task, processor, or entry", nullptr },
+    { "include",		     'Y', false, required_argument, "Include only <obj> with <regex> from results.  Object can be task, processor, or entry", nullptr },
+    { "results",                     'a', true,  no_argument,       "Print all/no results", nullptr },
+    { "processor-waiting",           'b', true,  no_argument,       "Print processor waiting times", &print_processor_waiting },
+    { "coefficient-of-variation",    'c', true,  no_argument,       "Pring coefficient of variation results", &print_cv_square },
+    { "asynch-send-variance",        'd', true,  no_argument,       "Print send-no-reply waiting time variance", &print_snr_waiting_variance },
+    { "entry-throughput", 	     'e', true,  no_argument,       "Print entry throughput", &print_entry_throughput },
+    { "format",                      'f', false, required_argument, "Set the output format for <col> to <arg>. Column can be separator, result, confidence, error, or percent-confidence. <arg> is passed to printf() as a format", nullptr },
+    { "group-utilization",	     'g', true,  no_argument,       "Print processor group utilizations", &print_group_util },
+    { "semaphore-utilization",       'h', true,  no_argument,       "Print semaphore utilization", &print_sema_util },
+    { "iterations",                  'i', true,  no_argument,       "Print solver iterations", &print_iterations },
+    { "join-delay",                  'j', true,  no_argument,       "Print join delays", &print_join_delay },
+    { "join-delay-variance",         'k', true,  no_argument,       "Print join join delay variances", &print_join_variance },
+    { "loss-probability",            'l', true,  no_argument,       "Print message Loss probability", &print_loss_probability },
+    { "mva-wait",		     'm', true,  no_argument,	    "Print the number of times the MVA wait() function was called", &print_mva_waits },
+    { "rwlock-utilization",	     'n', true,  no_argument,       "Print rwlock utilization", &print_rwlock_util },
+    { "output",                      'o', false, required_argument, "Redirect output to ARG", nullptr },
+    { "processor-utilization",       'p', true,  no_argument,       "Print processor utilization results", &print_processor_util },
+    { "queue-length",                'q', true,  no_argument,       "Print queue length for open arrival results", &print_open_wait },
+    { "run-times",                   'r', true,  no_argument,       "Print solver Run times", &print_runtimes },
+    { "service-times",               's', true,  no_argument,       "Print service time results", &print_service },
+    { "throughputs",                 't', true,  no_argument,       "Print task Throughput results", &print_task_throughput },
+    { "utilizations",                'u', true,  no_argument,       "Print task Utilzation result", &print_task_util },
+    { "variances",                   'v', true,  no_argument,       "Print variance results", &print_variance },
+    { "waiting-times",               'w', true,  no_argument,       "Print waiting time results", &print_waiting },
+    { "service-time-exceeded",       'x', true,  no_argument,       "Print max service time exceeded", &print_exceeded },
+    { "waiting-time-variances",      'y', true,  no_argument,       "Print waiting time variance results", &print_waiting_variance },
+    { "asynch-send-waits",           'z', true,  no_argument,       "Print send-no-reply waiting time results", &print_snr_waiting },
+    { "compact",		 512+'k', false, no_argument,	    "Use a more compact format for output", nullptr },
+    { "print-comment",		 512+'c', false, no_argument,	    "Print model comment field", nullptr },
+    { "latex",			 512+'l', false, no_argument,	    "Format output for LaTeX", nullptr },
+    { "heading",		 512+'h', false, required_argument, "Set column heading <col> to <string>", nullptr },
+    { "debug-xml",               512+'x', false, no_argument,       "Output debugging information while parsing XML input", nullptr },
+    { "debug-json",              512+'j', false, no_argument,       "Output debugging information while parsing JSON input", nullptr },
+    { "debug-srvn",		 512+'s', false, no_argument,	    "Output debugging information while parsing SRVN results", nullptr },
+    { "no-replication",		 512+'r', false, no_argument,       "Strip replicas from \"flattend\" model from comparison", nullptr },
+    { "no-warnings",		 512+'w', false, no_argument,       "Ignore warnings when parsing results", nullptr },
+    { "verbose",                 512+'v', false, no_argument,       "Verbose output (direct differences to stderr)", nullptr },
     { 0, 0, 0, 0, 0, 0 }
 };
 
@@ -935,7 +935,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2022-06-10 06:38:00 -0400 (Fri, 10 Jun 2022) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2022-08-03 11:10:34 -0400 (Wed, 03 Aug 2022) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1287,21 +1287,22 @@ minimize_path_name( std::vector<std::string>& path_name )
 static void
 compare_directories (unsigned n, char * const dirs[])
 {
-    unsigned i;
-    unsigned j;
-    char * pathname[MAX_PASS];
-
-    static const std::vector<std::string> patterns = { ".p", ".lqxo", ".lqjo", "*.lqjo~*~" };
+    static const std::vector<std::string> patterns = { "*.p", "*.lqxo", "*.lqjo" };
 
     if ( list_of_files ) {
 	build_file_list2( n, dirs );
     } else {
 #if HAVE_GLOB
-	for ( i = 0; i < n; ++i ) {
+	for ( unsigned i = 0; i < n; ++i ) {
 	    int rc;
 	    dir_list[i].gl_pathc = 0;
-	    for ( std::vector<std::string>::const_iterator match = patterns.begin(); match != patterns.end() && dir_list[i].gl_pathc == 0 ; ++match ) {
-		std::string path = std::string(dirs[i]) + "/" + file_pattern + *match;
+	    if ( file_pattern.empty() ) {
+		for ( std::vector<std::string>::const_iterator match = patterns.begin(); match != patterns.end() && dir_list[i].gl_pathc == 0 ; ++match ) {
+		    const std::string path = std::string(dirs[i]) + "/" + *match;
+		    rc = glob( path.c_str(), 0, NULL, &dir_list[i] );
+		}
+	    } else {
+		const std::string path = std::string(dirs[i]) + "/" + file_pattern;
 		rc = glob( path.c_str(), 0, NULL, &dir_list[i] );
 	    }
 	    if ( rc == GLOB_NOSPACE ) {
@@ -1329,12 +1330,12 @@ compare_directories (unsigned n, char * const dirs[])
 
     if ( print_rms_error_only && !print_totals_only && !print_quiet) {
 	make_header( header, dirs, n, print_confidence_intervals, print_error_only );
-	(void) fprintf( output, "%*c%s\n", file_name_width + 24, ' ', header );
+	(void) fprintf( output, "%*c%s\n", file_name_width + (compact_flag ? 16 : 24), ' ', header );
     }
 
     init_totals( n, dir_list[FILE1].gl_pathc );
 
-    for ( i = FILE2; i < n; ++i ) {
+    for ( unsigned i = FILE2; i < n; ++i ) {
 	if ( dir_list[FILE1].gl_pathc != dir_list[i].gl_pathc ) {
 	    (void) fprintf( stderr, "%s: Directory size mismatch between %s and %s.\n", lq_toolname,
 			    dirs[FILE1], dirs[i] );
@@ -1344,8 +1345,9 @@ compare_directories (unsigned n, char * const dirs[])
 
     /* Compare... */
 
-    for( j = 0; j < dir_list[FILE1].gl_pathc; ++j ) {
-	for ( i = 0; i < n; ++i ) {
+    for( unsigned j = 0; j < dir_list[FILE1].gl_pathc; ++j ) {
+	char * pathname[MAX_PASS];
+	for ( unsigned i = 0; i < n; ++i ) {
 	    pathname[i] = dir_list[i].gl_pathv[j];
 	}
 	compare_files( n, pathname );
@@ -1394,7 +1396,7 @@ done:
 
     /* Free storage */
 
-    for ( i = 0; i < n; ++i ) {
+    for ( unsigned i = 0; i < n; ++i ) {
 #if HAVE_GLOB
 	if ( !list_of_files ) {
 	    globfree( &dir_list[i] );

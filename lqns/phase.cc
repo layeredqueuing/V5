@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: phase.cc 15769 2022-07-27 15:22:43Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -72,7 +72,7 @@ NullPhase::NullPhase( const NullPhase& src )
 NullPhase&
 NullPhase::configure( const unsigned n )
 {
-    _wait.resize( n );
+    _wait.resize( n, 0.0 );
     return *this;
 }
 
@@ -918,7 +918,7 @@ Phase::updateWait( const Submodel& submodel, const double relax )
 
     /* Now update waiting values */
 
-    _wait[n] = under_relax( _wait[n], newWait, relax );
+    setWaitTime( n, under_relax( getWaitTime( n ), newWait, relax ) );
 
     if ( oldWait && Options::Trace::delta_wait( n ) ) {
 	std::cout << "Phase::updateWait(" << n << "," << relax << ") for " << name() << std::endl;
@@ -1618,7 +1618,9 @@ double
 Phase::DeviceInfo::add_wait::operator()( double sum, const DeviceInfo * device ) const
 {
     const Call * call = device->call();
-    if ( call->submodel() == _submodel ) sum += call->rendezvousDelay();
+    if ( call->submodel() == _submodel ) {
+	sum += call->rendezvousDelay();
+    }
     return sum;
 }
 
