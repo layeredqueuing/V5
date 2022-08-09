@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15794 2022-08-04 00:07:05Z greg $
+ * $Id: lqn2csv.cc 15796 2022-08-08 20:04:28Z greg $
  *
  * Command line processing.
  *
@@ -167,9 +167,9 @@ struct max_strlen {
 	if ( s == nullptr ) return l;
 	const char * p = std::strrchr( s, '/' );
 	if ( _mode == Model::Mode::DIRECTORY_STRIP && p != nullptr ) {
-	    return std::max( l, static_cast<size_t>(p - s) );
+	    return std::max( l, strlen( p + 1 ) );
 	} else if ( _mode == Model::Mode::FILENAME_STRIP && p != nullptr ) {
-	    return std::max( l, strlen( p ) );
+	    return std::max( l, static_cast<size_t>(s - p) );
 	} else {
 	    return std::strlen( s );
 	}
@@ -216,7 +216,7 @@ main( int argc, char *argv[] )
     extern int optind;
     static char copyrightDate[20];
 
-    sscanf( "$Date: 2022-08-03 20:07:05 -0400 (Wed, 03 Aug 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-08-08 16:04:28 -0400 (Mon, 08 Aug 2022) $", "%*s %s %*s", copyrightDate );
 
     toolname = basename( argv[0] );
     opts = makeopts( longopts );	/* Convert to regular options */

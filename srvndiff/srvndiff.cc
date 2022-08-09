@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 15787 2022-08-03 15:10:34Z greg $
+ * $Id: srvndiff.cc 15795 2022-08-04 14:45:32Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -935,7 +935,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2022-08-03 11:10:34 -0400 (Wed, 03 Aug 2022) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2022-08-04 10:45:32 -0400 (Thu, 04 Aug 2022) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1314,7 +1314,7 @@ compare_directories (unsigned n, char * const dirs[])
 	    }
 	}
 #else
-	for ( i = 0; i < n; ++i ) {
+	for ( unsigned int i = 0; i < n; ++i ) {
 	    build_file_list( dirs[i], &dir_list[i] );
 	}
 #endif

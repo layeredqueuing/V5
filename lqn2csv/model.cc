@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 15794 2022-08-04 00:07:05Z greg $
+ * $Id: model.cc 15796 2022-08-08 20:04:28Z greg $
  *
  * Command line processing.
  *
@@ -162,7 +162,7 @@ void Model::Process::operator()( const std::string& pathname )
 	const std::string dirname = pathname.substr( 0, pathname.find_last_of( "/" ) );
 	print_filename( dirname );		// Directory name
     } else if ( _mode == Mode::DIRECTORY_STRIP ) {
-	const std::string filename = pathname.substr(pathname.find_last_of( "/" ) );
+	const std::string filename = pathname.substr(pathname.find_last_of( "/" ) + 1);
 	print_filename( filename );		// File name
     } else {
 	print_filename( pathname );
