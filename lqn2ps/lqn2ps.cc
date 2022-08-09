@@ -184,20 +184,23 @@ main(int argc, char *argv[])
 
     /* If we are invoked as lqn2xxx or rep2flat, then enable other options. */
 
-    const char * p = strrchr( LQIO::io_vars.toolname(), '2' );
-    if ( p != nullptr ) {
-	p += 1;
+    const size_t pos = LQIO::io_vars.lq_toolname.find_last_of( '2' );
+    if ( pos != std::string::npos ) {
+	const std::string format = LQIO::io_vars.lq_toolname.substr( pos + 1 );
+#if defined(__WINNT__)
+	const std::string temp = LQIO::io_vars.lq_toolname.substr( pos + 1 );
+	const std::string format = temp.substr( 0, temp.find_first_of( '.' ) );
+#endif
 	try {
-	    setOutputFormat( Options::get_file_format( p ) );		// Throws if ext not found
+	    setOutputFormat( Options::get_file_format( format ) );		// Throws if ext not found
 	}
 	catch ( std::invalid_argument& e ) {
 #if REP2FLAT
-	    if ( strcmp( p, "flat" ) == 0 ) {
+	    if ( format == "flat" ) {
 		Flags::set_replication( Replication::EXPAND );
 	    } else {
 #endif
-		std::cerr << LQIO::io_vars.lq_toolname << ": command not found." << std::endl;
-		exit( 1 );
+		std::cerr << LQIO::io_vars.lq_toolname << ": output format " << format << " not supported, using ps." << std::endl;
 #if REP2FLAT
 	    }
 #endif
