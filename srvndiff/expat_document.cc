@@ -307,21 +307,18 @@ namespace LQIO {
 			std::cerr << lq_toolname << ": Read error on " << input_file_name << " - " << strerror( errno ) << std::endl;
 			rc = false;
 			break;
-		    } else if (!XML_Parse(_parser, buffer, len, len != BUFFSIZE)) {
+		    } else if (!XML_Parse(_parser, buffer, len, len == 0)) {
 			input_error( XML_ErrorString(XML_GetErrorCode(_parser)) );
 			rc = false;
 			break;
 		    }
-		} while ( len == BUFFSIZE );
+		} while ( len > 0 );
 	    }
 	    catch ( LQIO::element_error& e ) {
 		input_error( "Unexpected element <%s> ", e.what() );
 		rc = false;
 	    }
-	    catch ( LQIO::missing_attribute& e ) {
-		rc = false;
-	    }
-	    catch ( std::invalid_argument& e ) {
+	    catch ( const std::runtime_error& e ) {
 		rc = false;
 	    }
 

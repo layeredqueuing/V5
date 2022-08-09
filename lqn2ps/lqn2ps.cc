@@ -186,10 +186,11 @@ main(int argc, char *argv[])
 
     const size_t pos = LQIO::io_vars.lq_toolname.find_last_of( '2' );
     if ( pos != std::string::npos ) {
+#if !defined(__WINNT__)
 	const std::string format = LQIO::io_vars.lq_toolname.substr( pos + 1 );
-#if defined(__WINNT__)
-	const std::string temp = LQIO::io_vars.lq_toolname.substr( pos + 1 );
-	const std::string format = temp.substr( 0, temp.find_first_of( '.' ) );
+#else
+	std::string format = LQIO::io_vars.lq_toolname.substr( pos + 1 );
+	format.erase( format.find_first_of( '.' ) );
 #endif
 	try {
 	    setOutputFormat( Options::get_file_format( format ) );		// Throws if ext not found
