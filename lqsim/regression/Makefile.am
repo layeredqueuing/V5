@@ -36,11 +36,11 @@ ACT=	40-activities.lqxo \
 	46-activities.lqxo 
 OVER=	31-overtaking.lqxo \
 	32-async-inf.lqxo 
-REPL=	50-replication-flat.lqxo \
-	51-replication-flat.lqxo \
-	52-replication-flat.lqxo \
-	55-replication-flat.lqxo \
-	56-replication-flat.lqxo 
+#REPL=	50-replication-flat.lqxo \
+#	51-replication-flat.lqxo \
+#	52-replication-flat.lqxo \
+#	55-replication-flat.lqxo \
+#	56-replication-flat.lqxo 
 SEMA =  60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo \
