@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15778 2022-07-29 12:48:51Z greg $
+# $Id: Makefile.am 15801 2022-08-10 13:26:50Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -36,11 +36,11 @@ ACT=	40-activities.lqxo \
 	46-activities.lqxo 
 OVER=	31-overtaking.lqxo \
 	32-async-inf.lqxo 
-#REPL=	50-replication-flat.lqxo \
-#	51-replication-flat.lqxo \
-#	52-replication-flat.lqxo \
-#	55-replication-flat.lqxo \
-#	56-replication-flat.lqxo 
+REPL=	50-replication-flat.lqxo \
+	51-replication-flat.lqxo \
+	52-replication-flat.lqxo \
+	55-replication-flat.lqxo \
+	56-replication-flat.lqxo 
 SEMA =  60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo \
@@ -144,3 +144,29 @@ quick:
 
 32-async-inf.lqxo: 32-async-inf.lqnx
 	$(SRVN) -C1.0,250000,1000000 -Pstop-on-message-loss=f -w -S1049217653 32-async-inf.lqnx
+
+50-replication.lqxo:	50-replication.lqnx
+	rep2flat -Oxml -o$*-flat.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+
+51-replication.lqxo:	51-replication.lqnx
+	rep2flat -Oxml -o$*-flat.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+
+52-replication.lqxo:	52-replication.lqnx
+	rep2flat -Oxml -o$*-flat.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+
+55-replication.lqxo:	55-replication.lqnx
+	rep2flat -Oxml -o$*-flat.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+
+56-replication.lqxo:	56-replication.lqnx
+	rep2flat -Oxml -o$*-flat.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+
