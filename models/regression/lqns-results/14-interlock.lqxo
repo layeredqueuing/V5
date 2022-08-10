@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<!-- $Id: 14-interlock.lqxo 15603 2022-05-27 18:30:56Z greg $ -->
+<!-- lqns -pragma=variance=mol,threads=hyper -->
+<lqn-model name="14-interlock" description="lqns 5.26 solution for model from: 14-interlock.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Split Interlock with all infinite servers." conv_val="0.0001" it_limit="150" underrelax_coeff="0.4" print_int="10">
+      <pragma param="threads" value="hyper"/>
+      <pragma param="variance" value="mol"/>
+      <result-general solver-info="" valid="true" conv-val="6.69911e-05" iterations="25" platform-info="lqns 5.26" user-cpu-time=" 0:00:00.004" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.004" max-rss="11984">
+         <mva-info submodels="4" core="100" step="1026" step-squared="18980" wait="322126" wait-squared="1.27634e+10" faults="0"/>
+      </result-general>
+   </solver-params>
+   <processor name="c0" scheduling="inf">
+      <result-processor utilization="0.208837"/>
+      <task name="c0" scheduling="ref" multiplicity="2">
+         <result-task throughput="0.208837" utilization="2.00018" phase1-utilization="2.00018" proc-utilization="0.208837"/>
+         <entry name="c0" type="PH1PH2">
+            <result-entry utilization="2.00018" throughput="0.208837" squared-coeff-variation="3.69185" proc-utilization="0.208837" throughput-bound="0.333333"/>
+            <entry-phase-activities>
+               <activity name="c0_1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="9.57769" utilization="2.00018" service-time-variance="338.661"/>
+                  <synch-call dest="e0" calls-mean="1">
+                     <result-call waiting="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p0" scheduling="ps" quantum="0.1">
+      <result-processor utilization="1.04419"/>
+      <task name="t0" scheduling="inf">
+         <result-task throughput="0.208837" utilization="1.79116" phase1-utilization="1.79116" proc-utilization="0.208837"/>
+         <entry name="e0" type="PH1PH2">
+            <result-entry utilization="1.79116" throughput="0.208837" squared-coeff-variation="1.85698" proc-utilization="0.208837" throughput-bound="0.2"/>
+            <entry-phase-activities>
+               <activity name="e0_1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0.760382" service-time="8.57682" utilization="1.79116" service-time-variance="136.603"/>
+                  <synch-call dest="e1" calls-mean="1">
+                     <result-call waiting="0"/>
+                  </synch-call>
+                  <synch-call dest="e2" calls-mean="1">
+                     <result-call waiting="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t1" scheduling="inf">
+         <result-task throughput="0.208838" utilization="0.711767" phase1-utilization="0.711767" proc-utilization="0.208838"/>
+         <entry name="e1" type="PH1PH2">
+            <result-entry utilization="0.711767" throughput="0.208838" squared-coeff-variation="1.40209" proc-utilization="0.208838" throughput-bound="0.5"/>
+            <entry-phase-activities>
+               <activity name="e1_1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0.760381" service-time="3.40822" utilization="0.711767" service-time-variance="16.2866"/>
+                  <synch-call dest="e3" calls-mean="1">
+                     <result-call waiting="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t2" scheduling="inf">
+         <result-task throughput="0.208838" utilization="0.711767" phase1-utilization="0.711767" proc-utilization="0.208838"/>
+         <entry name="e2" type="PH1PH2">
+            <result-entry utilization="0.711767" throughput="0.208838" squared-coeff-variation="1.40209" proc-utilization="0.208838" throughput-bound="0.5"/>
+            <entry-phase-activities>
+               <activity name="e2_1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0.760381" service-time="3.40822" utilization="0.711767" service-time-variance="16.2866"/>
+                  <synch-call dest="e3" calls-mean="1">
+                     <result-call waiting="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t3" scheduling="inf">
+         <result-task throughput="0.417675" utilization="0.688271" phase1-utilization="0.688271" proc-utilization="0.417675"/>
+         <entry name="e3" type="PH1PH2">
+            <result-entry utilization="0.688271" throughput="0.417675" squared-coeff-variation="0.522833" proc-utilization="0.417675" throughput-bound="1"/>
+            <entry-phase-activities>
+               <activity name="e3_1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0.647861" service-time="1.64786" utilization="0.688271" service-time-variance="1.41972"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

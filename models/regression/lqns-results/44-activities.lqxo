@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<!-- $Id: 44-activities.lqxo 13856 2020-09-24 14:29:45Z greg $ -->
+<!-- lqns -pragma=variance=mol,threads=hyper -->
+<lqn-model name="44-activities" description="lqns 5.17 solution for model from: 44-activities.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Activities with LOOP" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="5">
+      <pragma param="threads" value="hyper"/>
+      <pragma param="variance" value="mol"/>
+      <result-general solver-info="lqns 5.17" valid="YES" conv-val="0" iterations="2" platform-info="Gregs-Retina-iMac.local Darwin 19.6.0" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000">
+         <mva-info submodels="2" core="4" step="21" step-squared="111" wait="272" wait-squared="18934" faults="0"/>
+      </result-general>
+   </solver-params>
+   <processor name="client" scheduling="inf">
+      <result-processor utilization="0.5"/>
+      <task name="client" scheduling="ref">
+         <result-task throughput="0.5" utilization="1" phase1-utilization="1" proc-utilization="0.5"/>
+         <entry name="client" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.5" squared-coeff-variation="1.71875" proc-utilization="0.5" throughput-bound="0.5"/>
+            <entry-phase-activities>
+               <activity name="client_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="2" utilization="1" service-time-variance="6.875"/>
+                  <synch-call dest="server" calls-mean="1">
+                     <result-call waiting="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" scheduling="fcfs">
+      <result-processor utilization="0.5"/>
+      <task name="server" scheduling="fcfs">
+         <result-task throughput="0.5" utilization="0.5" phase1-utilization="0.5" proc-utilization="0.5"/>
+         <entry name="server" type="NONE">
+            <result-entry utilization="0.5" throughput="0.5" squared-coeff-variation="1.375" proc-utilization="0.5" throughput-bound="1" phase1-service-time="1" phase1-service-time-variance="1.375" phase1-utilization="0.5"/>
+         </entry>
+         <task-activities>
+            <activity name="done" host-demand-mean="0.25">
+               <result-activity proc-waiting="0" service-time="0.25" utilization="0.125" service-time-variance="0.0625" throughput="0.5" proc-utilization="0.125"/>
+            </activity>
+            <activity name="loop" host-demand-mean="1">
+               <result-activity proc-waiting="0" service-time="1" utilization="0.25" service-time-variance="1" throughput="0.25" proc-utilization="0.25"/>
+            </activity>
+            <activity name="server" bound-to-entry="server" host-demand-mean="0.25">
+               <result-activity proc-waiting="0" service-time="0.25" utilization="0.125" service-time-variance="0.0625" throughput="0.5" proc-utilization="0.125"/>
+            </activity>
+            <precedence>
+               <pre>
+                  <activity name="server"/>
+               </pre>
+               <post-LOOP end="done">
+                  <activity name="loop" count="0.5"/>
+               </post-LOOP>
+            </precedence>
+            <reply-entry name="server">
+               <reply-activity name="done"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+</lqn-model>

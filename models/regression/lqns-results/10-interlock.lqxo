@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqns -Pvariance=mol,threads=mak 10-interlock.lqnx -->
+<lqn-model name="10-interlock" description="lqns 5.3 solution for model from: 10-interlock.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simple Interlock" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="0" iterations="2" platform-info="Gregs-MacBook.local Darwin 10.7.0" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00">
+         <mva-info submodels="3" core="6" step="39" step-squared="281" wait="1632" wait-squared="1.10962e+06" faults="0"/>
+      </result-general>
+   </solver-params>
+   <processor name="p0" scheduling="inf">
+      <result-processor utilization="0.25"/>
+      <task name="t0" scheduling="ref">
+         <result-task throughput="0.25" utilization="1" phase1-utilization="1" proc-utilization="0.25"/>
+         <entry name="e0" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.25" squared-coeff-variation="1.875" proc-utilization="0.25"/>
+            <entry-phase-activities>
+               <activity name="e0_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="4" service-time-variance="30" utilization="1"/>
+                  <synch-call dest="e2" calls-mean="1">
+                     <result-call waiting="0" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e1" calls-mean="1">
+                     <result-call waiting="0" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p1" scheduling="fcfs">
+      <result-processor utilization="0.25"/>
+      <task name="t1" scheduling="fcfs">
+         <result-task throughput="0.25" utilization="0.5" phase1-utilization="0.5" proc-utilization="0.25"/>
+         <entry name="e1" type="PH1PH2">
+            <result-entry utilization="0.5" throughput="0.25" squared-coeff-variation="1.625" proc-utilization="0.25"/>
+            <entry-phase-activities>
+               <activity name="e1_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="2" service-time-variance="6.5" utilization="0.5"/>
+                  <synch-call dest="e2" calls-mean="1">
+                     <result-call waiting="0" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="fcfs">
+      <result-processor utilization="0.5"/>
+      <task name="t2" scheduling="fcfs">
+         <result-task throughput="0.5" utilization="0.5" phase1-utilization="0.5" proc-utilization="0.5"/>
+         <entry name="e2" type="PH1PH2">
+            <result-entry utilization="0.5" throughput="0.5" squared-coeff-variation="1" proc-utilization="0.5"/>
+            <entry-phase-activities>
+               <activity name="e2_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1" service-time-variance="1" utilization="0.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

@@ -1,0 +1,138 @@
+<?xml version="1.0"?>
+<!-- $Id: 80-sync.lqxo 13766 2020-08-18 02:54:45Z greg $ -->
+<!-- lqsim -confidence=1.0,1000 -xml -seed=1049217653 -output=80-sync.lqxo -->
+<lqn-model name="80-sync" description="lqsim 5.16 solution for model from: 80-sync.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="fork-join" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="5">
+      <pragma param="initial-loops" value="1000"/>
+      <pragma param="precision" value="1.0"/>
+      <pragma param="seed-value" value="1049217653"/>
+      <result-general solver-info="lqsim 5.16" valid="YES" conv-val="0.887432" iterations="3" platform-info="Gregs-MacBookPro-2.local Darwin 19.6.0" user-cpu-time=" 0:34:07.000" system-cpu-time=" 0:13:07.000" elapsed-time=" 0:47:17.000"/>
+   </solver-params>
+   <processor name="p1" scheduling="fcfs">
+      <result-processor utilization="0.585432">
+         <result-conf-95 utilization="0.0057241"/>
+         <result-conf-99 utilization="0.0132028"/>
+      </result-processor>
+      <task name="t1" scheduling="ref">
+         <result-task throughput="0.584719" utilization="1" phase1-utilization="1" proc-utilization="0.585432">
+            <result-conf-95 throughput="0.00601166" utilization="0" proc-utilization="0.0057241"/>
+            <result-conf-99 throughput="0.0138661" utilization="0" proc-utilization="0.0132028"/>
+         </result-task>
+         <entry name="e1" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.584719" squared-coeff-variation="1.51523" proc-utilization="0.585432" throughput-bound="0.833333">
+               <result-conf-95 utilization="0" throughput="0.00601166" squared-coeff-variation="0" proc-utilization="0.0057241"/>
+               <result-conf-99 utilization="0" throughput="0.0138661" squared-coeff-variation="0" proc-utilization="0.0132028"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="e1_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1.71021" utilization="1" service-time-variance="4.43179">
+                     <result-conf-95 proc-waiting="0" service-time="0.0176763" utilization="0" service-time-variance="0.0589835"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.040771" utilization="0" service-time-variance="0.136047"/>
+                  </result-activity>
+                  <synch-call dest="e3" calls-mean="1">
+                     <result-call waiting="0.00458695" waiting-variance="0.000909721">
+                        <result-conf-95 waiting="0.000135661" waiting-variance="7.15451e-05"/>
+                        <result-conf-99 waiting="0.000312905" waiting-variance="0.000165021"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="fcfs">
+      <result-processor utilization="0.584746">
+         <result-conf-95 utilization="0.00612488"/>
+         <result-conf-99 utilization="0.0141272"/>
+      </result-processor>
+      <task name="t2" scheduling="ref">
+         <result-task throughput="0.585908" utilization="1" phase1-utilization="1" proc-utilization="0.584746">
+            <result-conf-95 throughput="0.00573721" utilization="0" proc-utilization="0.00612488"/>
+            <result-conf-99 throughput="0.013233" utilization="0" proc-utilization="0.0141272"/>
+         </result-task>
+         <entry name="e2" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.585908" squared-coeff-variation="1.51914" proc-utilization="0.584746" throughput-bound="0.833333">
+               <result-conf-95 utilization="0" throughput="0.00573721" squared-coeff-variation="0" proc-utilization="0.00612488"/>
+               <result-conf-99 utilization="0" throughput="0.013233" squared-coeff-variation="0" proc-utilization="0.0141272"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="e2_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1.70676" utilization="1" service-time-variance="4.42531">
+                     <result-conf-95 proc-waiting="0" service-time="0.0167316" utilization="0" service-time-variance="0.118501"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.038592" utilization="0" service-time-variance="0.273327"/>
+                  </result-activity>
+                  <synch-call dest="e4" calls-mean="1">
+                     <result-call waiting="0.00455877" waiting-variance="0.000889175">
+                        <result-conf-95 waiting="0.000124622" waiting-variance="5.18666e-05"/>
+                        <result-conf-99 waiting="0.000287445" waiting-variance="0.000119632"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p3" scheduling="fcfs">
+      <result-processor utilization="0.175524">
+         <result-conf-95 utilization="0.00112569"/>
+         <result-conf-99 utilization="0.00259644"/>
+      </result-processor>
+      <task name="t3" scheduling="fcfs">
+         <result-task throughput="0.585226" utilization="0.707346" phase1-utilization="0.175524" proc-utilization="0.175524">
+            <result-conf-95 throughput="0.003201" utilization="0.000541991" phase1-utilization="0.00112569" proc-utilization="0.00112569"/>
+            <result-conf-99 throughput="0.00738321" utilization="0.00125012" phase1-utilization="0.00259644" proc-utilization="0.00259644"/>
+         </result-task>
+         <entry name="e3" type="NONE">
+            <result-entry utilization="0.0877693" throughput="0.585226" squared-coeff-variation="0.778243" proc-utilization="0.0877693" throughput-bound="5" phase1-service-time="0.149975" phase1-service-time-variance="0.0175047" phase1-utilization="5.71068e-08">
+               <result-conf-95 utilization="0.00102829" throughput="0.00225855" squared-coeff-variation="0" proc-utilization="0.00102829" phase1-service-time="0.00147009" phase1-service-time-variance="0.000525981" phase1-utilization="0.00102829"/>
+               <result-conf-99 utilization="0.00237178" throughput="0.00520941" squared-coeff-variation="0" proc-utilization="0.00237178" phase1-service-time="0.0033908" phase1-service-time-variance="0.00121319" phase1-utilization="0.00237178"/>
+            </result-entry>
+         </entry>
+         <entry name="e4" type="NONE">
+            <result-entry utilization="0.0877545" throughput="0.585225" squared-coeff-variation="0.781207" proc-utilization="0.0877545" throughput-bound="5" phase1-service-time="0.14995" phase1-service-time-variance="0.0175654" phase1-utilization="1.13312e-08">
+               <result-conf-95 utilization="0.000458046" throughput="0.00226836" squared-coeff-variation="0" proc-utilization="0.000458046" phase1-service-time="0.000599823" phase1-service-time-variance="0.000398468" phase1-utilization="0.000458046"/>
+               <result-conf-99 utilization="0.0010565" throughput="0.00523204" squared-coeff-variation="0" proc-utilization="0.0010565" phase1-service-time="0.00138351" phase1-service-time-variance="0.000919078" phase1-utilization="0.0010565"/>
+            </result-entry>
+         </entry>
+         <task-activities>
+            <activity name="a1" bound-to-entry="e3" host-demand-mean="0.1">
+               <result-activity proc-waiting="0" service-time="0.0998841" utilization="0.0584548" service-time-variance="0.00996934" throughput="0.585226" proc-utilization="1">
+                  <result-conf-95 proc-waiting="0" service-time="0.000629071" utilization="0.000573928" service-time-variance="0.000141454" throughput="1.56406" proc-utilization="0"/>
+                  <result-conf-99 proc-waiting="0" service-time="0.00145097" utilization="0.00132378" service-time-variance="0.000326268" throughput="3.60756" proc-utilization="0"/>
+               </result-activity>
+            </activity>
+            <activity name="a2" bound-to-entry="e4" host-demand-mean="0.1">
+               <result-activity proc-waiting="0" service-time="0.100005" utilization="0.0585255" service-time-variance="0.0100161" throughput="0.585225" proc-utilization="1">
+                  <result-conf-95 proc-waiting="0" service-time="0.000748617" utilization="0.000504614" service-time-variance="9.87906e-05" throughput="1.57156" proc-utilization="0"/>
+                  <result-conf-99 proc-waiting="0" service-time="0.00172671" utilization="0.00116391" service-time-variance="0.000227864" throughput="3.62486" proc-utilization="0"/>
+               </result-activity>
+            </activity>
+            <activity name="a3" host-demand-mean="0.1">
+               <result-activity proc-waiting="0" service-time="0.100036" utilization="0.0585435" service-time-variance="0.010001" throughput="0.585226" proc-utilization="1">
+                  <result-conf-95 proc-waiting="0" service-time="0.000919956" utilization="0.000549544" service-time-variance="0.000335717" throughput="1.56817" proc-utilization="0"/>
+                  <result-conf-99 proc-waiting="0" service-time="0.00212191" utilization="0.00126754" service-time-variance="0.000774342" throughput="3.61702" proc-utilization="0"/>
+               </result-activity>
+            </activity>
+            <precedence>
+               <pre-AND>
+                  <result-join-delay join-waiting="1.00885" join-variance="1.00374">
+                     <result-conf-95 join-waiting="0.005331" join-variance="0.0123605"/>
+                     <result-conf-99 join-waiting="0.0122961" join-variance="0.0285099"/>
+                  </result-join-delay>
+                  <activity name="a2"/>
+                  <activity name="a1"/>
+               </pre-AND>
+               <post>
+                  <activity name="a3"/>
+               </post>
+            </precedence>
+            <reply-entry name="e3">
+               <reply-activity name="a3"/>
+            </reply-entry>
+            <reply-entry name="e4">
+               <reply-activity name="a3"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+</lqn-model>
