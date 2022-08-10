@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 15722 2022-06-27 20:37:32Z greg $
+ * $Id: lqn2ps.cc 15797 2022-08-09 17:26:24Z greg $
  *
  * Command line processing.
  *
@@ -213,7 +213,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2022-06-27 16:37:32 -0400 (Mon, 27 Jun 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-08-09 13:26:24 -0400 (Tue, 09 Aug 2022) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
