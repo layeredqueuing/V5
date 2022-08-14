@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 15771 2022-07-28 18:11:54Z greg $
+ * $Id: processor.cc 15818 2022-08-12 17:58:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -489,6 +489,8 @@ Processor::computeUtilization( const MVASubmodel& submodel )
 const Processor&
 Processor::insertDOMResults(void) const
 {
+    Entity::insertDOMResults();
+    
     if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
 
     double sumOfProcUtil = 0.0;

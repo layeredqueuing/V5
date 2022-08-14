@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 15731 2022-06-29 18:22:10Z greg $
+ *  $Id: dom_pragma.cpp 15819 2022-08-12 18:26:27Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -251,6 +251,7 @@ namespace LQIO {
 	const char * Pragma::_rolia_ =				"rolia";		// multiserver
 	const char * Pragma::_rolia_ps_ =			"rolia-ps";		// multiserver
 	const char * Pragma::_run_time_ =			"run-time";
+	const char * Pragma::_save_marginal_probabilities_ =	"save-marginal-probabilities";
 	const char * Pragma::_scheduling_model_ =		"scheduling-model";
 	const char * Pragma::_schmidt_ =			"schmidt";		// multiserver
 	const char * Pragma::_schweitzer_ =			"schweitzer";
@@ -332,6 +333,7 @@ namespace LQIO {
 	    { _reschedule_on_async_send_,   &__true_false_arg },
 	    { _replication_,		    &__replication_args },	    /* lqns */
 	    { _run_time_,  	    	    nullptr },			    /* lqsim */
+	    { _save_marginal_probabilities_,&__true_false_arg },
 	    { _scheduling_model_,  	    &__scheduling_model_args },
 	    { _seed_value_,  	    	    nullptr },			    /* lqsim */
 	    { _severity_level_,  	    &__warning_args },

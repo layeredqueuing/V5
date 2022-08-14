@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_group.h 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: dom_group.h 15813 2022-08-11 19:18:33Z greg $
  *
  *  Created by Martin Mroz on 1/07/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -21,9 +21,11 @@ namespace LQIO {
 	class ExternalVariable;
 	class Task;
 	class Group : public DocumentObject {
+	private:
+	    Group& operator=( const Group& ) = delete;
+
 	public:
-      
-	    /* Designated initializers for the Group type */
+      	    /* Designated initializers for the Group type */
 	    Group(const Document * document, const char * name, Processor* proc=nullptr, const ExternalVariable * share=nullptr, bool cap=false );
 	    Group( const Group & );
 	    virtual ~Group();
@@ -52,7 +54,6 @@ namespace LQIO {
 	    Group& setResultUtilizationVariance(const double resultUtilizationVariance);
 
 	private:
-	    Group& operator=( const Group& );
       
 	    /* Instance Variables */
 

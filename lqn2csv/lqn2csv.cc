@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15796 2022-08-08 20:04:28Z greg $
+ * $Id: lqn2csv.cc 15825 2022-08-12 20:45:37Z greg $
  *
  * Command line processing.
  *
@@ -60,9 +60,11 @@ const std::vector<struct option> longopts = {
     { "join-delays",           required_argument, nullptr, 'j' }, 
     { "loss-probability",      required_argument, nullptr, 'l' },
     { "processor-multiplicity",required_argument, nullptr, 'm' },
+    { "marginal-probabilities",required_argument, nullptr, 'P' },
     { "task-multiplicity",     required_argument, nullptr, 'n' },
     { "output",                required_argument, nullptr, 'o' },
     { "processor-utilization", required_argument, nullptr, 'p' }, 
+    { "marginal-probability",  required_argument, nullptr, 'P' }, 
     { "processor-waiting",     required_argument, nullptr, 'q' }, 
     { "request-rate",	       required_argument, nullptr, 'r' },
     { "activity-request-rate", required_argument, nullptr, 'R' },
@@ -84,6 +86,7 @@ const std::vector<struct option> longopts = {
     { "width",		       required_argument, nullptr, 0x100+'w' },
     { "help",		       no_argument,	  nullptr, 0x100+'h' },
     { "version",	       no_argument,	  nullptr, 0x100+'v' },
+    { "mva-steps",	       no_argument,	  nullptr, 0x100+'s' },
     { nullptr,                 0,                 nullptr, 0 }
 };
 std::string opts;
@@ -105,6 +108,7 @@ const static std::map<int,const std::string> help_str
     { 'n', "print task multiplicity (independent variable)." },
     { 'o', "write output to the file named <arg>." },
     { 'p', "print utilization for <processor>." }, 
+    { 'P', "print out the marginal queue probabilities for the processor or task <entity>." },
     { 'q', "print waiting time at the processor for <entry>, phase <n>." }, 
     { 'q', "print waiting time at the processor for <task>, <activity>." }, 
     { 'r', "print request rate from source <entry>, phase <n> to destination <entry> (independent variable)." }, 
@@ -121,11 +125,12 @@ const static std::map<int,const std::string> help_str
     { 'X', "print probability service time exceeded for <task>, <activity>." },
     { 'z', "print think time for <task> (independent variable)" },
     { '@', "Read the argument list from <arg>.  --output-file and --arguments are ignored." },
-    { 0x100+'h', "Print out this list." },
+    { 0x100+'s', "print out the number of times the MVA step() function was called."  },
     { 0x100+'l', "Limit output to the first <arg> files read." },
     { 0x100+'w', "Set the width of the result columns to <arg>.  Suppress commas." },
     { 0x100+'p', "Set the precision for output to <arg>." },
-    { 0x100+'v', "Print out version numbder." }
+    { 0x100+'v', "Print out version number." },
+    { 0x100+'h', "Print out this list." }
 };
 
 const static std::map<int,Model::Result::Type> result_type
@@ -144,6 +149,7 @@ const static std::map<int,Model::Result::Type> result_type
 //  { 0,   Model::Result::Type::PHASE_UTILIZATION      },
     { 'm', Model::Result::Type::PROCESSOR_MULTIPLICITY }, 
     { 'p', Model::Result::Type::PROCESSOR_UTILIZATION  }, 
+    { 'P', Model::Result::Type::MARGINAL_PROBABILITIES },
     { 'q', Model::Result::Type::PHASE_PROCESSOR_WAITING}, 
     { 'Q', Model::Result::Type::ACTIVITY_PROCESSOR_WAITING }, 
     { 'r', Model::Result::Type::PHASE_WAITING          }, 
@@ -156,38 +162,43 @@ const static std::map<int,Model::Result::Type> result_type
     { 'w', Model::Result::Type::PHASE_WAITING          }, 
     { 'x', Model::Result::Type::PHASE_PR_SVC_EXCD      }, 
     { 'X', Model::Result::Type::ACTIVITY_PR_SVC_EXCD   }, 
-    { 'z', Model::Result::Type::TASK_THINK_TIME	       }
+    { 'z', Model::Result::Type::TASK_THINK_TIME	       },
+    { 0x100+'s', Model::Result::Type::MVA_STEPS	       },
 };
 
 enum class Disposition { handle, ignore, fault };
 
 struct max_strlen {
     max_strlen( Model::Mode mode ) : _mode(mode) {}
-    size_t operator()( size_t l, const char * const s ) {
-	if ( s == nullptr ) return l;
-	const char * p = std::strrchr( s, '/' );
-	if ( _mode == Model::Mode::DIRECTORY_STRIP && p != nullptr ) {
-	    return std::max( l, strlen( p + 1 ) );
-	} else if ( _mode == Model::Mode::FILENAME_STRIP && p != nullptr ) {
-	    return std::max( l, static_cast<size_t>(s - p) );
-	} else {
-	    return std::strlen( s );
+    size_t operator()( size_t l, const std::string& s ) {
+	if ( s.empty() ) return l;
+	size_t n;
+	switch ( _mode ) {
+	case Model::Mode::DIRECTORY_STRIP: n = s.find_last_of( "/" ); if ( n != std::string::npos ) return std::max( l, s.size() - (n + 1) ); break;
+	case Model::Mode::FILENAME_STRIP:  n = s.find_last_of( "/" ); if ( n != std::string::npos ) return std::max( l, n ); break;
+	default: break;
 	}
+	return std::max( l, s.size() );
     }
 private:
     const Model::Mode _mode;
 };
 
 struct filename_match {
-    filename_match( const std::string& filename ) : _filename( filename.substr( filename.find_last_of( "/" ) ) ) {}
-    bool operator()( const char * filename ) { return filename != nullptr && _filename != filename; }
+    filename_match( const std::string& filename ) : _filename( get_filename( filename ) ) {}
+    bool operator()( const std::string& filename ) { return _filename == get_filename( filename ); }
 private:
+    static const std::string get_filename( const std::string& filename ) {
+	size_t n = filename.find_last_of( "/" );
+	if ( n != std::string::npos ) return filename.substr( n + 1 );
+	else return filename;
+    }
     const std::string _filename;
 };
     
 struct directory_match {
     directory_match( const std::string& directory ) : _directory( directory.substr( 0, directory.find_last_of( "/" ) ) ) {}
-    bool operator()( const char * directory ) { return directory != nullptr && _directory != directory; }
+    bool operator()( const std::string& directory ) { return _directory == directory.substr( 0, directory.find_last_of( "/" ) ); }
 private:
     const std::string _directory;
 };
@@ -216,7 +227,7 @@ main( int argc, char *argv[] )
     extern int optind;
     static char copyrightDate[20];
 
-    sscanf( "$Date: 2022-08-08 16:04:28 -0400 (Mon, 08 Aug 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-08-12 16:45:37 -0400 (Fri, 12 Aug 2022) $", "%*s %s %*s", copyrightDate );
 
     toolname = basename( argv[0] );
     opts = makeopts( longopts );	/* Convert to regular options */
@@ -231,8 +242,6 @@ main( int argc, char *argv[] )
 	if ( c == EOF ) break;
 	
 	switch ( c ) {
-	case 0: break;		/* flags not handled by case */
-
 	case 'o':
 	    output_file_name = optarg;
 	    break;
@@ -252,6 +261,10 @@ main( int argc, char *argv[] )
 	case '@':
 	    files.push_back( optarg );
 	    break;
+
+	case '?':
+	    usage();
+	    exit( 1 );
 	}
     }
 
@@ -467,17 +480,19 @@ handle_arguments( int argc, char * argv[], Disposition disposition, std::vector<
 	char * endptr = nullptr;
 	const int c = getopt_long( argc, argv, opts.c_str(), longopts.data(), nullptr );
 	if ( c == EOF ) break;
+	if ( c == 0 ) continue;		/* longopts done with &flag */
 
 	/* Handle all result args (and result options --gnuplot,...) */
 	std::map<int,Model::Result::Type>::const_iterator result = result_type.find( c );
-	if ( optarg != nullptr && result != result_type.end() ) {
-	    results.emplace_back( optarg, result->second );
+	if ( result != result_type.end() ) {
+	    if ( optarg != nullptr ) {
+		results.emplace_back( optarg, result->second );
+	    } else {
+		results.emplace_back( "--", result->second );
+	    }
 	} else {
 	    /* Ignore non-results options with args. (-o, -a...) */
 	    switch ( c ) {
-	    case EOF:
-		break;
-
 
 	    case 0x100+'l':
 		limit = strtol( optarg, &endptr, 10 );
@@ -495,10 +510,14 @@ handle_arguments( int argc, char * argv[], Disposition disposition, std::vector<
 	    case 0x100+'h':
 	    case 'v':
 	    case '@':
-		if ( disposition == Disposition::ignore ) break;
-		/* Fall through */
+		if ( disposition != Disposition::ignore ) {
+		    throw std::invalid_argument( std::string( "invalid option -- " ) + static_cast<char>(c) );
+		}
+		break;
+
 	    case '?':
-		throw std::invalid_argument( std::string( "invalid option -- " ) + static_cast<char>(c) );
+		usage();
+		exit( 1 );
 	    }
 
 	    if ( endptr != 0 && *endptr != '\0' ) {
@@ -555,6 +574,7 @@ usage()
 		case Model::Object::Type::ACTIVITY:       s += "=<task>,<activity>"; break;
 		case Model::Object::Type::ACTIVITY_CALL:  s += "=<task>,<activity>,<entry>"; break;
 		case Model::Object::Type::ENTRY:      	  s += "=<entry>"; break;
+		case Model::Object::Type::ENTITY:	  s += "=<entity>"; break;
 		case Model::Object::Type::JOIN:	          s += " Not implemented."; break;
 		case Model::Object::Type::PHASE:          s += "=<entry>,<n>"; break;
 		case Model::Object::Type::PHASE_CALL:     s += "=<entry>,<n>,<entry>"; break;

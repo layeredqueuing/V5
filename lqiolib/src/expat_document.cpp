@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 15745 2022-07-03 11:36:39Z greg $
+ * $Id: expat_document.cpp 15816 2022-08-12 16:01:31Z greg $
  *
  * Read in XML input files.
  *
@@ -75,8 +75,8 @@ namespace LQIO {
         /* ---------------------------------------------------------------- */
 
         Expat_Document::Expat_Document( Document& document, const std::string& input_file_name, bool createObjects, bool loadResults )
-            : _document( document ), _parser(), _input_file_name(input_file_name), _createObjects(createObjects), _loadResults(loadResults), _stack(),
-	      _has_spex(false), _spex_parameters(), _spex_results(), _spex_convergence(), _spex_observation()
+            : _document( document ), _parser(), _input_file_name(input_file_name), _createObjects(createObjects), _loadResults(loadResults), _stack(), _text(),
+	      _has_spex(false), _spex_observation()
         {
         }
 
@@ -350,17 +350,19 @@ namespace LQIO {
         Expat_Document::handle_text( void * data, const XML_Char * text, int length )
         {
             Expat_Document * parser = static_cast<Expat_Document *>(data);
-            if ( parser->_stack.size() == 0 ) return;
+            if ( parser->_stack.empty() ) return;
             const parse_stack_t& top = parser->_stack.top();
             if ( top.start == &Expat_Document::startLQX ) {
 		std::string& program = const_cast<std::string &>(parser->_document.getLQXProgramText());
                 program.append( text, length );
             } else if ( top.start == &Expat_Document::startSPEXParameters ) {
-		parser->_spex_parameters.append( text, length );
+		parser->_text.append( text, length );
 	    } else if ( top.start == &Expat_Document::startSPEXResults ) {
-		parser->_spex_results.append( text, length );
+		parser->_text.append( text, length );
 	    } else if ( top.start == &Expat_Document::startSPEXConvergence ) {
-		parser->_spex_convergence.append( text, length );
+		parser->_text.append( text, length );
+	    } else if ( top.start == &Expat_Document::startMarginalQueueProbabilities ) {
+		parser->_text.append( text, length );
 	    }
         }
 
@@ -454,11 +456,18 @@ namespace LQIO {
 
             } else if ( strcasecmp( element, Xspex_parameters ) == 0 ) {
                 _document.setLQXProgramLineNumber(XML_GetCurrentLineNumber(_parser));
+		_text.clear();
                 _stack.push( parse_stack_t(element,&Expat_Document::startSPEXParameters,&Expat_Document::endSPEXParameters,object) );
 
             } else if ( strcasecmp( element, Xspex_results ) == 0 ) {
                 _document.setLQXProgramLineNumber(XML_GetCurrentLineNumber(_parser));
+		_text.clear();
                 _stack.push( parse_stack_t(element,&Expat_Document::startSPEXResults,&Expat_Document::endSPEXResults,object) );
+
+            // } else if ( strcasecmp( element, Xspex_convergence ) == 0 ) {
+            //     _document.setLQXProgramLineNumber(XML_GetCurrentLineNumber(_parser));
+	    // 	_text.clear();
+            //     _stack.push( parse_stack_t(element,&Expat_Document::startSPEXConvergence,&Expat_Document::endSPEXConvergence,object) );
 
             } else {
                 XML::throw_element_error( element, attributes );
@@ -500,7 +509,7 @@ namespace LQIO {
             } else if ( strcasecmp( element, Xpragma ) == 0 ) {
                 const XML_Char * parameter = XML::getStringAttribute(attributes,Xparam);
                 _document.addPragma(parameter,XML::getStringAttribute(attributes,Xvalue,""));
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
 
 	    } else if ( strcasecmp( element, Xresult_observation ) == 0 ) {
 		handleSPEXObservation( object, attributes );
@@ -525,7 +534,7 @@ namespace LQIO {
 						XML::getDoubleAttribute(attributes,Xwait_squared),
 						XML::getLongAttribute(attributes,Xfaults) );
                 }
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
 /* !!! SPEX document observations */
             } else {
                 XML::throw_element_error( element, attributes );
@@ -656,11 +665,11 @@ namespace LQIO {
 
             } else if ( strcasecmp( element, Xfanin ) == 0 ) {
                 handleFanIn( task, attributes );
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
 
             } else if ( strcasecmp( element, Xfanout ) == 0 ) {
                 handleFanOut( task, attributes );
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
 
             } else if ( strcasecmp( element, Xentry) == 0 ) {
                 Entry * entry = handleEntry( task, attributes );
@@ -671,7 +680,7 @@ namespace LQIO {
                 _stack.push( parse_stack_t(element,&Expat_Document::startOutputDistributionType,histogram) );
 
             } else if ( strcasecmp( element, Xservice ) == 0 ) {
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );              // Not implemented.
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );              // Not implemented.
 
             } else if ( strcasecmp( element, Xtask_activities ) == 0 ) {
                 _stack.push( parse_stack_t(element,&Expat_Document::startTaskActivityGraph,task) );
@@ -1012,7 +1021,7 @@ namespace LQIO {
         {
             if ( strcasecmp( element, Xactivity ) == 0 ) {
                 handleActivityList( dynamic_cast<ActivityList *>(activity_list), attributes );
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
 
             } else if ( strcasecmp( element, Xservice_time_distribution ) == 0 && dynamic_cast<ActivityList *>(activity_list)->getListType() == ActivityList::Type::AND_JOIN ) {
                 Histogram * histogram = handleHistogram( activity_list, attributes );
@@ -1053,7 +1062,7 @@ namespace LQIO {
                         activity->getReplyList().push_back(dynamic_cast<Entry *>(entry));
                     }
                 }
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
             } else {
                 XML::throw_element_error( element, attributes );
             }
@@ -1065,9 +1074,13 @@ namespace LQIO {
         {
             if ( strcasecmp( element, Xresult_conf_95 ) == 0 ) {
                 handleResults95( object, attributes );
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
             } else if ( strcasecmp( element, Xresult_conf_99 ) == 0 ) {
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
+	    } else if ( strcasecmp( element, Xmarginal_queue_probabilities ) == 0 && dynamic_cast<LQIO::DOM::Entity *>(object) ) {
+		handleMarginalQueueProbabilities( dynamic_cast<Entity *>(object), attributes );
+		_text.clear();
+                _stack.push( parse_stack_t(element,&Expat_Document::startMarginalQueueProbabilities,&Expat_Document::endMarginalQueueProbabilities,object) );
             } else {
                 XML::throw_element_error( element, attributes );
             }
@@ -1079,9 +1092,9 @@ namespace LQIO {
         {
             if ( strcasecmp( element, Xresult_conf_95 ) == 0 ) {
                 handleJoinResults95( dynamic_cast<LQIO::DOM::AndJoinActivityList*>(object), attributes );
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
             } else if ( strcasecmp( element, Xresult_conf_99 ) == 0 ) {
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
             } else {
                 XML::throw_element_error( element, attributes );
             }
@@ -1093,22 +1106,52 @@ namespace LQIO {
         {
             if ( strcasecmp( element, Xhistogram_bin ) == 0 || strcasecmp( element, Xunderflow_bin ) == 0 || strcasecmp( element, Xoverflow_bin ) == 0 ) {
                 handleHistogramBin( object, element, attributes );
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
             } else {
                 XML::throw_element_error( element, attributes );
             }
         }
+
+
+	void
+	Expat_Document::startMarginalQueueProbabilities( DocumentObject * entity, const XML_Char * element, const XML_Char ** attributes )
+	{
+	    XML::throw_element_error( element, attributes );
+	}
+
+
+	/*
+	 * The marginals are stored as a CSV string from P_0 to P_J, where J is the number of servers.
+	 * Save them in a vector.
+	 */
+	
+	void
+	Expat_Document::endMarginalQueueProbabilities( DocumentObject * object, const XML_Char * element )
+	{
+	    Entity * entity = dynamic_cast<Entity*>(object);
+	    assert( entity != nullptr );
+	    std::vector<double>& marginals = entity->getResultMarginalQueueProbabilities();
+
+	    const char * tail = _text.data() + _text.size();
+	    char * end = nullptr;
+	    for ( const char * head = _text.data(); head != tail; head = end + 1 ) {
+		marginals.push_back( std::strtod( head, &end ) );
+		while ( end != tail && isspace( *end ) ) ++end;	/* strip trailing whitespace */
+		if ( end == tail ) break;
+	    }
+	}
+
 
 	void
 	Expat_Document::startSPEXObservationType(  DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
 	{
 	    if ( strcasecmp( element, Xresult_conf_95 ) == 0 ) {
 		handleSPEXObservation( object, attributes, 95 );
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
 
             } else if ( strcasecmp( element, Xresult_conf_99 ) == 0 ) {
 		handleSPEXObservation( object, attributes, 99 );
-                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );
 
 	    } else {
 		XML::throw_element_error( element, attributes );
@@ -1184,7 +1227,7 @@ namespace LQIO {
 
 	void Expat_Document::endSPEXParameters( DocumentObject * object, const XML_Char * element )
         {
-	    LQIO_parse_string( SPEX_PARAMETER, _spex_parameters.c_str() );
+	    LQIO_parse_string( SPEX_PARAMETER, _text.c_str() );
         }
 
 	void Expat_Document::startSPEXResults( DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
@@ -1194,7 +1237,7 @@ namespace LQIO {
 
 	void Expat_Document::endSPEXResults( DocumentObject * object, const XML_Char * element )
         {
-	    LQIO_parse_string( SPEX_RESULT, _spex_results.c_str() );
+	    LQIO_parse_string( SPEX_RESULT, _text.c_str() );
         }
 
 	void Expat_Document::startSPEXConvergence( DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
@@ -1204,7 +1247,7 @@ namespace LQIO {
 
 	void Expat_Document::endSPEXConvergence( DocumentObject * object, const XML_Char * element )
         {
-	    LQIO_parse_string( SPEX_CONVERGENCE, _spex_convergence.c_str() );
+	    LQIO_parse_string( SPEX_CONVERGENCE, _text.c_str() );
         }
 
         void
@@ -1984,6 +2027,22 @@ namespace LQIO {
             }
         }
 
+
+	void
+	Expat_Document::handleMarginalQueueProbabilities( Entity * entity, const XML_Char ** attributes )
+	{
+	    static const std::set<const XML_Char *,Expat_Document::attribute_table_t> marginal_table = {
+		Xsize
+	    };
+	    
+	    assert( entity != nullptr );
+	    checkAttributes( Xactivity, attributes, marginal_table );
+	    if ( _createObjects ) {
+		entity->getResultMarginalQueueProbabilities().reserve( XML::getLongAttribute( attributes, Xsize ) );
+	    }
+	}
+	
+
 	/*
 	 * Stick all observations into _spex_observation in case we need add 95% confidence intervals.
 	 * Observation handling is done by the end handler endSPEXObservation();
@@ -2381,11 +2440,22 @@ namespace LQIO {
 		exportObservation( output, &processor );
 	    }
             if ( hasResults() ) {
-                if ( _document.hasConfidenceIntervals() ) {
+		const std::vector<double>& marginals = processor.getResultMarginalQueueProbabilities();
+                if ( _document.hasConfidenceIntervals() || !marginals.empty() ) {
                     output << XML::start_element( Xresult_processor ) << XML::attribute( Xutilization, processor.getResultUtilization() ) << ">" << std::endl;
-                    output << XML::simple_element( Xresult_conf_95 )  << XML::attribute( Xutilization, _conf_95( processor.getResultUtilizationVariance() ) ) << "/>" << std::endl;
-                    output << XML::simple_element( Xresult_conf_99 )  << XML::attribute( Xutilization, _conf_99( processor.getResultUtilizationVariance() ) ) << "/>" << std::endl;
-                    output << XML::end_element( Xresult_processor ) << std::endl;
+		    if ( _document.hasConfidenceIntervals() ) {
+			output << XML::simple_element( Xresult_conf_95 )  << XML::attribute( Xutilization, _conf_95( processor.getResultUtilizationVariance() ) ) << "/>" << std::endl;
+			output << XML::simple_element( Xresult_conf_99 )  << XML::attribute( Xutilization, _conf_99( processor.getResultUtilizationVariance() ) ) << "/>" << std::endl;
+		    }
+		    if ( !marginals.empty() ) {
+			output << XML::start_element( Xmarginal_queue_probabilities ) << XML::attribute( Xsize, static_cast<unsigned int>(marginals.size()) ) << ">" << std::endl;
+			for ( std::vector<double>::const_iterator p = marginals.begin(); p != marginals.end(); ++p ) {
+			    if ( p != marginals.begin() ) output << ", ";
+			    output << *p;
+			}
+			output << std::endl << XML::end_element( Xmarginal_queue_probabilities );
+		    }
+                    output << std::endl << XML::end_element( Xresult_processor ) << std::endl;
                 } else {
                     output << XML::simple_element( Xresult_processor ) << XML::attribute( Xutilization, processor.getResultUtilization() ) << "/>" << std::endl;
                 }
@@ -3303,6 +3373,7 @@ namespace LQIO {
         const XML_Char * Expat_Document::Xloss_probability =                    "loss-probability";
         const XML_Char * Expat_Document::Xlqn_model =                           "lqn-model";
         const XML_Char * Expat_Document::Xlqx =                                 "lqx";
+        const XML_Char * Expat_Document::Xmarginal_queue_probabilities = 	"marginal-queue-probabilities";
         const XML_Char * Expat_Document::Xmax =                                 "max";
 	const XML_Char * Expat_Document::Xmax_rss = 				"max-rss";
         const XML_Char * Expat_Document::Xmax_service_time =                    "max-service-time";
@@ -3381,6 +3452,7 @@ namespace LQIO {
         const XML_Char * Expat_Document::Xservice_time_variance =               "service-time-variance";
         const XML_Char * Expat_Document::Xshare =                               "share";
         const XML_Char * Expat_Document::Xsignal =                              "signal";
+        const XML_Char * Expat_Document::Xsize =                                "size";
         const XML_Char * Expat_Document::Xsolver_info =                         "solver-info";
         const XML_Char * Expat_Document::Xsolver_parameters =                   "solver-params";
         const XML_Char * Expat_Document::Xsource =                              "source";

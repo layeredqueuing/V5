@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 15720 2022-06-27 17:49:12Z greg $
+ * $Id: entity.h 15818 2022-08-12 17:58:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -279,6 +279,8 @@ private:
     double computeIdleTime( const unsigned, const double ) const;
 
 public:
+    virtual const Entity& insertDOMResults() const;
+
     /* Printing */
 
     virtual std::ostream& print( std::ostream& ) const = 0;
@@ -316,6 +318,10 @@ private:
     unsigned _maxPhase;			/* Largest phase.		*/
     double _utilization;		/* Utilization			*/
     mutable double _lastUtilization;	/* For convergence test.	*/
+#if defined(BUG_393)
+    std::vector<double> _marginalQueueProbabilities;
+#endif
+
     /* MVA interface */
 
     ChainVector _serverChains;		/* Chains for this server.	*/

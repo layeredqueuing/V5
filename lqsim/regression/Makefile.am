@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15801 2022-08-10 13:26:50Z greg $
+# $Id: Makefile.am 15804 2022-08-10 15:58:58Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -36,11 +36,11 @@ ACT=	40-activities.lqxo \
 	46-activities.lqxo 
 OVER=	31-overtaking.lqxo \
 	32-async-inf.lqxo 
-REPL=	50-replication-flat.lqxo \
-	51-replication-flat.lqxo \
-	52-replication-flat.lqxo \
-	55-replication-flat.lqxo \
-	56-replication-flat.lqxo 
+REPL=	50-replication.lqxo \
+	51-replication.lqxo \
+	52-replication.lqxo \
+	55-replication.lqxo \
+	56-replication.lqxo 
 SEMA =  60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo \
@@ -108,6 +108,7 @@ all:
 clean:
 	@-rm -f $(OBJS) *.out 
 	@-rm -rf $(OBJS2)
+	@-rf -rf 5*-replication-flat.*
 
 distclean:	clean 
 	-rm -f Makefile
@@ -125,7 +126,7 @@ fork:	$(FORK)
 	echo $(FORK) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/sim-results
 
 repl:	$(REPL)
-	echo $(REPL) | tr -s " " "\n" | srvndiff -Q -@- -S0.02 . ../../models/regression/repl-results
+	echo $(REPL) | tr -s " " "\n" | srvndiff -Q -@- -S0.02 . ../../models/regression/sim-results
 
 sim:	$(SIM)
 	echo $(SIM) | tr -s " " "\n" | srvndiff -Q -@- -S0.02 . ../../models/regression/sim-results

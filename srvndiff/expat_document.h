@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 15018 2021-10-02 13:32:45Z greg $
+ *  $Id: expat_document.h 15817 2022-08-12 17:20:52Z greg $
  *
  *  Created by Greg Franks.
  */
@@ -124,6 +124,7 @@ namespace LQIO {
 	    void startOutputResultType( const DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
 	    void startJoinResultType( const DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
 	    void startOutputDistributionType( const DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
+	    void startMarginalQueueProbabilities( DocumentObject * entity, const XML_Char * element, const XML_Char ** attributes );
 	    void startLQX( const DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
 	    void startNOP( const DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
 
@@ -218,6 +219,7 @@ namespace LQIO {
 	    static const XML_Char *Xloss_probability;
 	    static const XML_Char *Xlqn_model;
 	    static const XML_Char *Xlqx;
+	    static const XML_Char *Xmarginal_queue_probabilities;
 	    static const XML_Char *Xmax;
 	    static const XML_Char *Xmax_service_time;
 	    static const XML_Char *Xmin;

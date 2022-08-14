@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 15626 2022-06-02 13:36:09Z greg $
+ * $Id: submodel.h 15818 2022-08-12 17:58:53Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -190,6 +190,9 @@ public:
 #endif
     double closedModelUtilization( const Server& station, unsigned int k ) const;
     double openModelUtilization( const Server& station ) const;
+#if defined(BUG_393)
+    double closedModelMarginalQueueProbability( const Server& station, unsigned int i ) const;
+#endif
 
     virtual std::ostream& print( std::ostream& ) const;
     

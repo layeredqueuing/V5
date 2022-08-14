@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 15304 2021-12-31 15:51:38Z greg $
+ *  $Id: expat_document.h 15817 2022-08-12 17:20:52Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -228,8 +228,8 @@ namespace LQIO {
 	    static bool loadResults( Document&, const std::string& );
 
 	private:
-	    Expat_Document( const Expat_Document& );
-	    Expat_Document& operator=( const Expat_Document& );
+	    Expat_Document( const Expat_Document& ) = delete;
+	    Expat_Document& operator=( const Expat_Document& ) = delete;
 
 	    static void start( void *data, const XML_Char *el, const XML_Char **attr );
 	    static void end( void *data, const XML_Char *el );
@@ -268,6 +268,8 @@ namespace LQIO {
 /*- SPEX */
 	    void startJoinResultType( DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
 	    void startOutputDistributionType( DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
+	    void startMarginalQueueProbabilities( DocumentObject * entity, const XML_Char * element, const XML_Char ** attributes );
+	    void endMarginalQueueProbabilities( DocumentObject * entity, const XML_Char * element );
 	    void startLQX( DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
 /*+ SPEX */
 	    void startSPEXParameters( DocumentObject * document, const XML_Char * element, const XML_Char ** attributes );
@@ -304,6 +306,7 @@ namespace LQIO {
 	    void handleResults95( DocumentObject *, const XML_Char ** attributes );
 	    void handleJoinResults( AndJoinActivityList *, const XML_Char ** attributes );
 	    void handleJoinResults95( AndJoinActivityList *, const XML_Char ** attributes );
+	    void handleMarginalQueueProbabilities( Entity *, const XML_Char ** attributes );
 	    void handleSPEXObservation( DocumentObject *, const XML_Char ** attributes, unsigned int = 0 );
 	    void handleSPEXObservation95( DocumentObject *, const XML_Char ** attributes );
 	    Histogram * findOrAddHistogram( DocumentObject * object, Histogram::Type type, unsigned int n_bins, double min, double max );
@@ -347,12 +350,10 @@ namespace LQIO {
 	    bool _createObjects;
 	    bool _loadResults;
 	    std::stack<parse_stack_t> _stack;
+	    std::string _text;			/* Place for text sections. */
 
 	    /*+ SPEX */
 	    bool _has_spex;			/* True if SPEX present AND not outputting LQX */
-	    std::string _spex_parameters;
-	    std::string _spex_results;
-	    std::string _spex_convergence;
 	    std::set<LQIO::Spex::ObservationInfo,LQIO::Spex::ObservationInfo> _spex_observation;
 	    /*- SPEX */
 
@@ -404,6 +405,7 @@ namespace LQIO {
 	    static const XML_Char *Xloss_probability;
 	    static const XML_Char *Xlqn_model;
 	    static const XML_Char *Xlqx;
+	    static const XML_Char *Xmarginal_queue_probabilities;
 	    static const XML_Char *Xmax;
 	    static const XML_Char *Xmax_rss;
 	    static const XML_Char *Xmax_service_time;
@@ -479,6 +481,7 @@ namespace LQIO {
 	    static const XML_Char *Xservice_time_variance;
 	    static const XML_Char *Xshare;
 	    static const XML_Char *Xsignal;
+	    static const XML_Char *Xsize;
 	    static const XML_Char *Xsolver_info;
 	    static const XML_Char *Xsolver_parameters;
 	    static const XML_Char *Xsource;

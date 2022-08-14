@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 15682 2022-06-21 18:37:02Z greg $
+ * $Id: help.cc 15819 2022-08-12 18:26:27Z greg $
  */
 
 #include "lqns.h"
@@ -165,6 +165,7 @@ const Help::pragma_map_t Help::__pragmas =
 #if RESCHEDULE
     { LQIO::DOM::Pragma::_reschedule_on_async_send_,pragma_info( &Help::pragmaReschedule, &__reschedule_args ) },
 #endif
+    { LQIO::DOM::Pragma::_save_marginal_probabilities_,pragma_info( &Help::pragmaSaveMarginalProbabilities ) },
     { LQIO::DOM::Pragma::_severity_level_,	    pragma_info( &Help::pragmaSeverityLevel, &__warning_args ) },
     { LQIO::DOM::Pragma::_spex_comment_,	    pragma_info( &Help::pragmaSpexComment, &__spex_comment_args ) },
     { LQIO::DOM::Pragma::_spex_header_,		    pragma_info( &Help::pragmaSpexHeader, &__spex_header_args ) },
@@ -1875,6 +1876,13 @@ Help::pragmaRescheduleFalse( std::ostream& output, bool verbose ) const
 /* -- */
 
 std::ostream&
+Help::pragmaSaveMarginalProbabilities( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to enable or disable saving the marginal queue probabilities for multiservers in the results." << std::endl;
+    return output;
+}
+
+std::ostream&
 Help::pragmaSeverityLevel( std::ostream& output, bool verbose ) const
 {
     output << "This pragma is used to enable or disable warning messages." << std::endl;
@@ -2222,7 +2230,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 15682 2022-06-21 18:37:02Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 15819 2022-08-12 18:26:27Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2521,7 +2529,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 15682 2022-06-21 18:37:02Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 15819 2022-08-12 18:26:27Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

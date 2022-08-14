@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15735 2022-06-30 03:18:14Z greg $
+ * $Id: entity.cc 15824 2022-08-12 20:09:32Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -84,6 +84,9 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
       _maxPhase(1),
       _utilization(0),
       _lastUtilization(-1.0),		/* Force update 		*/
+#if defined(BUG_393)
+      _marginalQueueProbabilities(),
+#endif
       _replica_number(1),		/* This object is not a replica	*/
       _pruned(false)
 {
@@ -114,6 +117,9 @@ Entity::Entity( const Entity& src, unsigned int replica )
       _maxPhase(1),
       _utilization(0),
       _lastUtilization(-1.0),		/* Force update 		*/
+#if defined(BUG_393)
+      _marginalQueueProbabilities(),	/* Result, don't care.		*/
+#endif
       _replica_number(replica),		/* This object is a replica	*/
       _pruned(false)
 {
@@ -706,6 +712,17 @@ Entity::saveServerResults( const MVASubmodel& submodel, double relax )
 	(*entry)->saveThroughput( lambda );
     }
 
+#if defined(BUG_393)
+    /* Only save if needed */
+    if ( Pragma::saveMarginalProbabilities() && isClosedModelServer() && station->getMarginalProbabilitiesSize() > 0 ) {
+	unsigned int copies = static_cast<unsigned int>(station->mu());
+	_marginalQueueProbabilities.resize(copies+1);
+	for ( unsigned int i = 0; i <= copies; ++i ) {
+	    _marginalQueueProbabilities[i] = submodel.closedModelMarginalQueueProbability( *station, i );
+	}
+    }
+#endif
+
     setUtilization( computeUtilization( submodel ) );
     setIdleTime( relax );
 
@@ -724,6 +741,20 @@ Entity::setUtilization( double utilization )
     }
     return *this;
 }
+
+
+const Entity&
+Entity::insertDOMResults() const
+{
+#if defined(BUG_393)
+    if ( !_marginalQueueProbabilities.empty() ) {
+	std::vector<double>& marginals = getDOM()->getResultMarginalQueueProbabilities();
+	marginals = _marginalQueueProbabilities;
+    }
+#endif
+    return *this;
+}
+
 
 /* -------------------------------------------------------------------- */
 /* Funky Formatting functions for inline with <<.			*/

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entity.cpp 15723 2022-06-28 02:51:47Z greg $
+ *  $Id: dom_entity.cpp 15813 2022-08-11 19:18:33Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -22,6 +22,9 @@ namespace LQIO {
 	    _entityId(const_cast<Document *>(document)->getNextEntityId()), 
 	    _entitySchedulingType(schedulingType),
 	    _copies(copies), _replicas(replicas)
+#if defined(BUG_393)
+	    , _resultMarginalQueueProbabilities()
+#endif
 	{
 	    /* Empty Constructor */
 	}
@@ -31,6 +34,9 @@ namespace LQIO {
 	    _entityId(const_cast<Document *>(src.getDocument())->getNextEntityId()), 
 	    _entitySchedulingType(src._entitySchedulingType),
 	    _copies(ExternalVariable::clone(src._copies)), _replicas(ExternalVariable::clone(src._replicas))
+#if defined(BUG_393)
+	    , _resultMarginalQueueProbabilities(src._resultMarginalQueueProbabilities)
+#endif
 	{
 	}
 

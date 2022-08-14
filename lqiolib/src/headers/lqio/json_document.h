@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: json_document.h 15362 2022-01-05 14:09:18Z greg $
+ *  $Id: json_document.h 15813 2022-08-11 19:18:33Z greg $
  *
  *  Created by Greg Franks.
  */
@@ -61,8 +61,8 @@ namespace LQIO {
 	    Document& getDocument() const { return _document; }
 
 	private:
-	    JSON_Document( const JSON_Document& );
-	    JSON_Document& operator=( const JSON_Document& );
+	    JSON_Document( const JSON_Document& ) = delete;
+	    JSON_Document& operator=( const JSON_Document& ) = delete;
 
 	    bool parse();
 

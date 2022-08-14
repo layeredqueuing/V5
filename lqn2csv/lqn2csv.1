@@ -97,6 +97,13 @@ Write the  output to the file named \fIarg\fP.
 \fB\-p\fP, \fB\-\-processor\-utilization=\fIprocessor\fR
 Print the utilization for \fIprocessor\fP.
 .TP 8
+\fB\-P\fP, \fB\-\-marginal\-proabilities=\fIentity\fP,\fIn\fR
+Print the marginal probabilities for either the task or processor
+\fIentity\fP.  If both a task and a processor share a common name,
+then the results for the task will be printed.  Note that all the
+probabilities (if any) will be printed so columns may not line up if
+the result is used with others.
+.TP 8
 \fB\-q\fP, \fB\-\-processor\-waiting=\fIentry\fP,\fIn\fR
 Print the waiting time at the processor for \fIentry\fP, phase \fIn\fP.
 .TP 8
@@ -138,6 +145,10 @@ Print the probability the service time was exceeded for \fItask\fP,
 Print the think time for the \fItask\fP.  \fITask\fP should be a
 reference task (client) as non-reference tasks should not have think
 times.  This is an independent variable for plotting.
+.TP 8
+\fB\fB\-\-mva-step\fIn\fR
+Print out the number of times the MVA step() function was called when
+solving the model.
 .TP 8
 \fB\fB\-\-limit=\fIn\fR
 If set, then limit the output to \fIn\fP lines.

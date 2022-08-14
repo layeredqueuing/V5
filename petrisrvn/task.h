@@ -53,14 +53,14 @@ public:
 
 
 protected:
-    Task( LQIO::DOM::Task* dom, Type type, Processor * );
+    Task( const LQIO::DOM::Task* dom, Type type, Processor * );
 
 private:
     Task( const Task& );
     Task& operator=( const Task& );
 
 public:
-    static Task * create( LQIO::DOM::Task * dom );
+    static Task * create( const LQIO::DOM::Task * dom );
     void clear();
 
     Type type() const { return _type; }

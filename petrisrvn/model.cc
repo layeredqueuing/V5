@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 15740 2022-07-01 11:27:25Z greg $
+ * $Id: model.cc 15805 2022-08-10 17:20:27Z greg $
  *
  * Load the SRVN model.
  */
@@ -321,34 +321,29 @@ Model::construct()
 	
     /* Add all of the tasks we will be needing */
     for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator t = taskList.begin(); t != taskList.end(); ++t ) {
-	LQIO::DOM::Task* task = t->second;
+	const LQIO::DOM::Task* task = t->second;
 	/* Now we can go ahead and add the task */
 	Task* newTask = Task::create(task);
 
-	std::vector<LQIO::DOM::Entry*>::const_iterator nextEntry;
 	std::vector<LQIO::DOM::Entry*> activityEntries;
 		
 	/* Add the entries so we can reverse them */
-	for ( nextEntry = task->getEntryList().begin(); nextEntry != task->getEntryList().end(); ++nextEntry ) {
-	    newTask->entries.push_back( Entry::create( *nextEntry, newTask ) );
-	    if ((*nextEntry)->getStartActivity() != nullptr) {
-		activityEntries.push_back(*nextEntry);
+	for ( std::vector<LQIO::DOM::Entry*>::const_iterator entry = task->getEntryList().begin(); entry != task->getEntryList().end(); ++entry ) {
+	    newTask->entries.push_back( Entry::create( *entry, newTask ) );
+	    if ((*entry)->getStartActivity() != nullptr) {
+		activityEntries.push_back(*entry);
 	    }
 	}
 		
 	/* Add activities for the task (all of them) */
 	const std::map<std::string,LQIO::DOM::Activity*>& activities = task->getActivities();
-	std::map<std::string,LQIO::DOM::Activity*>::const_iterator iter;
-	for (iter = activities.begin(); iter != activities.end(); ++iter) {
-	    const LQIO::DOM::Activity* activity = iter->second;
-	    newTask->add_activity(const_cast<LQIO::DOM::Activity*>(activity));
+	for (std::map<std::string,LQIO::DOM::Activity*>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity) {
+	    newTask->add_activity(activity->second);
 	}
 		
 	/* Set all the start activities */
-	std::vector<LQIO::DOM::Entry*>::iterator entryIter;
-	for (entryIter = activityEntries.begin(); entryIter != activityEntries.end(); ++entryIter) {
-	    LQIO::DOM::Entry* theDOMEntry = *entryIter;
-	    newTask->set_start_activity(theDOMEntry);
+	for (std::vector<LQIO::DOM::Entry*>::iterator entry = activityEntries.begin(); entry != activityEntries.end(); ++entry) {
+	    newTask->set_start_activity(*entry);
 	}
     }
 	
@@ -365,23 +360,18 @@ Model::construct()
 	/* Go over all of the entry's phases and add the calls */
 	for (unsigned p = 1; p <= entry->getMaximumPhase(); ++p) {
 	    LQIO::DOM::Phase* phase = entry->getPhase(p);
-	    const std::vector<LQIO::DOM::Call*>& originatingCalls = phase->getCalls();
-	    std::vector<LQIO::DOM::Call*>::const_iterator iter;
-
 	    /* Add all of the calls to the system */
-	    for (iter = originatingCalls.begin(); iter != originatingCalls.end(); ++iter) {
-		LQIO::DOM::Call* call = *iter;
-		/* Add the call to the system */
-		newEntry->add_call( p, call);
+
+	    const std::vector<LQIO::DOM::Call*>& originatingCalls = phase->getCalls();
+	    for (std::vector<LQIO::DOM::Call*>::const_iterator call = originatingCalls.begin(); call != originatingCalls.end(); ++call) {
+		newEntry->add_call(p, *call);			/* Add the call to the system */
 	    }
 	}
 
 	/* Add in all of the P(frwd) calls */
 	const std::vector<LQIO::DOM::Call*>& forwarding = entry->getForwarding();
-	std::vector<LQIO::DOM::Call*>::const_iterator nextFwd;
-	for ( nextFwd = forwarding.begin(); nextFwd != forwarding.end(); ++nextFwd ) {
-	    LQIO::DOM::Call* call = *nextFwd;
-	    Entry::add_fwd_call(call);
+	for ( std::vector<LQIO::DOM::Call*>::const_iterator call = forwarding.begin(); call != forwarding.end(); ++call ) {
+	    Entry::add_fwd_call(*call);
 	}
     }
 

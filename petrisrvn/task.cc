@@ -54,7 +54,7 @@ double Task::__queue_y_offset;
  * Add a task to the model.
  */
 
-Task::Task( LQIO::DOM::Task* dom, Task::Type type, Processor * processor )
+Task::Task( const LQIO::DOM::Task* dom, Task::Type type, Processor * processor )
     : Place( dom ),
       entries(),
 #if !defined(BUFFER_BY_ENTRY)
@@ -142,7 +142,7 @@ Task::remove_netobj()
 
 
 Task * 
-Task::create( LQIO::DOM::Task * dom )
+Task::create( const LQIO::DOM::Task * dom )
 {
     const string& task_name = dom->getName();
     if ( task_name.size() == 0 ) abort();
@@ -168,10 +168,10 @@ Task::create( LQIO::DOM::Task * dom )
     if ( !bit_test( sched_type, SCHED_BURST_BIT|SCHED_UNIFORM_BIT|SCHED_CUSTOMER_BIT|SCHED_DELAY_BIT|SCHED_SEMAPHORE_BIT) ) {
 	if ( dom->isInfinite() ) {
 	    sched_type = SCHEDULE_DELAY;
-	    dom->setSchedulingType( sched_type );
+	    const_cast<LQIO::DOM::Task *>(dom)->setSchedulingType( sched_type );
 	} else if ( !Pragma::__pragmas->default_task_scheduling() ) {
 	    sched_type = Pragma::__pragmas->task_scheduling();
-	    dom->setSchedulingType( sched_type );
+	    const_cast<LQIO::DOM::Task *>(dom)->setSchedulingType( sched_type );
 	}
     }
 
@@ -344,21 +344,20 @@ Task::initialize()
 /* Priority for this task.	*/
 int Task::priority() const
 {
-    int value = 0;
     try {
-	value = dynamic_cast<LQIO::DOM::Task *>(get_dom())->getPriorityValue();
+	return dynamic_cast<const LQIO::DOM::Task *>(get_dom())->getPriorityValue();
     }
     catch ( const std::domain_error &e ) {
 	get_dom()->throw_invalid_parameter( "priority", e.what() );
     }
-    return value;
+    return 0;
 }
 
 double Task::think_time() const
 {
-    if ( dynamic_cast<LQIO::DOM::Task *>(get_dom())->hasThinkTime() ) {
+    if ( dynamic_cast<const LQIO::DOM::Task *>(get_dom())->hasThinkTime() ) {
 	try {
-	    return dynamic_cast<LQIO::DOM::Task *>(get_dom())->getThinkTimeValue();
+	    return dynamic_cast<const LQIO::DOM::Task *>(get_dom())->getThinkTimeValue();
 	}
 	catch ( const std::domain_error &e ) {
 	    get_dom()->throw_invalid_parameter( "think time", e.what() );
@@ -728,7 +727,7 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
      */
 
     ix_e = 0;
-     for ( std::vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
+    for ( std::vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
 	if ( is_server() && (*e)->requests() == RENDEZVOUS_REQUEST ) {
 	    const LAYER layer_mask = ENTRY_LAYER((*e)->entry_id())|(m == 0 ? PRIMARY_LAYER : 0);
 
@@ -753,9 +752,8 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
     /* Create the entries */
     
     ix_e = 0;
-    for ( std::vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
-	Entry * curr_entry = *e;
-	double next_pos = curr_entry->transmorgrify( base_x_pos, base_y_pos, ix_e, d_place, m, enabling );
+    for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
+	double next_pos = (*entry)->transmorgrify( base_x_pos, base_y_pos, ix_e, d_place, m, enabling );
 	if ( next_pos > max_pos ) {
 	    max_pos = next_pos;
 	}
@@ -992,9 +990,20 @@ Task::insert_DOM_results() const
 	tput_sum = get_tput( IMMEDIATE, "gd%s%d", name(), 0 );
     }
 
-    get_dom()->setResultPhaseUtilizations(n_phases(),col_tot)
+    LQIO::DOM::Entity * dom = const_cast<LQIO::DOM::Entity *>(get_dom());
+    dom->setResultPhaseUtilizations(n_phases(),col_tot)
 	.setResultUtilization(util_sum)
 	.setResultThroughput(tput_sum);
+
+#if defined(BUG_393)
+    const unsigned int m = multiplicity();
+    if ( m > 1 ) {
+	dom->setResultMarginalQueueProbabilitiesSize( m + 1 );
+	for ( unsigned int i = 0; i <= m; ++i ) {
+	    dom->setResultMarginalQueueProbability( m - i, get_prob( i, "T%s", name() ) );	/* Token distribution is backwards */
+	}
+    }
+#endif
 
     for ( vector<Activity *>::const_iterator a = activities.begin(); a != activities.end(); ++a ) {
 	(*a)->insert_DOM_results();

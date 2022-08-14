@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cc 15797 2022-08-09 17:26:24Z greg $
+ * $Id: expat_document.cc 15817 2022-08-12 17:20:52Z greg $
  *
  * Read in XML input files.
  *
@@ -84,6 +84,7 @@ namespace LQIO {
         const XML_Char * Expat_Document::Xloss_probability =                    "loss-probability";
         const XML_Char * Expat_Document::Xlqn_model =                           "lqn-model";
         const XML_Char * Expat_Document::Xlqx =                                 "lqx";
+        const XML_Char * Expat_Document::Xmarginal_queue_probabilities =	"marginal-queue-probabilities";
         const XML_Char * Expat_Document::Xmax =                                 "max";
         const XML_Char * Expat_Document::Xmax_service_time =                    "max-service-time";
         const XML_Char * Expat_Document::Xmin =                                 "min";
@@ -941,6 +942,8 @@ namespace LQIO {
 	    } else if ( strcasecmp( element, Xresult_conf_99 ) == 0 ) {
 		_stack.push( parse_stack_t(element,&Expat_Document::startNOP) );
 		
+	    } else if ( strcasecmp( element, Xmarginal_queue_probabilities ) == 0 ) {
+		_stack.push( parse_stack_t(element,&Expat_Document::startNOP) );
 
 	    } else {
 		throw element_error( element );
@@ -974,6 +977,13 @@ namespace LQIO {
 	}
 
 
+	void
+	Expat_Document::startMarginalQueueProbabilities( DocumentObject * entity, const XML_Char * element, const XML_Char ** attributes )
+	{
+	    throw element_error( element );
+	}
+
+	
 	void
 	Expat_Document::startLQX( const DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
 	{

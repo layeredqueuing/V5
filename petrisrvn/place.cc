@@ -59,6 +59,8 @@ Place::scheduling_is_ok( const unsigned bits ) const
 
 unsigned int Place::multiplicity() const
 {
+    if ( scheduling() == SCHEDULE_DELAY ) return 1;	/* Ignore for infinite servers. */
+
     const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies(); 
     if ( copies == nullptr ) return 1;
     double value = 1.;

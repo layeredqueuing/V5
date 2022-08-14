@@ -106,7 +106,7 @@ Processor::initialize()
     if ( scheduling() == SCHEDULE_PS ) {
 	if ( n_tasks() > 1 || _tasks[0]->multiplicity() > 1 || _tasks[0]->n_threads() > 1 ) {
 	    get_dom()->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling()].str );
-	    get_dom()->setSchedulingType( SCHEDULE_FIFO );
+	    const_cast<LQIO::DOM::Entity *>(get_dom())->setSchedulingType( SCHEDULE_FIFO );
 	}
     }
 }
@@ -132,9 +132,9 @@ Processor::find( const std::string& name  )
 
 double Processor::rate() const 
 {
-    if ( dynamic_cast<LQIO::DOM::Processor *>(get_dom())->hasRate() ) {
+    if ( dynamic_cast<const LQIO::DOM::Processor *>(get_dom())->hasRate() ) {
 	try {
-	    return dynamic_cast<LQIO::DOM::Processor *>(get_dom())->getRateValue();
+	    return dynamic_cast<const LQIO::DOM::Processor *>(get_dom())->getRateValue();
 	}
 	catch ( const std::domain_error& e ) {
 	    get_dom()->throw_invalid_parameter( "rate", e.what() );
@@ -467,10 +467,20 @@ Processor::insert_DOM_results() const
 	    task_util += util;
 	}
 
-	(*t)->get_dom()->setResultProcessorUtilization(task_util);
+	const_cast<LQIO::DOM::Entity *>((*t)->get_dom())->setResultProcessorUtilization(task_util);
 	proc_util += task_util;
     }
-    get_dom()->setResultUtilization(proc_util);
+    const_cast<LQIO::DOM::Entity *>(get_dom())->setResultUtilization(proc_util);
+#if defined(BUG_393)
+    const unsigned int m = multiplicity();
+    if ( m > 1 ) {
+	LQIO::DOM::Entity * dom = const_cast<LQIO::DOM::Entity *>(get_dom());
+	dom->setResultMarginalQueueProbabilitiesSize( m + 1 );
+	for ( unsigned int i = 0; i <= m; ++i ) {
+	    dom->setResultMarginalQueueProbability( m - i, get_prob( i, "P%s", name() ) );	/* Token distribution is backwards */
+	}
+    }
+#endif
 }
 
 

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 15774 2022-07-29 01:47:27Z greg $
+ * $Id: mva.cc 15824 2022-08-12 20:09:32Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -1279,6 +1279,46 @@ MVA::utilization( const Server& station, const unsigned k, const Population& N, 
 }
 
 
+/*
+ * Return the marginal queue probability that j servers are busy.  If
+ * we are using state probabilities, then convert to queue
+ * probabilities where there are j customers at the station and where
+ * j>=J is all servers busy.
+ */
+
+Probability
+MVA::marginalQueueProbability( const Server& station, const unsigned j ) const
+{
+    const unsigned m = station.closedIndex;
+    const unsigned n = offset(NCust);						/* Hoist */
+    const unsigned J = static_cast<unsigned>(station.mu());
+    assert ( j <= J );
+
+    if ( P[n][m] == nullptr ) {
+	return 0.0;
+    } else if ( j == 0 || !Q[m]->useStateProbabilities() ) {
+	return P[n][m][j];				// P(0,N) is the same either way (empty).
+    } else {
+	Population I(K);				// Need to sequence over this.
+	Population::IteratorOffset next( NCust, NCust );// Return at full population.
+	unsigned int i;					// index into map.
+	double sum = 0.0;
+	if ( j < J ) {
+	    while ( (i = next( I )) ) {
+		if ( I.sum() != j ) continue;
+		sum += P[n][m][i];
+	    }
+	} else {
+	    while ( (i = next( I )) ) {
+		if ( I.sum() < J ) continue;
+		sum += P[n][m][i];
+	    }
+	}
+	return sum;
+    }
+}
+
+
 
 /*
  * Return the queue length for station at population N.
@@ -1431,7 +1471,6 @@ MVA::responseTime( const unsigned k ) const
     }
     return sum;
 }
-
 
 
 /*

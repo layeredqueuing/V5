@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15778 2022-07-29 12:48:51Z greg $
+# $Id: Makefile.am 15813 2022-08-11 19:18:33Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -16,13 +16,15 @@ SANITY=	01-sanity.lqxo \
 	04-sanity.lqxo \
 	05-sanity.lqxo \
 	06-sanity.lqxo \
-	07-sanity.lqxo 
+	07-sanity.lqxo \
+	08-sanity.lqxo
 INTER=	10-interlock.lqxo \
 	11-interlock.lqxo \
 	12-interlock.lqxo \
-	13-interlock.lqxo 
+	13-interlock.lqxo \
 	15-split-interlock.lqxo \
-	16-open-arrival-lqxo
+	16-split-interlock.lqxo \
+	18-interlock.lqxo
 MULTI=	20-multiserver.lqxo \
 	21-multiserver.lqxo \
 	22-multiserver.lqxo \
@@ -35,9 +37,15 @@ ACT=	40-activities.lqxo \
 	44-activities.lqxo \
 	45-activities.lqxo \
 	46-activities.lqxo 
+REPL=	50-replication.lqxo \
+	52-replication.lqxo \
+	55-replication.lqxo \
+	56-replication.lqxo 
 SEMA =  60-semaphore.lqxo \
 	61-semaphore.lqxo \
-	62-semaphore.lqxo 
+	62-semaphore.lqxo \
+	63-sync.lqxo \
+	65-buffer.lqxo 
 SIM=	70-priority.lqxo 
 SYNC=	80-sync.lqxo \
 	81-sync.lqxo \
@@ -109,4 +117,25 @@ sync:	$(SYNC)
 
 other:	$(OTHER)
 	echo $(OTHER) | tr -s " " "\n" | srvndiff -Q -@- -S$(EPSILON) . ../../models/regression/petri-results
+
+50-replication.lqxo:	50-replication.lqnx
+	rep2flat -Oxml -o$*-flat.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+
+52-replication.lqxo:	52-replication.lqnx
+	rep2flat -Oxml -o$*-flat.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+
+55-replication.lqxo:	55-replication.lqnx
+	rep2flat -Oxml -o$*-flat.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+
+56-replication.lqxo:	56-replication.lqnx
+	rep2flat -Oxml -o$*-flat.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+
 

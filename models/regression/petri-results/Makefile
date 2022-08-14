@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15540 2022-04-17 13:26:30Z greg $
+# $Id: Makefile 15806 2022-08-10 17:38:37Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	petrisrvn
@@ -37,6 +37,8 @@ DST=	$(SANITY) \
 	48-activities.lqxo \
 	50-replication.lqxo \
 	52-replication.lqxo \
+	55-replication.lqxo \
+	56-replication.lqxo \
 	60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo \
@@ -78,15 +80,19 @@ diff:
 	@-rm .files
 	for i in $(DST); do echo $$i >> .files; done
 
-50-replication-flat.lqnx:	50-replication.lqnx
-	rep2flat -Oxml $<
+50-replication.lqxo:	50-replication.lqnx
+	rep2flat -Oxml -o$*-flag.lqnx $<
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 
-50-replication.lqxo:	50-replication-flat.lqxo
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas 50-replication-flat.lqxo
+52-replication.lqxo:	52-replication.lqnx
+	rep2flat -Oxml -o$*-flag.lqnx $<
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 
-52-replication-flat.lqnx:	52-replication.lqnx
-	rep2flat -Oxml $<
+55-replication.lqxo:	55-replication.lqnx
+	rep2flat -Oxml -o$*-flag.lqnx $<
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 
-52-replication.lqxo:	52-replication-flat.lqxo
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas 52-replication-flat.lqxo
+56-replication.lqxo:	56-replication.lqnx
+	rep2flat -Oxml -o$*-flag.lqnx $<
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 

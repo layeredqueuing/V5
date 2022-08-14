@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 15220 2021-12-15 15:18:47Z greg $
+ * $Id: srvn_output.h 15813 2022-08-11 19:18:33Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -273,8 +273,8 @@ namespace LQIO {
 	    virtual std::ostream& printPostamble( std::ostream& output ) const { return output; }
 
 	private:
-	    Output( const Output& );
-	    Output& operator=( const Output& );
+	    Output( const Output& ) = delete;
+	    Output& operator=( const Output& ) = delete;
 
 	protected:
 	    const DOM::Document& getDOM() const { return _document; }
@@ -336,10 +336,6 @@ namespace LQIO {
 	    RTF( const DOM::Document&, const std::map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals=true );
 	    virtual ~RTF();
 
-	private:
-	    RTF( const RTF& );
-	    RTF& operator=( const RTF& );
-	    
 	protected:
 	    virtual std::ostream& printPreamble( std::ostream& output ) const;
 	    virtual std::ostream& printPostamble( std::ostream& output ) const;
@@ -351,8 +347,8 @@ namespace LQIO {
 	    virtual ~Input();
 
 	private:
-	    Input( const Input& );
-	    Input& operator=( const Input& );
+	    Input( const Input& ) = delete;
+	    Input& operator=( const Input& ) = delete;
 
 	public:
 	    virtual std::ostream& print( std::ostream& output ) const;
@@ -454,7 +450,7 @@ namespace LQIO {
 	    static CallManip call_type( const DOM::Call* call ) { return CallManip( &ObjectInput::printCallType, call ); }
 
 	private:
-	    ObjectInput& operator=( const ObjectInput& );
+	    ObjectInput& operator=( const ObjectInput& ) = delete;
 
 	protected:
 	    static std::ostream& printNumberOfCalls( std::ostream& output, const DOM::Call* );
@@ -480,11 +476,21 @@ namespace LQIO {
 	/* ------------------------------------------------------------------------ */
 
 	class EntityOutput : public ObjectOutput {
-	public:
-	    EntityOutput( std::ostream& output ) : ObjectOutput(output) {}
+	protected:
+	    typedef void (EntityOutput::*voidEntityFunc)( const DOM::Entity& ) const;
 
+	public:
+	    EntityOutput( std::ostream& output, voidEntityFunc f=nullptr ) : ObjectOutput(output), _func(f) {}
+	    void operator()( const std::pair<unsigned,DOM::Entity *>& ) const;
+
+#if defined(BUG_393)
+	    void printMarginalQueueProbabilities( const DOM::Entity& ) const;
+#endif
 	protected:
 	    void printCommonParameters( const DOM::Entity& ) const;
+
+	private:
+	    const voidEntityFunc _func;
 	};
 
 

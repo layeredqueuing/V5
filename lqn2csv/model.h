@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: model.h 15794 2022-08-04 00:07:05Z greg $
+ * $Id: model.h 15825 2022-08-12 20:45:37Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -44,7 +44,9 @@ namespace Model {
 	{
 	    ACTIVITY,
 	    ACTIVITY_CALL,
+	    DOCUMENT,
 	    ENTRY,
+	    ENTITY,
 	    JOIN,
 	    PHASE,
 	    PHASE_CALL,
@@ -75,6 +77,8 @@ namespace Model {
 	    ENTRY_UTILIZATION, 
 	    HOLD_TIMES, 
 	    JOIN_DELAYS, 
+	    MARGINAL_PROBABILITIES,
+	    MVA_STEPS, 
 	    OPEN_WAIT, 
 	    PHASE_DEMAND,
 	    PHASE_PROCESSOR_WAITING,

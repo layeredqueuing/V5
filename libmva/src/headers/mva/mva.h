@@ -9,7 +9,7 @@
  * November, 1994
  * August, 2005
  *
- * $Id: mva.h 15774 2022-07-29 01:47:27Z greg $
+ * $Id: mva.h 15818 2022-08-12 17:58:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -115,6 +115,7 @@ public:
     double utilization( const Server&, const Population& N ) const;
     double utilization( const Server&, const unsigned k ) const;
     double utilization( const Server&, const unsigned k, const Population& N, const unsigned j ) const;
+    Probability marginalQueueProbability( const Server&, const unsigned i ) const;
     double queueLength( const Server& station ) const { return queueLength( station, NCust ); }
     double queueLength( const Server&, const Population& N ) const;
     double queueLength( const Server&, const unsigned k ) const;

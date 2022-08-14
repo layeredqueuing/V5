@@ -946,6 +946,7 @@ Call::value( const Phase * src, double upper_limit ) const
 	    ss << value << " > " << upper_limit;
 	    throw std::domain_error( ss.str() );
 	}
+	return value;
     }
     catch ( const std::domain_error &e ) {
 	_dom->throw_invalid_parameter( "mean value", e.what() );

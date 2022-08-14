@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_task.h 15788 2022-08-03 16:10:55Z greg $
+ *  $Id: dom_task.h 15813 2022-08-11 19:18:33Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -44,6 +44,9 @@ namespace LQIO {
 
 	    static bool isSemaphoreTask( const std::pair<std::string,LQIO::DOM::Task *>& task ) { return task.second->getSchedulingType() == SCHEDULE_SEMAPHORE; }
 	    static bool isRWLockTask( const std::pair<std::string,LQIO::DOM::Task *>& task ) { return task.second->getSchedulingType() == SCHEDULE_RWLOCK; }
+
+	private:
+	    Task& operator=( const Task& ) = delete;
 
 	public:
 	    /* Designated initializer for the Task entity */
@@ -149,9 +152,6 @@ namespace LQIO {
 	    virtual Task& setResultProcessorUtilizationVariance(const double resultProcessorUtilizationVariance);
 	    double getResultBottleneckStrength() const;
 	    virtual Task& setResultBottleneckStrength( const double resultBottleneckStrength );
-
-	private:
-	    Task& operator=( const Task& );
 
 	private:
 
