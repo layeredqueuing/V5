@@ -110,7 +110,7 @@ public:
     virtual void insert_DOM_results() const;
 
 private:
-    double create_instance( double base_x_pos, double base_y_pos, unsigned m, short enabling );
+    double create_instance( double base_x_pos, double base_y_pos, unsigned m, short enabling, struct place_object * tx_place=nullptr );
     double create_activity( const double x_pos, const double y_pos, const unsigned m,
 			    Activity * curr_act, const Entry * e, const unsigned p_pos, const short enabling,
 			    struct place_object * end_place, bool can_reply );

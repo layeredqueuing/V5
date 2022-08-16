@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 15816 2022-08-12 16:01:31Z greg $
+ * $Id: expat_document.cpp 15836 2022-08-15 21:18:20Z greg $
  *
  * Read in XML input files.
  *
@@ -2550,12 +2550,14 @@ namespace LQIO {
 		exportObservation( output, &task );
 	    }
             if ( hasResults() ) {
+		const std::vector<double>& marginals = task.getResultMarginalQueueProbabilities();
+
                 if ( task.hasHistogram() ) {
                     exportHistogram( output, *task.getHistogram() );
                 }
 
-                const bool has_confidence = _document.hasConfidenceIntervals();
-                output << XML::start_element( Xresult_task, has_confidence )
+                const bool complex_element = _document.hasConfidenceIntervals() || !marginals.empty();
+                output << XML::start_element( Xresult_task, complex_element )
                        << XML::attribute( Xthroughput, task.getResultThroughput() )
                        << XML::attribute( Xutilization, task.getResultUtilization() )
                        << task_phase_results( task, XphaseP_utilization, &Task::getResultPhasePUtilization )
@@ -2580,9 +2582,11 @@ namespace LQIO {
                            << XML::attribute( Xrwlock_writer_holding_variance, task.getResultVarianceWriterHoldingTime() )
                            << XML::attribute( Xrwlock_writer_utilization, task.getResultWriterHoldingUtilization() );
                 }
-
-                if ( has_confidence ) {
+		if ( complex_element ) {
                     output << ">" << std::endl;
+		}
+
+		if ( _document.hasConfidenceIntervals() ) {
                     output << XML::simple_element( Xresult_conf_95 )
                            << XML::attribute( Xthroughput, _conf_95( task.getResultThroughputVariance() ) )
                            << XML::attribute( Xutilization, _conf_95( task.getResultUtilizationVariance() ) )
@@ -2633,7 +2637,16 @@ namespace LQIO {
                     output << "/>" << std::endl;
                 }
 
-                output << XML::end_element( Xresult_task, has_confidence ) << std::endl;
+		if ( !marginals.empty() ) {
+		    output << XML::start_element( Xmarginal_queue_probabilities ) << XML::attribute( Xsize, static_cast<unsigned int>(marginals.size()) ) << ">" << std::endl;
+		    for ( std::vector<double>::const_iterator p = marginals.begin(); p != marginals.end(); ++p ) {
+			if ( p != marginals.begin() ) output << ", ";
+			output << *p;
+		    }
+		    output << std::endl << XML::end_element( Xmarginal_queue_probabilities ) << std::endl;
+		}
+
+                output << XML::end_element( Xresult_task, complex_element ) << std::endl;
             }
 
 
@@ -2780,8 +2793,10 @@ namespace LQIO {
                     output << XML::start_element( Xresult_entry, has_confidence )
                            << XML::attribute( Xutilization, entry.getResultUtilization() )
                            << XML::attribute( Xthroughput, entry.getResultThroughput() )
-                           << XML::attribute( Xsquared_coeff_variation, entry.getResultSquaredCoeffVariation() )
                            << XML::attribute( Xproc_utilization, entry.getResultProcessorUtilization() );
+		    if ( entry.hasResultsForSquaredCoeffVariation()  ) {
+			output << XML::attribute( Xsquared_coeff_variation, entry.getResultSquaredCoeffVariation() );
+		    }
 		    if ( entry.hasResultsForThroughputBound() ) {
 			output << XML::attribute( Xthroughput_bound, entry.getResultThroughputBound() );
 		    }
@@ -2803,8 +2818,10 @@ namespace LQIO {
                         output << XML::simple_element( Xresult_conf_95 )
                                << XML::attribute( Xutilization, _conf_95( entry.getResultUtilizationVariance() ) )
                                << XML::attribute( Xthroughput, _conf_95( entry.getResultThroughputVariance() ) )
-                               << XML::attribute( Xsquared_coeff_variation, _conf_95( entry.getResultSquaredCoeffVariationVariance() ) )
                                << XML::attribute( Xproc_utilization, _conf_95( entry.getResultProcessorUtilizationVariance() ) );
+			if ( entry.hasResultsForSquaredCoeffVariation()  ) {
+			    output << XML::attribute( Xsquared_coeff_variation, _conf_95( entry.getResultSquaredCoeffVariationVariance() ) );
+			}
                         if ( entry.hasResultsForOpenWait() ) {
                             output << XML::attribute( Xopen_wait_time, _conf_95( entry.getResultWaitingTimeVariance() ) );
                         }
@@ -2821,8 +2838,10 @@ namespace LQIO {
                         output << XML::simple_element( Xresult_conf_99 )
                                << XML::attribute( Xutilization, _conf_99( entry.getResultUtilizationVariance() ) )
                                << XML::attribute( Xthroughput, _conf_99( entry.getResultThroughputVariance() ) )
-                               << XML::attribute( Xsquared_coeff_variation, _conf_99( entry.getResultSquaredCoeffVariationVariance() ) )
                                << XML::attribute( Xproc_utilization, _conf_99( entry.getResultProcessorUtilizationVariance() ) );
+			if ( entry.hasResultsForSquaredCoeffVariation()  ) {
+			    output << XML::attribute( Xsquared_coeff_variation, _conf_99( entry.getResultSquaredCoeffVariationVariance() ) );
+			}
                         if ( entry.hasResultsForOpenWait() ) {
                             output << XML::attribute( Xopen_wait_time, _conf_99( entry.getResultWaitingTimeVariance() ) );
                         }

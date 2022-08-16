@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15771 2022-07-28 18:11:54Z greg $
+ * $Id: task.cc 15836 2022-08-15 21:18:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1464,6 +1464,8 @@ Task::insertDOMResults(void) const
 {
     if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
 
+    Entity::insertDOMResults();
+    
     double totalTaskUtil   = 0.0;
     double totalThroughput = 0.0;
     double totalProcUtil   = 0.0;

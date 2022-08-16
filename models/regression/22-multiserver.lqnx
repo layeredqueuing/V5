@@ -1,25 +1,17 @@
 <?xml version="1.0"?>
-<!-- Invoked as: lqn2xml -o22-multiserver.lqnx 22-multiserver.in -->
-<!-- Wed May  6 10:36:33 2009 -->
-
-<lqn-model name="22-multiserver" description="$Id: 22-multiserver.lqnx 14886 2021-07-07 18:31:56Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="Equal clients and servers.  Wait = 0." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
-   <processor name="client" multiplicity="1" scheduling="inf">
-      <task name="client" multiplicity="3" scheduling="ref">
-         <entry name="client" type="PH1PH2">
+<!-- $Id: 22-multiserver.lqnx 15837 2022-08-15 23:04:45Z greg $ -->
+<!-- lqn2xml -->
+<lqn-model name="22-multiserver" description="lqn2xml 5.27 solution for model from: 22-multiserver.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Product form model (simplest)." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <pragma param="save-marginal-probabilities" value="true"/>
+      <pragma param="mva" value="exact-mva"/>
+      <pragma param="multiserver" value="reiser"/>
+   </solver-params>
+   <processor name="p0" scheduling="fcfs" multiplicity="2">
+      <task name="t0" scheduling="ref" multiplicity="4" think-time="1">
+         <entry name="e0" type="PH1PH2">
             <entry-phase-activities>
-               <activity name="client_ph1" phase="1" host-demand-mean="1">
-                  <synch-call dest="server" calls-mean="1"/>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-   <processor name="server" multiplicity="1" scheduling="inf">
-      <task name="server" multiplicity="3" scheduling="fcfs">
-         <entry name="server" type="PH1PH2">
-            <entry-phase-activities>
-               <activity name="server_ph1" phase="1" host-demand-mean="1"/>
+               <activity name="e0_1" phase="1" host-demand-mean="1"/>
             </entry-phase-activities>
          </entry>
       </task>

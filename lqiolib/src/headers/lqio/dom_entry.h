@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_entry.h 15813 2022-08-11 19:18:33Z greg $
+ *  $Id: dom_entry.h 15836 2022-08-15 21:18:20Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -232,6 +232,8 @@ namespace LQIO {
 	    bool hasResultsForPhase(unsigned phase) const;
 	    bool hasResultsForOpenWait() const;
 	    bool hasResultsForThroughputBound() const;
+	    bool hasResultsForSquaredCoeffVariation() const;
+
 
 	private:
 	    /* Actually store the results in the XML */
@@ -276,7 +278,7 @@ namespace LQIO {
 	    double _resultThroughputBound;
 	    double _resultUtilization;
 	    double _resultUtilizationVariance;
-	    bool _hasResultsForPhase[Phase::MAX_PHASE], _hasOpenWait, _hasThroughputBound;
+	    bool _hasResultsForPhase[Phase::MAX_PHASE], _hasOpenWait, _hasThroughputBound, _hasResultSquaredCoeffVariation;
 
 	public:
 	    static const char * __typeName;

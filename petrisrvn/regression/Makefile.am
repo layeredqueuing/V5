@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15813 2022-08-11 19:18:33Z greg $
+# $Id: Makefile.am 15828 2022-08-15 12:45:53Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -17,7 +17,8 @@ SANITY=	01-sanity.lqxo \
 	05-sanity.lqxo \
 	06-sanity.lqxo \
 	07-sanity.lqxo \
-	08-sanity.lqxo
+	08-sanity.lqxo \
+	09-sanity.lqxo
 INTER=	10-interlock.lqxo \
 	11-interlock.lqxo \
 	12-interlock.lqxo \
@@ -117,6 +118,9 @@ sync:	$(SYNC)
 
 other:	$(OTHER)
 	echo $(OTHER) | tr -s " " "\n" | srvndiff -Q -@- -S$(EPSILON) . ../../models/regression/petri-results
+
+09-sanity.lqxo:	09-sanity.lqnx
+	$(SRVN) $(OPTS) --random-queueing $<
 
 50-replication.lqxo:	50-replication.lqnx
 	rep2flat -Oxml -o$*-flat.lqnx $<

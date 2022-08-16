@@ -473,7 +473,7 @@ Processor::insert_DOM_results() const
     const_cast<LQIO::DOM::Entity *>(get_dom())->setResultUtilization(proc_util);
 #if defined(BUG_393)
     const unsigned int m = multiplicity();
-    if ( m > 1 ) {
+    if ( m > 1 && Pragma::__pragmas->save_marginal_probabilities() ) {
 	LQIO::DOM::Entity * dom = const_cast<LQIO::DOM::Entity *>(get_dom());
 	dom->setResultMarginalQueueProbabilitiesSize( m + 1 );
 	for ( unsigned int i = 0; i <= m; ++i ) {

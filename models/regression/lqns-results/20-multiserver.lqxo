@@ -1,22 +1,28 @@
 <?xml version="1.0"?>
-<!-- Invoked as: lqns -Pvariance=mol,threads=mak 20-multiserver.lqnx -->
-<lqn-model name="20-multiserver" description="lqns 5.3 solution for model from: 20-multiserver.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id: 20-multiserver.lqxo 15838 2022-08-16 01:23:25Z greg $ -->
+<!-- lqns -pragma=variance=mol,threads=hyper -->
+<lqn-model name="20-multiserver" description="lqns 5.27 solution for model from: 20-multiserver.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Simplest multiserver model." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
-      <result-general valid="YES" conv-val="1.14568e-06" iterations="4" platform-info="Gregs-MacBook.local Darwin 10.7.0" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00">
-         <mva-info submodels="2" core="8" step="66" step-squared="656" wait="1844" wait-squared="945940" faults="0"/>
+      <pragma param="multiserver" value="reiser"/>
+      <pragma param="mva" value="exact-mva"/>
+      <pragma param="save-marginal-probabilities" value="true"/>
+      <pragma param="threads" value="hyper"/>
+      <pragma param="variance" value="mol"/>
+      <result-general solver-info="" valid="true" conv-val="0" iterations="3" platform-info="lqns 5.27" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000" max-rss="11872">
+         <mva-info submodels="2" core="6" step="18" step-squared="60" wait="168" wait-squared="7104" faults="0"/>
       </result-general>
    </solver-params>
    <processor name="client" scheduling="inf">
-      <result-processor utilization="1.52273"/>
+      <result-processor utilization="1.7"/>
       <task name="client" scheduling="ref" multiplicity="4">
-         <result-task throughput="1.52273" utilization="4" phase1-utilization="4" proc-utilization="1.52273"/>
+         <result-task throughput="1.7" utilization="4" phase1-utilization="4" proc-utilization="1.7"/>
          <entry name="client" type="PH1PH2">
-            <result-entry utilization="4" throughput="1.52273" squared-coeff-variation="1.95888" proc-utilization="1.52273"/>
+            <result-entry utilization="4" throughput="1.7" proc-utilization="1.7" squared-coeff-variation="1.82656" throughput-bound="2"/>
             <entry-phase-activities>
                <activity name="client_ph1" phase="1" host-demand-mean="1">
-                  <result-activity proc-waiting="0" service-time="2.62686" service-time-variance="13.517" utilization="4"/>
+                  <result-activity proc-waiting="0" service-time="2.35294" utilization="4" service-time-variance="10.1125"/>
                   <synch-call dest="server" calls-mean="1">
-                     <result-call waiting="0.626855" waiting-variance="0"/>
+                     <result-call waiting="0.352941"/>
                   </synch-call>
                </activity>
             </entry-phase-activities>
@@ -24,14 +30,18 @@
       </task>
    </processor>
    <processor name="server" scheduling="inf">
-      <result-processor utilization="1.52273"/>
+      <result-processor utilization="1.7"/>
       <task name="server" scheduling="fcfs" multiplicity="2">
-         <result-task throughput="1.52273" utilization="1.52273" phase1-utilization="1.52273" proc-utilization="1.52273"/>
+         <result-task throughput="1.7" utilization="1.7" phase1-utilization="1.7" proc-utilization="1.7">
+            <marginal-queue-probabilities size="3">
+0.05, 0.2, 0.75
+            </marginal-queue-probabilities>
+         </result-task>
          <entry name="server" type="PH1PH2">
-            <result-entry utilization="1.52273" throughput="1.52273" squared-coeff-variation="1" proc-utilization="1.52273"/>
+            <result-entry utilization="1.7" throughput="1.7" proc-utilization="1.7" squared-coeff-variation="1" throughput-bound="2"/>
             <entry-phase-activities>
                <activity name="server_ph1" phase="1" host-demand-mean="1">
-                  <result-activity proc-waiting="0" service-time="1" service-time-variance="1" utilization="1.52273"/>
+                  <result-activity proc-waiting="0" service-time="1" utilization="1.7" service-time-variance="1"/>
                </activity>
             </entry-phase-activities>
          </entry>

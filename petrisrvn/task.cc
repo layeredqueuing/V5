@@ -641,17 +641,24 @@ Task::transmorgrify()
 	next_x = create_instance( x_pos, y_pos, 0, INFINITE_SERVER );
 		
     } else if ( is_infinite() ) {
-	unsigned m;		/* Multiserver index.	*/
-
-	for ( m = 0; m < max_queue_length(); ++m ) {
+	for ( unsigned int m = 0; m < max_queue_length(); ++m ) {
 	    next_x = create_instance( x_pos+m*0.25, y_pos+m*0.25, m, 1 );
 	}
     } else {
-	unsigned m;		/* Multiserver index.	*/
-
-	for ( m = 0; m < this->multiplicity(); ++m ) {
-	    next_x = create_instance( x_pos+m*0.25, y_pos+m*0.25, m, 1 );
+	struct place_object * t_place = nullptr;
+#if defined(BUG_393)
+	if ( Pragma::__pragmas->save_marginal_probabilities() && !is_client() && !is_infinite() && multiplicity() > 1 ) {
+	    t_place = create_place( x_pos, y_pos, make_layer_mask( MEASUREMENT_LAYER ), multiplicity(), "T%s", name() );
 	}
+#endif
+	for ( unsigned int m = 0; m < this->multiplicity(); ++m ) {
+	    next_x = create_instance( x_pos+m*0.25, y_pos+m*0.25, m, 1, t_place );
+	}
+#if defined(BUG_393)
+	if ( t_place != nullptr ) {
+	    set_origin( next_x, y_pos );
+	}
+#endif
     }
 		
     if ( is_client() ) {
@@ -668,7 +675,7 @@ Task::transmorgrify()
  */
 
 double
-Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short enabling )
+Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short enabling, struct place_object * T_place )
 {
     double x_pos	= base_x_pos;
     double y_pos	= base_y_pos;
@@ -708,6 +715,9 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
 	this->gdX[m] = create_trans( temp_x+0.5, Y_OFFSET(0.0)-0.5, make_layer_mask( m ),  1.0, 1, IMMEDIATE, "gd%s%d", this->name(), m );
 	create_arc( make_layer_mask( m ), TO_TRANS, this->gdX[m], d_place );
 	create_arc( make_layer_mask( m ), TO_PLACE, this->gdX[m], this->TX[m] );
+#if defined(BUG_393)
+	create_arc( make_layer_mask( MEASUREMENT_LAYER ), TO_PLACE, this->gdX[m], T_place );	/* Instrumentation */
+#endif
 #if defined(BUG_163)
 	this->SyX[m] = create_place( temp_x+1.0, Y_OFFSET(0.0), make_layer_mask( m ), 0, "SYNC%s%d" , this->name(), m );
 #endif
@@ -715,6 +725,9 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
 	struct trans_object * d_trans = create_trans( temp_x+0.5, Y_OFFSET(0.0)-0.5, make_layer_mask( m ), 1.0, 1, IMMEDIATE, "gd%s%d", this->name(), m );
 	this->gdX[m] = d_trans;
 	create_arc( make_layer_mask( m ), TO_PLACE, d_trans, this->TX[m] );
+#if defined(BUG_393)
+	create_arc( make_layer_mask( MEASUREMENT_LAYER ), TO_PLACE, d_trans, T_place );
+#endif
 	d_place = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "Gd%s%d", this->name(), m ); 	/* We don't allow multiple copies */
 	this->GdX[m] = d_place;
 	create_arc( make_layer_mask( m ), TO_TRANS, d_trans, d_place );
@@ -997,10 +1010,18 @@ Task::insert_DOM_results() const
 
 #if defined(BUG_393)
     const unsigned int m = multiplicity();
-    if ( m > 1 ) {
+    if ( Pragma::__pragmas->save_marginal_probabilities() && !is_client() && m > 1 ) {
 	dom->setResultMarginalQueueProbabilitiesSize( m + 1 );
-	for ( unsigned int i = 0; i <= m; ++i ) {
-	    dom->setResultMarginalQueueProbability( m - i, get_prob( i, "T%s", name() ) );	/* Token distribution is backwards */
+	
+	/* Can we get it from the processor? Only if it's a single place with enough tokens */
+	if ( processor()->n_tasks() == 1 && (processor()->is_infinite() || processor()->multiplicity() >= m )) {
+	    for ( unsigned int i = 0; i <= m; ++i ) {
+		dom->setResultMarginalQueueProbability( m - i, get_prob( i, "P%s", processor()->name() ) );	/* Token distribution is backwards */
+	    }
+	} else {
+	    for ( unsigned int i = 0; i <= m; ++i ) {
+		dom->setResultMarginalQueueProbability( m - i, get_prob( i, "T%s", name() ) );			/* Grab from special place	*/
+	    }
 	}
     }
 #endif

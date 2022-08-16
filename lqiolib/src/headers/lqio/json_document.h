@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: json_document.h 15813 2022-08-11 19:18:33Z greg $
+ *  $Id: json_document.h 15836 2022-08-15 21:18:20Z greg $
  *
  *  Created by Greg Franks.
  */
@@ -503,7 +503,7 @@ namespace LQIO {
 	    {
 	    public:
 		ImportResult() : Import(), _g(0), _f2(0), _g2(0) {}
-		ImportResult( set_result_fptr f, set_result_fptr g=0, set_result_ph_fptr f2=0, set_result_ph_fptr g2=0 ) : Import(f), _g(g), _f2(f2), _g2(g2) {}
+		ImportResult( set_result_fptr f, set_result_fptr g=nullptr, set_result_ph_fptr f2=nullptr, set_result_ph_fptr g2=nullptr ) : Import(f), _g(g), _f2(f2), _g2(g2) {}
 
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
 		void operator()( const std::string& attribute, JSON_Document&, DocumentObject&, const picojson::value& ) const;
@@ -979,6 +979,7 @@ namespace LQIO {
             static const char * Xjoin_variance;
             static const char * Xjoin_waiting;
             static const char * Xloop;
+	    static const char * Xmarginal_queue_probabilities;
             static const char * Xmax;
 	    static const char * Xmax_rss;
             static const char * Xmax_service_time;

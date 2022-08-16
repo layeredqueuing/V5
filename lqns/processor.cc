@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 15818 2022-08-12 17:58:53Z greg $
+ * $Id: processor.cc 15836 2022-08-15 21:18:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -489,10 +489,10 @@ Processor::computeUtilization( const MVASubmodel& submodel )
 const Processor&
 Processor::insertDOMResults(void) const
 {
-    Entity::insertDOMResults();
-    
     if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
 
+    Entity::insertDOMResults();
+    
     double sumOfProcUtil = 0.0;
     for ( std::set<const Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
 

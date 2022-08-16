@@ -3,10 +3,10 @@
 %%
 %% $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/doc/userman/lqns.tex $
 %% Original Author:     Greg Franks <greg@sce.carleton.ca>
-%% Created:             21 June 2022
+%% Created:             15 August 2022
 %%
 %% ----------------------------------------------------------------------
-%% $Id: lqns.tex 15683 2022-06-21 18:38:42Z greg $
+%% $Id: lqns.tex 15836 2022-08-15 21:18:20Z greg $
 %% ----------------------------------------------------------------------
 
 \chapter{Invoking the Analytic Solver ``lqns''}
@@ -460,6 +460,8 @@ All uni-processors are scheduled using processor sharing.\index{processor sharin
 \end{description}
 The default is to use the processor scheduling specified in the model.
 
+\item[\optarg{save-marginal-probabilities}{=\emph{arg}}]~\\
+This pragma is used to enable or disable saving the marginal queue probabilities for multiservers in the results.
 \item[\optarg{severity-level}{=\emph{arg}}]~\\
 This pragma is used to enable or disable warning messages.
 \begin{description}

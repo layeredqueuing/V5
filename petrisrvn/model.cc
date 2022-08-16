@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 15805 2022-08-10 17:20:27Z greg $
+ * $Id: model.cc 15836 2022-08-15 21:18:20Z greg $
  *
  * Load the SRVN model.
  */
@@ -1256,7 +1256,7 @@ Model::queue_epilogue( double x_pos, double y_pos,
 #endif
 
     c_trans = create_trans( x_pos, y_pos - 0.5, layer_mask_a, b->release_prob(), 1, IMMEDIATE + 1,
-			    "rel%s%d%s%s%d", a->name(), s_a, b->name(), e->name(), m );
+			    "rel%s%d%s%d%s%d", a->name(), s_a, b->name(), b_m, e->name(), m );
     create_arc( layer_mask_a, TO_TRANS, c_trans, c_place );
 
     /* Connect release to appropriate task provided that we do not have to worry about forwarding. */

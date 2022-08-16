@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 15756 2022-07-24 12:50:26Z greg $
+ *  $Id: dom_entry.cpp 15836 2022-08-15 21:18:20Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -40,7 +40,7 @@ namespace LQIO {
 	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
 	      _resultThroughputBound(0.0), 
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
-	      _hasResultsForPhase(),  _hasOpenWait(false), _hasThroughputBound(false)
+	      _hasResultsForPhase(),  _hasOpenWait(false), _hasThroughputBound(false), _hasResultSquaredCoeffVariation(false)
 	{
 	    clearPhaseResults();
 	}
@@ -61,7 +61,7 @@ namespace LQIO {
 	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
 	      _resultThroughputBound(0.0), 
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
-	      _hasResultsForPhase(),  _hasOpenWait(false), _hasThroughputBound(false)
+	      _hasResultsForPhase(),  _hasOpenWait(false), _hasThroughputBound(false), _hasResultSquaredCoeffVariation(false)
 	{
 	    clearPhaseResults();
 	}
@@ -546,7 +546,12 @@ namespace LQIO {
 	    _resultProcessorUtilizationVariance = resultProcessorUtilizationVariance;
 	    return *this;
 	}
-    
+
+	bool Entry::hasResultsForSquaredCoeffVariation() const
+	{
+	    return _hasResultSquaredCoeffVariation;
+	}
+	
 	double Entry::getResultSquaredCoeffVariation() const
 	{
 	    /* Returns the ResultSquaredCoeffVariation of the Entry */
@@ -557,6 +562,7 @@ namespace LQIO {
 	{
 	    /* Stores the given ResultSquaredCoeffVariation of the Entry */ 
 	    _resultSquaredCoeffVariation = resultSquaredCoeffVariation;
+	    _hasResultSquaredCoeffVariation = true;
 	    return *this;
 	}
     

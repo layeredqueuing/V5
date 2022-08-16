@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 15694 2022-06-22 23:27:00Z greg $
+ * $Id: pragma.h 15837 2022-08-15 23:04:45Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -28,6 +28,7 @@ public:
     
     scheduling_type processor_scheduling() const { return _processor_scheduling; }
     bool reschedule_on_async_send() const { return _reschedule_on_async_send; }
+    bool save_marginal_probabilities() const { return _save_marginal_probabilities; }
     LQIO::error_severity severity_level() { return _severity_level; }
     bool spex_comment() const { return _spex_comment; }
     bool spex_header() const { return _spex_header; }
@@ -41,9 +42,10 @@ public:
 
 private:
     void set_force_random_queueing( const std::string& );
-    void set_queue_size( const std::string& );
     void set_processor_scheduling( const std::string& );
+    void set_queue_size( const std::string& );
     void set_reschedule_on_async_send( const std::string& );
+    void set_save_marginal_probabilities( const std::string& );
     void set_severity_level( const std::string& );
     void set_spex_comment( const std::string& );
     void set_spex_header( const std::string& );
@@ -55,6 +57,7 @@ private:
 private:
     scheduling_type _processor_scheduling;
     bool _reschedule_on_async_send;
+    bool _save_marginal_probabilities;
     LQIO::error_severity _severity_level;
     bool _spex_comment;
     bool _spex_header;

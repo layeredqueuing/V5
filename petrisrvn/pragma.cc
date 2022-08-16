@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 15737 2022-06-30 22:59:33Z greg $
+ * $Id: pragma.cc 15837 2022-08-15 23:04:45Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -23,6 +23,7 @@
 Pragma * Pragma::__pragmas = nullptr;
 const std::map<const std::string,Pragma::fptr> Pragma::__set_pragma = {
     { LQIO::DOM::Pragma::_force_random_queueing_, 	&Pragma::set_force_random_queueing },
+    { LQIO::DOM::Pragma::_save_marginal_probabilities_, &Pragma::set_save_marginal_probabilities },
     { LQIO::DOM::Pragma::_processor_scheduling_,	&Pragma::set_processor_scheduling },
     { LQIO::DOM::Pragma::_queue_size_,			&Pragma::set_queue_size },
     { LQIO::DOM::Pragma::_reschedule_on_async_send_, 	&Pragma::set_reschedule_on_async_send },
@@ -104,6 +105,13 @@ Pragma::set_reschedule_on_async_send( const std::string& value )
 {
     _reschedule_on_async_send = LQIO::DOM::Pragma::isTrue( value );
 }
+
+void
+Pragma::set_save_marginal_probabilities( const std::string& value )
+{
+    _save_marginal_probabilities = LQIO::DOM::Pragma::isTrue( value );
+}
+
 
 void
 Pragma::set_severity_level(const std::string& value)
