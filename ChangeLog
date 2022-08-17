@@ -1,3 +1,9 @@
+2022-08-16  Greg Franks  <greg@merlin.sce.carleton.ca>
+
+	* lqiolib, lqns, petrisrvn:
+	- added #pragma save-marginal-probabilities to save the marginal
+	  queue probabilities at multiserver stations.
+
 2022-04-01  Greg Franks  <greg@merlin.sce.carleton.ca>
 
 	* NEWS: Bug fixes.
@@ -542,4 +548,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 15799 2022-08-10 11:24:07Z greg $
+$Id: ChangeLog 15840 2022-08-16 14:52:42Z greg $

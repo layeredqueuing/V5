@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15299 2021-12-30 21:36:22Z greg $
+# $Id: Makefile.am 15839 2022-08-16 13:39:53Z greg $
 #----------------------------------------------------------------------
 
 SUBDIRS=	wspnlib regression
@@ -41,3 +41,10 @@ petrisrvn_CXXFLAGS  = -std=c++11 -Wall -Wno-parentheses -Wno-unknown-pragmas
 petrisrvn_LDADD	    = -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio -Lwspnlib -lwspn
 petrisrvn_LDFLAGS   = @STATIC@
 man1_MANS	    = petrisrvn.1
+
+if HAVE_PS2PDF
+install-data-local:	petrisrvn.pdf
+
+petrisrvn.pdf:	$(man1_MANS)
+		groff -t -man $(man1_MANS) | ps2pdf - $@
+endif

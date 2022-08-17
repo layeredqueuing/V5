@@ -258,13 +258,7 @@ Task::initialize()
 	    }
 	}
 	for ( vector<Activity *>::const_iterator a = activities.begin(); a != activities.end(); ++a ) {
-	    double calls = (*a)->check();
-	    if ( !(*a)->is_specified() ) {
-		(*a)->get_dom()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
-	    }
-	    if ( calls > 0 && (*a)->s() == 0.0 ) {
-		(*a)->get_dom()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
-	    }
+	    (*a)->check();
 	}
 
 	if ( !hasActivityEntry ) {

@@ -38,6 +38,7 @@ public:
     virtual ~Activity() {}
 
     bool is_specified() const { return _is_specified; }
+    bool is_reachable() const { return _is_reachable; }
     virtual bool is_activity() const { return true; }
     unsigned int n_replies() const { return _replies.size(); }
 

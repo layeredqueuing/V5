@@ -148,18 +148,11 @@ Output XML elements and attributes as they are being parsed.   Since the XML par
 this option can be used to localize the error.
 .SH "PRAGMAS"
 .TP
-\fItask_scheduling=\fIarg\fP
-.RS
+\fBforce-random-queueing\fR=\fI(true,false}\fP
+Use random queueing at at all servers.  This reduces the state space.
+The default is FIFO queueing.
 .TP
-\fBFIFO\fP
-Force all tasks to use first-come, first-served scheduling.
-.TP
-\fBRAND\fP
-Force all tasks to use random scheduling for message servicing
-(reduces state space)
-.RE
-.TP
-\fIprocessor_scheduling=\fIarg\fP
+\fBprocessor-scheduling\fR=\fIarg\fP
 .RS
 .TP
 \fBFIFO\fP
@@ -170,18 +163,68 @@ Force all processors to use random scheduling for message servicing
 (reduces state space)
 .RE
 .TP
-\fBstop-on-message-loss\fR=\fIarg\fR
+\fBqueue-size\fR=\fIn\fP
+Set the queue size for open arrival or asynchronous sends to
+\fIarg\fP.  Queue overflows are reported as lost messages.
+.TP
+\fBreschedule-on-async-send\fR=\fI{true,false}\fR
+Force a resechedule of the processor (requeue) when an asynchronous
+(send-no-reply) messages is sent if set to \fItrue\fP.
+The default is to continue executing the current phase.
+.TP
+\fBsave-marginal-probabilities\fR=\fI{true,false}\fR
+Save the marginal queue probabilites for all multiserver stations if
+set to \fItrue\fP. 
+.TP
+\fBseverity-level\fR=\fIarg\fR
+.RS
+.TP
+\fBall\fP
+Output all error, warning and advisory messages.
+.TP
+\fBerror\fP
+Don't output warnings or advisory messages.
+.TP
+\fBwarning\fP
+Don't output advisory messages.
+.TP
+\fBadvisory\fP
+Don't output warning messages.
+.RE
+The default is all.
+.TP
+\fBspex-comment\fR=\fI{true,false}\fR
+Output the model comment as a header row with SPEX output.  The default is \fIfalse\fP.
+.TP
+\fBspex-header\fR=\fI{true,false}\fR
+Output the header row (column names) with SPEX output.  The default is \fItrue\fP.
+.TP
+\fBstop-on-message-loss\fR\fR=\fI{true,false}\fR
 This pragma is used to control the operation of the solver when the
 arrival rate exceeds the service rate of a server.
 \fIArg\fP must be one of: 
 .RS
 .TP
-\fBno\fP
+\fBfalse\fP
 Stop if messages are lost.
 .TP
-\fByes\fP
-Ignore queue overflows for open arrivals and send-no-reply requests.  If a queue overflows, its waiting times is reported as infinite..LP
+\fBtrue\fP
+Ignore queue overflows for open arrivals and send-no-reply requests.
+If a queue overflows, its waiting times is reported as infinite.
+.LP
 The default is no.
+.RE
+.TP
+\fBtask-scheduling\fR=\fIarg\fP
+Set the scheduling for messsages arriving at the task to \fIarg\fP.
+.RS
+.TP
+\fBFIFO\fP
+Force all tasks to use first-come, first-served scheduling.
+.TP
+\fBRAND\fP
+Force all tasks to use random scheduling for message servicing
+(reduces state space)
 .RE
 .SH "RETURN VALUE"
 \fBPetrisrvn\fR exits with 0 on success, 1 if the model failed to converge,

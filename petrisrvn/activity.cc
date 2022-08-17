@@ -47,8 +47,17 @@ Activity::Activity( LQIO::DOM::Activity * dom, Task * task )
 
 double Activity::check() 
 {
-    double count = Phase::check();
-    return count;
+    if ( !is_specified() ) {
+	get_dom()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
+    }
+    if ( !is_reachable() ) {
+	get_dom()->runtime_error( LQIO::ERR_NOT_REACHABLE );
+    }
+    double calls = Phase::check();
+    if ( calls > 0 && s() == 0.0 ) {
+	get_dom()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
+    }
+    return calls;
 }
 
 /*
