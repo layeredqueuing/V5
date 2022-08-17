@@ -32,7 +32,7 @@ using namespace std;
 
 double Processor::__x_offset;
 
-std::vector<Processor *> processor;
+std::vector<Processor *> __processor;
 
 /*----------------------------------------------------------------------*/
 /* Processors.								*/
@@ -79,33 +79,34 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 	dom->runtime_error( LQIO::ERR_NOT_SUPPORTED, "replication" );
     }
 
-
     if ( dom->getSchedulingType() != SCHEDULE_DELAY && !Pragma::__pragmas->default_processor_scheduling() ) {
 	dom->setSchedulingType( Pragma::__pragmas->processor_scheduling() );
     }
 	
-    const scheduling_type scheduling_flag = dom->getSchedulingType();
-    if ( !bit_test( scheduling_flag, SCHED_PPR_BIT|SCHED_HOL_BIT|SCHED_FIFO_BIT|SCHED_DELAY_BIT|SCHED_RAND_BIT|SCHED_PS_BIT ) ) {
-	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling_flag].str );
-	dom->setSchedulingType( SCHEDULE_FIFO );
+    scheduling_type scheduling = dom->getSchedulingType();
+    if ( !bit_test( scheduling, SCHED_PPR_BIT|SCHED_HOL_BIT|SCHED_FIFO_BIT|SCHED_DELAY_BIT|SCHED_RAND_BIT|SCHED_PS_BIT ) ) {
+	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling].str );
+	scheduling = SCHEDULE_FIFO;
     }
-    
-    processor.push_back( new Processor( dom ) );
+
+    Processor * processor = new Processor( dom );
+    processor->set_scheduling( scheduling );
+    __processor.push_back( processor );
 }
 
 
 /*
  * Suppress warning for processor scheduling if there is only one
- * thread on this processor.  Processor::create is executed before
+ * thread on this __processor.  Processor::create is executed before
  * Task::create and we need to know if the task has threads or copies.
  */
 
 void
 Processor::initialize() 
 {
-    if ( scheduling() == SCHEDULE_PS ) {
+    if ( get_scheduling() == SCHEDULE_PS ) {
 	if ( n_tasks() > 1 || _tasks[0]->multiplicity() > 1 || _tasks[0]->n_threads() > 1 ) {
-	    get_dom()->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling()].str );
+	    get_dom()->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[get_scheduling()].str );
 	    const_cast<LQIO::DOM::Entity *>(get_dom())->setSchedulingType( SCHEDULE_FIFO );
 	}
     }
@@ -120,8 +121,8 @@ Processor *
 Processor::find( const std::string& name  )
 {
     if ( name.size() == 0 ) return 0;
-    vector<Processor *>::const_iterator nextProcessor = find_if( ::processor.begin(), ::processor.end(), eqProcStr( name ) );
-    if ( nextProcessor == processor.end() ) {
+    vector<Processor *>::const_iterator nextProcessor = find_if( ::__processor.begin(), ::__processor.end(), eqProcStr( name ) );
+    if ( nextProcessor == __processor.end() ) {
 	return 0;
     } else {
 	return *nextProcessor;
@@ -155,8 +156,8 @@ unsigned int Processor::ref_count() const
 
 bool Processor::is_single_place_processor() const
 {
-    return scheduling() == SCHEDULE_RAND
-	|| scheduling() == SCHEDULE_DELAY
+    return get_scheduling() == SCHEDULE_RAND
+	|| get_scheduling() == SCHEDULE_DELAY
 	|| ref_count() == 1
 	|| is_infinite();
 }
@@ -167,7 +168,7 @@ Processor::set_queue_length( void )
 {
     unsigned max_count = 0;
 	
-    for ( vector<Processor *>::const_iterator h = ::processor.begin(); h != ::processor.end(); ++h ) {
+    for ( vector<Processor *>::const_iterator h = ::__processor.begin(); h != ::__processor.end(); ++h ) {
 	Processor * curr_proc = *h;
 	unsigned j;
 	unsigned n_tasks = 0;
@@ -306,7 +307,7 @@ Processor::transmorgrify( unsigned max_count )
 
 
 /*
- * Create the request and queue places for the processor.
+ * Create the request and queue places for the __processor.
  */
 
 double
@@ -345,7 +346,7 @@ Processor::make_queue( double x_pos, double y_pos, const int priority,
 
 
 /*
- * Make a queue to request service from the processor.
+ * Make a queue to request service from the __processor.
  */
 
 double
@@ -412,7 +413,7 @@ Processor::make_fifo_queue( double x_pos, double y_pos, const int priority,
 	history[curr].grant_trans = c_trans;
 	history[curr].grant_place = c_place;
 
-	if ( this->scheduling() == SCHEDULE_PPR ) {
+	if ( get_scheduling() == SCHEDULE_PPR ) {
 	    unsigned i;
 
 	    /* Steal processor from other PR places here */
@@ -506,13 +507,13 @@ Processor::get_waiting( const Phase& phase ) const
 	    tput   = get_tput( IMMEDIATE, "w%s00", phase.name() );
 	}
 
-    } else if ( scheduling() != SCHEDULE_RAND ) {
+    } else if ( get_scheduling() != SCHEDULE_RAND ) {
 	unsigned int count = phase.task()->get_proc_queue_count();
 	tokens = get_pmmean( "Preq%s%s00", name(), phase.name() );
 	for ( unsigned int j = 1; j < count; j++ ) {
 	    tokens += get_pmmean( "PI%s%s00%d", name(), phase.name(), j );
 	}
-	if ( this->scheduling() != SCHEDULE_FIFO ) {
+	if ( scheduling_is_ok( SCHED_PPR_BIT|SCHED_HOL_BIT ) ) {
 	    tokens += get_pmmean( "PR%s%s00", name(), phase.name() );
 	}
 	tput = get_tput( IMMEDIATE, "preq%s%s00", name(), phase.name() );

@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 15734 2022-06-30 02:19:44Z greg $
+ * $Id: activity.cc 15845 2022-08-17 16:00:07Z greg $
  */
 
 #include "activity.h"
@@ -309,7 +309,7 @@ Activity::replies( const std::vector<Entry *>& reply_list )
     }
     _replyArcs.clear();
     if ( !reply_list.empty() && owner()->isReferenceTask() ) {
-	getDOM()->input_error( LQIO::ERR_REFERENCE_TASK_REPLIES, reply_list.front()->name().c_str(), name().c_str() );
+	getDOM()->input_error( LQIO::ERR_REFERENCE_TASK_REPLIES, reply_list.front()->name().c_str() );
     } else {
 	_replies = reply_list;
 	for ( std::vector<Entry *>::const_iterator entry = replies().begin(); entry != replies().end(); ++entry ) {

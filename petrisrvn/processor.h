@@ -99,5 +99,5 @@ private:
     const std::string& _s;
 };
 
-extern std::vector<Processor *> processor;
+extern std::vector<Processor *> __processor;
 #endif

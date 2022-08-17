@@ -79,7 +79,7 @@ Activity::transmorgrify( const double x_pos, const double y_pos, const unsigned 
     if ( task()->is_server() && !task()->inservice_flag() && this->_replies.size() && can_reply ) {
 	for ( std::set<Entry *>::const_iterator r = this->_replies.begin(); r != this->_replies.end(); ++r ) {
 	    Entry * an_entry = *r;
-	    if ( an_entry->requests() != RENDEZVOUS_REQUEST ) continue;
+	    if ( an_entry->requests() != Requesting_Type::RENDEZVOUS ) continue;
 	    create_arc( ENTRY_LAYER(an_entry->entry_id())|(m == 0 ? PRIMARY_LAYER : 0), TO_PLACE, this->doneX[m], an_entry->DX[m] );
 #if defined(BUG_622)
 	    if ( an_entry->n_phases() > 1 ) {
@@ -183,9 +183,11 @@ Activity::count_replies( std::deque<Activity *>& activity_stack, const Entry * e
 	/* Look for reply.  Flag as necessary */
 	
 	if ( replies_to( e ) ) {
-	    if ( curr_phase >= 2 ) {
+	    if ( task()->is_client() ) {
+		get_dom()->runtime_error( LQIO::ERR_REFERENCE_TASK_REPLIES, e->name() );
+	    } else if ( curr_phase >= 2 ) {
 		get_dom()->runtime_error( LQIO::ERR_INVALID_REPLY_DUPLICATE, e->name() );
-	    } else if ( e->requests() == SEND_NO_REPLY_REQUEST ) {
+	    } else if ( e->requests() == Requesting_Type::SEND_NO_REPLY ) {
 		get_dom()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, e->name() );
 	    } else {
 		next_phase = 2;

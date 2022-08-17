@@ -258,11 +258,11 @@ Phase::add_call( LQIO::DOM::Call * call )
     if (!to_entry) {
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
     } else if ( call->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS ) {
-	if ( to_entry->test_and_set_recv( RENDEZVOUS_REQUEST ) ) {
+	if ( to_entry->test_and_set_recv( Requesting_Type::RENDEZVOUS ) ) {
 	    _call[to_entry]._dom = call;		/* Save dom */
 	}
     } else if ( call->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY ) {
-	if ( to_entry->test_and_set_recv( SEND_NO_REPLY_REQUEST ) ) {
+	if ( to_entry->test_and_set_recv( Requesting_Type::SEND_NO_REPLY ) ) {
 	    _call[to_entry]._dom = call;		/* Save dom */
 	}
     }
@@ -280,7 +280,7 @@ Phase::check()
     double ysum = 0;
     double zsum = 0;
     const Processor * curr_proc = task()->processor();
-    if ( this->s() > 0.0 && this->coeff_of_var() != 1.0 && curr_proc->scheduling() == SCHEDULE_PPR ) {
+    if ( this->s() > 0.0 && this->coeff_of_var() != 1.0 && curr_proc->get_scheduling() == SCHEDULE_PPR ) {
 	LQIO::runtime_error( WRN_PREEMPTIVE_SCHEDULING, curr_proc->name(), this->name() );
 //	curr_proc->scheduling = SCHEDULE_FIFO;
     }
@@ -492,7 +492,7 @@ Phase::release_processor( struct trans_object * c_trans, const unsigned m, const
 	    create_arc( PROC_LAYER, TO_PLACE, this->doneX[m], processor()->PX );
 	}
 #endif
-	if ( bit_test( processor()->scheduling(), SCHED_PPR_BIT|SCHED_HOL_BIT ) ) {
+	if ( bit_test( processor()->get_scheduling(), SCHED_PPR_BIT|SCHED_HOL_BIT ) ) {
 	    create_arc( PROC_LAYER, TO_PLACE, c_trans, no_place( "Prio%d%s", task()->priority(), processor()->name() ) );
 	}
     }
@@ -502,7 +502,7 @@ Phase::release_processor( struct trans_object * c_trans, const unsigned m, const
 void
 Phase::build_forwarding_list()
 {
-    for ( vector<Entry *>::const_iterator d = ::entry.begin(); d != ::entry.end(); ++d ) {
+    for ( vector<Entry *>::const_iterator d = ::__entry.begin(); d != ::__entry.end(); ++d ) {
 	if ( y(*d) == 0.0 ) continue;
 	if ( has_stochastic_calls() ) {
 	    follow_forwarding_path( 0, *d, y(*d) );
@@ -525,7 +525,7 @@ Phase::follow_forwarding_path( const unsigned slice_no, Entry * a, double rate )
 {
     double sum = 0.0;
 
-    for ( vector<Entry *>::const_iterator b = ::entry.begin(); b != ::entry.end(); ++b ) {
+    for ( vector<Entry *>::const_iterator b = ::__entry.begin(); b != ::__entry.end(); ++b ) {
         const double pr_fwd = a->prob_fwd(*b);
 	if ( pr_fwd > 0.0 ) {
 	    sum += pr_fwd;
@@ -641,7 +641,7 @@ Phase::insert_DOM_results() const
 }
 
 /*
- * Get the mean number of tokens waiting at an entry.
+ * Get the mean number of tokens waiting at an __entry.
  */
 
 double
@@ -925,7 +925,6 @@ Call::is_rendezvous() const
 {
     return _dom->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS;
 }
-
 
 
 bool

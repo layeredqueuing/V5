@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.h 15546 2022-04-17 22:54:22Z greg $
+ * $Id: model.h 15843 2022-08-17 13:44:32Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -93,7 +93,7 @@ public:
 private:
     static LQIO::DOM::Document* load( const std::string& inputFileName, LQIO::DOM::Document::InputFormat input_format );
     bool construct();
-    void initialize();
+    void clear();
 
     unsigned int set_queue_length() const;
 

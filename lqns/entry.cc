@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15755 2022-07-24 10:34:56Z greg $
+ * $Id: entry.cc 15843 2022-08-17 13:44:32Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -196,7 +196,11 @@ Entry::check() const
 	    //(replies == 1 || (replies == 0 && owner->hasQuorum()))
 	    //Only tasks have activity entries.
 	    if ( isCalledUsing( RequestType::RENDEZVOUS ) && replies != 1.0 && (replies != 0.0 || !dynamic_cast<const Task *>(owner())->hasQuorum()) ) {
-		getDOM()->runtime_error( LQIO::ERR_NON_UNITY_REPLIES, replies );
+		if ( replies == 0 ) {
+		    getDOM()->runtime_error( LQIO::ERR_REPLY_NOT_GENERATED );		/* redundant, but more explicit. */
+		} else {
+		    getDOM()->runtime_error( LQIO::ERR_NON_UNITY_REPLIES, replies );
+		}
 	    }
 	    assert( activityStack.size() == 0 );
 	}

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 15836 2022-08-15 21:18:20Z greg $
+ * $Id: model.cc 15845 2022-08-17 16:00:07Z greg $
  *
  * Load the SRVN model.
  */
@@ -96,12 +96,12 @@ Model::Model( LQIO::DOM::Document * document, const std::string& input_file_name
 
 Model::~Model()
 {
-    std::for_each( processor.begin(), processor.end(), Model::Delete<Processor *> );
-    processor.clear();
+    std::for_each( __processor.begin(), __processor.end(), Model::Delete<Processor *> );
+    __processor.clear();
 
-    std::for_each( task.begin(), task.end(), Model::Delete<Task *> );
-    task.clear();
-    entry.clear();
+    std::for_each( __task.begin(), __task.end(), Model::Delete<Task *> );
+    __task.clear();
+    __entry.clear();
 
     for ( int i = 0; i <= layer_num; ++i) {
 	if ( layer_name[i] ) {
@@ -378,7 +378,7 @@ Model::construct()
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 4: Add Calls/Lists for Activities] */
 
     /* Go back and add all of the lists and calls now that activities all exist */
-    for ( std::vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
+    for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 	for ( std::vector<Activity*>::const_iterator a = (*t)->activities.begin(); a != (*t)->activities.end(); ++a) {
 	    const LQIO::DOM::Activity* activity = dynamic_cast<const LQIO::DOM::Activity *>((*a)->get_dom());
 
@@ -415,12 +415,12 @@ void
 Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
 {
 //    setModelParameters(document);
-//    for_each( __processor.begin(), __processor.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
-//    for_each( __task.begin(), __task.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
+//    for_each( ____processor.begin(), ____processor.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
+//    for_each( ____task.begin(), ____task.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
 }
 
 
-void Model::initialize()
+void Model::clear()
 {
     Model::__forwarding_present = false;
     Model::__open_class_error = false;
@@ -430,9 +430,9 @@ void Model::initialize()
     Task::__client_x_offset = 1;
     Processor::__x_offset   = 1;
 
-    std::for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::clear ) );
-    std::for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::clear ) );
-    std::for_each( ::entry.begin(), ::entry.end(), Exec<Entry>( &Entry::clear ) );
+    std::for_each( ::__processor.begin(), ::__processor.end(), Exec<Processor>( &Processor::clear ) );
+    std::for_each( ::__task.begin(), ::__task.end(), Exec<Task>( &Task::clear ) );
+    std::for_each( ::__entry.begin(), ::__entry.end(), Exec<Entry>( &Entry::clear ) );
 }
 
 
@@ -447,15 +447,12 @@ Model::transform()
 
     build_open_arrivals();
 
-    std::for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::initialize ) );
-    std::for_each( ::entry.begin(), ::entry.end(), Exec<Entry>( &Entry::initialize ) );
-    std::for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::initialize ) );
+    std::for_each( ::__processor.begin(), ::__processor.end(), Exec<Processor>( &Processor::initialize ) );
+    std::for_each( ::__entry.begin(), ::__entry.end(), Exec<Entry>( &Entry::initialize ) );
+    std::for_each( ::__task.begin(), ::__task.end(), Exec<Task>( &Task::initialize ) );
 
-    for ( std::vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
+    for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 	set_n_phases((*t)->n_phases());
-    }
-    for ( std::vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
-	(*t)->build_forwarding_lists();
     }
 
     if ( LQIO::io_vars.anError() ) return false;
@@ -484,10 +481,10 @@ Model::transform()
     layer_name[JOIN_LAYER_NUM]	   	= strdup( "joins" );
 
     unsigned int i = 0;
-    for ( std::vector<Entry *>::const_iterator e = ::entry.begin(); e != ::entry.end(); ++e, ++i ) {
+    for ( std::vector<Entry *>::const_iterator e = ::__entry.begin(); e != ::__entry.end(); ++e, ++i ) {
 	layer_name[ENTRY_LAYER_NUM+i] = strdup( (*e)->name() );
     }
-    layer_num = ENTRY_LAYER_NUM+::entry.size()-1;
+    layer_num = ENTRY_LAYER_NUM+::__entry.size()-1;
 
     /*
      * Set comment
@@ -511,7 +508,7 @@ Model::transform()
 	Task::__server_y_offset += 1.0;
     }
 
-    for ( std::vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
+    for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 	if ( (*t)->type() != Task::Type::REF_TASK || (*t)->n_activities() == 0 ) continue;
 
 	for ( std::vector<ActivityList *>::const_iterator l = (*t)->act_lists.begin(); l != (*t)->act_lists.end(); ++l ) {
@@ -533,17 +530,17 @@ Model::transform()
 
     /* Build processors. */
 
-    for ( std::vector<Processor *>::const_iterator p = ::processor.begin(); p != ::processor.end(); ++p ) {
+    for ( std::vector<Processor *>::const_iterator p = ::__processor.begin(); p != ::__processor.end(); ++p ) {
 	(*p)->transmorgrify( max_proc_queue_length );
     }
 
     /* Build tasks. */
 
-    for ( std::vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
+    for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 	(*t)->transmorgrify();
     }
 
-    for ( std::vector<Entry *>::const_iterator e = ::entry.begin(); e != ::entry.end(); ++e ) {
+    for ( std::vector<Entry *>::const_iterator e = ::__entry.begin(); e != ::__entry.end(); ++e ) {
 	(*e)->create_forwarding_gspn();
     }
 
@@ -565,7 +562,7 @@ Model::set_queue_length()  const
 {
     unsigned max_queue_length = 0;
 
-    for ( std::vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
+    for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 	unsigned int length = (*t)->set_queue_length();
 	if ( length > max_queue_length ) {
 	    max_queue_length = length;
@@ -583,8 +580,8 @@ Model::set_queue_length()  const
 void
 Model::remove_netobj()
 {
-    std::for_each( processor.begin(), processor.end(), Exec<Processor>( &Processor::remove_netobj ) );
-    std::for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::remove_netobj ) );
+    std::for_each( __processor.begin(), __processor.end(), Exec<Processor>( &Processor::remove_netobj ) );
+    std::for_each( ::__task.begin(), ::__task.end(), Exec<Task>( &Task::remove_netobj ) );
 
     free_netobj( netobj );
     netobj = (struct net_object *)0;
@@ -603,7 +600,7 @@ Model::compute()
 {
     bool rc = true;
 
-    initialize();
+    clear();
     if ( !transform() ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": Input model " << _input_file_name << " was not transformed successfully." << std::endl;
 	return false;
@@ -650,7 +647,7 @@ Model::compute()
 	    if ( stats.precision >= 0.01 || __open_class_error ) {
 		rc = false;
 	    }
-	    for ( std::vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
+	    for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 		(*t)->get_results();		/* Read net to get tokens. */
 	    }
 	    insert_DOM_results( rc == true, stats );	/* Save results */
@@ -732,7 +729,7 @@ Model::make_queues()
 {
     /* Make queues */
 	
-    for ( std::vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
+    for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 	if ( (*t)->is_client() ) continue;  	/* Skip reference tasks. */
 
 	double x_pos	= (*t)->get_x_pos() - 0.5;
@@ -757,7 +754,7 @@ Model::make_queues()
 	/* Create and connect all queues for task 'j'. */
 
 	for ( std::vector<Entry *>::const_iterator e = (*t)->entries.begin(); e != (*t)->entries.end(); ++e ) {
-	    for ( std::vector<Task *>::const_iterator i = ::task.begin(); i != ::task.end(); ++i ) {
+	    for ( std::vector<Task *>::const_iterator i = ::__task.begin(); i != ::__task.end(); ++i ) {
 		const unsigned max_m = (*i)->n_customers();
 
 		for ( std::vector<Entry *>::const_iterator d = (*i)->entries.begin(); d != (*i)->entries.end(); ++d ) {
@@ -811,7 +808,7 @@ Model::make_queues()
 	    }
 	    k = 0;	/* Used to offset the transition by queue */
 	    for ( std::vector<Entry *>::const_iterator e = (*t)->entries.begin(); e != (*t)->entries.end(); ++e ) {
-		for ( std::vector<Task *>::const_iterator i = ::task.begin(); i != ::task.end(); ++i ) {
+		for ( std::vector<Task *>::const_iterator i = ::__task.begin(); i != ::__task.end(); ++i ) {
 		    for ( std::vector<Entry *>::const_iterator d = (*i)->entries.begin(); d != (*i)->entries.end(); ++d ) {
 			if ( (*d)->is_regular_entry() ) {
 			    for ( unsigned p = 1; p <= (*d)->n_phases(); p++ ) {
@@ -837,7 +834,7 @@ Model::make_queue( double x_pos,		/* x coordinate.		*/
 		   double y_pos,		/* y coordinate.		*/
 		   double idle_x,
 		   Phase * a,			/* Source Entry (send from)	*/
-		   Entry * b,			/* Destination entry.		*/
+		   Entry * b,			/* Destination __entry.		*/
 		   const unsigned ne,
 		   const unsigned max_m,	/* Multiplicity of Src.		*/
 		   unsigned k,			/* an index.			*/
@@ -883,7 +880,7 @@ Model::fifo_queue( double x_pos,		/* x coordinate.		*/
 		   double idle_x,
 		   Phase * a,			/* Source Entry (send from)	*/
 		   const unsigned s_a,		/* Sending slice number.	*/
-		   Entry * b,			/* Destination entry.		*/
+		   Entry * b,			/* Destination __entry.		*/
 		   const Phase * e,		/* Entry to reply to.		*/
 		   const unsigned s_e,		/* Slice to reply to.		*/
 		   const unsigned m,		/* Multiplicity of Src.		*/
@@ -1001,7 +998,7 @@ Model::random_queue( double x_pos,		/* x coordinate.		*/
 		     double idle_x,
 		     Phase * a,			/* Source Entry (send from)	*/
 		     const unsigned s_a,	/* Slice number of a.		*/
-		     Entry * b,			/* Destination entry.		*/
+		     Entry * b,			/* Destination __entry.		*/
 		     const Phase * e,		/* Entry to reply to.		*/
 		     const unsigned s_e,	/* Slice to reply to.		*/
 		     const unsigned m,		/* Multiplicity of Src.		*/
@@ -1097,9 +1094,9 @@ Model::random_queue( double x_pos,		/* x coordinate.		*/
 struct trans_object *
 Model::queue_prologue( double x_pos,		/* X coordinate.		*/
 		       double y_pos,		/* Y coordinate.		*/
-		       Phase * a,		/* sending entry.		*/
+		       Phase * a,		/* sending __entry.		*/
 		       unsigned s_a,		/* Slice number of phase	*/
-		       Entry * b,		/* receiving entry.		*/
+		       Entry * b,		/* receiving __entry.		*/
 		       unsigned b_m,		/* instance number of b.	*/
 		       const Phase * e,		/* Entry to reply to.		*/
 		       const unsigned s_e,	/* Slice to reply to.		*/
@@ -1261,7 +1258,7 @@ Model::queue_epilogue( double x_pos, double y_pos,
 
     /* Connect release to appropriate task provided that we do not have to worry about forwarding. */
 
-    if ( b->requests() == RENDEZVOUS_REQUEST ) {		/* BUG_629 */
+    if ( b->requests() == Requesting_Type::RENDEZVOUS ) {		/* BUG_629 */
 	create_arc( layer_mask_a, TO_TRANS, c_trans, b->DX[b_m] );
     }
 	
@@ -1290,7 +1287,7 @@ Model::queue_epilogue( double x_pos, double y_pos,
 
 /*
  * Create the subnet used to instrument the phase of service of
- * entry b's task.
+ * entry b's __task.
  */
 
 void
@@ -1332,7 +1329,7 @@ Model::create_phase_instr_net( double idle_x, double y_pos,
 				a->name(), m,
 				b->name(), n );
 		
-	if ( q == 1 && b->requests() == RENDEZVOUS_REQUEST ) {	/* BUG_629 */
+	if ( q == 1 && b->requests() == Requesting_Type::RENDEZVOUS ) {	/* BUG_629 */
 	    create_arc( MEASUREMENT_LAYER|ENTRY_LAYER(b->entry_id()), TO_PLACE, c_trans, b->DX[n] );
 	}
 	if ( q == b->n_phases() ) {
@@ -1407,9 +1404,9 @@ Model::create_inservice_net( const Phase * a, const Entry * b, unsigned int k, c
 void
 Model::build_open_arrivals ()
 {
-    const unsigned n_entries = ::entry.size();
+    const unsigned n_entries = ::__entry.size();
     for ( unsigned int e = 0; e < n_entries; ++e  ) {
-	Entry * dst_entry = ::entry[e];
+	Entry * dst_entry = ::__entry[e];
 	if ( dst_entry->task()->type() == Task::Type::OPEN_SRC ) continue;
 
 	LQIO::DOM::Entry * dst_dom = dst_entry->get_dom();
@@ -1418,7 +1415,7 @@ Model::build_open_arrivals ()
 	std::string buf = "OT";
 	buf += dst_entry->name();
 	OpenTask * a_task = new OpenTask( _document, buf, dst_entry );
-	::task.push_back( a_task );
+	::__task.push_back( a_task );
 
 	buf = "OE";
 	buf += dst_entry->name();
@@ -1435,7 +1432,7 @@ Model::build_open_arrivals ()
 	phase->setName(buf);
 
 	Entry * an_entry = new Entry( pseudo, a_task );
-	::entry.push_back( an_entry );		// Do this because add_call will try to find it.
+	::__entry.push_back( an_entry );		// Do this because add_call will try to find it.
 	a_task->entries.push_back( an_entry );
 
 	LQIO::DOM::ConstantExternalVariable  * var  = new LQIO::DOM::ConstantExternalVariable( 1 );
@@ -1456,7 +1453,7 @@ Model::build_open_arrivals ()
 void
 Model::trans_rpar()
 {
-    for ( std::vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
+    for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 
 	/* Service time at entries. */
 
@@ -1477,13 +1474,13 @@ Model::trans_rpar()
 
     /* Call rates. */
 
-    for ( std::vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
+    for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 
 	/* Service time at entries. */
 
 	for ( std::vector<Entry *>::const_iterator e = (*t)->entries.begin(); e != (*t)->entries.end(); ++e ) {
 
-	    for ( std::vector<Entry *>::const_iterator d = ::entry.begin(); d != ::entry.end(); ++d ) {
+	    for ( std::vector<Entry *>::const_iterator d = ::__entry.begin(); d != ::__entry.end(); ++d ) {
 		for ( unsigned int p = 1; p <= (*e)->n_phases(); p++ ) {
 		    (*e)->phase[p].create_ypar( *d );
 		}
@@ -1491,7 +1488,7 @@ Model::trans_rpar()
 	}
 
 	for ( std::vector<Activity *>::const_iterator a = (*t)->activities.begin(); a != (*t)->activities.end(); ++a ) {
-	    for ( std::vector<Entry *>::const_iterator d = ::entry.begin(); d != ::entry.end(); ++d ) {
+	    for ( std::vector<Entry *>::const_iterator d = ::__entry.begin(); d != ::__entry.end(); ++d ) {
 		(*a)->create_ypar( *d );
 	    }
 
@@ -1511,7 +1508,7 @@ Model::trans_res ()
 {
     char name_str[BUFSIZ];
 
-    for ( std::vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
+    for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 	if ( (*t)->type() != Task::Type::REF_TASK ) continue;
 			
 	for ( std::vector<Entry *>::const_iterator e = (*t)->entries.begin(); e != (*t)->entries.end(); ++e ) {
@@ -1534,7 +1531,7 @@ Model::trans_res ()
 	}
     }
 
-    for ( std::vector<Processor *>::const_iterator p = ::processor.begin(); p != ::processor.end(); ++p ) {
+    for ( std::vector<Processor *>::const_iterator p = ::__processor.begin(); p != ::__processor.end(); ++p ) {
         if ( !(*p)->PX ) continue;
 	sprintf( name_str, "P%s", (*p)->name() );
 	(void) create_res( Phase::__parameter_x, Phase::__parameter_y, "U%s", "P{#%s=0};", insert_netobj_name( name_str ).c_str() );
@@ -1568,8 +1565,8 @@ Model::insert_DOM_results( const bool valid, const solution_stats_t& stats ) con
     stop_time -= __start_time;
     stop_time.insertDOMResults( *_document );
 
-    std::for_each( ::task.begin(), ::task.end(), ConstExec<Task>( &Task::insert_DOM_results ) );
-    std::for_each( ::processor.begin(), ::processor.end(), ConstExec<Processor>( &Processor::insert_DOM_results ) );
+    std::for_each( ::__task.begin(), ::__task.end(), ConstExec<Task>( &Task::insert_DOM_results ) );
+    std::for_each( ::__processor.begin(), ::__processor.end(), ConstExec<Processor>( &Processor::insert_DOM_results ) );
 }
 
 /*----------------------------------------------------------------------*/
@@ -1605,13 +1602,13 @@ Model::print_inservice_probability( std::ostream& output ) const
     }
     output << std::endl;
 	
-    for ( std::vector<Task *>::const_iterator t_i = ::task.begin(); t_i != ::task.end(); ++t_i ) {
-	for ( std::vector<Task *>::const_iterator t_j = ::task.begin(); t_j != ::task.end(); ++t_j ) {
+    for ( std::vector<Task *>::const_iterator t_i = ::__task.begin(); t_i != ::__task.end(); ++t_i ) {
+	for ( std::vector<Task *>::const_iterator t_j = ::__task.begin(); t_j != ::__task.end(); ++t_j ) {
 	    if ( !(*t_j)->inservice_flag() ) continue;	/* Only do ones we have! */
 
 	    unsigned int count = 0;
 	    double col_sum[DIMPH+1];
-	    double tot_tput[DIMPH+1];	/* Throughput of this task.	*/
+	    double tot_tput[DIMPH+1];	/* Throughput of this __task.	*/
 
 	    for ( unsigned int p = 0; p <= DIMPH; ++p ) {
 		col_sum[p] = 0.0;
@@ -1687,7 +1684,7 @@ Model::print_inservice_cd( std::ostream& output, const Entry * a, const Entry * 
 	
     /* Now find prob of token following c->d path instead of a->b OT or idle */
 	
-    for ( std::vector<Task *>::const_iterator t_i = ::task.begin(); t_i != ::task.end(); ++t_i ) {
+    for ( std::vector<Task *>::const_iterator t_i = ::__task.begin(); t_i != ::__task.end(); ++t_i ) {
 	if ( *t_i == j ) continue;
 
 	for ( std::vector<Entry *>::const_iterator e_i = (*t_i)->entries.begin(); e_i != (*t_i)->entries.end(); ++e_i ) {

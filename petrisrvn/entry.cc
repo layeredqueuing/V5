@@ -31,7 +31,7 @@
 
 using namespace std;
 
-std::vector<Entry *> entry;
+std::vector<Entry *> __entry;
 unsigned int Entry::__next_entry_id = 1;
 
 Entry::Entry( LQIO::DOM::Entry * dom, Task * task ) 
@@ -43,7 +43,7 @@ Entry::Entry( LQIO::DOM::Entry * dom, Task * task )
       _task(task),
       _start_activity(0),
       _entry_id(__next_entry_id++),
-      _requests(NOT_CALLED),
+      _requests(Requesting_Type::NOT_CALLED),
       _replies(false),
       _random_queueing(false),
       _rel_prob(0.),
@@ -71,13 +71,13 @@ Entry::clear()
 Entry *
 Entry::create( LQIO::DOM::Entry * dom, Task * task )
 {
-    std::vector<Entry *>::const_iterator nextEntry = find_if( entry.begin(), entry.end(), eqEntryStr( dom->getName() ) );
-    if ( nextEntry != entry.end() ) {
+    std::vector<Entry *>::const_iterator nextEntry = find_if( __entry.begin(), __entry.end(), eqEntryStr( dom->getName() ) );
+    if ( nextEntry != __entry.end() ) {
 	dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	return nullptr;
     } else {
 	Entry * ep = new Entry( dom, task );
-	::entry.push_back( ep );
+	::__entry.push_back( ep );
 	return ep;
     }
 }
@@ -151,9 +151,12 @@ Entry::test_and_set( LQIO::DOM::Entry::Type type )
 }
 
 bool
-Entry::test_and_set_recv( requesting_type recv ) 
+Entry::test_and_set_recv( Requesting_Type recv ) 
 {
-    if ( _requests != NOT_CALLED && _requests != recv ) {
+    if ( task()->is_client() ) {
+	task()->get_dom()->runtime_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, name() );
+	return false;
+    } else if ( _requests != Requesting_Type::NOT_CALLED && _requests != recv ) {
 	get_dom()->input_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
 	return false;
     } else {
@@ -192,7 +195,7 @@ Entry::add_call( const unsigned int p, LQIO::DOM::Call * call )
     Entry * from_entry;
     Entry * to_entry;
 	
-    if ( Entry::find( from_entry_name, from_entry, to_entry_name, to_entry ) && to_entry->test_and_set_recv( RENDEZVOUS_REQUEST ) ) {
+    if ( Entry::find( from_entry_name, from_entry, to_entry_name, to_entry ) && to_entry->test_and_set_recv( Requesting_Type::RENDEZVOUS ) ) {
 	from_entry->_fwd[to_entry]._dom = call;		/* Save dom */
     }
 }
@@ -212,7 +215,6 @@ Entry::initialize()
     bool has_service_time = false;
     bool has_deterministic_phases = false;
 	
-    _n_phases = 1;
     if ( is_regular_entry() ) {
 	for ( unsigned int p = 1; p <= DIMPH; ++p ) {
 	    Phase * curr_phase = &this->phase[p];
@@ -242,7 +244,7 @@ Entry::initialize()
 	has_service_time = start_activity()->find_children( activity_stack, fork_stack, this );
 	n_replies = start_activity()->count_replies( activity_stack, this, 1.0, 1, max_phase );
 	    
-	if ( requests() == RENDEZVOUS_REQUEST ) {
+	if ( requests() == Requesting_Type::RENDEZVOUS ) {
 	    if ( n_replies == 0 ) {
 		get_dom()->runtime_error( LQIO::ERR_REPLY_NOT_GENERATED );
 	    } else if ( fabs( n_replies - 1.0 ) > EPSILON ) {
@@ -272,7 +274,7 @@ Entry::initialize()
 	
     _rel_prob = 1.0;		/* Set entry "release" probability */
 
-    for ( vector<Entry *>::const_iterator d = ::entry.begin(); d != ::entry.end(); ++d ) {
+    for ( vector<Entry *>::const_iterator d = ::__entry.begin(); d != ::__entry.end(); ++d ) {
 	_rel_prob -= prob_fwd(*d);
     }
 
@@ -369,7 +371,7 @@ Entry::transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struc
 #endif	
 			
     } else if ( is_regular_entry() && !task()->inservice_flag()
-		&& requests() == RENDEZVOUS_REQUEST ) {
+		&& requests() == Requesting_Type::RENDEZVOUS ) {
 
 	create_arc( layer_mask, TO_PLACE, phase[1].doneX[m], DX[m] );
 
@@ -389,7 +391,7 @@ Entry::transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struc
 
 
 /*
- * Create the forwarding places and transitions for each entry.
+ * Create the forwarding places and transitions for each __entry.
  */
 
 void
@@ -476,7 +478,7 @@ Entry::check_open_result()
     if ( openArrivalRate() > 0.0 && fabs ( openArrivalRate() - task()->multiplicity() * _throughput[0] ) / openArrivalRate() > 0.02 ) {
 	LQIO::runtime_error( ADV_OPEN_ARRIVALS_DONT_MATCH, task()->multiplicity() * _throughput[0], openArrivalRate(), name() );
 	Model::__open_class_error = true;
-    } else if ( requests() == SEND_NO_REPLY_REQUEST && get_prob( 0, "ZZ%s", task()->name()) > EPSILON ) {
+    } else if ( requests() == Requesting_Type::SEND_NO_REPLY && get_prob( 0, "ZZ%s", task()->name()) > EPSILON ) {
 	LQIO::runtime_error( ADV_MESSAGES_LOST, task()->name(), get_prob( 0, "ZZ%s", task()->name() ) );
 	Model::__open_class_error = true;
     }
@@ -547,8 +549,8 @@ double Entry::queueing_time( const Entry * entry ) const
 
 /* static */ Entry * Entry::find( const std::string& name)
 {
-    std::vector<Entry *>::const_iterator nextEntry = find_if( entry.begin(), entry.end(), eqEntryStr( name ) );
-    if ( nextEntry == entry.end() ) {
+    std::vector<Entry *>::const_iterator nextEntry = find_if( __entry.begin(), __entry.end(), eqEntryStr( name ) );
+    if ( nextEntry == __entry.end() ) {
 	return 0;
     } else {
 	return *nextEntry;

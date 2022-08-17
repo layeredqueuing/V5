@@ -50,6 +50,7 @@ struct Call {
     bool is_rendezvous() const;
     bool is_send_no_reply() const;
     double value( const Phase *, double = 0.0 ) const;
+    LQIO::DOM::Call * get_dom() const { return _dom; }
 
     LQIO::DOM::Call * _dom;			/* DOMs for the calls		*/
     short _rpar_y;				/* Rendezvous rate (by phase).	*/

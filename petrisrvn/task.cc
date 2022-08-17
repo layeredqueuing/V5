@@ -44,7 +44,7 @@ using namespace std;
 #define FOLLOW_RNVS   true
 #define IGNORE_RNVS   false
 
-std::vector<Task *> task;
+std::vector<Task *> __task;
 double Task::__server_x_offset;		/* Starting offset for next server.	*/
 double Task::__client_x_offset;		/* Starting offset for next client.	*/
 double Task::__server_y_offset;
@@ -104,7 +104,7 @@ void Task::clear()
 #if !defined(BUFFER_BY_ENTRY)
     ZZ = 0;				/* For open requests.		*/
 #endif
-    _queue_made = false;		/* true if queue made for task.	*/
+    _queue_made = false;		/* true if queue made for __task	*/
     _max_queue_length = 0;	
     _max_k = 0;				/* input queues. 		*/
 }
@@ -158,29 +158,27 @@ Task::create( const LQIO::DOM::Task * dom )
 	return nullptr;
     }
 
-    if ( !LQIO::DOM::Common_IO::is_default_value( dom->getPriority(), 0. ) && ( bit_test( processor->scheduling(), SCHED_FIFO_BIT|SCHED_PS_BIT|SCHED_RAND_BIT ) ) ) {
+    if ( !LQIO::DOM::Common_IO::is_default_value( dom->getPriority(), 0. ) && ( bit_test( processor->get_scheduling(), SCHED_FIFO_BIT|SCHED_PS_BIT|SCHED_RAND_BIT ) ) ) {
 	dom->input_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, processor->name() );
     }
 
     /* Override scheduling */
 
-    scheduling_type sched_type = dom->getSchedulingType();
-    if ( !bit_test( sched_type, SCHED_BURST_BIT|SCHED_UNIFORM_BIT|SCHED_CUSTOMER_BIT|SCHED_DELAY_BIT|SCHED_SEMAPHORE_BIT) ) {
+    scheduling_type scheduling = dom->getSchedulingType();
+    if ( !bit_test( scheduling, SCHED_BURST_BIT|SCHED_UNIFORM_BIT|SCHED_CUSTOMER_BIT|SCHED_DELAY_BIT|SCHED_SEMAPHORE_BIT) ) {
 	if ( dom->isInfinite() ) {
-	    sched_type = SCHEDULE_DELAY;
-	    const_cast<LQIO::DOM::Task *>(dom)->setSchedulingType( sched_type );
+	    scheduling = SCHEDULE_DELAY;
 	} else if ( !Pragma::__pragmas->default_task_scheduling() ) {
-	    sched_type = Pragma::__pragmas->task_scheduling();
-	    const_cast<LQIO::DOM::Task *>(dom)->setSchedulingType( sched_type );
+	    scheduling = Pragma::__pragmas->task_scheduling();
 	}
     }
 
     Task * task = nullptr;
 
-    switch ( sched_type ) {
+    switch ( scheduling ) {
     case SCHEDULE_BURST:
     case SCHEDULE_UNIFORM:
-	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str );
+	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling].str );
 	/* fall through */
     case SCHEDULE_CUSTOMER:
 	if ( dom->hasQueueLength() ) {
@@ -194,7 +192,7 @@ Task::create( const LQIO::DOM::Task * dom )
 	
     case SCHEDULE_PPR:
     case SCHEDULE_HOL:
-	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str );
+	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling].str );
 	/* fall through */
     case SCHEDULE_FIFO:
     default:
@@ -237,9 +235,10 @@ Task::create( const LQIO::DOM::Task * dom )
 	break;
     }
 
+    assert( task != nullptr );
+    task->set_scheduling( scheduling );
     processor->add_task( task );
-    assert( task != 0 );
-    ::task.push_back( task );
+    ::__task.push_back( task );
     return task;
 }
 
@@ -249,6 +248,9 @@ Task::initialize()
 {
     if ( !entries.size() ) {
 	get_dom()->runtime_error( LQIO::ERR_TASK_HAS_NO_ENTRIES );
+    }
+    if ( processor() != nullptr && processor()->get_scheduling() == SCHEDULE_CFS && dynamic_cast<const LQIO::DOM::Task *>(get_dom())->getGroup() == nullptr ) {
+	get_dom()->runtime_error( LQIO::ERR_NO_GROUP_SPECIFIED, processor()->name() );
     }
     if ( n_activities() ) {
 	bool hasActivityEntry = false;
@@ -312,7 +314,7 @@ Task::initialize()
 	double ysum = 0.0;
 	double zsum = 0.0;
 
-	for ( vector<Task *>::const_iterator i = ::task.begin(); i != ::task.end(); ++i ) {
+	for ( vector<Task *>::const_iterator i = ::__task.begin(); i != ::__task.end(); ++i ) {
 
 	    /* e of i called by d of j ?*/
 
@@ -333,9 +335,11 @@ Task::initialize()
 	    (*e)->get_dom()->runtime_error( LQIO::WRN_ENTRY_HAS_NO_REQUESTS );
 	}
     }
+
+    build_forwarding_lists();
 }
 
-/* Priority for this task.	*/
+/* Priority for this __task	*/
 int Task::priority() const
 {
     try {
@@ -482,7 +486,7 @@ unsigned int Task::set_queue_length()
 
 	/* Count rendezvous from other tasks 'i' */
 	    
-	for ( vector<Task *>::const_iterator i = ::task.begin(); i != ::task.end(); ++i ) {
+	for ( vector<Task *>::const_iterator i = ::__task.begin(); i != ::__task.end(); ++i ) {
 	    if ( (*i) == this || (*i)->type() == Task::Type::OPEN_SRC ) continue;
 	    
 	    for ( vector<Entry *>::const_iterator d = (*i)->entries.begin(); d != (*i)->entries.end(); ++d ) {
@@ -524,7 +528,7 @@ unsigned int Task::set_queue_length()
 
 	/* Count open arrivals at entries. */
 
-	if ( (*e)->requests() == SEND_NO_REPLY_REQUEST && !is_infinite() ) {
+	if ( (*e)->requests() == Requesting_Type::SEND_NO_REPLY && !is_infinite() ) {
 #if defined(BUFFER_BY_ENTRY)
 	    length += open_model_tokens;
 #else
@@ -665,7 +669,7 @@ Task::transmorgrify()
 
 
 /*
- * Make an instance of a task.
+ * Make an instance of a __task
  */
 
 double
@@ -710,7 +714,9 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
 	create_arc( make_layer_mask( m ), TO_TRANS, this->gdX[m], d_place );
 	create_arc( make_layer_mask( m ), TO_PLACE, this->gdX[m], this->TX[m] );
 #if defined(BUG_393)
-	create_arc( make_layer_mask( MEASUREMENT_LAYER ), TO_PLACE, this->gdX[m], T_place );	/* Instrumentation */
+	if ( T_place != nullptr ) {
+	    create_arc( make_layer_mask( MEASUREMENT_LAYER ), TO_PLACE, this->gdX[m], T_place );	/* Instrumentation */
+	}
 #endif
 #if defined(BUG_163)
 	this->SyX[m] = create_place( temp_x+1.0, Y_OFFSET(0.0), make_layer_mask( m ), 0, "SYNC%s%d" , this->name(), m );
@@ -720,7 +726,9 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
 	this->gdX[m] = d_trans;
 	create_arc( make_layer_mask( m ), TO_PLACE, d_trans, this->TX[m] );
 #if defined(BUG_393)
-	create_arc( make_layer_mask( MEASUREMENT_LAYER ), TO_PLACE, d_trans, T_place );
+	if ( T_place != nullptr ) {
+	    create_arc( make_layer_mask( MEASUREMENT_LAYER ), TO_PLACE, d_trans, T_place );
+	}
 #endif
 	d_place = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "Gd%s%d", this->name(), m ); 	/* We don't allow multiple copies */
 	this->GdX[m] = d_place;
@@ -735,7 +743,7 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
 
     ix_e = 0;
     for ( std::vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
-	if ( is_server() && (*e)->requests() == RENDEZVOUS_REQUEST ) {
+	if ( is_server() && (*e)->requests() == Requesting_Type::RENDEZVOUS ) {
 	    const LAYER layer_mask = ENTRY_LAYER((*e)->entry_id())|(m == 0 ? PRIMARY_LAYER : 0);
 
 	    x_pos = base_x_pos + ix_e * 0.5;
@@ -773,7 +781,7 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
 
     
 /*
- * Create an entry mask for this task.
+ * Create an entry mask for this task
  */
 
 LAYER
@@ -904,7 +912,7 @@ Task::get_throughput( const Entry * d, const Phase * phase_d, unsigned m  )
         throughput = phase_d->doneX[m]->f_time;		/* Access directly */
     } else {
 	unsigned p_d = d->n_phases();
-	for ( vector<Entry *>::const_iterator e = ::entry.begin(); e != ::entry.end(); ++e ) {
+	for ( vector<Entry *>::const_iterator e = ::__entry.begin(); e != ::__entry.end(); ++e ) {
 	    unsigned max_m = n_customers();
 	    unsigned p_e;
 			

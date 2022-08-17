@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 15769 2022-07-27 15:22:43Z greg $
+ *  $Id: dom_object.cpp 15845 2022-08-17 16:00:07Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -89,7 +89,7 @@ namespace LQIO {
 	    { LQIO::ERR_REFERENCE_TASK_IS_INFINITE,	{ LQIO::error_severity::ERROR,    "must have a finite number of copies" } },
 	    { LQIO::ERR_REFERENCE_TASK_IS_RECEIVER,	{ LQIO::error_severity::ERROR,    "entry \"%s\" receives requests" } },
 	    { LQIO::ERR_REFERENCE_TASK_OPEN_ARRIVALS,	{ LQIO::error_severity::ERROR,    "entry \"%s\" cannot have open arrivals" } },
-	    { LQIO::ERR_REFERENCE_TASK_REPLIES,		{ LQIO::error_severity::ERROR,    "replies to entry \"%s\" from activity \"%s\"" } },
+	    { LQIO::ERR_REFERENCE_TASK_REPLIES,		{ LQIO::error_severity::ERROR,    "replies to entry \"%s\"" } },
 	    { LQIO::ERR_REPLY_NOT_GENERATED,		{ LQIO::error_severity::ERROR,    "must reply; the reply is not specified in the activity graph" } },
 	    { LQIO::ERR_TASK_ENTRY_COUNT, 		{ LQIO::error_severity::ERROR, 	  "has %d entries defined, exactly %d are required" } },
 	    { LQIO::ERR_TASK_HAS_NO_ENTRIES,	 	{ LQIO::error_severity::ERROR, 	  "has no entries" } },

@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15755 2022-07-24 10:34:56Z greg $
+# $Id: Makefile 15844 2022-08-17 13:48:59Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	err_activity_not_reachable.lqn \
@@ -58,6 +58,7 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_reference_task_replies.lqn \
 	err_replication.lqn \
 	err_replication_processor.lqn \
+	err_reply_not_generated.lqn \
 	err_src_equals_dst.lqn \
 	err_src_equals_dst.lqnx \
 	err_task_has_no_entries.lqnx \

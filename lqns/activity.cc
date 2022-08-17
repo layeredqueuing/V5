@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 15734 2022-06-30 02:19:44Z greg $
+ * $Id: activity.cc 15845 2022-08-17 16:00:07Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1183,17 +1183,17 @@ Activity::add_reply_list ()
 
     /* Walk over the list and do the equivalent of calling act_add_reply n times */
     for ( std::vector<LQIO::DOM::Entry*>::const_iterator domEntry = domReplyList.begin(); domEntry != domReplyList.end(); ++domEntry) {
-	Entry* myEntry = Entry::find((*domEntry)->getName());
+	Entry* entry = Entry::find((*domEntry)->getName());
 
 	/* Check it out and add it to the list */
-	if (myEntry == nullptr) {
+	if (entry == nullptr) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, (*domEntry)->getName().c_str() );
 	} else if ( owner()->isReferenceTask() ) {
-	    getDOM()->input_error( LQIO::ERR_REFERENCE_TASK_REPLIES, (*domEntry)->getName().c_str(), name().c_str() );
-	} else if (myEntry->owner() != owner()) {
+	    getDOM()->input_error( LQIO::ERR_REFERENCE_TASK_REPLIES, (*domEntry)->getName().c_str() );
+	} else if (entry->owner() != owner()) {
 	    getDOM()->input_error( LQIO::ERR_WRONG_TASK_FOR_ENTRY, owner()->name().c_str() );
 	} else {
-	    _replyList.insert(myEntry);
+	    _replyList.insert(entry);
 	}
     }
     return *this;

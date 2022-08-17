@@ -34,7 +34,7 @@ const char * Place::name() const
     return _dom->getName().c_str();
 }
 
-scheduling_type Place::scheduling() const 
+scheduling_type Place::get_scheduling() const 
 { 
     return _dom->getSchedulingType(); 
 }
@@ -48,7 +48,7 @@ scheduling_type Place::scheduling() const
 bool
 Place::scheduling_is_ok( const unsigned bits ) const
 {
-    return bit_test( static_cast<unsigned>(scheduling()), bits );
+    return bit_test( static_cast<unsigned>(get_scheduling()), bits );
 }
 
 
@@ -59,7 +59,7 @@ Place::scheduling_is_ok( const unsigned bits ) const
 
 unsigned int Place::multiplicity() const
 {
-    if ( scheduling() == SCHEDULE_DELAY ) return 1;	/* Ignore for infinite servers. */
+    if ( get_scheduling() == SCHEDULE_DELAY ) return 1;	/* Ignore for infinite servers. */
 
     const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies(); 
     if ( copies == nullptr ) return 1;
@@ -80,11 +80,11 @@ unsigned int Place::multiplicity() const
 
 bool Place::is_infinite() const
 {
-    if ( scheduling() == SCHEDULE_DELAY ) {
+    if ( get_scheduling() == SCHEDULE_DELAY ) {
 	return true;
     } else {
+	double value = 0.0;
 	const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies(); 
-	double value;
 	return  copies && (copies->wasSet() && copies->getValue(value) == true && isinf( value ));
     }
 }
@@ -92,5 +92,5 @@ bool Place::is_infinite() const
 
 bool Place::has_random_queueing() const
 {
-    return scheduling() == SCHEDULE_RAND;
+    return get_scheduling() == SCHEDULE_RAND;
 }

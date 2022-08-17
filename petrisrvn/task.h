@@ -192,6 +192,6 @@ private:
     const Entry * _dst;
 };
 
-extern std::vector<Task *> task;
+extern std::vector<Task *> __task;
 
 #endif

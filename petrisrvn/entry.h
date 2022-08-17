@@ -26,16 +26,12 @@ class Activity;
 struct place_object;
 struct trans_object;
 
-typedef enum {
+enum class Requesting_Type {
     NOT_CALLED,
-    RENDEZVOUS_REQUEST,
-    SEND_NO_REPLY_REQUEST,
-    FORWARD_REQUEST
-} requesting_type;
-
-#define RENDEZVOUS_REQUEST_TYPE 	(1<<RENDEZVOUS_REQUEST)
-#define SEND_NO_REPLY_REQUEST_TYPE	(1<<SEND_NO_REPLY_REQUEST)
-#define FORWARD_REQUEST_TYPE		(1<<FORWARD_REQUEST)
+    RENDEZVOUS,
+    SEND_NO_REPLY,
+    FORWARD
+};
 
 struct Forwarding {
     Forwarding(const Phase * root, unsigned int slice, unsigned int m, double y ) 
@@ -69,7 +65,7 @@ public:
     LQIO::DOM::Entry::Semaphore semaphore_type() const { return get_dom()->getSemaphoreFlag(); }
     double openArrivalRate() const { return get_dom()->getOpenArrivalRateValue(); }
 
-    requesting_type requests() const { return _requests; }
+    Requesting_Type requests() const { return _requests; }
     unsigned int entry_id() const { return _entry_id; }
     unsigned int n_phases() const { return _n_phases; }
     Entry & set_n_phases( unsigned int n ) { if ( n > _n_phases ) _n_phases = n; return *this; }
@@ -85,7 +81,7 @@ public:
     bool is_regular_entry() const { return type() == LQIO::DOM::Entry::Type::STANDARD; }
     bool is_activity_entry() const { return type() == LQIO::DOM::Entry::Type::ACTIVITY; }
     bool test_and_set( LQIO::DOM::Entry::Entry::Type );			/* Sets _type too!		*/
-    bool test_and_set_recv( requesting_type );
+    bool test_and_set_recv( Requesting_Type );
 
     static Entry * find( const std::string& );
     static bool find( const std::string& from_entry_name, Entry *&from_entry, const std::string& to_entry_name, Entry *&to_entry );
@@ -123,7 +119,7 @@ private:
     const Task * _task;				/* Owning task.			*/
     Activity * _start_activity;
     const unsigned int _entry_id;		/* Only for layer number	*/
-    requesting_type _requests;
+    Requesting_Type _requests;
     bool _replies;				/* true if reply generated.	*/
     bool _random_queueing;			/* true if random queueing.	*/
     double _rel_prob;				/* Release prob at entry.	*/
@@ -148,5 +144,5 @@ private:
     const std::string& _s;
 };
 
-extern std::vector<Entry *> entry;
+extern std::vector<Entry *> __entry;
 #endif
