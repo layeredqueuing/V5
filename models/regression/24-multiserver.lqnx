@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!-- lqn2xml -o../regression-xml/24-multiserver.lqnx -->
+<lqn-model name="" description="lqn2xml 6.0 solution for model from: ." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simplified version of Eshop.  See Bug 759" conv_val="1e-05" it_limit="200" underrelax_coeff="0.9" print_int="1"/>
+   <processor name="p1" scheduling="fcfs" multiplicity="3">
+      <task name="t1" scheduling="ref" multiplicity="10">
+         <entry name="e1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e1_1" phase="1" host-demand-mean="5">
+                  <synch-call dest="e3" calls-mean="3"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t3" scheduling="ref" multiplicity="20">
+         <entry name="e6" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e6_1" phase="1" host-demand-mean="10">
+                  <synch-call dest="e4" calls-mean="5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="fcfs" multiplicity="5">
+      <task name="t2" scheduling="fcfs" multiplicity="20">
+         <entry name="e3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e3_1" phase="1" host-demand-mean="3"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="e4" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e4_1" phase="1" host-demand-mean="8"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15828 2022-08-15 12:45:53Z greg $
+# $Id: Makefile.am 15850 2022-08-18 21:08:43Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -120,26 +120,30 @@ other:	$(OTHER)
 	echo $(OTHER) | tr -s " " "\n" | srvndiff -Q -@- -S$(EPSILON) . ../../models/regression/petri-results
 
 09-sanity.lqxo:	09-sanity.lqnx
-	$(SRVN) $(OPTS) --random-queueing $<
+	$(SRVN) $(OPTS) --random-queueing --queue-limit=5 $<
 
 50-replication.lqxo:	50-replication.lqnx
 	rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	rm $*-flat.*
 
 52-replication.lqxo:	52-replication.lqnx
 	rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	rm $*-flat.*
 
 55-replication.lqxo:	55-replication.lqnx
 	rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	rm $*-flat.*
 
 56-replication.lqxo:	56-replication.lqnx
 	rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	rm $*-flat.*
 
 

@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15540 2022-04-17 13:26:30Z greg $
+# $Id: Makefile 15850 2022-08-18 21:08:43Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
@@ -31,7 +31,9 @@ DST =	$(SANITY) \
 	21-multiserver.lqxo \
 	22-multiserver.lqxo \
 	23-multiserver.lqxo \
+	24-multiserver.lqxo \
 	31-overtaking.lqxo \
+	32-async-inf.lqxo \
 	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \
@@ -101,35 +103,30 @@ diff:
 
 # ----
 
-50-replication-flat.lqnx:	50-replication.lqnx
-	rep2flat -Oxml $<
+50-replication.lqxo:	50-replication.lqnx
+	rep2flat -Oxml -o$*-flag.lqnx $<
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	rm $*-flat.lqnx $*-flat.lqxo
 
-50-replication.lqxo:	50-replication-flat.lqxo
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas 50-replication-flat.lqxo
+51-replication.lqxo:	51-replication.lqnx
+	rep2flat -Oxml -o$*-flag.lqnx $<
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	rm $*-flat.lqnx $*-flat.lqxo
 
-51-replication-flat.lqnx:	51-replication.lqnx
-	rep2flat -Oxml $<
+52-replication.lqxo:	52-replication.lqnx
+	rep2flat -Oxml -o$*-flag.lqnx $<
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	rm $*-flat.lqnx $*-flat.lqxo
 
-51-replication.lqxo:	51-replication-flat.lqxo
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas 51-replication-flat.lqxo
+55-replication.lqxo:	55-replication.lqnx
+	rep2flat -Oxml -o$*-flag.lqnx $<
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	rm $*-flat.lqnx $*-flat.lqxo
 
-52-replication-flat.lqnx:	52-replication.lqnx
-	rep2flat -Oxml $<
-
-52-replication.lqxo:	52-replication-flat.lqxo
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas 52-replication-flat.lqxo
-
-55-replication-flat.lqnx:	55-replication.lqnx
-	rep2flat -Oxml $<
-
-55-replication.lqxo:	55-replication-flat.lqxo
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas 55-replication-flat.lqxo
-
-56-replication-flat.lqnx:	56-replication.lqnx
-	rep2flat -Oxml $<
-
-56-replication.lqxo:	56-replication-flat.lqxo
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas 56-replication-flat.lqxo
+56-replication.lqxo:	56-replication.lqnx
+	rep2flat -Oxml -o$*-flag.lqnx $<
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	rm $*-flat.lqnx $*-flat.lqxo
 
 94-5101-a2-q2b1.lqxo: 	94-5101-a2-q2b1.lqnx
 	$(SRVN) -C1.0,10000 $(SEED) -xo $*.lqxo $<
