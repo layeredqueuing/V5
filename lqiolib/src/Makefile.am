@@ -1,4 +1,4 @@
-# $Id: Makefile.am 15722 2022-06-27 20:37:32Z greg $
+# $Id: Makefile.am 15856 2022-08-19 12:57:39Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 # This project uses Libtool to generate a product
@@ -31,6 +31,8 @@ liblqio_la_SOURCES = bcmp_bindings.cpp \
 	json_document.cpp \
 	labels.cpp \
 	qnap2_document.cpp \
+	qnap2_gram.y \
+	qnap2_scan.l \
 	srvn_gram.y \
 	srvn_input.cpp \
 	srvn_output.cpp \
@@ -71,9 +73,16 @@ srvn_result_scan.c: srvn_result_scan.l srvn_result_gram.h
 srvn_result_gram.c srvn_result_gram.h: srvn_result_gram.y
 	$(YACC) -dtv -p result -o srvn_result_gram.c srvn_result_gram.y
 
+qnap2_scan.c: qnap2_scan.l qnap2_gram.h
+	$(LEX) -t $(LFLAGS) -Pqnap2 qnap2_scan.l > qnap2_scan.c
+
+qnap2_gram.c: qnap2_gram.y 
+	$(YACC) -dtv -p qnap2 -o qnap2_gram.c qnap2_gram.y
+
+
 json_document.cpp: srvn_gram.h
 srvn_spex.cpp: srvn_gram.h
 srvn_input.cpp: srvn_gram.h
 
 # Files to remove during cleanup
-MOSTLYCLEANFILES = srvn_gram.h srvn_gram.c srvn_scan.c srvn_result_gram.h srvn_result_gram.c srvn_result_scan.c
+MOSTLYCLEANFILES = srvn_gram.h srvn_gram.c srvn_scan.c srvn_result_gram.h srvn_result_gram.c srvn_result_scan.c qnap2_scan.c

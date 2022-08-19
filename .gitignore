@@ -123,6 +123,10 @@ nets
 parasol/tests
 petrisrvn/petrisrvn
 qnsolver/qnsolver
+lqiolib/src/qnap2_gram.c
+lqiolib/src/qnap2_gram.h
+lqiolib/src/qnap2_scan.c
+lqiolib/src/qnap2_gram.output
 srvn_gram.c
 srvn_gram.h
 srvn_gram.output
