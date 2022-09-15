@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 15755 2022-07-24 10:34:56Z greg $
+ * $Id: errmsg.h 15863 2022-09-13 23:06:14Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -27,8 +27,7 @@
  */
 
 enum {
-    ERR_ARRIVAL_RATE=LQIO::LSTGBLERRMSG+1,
-    ERR_BOGUS_COPIES,
+    ERR_BOGUS_COPIES=LQIO::LSTGBLERRMSG+1,
     WRN_COEFFICIENT_OF_VARIATION,
     WRN_MULTI_PHASE_INFINITE_SERVER,
     WRN_NO_REQUESTS_MADE,

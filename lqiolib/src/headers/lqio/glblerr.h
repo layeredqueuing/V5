@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.h 15764 2022-07-25 22:11:18Z greg $
+ * $Id: glblerr.h 15863 2022-09-13 23:06:14Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -24,6 +24,7 @@ namespace LQIO {
     enum {
         FTL_INTERNAL_ERROR=1,
         FTL_NO_MEMORY,
+	ERR_ARRIVAL_RATE,
         ERR_ASYNC_REQUEST_TO_WAIT,
         ERR_BAD_PATH_TO_JOIN,
         ERR_CANT_OPEN_DIRECTORY,

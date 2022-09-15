@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15844 2022-08-17 13:48:59Z greg $
+# $Id: Makefile 15861 2022-09-13 21:10:54Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	err_activity_not_reachable.lqn \
@@ -65,6 +65,7 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_wrong_task_for_entry.lqn \
 	wrn_entry_has_no_requests.lqn \
 	wrn_infinite_multi_server.lqn \
+	wrn_infinite_multi_server.lqnx \
 	wrn_scheduling_not_supported.lqnx
 
 lqns:	

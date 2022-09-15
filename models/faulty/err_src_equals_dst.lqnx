@@ -26,13 +26,4 @@
          </entry>
       </task>
    </processor>
-   <processor name="p3" scheduling="fcfs">
-      <task name="t3" scheduling="fcfs">
-         <entry name="e3" type="PH1PH2">
-            <entry-phase-activities>
-               <activity name="e3_ph1" phase="1" host-demand-mean="1"/>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
 </lqn-model>

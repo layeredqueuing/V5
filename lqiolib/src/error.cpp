@@ -10,7 +10,7 @@
  * Error processing for srvn program.
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: error.cpp 15759 2022-07-25 02:02:34Z greg $
+ * $Id: error.cpp 15863 2022-09-13 23:06:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -41,6 +41,7 @@ const std::map<const LQIO::error_severity, const std::string> LQIO::severity_tab
 std::map<unsigned int, LQIO::error_message_type> LQIO::error_messages = {
     { LQIO::FTL_INTERNAL_ERROR,			{ LQIO::error_severity::FATAL,    "Internal error." } },
     { LQIO::FTL_NO_MEMORY,			{ LQIO::error_severity::FATAL,    "No more memory." } },
+    { LQIO::ERR_ARRIVAL_RATE,			{ LQIO::error_severity::ERROR,    "Arrival rate of %g exceeds service rate of %g at entry \"%s\"." } },
     { LQIO::ERR_CANT_OPEN_DIRECTORY,		{ LQIO::error_severity::ERROR,    "Cannot open directory \"%s\" -- %s." } },
     { LQIO::ERR_CANT_OPEN_FILE,			{ LQIO::error_severity::ERROR,    "Cannot open file \"%s\" -- %s." } },
     { LQIO::ERR_DUPLICATE_SYMBOL,		{ LQIO::error_severity::ERROR,    "%s \"%s\" previously defined." } },

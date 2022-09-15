@@ -808,7 +808,8 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
 	    /* Drop probabiltity */
 
 	    if ( call._dom->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY ) {
-		src->second._dp = drop_lambda( m, b, src_phase ) / tput;
+		const double drop_tput = drop_lambda( m, b, src_phase );
+		src->second._dp = drop_tput / (tput + drop_tput);
 	    }
 
 	} else  {

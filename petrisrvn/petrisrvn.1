@@ -205,12 +205,13 @@ arrival rate exceeds the service rate of a server.
 \fIArg\fP must be one of: 
 .RS
 .TP
-\fBfalse\fP
+\fBtrue\fP
 Stop if messages are lost.
 .TP
-\fBtrue\fP
+\fBfalse\fP
 Ignore queue overflows for open arrivals and send-no-reply requests.
-If a queue overflows, its waiting times is reported as infinite.
+Since queues in petrisrvn are bounded, results may differ from
+analytic solutions with no bounds.
 .LP
 The default is no.
 .RE

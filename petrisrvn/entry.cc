@@ -27,6 +27,7 @@
 #include "entry.h"
 #include "task.h"
 #include "phase.h"
+#include "pragma.h"
 #include "results.h"
 
 using namespace std;
@@ -180,23 +181,25 @@ Entry::add_call( const unsigned int p, LQIO::DOM::Call * call )
 }
 
 
-/* static */ void Entry::add_fwd_call( LQIO::DOM::Call * call ) 
+/* static */ void
+Entry::add_fwd_call( LQIO::DOM::Call * call ) 
 {
     /* Make sure this is one of the supported call types */
     if (call->getCallType() != LQIO::DOM::Call::Type::FORWARD) {
 	abort();
     }
 
-    /* Begin by extracting the from/to DOM entries from the call and their names */
-    const char* from_entry_name = call->getSourceObject()->getName().c_str();
-    const char* to_entry_name = call->getDestinationEntry()->getName().c_str();
-
     /* Internal Entry references */
     Entry * from_entry;
     Entry * to_entry;
 	
-    if ( Entry::find( from_entry_name, from_entry, to_entry_name, to_entry ) && to_entry->test_and_set_recv( Requesting_Type::RENDEZVOUS ) ) {
-	from_entry->_fwd[to_entry]._dom = call;		/* Save dom */
+    if ( Entry::find( call->getSourceObject()->getName(), from_entry, call->getDestinationEntry()->getName(), to_entry ) && to_entry->test_and_set_recv( Requesting_Type::RENDEZVOUS ) ) {
+	const Task * from_task = from_entry->task();
+	if ( from_task->type() == Task::Type::REF_TASK ) {
+	    from_task->get_dom()->runtime_error( LQIO::ERR_REFERENCE_TASK_FORWARDING, from_entry->name() );
+	} else {
+	    from_entry->_fwd[to_entry]._dom = call;		/* Save dom */
+	}
     }
 }
 
@@ -465,6 +468,10 @@ Entry::task_utilization ( unsigned p ) const
 bool
 Entry::check_open_result()
 {
+    if ( Pragma::__pragmas->stop_on_message_loss() ) {
+	LQIO::error_messages.at(ADV_MESSAGES_LOST).severity = LQIO::error_severity::ERROR;
+    }
+    
     Model::__open_class_error = false;
 #if defined(BUFFER_BY_ENTRY)
     if ( openArrivalRate() > 0.0 && fabs ( openArrivalRate() - throughput[1] ) / openArrivalRate() > 0.05 ) {
