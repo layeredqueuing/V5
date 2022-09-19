@@ -95,16 +95,14 @@ arrayref		: arrayref '[' expression ']'
 			;
 
 factor			: '(' expression ')'
-/*			| rvalue '(' ')'
-			| rvalue '(' expression_list ')' */
+			| identifier '(' ')'
+			| identifier '(' expression_list ')'
 			| variable
 			;
 
-/*
 expression_list		: expression
 			| expression_list ',' expression
 			;
-*/
 
 variable		: identifier
 			| QNAP_CONSTANT
@@ -124,7 +122,7 @@ station_statement	: QNAP_NAME '=' identifier
 			| QNAP_QUANTUM
 			| QNAP_RATE
 			| QNAP_SCHED
-			| QNAP_SERVICE
+			| QNAP_SERVICE '=' factor
 			| QNAP_TRANSIT
 			| QNAP_TYPE
 			;

@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15420 2022-02-01 22:24:21Z greg $
+# $Id: Makefile.am 15866 2022-09-15 20:27:55Z greg $
 #----------------------------------------------------------------------
 
 AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers -I../libmva/src/headers
@@ -25,10 +25,10 @@ distclean-local:
 		rm -f config.cache
 
 if HAVE_PS2PDF
+all-local:	qnsolver.pdf
+
 install-data-local:	qnsolver.pdf
 
 qnsolver.pdf:	$(man1_MANS)
 		groff -man $< | ps2pdf - $@
 endif
-
-

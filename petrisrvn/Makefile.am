@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15839 2022-08-16 13:39:53Z greg $
+# $Id: Makefile.am 15865 2022-09-15 19:28:53Z greg $
 #----------------------------------------------------------------------
 
 SUBDIRS=	wspnlib regression
@@ -43,6 +43,8 @@ petrisrvn_LDFLAGS   = @STATIC@
 man1_MANS	    = petrisrvn.1
 
 if HAVE_PS2PDF
+all-local:	petrisrvn.pdf
+
 install-data-local:	petrisrvn.pdf
 
 petrisrvn.pdf:	$(man1_MANS)

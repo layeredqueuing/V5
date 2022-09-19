@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------
-# $Id: Makefile.am 15480 2022-03-30 21:44:04Z greg $
+# $Id: Makefile.am 15865 2022-09-15 19:28:53Z greg $
 # ----------------------------------------------------------------------
 
 SUBDIRS		= 
@@ -48,6 +48,8 @@ install-data-hook:
 	done
 
 if HAVE_PS2PDF
+all-local: lqn2ps.pdf 
+
 install-data-local: lqn2ps.pdf 
 
 lqn2ps.pdf: $(man1_MANS)
