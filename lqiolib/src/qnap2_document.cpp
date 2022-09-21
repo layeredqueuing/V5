@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 15731 2022-06-29 18:22:10Z greg $
+ * $Id: qnap2_document.cpp 15878 2022-09-20 21:38:18Z greg $
  *
  * Read in XML input files.
  *
@@ -35,6 +35,8 @@
 
 namespace BCMP {
 
+    QNAP2_Document * QNAP2_Document::__document = nullptr;
+
     std::map<scheduling_type,std::string> QNAP2_Document::__scheduling_str = {
 	{ SCHEDULE_CUSTOMER,"infinite" },
 	{ SCHEDULE_DELAY,   "infinite" },
@@ -43,9 +45,20 @@ namespace BCMP {
 	{ SCHEDULE_PS, 	    "ps" }
     };
 
+    QNAP2_Document::QNAP2_Document( const std::string& input_file_name ) :
+	_input_file_name(input_file_name), _model()
+    {
+	__document = this;
+    }
+
     QNAP2_Document::QNAP2_Document( const std::string& input_file_name, const BCMP::Model& model ) :
 	_input_file_name(input_file_name), _model(model)
     {
+    }
+
+    QNAP2_Document::~QNAP2_Document()
+    {
+	__document = nullptr;
     }
 
     /*
@@ -947,3 +960,28 @@ namespace BCMP {
 	return output;
     }
 }
+
+void
+qnap_add_queue( void * queue_list )
+{
+    /* Add each item in queue_list to model._stations, but don't populate */
+    /* for each item in queue list; do ... */
+    
+    BCMP::QNAP2_Document::__document->declareStation( "" );
+}
+
+void *
+qnap_add_station()
+{
+    return new BCMP::Model::Station();
+}
+
+bool
+qnap_set_station_name( void * station, const char * name )
+{
+    /* Find the station in the station list (should have been done by qnap_add_queue) */
+    /* If not found, not declared, if found and x.second is not empty, then duplicate */
+       
+    return false;
+}
+

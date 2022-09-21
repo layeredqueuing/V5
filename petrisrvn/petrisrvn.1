@@ -49,30 +49,44 @@ when using this option.  Output can be directed to standard output by
 using \fB\-o\fI\-\fR (i.e., the output file name is `\fI\-\fR'.)
 .SH "OPTIONS"
 .TP 
-\fB\-d\fR
+\fB\-d\fR, \fB\-\-debug\fR
 Turn on debugging output.  Dump task and entry information showing
 internal index numbers.  This option is useful for determining the
 names of the servers and tasks since the parasol output routines do no
 emit this information at present.  Output is directed to stdout unless
 redirected using \fB\-m \fIfile\fR.
 .TP
-\fB\-j\fR
+\fB\-I\fP, \fB\-\-input-format\fR=\fIarg\fR
+This option is used to force the input file format to either \fIxml\fP or \fIlqn\fP.
+By default, if the suffix of the input filename is one of: \fI.in\fP, \fI.lqn\fP or \fI.xlqn\fP, 
+then the LQN parser will be used.  Otherwise, input is assumed to be XML.
+.TP
+\fB\-j\fR, \fB\-\-json\fR
 Output results in JSON format.
 .TP
-\fB\-k\fR
+\fB\-k\fR, \fB\-\-keep-net\fR
 Keep all results from the solution of the petrinet.
 .TP
-\fB\-n\fR
-Read input, but do not solve.  No output is generated.
+\fB\-m\fR, \fB\-\-monitor-file\fR=\fI<filename>\fR
+Save the output from the GreatSPN solver to \fIfilename\fP.  By
+default, this output is discarded.
+.TP
+\fB\-n\fR, \fB\-\-no-execute\fR
+Read the input, but do not solve.  No output is generated.
 .TP
 .TP
-\fB\-o\fR \fIfile\fR
-Direct analysis results to \fIoutput\fR.  A filename of `\fI\-\fR'
-directs output to standard output.
+\fB\-o\fP, \fB\-\-output\fR=\fIfilename\fR
+Direct analysis results to \fIfilename\fP.  A filename of `\fI-\fR'
+directs output to standard output.  If \fIoutput\fR is a directory,
+all output is saved in \fIoutput/input.out\fR. If the input model
+contains a SPEX program with loops, the SPEX output is sent to
+\fIoutput\fR; the individual model output files are found in the
+directory \fIoutput.d\fR. If \fBpetrisrvn\fP is invoked with this 
+option, only one input file can be specified.
 .TP
 \fB\-p\fR
 Generate parseable output suitable as input to other programs such as
-\fBsrvndiff\fR and \fBmultisrvn\fR. The parseable output is sent to an
+\fBsrvndiff(1)\fR and \fBlqn2ps(1)\fR. The parseable output is sent to an
 output file, one for each input file specified, determined from its
 corresponding input file by the addition of \fB.p\fR.  If standard
 input is used as the input source, then the parseable output is output
@@ -82,26 +96,32 @@ output is sent to a file whose name is derived from \fIoutput\fR by
 the addition of the suffix \fB.p\fR.  If a suffix already exists on
 \fIoutput\fR then that suffix is replaced.
 .TP
-\fB\-P\fI pragma[=value]\fR
+\fB\-P\fP, \fB\-\-pragma\fR=\fIvalue\fR
 Set \fIpragma\fP to value.  See the section on pragmas below.
 .TP
-\fB\-r\fR
+\fB\-r\fP, \fB\-\-rtf\fR
+Output results using Rich Text Format instead of plain text.  Processors, entries and tasks with high utilizations are coloured in red.
+.TP
+\fB\-R\fR, \fB\-\-reload-net\fR
 Reread a preexisting, solved model (generated using \fB\-k\fR).
 .TP
-\fB\-w\fR
-Ignore warnings.  The default is to print out all warnings.
+\fB\-t\fR, \fB\-\-trace-greatspn\fR
+Show output from the execution of the GreatSPN solver.
 .TP
-\fB\-v\fR
+\fB\-v\fR, \fB\-\-verbose\fR
 Display solution execution.  For \fBpetrisrvn\fP, the
 output of the various petrinet solution stages is shown.
 .TP
-\fB\-V\fR
+\fB\-V\fR, \fB\-\-version\fR
 Display version number.  
 .TP
-\fB\-x\fR
+\fB\-w\fR, \fB\-\-no-warnings\fR
+Ignore warnings.  The default is to print out all warnings.
+.TP
+\fB\-x\fR, \fB\-\-xml\fR
 Output results in XML format.
 .TP
-\fB\-\-disjoin\-customers\fR
+\fB\-\-disjoint\-customers\fR
 Create copies for reference tasks, rather that using a single task
 with multiple tokens. (increases state space)
 \fB\-\-no\-header\fR

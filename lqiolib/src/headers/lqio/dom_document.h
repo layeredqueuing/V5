@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 15813 2022-08-11 19:18:33Z greg $
+ *  $Id: dom_document.h 15875 2022-09-20 16:33:42Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -33,8 +33,8 @@ namespace LQIO {
 	class Document {
 
 	public:
-	    enum class OutputFormat { DEFAULT, LQN, XML, JSON, RTF, PARSEABLE };
-	    enum class InputFormat  { AUTOMATIC, LQN, XML, JSON, JMVA } ;
+	    enum class OutputFormat { DEFAULT, LQN, XML, JMVA, JSON, RTF, PARSEABLE, QNAP2 };
+	    enum class InputFormat  { AUTOMATIC, LQN, XML, JMVA, JSON, QNAP2 };
 
 	private:
 	    enum class cached { SET_FALSE, SET_TRUE, NOT_SET };
@@ -235,8 +235,9 @@ namespace LQIO {
 	    static const char * XSpexIterationLimit;
 	    static const char * XSpexUnderrelaxation;
 
-	    /* Output extensions */
+	    /* Input/Output extensions */
 	    static const std::map<const LQIO::DOM::Document::OutputFormat,const std::string> __output_extensions;
+	    static const std::map<const std::string,const LQIO::DOM::Document::InputFormat> __extensions_input;
 
 	private:
 	    /* Parameter Information */

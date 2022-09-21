@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 15836 2022-08-15 21:18:20Z greg $
+ * $Id: expat_document.cpp 15868 2022-09-20 08:57:33Z greg $
  *
  * Read in XML input files.
  *
@@ -1649,7 +1649,7 @@ namespace LQIO {
             Phase* phase = nullptr;
             const long p = XML::getLongAttribute(attributes,Xphase);
             if ( p < 1 || 3 < p ) {
-                throw std::domain_error( "phase" );
+                throw std::invalid_argument( "phase" );
             } else {
                 phase = dynamic_cast<Entry *>(entry)->getPhase(p);
                 if (!phase) internal_error( __FILE__, __LINE__, "missing phase." );

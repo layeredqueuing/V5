@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 15828 2022-08-15 12:45:53Z greg $
+ * $Id: petrisrvn.cc 15874 2022-09-20 14:51:09Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -90,14 +90,14 @@ static const struct option longopts[] =
 {
     { "debug",              no_argument,        0, 'd' },
     { "help",               no_argument,        0, 'H' },
-    { "input-format",	    required_argument,  0, 'I' },
+    { "input-format",	    required_argument,  0, 'i' },
     { "json",		    no_argument,	0, 'j' },
     { "keep-net",           no_argument,        0, 'k' },
     { "monitor-file",       required_argument,  0, 'm' },
     { "no-execute",         no_argument,        0, 'n' },
     { "output",             required_argument,  0, 'o' },
     { "parseable",          no_argument,        0, 'p' },
-    { "pragma",             required_argument,  0, 'P' },
+    { "pragma",             required_argument,  0, 'p' },
     { "rtf",	            no_argument,        0, 'r' },
     { "reload-net",	    no_argument,	0, 'R' },
     { "trace-greatspn",     no_argument,        0, 't' },

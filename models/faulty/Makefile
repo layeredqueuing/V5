@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15861 2022-09-13 21:10:54Z greg $
+# $Id: Makefile 15867 2022-09-19 23:56:41Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	err_activity_not_reachable.lqn \
@@ -50,6 +50,8 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_open_and_closed_classes.lqn \
 	err_or_branch_probabilities-2.lqn \
 	err_or_branch_probabilities.lqn \
+	err_range_error.lqn \
+	err_range_error.lqnx \
 	err_ref_task_forwarding.lqn \
 	err_reference_task_is_infinite.lqn \
 	err_reference_task_is_receiver.lqn \

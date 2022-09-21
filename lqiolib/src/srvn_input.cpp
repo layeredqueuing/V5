@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 15745 2022-07-03 11:36:39Z greg $
+ *  $Id: srvn_input.cpp 15877 2022-09-20 20:47:38Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -971,7 +971,7 @@ srvn_find_task ( const char * taskName )
  * phases and what have you are not created unnecessarily.
  */
 
-void * srvn_int_constant( const int i )
+void * srvn_int_constant( const long i )
 {
     if ( i > 0 ) {
 	return new LQIO::DOM::ConstantExternalVariable( static_cast<double>(i) );
@@ -1205,6 +1205,10 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_fi
 	    srvn_start_token = SRVN_INPUT;
 	    errorCode = LQIO_parse();
 	}
+	catch ( const std::domain_error& e ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
+	    errorCode = 1;
+	}
 	catch ( const std::runtime_error& e ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
 	    errorCode = 1;
@@ -1269,6 +1273,3 @@ srvnwarning( const char * fmt, ... )
     LQIO::verrprintf( stderr, LQIO::error_severity::WARNING, LQIO::DOM::Document::__input_file_name.c_str(), LQIO_lineno, 0, fmt, args );
     va_end( args );
 }
-
-
-   

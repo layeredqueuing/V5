@@ -1,6 +1,6 @@
 .\" t -*- nroff -*-
-.TH lqns 1 "05 August 2022" "5.27"
-.\" $Id: lqns.1 15796 2022-08-08 20:04:28Z greg $
+.TH lqns 1 "20 September 2022" "5.27"
+.\" $Id: lqns.1 15874 2022-09-20 14:51:09Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -131,7 +131,8 @@ Set the under-relaxation factor to \fIarg\fP for the MOL (Rolia) multiserver app
 The default value is 0.5.
 .TP
 \fB\-n\fP, \fB\-\-no-execute\fR
-Build the model, but do not solve.The input is checked for validity but no output is generated.
+Build the model, but do not solve.
+The input is checked for validity but no output is generated.
 .TP
 \fB\-o\fP, \fB\-\-output\fR=\fIarg\fR
 Direct analysis results to \fIoutput\fP.  A filename of `\fI-\fR'
@@ -318,7 +319,9 @@ Re-run the LQX/SPEX program without re-solving models which were solved successf
 This option is useful for running a second pass with a new convergnece value and/or iteration limit.
 .TP
 \fB\-\-no-header\fR
-Do not output the variable name header on SPEX results.This option can be also be set by using \fBpragma\fP \fIspex-header\fP=\fIno\fP.This option has no effect if SPEX is not used.
+Do not output the variable name header on SPEX results.
+This option can be also be set by using \fBpragma\fP \fIspex-header\fP=\fIno\fP.
+This option has no effect if SPEX is not used.
 .TP
 \fB\-\-print-comment\fR
 Add the model comment as the first line of output when running with SPEX input.
@@ -335,7 +338,8 @@ The optional argument is a bit set of the submodels to output.  Submodel 1 is 0x
 submodel 2 is 0x2, submodel 3 is 0x4, etc.  By default all submodels are traced.
 .TP
 \fB\-\-debug-submodels\fR
-Print out submodels. <n> is a 64 bit number where the bit position is the submodel output.The output for each submodel consists of the number of customers for closed classes, closed class clients, 
+Print out submodels. <n> is a 64 bit number where the bit position is the submodel output.
+The output for each submodel consists of the number of customers for closed classes, closed class clients, 
 closed class servers, open class servers, and the calls from clients to servers in the submodel.
 Calls are shown from entries to entries, or from tasks to processors.
 Synchronous calls are shown using , 
@@ -602,6 +606,9 @@ All uni-processors are scheduled using processor sharing.
 The default is to use the processor scheduling specified in the model.
 
 .RE
+.TP
+\fBsave-marginal-probabilities\fR=\fIarg\fR
+This pragma is used to enable or disable saving the marginal queue probabilities for multiservers in the results.
 .TP
 \fBseverity-level\fR=\fIarg\fR
 This pragma is used to enable or disable warning messages.

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: xml_input.cpp 15687 2022-06-22 14:39:28Z greg $
+ * $Id: xml_input.cpp 15868 2022-09-20 08:57:33Z greg $
  *
  * Read in XML input files.
  *
@@ -19,6 +19,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <limits.h>
 #if HAVE_STRINGS_H
 #include <strings.h>
 #endif
@@ -38,7 +39,17 @@ namespace XML
     {
 	char * end_ptr = 0;
 	const double value = strtod( val, &end_ptr );
-	if ( value < 0 || ( end_ptr && *end_ptr != '\0' ) ) {
+	if ( errno == ERANGE || value < 0 || ( end_ptr && *end_ptr != '\0' ) ) {
+	    invalid_argument( attr, val );
+	}
+	return value;
+    }
+
+    long get_long( const char * attr, const char * val )
+    {
+	char * end_ptr = 0;
+	const double value = strtol( val, &end_ptr, 10 );
+	if ( errno == ERANGE || value < 0 || ( end_ptr && *end_ptr != '\0' ) ) {
 	    invalid_argument( attr, val );
 	}
 	return value;
@@ -92,12 +103,7 @@ namespace XML
     {
 	for ( ; *attributes; attributes += 2 ) {
 	    if ( strcasecmp( *attributes, attribute ) == 0 ) {
-		char * end_ptr = 0;
-		const double value = strtod( *(attributes+1), &end_ptr );
-		if ( value < 0. || std::rint(value) != value || ( end_ptr && *end_ptr != '\0' ) ) {
-		    invalid_argument( *attributes, *(attributes+1) );
-		}
-		return static_cast<long>(value);
+		return get_long( *attributes, *(attributes+1) );
 	    }
 	}
 	if ( default_value >= 0 ) {

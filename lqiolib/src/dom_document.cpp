@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 15731 2022-06-29 18:22:10Z greg $
+ *  $Id: dom_document.cpp 15875 2022-09-20 16:33:42Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -55,15 +55,36 @@ namespace LQIO {
 	const char * Document::XSpexUnderrelaxation = "spex_underrelax_coeff";
 
 	const std::map<const LQIO::DOM::Document::OutputFormat,const std::string> Document::__output_extensions = {
-	    { LQIO::DOM::Document::OutputFormat::XML, "lqxo" },
-	    { LQIO::DOM::Document::OutputFormat::JSON, "lqjo" },
-	    { LQIO::DOM::Document::OutputFormat::PARSEABLE, "p" }
+	    { OutputFormat::XML,	"lqxo" },
+	    { OutputFormat::JSON,	"lqjo" },
+	    { OutputFormat::PARSEABLE,	"p" },
+	    { OutputFormat::QNAP2,	"qnap" }
 	};
 	const std::map<const LQIO::DOM::Document::InputFormat,const LQIO::DOM::Document::OutputFormat> Document::__input_to_output_format = {
 	    { InputFormat::XML,		OutputFormat::XML },
 	    { InputFormat::JSON,	OutputFormat::JSON },
 	    { InputFormat::LQN,		OutputFormat::XML },
+	    { InputFormat::JMVA,	OutputFormat::JMVA },
+	    { InputFormat::QNAP2,	OutputFormat::QNAP2 }
 	};
+	const std::map<const std::string,const LQIO::DOM::Document::InputFormat> Document::__extensions_input = {
+	    { "in",			InputFormat::LQN },
+	    { "jmva",			InputFormat::JMVA },
+	    { "json",			InputFormat::JSON },
+	    { "lqj",			InputFormat::JSON },
+	    { "lqjo",			InputFormat::JSON },
+	    { "lqn",			InputFormat::LQN },
+	    { "lqnj",			InputFormat::JSON },
+	    { "lqnx",			InputFormat::XML },
+	    { "lqx",			InputFormat::XML },
+	    { "lqxo",			InputFormat::XML },
+	    { "qnap",			InputFormat::QNAP2 },
+	    { "spex",			InputFormat::LQN },
+	    { "txt",			InputFormat::LQN },
+	    { "xlqn",			InputFormat::LQN },
+	    { "xml",			InputFormat::XML }
+	};
+	
 
 
 	Document::Document( InputFormat format )
@@ -834,24 +855,25 @@ namespace LQIO {
 	    }
 	}
 
+	/*
+	 * Figure out the input file from the extension.  If in doubt, punt to XML.
+	 */
+	 
 	/* static */ Document::InputFormat
 	Document::getInputFormatFromFilename( const std::string& filename, const InputFormat default_format )
 	{
 	    const unsigned long pos = filename.find_last_of( '.' );
 	    if ( pos == std::string::npos ) {
 		return default_format;
+	    }
+	    
+	    std::string suffix = filename.substr( pos+1 );
+	    std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
+	    const std::map<const std::string,const LQIO::DOM::Document::InputFormat>::const_iterator ext = __extensions_input.find( suffix );
+	    if ( ext != __extensions_input.end() ) {
+		return ext->second;
 	    } else {
-		std::string suffix = filename.substr( pos+1 );
-		std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
-		if ( suffix == "in" || suffix == "lqn" || suffix == "xlqn" || suffix == "txt" || suffix == "spex" ) {
-		    return InputFormat::LQN;		/* Override */
-		} else if ( suffix == "json" || suffix == "lqnj" || suffix == "jlqn" || suffix == "lqjo" ) {
-		    return InputFormat::JSON;
-		} else if ( suffix == "jmva" ) {
-		    return InputFormat::JMVA;
-		} else {
-		    return InputFormat::XML;
-		}
+		return InputFormat::XML;
 	    }
 	}
 

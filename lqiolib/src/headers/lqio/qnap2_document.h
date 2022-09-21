@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: qnap2_document.h 15878 2022-09-20 21:38:18Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -7,6 +7,7 @@
 #ifndef __LQIO_QNAP2_DOCUMENT__
 #define __LQIO_QNAP2_DOCUMENT__
 
+#if defined(__cplusplus)
 #include <iostream>
 #include <map>
 #include <set>
@@ -14,6 +15,17 @@
 #include "bcmp_document.h"
 #include "srvn_spex.h"
 #include "xml_output.h"
+
+extern "C" {
+#else
+#include <stdbool.h>
+#endif
+    void * qnap_add_station();
+    void qnap_add_queue( void * );
+    bool qnap_set_station_name( void *, const char * );
+
+#if defined(__cplusplus)
+}
 
 namespace LQIO {
     namespace DOM {
@@ -26,18 +38,24 @@ namespace LQX {
 
 namespace BCMP {
     class QNAP2_Document {
+	friend void ::qnap_add_queue( void * );
+
     public:
-	QNAP2_Document( const std::string& input_file_name, const BCMP::Model& model );
-	virtual ~QNAP2_Document() {}
+	QNAP2_Document( const std::string& input_file_name );					/* For input */
+	QNAP2_Document( const std::string& input_file_name, const BCMP::Model& model );		/* For output */
+	virtual ~QNAP2_Document();
 
 	std::ostream& print( std::ostream& ) const;
 
-    private:
 	const Model::Model::Station::map_t& stations() const { return _model.stations(); }
 	const Model::Chain::map_t& chains() const { return _model.chains(); }
 	const Model& model() const { return _model; }
 	bool multiclass() const { return chains().size() > 1; }
 
+    private:
+	void declareStation( const std::string& ) {}
+	
+    private:
 	void printClassVariables( std::ostream& ) const;
 
 	static std::ostream& printKeyword( std::ostream&, const std::string& s1, const std::string& s2 );
@@ -200,7 +218,10 @@ namespace BCMP {
 	    const std::string& _name;
 	    const Model::Chain::map_t& _chains;
 	};
-
+
+    private:
+	static QNAP2_Document * __document;
+	
     private:
 	const std::string _input_file_name;
 	BCMP::Model _model;
@@ -210,4 +231,5 @@ namespace BCMP {
 
     inline std::ostream& operator<<( std::ostream& output, const QNAP2_Document& doc ) { return doc.print(output); }
 }
+#endif
 #endif

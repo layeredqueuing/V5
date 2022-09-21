@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 15819 2022-08-12 18:26:27Z greg $
+ * $Id: help.cc 15874 2022-09-20 14:51:09Z greg $
  */
 
 #include "lqns.h"
@@ -699,7 +699,7 @@ Help::flagDebugSRVN( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::flagDebugSubmodels( std::ostream& output, bool verbose ) const
 {
-    output << opt_help.at( "debug-submodels" )
+    output << opt_help.at( "debug-submodels" ) << std::endl
 	   << "The output for each submodel consists of the number of customers for closed classes, closed class clients, " << std::endl
 	   << "closed class servers, open class servers, and the calls from clients to servers in the submodel." << std::endl
 	   << "Calls are shown from entries to entries, or from tasks to processors." << std::endl
@@ -818,7 +818,7 @@ Help::flagMOLUnderrelaxation( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::flagNoExecute( std::ostream& output, bool verbose ) const
 {
-    output << opt_help.at( "no-execute" );
+    output << opt_help.at( "no-execute" ) << std::endl;
     if ( verbose ) {
 	output << "The input is checked for validity but no output is generated." << std::endl;
     }
@@ -829,10 +829,10 @@ Help::flagNoExecute( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::flagNoHeader( std::ostream& output, bool verbose ) const
 {
-    output << opt_help.at( "no-header" );
+    output << opt_help.at( "no-header" ) << std::endl;
     if ( verbose ) {
 	output << "This option can be also be set by using " << bold( *this, "pragma" )
-	       << " " << emph( *this, LQIO::DOM::Pragma::_spex_header_ ) << "=" << emph( *this, LQIO::DOM::Pragma::_no_ ) << ix( *this, "pragma!srvn-header" ) << "."
+	       << " " << emph( *this, LQIO::DOM::Pragma::_spex_header_ ) << "=" << emph( *this, LQIO::DOM::Pragma::_no_ ) << ix( *this, "pragma!srvn-header" ) << "." << std::endl
 	       << "This option has no effect if SPEX is not used." << std::endl;
     }
     return output;
@@ -2230,7 +2230,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 15819 2022-08-12 18:26:27Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 15874 2022-09-20 14:51:09Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2529,7 +2529,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 15819 2022-08-12 18:26:27Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 15874 2022-09-20 14:51:09Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

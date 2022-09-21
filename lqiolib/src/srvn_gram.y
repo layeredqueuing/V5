@@ -4,22 +4,23 @@
 
 %{
 #define YYDEBUG 1
+#include <ctype.h>
+#include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <math.h>
 #include <string.h>
 #include "input.h"
 #include "srvn_input.h"
 #include "srvn_spex.h"
 
 static char * make_name( int i );
-static void * curr_task = 0;
-static void * curr_proc = 0;
-static void * curr_group = 0;
-static void * curr_entry = 0;
-static void * dest_entry = 0;
-static void * curr_activity = 0;
+static void * curr_task = NULL;
+static void * curr_proc = NULL;
+static void * curr_group = NULL;
+static void * curr_entry = NULL;
+static void * dest_entry = NULL;
+static void * curr_activity = NULL;
 static bool constant_expression = true;
 extern int LQIO_lex();
 %}
@@ -36,7 +37,7 @@ extern int LQIO_lex();
 /*- spex */
 
 %union {
-    int anInt;
+    long anInt;
     double aFloat;
     void * aVariable;
     void * domObject;
@@ -54,7 +55,7 @@ extern int LQIO_lex();
 %type <schedulingFlag>	proc_sched_flag proc_sched_quantum task_sched_flag
 %type <entryList>	entry_list act_entry_list
 %type <activityList>	join_list fork_list and_join_list and_fork_list or_join_list or_fork_list loop_list
-%type <anInt>		cap_flag hist_bins 
+%type <anInt>		cap_flag hist_bins const_int
 %type <aFloat>		constant 
 %type <aParseTreeNode>  forall_expr ternary_expr assignment or_expr and_expr compare_expr expression term power prefix arrayref factor 
 %type <aParseTreeNode>  opt_report_info r_decl c_decl 
@@ -221,7 +222,7 @@ expression_list		: expression					{ $$ = spex_list( NULL, $1 ); }
 processor_info  	: 'P' np p_decl_list END_LIST
     			;
 
-np  			: INTEGER 		/*  total number of processors		*/
+np  			: const_int 		/*  total number of processors		*/
 			;
 
 p_decl_list		: p_decl
@@ -267,7 +268,7 @@ proc_flags		: 'i'		{ srvn_set_proc_multiplicity( curr_proc, srvn_real_constant( 
 
 /*+ spex */
 proc_obs		: KEY_UTILIZATION VARIABLE			{ spex_processor_observation( curr_proc, KEY_UTILIZATION, 0, $2, NULL ); }
-			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE	{ spex_processor_observation( curr_proc, KEY_UTILIZATION, $2, $3, $4 ); }
+			| KEY_UTILIZATION const_int VARIABLE VARIABLE	{ spex_processor_observation( curr_proc, KEY_UTILIZATION, $2, $3, $4 ); }
 			|
 			;
 
@@ -283,7 +284,7 @@ group_info		: 'U' ng g_decl_list END_LIST
 			|
     			;
 
-ng			: INTEGER 					/*  total number of groups		*/
+ng			: const_int 					/*  total number of groups		*/
 			;
 
 g_decl_list		: g_decl_list g_decl
@@ -312,7 +313,7 @@ cap_flag 		: 'c'		{ $$ = 1; }			/* with cap   */
 
 /*+ spex */
 group_obs		: KEY_UTILIZATION VARIABLE			{ spex_group_observation( curr_group, KEY_UTILIZATION, 0, $2, NULL ); }
-			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE	{ spex_group_observation( curr_group, KEY_UTILIZATION, $2, $3, $4 ); }
+			| KEY_UTILIZATION const_int VARIABLE VARIABLE	{ spex_group_observation( curr_group, KEY_UTILIZATION, $2, $3, $4 ); }
 			|
 			;
 
@@ -329,7 +330,7 @@ group_obs		: KEY_UTILIZATION VARIABLE			{ spex_group_observation( curr_group, KE
 task_info		: 'T' nt t_decl_list END_LIST
     			;
 
-nt			: INTEGER 		/*  total number of tasks		*/
+nt			: const_int 		/*  total number of tasks		*/
 			;
 
 t_decl_list		: t_decl_list t_decl
@@ -386,7 +387,7 @@ task_opts		: task_flags task_opts
 			;
 
 task_flags		: integer		{ srvn_set_task_priority( curr_task, $1 ) ; }		/*  task priority (optional)		*/
-			| 'T' INTEGER		{ srvn_set_task_tokens( curr_task, $2 ); }
+			| 'T' const_int		{ srvn_set_task_tokens( curr_task, $2 ); }
 			| 'g' group_id 		{ srvn_set_task_group( curr_task, $2 ); free( $2 ); }	/* Group				*/
 			| 'i'			{ srvn_set_task_multiplicity( curr_task, srvn_real_constant( srvn_get_infinity() ) ); }
 			| 'm' integer		{ srvn_set_task_multiplicity( curr_task, $2 ); }	/* task multiplicity (optional)		*/
@@ -402,11 +403,11 @@ task_obs		: task_obs_info task_obs
 
 /*													 obj,       key                        ph  cf, v1, v2 */
 task_obs_info		: KEY_THROUGHPUT VARIABLE				{ spex_task_observation( curr_task, KEY_THROUGHPUT,  	       0,  0,  $2, NULL  ); }
-			| KEY_THROUGHPUT INTEGER VARIABLE VARIABLE		{ spex_task_observation( curr_task, KEY_THROUGHPUT,  	       0,  $2, $3, $4 ); }			/* conf */
+			| KEY_THROUGHPUT const_int VARIABLE VARIABLE		{ spex_task_observation( curr_task, KEY_THROUGHPUT,  	       0,  $2, $3, $4 ); }			/* conf */
 			| KEY_UTILIZATION VARIABLE				{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       $1, 0,  $2, NULL  ); }
-			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE		{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       $1, $2, $3, $4 ); }			/* conf */
+			| KEY_UTILIZATION const_int VARIABLE VARIABLE		{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       $1, $2, $3, $4 ); }			/* conf */
 			| KEY_PROCESSOR_UTILIZATION VARIABLE			{ spex_task_observation( curr_task, KEY_PROCESSOR_UTILIZATION, 0,  0,  $2, NULL  ); }
-			| KEY_PROCESSOR_UTILIZATION INTEGER VARIABLE VARIABLE	{ spex_task_observation( curr_task, KEY_PROCESSOR_UTILIZATION, 0,  $2, $3, $4 ); }			/* conf */
+			| KEY_PROCESSOR_UTILIZATION const_int VARIABLE VARIABLE	{ spex_task_observation( curr_task, KEY_PROCESSOR_UTILIZATION, 0,  $2, $3, $4 ); }			/* conf */
 			;
 /*- spex */
 
@@ -422,7 +423,7 @@ task_obs_info		: KEY_THROUGHPUT VARIABLE				{ spex_task_observation( curr_task, 
 entry_info		: 'E' ne entry_decl_list END_LIST
     			;
 
-ne			:  INTEGER					/*  total number of entries		*/
+ne			:  const_int					/*  total number of entries		*/
 			;
 
 entry_decl_list		: entry_decl
@@ -468,9 +469,9 @@ coeff_of_variation  	: real END_LIST				{ srvn_store_coeff_of_variation( $<domOb
 			| real real real END_LIST		{ srvn_store_coeff_of_variation( $<domObject>0, 3, $1, $2, $3 ); }
 			;
 
-ph_type_flag  		: INTEGER END_LIST			{ srvn_set_phase_type_flag( $<domObject>0, 1, $1 ); }		/*  phase type: stoch. or determ.  	*/
-			| INTEGER INTEGER END_LIST		{ srvn_set_phase_type_flag( $<domObject>0, 2, $1, $2 ); }
-			| INTEGER INTEGER INTEGER END_LIST	{ srvn_set_phase_type_flag( $<domObject>0, 3, $1, $2, $3 ); }
+ph_type_flag  		: const_int END_LIST			{ srvn_set_phase_type_flag( $<domObject>0, 1, $1 ); }		/*  phase type: stoch. or determ.  	*/
+			| const_int const_int END_LIST		{ srvn_set_phase_type_flag( $<domObject>0, 2, $1, $2 ); }
+			| const_int const_int const_int END_LIST { srvn_set_phase_type_flag( $<domObject>0, 3, $1, $2, $3 ); }
 			;
 
 max_ph_serv_time 	: constant END_LIST			/*  mean phase service time  		*/
@@ -490,13 +491,13 @@ max_ph_serv_time 	: constant END_LIST			/*  mean phase service time  		*/
 				}
 			;
 
-histogram		: INTEGER constant ':' constant hist_bins
+histogram		: const_int constant ':' constant hist_bins
 				{
 				    srvn_set_histogram( $<domObject>0, $1, $2, $4, $5 );
 				}
 			;
 
-priority		: INTEGER				{ srvn_store_entry_priority( $<domObject>0, $1 ); }
+priority		: const_int				{ srvn_store_entry_priority( $<domObject>0, $1 ); }
 			;
 
 ph_serv_time  		: real END_LIST				{ srvn_store_phase_service_time( $<domObject>0, 1, $1 ); }		/*  mean phase service time  		*/
@@ -522,7 +523,7 @@ ph_think_time  		: real END_LIST				{ srvn_store_phase_think_time( $<domObject>0
 p_forward		: real END_LIST				{ srvn_store_prob_forward_data( $<domObject>-1, $<domObject>0, $1 ); }	/* Probability of forwarding.		*/
 			;
 
-hist_bins		: INTEGER	{ $$ = $1; }
+hist_bins		: const_int	{ $$ = $1; }
 			|		{ $$ = 20; }		/* Default is 20 bins */
 			;
 
@@ -534,20 +535,20 @@ entry_obs		: entry_obs_info entry_obs
 
 										/* Note $1 will be the phase as an integer 1, 2, or 3, if present, otherwise 0 */
 entry_obs_info		: KEY_THROUGHPUT VARIABLE				{ spex_entry_observation( curr_entry, KEY_THROUGHPUT, $1, 0, $2, NULL ); }
-			| KEY_THROUGHPUT INTEGER VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_THROUGHPUT, $1, $2, $3, $4 ); }
+			| KEY_THROUGHPUT const_int VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_THROUGHPUT, $1, $2, $3, $4 ); }
 			| KEY_THROUGHPUT_BOUND VARIABLE				{ spex_entry_observation( curr_entry, KEY_THROUGHPUT_BOUND, $1,  0,  $2, NULL  ); }
 			| KEY_UTILIZATION VARIABLE				{ spex_entry_observation( curr_entry, KEY_UTILIZATION, $1, 0, $2, NULL ); }
-			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_UTILIZATION, $1, $2, $3, $4 ); }
+			| KEY_UTILIZATION const_int VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_UTILIZATION, $1, $2, $3, $4 ); }
 			| KEY_PROCESSOR_UTILIZATION VARIABLE			{ spex_entry_observation( curr_entry, KEY_PROCESSOR_UTILIZATION, $1, 0, $2, NULL ); }
-			| KEY_PROCESSOR_UTILIZATION INTEGER VARIABLE VARIABLE	{ spex_entry_observation( curr_entry, KEY_PROCESSOR_UTILIZATION, $1, $2, $3, $4 ); }
+			| KEY_PROCESSOR_UTILIZATION const_int VARIABLE VARIABLE	{ spex_entry_observation( curr_entry, KEY_PROCESSOR_UTILIZATION, $1, $2, $3, $4 ); }
 			| KEY_PROCESSOR_WAITING VARIABLE			{ spex_entry_observation( curr_entry, KEY_PROCESSOR_WAITING, $1, 0, $2, NULL ); }
-			| KEY_PROCESSOR_WAITING INTEGER VARIABLE VARIABLE	{ spex_entry_observation( curr_entry, KEY_PROCESSOR_WAITING, $1, $2, $3, $4 ); }
+			| KEY_PROCESSOR_WAITING const_int VARIABLE VARIABLE	{ spex_entry_observation( curr_entry, KEY_PROCESSOR_WAITING, $1, $2, $3, $4 ); }
 			| KEY_SERVICE_TIME VARIABLE				{ spex_entry_observation( curr_entry, KEY_SERVICE_TIME, $1, 0, $2, NULL ); }
-			| KEY_SERVICE_TIME INTEGER VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_SERVICE_TIME, $1, $2, $3, $4 ); }
+			| KEY_SERVICE_TIME const_int VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_SERVICE_TIME, $1, $2, $3, $4 ); }
 			| KEY_VARIANCE VARIABLE					{ spex_entry_observation( curr_entry, KEY_VARIANCE, $1, 0, $2, NULL ); }
-			| KEY_VARIANCE INTEGER VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_VARIANCE, $1, $2, $3, $4 ); }
+			| KEY_VARIANCE const_int VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_VARIANCE, $1, $2, $3, $4 ); }
 			| KEY_WAITING VARIABLE					{ spex_entry_observation( curr_entry, KEY_WAITING, $1, 0, $2, NULL ); }
-			| KEY_WAITING INTEGER VARIABLE VARIABLE			{ spex_entry_observation( curr_entry, KEY_WAITING, $1, $2, $3, $4 ); }
+			| KEY_WAITING const_int VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_WAITING, $1, $2, $3, $4 ); }
 			| KEY_EXCEEDED_TIME VARIABLE				{ spex_entry_observation( curr_entry, KEY_EXCEEDED_TIME, $1, 0, $2, NULL ); }
 			;
 
@@ -556,9 +557,9 @@ call_obs		: call_obs_info call_obs
 			;
 
 call_obs_info		: KEY_WAITING VARIABLE					{ spex_call_observation( curr_entry, KEY_WAITING, $1, dest_entry, 0, $2, NULL ); }
-			| KEY_WAITING INTEGER VARIABLE VARIABLE			{ spex_call_observation( curr_entry, KEY_WAITING, $1, dest_entry, $2, $3, $4 ); }
+			| KEY_WAITING const_int VARIABLE VARIABLE		{ spex_call_observation( curr_entry, KEY_WAITING, $1, dest_entry, $2, $3, $4 ); }
 			| KEY_WAITING_VARIANCE VARIABLE				{ spex_call_observation( curr_entry, KEY_WAITING_VARIANCE, $1, dest_entry, 0, $2, NULL ); }
-			| KEY_WAITING_VARIANCE INTEGER VARIABLE VARIABLE	{ spex_call_observation( curr_entry, KEY_WAITING_VARIANCE, $1, dest_entry, $2, $3, $4 ); }
+			| KEY_WAITING_VARIANCE const_int VARIABLE VARIABLE	{ spex_call_observation( curr_entry, KEY_WAITING_VARIANCE, $1, dest_entry, $2, $3, $4 ); }
 			;
 
 fwd_obs			: fwd_obs_info fwd_obs
@@ -566,9 +567,9 @@ fwd_obs			: fwd_obs_info fwd_obs
 			;
 
 fwd_obs_info		: KEY_WAITING VARIABLE					{ spex_fwd_observation( curr_entry, KEY_WAITING, $1, dest_entry, 0, $2, NULL ); }
-			| KEY_WAITING INTEGER VARIABLE VARIABLE			{ spex_fwd_observation( curr_entry, KEY_WAITING, $1, dest_entry, $2, $3, $4 ); }
+			| KEY_WAITING const_int VARIABLE VARIABLE		{ spex_fwd_observation( curr_entry, KEY_WAITING, $1, dest_entry, $2, $3, $4 ); }
 			| KEY_WAITING_VARIANCE VARIABLE				{ spex_fwd_observation( curr_entry, KEY_WAITING_VARIANCE, $1, dest_entry, 0, $2, NULL ); }
-			| KEY_WAITING_VARIANCE INTEGER VARIABLE VARIABLE	{ spex_fwd_observation( curr_entry, KEY_WAITING_VARIANCE, $1, dest_entry, $2, $3, $4 ); }
+			| KEY_WAITING_VARIANCE const_int VARIABLE VARIABLE	{ spex_fwd_observation( curr_entry, KEY_WAITING_VARIANCE, $1, dest_entry, $2, $3, $4 ); }
 			;
 /*- spex */
 /* ----------------------- activity information ----------------------- */
@@ -590,15 +591,15 @@ activity_defn_list	: activity_defn
 			| activity_defn_list activity_defn
 			;
 
-activity_defn		: 's' activity_def real activity_obs		{ srvn_store_activity_service_time( $2, $3 ); }
-			| 'c' activity_def real activity_obs		{ srvn_store_activity_coeff_of_variation( $2, $3 );  }
-			| 'f' activity_def INTEGER			{ srvn_set_activity_phase_type_flag( $2, $3 ); }
+activity_defn		: 's' activity_def real activity_obs			{ srvn_store_activity_service_time( $2, $3 ); }
+			| 'c' activity_def real activity_obs			{ srvn_store_activity_coeff_of_variation( $2, $3 );  }
+			| 'f' activity_def const_int				{ srvn_set_activity_phase_type_flag( $2, $3 ); }
 			| 'H' activity_def constant ':' constant hist_bins 	{ srvn_set_activity_histogram( $2, $3, $5, $6 ); }
-			| 'M' activity_def constant			{ srvn_set_activity_histogram( $2, $3, $3, 0 );  }
+			| 'M' activity_def constant				{ srvn_set_activity_histogram( $2, $3, $3, 0 );  }
 			/* srvn_store_rvn_data creates the call, so observe variables have to be afterwards */
-			| 'y' activity_def dest_ref real		{ srvn_set_activity_call_name( curr_task, $2, $3, srvn_store_activity_rnv_data( $2, $3, $4 ) ); } act_call_obs
-			| 'z' activity_def dest_ref real		{ srvn_set_activity_call_name( curr_task, $2, $3, srvn_store_activity_snr_data( $2, $3, $4 ) ); } act_call_obs
-			| 'Z' activity_def real	activity_obs		{ srvn_store_activity_think_time( $2, $3 ); }
+			| 'y' activity_def dest_ref real			{ srvn_set_activity_call_name( curr_task, $2, $3, srvn_store_activity_rnv_data( $2, $3, $4 ) ); } act_call_obs
+			| 'z' activity_def dest_ref real			{ srvn_set_activity_call_name( curr_task, $2, $3, srvn_store_activity_snr_data( $2, $3, $4 ) ); } act_call_obs
+			| 'Z' activity_def real	activity_obs			{ srvn_store_activity_think_time( $2, $3 ); }
 			;
 
 /* Node connection */
@@ -676,17 +677,17 @@ activity_obs		: activity_obs_info activity_obs
 			;
 
 activity_obs_info	: KEY_THROUGHPUT VARIABLE				{ spex_activity_observation( curr_task, curr_activity, KEY_THROUGHPUT, 0, $2, NULL ); }
-			| KEY_THROUGHPUT INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_THROUGHPUT, $2, $3, $4 ); }
+			| KEY_THROUGHPUT const_int VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_THROUGHPUT, $2, $3, $4 ); }
 			| KEY_UTILIZATION VARIABLE	  			{ spex_activity_observation( curr_task, curr_activity, KEY_UTILIZATION, 0, $2, NULL ); }
-			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_UTILIZATION, $2, $3, $4 ); }
+			| KEY_UTILIZATION const_int VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_UTILIZATION, $2, $3, $4 ); }
 			| KEY_PROCESSOR_UTILIZATION VARIABLE			{ spex_activity_observation( curr_task, curr_activity, KEY_PROCESSOR_UTILIZATION, 0, $2, NULL ); }
-			| KEY_PROCESSOR_UTILIZATION INTEGER VARIABLE VARIABLE	{ spex_activity_observation( curr_task, curr_activity, KEY_PROCESSOR_UTILIZATION, $2, $3, $4 ); }
+			| KEY_PROCESSOR_UTILIZATION const_int VARIABLE VARIABLE	{ spex_activity_observation( curr_task, curr_activity, KEY_PROCESSOR_UTILIZATION, $2, $3, $4 ); }
 			| KEY_PROCESSOR_WAITING VARIABLE    	     		{ spex_activity_observation( curr_task, curr_activity, KEY_PROCESSOR_WAITING, 0, $2, NULL ); }
-			| KEY_PROCESSOR_WAITING INTEGER VARIABLE VARIABLE	{ spex_activity_observation( curr_task, curr_activity, KEY_PROCESSOR_WAITING, $2, $3, $4 ); }
+			| KEY_PROCESSOR_WAITING const_int VARIABLE VARIABLE	{ spex_activity_observation( curr_task, curr_activity, KEY_PROCESSOR_WAITING, $2, $3, $4 ); }
 			| KEY_SERVICE_TIME VARIABLE		 		{ spex_activity_observation( curr_task, curr_activity, KEY_SERVICE_TIME, 0, $2, NULL ); }
-			| KEY_SERVICE_TIME INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_SERVICE_TIME, $2, $3, $4 ); }
+			| KEY_SERVICE_TIME const_int VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_SERVICE_TIME, $2, $3, $4 ); }
 			| KEY_VARIANCE VARIABLE		    			{ spex_activity_observation( curr_task, curr_activity, KEY_VARIANCE, 0, $2, NULL ); }
-			| KEY_VARIANCE INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_VARIANCE, $2, $3, $4 ); }
+			| KEY_VARIANCE const_int VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_VARIANCE, $2, $3, $4 ); }
 			| KEY_EXCEEDED_TIME VARIABLE		 		{ spex_activity_observation( curr_task, curr_activity, KEY_EXCEEDED_TIME, 0, $2, NULL ); }
 			;
 
@@ -695,15 +696,15 @@ act_call_obs		: act_call_obs_info act_call_obs
 			;
 			
 act_call_obs_info	: KEY_WAITING VARIABLE					{ spex_activity_call_observation( curr_task, curr_activity, KEY_WAITING, dest_entry, 0, $2, NULL ); }
-			| KEY_WAITING INTEGER VARIABLE VARIABLE			{ spex_activity_call_observation( curr_task, curr_activity, KEY_WAITING, dest_entry, $2, $3, $4 ); }
+			| KEY_WAITING const_int VARIABLE VARIABLE		{ spex_activity_call_observation( curr_task, curr_activity, KEY_WAITING, dest_entry, $2, $3, $4 ); }
 			| KEY_WAITING_VARIANCE VARIABLE				{ spex_activity_call_observation( curr_task, curr_activity, KEY_WAITING_VARIANCE, dest_entry, 0, $2, NULL ); }
-			| KEY_WAITING_VARIANCE INTEGER VARIABLE VARIABLE	{ spex_activity_call_observation( curr_task, curr_activity, KEY_WAITING_VARIANCE, dest_entry, $2, $3, $4 ); }
+			| KEY_WAITING_VARIANCE const_int VARIABLE VARIABLE	{ spex_activity_call_observation( curr_task, curr_activity, KEY_WAITING_VARIANCE, dest_entry, $2, $3, $4 ); }
 			;
 /*- spex */
 /* -------------------------- Report Section -------------------------- */
 /*+ spex */
-opt_report_info		: 'R' INTEGER r_decl_list  END_LIST	{ $$ = $3; }
-			| 'R' INTEGER rvalue '(' expression_list ')' END_LIST	{ $$ = spex_result_function( $3, $5 ); }
+opt_report_info		: 'R' const_int r_decl_list  END_LIST	{ $$ = $3; }
+			| 'R' const_int rvalue '(' expression_list ')' END_LIST	{ $$ = spex_result_function( $3, $5 ); }
 			|					{ $$ = NULL; }
 			;
 
@@ -719,7 +720,7 @@ r_decl			: VARIABLE '=' ternary_expr		{ $$ = spex_result_assignment_statement( $
 
 /* ------------------------ Convergence Section ----------------------- */
 /*+ spex */
-opt_convergence_info	: 'C' INTEGER c_decl_list END_LIST	{ $$ = $3; }
+opt_convergence_info	: 'C' const_int c_decl_list END_LIST	{ $$ = $3; }
 			|					{ $$ = NULL; }
 			;
 
@@ -736,6 +737,7 @@ c_decl			: VARIABLE '=' ternary_expr		{ $$ = spex_convergence_assignment_stateme
 real			: FLOAT					{ $$ = srvn_real_constant( $1 ); }
 			| INTEGER				{ $$ = srvn_int_constant( $1 ); }
 			| VARIABLE				{ $$ = srvn_variable( $1 ); }
+			| RANGE_ERR				{ LQIO_error( "invalid double: %s.", $1 ); free( $1 ); $$ = srvn_real_constant( srvn_get_infinity() ); }
 /*+ spex */
 			| '{' expression '}'			{ $$ = spex_inline_expression( $2 ); }	/* Need to assign to variable, then run deferred assignment */
 /*- spex */
@@ -744,17 +746,24 @@ real			: FLOAT					{ $$ = srvn_real_constant( $1 ); }
 constant		: FLOAT					{ $$ = $1; }
 			| INTEGER				{ $$ = (double)( $1 ); }
 			| CONST_INFINITY			{ $$ = srvn_get_infinity(); }
+			| RANGE_ERR				{ LQIO_error( "invalid double: %s.", $1 ); free( $1 ); $$ = srvn_get_infinity(); }
     			;
 
 integer			: INTEGER				{ $$ = srvn_int_constant( $1 ); }
 			| VARIABLE				{ $$ = srvn_variable( $1 ); }
+			| RANGE_ERR				{ LQIO_error( "invalid integer: %s.", $1 ); $$ = srvn_int_constant( LONG_MAX ); }
 /*+ spex */
 			| '{' expression '}'			{ $$ = spex_inline_expression( $2 ); }	/* Need to assign to variable, then run deferred assignment */
 /*- spex */
 			;
 
+const_int		: INTEGER				{ $$ = $1; }
+			| RANGE_ERR				{ LQIO_error( "invalid integer: %s.", $1 ); $$ = LONG_MAX; }
+			;
+
 symbol			: SYMBOL				{ $$ = $1; }
     			| INTEGER				{ $$ = make_name( $1 ); }
+			| RANGE_ERR				{ LQIO_error( $1 ); $$ = make_name( 0 ); }
 			;
 
 /*+ spex */
@@ -771,9 +780,10 @@ rvalue			: SYMBOL				{ $$ = $1; }
 static char *
 make_name( int i )
 {
-    char * buf = (char *)malloc( 10 );
+    char * buf = (char *)malloc( 32 );
     if ( buf ) {
-	if ( snprintf( buf, 10, "%d", i ) >= 10 ) {
+	if ( snprintf( buf, 32, "%d", i ) >= 32 ) {
+	    abort();
 	}
     }
     return buf;
