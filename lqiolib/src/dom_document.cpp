@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 15875 2022-09-20 16:33:42Z greg $
+ *  $Id: dom_document.cpp 15882 2022-09-21 13:01:03Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -79,6 +79,7 @@ namespace LQIO {
 	    { "lqx",			InputFormat::XML },
 	    { "lqxo",			InputFormat::XML },
 	    { "qnap",			InputFormat::QNAP2 },
+	    { "qnap2",			InputFormat::QNAP2 },
 	    { "spex",			InputFormat::LQN },
 	    { "txt",			InputFormat::LQN },
 	    { "xlqn",			InputFormat::LQN },

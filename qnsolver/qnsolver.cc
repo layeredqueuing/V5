@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 15876 2022-09-20 20:02:15Z greg $
+ * $Id: qnsolver.cc 15883 2022-09-21 14:03:23Z greg $
  */
 
 #include "config.h"
@@ -22,6 +22,8 @@ static LQIO::DOM::Pragma pragmas;
 
 static void makeopts( const struct option * longopts, std::string& opts );
 static void usage() ;
+
+extern "C" int qnap2debug;
 
 #if HAVE_GETOPT_LONG
 const struct option longopts[] =
@@ -43,6 +45,7 @@ const struct option longopts[] =
     { "verbose",				no_argument,		0, 'v' },
     { "help",					no_argument,		0, 'h' },
     { "export-qnap2",				no_argument,		0, 'Q' },
+    { "debug-qnap2",				no_argument,		0, 'G' },
     { "debug-mva",				no_argument,		0, 'D' },
     { "debug-lqx",				no_argument,		0, 'L' },
     { "debug-xml",				no_argument,		0, 'X' },
@@ -52,7 +55,7 @@ const struct option longopts[] =
 
 static std::string opts;
 #else
-static std::string opts = "bdefhlo:rstvxQSX";
+static std::string opts = "bdefhlo:rstvxGDLQSX";
 #endif
 
 const static std::map<const std::string,const std::string> opthelp  = {
@@ -72,6 +75,7 @@ const static std::map<const std::string,const std::string> opthelp  = {
     { "verbose",				"" },
     { "help",					"Show this." },
     { "export-qnap2",				"Export a QNAP2 model.	Do not solve." },
+    { "debug-qnap2",				"Debug the QNAP2 input parser." },
     { "debug-lqx",				"Debug the LQX program." },
     { "debug-mva",				"Enable debug code in the MVA solver." },
     { "debug-xml",				"Debug XML input." },
@@ -151,6 +155,10 @@ int main (int argc, char *argv[])
 	    pragmas.insert(LQIO::DOM::Pragma::_force_multiserver_,LQIO::DOM::Pragma::_true_);
 	    break;
 
+	case 'G':
+	    qnap2debug = 1;
+	    break;
+	    
 	case 'h':
 	    usage();
 	    return 0;
@@ -268,31 +276,35 @@ static void exec( const std::string& input_file_name, const std::string& output_
     if ( verbose_flag ) std::cerr << input_file_name << ": load... ";
     if ( LQIO::DOM::Document::getInputFormatFromFilename( input_file_name, LQIO::DOM::Document::InputFormat::JMVA ) == LQIO::DOM::Document::InputFormat::QNAP2 ) {
 	BCMP::QNAP2_Document input( input_file_name );
-    }
-#if HAVE_EXPAT_H
-    BCMP::JMVA_Document input( input_file_name );
-    if ( input.load() ) {
-	if ( print_qnap2 ) {
-	    std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
-	} else {
-	    input.mergePragmas( pragmas.getList() );
-	    Pragma::set( input.getPragmaList() );		/* load pragmas here */
+	if ( input.load() ) {
+	}
 
-	    try {
-		if ( print_gnuplot ) input.plot( plot_type, plot_arg );
-	    }
-	    catch ( const std::invalid_argument& e ) {
-		std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
-	    }
-	    Model model( input, Pragma::solver(), output_file_name );
-	    if ( verbose_flag ) std::cerr << "construct... ";
-	    if ( model.construct() ) {
-		if ( verbose_flag ) std::cerr << "solve using " << solver_name.at(model.solver()) << "... ";
-		model.solve();
+    } else {
+#if HAVE_EXPAT_H
+	BCMP::JMVA_Document input( input_file_name );
+	if ( input.load() ) {
+	    if ( print_qnap2 ) {
+		std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
+	    } else {
+		input.mergePragmas( pragmas.getList() );
+		Pragma::set( input.getPragmaList() );		/* load pragmas here */
+
+		try {
+		    if ( print_gnuplot ) input.plot( plot_type, plot_arg );
+		}
+		catch ( const std::invalid_argument& e ) {
+		    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
+		}
+		Model model( input, Pragma::solver(), output_file_name );
+		if ( verbose_flag ) std::cerr << "construct... ";
+		if ( model.construct() ) {
+		    if ( verbose_flag ) std::cerr << "solve using " << solver_name.at(model.solver()) << "... ";
+		    model.solve();
+		}
 	    }
 	}
-    }
 #endif
+    }
     if ( verbose_flag ) std::cerr << "done" << std::endl;
 }
 

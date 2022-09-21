@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_scan.l 14480 2021-02-23 02:07:21Z greg $
+ * $Id: srvn_scan.l 15880 2022-09-21 12:52:01Z greg $
  */
 %option noyywrap yylineno
 
@@ -21,18 +21,18 @@
 #include "srvn_input.h"
 #include "srvn_gram.h"
 
-extern YYSTYPE LQIO_lval;
+extern YYSTYPE srvnlval;
 
 #if	defined(__cplusplus)
-#define	INPUT	LQIO_input
+#define	INPUT	srvninput
 #else
 #define	INPUT	input
 #endif
 
-unsigned LQIO_linenno = 1;
-int srvn_start_token = 0;
+unsigned srvnlinenno = 1;
+int srvnstart_token = 0;
 
-extern char * dup_LQIO_text( char * str, int len );
+extern char * dup_srvntext( char * str, int len );
 static char * dup_comment( char * str, int len );
 static int get_result_phase( char );
 %}
@@ -50,9 +50,9 @@ P	[0123]?
 %%
 %{
     /* Special code to force starting state of parser. */
-    if ( srvn_start_token ) {
-	int t = srvn_start_token;
-	srvn_start_token = 0;
+    if ( srvnstart_token ) {
+	int t = srvnstart_token;
+	srvnstart_token = 0;
 	return t;
     }
 %}
@@ -60,20 +60,20 @@ P	[0123]?
 [ \t\r\n]+		;
 
 ^"#pragma"[ \t](.)*	{
-				srvn_pragma( &LQIO_text[0] );		/* Note... must copy string... */
+				srvn_pragma( &srvntext[0] );		/* Note... must copy string... */
 			}
 
 "#"(.)*                 ;
 
 \"[^"]*			{
-				if ( LQIO_text[LQIO_leng-1] == '\\' ) {
+				if ( srvntext[srvnleng-1] == '\\' ) {
 				    yymore();
 				} else {
 				    	char c = INPUT();
  					if ( c != '"' ) {
 						unput( c );
 					}
-					LQIO_lval.aString = dup_comment( &LQIO_text[1], LQIO_leng-1 );
+					srvnlval.aString = dup_comment( &srvntext[1], srvnleng-1 );
 					return(TEXT);
 				}
 			}
@@ -93,10 +93,10 @@ P	[0123]?
 "**"			return TOK_POWER;
 
 {D}+			{
-				LQIO_lval.anInt = strtoul( (const char *)&LQIO_text[0], 0, 10 );
+				srvnlval.anInt = strtoul( (const char *)&srvntext[0], 0, 10 );
 				if ( errno == ERANGE ) {
 				    errno = 0; /* Reset for next conversion */
-				    LQIO_lval.aString = dup_comment( &LQIO_text[0], LQIO_leng-1 );
+				    srvnlval.aString = dup_comment( &srvntext[0], srvnleng-1 );
 				    return RANGE_ERR;
 				} else {
 				    return INTEGER;
@@ -106,10 +106,10 @@ P	[0123]?
 {D}+"."{D}*({E})?	|
 {D}*"."{D}+({E})?	|
 {D}+{E}			{
-				LQIO_lval.aFloat = strtod( (const char *)&LQIO_text[0], 0 );
+				srvnlval.aFloat = strtod( (const char *)&srvntext[0], 0 );
 				if ( errno == ERANGE ) {
 				    errno = 0;	/* Reset for next conversion */
-				    LQIO_lval.aString = dup_comment( &LQIO_text[0], LQIO_leng-1 );
+				    srvnlval.aString = dup_comment( &srvntext[0], srvnleng-1 );
 				    return RANGE_ERR;
 				} else {
 				    return FLOAT;
@@ -117,30 +117,30 @@ P	[0123]?
 			}
 
 
-({C}|{U})({C}|{D}|{U})+	{ LQIO_lval.aString = dup_LQIO_text( &LQIO_text[0], LQIO_leng ); return SYMBOL; }
+({C}|{U})({C}|{D}|{U})+	{ srvnlval.aString = dup_srvntext( &srvntext[0], srvnleng ); return SYMBOL; }
 
-{V}solver.*		{ LQIO_lval.aString = dup_LQIO_text( &LQIO_text[0], LQIO_leng ); return SOLVER; }
-{V}({C}|{D}|{U})+	{ LQIO_lval.aString = dup_LQIO_text( &LQIO_text[0], LQIO_leng ); return VARIABLE; }
+{V}solver.*		{ srvnlval.aString = dup_srvntext( &srvntext[0], srvnleng ); return SOLVER; }
+{V}({C}|{D}|{U})+	{ srvnlval.aString = dup_srvntext( &srvntext[0], srvnleng ); return VARIABLE; }
 {X}infinity		{ return CONST_INFINITY; }
 
-{K}f			{ LQIO_lval.anInt = 0; return KEY_THROUGHPUT; }
-{K}fb			{ LQIO_lval.anInt = 0; return KEY_THROUGHPUT_BOUND; }
-{K}i			{ LQIO_lval.anInt = 0; return KEY_ITERATIONS; }
-{K}pu			{ LQIO_lval.anInt = 0; return KEY_PROCESSOR_UTILIZATION; }
-{K}pw{P}		{ LQIO_lval.anInt = get_result_phase( LQIO_text[3] ); return KEY_PROCESSOR_WAITING; }
-{K}s{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_SERVICE_TIME; }
-{K}sys			{ LQIO_lval.anInt = 0; return KEY_SYSTEM_TIME; }
-{K}time			{ LQIO_lval.anInt = 0; return KEY_ELAPSED_TIME; }
-{K}u{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_UTILIZATION; }
-{K}usr			{ LQIO_lval.anInt = 0; return KEY_USER_TIME; }
-{K}v{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_VARIANCE; }
-{K}wv{P}		{ LQIO_lval.anInt = get_result_phase( LQIO_text[3] ); return KEY_WAITING_VARIANCE; }
-{K}w{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_WAITING; }
-{K}x{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_EXCEEDED_TIME; }
+{K}f			{ srvnlval.anInt = 0; return KEY_THROUGHPUT; }
+{K}fb			{ srvnlval.anInt = 0; return KEY_THROUGHPUT_BOUND; }
+{K}i			{ srvnlval.anInt = 0; return KEY_ITERATIONS; }
+{K}pu			{ srvnlval.anInt = 0; return KEY_PROCESSOR_UTILIZATION; }
+{K}pw{P}		{ srvnlval.anInt = get_result_phase( srvntext[3] ); return KEY_PROCESSOR_WAITING; }
+{K}s{P}			{ srvnlval.anInt = get_result_phase( srvntext[2] ); return KEY_SERVICE_TIME; }
+{K}sys			{ srvnlval.anInt = 0; return KEY_SYSTEM_TIME; }
+{K}time			{ srvnlval.anInt = 0; return KEY_ELAPSED_TIME; }
+{K}u{P}			{ srvnlval.anInt = get_result_phase( srvntext[2] ); return KEY_UTILIZATION; }
+{K}usr			{ srvnlval.anInt = 0; return KEY_USER_TIME; }
+{K}v{P}			{ srvnlval.anInt = get_result_phase( srvntext[2] ); return KEY_VARIANCE; }
+{K}wv{P}		{ srvnlval.anInt = get_result_phase( srvntext[3] ); return KEY_WAITING_VARIANCE; }
+{K}w{P}			{ srvnlval.anInt = get_result_phase( srvntext[2] ); return KEY_WAITING; }
+{K}x{P}			{ srvnlval.anInt = get_result_phase( srvntext[2] ); return KEY_EXCEEDED_TIME; }
 
-({C}|{S})		return *LQIO_text;
+({C}|{S})		return *srvntext;
 
-.			{ LQIO_lval.aString = dup_LQIO_text( &LQIO_text[0], LQIO_leng ); return TEXT; }
+.			{ srvnlval.aString = dup_srvntext( &srvntext[0], srvnleng ); return TEXT; }
 
 %%
 /*
@@ -148,7 +148,7 @@ P	[0123]?
  */
 
 char *
-dup_LQIO_text( char * str, int len )
+dup_srvntext( char * str, int len )
 {
     char * p = (char *)malloc( (unsigned)len+1 );
 
@@ -198,14 +198,14 @@ get_result_phase( char c )
     return 0;
 }
 
-int LQIO_parse_string( int start_token, const char * s )
+int srvnparse_string( int start_token, const char * s )
 {
-    extern int LQIO_parse();
+    extern int srvnparse();
     
     int rc = 0;
-    srvn_start_token = start_token;
-    YY_BUFFER_STATE bp = LQIO__scan_string( s );
-    rc = LQIO_parse();
-    LQIO__delete_buffer( bp );
+    srvnstart_token = start_token;
+    YY_BUFFER_STATE bp = srvn_scan_string( s );
+    rc = srvnparse();
+    srvn_delete_buffer( bp );
     return rc;
 }

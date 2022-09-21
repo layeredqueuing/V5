@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 15845 2022-08-17 16:00:07Z greg $
+ *  $Id: dom_object.cpp 15880 2022-09-21 12:52:01Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -26,14 +26,14 @@ namespace LQIO {
 	}
 
 	DocumentObject::DocumentObject(const Document * document, const std::string& name ) 
-	    : _document(document), _sequenceNumber(__sequenceNumber), _line_number(LQIO_lineno), _name(name), _comment()
+	    : _document(document), _sequenceNumber(__sequenceNumber), _line_number(srvnlineno), _name(name), _comment()
 	{
 	    assert( document );
 	    __sequenceNumber += 1;
 	}
 
 	DocumentObject::DocumentObject(const DocumentObject& src ) 
-	    : _document(src._document), _sequenceNumber(__sequenceNumber), _line_number(LQIO_lineno), _name(), _comment()
+	    : _document(src._document), _sequenceNumber(__sequenceNumber), _line_number(srvnlineno), _name(), _comment()
 	{
 	    assert( _document );
 	    __sequenceNumber += 1;
@@ -152,10 +152,10 @@ namespace LQIO {
 	    } else {
 		object_name[0] = std::toupper( object_name[0] );
 	    }
-	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(LQIO_lineno)
+	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(srvnlineno)
 		+ ": " + severity_table.at(error.severity) 
 		+ ": " + object_name + " \"" + getName() + "\" " + error.message;
-	    if ( code == LQIO::ERR_DUPLICATE_SYMBOL && getLineNumber() != static_cast<size_t>(LQIO_lineno) ) {
+	    if ( code == LQIO::ERR_DUPLICATE_SYMBOL && getLineNumber() != static_cast<size_t>(srvnlineno) ) {
 		buf += std::string( " at line " ) + std::to_string(getLineNumber());
 	    }
 	    buf += std::string( ".\n" );

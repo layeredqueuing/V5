@@ -33,8 +33,7 @@ static bool station_found = false;
     void * aPointer;
 }
 
-%type <aPointer>	identifier_list
-
+%type <aPointer>	identifier identifier_list
 %%
 
 qnap2			: command_list QNAP_END
@@ -70,11 +69,11 @@ variable_type		: QNAP_INTEGER
 			| QNAP_STRING
 			;
 
-identifier_list		: identifier_list ',' identifier
-			| identifier
+identifier_list		: identifier				{ $$ = qnap2_append_identifier( NULL, $1 ); free( $1 ); }
+			| identifier_list ',' identifier	{ $$ = qnap2_append_identifier( $1, $3 ); free( $3 ); }
 			;
 
-identifier		: QNAP_IDENTIFIER
+identifier		: QNAP_IDENTIFIER			{ $$ = $1; }
 /*			| QNAP_IDENTIFIER '=' sublist */
 			;
 
@@ -140,7 +139,7 @@ station_statement	: QNAP_NAME '=' QNAP_IDENTIFIER	{ station_found = qnap_set_sta
 			| QNAP_PRIO
 			| QNAP_QUANTUM
 			| QNAP_RATE
-			| QNAP_SCHED
+			| QNAP_SCHED '=' QNAP_IDENTIFIER
 			| QNAP_SERVICE '=' factor
 			| QNAP_TRANSIT
 			| QNAP_TYPE

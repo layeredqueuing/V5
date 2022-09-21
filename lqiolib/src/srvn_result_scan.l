@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_result_scan.l 13888 2020-09-29 01:01:12Z greg $
+ * $Id: srvn_result_scan.l 15880 2022-09-21 12:52:01Z greg $
  */
 %option noyywrap yylineno
 
@@ -19,7 +19,7 @@
 #include "srvn_result_gram.h"
 
 extern YYSTYPE resultlval;
-extern char * dup_LQIO_text( char * str, int len );
+extern char * dup_srvntext( char * str, int len );
 static double time_to_double( const char * time );
 static char * dup_strip_text( char * src, int len );
 
@@ -91,8 +91,8 @@ Z			return(SNR_WAITING_FLAG);
 {C}			{ resultlval.aChar = *resulttext; return CHAR; }
 infinity		{ resultlval.aString = (char *)&resulttext[0]; return INFTY; }
 [.iI][nN][fF]		{ resultlval.aString = (char *)&resulttext[0]; return INFTY; }
-({U})*{C}({C}|{D}|{U})+	{ resultlval.aString = dup_LQIO_text( &resulttext[0], resultleng ); return SYMBOL; }
-{V}({C}|{D}|{U})+	{ resultlval.aString = dup_LQIO_text( (char *)&resulttext[0], resultleng ); return VARIABLE; }
+({U})*{C}({C}|{D}|{U})+	{ resultlval.aString = dup_srvntext( &resulttext[0], resultleng ); return SYMBOL; }
+{V}({C}|{D}|{U})+	{ resultlval.aString = dup_srvntext( (char *)&resulttext[0], resultleng ); return VARIABLE; }
 .			{ resultlval.aString = (char *)&resulttext[0]; return TEXT; }
 
 %%
@@ -113,5 +113,5 @@ static double time_to_double( const char * time )
 static char * dup_strip_text( char * s, int len )
 {
     while ( (*s == ' ' || *s == '\t') && len > 0 ) { ++s; --len; }	/* Skip leading white space */
-    return dup_LQIO_text( s, len );
+    return dup_srvntext( s, len );
 }

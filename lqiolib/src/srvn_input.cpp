@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 15877 2022-09-20 20:47:38Z greg $
+ *  $Id: srvn_input.cpp 15880 2022-09-21 12:52:01Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -19,11 +19,11 @@
 #include <cmath>
 #include <limits>
 #include <errno.h>
-#if HAVE_SYS_ERRNO_H
-#include <sys/errno.h>
-#endif
 #if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#if HAVE_SYS_ERRNO_H
+#include <sys/errno.h>
 #endif
 #include <sys/stat.h>
 #if HAVE_SYS_MMAN_H
@@ -48,13 +48,13 @@
 #include "srvn_results.h"
 
 extern "C" {
-struct yy_buffer_state;
-    extern int LQIO_parse();
+    struct yy_buffer_state;
+    extern int srvnparse();
 
 #include "srvn_gram.h"
-    extern FILE * LQIO_in;		/* from srvn_gram.y, implicitly */
-    extern yy_buffer_state * LQIO__scan_string( const char * );
-    extern void LQIO__delete_buffer( yy_buffer_state * );
+    extern FILE * srvnin;		/* from srvn_gram.y, implicitly */
+    extern yy_buffer_state * srvn_scan_string( const char * );
+    extern void srvn_delete_buffer( yy_buffer_state * );
 }
 
 /* Pointer to the current document and entry list map */
@@ -1155,18 +1155,18 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_fi
 {
     unsigned errorCode = 0;
     if ( !Filename::isFileName( input_file_name ) ) {
-	LQIO_in = stdin;
-    } else if (!( LQIO_in = fopen( input_file_name.c_str(), "r" ) ) ) {
+	srvnin = stdin;
+    } else if (!( srvnin = fopen( input_file_name.c_str(), "r" ) ) ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << input_file_name << " - " << strerror( errno ) << std::endl;
 	return false;
     } 
-    int LQIO_in_fd = fileno( LQIO_in );
+    int srvnin_fd = fileno( srvnin );
 
     struct stat statbuf;
-    if ( isatty( LQIO_in_fd ) ) {
+    if ( isatty( srvnin_fd ) ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": Input from terminal is not allowed." << std::endl;
 	return false;
-    } else if ( fstat( LQIO_in_fd, &statbuf ) != 0 ) {
+    } else if ( fstat( srvnin_fd, &statbuf ) != 0 ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot stat " << input_file_name << " - " << strerror( errno ) << std::endl;
 	return false;
 #if defined(S_ISSOCK)
@@ -1178,15 +1178,15 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_fi
 	return false;
     } 
 
-    LQIO_lineno = 1;
+    srvnlineno = 1;
 
 #if HAVE_MMAP
-    char * buffer = static_cast<char *>(mmap( 0, statbuf.st_size, PROT_READ, MAP_PRIVATE|MAP_FILE, LQIO_in_fd, 0 ));
+    char * buffer = static_cast<char *>(mmap( 0, statbuf.st_size, PROT_READ, MAP_PRIVATE|MAP_FILE, srvnin_fd, 0 ));
     if ( buffer != MAP_FAILED ) {
-	yy_buffer_state * yybuf = LQIO__scan_string( buffer );
+	yy_buffer_state * yybuf = srvn_scan_string( buffer );
 	try {
-	    srvn_start_token = SRVN_INPUT;
-	    errorCode = LQIO_parse();
+	    srvnstart_token = SRVN_INPUT;
+	    errorCode = srvnparse();
 	}
 	catch ( const std::domain_error& e ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
@@ -1196,14 +1196,14 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_fi
 	    std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
 	    errorCode = 1;
 	}
-	LQIO__delete_buffer( yybuf );
+	srvn_delete_buffer( yybuf );
 	munmap( buffer, statbuf.st_size );
     } else {
 #endif
 	/* Try the old way (for pipes) */
 	try {
-	    srvn_start_token = SRVN_INPUT;
-	    errorCode = LQIO_parse();
+	    srvnstart_token = SRVN_INPUT;
+	    errorCode = srvnparse();
 	}
 	catch ( const std::domain_error& e ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
@@ -1234,8 +1234,8 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_fi
     }
 
 
-    if ( LQIO_in && LQIO_in != stdin ) {
-	fclose( LQIO_in );
+    if ( srvnin && srvnin != stdin ) {
+	fclose( srvnin );
     }
 
     return errorCode == 0;
@@ -1250,11 +1250,11 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_fi
  */
 
 void
-LQIO_error( const char * fmt, ... )
+srvnerror( const char * fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
-    LQIO::verrprintf( stderr, LQIO::error_severity::ERROR, LQIO::DOM::Document::__input_file_name.c_str(), LQIO_lineno, 0, fmt, args );
+    LQIO::verrprintf( stderr, LQIO::error_severity::ERROR, LQIO::DOM::Document::__input_file_name.c_str(), srvnlineno, 0, fmt, args );
     va_end( args );
 }
 
@@ -1270,6 +1270,6 @@ srvnwarning( const char * fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
-    LQIO::verrprintf( stderr, LQIO::error_severity::WARNING, LQIO::DOM::Document::__input_file_name.c_str(), LQIO_lineno, 0, fmt, args );
+    LQIO::verrprintf( stderr, LQIO::error_severity::WARNING, LQIO::DOM::Document::__input_file_name.c_str(), srvnlineno, 0, fmt, args );
     va_end( args );
 }

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 15878 2022-09-20 21:38:18Z greg $
+ * $Id: qnap2_document.cpp 15883 2022-09-21 14:03:23Z greg $
  *
  * Read in XML input files.
  *
@@ -22,6 +22,17 @@
 #include <numeric>
 #include <regex>
 #include <sstream>
+#if HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#if HAVE_SYS_ERRNO_H
+#include <sys/errno.h>
+#endif
+#include <sys/stat.h>
+#if HAVE_SYS_MMAN_H
+#include <sys/types.h>
+#include <sys/mman.h>
+#endif
 #include <lqx/SyntaxTree.h>
 #include "common_io.h"
 #include "dom_entry.h"
@@ -29,9 +40,21 @@
 #include "dom_processor.h"
 #include "dom_task.h"
 #include "error.h"
+#include "filename.h"
 #include "glblerr.h"
 #include "input.h"
 #include "qnap2_document.h"
+
+extern "C" {
+    struct yy_buffer_state;
+    extern int qnap2parse();
+
+#include "srvn_gram.h"
+    extern FILE * qnap2in;		/* from srvn_gram.y, implicitly */
+    extern yy_buffer_state * qnap2_scan_string( const char * );
+    extern void qnap2_delete_buffer( yy_buffer_state * );
+}
+
 
 namespace BCMP {
 
@@ -60,7 +83,90 @@ namespace BCMP {
     {
 	__document = nullptr;
     }
+
+    /*
+     * Load the model.
+     */
 
+    bool
+    QNAP2_Document::load()
+    {
+	unsigned errorCode = 0;
+	if ( !Filename::isFileName( _input_file_name ) ) {
+	    qnap2in = stdin;
+	} else if (!( qnap2in = fopen( _input_file_name.c_str(), "r" ) ) ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << _input_file_name << " - " << strerror( errno ) << std::endl;
+	    return false;
+	} 
+	int qnap2in_fd = fileno( qnap2in );
+
+	struct stat statbuf;
+	if ( isatty( qnap2in_fd ) ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Input from terminal is not allowed." << std::endl;
+	    return false;
+	} else if ( fstat( qnap2in_fd, &statbuf ) != 0 ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot stat " << _input_file_name << " - " << strerror( errno ) << std::endl;
+	    return false;
+#if defined(S_ISSOCK)
+	} else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) && !S_ISSOCK(statbuf.st_mode) ) {
+#else
+	} else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) ) {
+#endif
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Input from " << _input_file_name << " is not allowed." << std::endl;
+	    return false;
+	} 
+
+//	qnap2_lineno = 1;
+
+#if HAVE_MMAP
+	char * buffer = static_cast<char *>(mmap( 0, statbuf.st_size, PROT_READ, MAP_PRIVATE|MAP_FILE, qnap2in_fd, 0 ));
+	if ( buffer != MAP_FAILED ) {
+	    yy_buffer_state * yybuf = qnap2_scan_string( buffer );
+	    try {
+		errorCode = qnap2parse();
+	    }
+	    catch ( const std::domain_error& e ) {
+		std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
+		errorCode = 1;
+	    }
+	    catch ( const std::runtime_error& e ) {
+		std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
+		errorCode = 1;
+	    }
+	    qnap2_delete_buffer( yybuf );
+	    munmap( buffer, statbuf.st_size );
+	} else {
+#endif
+	    /* Try the old way (for pipes) */
+	    try {
+		errorCode = qnap2parse();
+	    }
+	    catch ( const std::domain_error& e ) {
+		std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
+		errorCode = 1;
+	    }
+	    catch ( const std::runtime_error& e ) {
+		std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
+		errorCode = 1;
+	    }
+#if HAVE_MMAP
+	}
+#endif
+	if ( qnap2in && qnap2in != stdin ) {
+	    fclose( qnap2in );
+	}
+
+	return errorCode == 0;
+    }
+
+
+    void
+    QNAP2_Document::declareStation( const std::string& station )
+    {
+//	std::cerr << "yydebug: " << station << std::endl;
+    }
+
+
     /*
      * "&" is a comment.
      * identifiers are limited to the first 8 characters.
@@ -356,7 +462,7 @@ namespace BCMP {
 	    }
 	    if ( station.type() == Model::Station::Type::MULTISERVER ) {
 		_output << qnap2_statement( "type=multiple(" + to_unsigned(station.copies()) + ")" ) << std::endl;
-	    } else if ( !LQIO::DOM::ExternalVariable::isDefault( station.copies() ), 1.0 ) {
+	    } else if ( !LQIO::DOM::ExternalVariable::isDefault( station.copies(), 1.0 ) ) {
 	    } 
 	    break;
 	case Model::Station::Type::NOT_DEFINED:
@@ -961,13 +1067,32 @@ namespace BCMP {
     }
 }
 
-void
-qnap_add_queue( void * queue_list )
+/*
+ * Append item to list.  Create list if not present.
+ */
+
+void *
+qnap2_append_identifier( void * list, void * item )
 {
-    /* Add each item in queue_list to model._stations, but don't populate */
-    /* for each item in queue list; do ... */
+    if ( item == nullptr ) return list;
+    if ( list == nullptr ) list = new std::vector<const std::string>;
+    static_cast<std::vector<const std::string>*>(list)->push_back( static_cast<char *>(item) );
+    return list;
+}
+
     
-    BCMP::QNAP2_Document::__document->declareStation( "" );
+/*
+ * Add each item in queue_list to model._stations, but don't populate
+ */
+
+void
+qnap_add_queue( void * list )
+{
+    if ( list == nullptr ) return;
+    std::vector<const std::string>* queue_list = static_cast<std::vector<const std::string>*>(list);
+    for ( std::vector<const std::string>::const_iterator queue = queue_list->begin(); queue != queue_list->end(); ++queue ) {
+	BCMP::QNAP2_Document::__document->declareStation( *queue );
+    }
 }
 
 void *

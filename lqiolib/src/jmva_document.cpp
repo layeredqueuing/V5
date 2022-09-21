@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 15732 2022-06-29 22:24:46Z greg $
+ * $Id: jmva_document.cpp 15880 2022-09-21 12:52:01Z greg $
  *
  * Read in XML input files.
  *
@@ -244,13 +244,13 @@ namespace BCMP {
     void
     JMVA_Document::input_error( const std::string& msg )
     {
-	std::cerr << LQIO::DOM::Document::__input_file_name << ":" << std::to_string(LQIO_lineno) << ": error: " << msg << std::endl;
+	std::cerr << LQIO::DOM::Document::__input_file_name << ":" << std::to_string(srvnlineno) << ": error: " << msg << std::endl;
     }
 
     void
     JMVA_Document::input_error( const std::string& msg, const std::string& arg )
     {
-	std::cerr << LQIO::DOM::Document::__input_file_name << ":" << std::to_string(LQIO_lineno) << ": error: " << msg << ": " << arg << std::endl;
+	std::cerr << LQIO::DOM::Document::__input_file_name << ":" << std::to_string(srvnlineno) << ": error: " << msg << ": " << arg << std::endl;
     }
 
     /*
@@ -261,9 +261,9 @@ namespace BCMP {
     JMVA_Document::start( void *data, const XML_Char *el, const XML_Char **attr )
     {
 	JMVA_Document * document = static_cast<JMVA_Document *>(data);
-	LQIO_lineno = XML_GetCurrentLineNumber(document->_parser);
+	srvnlineno = XML_GetCurrentLineNumber(document->_parser);
 	if ( LQIO::DOM::Document::__debugXML ) {
-	    std::cerr << std::setw(4) << LQIO_lineno << ": ";
+	    std::cerr << std::setw(4) << srvnlineno << ": ";
 	    for ( unsigned i = 0; i < document->_stack.size(); ++i ) {
 		std::cerr << "  ";
 	    }
@@ -314,7 +314,7 @@ namespace BCMP {
 	while ( document->_stack.size() > 0 && !done ) {
 	    parse_stack_t& top = document->_stack.top();
 	    if ( LQIO::DOM::Document::__debugXML ) {
-		std::cerr << std::setw(4) << LQIO_lineno << ": ";
+		std::cerr << std::setw(4) << srvnlineno << ": ";
 		for ( unsigned i = 1; i < document->_stack.size(); ++i ) {
 		    std::cerr << "  ";
 		}

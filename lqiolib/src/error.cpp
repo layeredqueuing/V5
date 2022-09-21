@@ -10,7 +10,7 @@
  * Error processing for srvn program.
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: error.cpp 15863 2022-09-13 23:06:14Z greg $
+ * $Id: error.cpp 15880 2022-09-21 12:52:01Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -114,7 +114,7 @@ LQIO::input_error2( unsigned err, ... )
 {
     va_list args;
     va_start( args, err );
-    verrprintf( stderr, error_messages.at(err).severity, LQIO::DOM::Document::__input_file_name.c_str(), LQIO_lineno, 0,
+    verrprintf( stderr, error_messages.at(err).severity, LQIO::DOM::Document::__input_file_name.c_str(), srvnlineno, 0,
 		error_messages.at(err).message, args );
     va_end( args );
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.h 15867 2022-09-19 23:56:41Z greg $
+ *  $Id: srvn_input.h 15880 2022-09-21 12:52:01Z greg $
  *  libsrvnio2
  *
  *  Created by Martin Mroz on 24/02/09.
@@ -16,7 +16,7 @@
 extern "C" {
 #endif
     extern unsigned srvnlinenumber;		/* See srvn_scan.l, srvn_gram.y */
-    extern int srvn_start_token;		/* */
+    extern int srvnstart_token;			/* */
 	
     void * srvn_add_processor(const char *processor_name, scheduling_type scheduling_flag, void * cpu_quantum );
     void * srvn_add_group(const char *, void *, const char *, int cap );
@@ -89,7 +89,7 @@ extern "C" {
 
 
     void srvn_pragma(const char* pragmaText);
-    void LQIO_error( const char * fmt, ... );
+    void srvnerror( const char * fmt, ... );
     void srvnwarning( const char * fmt, ... );
 
 

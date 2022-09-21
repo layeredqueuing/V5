@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 15878 2022-09-20 21:38:18Z greg $
+ *  $Id: qnap2_document.h 15883 2022-09-21 14:03:23Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -20,6 +20,7 @@ extern "C" {
 #else
 #include <stdbool.h>
 #endif
+    void * qnap2_append_identifier( void *, void * );
     void * qnap_add_station();
     void qnap_add_queue( void * );
     bool qnap_set_station_name( void *, const char * );
@@ -45,6 +46,8 @@ namespace BCMP {
 	QNAP2_Document( const std::string& input_file_name, const BCMP::Model& model );		/* For output */
 	virtual ~QNAP2_Document();
 
+	bool load();
+
 	std::ostream& print( std::ostream& ) const;
 
 	const Model::Model::Station::map_t& stations() const { return _model.stations(); }
@@ -53,7 +56,7 @@ namespace BCMP {
 	bool multiclass() const { return chains().size() > 1; }
 
     private:
-	void declareStation( const std::string& ) {}
+	void declareStation( const std::string& );
 	
     private:
 	void printClassVariables( std::ostream& ) const;

@@ -22,7 +22,7 @@ static void * curr_entry = NULL;
 static void * dest_entry = NULL;
 static void * curr_activity = NULL;
 static bool constant_expression = true;
-extern int LQIO_lex();
+extern int srvnlex();
 %}
 
 %token <aString>	TEXT END_LIST SYMBOL VARIABLE RANGE_ERR SOLVER
@@ -737,7 +737,7 @@ c_decl			: VARIABLE '=' ternary_expr		{ $$ = spex_convergence_assignment_stateme
 real			: FLOAT					{ $$ = srvn_real_constant( $1 ); }
 			| INTEGER				{ $$ = srvn_int_constant( $1 ); }
 			| VARIABLE				{ $$ = srvn_variable( $1 ); }
-			| RANGE_ERR				{ LQIO_error( "invalid double: %s.", $1 ); free( $1 ); $$ = srvn_real_constant( srvn_get_infinity() ); }
+			| RANGE_ERR				{ srvnerror( "invalid double: %s.", $1 ); free( $1 ); $$ = srvn_real_constant( srvn_get_infinity() ); }
 /*+ spex */
 			| '{' expression '}'			{ $$ = spex_inline_expression( $2 ); }	/* Need to assign to variable, then run deferred assignment */
 /*- spex */
@@ -746,24 +746,24 @@ real			: FLOAT					{ $$ = srvn_real_constant( $1 ); }
 constant		: FLOAT					{ $$ = $1; }
 			| INTEGER				{ $$ = (double)( $1 ); }
 			| CONST_INFINITY			{ $$ = srvn_get_infinity(); }
-			| RANGE_ERR				{ LQIO_error( "invalid double: %s.", $1 ); free( $1 ); $$ = srvn_get_infinity(); }
+			| RANGE_ERR				{ srvnerror( "invalid double: %s.", $1 ); free( $1 ); $$ = srvn_get_infinity(); }
     			;
 
 integer			: INTEGER				{ $$ = srvn_int_constant( $1 ); }
 			| VARIABLE				{ $$ = srvn_variable( $1 ); }
-			| RANGE_ERR				{ LQIO_error( "invalid integer: %s.", $1 ); $$ = srvn_int_constant( LONG_MAX ); }
+			| RANGE_ERR				{ srvnerror( "invalid integer: %s.", $1 ); $$ = srvn_int_constant( LONG_MAX ); }
 /*+ spex */
 			| '{' expression '}'			{ $$ = spex_inline_expression( $2 ); }	/* Need to assign to variable, then run deferred assignment */
 /*- spex */
 			;
 
 const_int		: INTEGER				{ $$ = $1; }
-			| RANGE_ERR				{ LQIO_error( "invalid integer: %s.", $1 ); $$ = LONG_MAX; }
+			| RANGE_ERR				{ srvnerror( "invalid integer: %s.", $1 ); $$ = LONG_MAX; }
 			;
 
 symbol			: SYMBOL				{ $$ = $1; }
     			| INTEGER				{ $$ = make_name( $1 ); }
-			| RANGE_ERR				{ LQIO_error( $1 ); $$ = make_name( 0 ); }
+			| RANGE_ERR				{ srvnerror( $1 ); $$ = make_name( 0 ); }
 			;
 
 /*+ spex */

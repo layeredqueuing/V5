@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 15837 2022-08-15 23:04:45Z greg $
+ * $Id: json_document.cpp 15880 2022-09-21 12:52:01Z greg $
  *
  * Read in JSON input files.
  *
@@ -60,7 +60,7 @@
 
 extern "C" {
 #include "srvn_gram.h"
-    int LQIO_parse_string( int start_token, const char * s );
+    int srvnparse_string( int start_token, const char * s );
 }
 
 namespace LQIO {
@@ -312,7 +312,7 @@ namespace LQIO {
 			XML::invalid_argument( Xparameters, i->to_str() );
 		    }
 		}
-		LQIO_parse_string( SPEX_PARAMETER, program.c_str() );
+		srvnparse_string( SPEX_PARAMETER, program.c_str() );
 	    } else {
 		XML::invalid_argument( Xparameters, value.to_str() );
 	    }
@@ -1234,7 +1234,7 @@ namespace LQIO {
 			XML::invalid_argument( Xresults, i->to_str() );
 		    }
 		}
-		LQIO_parse_string( SPEX_RESULT, program.c_str() );
+		srvnparse_string( SPEX_RESULT, program.c_str() );
 	    } else {
 		XML::invalid_argument( Xresults, value.to_str() );
 	    }
@@ -1257,7 +1257,7 @@ namespace LQIO {
 			XML::invalid_argument( Xconvergence, i->to_str() );
 		    }
 		}
-		LQIO_parse_string( SPEX_CONVERGENCE, program.c_str() );
+		srvnparse_string( SPEX_CONVERGENCE, program.c_str() );
 	    } else {
 		XML::invalid_argument( Xconvergence, value.to_str() );
 	    }
@@ -1768,7 +1768,7 @@ namespace LQIO {
 		    return getDocument().db_build_parameter_variable( s.c_str(), &is_symbol );
 		} else {
 		    /* The parser only returns success/fail... so we use an global variable. */
-		    if ( LQIO_parse_string( SPEX_EXPRESSION, s.c_str() ) == 0 ) {
+		    if ( srvnparse_string( SPEX_EXPRESSION, s.c_str() ) == 0 ) {
 			return static_cast<ExternalVariable *>(Spex::__temp_variable);
 		    }
 		    /* Parse errors will throw invalid argument */
