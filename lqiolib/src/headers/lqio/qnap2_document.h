@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 15883 2022-09-21 14:03:23Z greg $
+ *  $Id: qnap2_document.h 15891 2022-09-22 21:48:30Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -20,10 +20,22 @@ extern "C" {
 #else
 #include <stdbool.h>
 #endif
+    void qnap2error( const char * fmt, ... );
     void * qnap2_append_identifier( void *, void * );
-    void * qnap_add_station();
-    void qnap_add_queue( void * );
-    bool qnap_set_station_name( void *, const char * );
+    void qnap2_add_queue( void * );
+    void qnap2_add_class( void * );
+    void qnap2_define_station();
+    void qnap2_set_station_init( const void * );
+    void qnap2_set_station_name( const void * );
+    void qnap2_set_station_prio( void * );
+    void qnap2_set_station_quantum( void * );
+    void qnap2_set_station_rate( void * );
+    void qnap2_set_station_sched( const void * );
+    void qnap2_set_station_service( void * );
+    void qnap2_set_station_transit( void * );
+    void qnap2_set_station_type( const void * );
+
+    extern int qnap2lineno;
 
 #if defined(__cplusplus)
 }
@@ -39,7 +51,14 @@ namespace LQX {
 
 namespace BCMP {
     class QNAP2_Document {
-	friend void ::qnap_add_queue( void * );
+	friend void ::qnap2error( const char * fmt, ... );
+	friend void ::qnap2_add_class( void * );
+	friend void ::qnap2_add_queue( void * );
+	friend void ::qnap2_define_station();
+	friend void ::qnap2_set_station_init( const void * );
+	friend void ::qnap2_set_station_name( const void * );
+	friend void ::qnap2_set_station_sched( const void * );
+	friend void ::qnap2_set_station_type( const void * );
 
     public:
 	QNAP2_Document( const std::string& input_file_name );					/* For input */
@@ -47,7 +66,8 @@ namespace BCMP {
 	virtual ~QNAP2_Document();
 
 	bool load();
-
+	const char * getInputFileName() const { return _input_file_name.c_str(); }
+	
 	std::ostream& print( std::ostream& ) const;
 
 	const Model::Model::Station::map_t& stations() const { return _model.stations(); }
@@ -55,9 +75,16 @@ namespace BCMP {
 	const Model& model() const { return _model; }
 	bool multiclass() const { return chains().size() > 1; }
 
+	/* QNAP2 interface */
     private:
-	void declareStation( const std::string& );
-	
+	bool declareStation( const std::string& );
+	bool declareClass( const std::string& );
+	bool defineStation();
+	bool setClassInit( const LQIO::DOM::ExternalVariable * );
+	bool setStationName( const std::string& ); 
+	bool setStationScheduling( const std::string& );
+	bool setStationType( const std::string& );
+
     private:
 	void printClassVariables( std::ostream& ) const;
 
@@ -224,12 +251,15 @@ namespace BCMP {
 
     private:
 	static QNAP2_Document * __document;
+	static std::pair<std::string,BCMP::Model::Station> __station;	/* Station under construction */
 	
     private:
 	const std::string _input_file_name;
 	BCMP::Model _model;
 
-	static std::map<scheduling_type,std::string> __scheduling_str;	/* Maps scheduling_type to qnap2 keyword */
+	static std::map<const scheduling_type,const std::string> __scheduling_str;	/* Maps scheduling_type to qnap2 keyword */
+	static std::map<const std::string,const scheduling_type> __scheduling_type;
+	static std::map<const std::string,const BCMP::Model::Station::Type> __station_type;
     };
 
     inline std::ostream& operator<<( std::ostream& output, const QNAP2_Document& doc ) { return doc.print(output); }

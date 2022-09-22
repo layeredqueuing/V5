@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 15429 2022-02-04 23:04:05Z greg $
+ *  $Id: bcmp_document.h 15891 2022-09-22 21:48:30Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -65,6 +65,7 @@ namespace BCMP {
 	    enum class Type { UNDEFINED, CLOSED, OPEN };
 
 	public:
+	    Chain() : _type(Type::UNDEFINED), _customers(nullptr), _think_time(nullptr), _arrival_rate(nullptr) {}
 	    Chain( Type type, const DOM::ExternalVariable* customers, const DOM::ExternalVariable* think_time ) : _type(Type::CLOSED), _customers(customers), _think_time(think_time), _arrival_rate(nullptr) { assert(type==Type::CLOSED); }
 	    Chain( Type type, const DOM::ExternalVariable* arrival_rate ) : _type(Type::OPEN), _customers(nullptr), _think_time(nullptr), _arrival_rate(arrival_rate) { assert(type==Type::OPEN); }
 
@@ -189,6 +190,7 @@ namespace BCMP {
 	    Type type() const { return _type; }
 	    void setType(Type type) { _type = type; }
 	    scheduling_type scheduling() const { return _scheduling; }
+	    void setScheduling( scheduling_type type ) { _scheduling = type; }
 	    const DOM::ExternalVariable* copies() const { return _copies; }
 	    void setCopies( const DOM::ExternalVariable* copies ) { _copies = copies; }
 	    bool reference() const { return _reference; }

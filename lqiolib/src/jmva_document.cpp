@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 15880 2022-09-21 12:52:01Z greg $
+ * $Id: jmva_document.cpp 15885 2022-09-21 16:08:19Z greg $
  *
  * Read in XML input files.
  *
@@ -899,7 +899,7 @@ namespace BCMP {
 	const LQIO::DOM::ExternalVariable * population = getVariableAttribute( attributes, Xpopulation );
 	const LQIO::DOM::ExternalVariable * think_time = getVariableAttribute( attributes, Xthinktime, 0.0 );
 	std::pair<Model::Chain::map_t::iterator,bool> result = _model.insertClosedChain( name, population, think_time );
-	if ( !result.second ) std::runtime_error( "Duplicate class" );
+	if ( !result.second ) throw std::runtime_error( "Duplicate class" );
 	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(population) ) _population_vars.emplace(&result.first->second,population->getName());
 	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(think_time) ) _think_time_vars.emplace(&result.first->second,think_time->getName());
     }
@@ -911,7 +911,7 @@ namespace BCMP {
 	std::string name = XML::getStringAttribute( attributes, Xname );
 	const LQIO::DOM::ExternalVariable * arrival_rate = getVariableAttribute( attributes, Xrate );
 	std::pair<Model::Chain::map_t::iterator,bool> result = _model.insertOpenChain( name, arrival_rate );
-	if ( !result.second ) std::runtime_error( "Duplicate class" );
+	if ( !result.second ) throw std::runtime_error( "Duplicate class" );
 	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(arrival_rate) ) _arrival_rate_vars.emplace(&result.first->second,arrival_rate->getName());
     }
 
@@ -928,7 +928,7 @@ namespace BCMP {
 	const std::string name = XML::getStringAttribute( attributes, Xname );
 	const LQIO::DOM::ExternalVariable * multiplicity = getVariableAttribute( attributes, Xservers, 1 );
 	const std::pair<Model::Station::map_t::iterator,bool> result = _model.insertStation( name, Model::Station( type, scheduling, multiplicity ) );
-	if ( !result.second ) std::runtime_error( "Duplicate station" );
+	if ( !result.second ) throw std::runtime_error( "Duplicate station" );
 	Model::Station * station = &result.first->second;
 	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(multiplicity) ) _multiplicity_vars.emplace(station,multiplicity->getName());
 	return station;						

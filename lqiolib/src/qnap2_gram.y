@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "qnap2_document.h"
 
-static void qnap2error( const char * fmt );
+extern void qnap2error( const char * fmt, ... );
 extern int qnap2lex();
 
 static void * curr_station = NULL;
@@ -20,10 +20,11 @@ static bool station_found = false;
 %token QNAP_GOTO QNAP_IF QNAP_IN  QNAP_IS QNAP_NIL QNAP_NOT QNAP_OBJECT QNAP_OR 
 %token QNAP_REF QNAP_REPEAT QNAP_STEP QNAP_THEN QNAP_TRUE QNAP_UNTIL QNAP_VAR QNAP_WATCHED
 %token QNAP_WHILE QNAP_WITH
+%token RANGE_ERR
 
 %token <aString>	QNAP_IDENTIFIER QNAP_STRING
-%token QNAP_BOOLEAN QNAP_INTEGER QNAP_QUEUE QNAP_REAL 
-%token QNAP_CONSTANT
+%token <aPointer>	QNAP_INTEGER QNAP_REAL QNAP_BOOLEAN 
+%token QNAP_QUEUE QNAP_CLASS
 %token QNAP_NAME QNAP_INIT QNAP_PRIO QNAP_QUANTUM QNAP_RATE QNAP_SCHED QNAP_SERVICE QNAP_TRANSIT QNAP_TYPE
 
 %union {
@@ -33,24 +34,24 @@ static bool station_found = false;
     void * aPointer;
 }
 
-%type <aPointer>	identifier identifier_list
+%type <aPointer>	identifier identifier_list variable arrayref power factor term expression transit
 %%
 
-qnap2			: command_list QNAP_END
+qnap2			: declare station_list exec QNAP_END
 			;
 
+/*
 command_list		: command_list command
 			| command
 			;
 
-command			: declare
-			| station
-			| QNAP_CONTROL
-			| QNAP_TERMINAL
-			| QNAP_EXEC
+command			| QNAP_TERMINAL
 			| QNAP_REBOOT
 			| QNAP_RESTART
 			;
+*/
+
+/* ------------------------------------------------------------------------ */
 
 declare			: QNAP_DECLARE declare_list
 			;
@@ -59,7 +60,9 @@ declare_list		: declare_list ';' declare_statement
 			| declare_statement ';'
 			;
 
-declare_statement	: QNAP_QUEUE identifier_list		{ qnap_add_queue( $2 ); }
+declare_statement	: QNAP_QUEUE identifier_list		{ qnap2_add_queue( $2 ); }
+			| QNAP_CLASS variable_type identifier_list	
+			| QNAP_CLASS identifier_list		{ qnap2_add_class( $2 ); }
 			| variable_type identifier_list
 			;
 
@@ -85,6 +88,48 @@ sublist			: simple_sublist
 simple_sublist		: expression
 			;
 */
+
+
+/* ------------------------------------------------------------------------ */
+
+station_list		: station
+			| station_list station
+			;
+
+station			: QNAP_STATION parameter_list 		{ qnap2_define_station(); }
+			;
+
+parameter_list		: parameter ';'
+			| parameter_list parameter ';'
+			;
+
+parameter		: QNAP_NAME '=' QNAP_IDENTIFIER		{ qnap2_set_station_name( $3 ); free( $3 ); }
+			| QNAP_INIT '=' variable		{ qnap2_set_station_init( $3 ); }
+			| QNAP_PRIO '=' variable		{ qnap2_set_station_prio( $3 ); }
+			| QNAP_QUANTUM '=' variable		{ qnap2_set_station_quantum( $3 ); }
+			| QNAP_RATE '=' variable		{ qnap2_set_station_rate( $3 ); }
+			| QNAP_SCHED '=' QNAP_IDENTIFIER	{ qnap2_set_station_sched( $3 ); free( $3 ); }
+			| QNAP_SERVICE '=' factor		{ qnap2_set_station_service( $3 ); }
+			| QNAP_TRANSIT '=' transit		{ qnap2_set_station_transit( $3 ); }
+			| QNAP_TYPE '=' QNAP_IDENTIFIER		{ qnap2_set_station_type( $3 ); free( $3 ); }
+			;
+
+transit			: QNAP_IDENTIFIER
+			| QNAP_IDENTIFIER ',' variable
+
+/* ------------------------------------------------------------------------ */
+
+exec 			: QNAP_EXEC statement
+			;
+
+statement		: QNAP_IDENTIFIER ';'
+			| QNAP_BEGIN compound_statement QNAP_END ';'
+			;
+
+compound_statement	: statement
+			| compound_statement statement
+			;
+
 
 expression		: expression '+' term
 			| expression '-' term
@@ -112,7 +157,7 @@ arrayref		: arrayref '[' expression ']'
 			| factor
 			;
 
-factor			: '(' expression ')'
+factor			: '(' expression ')'			{ $$ = $2; }
 			| identifier '(' ')'
 			| identifier '(' expression_list ')'
 			| variable
@@ -123,32 +168,7 @@ expression_list		: expression
 			;
 
 variable		: identifier
-			| QNAP_CONSTANT
-
-/* Station */
-
-station			: QNAP_STATION { curr_station = qnap_add_station(); } station_list { curr_station = 0; station_found = false; }
+			| QNAP_INTEGER
+			| QNAP_REAL
 			;
-
-station_list		: station_list ';' station_statement
-			| station_statement ';'
-			;
-
-station_statement	: QNAP_NAME '=' QNAP_IDENTIFIER	{ station_found = qnap_set_station_name( curr_station, $3 ); }
-			| QNAP_INIT '=' variable
-			| QNAP_PRIO
-			| QNAP_QUANTUM
-			| QNAP_RATE
-			| QNAP_SCHED '=' QNAP_IDENTIFIER
-			| QNAP_SERVICE '=' factor
-			| QNAP_TRANSIT
-			| QNAP_TYPE
-			;
-
 %%
-
-
-static void
-qnap2error( const char * fmt )
-{
-}

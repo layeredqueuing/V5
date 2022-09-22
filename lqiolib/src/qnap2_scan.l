@@ -20,6 +20,14 @@
 #include <errno.h>
 #include "qnap2_gram.h"
 
+extern YYSTYPE qnap2lval;
+
+#if	defined(__cplusplus)
+#define	INPUT	qnap2input
+#else
+#define	INPUT	input
+#endif
+
 extern char * dup_qnap2text( char * str, int len );
 %}
 
@@ -33,7 +41,9 @@ S	[+-/*().,:;=<>"]
 %{
 %}
 
-"&"(.*)		;	/* Comment */
+[ \t\r\n]+		;
+
+"&"(.*)			;	/* Comment */
 "<="			return QNAP_LESS_EQUAL;
 ">="			return QNAP_GREATER_EQUAL;
 "**"			return QNAP_POWER;
@@ -52,6 +62,7 @@ all			return QNAP_ALL;
 and			return QNAP_AND;
 any			return QNAP_ANY;
 begin			return QNAP_BEGIN;
+class			return QNAP_CLASS;
 do			return QNAP_DO;
 else			return QNAP_ELSE;
 end			return QNAP_END;
@@ -92,12 +103,21 @@ with			return QNAP_WITH;
 
 
 {S}			return *qnap2text;
-{D}+			{ return 0;
+{D}+			{
+    				qnap2lval.anInt = strtoul( (const char *)&qnap2text[0], 0, 10 );
+				if ( errno == ERANGE ) {
+				    errno = 0; /* Reset for next conversion */
+				    qnap2lval.aString = dup_qnap2text( &qnap2text[0], qnap2leng-1 );
+				    return RANGE_ERR;
+				} else {
+				    return QNAP_INTEGER;
+				}
+    
 			}
 
 {D}+"."{D}*({E})?	|
 {D}*"."{D}+({E})?	|
-{D}+{E}			{ return QNAP_CONSTANT; }
+{D}+{E}			{ return QNAP_REAL; }
 
 ({C}|{U})({C}|{D}|{U})*	{ qnap2lval.aString = dup_qnap2text( &qnap2text[0], qnap2leng ); return QNAP_IDENTIFIER; }
 %%

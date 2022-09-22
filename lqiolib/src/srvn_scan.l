@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_scan.l 15880 2022-09-21 12:52:01Z greg $
+ * $Id: srvn_scan.l 15891 2022-09-22 21:48:30Z greg $
  */
 %option noyywrap yylineno
 
@@ -29,7 +29,6 @@ extern YYSTYPE srvnlval;
 #define	INPUT	input
 #endif
 
-unsigned srvnlinenno = 1;
 int srvnstart_token = 0;
 
 extern char * dup_srvntext( char * str, int len );
@@ -96,7 +95,7 @@ P	[0123]?
 				srvnlval.anInt = strtoul( (const char *)&srvntext[0], 0, 10 );
 				if ( errno == ERANGE ) {
 				    errno = 0; /* Reset for next conversion */
-				    srvnlval.aString = dup_comment( &srvntext[0], srvnleng-1 );
+				    srvnlval.aString = dup_srvntext( &srvntext[0], srvnleng-1 );
 				    return RANGE_ERR;
 				} else {
 				    return INTEGER;
@@ -109,7 +108,7 @@ P	[0123]?
 				srvnlval.aFloat = strtod( (const char *)&srvntext[0], 0 );
 				if ( errno == ERANGE ) {
 				    errno = 0;	/* Reset for next conversion */
-				    srvnlval.aString = dup_comment( &srvntext[0], srvnleng-1 );
+				    srvnlval.aString = dup_srvntext( &srvntext[0], srvnleng-1 );
 				    return RANGE_ERR;
 				} else {
 				    return FLOAT;
