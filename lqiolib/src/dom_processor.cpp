@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_processor.cpp 14633 2021-05-11 13:55:35Z greg $
+ *  $Id: dom_processor.cpp 15895 2022-09-23 17:21:55Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -105,9 +105,7 @@ namespace LQIO {
 	{
 	    const scheduling_type s = getSchedulingType();
 	    return s == SCHEDULE_CFS
-		|| s == SCHEDULE_PS
-		|| s == SCHEDULE_PS_HOL
-		|| s == SCHEDULE_PS_PPR;
+		|| s == SCHEDULE_PS;
 	}
 
 
@@ -115,9 +113,7 @@ namespace LQIO {
 	{
 	    const scheduling_type s = getSchedulingType();
 	    return s == SCHEDULE_HOL
-		|| s == SCHEDULE_PPR
-		|| s == SCHEDULE_PS_HOL
-		|| s == SCHEDULE_PS_PPR;
+		|| s == SCHEDULE_PPR;
 	}
 
 	void Processor::addTask(Task* task)

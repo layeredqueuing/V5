@@ -109,6 +109,9 @@ public:
 
     virtual void insert_DOM_results() const;
 
+protected:
+    virtual bool scheduling_is_ok() const;
+
 private:
     double create_instance( double base_x_pos, double base_y_pos, unsigned m, short enabling, struct place_object * tx_place=nullptr );
     double create_activity( const double x_pos, const double y_pos, const unsigned m,

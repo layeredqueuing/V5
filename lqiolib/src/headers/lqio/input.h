@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: input.h 15880 2022-09-21 12:52:01Z greg $
+ * $Id: input.h 15895 2022-09-23 17:21:55Z greg $
  */
 
 #if	!defined(LQIO_INPUT_H)
@@ -21,36 +21,18 @@ typedef enum {
     SCHEDULE_CUSTOMER,
     SCHEDULE_DELAY,
     SCHEDULE_FIFO,
+    SCHEDULE_LIFO,
     SCHEDULE_HOL,
     SCHEDULE_PPR,
     SCHEDULE_RAND,
     SCHEDULE_PS,
-    SCHEDULE_PS_HOL,
-    SCHEDULE_PS_PPR,
     SCHEDULE_POLL,
     SCHEDULE_BURST,
     SCHEDULE_UNIFORM,
     SCHEDULE_SEMAPHORE,
     SCHEDULE_CFS,
-    SCHEDULE_RWLOCK   
+    SCHEDULE_RWLOCK
 } scheduling_type;
-#define	N_SCHEDULING_TYPES    15
-
-#define SCHED_CUSTOMER_BIT   (1 << SCHEDULE_CUSTOMER)
-#define SCHED_DELAY_BIT	     (1 << SCHEDULE_DELAY)
-#define SCHED_FIFO_BIT	     (1 << SCHEDULE_FIFO)
-#define SCHED_HOL_BIT	     (1 << SCHEDULE_HOL)
-#define SCHED_PPR_BIT        (1 << SCHEDULE_PPR)
-#define SCHED_RAND_BIT	     (1 << SCHEDULE_RAND)
-#define SCHED_PS_BIT         (1 << SCHEDULE_PS)
-#define SCHED_PS_HOL_BIT     (1 << SCHEDULE_PS_HOL)
-#define SCHED_PS_PPR_BIT     (1 << SCHEDULE_PS_PPR)
-#define SCHED_POLL_BIT	     (1 << SCHEDULE_POLL)
-#define SCHED_BURST_BIT      (1 << SCHEDULE_BURST)
-#define SCHED_UNIFORM_BIT    (1 << SCHEDULE_UNIFORM)
-#define SCHED_SEMAPHORE_BIT  (1 << SCHEDULE_SEMAPHORE)
-#define SCHED_CFS_BIT  	     (1 << SCHEDULE_CFS)
-#define SCHED_RWLOCK_BIT     (1 << SCHEDULE_RWLOCK)
 
 typedef enum { DEFAULT_MATHERR, IGNORE_MATHERR, REPORT_MATHERR, ABORT_MATHERR } matherr_type;
 
@@ -64,10 +46,34 @@ typedef enum { DEFAULT_MATHERR, IGNORE_MATHERR, REPORT_MATHERR, ABORT_MATHERR } 
 
 #if defined(__cplusplus)
 #include "error.h"
-#include <vector>
+#include <map>
 #include <string>
 
 namespace LQIO {
+    namespace SCHEDULE {
+	extern const char * CUSTOMER;
+	extern const char * DELAY;
+	extern const char * FIFO;
+	extern const char * LIFO;
+	extern const char * HOL;
+	extern const char * PPR;
+	extern const char * RAND;
+	extern const char * PS;
+	extern const char * POLL;
+	extern const char * BURST;
+	extern const char * UNIFORM;
+	extern const char * SEMAPHORE;
+	extern const char * CFS;
+	extern const char * RWLOCK;
+
+	struct label_t {
+	    const std::string str;
+	    const std::string XML;
+	    const char flag;
+	};
+
+    }
+    
     typedef struct LQIO::error_message_type ErrorMessageType;
 
     typedef struct lqio_params_stats
@@ -91,12 +97,7 @@ namespace LQIO {
     extern lqio_params_stats io_vars;
 }
 
-extern int srvnlineno;				/* Input line number -- can't use namespace because it's used with C */
+extern const std::map<const scheduling_type,const LQIO::SCHEDULE::label_t> scheduling_label; /*  */
 
-extern struct scheduling_label_t {
-    const char * str;
-    const char * XML;
-    const char flag;
-} const scheduling_label[N_SCHEDULING_TYPES];
 #endif
 #endif	/* LQIO_INPUT_H */

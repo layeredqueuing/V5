@@ -38,10 +38,11 @@ public:
     const LQIO::DOM::Entity * get_dom() const { return _dom; }
 
     scheduling_type get_scheduling() const;
-    bool scheduling_is_ok( const unsigned bits ) const;
+    bool has_priority_scheduling() const { return _scheduling == SCHEDULE_PPR || _scheduling == SCHEDULE_HOL; }
 
 protected:
     void set_scheduling( scheduling_type scheduling ) { _scheduling = scheduling; }
+    virtual bool scheduling_is_ok() const = 0;
 
 public:
     virtual unsigned int multiplicity() const;

@@ -252,8 +252,6 @@ proc_sched_flag 	: 'f'	{ $$ = SCHEDULE_FIFO; }			/* First come first served.		*/
 
 proc_sched_quantum 	: 'c'	{ $$ = SCHEDULE_CFS; }			/* Completely fair share		*/
     			| 's'	{ $$ = SCHEDULE_PS; }			/* Processor Sharing.			*/
-			| 'H'	{ $$ = SCHEDULE_PS_HOL; }		/* Processor Sharing.			*/
-			| 'P'	{ $$ = SCHEDULE_PS_PPR; }		/* Processor Sharing.			*/
     			;
 
 proc_opts		: proc_flags proc_opts

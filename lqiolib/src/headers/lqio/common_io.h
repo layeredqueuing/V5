@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: common_io.h 15362 2022-01-05 14:09:18Z greg $
+ *  $Id: common_io.h 15906 2022-09-25 12:52:43Z greg $
  *
  *  Greg Franks
  */
@@ -7,6 +7,7 @@
 #ifndef __LQIO_COMMON_IO
 #define __LQIO_COMMON_IO
 
+#if defined(__cplusplus)
 #include <string>
 #include <ostream>
 #include <map>
@@ -113,7 +114,6 @@ namespace LQIO {
 
 	public:
 	    Common_IO();
-
 	    class Compare {
 	    public:
 		Compare() {}
@@ -132,7 +132,7 @@ namespace LQIO {
 	    const ConfidenceIntervals _conf_95;
 	    const ConfidenceIntervals _conf_99;
 
-	    static std::map<const char *,const scheduling_type,Common_IO::Compare> scheduling_table;
+	    static std::map<const std::string,const scheduling_type> scheduling_table;
 
 	private:
 	    static std::ostream& printSVNId( std::ostream& output ) { output << "$" << "Id" << "$"; return output; }
@@ -214,5 +214,15 @@ namespace LQIO {
     std::string ltrim(const std::string& s);
     std::string rtrim(const std::string& s);
 }
+#endif
 
+/* flex scanner */
+#if defined(__cplusplus)
+extern "C" {
+#endif
+    extern char * lqio_duplicate_string( char * str, int len );
+    extern char * lqio_duplicate_comment( char * str, int len );
+#if defined(__cplusplus)
+}
+#endif
 #endif

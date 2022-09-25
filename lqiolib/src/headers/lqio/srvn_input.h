@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.h 15880 2022-09-21 12:52:01Z greg $
+ *  $Id: srvn_input.h 15895 2022-09-23 17:21:55Z greg $
  *  libsrvnio2
  *
  *  Created by Martin Mroz on 24/02/09.
@@ -15,7 +15,6 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-    extern unsigned srvnlinenumber;		/* See srvn_scan.l, srvn_gram.y */
     extern int srvnstart_token;			/* */
 	
     void * srvn_add_processor(const char *processor_name, scheduling_type scheduling_flag, void * cpu_quantum );

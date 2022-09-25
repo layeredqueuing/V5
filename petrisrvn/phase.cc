@@ -492,7 +492,7 @@ Phase::release_processor( struct trans_object * c_trans, const unsigned m, const
 	    create_arc( PROC_LAYER, TO_PLACE, this->doneX[m], processor()->PX );
 	}
 #endif
-	if ( bit_test( processor()->get_scheduling(), SCHED_PPR_BIT|SCHED_HOL_BIT ) ) {
+	if ( processor()->has_priority_scheduling() ) {
 	    create_arc( PROC_LAYER, TO_PLACE, c_trans, no_place( "Prio%d%s", task()->priority(), processor()->name() ) );
 	}
     }

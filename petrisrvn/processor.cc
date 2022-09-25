@@ -83,14 +83,13 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 	dom->setSchedulingType( Pragma::__pragmas->processor_scheduling() );
     }
 	
-    scheduling_type scheduling = dom->getSchedulingType();
-    if ( !bit_test( scheduling, SCHED_PPR_BIT|SCHED_HOL_BIT|SCHED_FIFO_BIT|SCHED_DELAY_BIT|SCHED_RAND_BIT|SCHED_PS_BIT ) ) {
-	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling].str );
-	scheduling = SCHEDULE_FIFO;
-    }
-
     Processor * processor = new Processor( dom );
+    scheduling_type scheduling = dom->getSchedulingType();
     processor->set_scheduling( scheduling );
+    if ( !processor->scheduling_is_ok() ) {
+	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(scheduling).str.c_str() );
+	processor->set_scheduling( SCHEDULE_FIFO );
+    }
     __processor.push_back( processor );
 }
 
@@ -106,7 +105,7 @@ Processor::initialize()
 {
     if ( get_scheduling() == SCHEDULE_PS ) {
 	if ( n_tasks() > 1 || _tasks[0]->multiplicity() > 1 || _tasks[0]->n_threads() > 1 ) {
-	    get_dom()->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[get_scheduling()].str );
+	    get_dom()->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(get_scheduling()).str.c_str() );
 	    const_cast<LQIO::DOM::Entity *>(get_dom())->setSchedulingType( SCHEDULE_FIFO );
 	}
     }
@@ -162,6 +161,15 @@ bool Processor::is_single_place_processor() const
 	|| is_infinite();
 }
 
+bool Processor::scheduling_is_ok() const
+{
+    return is_infinite() && get_scheduling() == SCHEDULE_DELAY
+	|| multiplicity() == 1 && ( get_scheduling() == SCHEDULE_HOL
+				    || get_scheduling() == SCHEDULE_PPR )
+	|| get_scheduling() == SCHEDULE_FIFO
+	|| get_scheduling() == SCHEDULE_RAND;
+}
+
 
 /* static */ unsigned
 Processor::set_queue_length( void )
@@ -210,7 +218,7 @@ Processor::set_queue_length( void )
 
 	}
 
-	if ( curr_proc->scheduling_is_ok( SCHED_PPR_BIT|SCHED_HOL_BIT ) ) {
+	if ( curr_proc->has_priority_scheduling() ) {
 	    max_count += 2;
 	}
 
@@ -265,7 +273,7 @@ Processor::transmorgrify( unsigned max_count )
 			
 	    /* Create Priority places */
 
-	    if ( scheduling_is_ok( SCHED_PPR_BIT|SCHED_HOL_BIT ) ) {
+	    if ( has_priority_scheduling() ) {
 		prio_place = create_place( x_pos, y_pos + max_count,
 					   PROC_LAYER, 1,
 					   "Prio%d%s", start_prio, name() );
@@ -513,7 +521,7 @@ Processor::get_waiting( const Phase& phase ) const
 	for ( unsigned int j = 1; j < count; j++ ) {
 	    tokens += get_pmmean( "PI%s%s00%d", name(), phase.name(), j );
 	}
-	if ( scheduling_is_ok( SCHED_PPR_BIT|SCHED_HOL_BIT ) ) {
+	if ( has_priority_scheduling() ) {
 	    tokens += get_pmmean( "PR%s%s00", name(), phase.name() );
 	}
 	tput = get_tput( IMMEDIATE, "preq%s%s00", name(), phase.name() );

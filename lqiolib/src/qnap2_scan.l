@@ -19,7 +19,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include "qnap2_gram.h"
-
+#include "common_io.h"
+    
 extern YYSTYPE qnap2lval;
 
 #if	defined(__cplusplus)
@@ -28,7 +29,6 @@ extern YYSTYPE qnap2lval;
 #define	INPUT	input
 #endif
 
-extern char * dup_qnap2text( char * str, int len );
 %}
 
 D	[0-9]
@@ -47,7 +47,20 @@ S	[+-/*().,:;=<>"]
 "<="			return QNAP_LESS_EQUAL;
 ">="			return QNAP_GREATER_EQUAL;
 "**"			return QNAP_POWER;
-":="	 		return QNAP_ASSIGNMEMT;
+":="	 		return QNAP_ASSIGNMENT;
+
+\"[^"]*			{
+    			    if ( qnap2text[qnap2leng-1] == '\\' ) {
+				yymore();
+			    } else {
+				char c = INPUT();
+				if ( c != '"' ) {
+				    unput( c );
+				}
+				qnap2lval.aString = lqio_duplicate_comment( &qnap2text[1], qnap2leng-1 );
+				return STRING;
+			    }
+			}
 
 "/control/"		return QNAP_CONTROL;
 "/declare/"		return QNAP_DECLARE;
@@ -58,11 +71,10 @@ S	[+-/*().,:;=<>"]
 "/station/"		return QNAP_STATION;
 "/terminal/"		return QNAP_TERMINAL;
 
-all			return QNAP_ALL;
+all			return QNAP_ALL;	/* Reserved words */
 and			return QNAP_AND;
 any			return QNAP_ANY;
 begin			return QNAP_BEGIN;
-class			return QNAP_CLASS;
 do			return QNAP_DO;
 else			return QNAP_ELSE;
 end			return QNAP_END;
@@ -73,68 +85,54 @@ generic			return QNAP_GENERIC;
 goto			return QNAP_GOTO;
 if			return QNAP_IF;
 in			return QNAP_IN;
-init			return QNAP_INIT;
-integer			return QNAP_INTEGER;
 is			return QNAP_IS;
-name			return QNAP_NAME;
 nil			return QNAP_NIL;
 not			return QNAP_NOT;
 object			return QNAP_OBJECT;
 or			return QNAP_OR;
-prio			return QNAP_PRIO;
-queue			return QNAP_QUEUE;
-quantum			return QNAP_QUANTUM;
-rate			return QNAP_RATE;
-real			return QNAP_REAL;
 ref			return QNAP_REF;
 repeat			return QNAP_REPEAT;
-sched			return QNAP_SCHED;
-service			return QNAP_SERVICE;
 step			return QNAP_STEP;
 then			return QNAP_THEN;
-transit			return QNAP_TRANSIT;
 true			return QNAP_TRUE;
-type			return QNAP_TYPE;
 until			return QNAP_UNTIL;
 var			return QNAP_VAR;
 watched			return QNAP_WATCHED;
 while			return QNAP_WHILE;
 with			return QNAP_WITH;
 
+boolean			{ qnap2lval.aCode = QNAP_BOOLEAN; return QNAP_BOOLEAN; }
+class			return QNAP_CLASS;	/* Other */
+init			return QNAP_INIT;
+integer			{ qnap2lval.aCode = QNAP_INTEGER; return QNAP_INTEGER; }
+name			return QNAP_NAME;
+prio			return QNAP_PRIO;
+quantum			return QNAP_QUANTUM;
+queue			return QNAP_QUEUE;
+rate			return QNAP_RATE;
+real			{ qnap2lval.aCode = QNAP_REAL; return QNAP_REAL; }
+sched			return QNAP_SCHED;
+service			return QNAP_SERVICE;
+string			{ qnap2lval.aCode = QNAP_STRING; return QNAP_STRING; }
+transit			return QNAP_TRANSIT;
+type			return QNAP_TYPE;
 
 {S}			return *qnap2text;
 {D}+			{
-    				qnap2lval.anInt = strtoul( (const char *)&qnap2text[0], 0, 10 );
+    				qnap2lval.aLong = strtoul( (const char *)&qnap2text[0], 0, 10 );
 				if ( errno == ERANGE ) {
 				    errno = 0; /* Reset for next conversion */
-				    qnap2lval.aString = dup_qnap2text( &qnap2text[0], qnap2leng-1 );
+				    qnap2lval.aString = lqio_duplicate_string( &qnap2text[0], qnap2leng-1 );
 				    return RANGE_ERR;
 				} else {
-				    return QNAP_INTEGER;
+				    return LONG;
 				}
     
 			}
 
 {D}+"."{D}*({E})?	|
 {D}*"."{D}+({E})?	|
-{D}+{E}			{ return QNAP_REAL; }
+{D}+{E}			{ return DOUBLE; }
 
-({C}|{U})({C}|{D}|{U})*	{ qnap2lval.aString = dup_qnap2text( &qnap2text[0], qnap2leng ); return QNAP_IDENTIFIER; }
+({C}|{U})({C}|{D}|{U})*	{ qnap2lval.aString = lqio_duplicate_string( &qnap2text[0], qnap2leng ); return QNAP_IDENTIFIER; }
 %%
-/*
- * Copy str to mallocated storage.
- */
-
-char *
-dup_qnap2text( char * str, int len )
-{
-    char * p = (char *)malloc( (unsigned)len+1 );
-
-    if ( p ) {
-	(void) strncpy( p, (char *)str, len );
-	/* strip trailing whitespace */
-	for ( ; len > 0 && isspace( p[len-1] ); len-- );
-	p[len] = '\0';
-    }
-    return p;
-}

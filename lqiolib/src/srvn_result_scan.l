@@ -8,18 +8,18 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_result_scan.l 15880 2022-09-21 12:52:01Z greg $
+ * $Id: srvn_result_scan.l 15906 2022-09-25 12:52:43Z greg $
  */
 %option noyywrap yylineno
 
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include "common_io.h"
 #include "srvn_results.h"
 #include "srvn_result_gram.h"
 
 extern YYSTYPE resultlval;
-extern char * dup_srvntext( char * str, int len );
 static double time_to_double( const char * time );
 static char * dup_strip_text( char * src, int len );
 
@@ -91,8 +91,8 @@ Z			return(SNR_WAITING_FLAG);
 {C}			{ resultlval.aChar = *resulttext; return CHAR; }
 infinity		{ resultlval.aString = (char *)&resulttext[0]; return INFTY; }
 [.iI][nN][fF]		{ resultlval.aString = (char *)&resulttext[0]; return INFTY; }
-({U})*{C}({C}|{D}|{U})+	{ resultlval.aString = dup_srvntext( &resulttext[0], resultleng ); return SYMBOL; }
-{V}({C}|{D}|{U})+	{ resultlval.aString = dup_srvntext( (char *)&resulttext[0], resultleng ); return VARIABLE; }
+({U})*{C}({C}|{D}|{U})+	{ resultlval.aString = lqio_duplicate_string( &resulttext[0], resultleng ); return SYMBOL; }
+{V}({C}|{D}|{U})+	{ resultlval.aString = lqio_duplicate_string( (char *)&resulttext[0], resultleng ); return VARIABLE; }
 .			{ resultlval.aString = (char *)&resulttext[0]; return TEXT; }
 
 %%
@@ -113,5 +113,5 @@ static double time_to_double( const char * time )
 static char * dup_strip_text( char * s, int len )
 {
     while ( (*s == ' ' || *s == '\t') && len > 0 ) { ++s; --len; }	/* Skip leading white space */
-    return dup_srvntext( s, len );
+    return lqio_duplicate_string( s, len );
 }

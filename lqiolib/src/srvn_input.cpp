@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 15880 2022-09-21 12:52:01Z greg $
+ *  $Id: srvn_input.cpp 15895 2022-09-23 17:21:55Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -121,15 +121,13 @@ srvn_add_processor( const char *processor_name, scheduling_type scheduling_flag,
 	     || scheduling_flag == SCHEDULE_HOL
 	     || scheduling_flag == SCHEDULE_PPR
 	     || scheduling_flag == SCHEDULE_RAND ) {
-	    processor->input_error( LQIO::WRN_QUANTUM_SCHEDULING, scheduling_label[scheduling_flag].str );
+	    processor->input_error( LQIO::WRN_QUANTUM_SCHEDULING, scheduling_label.at(scheduling_flag).str.c_str() );
 	} else {
 	    processor->setQuantum( static_cast<LQIO::DOM::ExternalVariable *>(cpu_quantum) );
 	}
     } else if ( scheduling_flag == SCHEDULE_CFS 
-		|| scheduling_flag == SCHEDULE_PS
-		|| scheduling_flag == SCHEDULE_PS_HOL
-		|| scheduling_flag == SCHEDULE_PS_PPR) {
-	processor->input_error( LQIO::ERR_NO_QUANTUM_SCHEDULING, scheduling_label[scheduling_flag].str );
+		|| scheduling_flag == SCHEDULE_PS ) {
+	processor->input_error( LQIO::ERR_NO_QUANTUM_SCHEDULING, scheduling_label.at(scheduling_flag).str.c_str() );
     }
 
     /* Map into the document */

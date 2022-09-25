@@ -51,7 +51,7 @@ public:
 
     bool is_single_place_processor() const;
     
-    void remove_netobj() { PX = 0; }
+    void remove_netobj() { PX = nullptr; }
     void initialize();
     void transmorgrify( unsigned max_count );
 
@@ -59,6 +59,9 @@ public:
 
     static Processor * find( const std::string& name  );
     static unsigned set_queue_length();
+
+protected:
+    virtual bool scheduling_is_ok() const;
 
 private:
     double make_queue( double x_pos, double y_pos, const int priority,

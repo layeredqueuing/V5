@@ -39,19 +39,6 @@ scheduling_type Place::get_scheduling() const
     return _dom->getSchedulingType(); 
 }
 
-/*
- * Check the scheduling type.  Return the default type if the value
- * supplied is not kosher.  Overridden by subclasses if the scheduling
- * type can be something other than FIFO.
- */
-
-bool
-Place::scheduling_is_ok( const unsigned bits ) const
-{
-    return bit_test( static_cast<unsigned>(get_scheduling()), bits );
-}
-
-
 
 /*
  * We need a way to fake out infinity... so if copies is infinite, then we change to an infinite server.

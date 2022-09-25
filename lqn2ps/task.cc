@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15755 2022-07-24 10:34:56Z greg $
+ * $Id: task.cc 15894 2022-09-23 14:04:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2757,7 +2757,7 @@ Task::create( const LQIO::DOM::Task* task_dom, std::vector<Entry *>& entries )
 	break;
 
     default:
-	task_dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[(unsigned)sched_type].str );
+	task_dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(sched_type).str.c_str() );
 	task = new ServerTask( task_dom, processor, share, entries );
 	break;
     }

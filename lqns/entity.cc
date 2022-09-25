@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15863 2022-09-13 23:06:14Z greg $
+ * $Id: entity.cc 15895 2022-09-23 17:21:55Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -158,8 +158,8 @@ Entity::configure( const unsigned nSubmodels )
 bool
 Entity::check() const
 {
-    if ( !schedulingIsOk( validScheduling() ) ) {
-	getDOM()->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[(unsigned)scheduling()].str );
+    if ( !schedulingIsOK() ) {
+	getDOM()->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(scheduling()).str.c_str() );
 	getDOM()->setSchedulingType(defaultScheduling());
     }
     return true;
@@ -387,34 +387,6 @@ Entity::markovOvertaking() const
 		   && !isInfinite()
 		   && Pragma::overtaking( Pragma::Overtaking::MARKOV ) );
 }
-
-
-
-/*
- * Return the scheduling type allowed for this object.  Overridden by
- * subclasses if the scheduling type can be something other than FIFO.
- */
-
-unsigned
-Entity::validScheduling() const
-{
-    return 1 << static_cast<unsigned>(defaultScheduling());
-}
-
-
-
-/*
- * Check the scheduling type.  Return the default type if the value
- * supplied is not kosher.  Overridden by subclasses if the scheduling
- * type can be something other than FIFO.
- */
-
-bool
-Entity::schedulingIsOk( const unsigned bits ) const
-{
-    return ((1 << static_cast<unsigned>(scheduling())) & bits ) != 0;
-}
-
 
 
 /*

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_scan.l 15891 2022-09-22 21:48:30Z greg $
+ * $Id: srvn_scan.l 15906 2022-09-25 12:52:43Z greg $
  */
 %option noyywrap yylineno
 
@@ -18,6 +18,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include "common_io.h"
 #include "srvn_input.h"
 #include "srvn_gram.h"
 
@@ -31,8 +32,6 @@ extern YYSTYPE srvnlval;
 
 int srvnstart_token = 0;
 
-extern char * dup_srvntext( char * str, int len );
-static char * dup_comment( char * str, int len );
 static int get_result_phase( char );
 %}
 
@@ -72,7 +71,7 @@ P	[0123]?
  					if ( c != '"' ) {
 						unput( c );
 					}
-					srvnlval.aString = dup_comment( &srvntext[1], srvnleng-1 );
+					srvnlval.aString = lqio_duplicate_comment( &srvntext[1], srvnleng-1 );
 					return(TEXT);
 				}
 			}
@@ -95,7 +94,7 @@ P	[0123]?
 				srvnlval.anInt = strtoul( (const char *)&srvntext[0], 0, 10 );
 				if ( errno == ERANGE ) {
 				    errno = 0; /* Reset for next conversion */
-				    srvnlval.aString = dup_srvntext( &srvntext[0], srvnleng-1 );
+				    srvnlval.aString = lqio_duplicate_string( &srvntext[0], srvnleng-1 );
 				    return RANGE_ERR;
 				} else {
 				    return INTEGER;
@@ -108,7 +107,7 @@ P	[0123]?
 				srvnlval.aFloat = strtod( (const char *)&srvntext[0], 0 );
 				if ( errno == ERANGE ) {
 				    errno = 0;	/* Reset for next conversion */
-				    srvnlval.aString = dup_srvntext( &srvntext[0], srvnleng-1 );
+				    srvnlval.aString = lqio_duplicate_string( &srvntext[0], srvnleng-1 );
 				    return RANGE_ERR;
 				} else {
 				    return FLOAT;
@@ -116,10 +115,10 @@ P	[0123]?
 			}
 
 
-({C}|{U})({C}|{D}|{U})+	{ srvnlval.aString = dup_srvntext( &srvntext[0], srvnleng ); return SYMBOL; }
+({C}|{U})({C}|{D}|{U})+	{ srvnlval.aString = lqio_duplicate_string( &srvntext[0], srvnleng ); return SYMBOL; }
 
-{V}solver.*		{ srvnlval.aString = dup_srvntext( &srvntext[0], srvnleng ); return SOLVER; }
-{V}({C}|{D}|{U})+	{ srvnlval.aString = dup_srvntext( &srvntext[0], srvnleng ); return VARIABLE; }
+{V}solver.*		{ srvnlval.aString = lqio_duplicate_string( &srvntext[0], srvnleng ); return SOLVER; }
+{V}({C}|{D}|{U})+	{ srvnlval.aString = lqio_duplicate_string( &srvntext[0], srvnleng ); return VARIABLE; }
 {X}infinity		{ return CONST_INFINITY; }
 
 {K}f			{ srvnlval.anInt = 0; return KEY_THROUGHPUT; }
@@ -139,53 +138,9 @@ P	[0123]?
 
 ({C}|{S})		return *srvntext;
 
-.			{ srvnlval.aString = dup_srvntext( &srvntext[0], srvnleng ); return TEXT; }
+.			{ srvnlval.aString = lqio_duplicate_string( &srvntext[0], srvnleng ); return TEXT; }
 
 %%
-/*
- * Copy str to mallocated storage.
- */
-
-char *
-dup_srvntext( char * str, int len )
-{
-    char * p = (char *)malloc( (unsigned)len+1 );
-
-    if ( p ) {
-	(void) strncpy( p, (char *)str, len );
-	/* strip trailing whitespace */
-	for ( ; len > 0 && isspace( p[len-1] ); len-- );
-	p[len] = '\0';
-    }
-    return p;
-}
-
-
-/*
- * Copy str to mallocated storage.
- * Strip out '\' sequences.
- */
-
-static char *
-dup_comment( char * str, int len )
-{
-    char * p = (char *)malloc( (unsigned)len+1 );
-    char * q = p;
-
-    if ( p ) {
-	while ( *str && len ) {
-	    if ( *str != '\\' ) {
-		*p++ = *str;
-	    }
-	    ++str;
-	    --len;
-	}
-	*p = '\0';
-    }
-    return q;
-}
-
-
 static int
 get_result_phase( char c )
 {

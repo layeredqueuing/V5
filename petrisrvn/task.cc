@@ -158,28 +158,20 @@ Task::create( const LQIO::DOM::Task * dom )
 	return nullptr;
     }
 
-    if ( !LQIO::DOM::Common_IO::is_default_value( dom->getPriority(), 0. ) && ( bit_test( processor->get_scheduling(), SCHED_FIFO_BIT|SCHED_PS_BIT|SCHED_RAND_BIT ) ) ) {
+    if ( !LQIO::DOM::Common_IO::is_default_value( dom->getPriority(), 0. ) && ( !processor->has_priority_scheduling() ) ) {
 	dom->input_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, processor->name() );
     }
 
     /* Override scheduling */
 
     scheduling_type scheduling = dom->getSchedulingType();
-    if ( !bit_test( scheduling, SCHED_BURST_BIT|SCHED_UNIFORM_BIT|SCHED_CUSTOMER_BIT|SCHED_DELAY_BIT|SCHED_SEMAPHORE_BIT) ) {
-	if ( dom->isInfinite() ) {
-	    scheduling = SCHEDULE_DELAY;
-	} else if ( !Pragma::__pragmas->default_task_scheduling() ) {
-	    scheduling = Pragma::__pragmas->task_scheduling();
-	}
-    }
-
     Task * task = nullptr;
 
     switch ( scheduling ) {
     case SCHEDULE_BURST:
     case SCHEDULE_UNIFORM:
-	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling].str );
-	/* fall through */
+	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(scheduling).str.c_str() );
+	/* Fall through */
     case SCHEDULE_CUSTOMER:
 	if ( dom->hasQueueLength() ) {
 	    LQIO::input_error2( LQIO::WRN_TASK_QUEUE_LENGTH, task_name.c_str() );
@@ -189,13 +181,14 @@ Task::create( const LQIO::DOM::Task * dom )
 	}
 	task = new Task( dom, Task::Type::REF_TASK, processor );
 	break;
-	
-    case SCHEDULE_PPR:
-    case SCHEDULE_HOL:
-	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling].str );
-	/* fall through */
-    case SCHEDULE_FIFO:
+
     default:
+	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(scheduling).str.c_str() );
+	if ( !Pragma::__pragmas->default_task_scheduling() ) {
+	    scheduling = Pragma::__pragmas->task_scheduling();
+	}
+	/* Fall Through */
+    case SCHEDULE_FIFO:
 	if ( dom->hasThinkTime() ) {
 	    dom->runtime_error( LQIO::ERR_NON_REF_THINK_TIME );
 	}
@@ -389,6 +382,17 @@ bool Task::is_single_place_task() const
     return type() == Task::Type::REF_TASK && (customers_flag
 				  || (n_threads() > 1 && !processor()->is_infinite()));
 }
+
+bool Task::scheduling_is_ok() const
+{
+    return is_infinite() && get_scheduling() == SCHEDULE_DELAY
+	|| !is_infinite() && get_scheduling() == SCHEDULE_CUSTOMER
+	|| multiplicity() != 1 && ( get_scheduling() == SCHEDULE_HOL
+				 || get_scheduling() == SCHEDULE_SEMAPHORE )
+	|| get_scheduling() == SCHEDULE_FIFO
+	|| get_scheduling() == SCHEDULE_RAND;
+}
+
 
 unsigned int Task::ref_count() const
 {

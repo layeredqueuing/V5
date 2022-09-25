@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 15818 2022-08-12 17:58:53Z greg $
+ * $Id: entity.h 15895 2022-09-23 17:21:55Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -211,8 +211,6 @@ public:
     bool isReplicated() const		{ return replicas() > 1; }
     bool isPruned() const		{ return _pruned; }
 
-    bool schedulingIsOk( const unsigned bits ) const;
-
     const std::vector<Entry *>& entries() const { return _entries; }
     Entity& addEntry( Entry * );
     Entry * entryAt( const unsigned index ) const { return _entries.at(index); }
@@ -269,7 +267,7 @@ public:
 	
 protected:
     Entity& setUtilization( double );
-    virtual unsigned validScheduling() const;
+    virtual bool schedulingIsOK() const = 0;
     virtual scheduling_type defaultScheduling() const { return SCHEDULE_FIFO; }
     virtual double computeUtilization( const MVASubmodel& );
 	

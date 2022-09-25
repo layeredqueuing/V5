@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 15839 2022-08-16 13:39:53Z greg $
+ * $Id: pragma.cc 15895 2022-09-23 17:21:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -16,6 +16,7 @@
 #include <lqio/getsbopt.h>
 #endif
 #include <lqio/dom_pragma.h>
+#include <lqio/common_io.h>
 #include <lqio/labels.h>
 #include <lqio/input.h>
 #include <lqio/glblerr.h>
@@ -181,10 +182,12 @@ Pragma::usage( std::ostream& output )
 scheduling_type
 Pragma::str_to_scheduling_type( const std::string& s )
 {
-    for ( unsigned i = 0; i < N_SCHEDULING_TYPES; ++i ) {
-	if ( s.compare( ::scheduling_label[i].XML ) == 0 ) {
-	    return static_cast<scheduling_type>(i);
-	}
-    }
+    static const std::map<const std::string,const scheduling_type> scheduling_pragma = {
+	{ LQIO::SCHEDULE::DELAY,  SCHEDULE_DELAY },
+	{ LQIO::SCHEDULE::FIFO,   SCHEDULE_FIFO },
+	{ LQIO::SCHEDULE::RAND,   SCHEDULE_RAND }
+    };
+    std::map<const std::string, const scheduling_type>::const_iterator i = scheduling_pragma.find(s);
+    if ( i == scheduling_pragma.end() ) return i->second;
     throw std::domain_error( s );
 }

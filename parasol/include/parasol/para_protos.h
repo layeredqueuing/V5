@@ -1,4 +1,4 @@
-/* $Id: para_protos.h 15456 2022-03-09 15:06:35Z greg $ */
+/* $Id: para_protos.h 15895 2022-09-23 17:21:55Z greg $ */
 
 /************************************************************************/
 /*	para_protos.h - PARASOL library prototype and macro file	*/
@@ -124,14 +124,13 @@ extern	ps_table_t	ps_stat_tab;
 
 /*	Queueing discipline codes					*/
 
-#define	FCFS	0			/* first come first served	*/
-#define	FIFO	0			/* first in first out		*/
-#define	HOL	1			/* head of the line (priority)	*/
-#define	NP	1			/* non-preemptive priority	*/
-#define	PR	2			/* preemptive resume priority	*/
-#define	RAND	3			/* random			*/
-#define	LIFO	4			/* last in first out		*/
-#define CFS 	5			/* Completely Fair Share*/
+#define	PS_FIFO	0			/* first come first served	*/
+#define	PS_HOL	1			/* head of the line (priority)	*/
+#define	PS_NP	1			/* non-preemptive priority	*/
+#define	PS_PR	2			/* preemptive resume priority	*/
+#define	PS_RAND	3			/* random			*/
+#define	PS_LIFO	4			/* last in first out		*/
+#define PS_CFS 	5			/* Completely Fair Share*/
 
 /* 	Task states and flags						*/
 

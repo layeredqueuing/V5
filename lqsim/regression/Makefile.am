@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15850 2022-08-18 21:08:43Z greg $
+# $Id: Makefile.am 15899 2022-09-23 19:57:25Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -110,7 +110,7 @@ all:
 clean:
 	@-rm -f $(OBJS) *.out 
 	@-rm -rf $(OBJS2)
-	@-rf -rf 5*-replication-flat.*
+	@-rm -rf 5*-replication-flat.*
 
 distclean:	clean 
 	-rm -f Makefile

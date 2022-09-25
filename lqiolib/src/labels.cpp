@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: labels.cpp 13996 2020-10-24 22:01:20Z greg $
+ * $Id: labels.cpp 15895 2022-09-23 17:21:55Z greg $
  */
 
 #include "input.h"
@@ -57,22 +57,35 @@ namespace LQIO {
  * Scheduling types.
  */
 
-const struct scheduling_label_t scheduling_label[N_SCHEDULING_TYPES] =
-{
+const char * LQIO::SCHEDULE::CUSTOMER	= "ref";
+const char * LQIO::SCHEDULE::DELAY	= "inf";
+const char * LQIO::SCHEDULE::FIFO	= "fcfs";
+const char * LQIO::SCHEDULE::LIFO	= "lcfs";
+const char * LQIO::SCHEDULE::HOL	= "hol";
+const char * LQIO::SCHEDULE::PPR	= "pri";
+const char * LQIO::SCHEDULE::RAND	= "rand";
+const char * LQIO::SCHEDULE::PS	    	= "ps";
+const char * LQIO::SCHEDULE::POLL	= "poll";
+const char * LQIO::SCHEDULE::BURST	= "burst";
+const char * LQIO::SCHEDULE::UNIFORM	= "uniform";
+const char * LQIO::SCHEDULE::SEMAPHORE  = "semaphore";
+const char * LQIO::SCHEDULE::CFS	= "cfs";
+const char * LQIO::SCHEDULE::RWLOCK	= "rwlock";
 
-    { "CUST",	      "ref",	   'r' },
-    { "DELAY",	      "inf",	   'i' },
-    { "FCFS",	      "fcfs",	   'f' },
-    { "HOL",	      "hol",	   'h' },
-    { "PPR",	      "pri",	   'p' },
-    { "RAND",	      "rand",	   'r' },
-    { "PS",	      "ps",	   's' },
-    { "PS-HOL",	      "ps-hol",	   'H' },
-    { "PS-PPR",	      "ps-pri",	   'P' },	/* Proc */
-    { "POLL",	      "poll",	   'P' },	/* Task */
-    { "BURST",	      "burst",	   'b' },
-    { "UNIFORM",      "uniform",   'u' },
-    { "SEMAPHORE",    "semaphore", 'S' },
-    { "CFS",	      "cfs",	   'c' },
-    { "RWLOCK",	      "rwlock",	   'w' }
+const std::map<const scheduling_type,const LQIO::SCHEDULE::label_t> scheduling_label = 
+{
+    { SCHEDULE_CUSTOMER,    { "CUST",	      LQIO::SCHEDULE::CUSTOMER,    'r' } },
+    { SCHEDULE_DELAY,       { "DELAY",	      LQIO::SCHEDULE::DELAY,       'i' } },
+    { SCHEDULE_FIFO,        { "FCFS",	      LQIO::SCHEDULE::FIFO,        'f' } },
+    { SCHEDULE_LIFO,        { "LCFS",	      LQIO::SCHEDULE::LIFO,        'l' } },
+    { SCHEDULE_HOL,         { "HOL",	      LQIO::SCHEDULE::HOL,         'h' } },
+    { SCHEDULE_PPR,         { "PPR",	      LQIO::SCHEDULE::PPR,         'p' } },
+    { SCHEDULE_RAND,        { "RAND",	      LQIO::SCHEDULE::RAND,        'r' } },
+    { SCHEDULE_PS,          { "PS",	      LQIO::SCHEDULE::PS,          's' } },
+    { SCHEDULE_POLL,        { "POLL",	      LQIO::SCHEDULE::POLL,        'P' } },	/* Task */
+    { SCHEDULE_BURST,       { "BURST",	      LQIO::SCHEDULE::BURST,       'b' } },
+    { SCHEDULE_UNIFORM,     { "UNIFORM",      LQIO::SCHEDULE::UNIFORM,     'u' } },
+    { SCHEDULE_SEMAPHORE,   { "SEMAPHORE",    LQIO::SCHEDULE::SEMAPHORE,   'S' } },
+    { SCHEDULE_CFS,         { "CFS",	      LQIO::SCHEDULE::CFS,         'c' } },
+    { SCHEDULE_RWLOCK,      { "RWLOCK",	      LQIO::SCHEDULE::RWLOCK,      'w' } }
 };

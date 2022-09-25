@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 15819 2022-08-12 18:26:27Z greg $ *
+ * $Id: pragma.cc 15895 2022-09-23 17:21:55Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -301,12 +301,12 @@ void Pragma::setOvertaking(const std::string& value)
 void Pragma::setProcessorScheduling(const std::string& value)
 {
     static const std::map<const std::string,const scheduling_type> __processor_scheduling_pragma = {
-	{ scheduling_label[SCHEDULE_DELAY].XML,	SCHEDULE_DELAY },
-	{ scheduling_label[SCHEDULE_FIFO].XML,	SCHEDULE_FIFO },
-	{ scheduling_label[SCHEDULE_HOL].XML,	SCHEDULE_HOL },
-	{ scheduling_label[SCHEDULE_PPR].XML,	SCHEDULE_PPR },
-	{ scheduling_label[SCHEDULE_PS].XML,	SCHEDULE_PS },
-	{ scheduling_label[SCHEDULE_RAND].XML,	SCHEDULE_RAND }
+	{ LQIO::SCHEDULE::DELAY,  SCHEDULE_DELAY },
+	{ LQIO::SCHEDULE::FIFO,   SCHEDULE_FIFO },
+	{ LQIO::SCHEDULE::HOL,    SCHEDULE_HOL },
+	{ LQIO::SCHEDULE::PPR,    SCHEDULE_PPR },
+	{ LQIO::SCHEDULE::PS,     SCHEDULE_PS },
+	{ LQIO::SCHEDULE::RAND,   SCHEDULE_RAND }
     };
 
     const std::map<const std::string,const scheduling_type>::const_iterator pragma = __processor_scheduling_pragma.find( value );
@@ -447,8 +447,8 @@ void Pragma::setStopOnMessageLoss(const std::string& value)
 void Pragma::setTaskScheduling(const std::string& value)
 {
     static const std::map<const std::string,const scheduling_type> __task_scheduling_pragma = {
-	{ scheduling_label[SCHEDULE_DELAY].XML,	SCHEDULE_DELAY },
-	{ scheduling_label[SCHEDULE_FIFO].XML,	SCHEDULE_FIFO }
+	{ LQIO::SCHEDULE::DELAY,    SCHEDULE_DELAY },
+	{ LQIO::SCHEDULE::FIFO,	    SCHEDULE_FIFO }
     };
 
     const std::map<const std::string,const scheduling_type>::const_iterator pragma = __task_scheduling_pragma.find( value );

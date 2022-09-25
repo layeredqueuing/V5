@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 15891 2022-09-22 21:48:30Z greg $
+ * $Id: qnap2_document.cpp 15907 2022-09-25 13:18:18Z greg $
  *
  * Read in XML input files.
  *
@@ -35,6 +35,7 @@
 #include <sys/mman.h>
 #endif
 #include <lqx/SyntaxTree.h>
+#include <lqx/SyntaxTree.h>
 #include "common_io.h"
 #include "dom_entry.h"
 #include "dom_phase.h"
@@ -45,10 +46,9 @@
 #include "glblerr.h"
 #include "input.h"
 #include "qnap2_document.h"
+#include "qnap2_gram.h"
 
 extern "C" {
-
-    
     struct yy_buffer_state;
     extern int qnap2parse();
     extern void qnap2error( const char *, ... );
@@ -68,31 +68,253 @@ namespace BCMP {
 	{ SCHEDULE_CUSTOMER,"infinite" },
 	{ SCHEDULE_DELAY,   "infinite" },
 	{ SCHEDULE_FIFO,    "fifo" },
-	{ SCHEDULE_PPR,     "prior" },
+	{ SCHEDULE_PPR,     "preempt" },
+	{ SCHEDULE_HOL,     "prior" },
 	{ SCHEDULE_PS, 	    "ps" }
     };
 
     std::map<const std::string,const scheduling_type> QNAP2_Document::__scheduling_type = {
-	{ "infinite", SCHEDULE_DELAY },
-	{ "fifo",     SCHEDULE_FIFO },
-	{ "prior",    SCHEDULE_PPR },
-	{ "ps",       SCHEDULE_PS }
+	{ "fcfs", 	SCHEDULE_FIFO },
+	{ "fifo",     	SCHEDULE_FIFO },
+	{ "lifo",     	SCHEDULE_LIFO },
+	{ "preempt",   	SCHEDULE_PPR },
+	{ "prior",    	SCHEDULE_HOL },
+	{ "ps",       	SCHEDULE_PS }
     };
 
     std::map<const std::string,const BCMP::Model::Station::Type> QNAP2_Document::__station_type = {
-	{ "infinite", BCMP::Model::Station::Type::DELAY },
+	{ "infinite", 	BCMP::Model::Station::Type::DELAY },
+	{ "single", 	BCMP::Model::Station::Type::LOAD_INDEPENDENT },
+	{ "multiple", 	BCMP::Model::Station::Type::MULTISERVER },
+	{ "source", 	BCMP::Model::Station::Type::SOURCE },
+    };
+}
+
+/* ------------------------------------------------------------------------ */
+/* Parser ingterface.							    */
+/* ------------------------------------------------------------------------ */
+
+/*
+ * Append item to list.  Create list if not present.
+ */
+
+void *
+qnap2_append_identifier( void * list, void * item )
+{
+    if ( item == nullptr ) return list;
+    if ( list == nullptr ) list = static_cast<void *>(new std::vector<std::string>());
+    static_cast<std::vector<std::string>*>(list)->push_back( std::string(static_cast<const char *>(item)) );
+    return list;
+}
+
+    
+/*
+ * Add each item in queue_list to model._chains, but don't populate.
+ * That's done by the station.
+ */
+
+void
+qnap2_add_class( void * list )
+{
+    if ( list == nullptr ) return;
+    std::vector<std::string>* class_list = static_cast<std::vector<std::string>*>(list);
+    for ( std::vector<std::string>::const_iterator name = class_list->begin(); name != class_list->end(); ++name ) {
+	if ( !BCMP::QNAP2_Document::__document->declareClass( *name ) ) {
+	    qnap2error( "duplicate symbol: %s.", name->c_str() );
+	}
+    }
+}
+
+
+/*
+ * Add each item in queue_list to model._stations, but don't populate
+ */
+
+void
+qnap2_add_queue( void * list )
+{
+    if ( list == nullptr ) return;
+    std::vector<std::string>* queue_list = static_cast<std::vector<std::string>*>(list);
+    for ( std::vector<std::string>::const_iterator name = queue_list->begin(); name != queue_list->end(); ++name ) {
+	if ( !BCMP::QNAP2_Document::__document->declareStation( *name ) ) {
+	    qnap2error( "duplicate symbol: %s.", name->c_str() );
+	}
+    }
+}
+
+void
+qnap2_add_field( int type, void * list )
+{
+    static const std::map<int,const BCMP::QNAP2_Document::Type> parser_to_type =
+    {
+	{ QNAP_STRING, BCMP::QNAP2_Document::Type::string_field },
+	{ QNAP_INTEGER, BCMP::QNAP2_Document::Type::integer_field },
+	{ QNAP_REAL, BCMP::QNAP2_Document::Type::real_field },
+	{ QNAP_BOOLEAN, BCMP::QNAP2_Document::Type::boolean_field },
     };
     
+    if ( list == nullptr ) return;
+    const std::map<int,const BCMP::QNAP2_Document::Type>::const_iterator qnap_type = parser_to_type.find(type);
+    if ( qnap_type == parser_to_type.end() ) {
+	qnap2error( "type error." );
+    }
+    std::vector<std::string>* variable_list = static_cast<std::vector<std::string>*>(list);
+    for ( std::vector<std::string>::const_iterator name = variable_list->begin(); name != variable_list->end(); ++name ) {
+	if ( !BCMP::QNAP2_Document::__document->declareSymbol( qnap_type->second, *name ) ) {
+	    qnap2error( "duplicate symbol: %s.", name->c_str() );
+	}
+    }
+}
+
+void
+qnap2_add_variable( int type, void * list )
+{
+    static const std::map<int,const BCMP::QNAP2_Document::Type> parser_to_type =
+    {
+	{ QNAP_STRING, BCMP::QNAP2_Document::Type::string },
+	{ QNAP_INTEGER, BCMP::QNAP2_Document::Type::integer },
+	{ QNAP_REAL, BCMP::QNAP2_Document::Type::real },
+	{ QNAP_BOOLEAN, BCMP::QNAP2_Document::Type::boolean },
+    };
     
+    if ( list == nullptr ) return;
+    const std::map<int,const BCMP::QNAP2_Document::Type>::const_iterator qnap_type = parser_to_type.find(type);
+    if ( qnap_type == parser_to_type.end() ) {
+	qnap2error( "type error." );
+    }
+    std::vector<std::string>* variable_list = static_cast<std::vector<std::string>*>(list);
+    for ( std::vector<std::string>::const_iterator name = variable_list->begin(); name != variable_list->end(); ++name ) {
+	if ( !BCMP::QNAP2_Document::__document->declareSymbol( qnap_type->second, *name ) ) {
+	    qnap2error( "duplicate symbol: %s.", name->c_str() );
+	}
+    }
+}
+
+void qnap2_define_station()
+{
+    if ( !BCMP::QNAP2_Document::__document->defineStation() ) {
+	qnap2error( "station name not set." );
+    }
+}
+
+
+void qnap2_default_class()
+{
+    BCMP::QNAP2_Document::__document->defaultClass();
+}
+
+
+void * qnap2_get_integer( long value )
+{
+    /* add to symbol table */
+    return new LQX::ConstantValueExpression( static_cast<double>( value ) );
+}
+
+void * qnap2_get_real( double value )
+{
+    /* add to symbol table */
+    return new LQX::ConstantValueExpression( value );
+}
+
+void * qnap2_get_string( const char * string )
+{
+    return new LQX::ConstantValueExpression( string );
+}
+    
+void * qnap2_get_variable( const char * variable )
+{
+    if ( !BCMP::QNAP2_Document::__document->findVariable( variable ) ) {
+	qnap2error( "undefined variable:: %s.", variable );
+    }
+    return new LQX::VariableExpression( variable, true );
+}
+
+/*
+ * Convert "type=x,y" to appropriate type.  The parser will free whatever is returned.
+ */
+
+char * qnap2_get_station_type( const void * type_1, const void * type_2 )
+{
+    if ( strcmp( static_cast<const char *>(type_1), "server" ) == 0
+	 && ( strcmp( static_cast<const char *>(type_1), "multiple" ) == 0
+	      || strcmp( static_cast<const char *>(type_1), "single" ) == 0
+	      || strcmp( static_cast<const char *>(type_1), "infinite" ) == 0 ) ) {
+	return strdup( static_cast<const char *>( type_2 ) );
+    } else {
+	return strdup( "unknown" );
+    }
+}
+
+/*
+ * Can be init(class) = value;  If only one class, init=value;.
+ * Or init=var name.
+ */
+
+void qnap2_set_station_init( const void * value )
+{
+    if ( !BCMP::QNAP2_Document::__document->setClassInit( static_cast<const LQIO::DOM::ExternalVariable *>(value) ) ) {
+    }
+}
+
+void qnap2_set_station_name( const void * name )
+{
+    if ( !BCMP::QNAP2_Document::__document->setStationName( static_cast<const char *>(name) ) ) {
+	qnap2error( "undefined symbol: %s.", static_cast<const char *>(name) );
+    }
+}
+
+void qnap2_set_station_sched( const void * scheduling )
+{
+    if ( !BCMP::QNAP2_Document::__document->setStationScheduling( static_cast<const char *>(scheduling) ) ) {
+	qnap2error( "undefined station scheduling: %s.", static_cast<const char *>(scheduling) );
+    }
+}
+
+void qnap2_set_station_transit( const char * class_, void * transit )
+{
+}
+
+void qnap2_set_station_type( const void * type, int copies )
+{
+    if ( !BCMP::QNAP2_Document::__document->setStationType( static_cast<const char *>(type), copies ) ) {
+	qnap2error( "undefined station type: %s.", static_cast<const char *>(type) );
+    }
+}
+
+void qnap2_set_station_prio( void * ){}
+void qnap2_set_station_quantum( void * ){}
+void qnap2_set_station_rate( void * ){}
+void qnap2_set_station_service( void * ){}
+
+
+/*
+ * Print out and error message (and the line number on which it
+ * occurred.
+ */
+
+void
+qnap2error( const char * fmt, ... )
+{
+    va_list args;
+    va_start( args, fmt );
+    LQIO::verrprintf( stderr, LQIO::error_severity::ERROR, BCMP::QNAP2_Document::__document->getInputFileName(), qnap2lineno, 0, fmt, args );
+    va_end( args );
+}
+
+namespace BCMP {
+    /* ------------------------------------------------------------------------ */
+    /* Document Creation 							*/
+    /* ------------------------------------------------------------------------ */
+  
 
     QNAP2_Document::QNAP2_Document( const std::string& input_file_name ) :
-	_input_file_name(input_file_name), _model()
+	_input_file_name(input_file_name), _symbol_table(), _model()
     {
 	__document = this;
     }
 
     QNAP2_Document::QNAP2_Document( const std::string& input_file_name, const BCMP::Model& model ) :
-	_input_file_name(input_file_name), _model(model)
+	_input_file_name(input_file_name), _symbol_table(), _model(model)
     {
     }
 
@@ -100,7 +322,7 @@ namespace BCMP {
     {
 	__document = nullptr;
     }
-
+
     /*
      * Load the model.
      */
@@ -192,6 +414,25 @@ namespace BCMP {
     }
 
     bool
+    QNAP2_Document::declareSymbol( Type type, const std::string& name )
+    {
+	return _symbol_table.emplace( name, type ).second;
+    }
+    
+    /*
+     * If no classes defined, create a "default" class.
+     */
+    
+    void
+    QNAP2_Document::defaultClass()
+    {
+	BCMP::Model::Chain::map_t& chains = _model.chains();
+	if ( chains.empty() ) {
+	    declareClass( "default" );
+	}
+    }
+    
+    bool
     QNAP2_Document::defineStation()
     {
 	BCMP::Model::Station::map_t& stations = _model.stations();
@@ -200,6 +441,12 @@ namespace BCMP {
 	BCMP::Model::Station& m = station->second;
 //	    station.second = __station.second;
 	return true;
+    }
+
+    bool
+    QNAP2_Document::findVariable( const std::string& name ) const
+    {
+	return _symbol_table.find( name ) != _symbol_table.end();
     }
 
     bool
@@ -236,7 +483,7 @@ namespace BCMP {
     }
     
     bool
-    QNAP2_Document::setStationType( const std::string& value )
+    QNAP2_Document::setStationType( const std::string& value, int copies )
     {
 	const std::map<const std::string,const BCMP::Model::Station::Type>::const_iterator type = __station_type.find( value );
 	if ( type == __station_type.end() ) return false;
@@ -534,9 +781,9 @@ namespace BCMP {
 	    }
 	    catch ( const std::out_of_range& ) {
 		LQIO::runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED,
-				      scheduling_label[static_cast<unsigned int>(station.scheduling())].str,
-				      "station",
-				      m.first.c_str() );
+				     scheduling_label.at(station.scheduling()).str.c_str(),
+				     "station",
+				     m.first.c_str() );
 	    }
 	    if ( station.type() == Model::Station::Type::MULTISERVER ) {
 		_output << qnap2_statement( "type=multiple(" + to_unsigned(station.copies()) + ")" ) << std::endl;
@@ -1144,113 +1391,3 @@ namespace BCMP {
 	return output;
     }
 }
-
-/*
- * Print out and error message (and the line number on which it
- * occurred.
- */
-
-void
-qnap2error( const char * fmt, ... )
-{
-    va_list args;
-    va_start( args, fmt );
-    LQIO::verrprintf( stderr, LQIO::error_severity::ERROR, BCMP::QNAP2_Document::__document->getInputFileName(), qnap2lineno, 0, fmt, args );
-    va_end( args );
-}
-
-
-   
-/*
- * Append item to list.  Create list if not present.
- */
-
-void *
-qnap2_append_identifier( void * list, void * item )
-{
-    if ( item == nullptr ) return list;
-    if ( list == nullptr ) list = static_cast<void *>(new std::vector<std::string>());
-    static_cast<std::vector<std::string>*>(list)->push_back( std::string(static_cast<const char *>(item)) );
-    return list;
-}
-
-    
-/*
- * Add each item in queue_list to model._chains, but don't populate.
- * That's done by the station.
- */
-
-void
-qnap2_add_class( void * list )
-{
-    if ( list == nullptr ) return;
-    std::vector<std::string>* class_list = static_cast<std::vector<std::string>*>(list);
-    for ( std::vector<std::string>::const_iterator name = class_list->begin(); name != class_list->end(); ++name ) {
-	if ( !BCMP::QNAP2_Document::__document->declareClass( *name ) ) {
-	    qnap2error( "duplicate symbol: %s.", name->c_str() );
-	}
-    }
-}
-
-
-/*
- * Add each item in queue_list to model._stations, but don't populate
- */
-
-void
-qnap2_add_queue( void * list )
-{
-    if ( list == nullptr ) return;
-    std::vector<std::string>* queue_list = static_cast<std::vector<std::string>*>(list);
-    for ( std::vector<std::string>::const_iterator name = queue_list->begin(); name != queue_list->end(); ++name ) {
-	if ( !BCMP::QNAP2_Document::__document->declareStation( *name ) ) {
-	    qnap2error( "duplicate symbol: %s.", name->c_str() );
-	}
-    }
-}
-
-void qnap2_define_station()
-{
-    if ( !BCMP::QNAP2_Document::__document->defineStation() ) {
-	qnap2error( "station name not set." );
-    }
-}
-
-/*
- * Can be init(class) = value;  If only one class, init=value;.
- * Or init=var name.
- */
-
-void qnap2_set_station_init( const void * value )
-{
-    if ( !BCMP::QNAP2_Document::__document->setClassInit( static_cast<const LQIO::DOM::ExternalVariable *>(value) ) ) {
-    }
-}
-
-void qnap2_set_station_name( const void * name )
-{
-    if ( !BCMP::QNAP2_Document::__document->setStationName( static_cast<const char *>(name) ) ) {
-	qnap2error( "undefined symbol: %s.", static_cast<const char *>(name) );
-    }
-}
-
-void qnap2_set_station_sched( const void * scheduling )
-{
-    if ( !BCMP::QNAP2_Document::__document->setStationScheduling( static_cast<const char *>(scheduling) ) ) {
-	qnap2error( "undefined station scheduling: %s.", static_cast<const char *>(scheduling) );
-    }
-}
-
-void qnap2_set_station_type( const void * type )
-{
-    if ( !BCMP::QNAP2_Document::__document->setStationType( static_cast<const char *>(type) ) ) {
-	qnap2error( "undefined station type: %s.", static_cast<const char *>(type) );
-    }
-}
-
-void qnap2_set_station_prio( void * ){}
-void qnap2_set_station_quantum( void * ){}
-void qnap2_set_station_rate( void * ){}
-void qnap2_set_station_service( void * ){}
-void qnap2_set_station_transit( void * ){}
-

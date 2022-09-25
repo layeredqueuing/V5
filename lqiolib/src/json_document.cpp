@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 15880 2022-09-21 12:52:01Z greg $
+ * $Id: json_document.cpp 15895 2022-09-23 17:21:55Z greg $
  *
  * Read in JSON input files.
  *
@@ -448,17 +448,15 @@ namespace LQIO {
 			const scheduling_type scheduling_flag = processor->getSchedulingType();
 			if ( !processor->hasQuantum() ) {
 			    if ( scheduling_flag == SCHEDULE_CFS 
-				 || scheduling_flag == SCHEDULE_PS
-				 || scheduling_flag == SCHEDULE_PS_HOL
-				 || scheduling_flag == SCHEDULE_PS_PPR) {
-				processor->runtime_error( LQIO::ERR_NO_QUANTUM_SCHEDULING, scheduling_label[scheduling_flag].str );
+				 || scheduling_flag == SCHEDULE_PS ) {
+				processor->runtime_error( LQIO::ERR_NO_QUANTUM_SCHEDULING, scheduling_label.at(scheduling_flag).str.c_str() );
 			    }
 			} else if ( scheduling_flag == SCHEDULE_DELAY
 				    || scheduling_flag == SCHEDULE_FIFO
 				    || scheduling_flag == SCHEDULE_HOL
 				    || scheduling_flag == SCHEDULE_PPR
 				    || scheduling_flag == SCHEDULE_RAND ) {
-			    processor->runtime_error( LQIO::WRN_QUANTUM_SCHEDULING, scheduling_label[scheduling_flag].str );
+			    processor->runtime_error( LQIO::WRN_QUANTUM_SCHEDULING, scheduling_label.at(scheduling_flag).str.c_str() );
 			}
 		    } else if ( !processor ) {
 			LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, processor_name.c_str() );
@@ -1701,7 +1699,7 @@ namespace LQIO {
 	    const std::map<std::string, picojson::value>::const_iterator attr = obj.find( Xscheduling );
 	    if ( attr != obj.end() ) {
 		const std::string attribute = attr->second.to_str();
-		std::map<const char *, const scheduling_type>::const_iterator i = scheduling_table.find( attribute.c_str() );
+		std::map<const std::string, const scheduling_type>::const_iterator i = scheduling_table.find( attribute.c_str() );
 		if ( i == scheduling_table.end() ) {
 		    XML::invalid_argument( Xscheduling, attribute );	/* throws */
 		} else {
@@ -2835,11 +2833,11 @@ namespace LQIO {
 	    }
 
 	    if ( processor.isInfinite() ) {
-		_output << next_attribute( Xscheduling, std::string( scheduling_label[SCHEDULE_DELAY].XML ) );		 // see labels.cpp
+		_output << next_attribute( Xscheduling, std::string( scheduling_label.at(SCHEDULE_DELAY).XML ) );		 // see labels.cpp
 		/* All other attributes don't matter */
 	    } else {
 		const scheduling_type scheduling = processor.getSchedulingType();
-		_output << next_attribute( Xscheduling, std::string( scheduling_label[scheduling].XML ) );	      // see labels.cpp
+		_output << next_attribute( Xscheduling, std::string( scheduling_label.at(scheduling).XML ) );	      // see labels.cpp
 		if ( processor.hasQuantumScheduling() ) {
 		    if ( processor.hasQuantum() ) {
 			_output << next_attribute( Xquantum, *processor.getQuantum() );
@@ -2945,9 +2943,9 @@ namespace LQIO {
 		_output << next_attribute( Xcomment,  task.getComment() );
 	    }
 	    if ( task.isInfinite() ) {
-		_output << next_attribute( Xscheduling, std::string( scheduling_label[SCHEDULE_DELAY].XML ) );		   // see lqio/labels.c
+		_output << next_attribute( Xscheduling, std::string( scheduling_label.at(SCHEDULE_DELAY).XML ) );		   // see lqio/labels.c
 	    } else {
-		_output << next_attribute( Xscheduling, std::string( scheduling_label[task.getSchedulingType()].XML ) );	// see lqio/labels.c
+		_output << next_attribute( Xscheduling, std::string( scheduling_label.at(task.getSchedulingType()).XML ) );	// see lqio/labels.c
 		if ( task.isMultiserver() ) {
 		    _output << next_attribute( Xmultiplicity, *task.getCopies() );
 		}

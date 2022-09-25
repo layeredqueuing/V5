@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 15875 2022-09-20 16:33:42Z greg $
+ *  $Id: dom_document.h 15895 2022-09-23 17:21:55Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -19,6 +19,8 @@
 namespace LQX {
     class Program;
 }
+
+extern "C" int srvnlineno;				/* Input line number -- can't use namespace because it's used with C */
 
 namespace LQIO {
     namespace DOM {

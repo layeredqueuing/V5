@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: common_io.cpp 15329 2022-01-02 20:46:57Z greg $
+ * $Id: common_io.cpp 15906 2022-09-25 12:52:43Z greg $
  *
  * Read in XML input files.
  *
@@ -44,25 +44,22 @@
 namespace LQIO {
     namespace DOM {
 
-	bool Common_IO::Compare::operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-
-	std::map<const char *, const scheduling_type,Common_IO::Compare> Common_IO::scheduling_table =
+	std::map<const std::string, const scheduling_type> Common_IO::scheduling_table =
 	{
-	    { scheduling_label[SCHEDULE_CUSTOMER].XML, 	SCHEDULE_CUSTOMER },
-	    { scheduling_label[SCHEDULE_DELAY].XML,	SCHEDULE_DELAY },
-	    { scheduling_label[SCHEDULE_FIFO].XML, 	SCHEDULE_FIFO },
-	    { scheduling_label[SCHEDULE_HOL].XML,  	SCHEDULE_HOL },
-	    { scheduling_label[SCHEDULE_PPR].XML,  	SCHEDULE_PPR },
-	    { scheduling_label[SCHEDULE_RAND].XML, 	SCHEDULE_RAND },
-	    { scheduling_label[SCHEDULE_PS].XML,   	SCHEDULE_PS },
-	    { scheduling_label[SCHEDULE_PS_HOL].XML,    SCHEDULE_PS_HOL },
-	    { scheduling_label[SCHEDULE_PS_PPR].XML,    SCHEDULE_PS_PPR },
-	    { scheduling_label[SCHEDULE_POLL].XML, 	SCHEDULE_POLL },
-	    { scheduling_label[SCHEDULE_BURST].XML,	SCHEDULE_BURST },
-	    { scheduling_label[SCHEDULE_UNIFORM].XML,   SCHEDULE_UNIFORM },
-	    { scheduling_label[SCHEDULE_SEMAPHORE].XML, SCHEDULE_SEMAPHORE },
-	    { scheduling_label[SCHEDULE_CFS].XML,	SCHEDULE_CFS },
-	    { scheduling_label[SCHEDULE_RWLOCK].XML,    SCHEDULE_RWLOCK }
+	    { SCHEDULE::BURST,		    SCHEDULE_BURST },
+	    { SCHEDULE::CFS,		    SCHEDULE_CFS },
+	    { SCHEDULE::CUSTOMER,	    SCHEDULE_CUSTOMER },
+	    { SCHEDULE::DELAY,		    SCHEDULE_DELAY },
+	    { SCHEDULE::FIFO,		    SCHEDULE_FIFO },
+	    { SCHEDULE::HOL,		    SCHEDULE_HOL },
+	    { SCHEDULE::LIFO,		    SCHEDULE_LIFO },
+	    { SCHEDULE::POLL,		    SCHEDULE_POLL },
+	    { SCHEDULE::PPR,		    SCHEDULE_PPR },
+	    { SCHEDULE::PS,		    SCHEDULE_PS },
+	    { SCHEDULE::RAND,		    SCHEDULE_RAND },
+	    { SCHEDULE::RWLOCK,		    SCHEDULE_RWLOCK },
+	    { SCHEDULE::SEMAPHORE,	    SCHEDULE_SEMAPHORE },
+	    { SCHEDULE::UNIFORM,	    SCHEDULE_UNIFORM }
 	};
 
 	Common_IO::Common_IO()
@@ -240,4 +237,47 @@ static inline double tv_to_double( struct timeval& tv ) { return (static_cast<do
 	size_t end = s.find_last_not_of(WHITESPACE);
 	return (end == std::string::npos) ? "" : s.substr(0, end + 1);
     }    
+}
+
+/*
+ * Copy str to mallocated storage.
+ */
+
+char *
+lqio_duplicate_string( char * str, int len )
+{
+    char * p = (char *)malloc( (unsigned)len+1 );
+
+    if ( p ) {
+	(void) strncpy( p, (char *)str, len );
+	/* strip trailing whitespace */
+	for ( ; len > 0 && isspace( p[len-1] ); len-- );
+	p[len] = '\0';
+    }
+    return p;
+}
+
+
+/*
+ * Copy str to mallocated storage.
+ * Strip out '\' sequences.
+ */
+
+char *
+lqio_duplicate_comment( char * str, int len )
+{
+    char * p = (char *)malloc( (unsigned)len+1 );
+    char * q = p;
+
+    if ( p ) {
+	while ( *str && len ) {
+	    if ( *str != '\\' ) {
+		*p++ = *str;
+	    }
+	    ++str;
+	    --len;
+	}
+	*p = '\0';
+    }
+    return q;
 }

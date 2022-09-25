@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 15891 2022-09-22 21:48:30Z greg $
+ *  $Id: qnap2_document.h 15907 2022-09-25 13:18:18Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -21,10 +21,18 @@ extern "C" {
 #include <stdbool.h>
 #endif
     void qnap2error( const char * fmt, ... );
+    void qnap2_default_class();
     void * qnap2_append_identifier( void *, void * );
     void qnap2_add_queue( void * );
     void qnap2_add_class( void * );
+    void qnap2_add_field( int, void * );
+    void qnap2_add_variable( int, void * );
     void qnap2_define_station();
+    char * qnap2_get_station_type( const void *, const void * );
+    void * qnap2_get_integer( long );			/* Returns LQX */
+    void * qnap2_get_real( double );			/* Returns LQX */
+    void * qnap2_get_string( const char * );		/* Returns LQX */
+    void * qnap2_get_variable( const char * );		/* Returns LQX */
     void qnap2_set_station_init( const void * );
     void qnap2_set_station_name( const void * );
     void qnap2_set_station_prio( void * );
@@ -32,8 +40,8 @@ extern "C" {
     void qnap2_set_station_rate( void * );
     void qnap2_set_station_sched( const void * );
     void qnap2_set_station_service( void * );
-    void qnap2_set_station_transit( void * );
-    void qnap2_set_station_type( const void * );
+    void qnap2_set_station_transit( const char *, void * );
+    void qnap2_set_station_type( const void *, int );
 
     extern int qnap2lineno;
 
@@ -52,14 +60,21 @@ namespace LQX {
 namespace BCMP {
     class QNAP2_Document {
 	friend void ::qnap2error( const char * fmt, ... );
+	friend void ::qnap2_default_class();
 	friend void ::qnap2_add_class( void * );
 	friend void ::qnap2_add_queue( void * );
+	friend void ::qnap2_add_field( int, void * );
+	friend void ::qnap2_add_variable( int, void * );
 	friend void ::qnap2_define_station();
 	friend void ::qnap2_set_station_init( const void * );
 	friend void ::qnap2_set_station_name( const void * );
 	friend void ::qnap2_set_station_sched( const void * );
-	friend void ::qnap2_set_station_type( const void * );
+	friend void ::qnap2_set_station_type( const void *, int );
+	friend void ::qnap2_set_station_transit( const char *, void * );
+	friend void * ::qnap2_get_variable( const char * variable );
 
+	enum class Type { boolean, integer, real, string, boolean_field, integer_field, real_field, string_field, function };
+	
     public:
 	QNAP2_Document( const std::string& input_file_name );					/* For input */
 	QNAP2_Document( const std::string& input_file_name, const BCMP::Model& model );		/* For output */
@@ -79,11 +94,14 @@ namespace BCMP {
     private:
 	bool declareStation( const std::string& );
 	bool declareClass( const std::string& );
+	bool declareSymbol( Type type, const std::string& );
+	void defaultClass();
 	bool defineStation();
+	bool findVariable( const std::string& ) const;
 	bool setClassInit( const LQIO::DOM::ExternalVariable * );
 	bool setStationName( const std::string& ); 
 	bool setStationScheduling( const std::string& );
-	bool setStationType( const std::string& );
+	bool setStationType( const std::string&, int );
 
     private:
 	void printClassVariables( std::ostream& ) const;
@@ -250,16 +268,18 @@ namespace BCMP {
 	};
 
     private:
-	static QNAP2_Document * __document;
-	static std::pair<std::string,BCMP::Model::Station> __station;	/* Station under construction */
-	
-    private:
 	const std::string _input_file_name;
+	std::map<const std::string,Type> _symbol_table;
 	BCMP::Model _model;
 
+    public:
 	static std::map<const scheduling_type,const std::string> __scheduling_str;	/* Maps scheduling_type to qnap2 keyword */
 	static std::map<const std::string,const scheduling_type> __scheduling_type;
 	static std::map<const std::string,const BCMP::Model::Station::Type> __station_type;
+	
+    private:
+	static QNAP2_Document * __document;
+	static std::pair<std::string,BCMP::Model::Station> __station;	/* Station under construction */
     };
 
     inline std::ostream& operator<<( std::ostream& output, const QNAP2_Document& doc ) { return doc.print(output); }

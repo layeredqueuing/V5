@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 15819 2022-08-12 18:26:27Z greg $
+ *  $Id: dom_pragma.cpp 15895 2022-09-23 17:21:55Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include "dom_pragma.h"
+#include "common_io.h"
 #include "labels.h"
 #include "input.h"
 #include "glblerr.h"
@@ -289,13 +290,13 @@ namespace LQIO {
 	const std::set<std::string> Pragma::__multiserver_args = { _bruell_, _conway_, _default_, _experimental_, _reiser_, _reiser_ps_, _rolia_, _rolia_ps_, _schmidt_, _suri_, _zhou_ };
 	const std::set<std::string> Pragma::__mva_args = { _bounds_, _exact_, _linearizer_, _schweitzer_, _fast_, _one_step_, _one_step_linearizer_ };
 	const std::set<std::string> Pragma::__overtaking_args = { _markov_, _rolia_, _simple_, _special_, _none_ };
-	const std::set<std::string> Pragma::__processor_args = { _default_, scheduling_label[SCHEDULE_DELAY].XML, scheduling_label[SCHEDULE_FIFO].XML, scheduling_label[SCHEDULE_HOL].XML, scheduling_label[SCHEDULE_PPR].XML, scheduling_label[SCHEDULE_PS].XML, scheduling_label[SCHEDULE_RAND].XML };
+	const std::set<std::string> Pragma::__processor_args = { _default_, SCHEDULE::DELAY, SCHEDULE::FIFO, SCHEDULE::HOL, SCHEDULE::PPR, SCHEDULE::PS, SCHEDULE::RAND };
 	const std::set<std::string> Pragma::__quorum_delayed_calls_args = { _keep_all_, _abort_all_, _abort_local_, _abort_remote_ };
 	const std::set<std::string> Pragma::__quorum_distribution_args = { _threepoint_, _gamma_, _geometric_, _deterministic_ };
 	const std::set<std::string> Pragma::__quorum_idle_time_args = { _default_, _join_delay_ };
 	const std::set<std::string> Pragma::__replication_args = { _expand_, _prune_, _pan_ };
 	const std::set<std::string> Pragma::__scheduling_model_args = { _default_, _default_natural_, _custom_, _custom_natural_ };
-	const std::set<std::string> Pragma::__task_args = { _default_, scheduling_label[SCHEDULE_DELAY].XML, scheduling_label[SCHEDULE_FIFO].XML, scheduling_label[SCHEDULE_HOL].XML, scheduling_label[SCHEDULE_RAND].XML };
+	const std::set<std::string> Pragma::__task_args = { _default_, SCHEDULE::DELAY, SCHEDULE::FIFO, SCHEDULE::HOL, SCHEDULE::RAND };
 	const std::set<std::string> Pragma::__threads_args = { _hyper_, _mak_, _none_, _exponential_ };
 	const std::set<std::string> Pragma::__true_false_arg = { _true_, _false_, _yes_, _no_, "t", "f", "y", "n", "" };
 	const std::set<std::string> Pragma::__variance_args = { _default_, _none_, _stochastic_, _mol_, _no_entry_, _init_only_ };

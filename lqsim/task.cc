@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15756 2022-07-24 12:50:26Z greg $
+ * $Id: task.cc 15894 2022-09-23 14:04:46Z greg $
  */
 
 #include "lqsim.h"
@@ -622,7 +622,7 @@ Task::add( LQIO::DOM::Task* dom )
 
     default:
 	cp = new Server_Task( Task::Type::SERVER, dom, processor, group );		/* Punt... */
-	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str );
+	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(sched_type).str.c_str() );
 	break;
     }
 

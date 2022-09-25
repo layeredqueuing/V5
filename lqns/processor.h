@@ -11,7 +11,7 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 15603 2022-05-27 18:30:56Z greg $
+ * $Id: processor.h 15895 2022-09-23 17:21:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -73,7 +73,6 @@ public:
     bool isInteresting() const;
     virtual bool hasVariance() const;
     bool hasPriorities() const;
-    virtual unsigned validScheduling() const;
 
     virtual const Entity& sanityCheck() const;
 
@@ -92,6 +91,9 @@ public:
     virtual const Processor& insertDOMResults() const;
     virtual std::ostream& print( std::ostream& ) const;
     std::ostream& printTasks( std::ostream& output, unsigned int submodel ) const;
+
+protected:
+    virtual bool schedulingIsOK() const;
 
 public:
     static Processor * find( const std::string&, unsigned int=1 );

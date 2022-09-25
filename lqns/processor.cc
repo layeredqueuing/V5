@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 15836 2022-08-15 21:18:20Z greg $
+ * $Id: processor.cc 15895 2022-09-23 17:21:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -116,8 +116,9 @@ Processor::configure( const unsigned nSubmodels )
 	minS = std::min( minS, (*entry)->serviceTime() );
 	maxS = std::max( maxS, (*entry)->serviceTime() );
     }
-    if ( maxS > 0. && minS / maxS < 0.1
-	 && !schedulingIsOk( SCHED_PS_BIT|SCHED_PS_HOL_BIT|SCHED_PS_PPR_BIT|SCHED_DELAY_BIT ) ) {
+
+    /* Warn on wide service time range for FIFO scheduling. */
+    if ( maxS > 0. && minS / maxS < 0.1 && !isMultiServer() && !scheduling() != SCHEDULE_DELAY && scheduling() != SCHEDULE_PS ) {
 	LQIO::runtime_error( ADV_SERVICE_TIME_RANGE, getDOM()->getTypeName(), name().c_str(), minS, maxS );
     }
     Entity::configure( nSubmodels );
@@ -250,9 +251,7 @@ bool
 Processor::hasPriorities() const
 {
     return scheduling() == SCHEDULE_HOL
-	|| scheduling() == SCHEDULE_PPR
-	|| scheduling() == SCHEDULE_PS_HOL
-	|| scheduling() == SCHEDULE_PS_PPR;
+	|| scheduling() == SCHEDULE_PPR;
 }
 
 
@@ -261,16 +260,16 @@ Processor::hasPriorities() const
  * subclasses if the scheduling type can be something other than FIFO.
  */
 
-unsigned
-Processor::validScheduling() const
+bool
+Processor::schedulingIsOK() const
 {
-    if ( isInfinite() ) {
-	return (unsigned)-1;
-    } else if ( isMultiServer() ) {
-	return SCHED_PS_BIT|SCHED_FIFO_BIT;
-    } else {
-	return SCHED_FIFO_BIT|SCHED_PPR_BIT|SCHED_HOL_BIT|SCHED_PS_BIT|SCHED_PS_PPR_BIT|SCHED_PS_HOL_BIT;
-    }
+    return isInfinite() && scheduling() == SCHEDULE_DELAY
+	|| !isMultiServer() && ( scheduling() == SCHEDULE_HOL
+				 || scheduling() == SCHEDULE_PPR )
+	|| scheduling() == SCHEDULE_FIFO
+	|| scheduling() == SCHEDULE_LIFO
+	|| scheduling() == SCHEDULE_PS
+	|| scheduling() == SCHEDULE_RAND;
 }
 
 
@@ -434,15 +433,6 @@ Processor::makeServer( const unsigned nChains )
 	    _station = new PS_Server( nEntries(), nChains, maxPhase() );
 	    break;
 
-	case SCHEDULE_PS_HOL:
-	    if ( dynamic_cast<HOL_PS_Server *>(_station) ) return nullptr;
-	    _station = new HOL_PS_Server( nEntries(), nChains, maxPhase() );
-	    break;
-
-	case SCHEDULE_PS_PPR:
-	    if ( dynamic_cast<PR_PS_Server *>(_station) ) return nullptr;
-	    _station = new PR_PS_Server( nEntries(), nChains, maxPhase() );
-	    break;
 	}
     }
 
