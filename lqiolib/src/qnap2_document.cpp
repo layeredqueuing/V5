@@ -46,9 +46,10 @@
 #include "glblerr.h"
 #include "input.h"
 #include "qnap2_document.h"
-#include "qnap2_gram.h"
 
 extern "C" {
+    #include "qnap2_gram.h"
+
     struct yy_buffer_state;
     extern int qnap2parse();
     extern void qnap2error( const char *, ... );

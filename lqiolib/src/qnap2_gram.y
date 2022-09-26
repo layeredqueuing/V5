@@ -24,7 +24,6 @@ static bool station_found = false;
 %token RANGE_ERR 
 
 %token <aString>	STRING QNAP_IDENTIFIER 
-%token <aPointer>	
 %token <aCode>		QNAP_BOOLEAN QNAP_REAL QNAP_INTEGER QNAP_STRING		/* scanner codes */
 %token <aReal>		DOUBLE
 %token <aLong>		LONG
