@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: openmodel.h 15429 2022-02-04 23:04:05Z greg $
+ * $Id: openmodel.h 15918 2022-09-27 17:12:59Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -33,7 +33,7 @@ class OpenModel : public Model {
 public:
     friend class Model;
     
-    OpenModel( Model& parent, BCMP::JMVA_Document& input );
+    OpenModel( Model& parent, QNIO::Document& input );
     virtual ~OpenModel();
 
     explicit operator bool() const { return _result == true; }

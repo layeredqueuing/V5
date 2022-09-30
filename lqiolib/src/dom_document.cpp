@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 15882 2022-09-21 13:01:03Z greg $
+ *  $Id: dom_document.cpp 15916 2022-09-27 14:36:47Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -796,7 +796,7 @@ namespace LQIO {
 		break;
 
 	    case InputFormat::JMVA:
-		rc = BCMP::JMVA_Document::load( *document, input_filename );
+		rc = QNIO::JMVA_Document::load( *document, input_filename );
 		break;
 #else
 	    case InputFormat::XML:

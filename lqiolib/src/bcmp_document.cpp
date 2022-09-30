@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 15425 2022-02-04 13:32:11Z greg $
+ * $Id: bcmp_document.cpp 15921 2022-09-28 20:49:00Z greg $
  *
  * Read in XML input files.
  *
@@ -221,6 +221,30 @@ namespace BCMP {
     }
 
 
+    Model::Station&
+    Model::Station::operator=( const Station& src )
+    {
+	_type = src._type;
+	_scheduling = src._scheduling;
+	_copies = src._copies;
+	_reference = src._reference;
+	_classes.clear();
+	std::copy(src._classes.begin(), src._classes.end(), std::inserter(_classes, _classes.begin()));
+	_result_vars = src._result_vars;
+	return *this;
+    }
+
+    void
+    Model::Station::clear()
+    {
+	_type = Model::Station::Type::NOT_DEFINED;
+	_scheduling = SCHEDULE_DELAY;
+	_copies = nullptr;
+	_reference = false;
+	_classes.clear();
+	_result_vars.clear();
+    }
+
     std::pair<Model::Station::Class::map_t::iterator,bool>
     Model::Station::insertClass( const std::string& class_name, const Class& clasx )
     {
@@ -379,6 +403,27 @@ namespace BCMP {
 	_results[Result::Type::RESIDENCE_TIME] = 0.;
 	_results[Result::Type::UTILIZATION] = 0.;
     }
+
+    Model::Station::Class&
+    Model::Station::Class::operator=( const Model::Station::Class& src )
+    {
+	_visits = src._visits;
+	_service_time = src._service_time;
+	_results = src._results;
+	_result_vars = src._result_vars;
+	return *this;
+    }
+
+
+    void
+    Model::Station::Class::clear()
+    {
+	_visits = nullptr;
+	_service_time = nullptr;
+	_results.clear();
+	_result_vars.clear();
+    }
+    
 
     void
     Model::Station::Class::setResults( double throughput, double queue_length, double residence_time, double utilization )

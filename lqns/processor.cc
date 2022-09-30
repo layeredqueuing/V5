@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 15895 2022-09-23 17:21:55Z greg $
+ * $Id: processor.cc 15915 2022-09-27 11:43:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -118,7 +118,7 @@ Processor::configure( const unsigned nSubmodels )
     }
 
     /* Warn on wide service time range for FIFO scheduling. */
-    if ( maxS > 0. && minS / maxS < 0.1 && !isMultiServer() && !scheduling() != SCHEDULE_DELAY && scheduling() != SCHEDULE_PS ) {
+    if ( maxS > 0. && minS / maxS < 0.1 && !isMultiServer() && scheduling() != SCHEDULE_DELAY && scheduling() != SCHEDULE_PS ) {
 	LQIO::runtime_error( ADV_SERVICE_TIME_RANGE, getDOM()->getTypeName(), name().c_str(), minS, maxS );
     }
     Entity::configure( nSubmodels );

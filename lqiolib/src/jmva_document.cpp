@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 15885 2022-09-21 16:08:19Z greg $
+ * $Id: jmva_document.cpp 15918 2022-09-27 17:12:59Z greg $
  *
  * Read in XML input files.
  *
@@ -45,13 +45,16 @@
 #include "glblerr.h"
 #include "input.h"
 #include "jmva_document.h"
-#include "srvn_gram.h"
 #include "srvn_spex.h"
 #include "xml_input.h"
 #include "xml_output.h"
 
+extern "C" {
+#include "srvn_gram.h"
+}
 
-namespace BCMP {
+
+namespace QNIO {
 
     /*
      * BSD complains about the implicit copy constructor.
@@ -76,23 +79,23 @@ namespace BCMP {
     /* ---------------------------------------------------------------- */
 
     JMVA_Document::JMVA_Document( const std::string& input_file_name ) :
-	_model(), _input_file_name(input_file_name), _parser(nullptr), _stack(),
-	_pragmas(), _lqx_program_text(), _lqx_program_line_number(0), _lqx_program(nullptr), _spex_program(nullptr), _variables(), 
+	Document( input_file_name, BCMP::Model() ),
+	_parser(nullptr), _stack(),
+	_lqx_program_text(), _lqx_program_line_number(0), _spex_program(nullptr), _variables(), 
 	_think_time_vars(), _population_vars(), _arrival_rate_vars(),
 	_multiplicity_vars(), _service_time_vars(), _visit_vars(),
 	_plot_population_mix(false), _x1(), _x2()
     {
-	LQIO::DOM::Document::__input_file_name = input_file_name;
     }
 
     JMVA_Document::JMVA_Document( const std::string& input_file_name, const BCMP::Model& model ) :
-	_model(model), _input_file_name(input_file_name), _parser(nullptr), _stack(),
-	_pragmas(), _lqx_program_text(), _lqx_program_line_number(0), _lqx_program(nullptr), _spex_program(nullptr), _variables(), 
+	Document( input_file_name, model ),
+	_parser(nullptr), _stack(),
+	_lqx_program_text(), _lqx_program_line_number(0), _spex_program(nullptr), _variables(), 
 	_think_time_vars(), _population_vars(), _arrival_rate_vars(),
 	_multiplicity_vars(), _service_time_vars(), _visit_vars(),
 	_plot_population_mix(false), _x1(), _x2()
     {
-	LQIO::DOM::Document::__input_file_name = input_file_name;
     }
 
     JMVA_Document::~JMVA_Document()
@@ -100,9 +103,6 @@ namespace BCMP {
 	for ( std::map<const std::string, LQIO::DOM::SymbolExternalVariable*>::const_iterator var = _variables.begin(); var != _variables.end(); ++var ) {
 	    delete var->second;
 	}
-	
-	LQIO::Spex::clear();
-	LQIO::DOM::Document::__input_file_name.clear();
     }
 
     /*
@@ -118,7 +118,7 @@ namespace BCMP {
 	const std::string& program_text = getLQXProgramText();
 	if ( !program_text.empty() ) {
 	    LQX::Program* program = nullptr;
-	    program = LQX::Program::loadFromText(_input_file_name.c_str(), getLQXProgramLineNumber(), program_text.c_str());
+	    program = LQX::Program::loadFromText(getInputFileName().c_str(), getLQXProgramLineNumber(), program_text.c_str());
 	    setLQXProgram( program );
 	}
 	return true;
@@ -147,10 +147,10 @@ namespace BCMP {
 	bool rc = true;
 	int input_fd = -1;
 
-	if ( !Filename::isFileName( _input_file_name ) ) {
+	if ( !LQIO::Filename::isFileName( getInputFileName() ) ) {
 	    input_fd = fileno( stdin );
-	} else if ( ( input_fd = open( _input_file_name.c_str(), O_RDONLY ) ) < 0 ) {
-	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << _input_file_name << " - " << strerror( errno ) << std::endl;
+	} else if ( ( input_fd = open( getInputFileName().c_str(), O_RDONLY ) ) < 0 ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << getInputFileName() << " - " << strerror( errno ) << std::endl;
 	    return false;
 	}
 
@@ -158,14 +158,14 @@ namespace BCMP {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Input from terminal is not allowed." << std::endl;
 	    return false;
 	} else if ( fstat( input_fd, &statbuf ) != 0 ) {
-	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot stat " << _input_file_name << " - " << strerror( errno ) << std::endl;
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot stat " << getInputFileName() << " - " << strerror( errno ) << std::endl;
 	    return false;
 #if defined(S_ISSOCK)
 	} else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) && !S_ISSOCK(statbuf.st_mode) ) {
 #else
 	} else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) ) {
 #endif
-	    std::cerr << LQIO::io_vars.lq_toolname << ": Input from " << _input_file_name << " is not allowed." << std::endl;
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Input from " << getInputFileName() << " is not allowed." << std::endl;
 	    return false;
 	}
 
@@ -206,7 +206,7 @@ namespace BCMP {
 		do {
 		    len = read( input_fd, buffer, BUFFSIZE );
 		    if ( static_cast<int>(len) < 0 ) {
-			std::cerr << LQIO::io_vars.lq_toolname << ": Read error on " << _input_file_name << " - " << strerror( errno ) << std::endl;
+			std::cerr << LQIO::io_vars.lq_toolname << ": Read error on " << getInputFileName() << " - " << strerror( errno ) << std::endl;
 			rc = false;
 			break;
 		    } else if (!XML_Parse(_parser, buffer, len, len == 0 )) {
@@ -244,13 +244,13 @@ namespace BCMP {
     void
     JMVA_Document::input_error( const std::string& msg )
     {
-	std::cerr << LQIO::DOM::Document::__input_file_name << ":" << std::to_string(srvnlineno) << ": error: " << msg << std::endl;
+	std::cerr << getInputFileName() << ":" << std::to_string(srvnlineno) << ": error: " << msg << std::endl;
     }
 
     void
     JMVA_Document::input_error( const std::string& msg, const std::string& arg )
     {
-	std::cerr << LQIO::DOM::Document::__input_file_name << ":" << std::to_string(srvnlineno) << ": error: " << msg << ": " << arg << std::endl;
+	std::cerr << getInputFileName() << ":" << std::to_string(srvnlineno) << ": error: " << msg << ": " << arg << std::endl;
     }
 
     /*
@@ -292,10 +292,10 @@ namespace BCMP {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, e.what() );
 	}
 	catch ( const std::out_of_range& e ) {
-	    input_error( "Undefined variable." );
+	    document->input_error( "Undefined variable." );
 	}
 	catch ( const std::domain_error & e ) {
-	    input_error( "Domain error: %s ", e.what() );
+	    document->input_error( "Domain error: %s ", e.what() );
 	}
 	catch ( const std::invalid_argument & e ) {
 	    LQIO::input_error2( LQIO::ERR_INVALID_ARGUMENT, el, e.what() );
@@ -376,7 +376,7 @@ namespace BCMP {
 	if ( parser->_stack.size() == 0 ) return;
 	const parse_stack_t& top = parser->_stack.top();
 	if ( top.object.isObject() ) {
-	    Model::Object * object = top.object.getObject();
+	    BCMP::Model::Object * object = top.object.getObject();
 	    std::string& comment = const_cast<std::string&>(object->getComment());
 	    if ( comment.size() ) {
 		comment += "\n";
@@ -425,12 +425,6 @@ namespace BCMP {
 
 
     void
-    JMVA_Document::mergePragmas(const std::map<std::string,std::string>& list)
-    {
-	_pragmas.merge( list );
-    }
-    
-    void
     JMVA_Document::registerExternalSymbolsWithProgram(LQX::Program* program)
     {
 	std::for_each( _variables.begin(), _variables.end(), register_variable( program ) );
@@ -466,12 +460,12 @@ namespace BCMP {
 	static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> solutions_table = { XalgCount, Xiteration, XiterationValue, Xok, XsolutionMethod, XResultVariables };
 
 	if ( strcasecmp( element, Xpragma ) == 0 ) {
-	    _pragmas.insert( XML::getStringAttribute(attributes,Xparam), XML::getStringAttribute(attributes,Xvalue,"") );
+	    insertPragma( XML::getStringAttribute(attributes,Xparam), XML::getStringAttribute(attributes,Xvalue,"") );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP) );
 	} else if ( strcasecmp( element, Xdescription ) == 0 ) {
 	    checkAttributes( element, attributes, null_table );
 	    _text.clear();						// Reset text buffer.
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startDescription,&JMVA_Document::endDescription,Object(&_model)) );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startDescription,&JMVA_Document::endDescription,Object(&model())) );
 	} else if ( strcasecmp( element, Xparameters ) == 0 ) {
 	    checkAttributes( element, attributes, null_table );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startParameters) );
@@ -510,12 +504,12 @@ namespace BCMP {
 	    appendResultVariable( var->first );
 	}
 	/* For all stations... create name_X, name_Q, name_R and name_U */
-	for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
-	    static const std::map<const std::string,const Model::Result::Type> result = {
-		{"$Q", Model::Result::Type::QUEUE_LENGTH},
-		{"$X", Model::Result::Type::THROUGHPUT},
-		{"$R", Model::Result::Type::RESIDENCE_TIME},
-		{"$U", Model::Result::Type::UTILIZATION}
+	for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
+	    static const std::map<const std::string,const BCMP::Model::Result::Type> result = {
+		{"$Q", BCMP::Model::Result::Type::QUEUE_LENGTH},
+		{"$X", BCMP::Model::Result::Type::THROUGHPUT},
+		{"$R", BCMP::Model::Result::Type::RESIDENCE_TIME},
+		{"$U", BCMP::Model::Result::Type::UTILIZATION}
 	    };
 
 	    std::for_each( result.begin(), result.end(), create_result( *this, m ) );
@@ -601,14 +595,14 @@ namespace BCMP {
 	static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> station_table = { Xname, Xservers };
 	checkAttributes( element, attributes, station_table );	// Hoist.  Common to all stations.
 	if ( strcasecmp( element, Xdelaystation ) == 0 ) {
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,Object(createStation( Model::Station::Type::DELAY, attributes )) ) );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,Object(createStation( BCMP::Model::Station::Type::DELAY, attributes )) ) );
 	} else if ( strcasecmp( element, Xlistation ) == 0 ) {
 	    if ( !LQIO::DOM::ExternalVariable::isDefault( getVariableAttribute( attributes, Xservers, 1 ), 1.0 ) ) {
 		runtime_error( LQIO::ERR_INVALID_PARAMETER, Xservers, Xlistation, XML::getStringAttribute( attributes, Xname ), "Not equal to 1" );
 	    }
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,Object(createStation( Model::Station::Type::LOAD_INDEPENDENT, attributes )) ) );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,Object(createStation( BCMP::Model::Station::Type::LOAD_INDEPENDENT, attributes )) ) );
 	} else if ( strcasecmp( element, Xldstation ) == 0 ) {
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,Object(createStation( Model::Station::Type::MULTISERVER, attributes )) ) );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,Object(createStation( BCMP::Model::Station::Type::MULTISERVER, attributes )) ) );
 	} else { // multiserver???
 	    XML::throw_element_error( element, attributes );
 	}
@@ -646,13 +640,13 @@ namespace BCMP {
     JMVA_Document::startServiceTimes( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
 	checkAttributes( element, attributes, demand_table );	// common to visits
-	Model::Station * station = object.getStation();
+	BCMP::Model::Station * station = object.getStation();
 	assert( station != nullptr );
 	std::string class_name = XML::getStringAttribute( attributes, Xcustomerclass );
 	if ( strcasecmp( element, Xservicetime ) == 0 ) {
 	    _text.clear();					// Reset buffer for handle_text.
-	    Model::Station::Class::map_t& demands = station->classes();		// Will insert...
-	    const std::pair<Model::Station::Class::map_t::iterator,bool> result = demands.emplace( class_name, Model::Station::Class() );
+	    BCMP::Model::Station::Class::map_t& demands = station->classes();		// Will insert...
+	    const std::pair<BCMP::Model::Station::Class::map_t::iterator,bool> result = demands.emplace( class_name, BCMP::Model::Station::Class() );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startServiceTime,&JMVA_Document::endServiceTime,Object(&result.first->second) ) );
 	} else {
 	    XML::throw_element_error( element, attributes );      		/* Should not get here. */
@@ -676,13 +670,13 @@ namespace BCMP {
     JMVA_Document::startVisits( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
 	checkAttributes( element, attributes, demand_table );	// commmon to servicetime.
-	Model::Station * station = object.getStation();
+	BCMP::Model::Station * station = object.getStation();
 	assert( station != nullptr );
 	std::string class_name = XML::getStringAttribute( attributes, Xcustomerclass );
 	if ( strcasecmp( element, Xvisit ) == 0 ) {
 	    _text.clear();					// Reset buffer for handle_text.
-	    Model::Station::Class::map_t& demands = station->classes();		// Will insert...
-	    const std::pair<Model::Station::Class::map_t::iterator,bool> result = demands.emplace( class_name, Model::Station::Class() );
+	    BCMP::Model::Station::Class::map_t& demands = station->classes();		// Will insert...
+	    const std::pair<BCMP::Model::Station::Class::map_t::iterator,bool> result = demands.emplace( class_name, BCMP::Model::Station::Class() );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startVisit,&JMVA_Document::endVisit,Object(&result.first->second) ) );
 	} else {
 	    XML::throw_element_error( element, attributes );       	/* Should not get here. */
@@ -719,7 +713,7 @@ namespace BCMP {
 	    checkAttributes( element, attributes, ReferenceStation_table );
 	    const std::string refStation = XML::getStringAttribute( attributes, XrefStation );
 	    if ( refStation != XArrivalProcess ) {
-		_model.stationAt( refStation ).setReference(true);
+		model().stationAt( refStation ).setReference(true);
 	    }
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP,object) );
 	} else {
@@ -781,7 +775,7 @@ namespace BCMP {
 	    
 	    checkAttributes( element, attributes, station_results_table );
 	    const std::string name = XML::getStringAttribute(attributes,Xstation);
-	    Object mk_object(Object::MK(&_model.stationAt(name),nullptr));
+	    Object mk_object(Object::MK(&model().stationAt(name),nullptr));
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startStationResults,mk_object) );
 	} else if ( strcasecmp( element, Xnormconst ) == 0 ) {
 	} else {
@@ -898,7 +892,7 @@ namespace BCMP {
 	std::string name = XML::getStringAttribute( attributes, Xname );
 	const LQIO::DOM::ExternalVariable * population = getVariableAttribute( attributes, Xpopulation );
 	const LQIO::DOM::ExternalVariable * think_time = getVariableAttribute( attributes, Xthinktime, 0.0 );
-	std::pair<Model::Chain::map_t::iterator,bool> result = _model.insertClosedChain( name, population, think_time );
+	std::pair<BCMP::Model::Chain::map_t::iterator,bool> result = model().insertClosedChain( name, population, think_time );
 	if ( !result.second ) throw std::runtime_error( "Duplicate class" );
 	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(population) ) _population_vars.emplace(&result.first->second,population->getName());
 	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(think_time) ) _think_time_vars.emplace(&result.first->second,think_time->getName());
@@ -910,26 +904,26 @@ namespace BCMP {
     {
 	std::string name = XML::getStringAttribute( attributes, Xname );
 	const LQIO::DOM::ExternalVariable * arrival_rate = getVariableAttribute( attributes, Xrate );
-	std::pair<Model::Chain::map_t::iterator,bool> result = _model.insertOpenChain( name, arrival_rate );
+	std::pair<BCMP::Model::Chain::map_t::iterator,bool> result = model().insertOpenChain( name, arrival_rate );
 	if ( !result.second ) throw std::runtime_error( "Duplicate class" );
 	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(arrival_rate) ) _arrival_rate_vars.emplace(&result.first->second,arrival_rate->getName());
     }
 
 
-    Model::Station *
-    JMVA_Document::createStation( Model::Station::Type type, const XML_Char ** attributes )
+    BCMP::Model::Station *
+    JMVA_Document::createStation( BCMP::Model::Station::Type type, const XML_Char ** attributes )
     {
 	scheduling_type scheduling = SCHEDULE_DELAY;
 	switch ( type ) {
-	case Model::Station::Type::LOAD_INDEPENDENT: scheduling = SCHEDULE_PS; break;
-	case Model::Station::Type::MULTISERVER: scheduling = SCHEDULE_PS; break;
+	case BCMP::Model::Station::Type::LOAD_INDEPENDENT: scheduling = SCHEDULE_PS; break;
+	case BCMP::Model::Station::Type::MULTISERVER: scheduling = SCHEDULE_PS; break;
 	default: break;
 	}
 	const std::string name = XML::getStringAttribute( attributes, Xname );
 	const LQIO::DOM::ExternalVariable * multiplicity = getVariableAttribute( attributes, Xservers, 1 );
-	const std::pair<Model::Station::map_t::iterator,bool> result = _model.insertStation( name, Model::Station( type, scheduling, multiplicity ) );
+	const std::pair<BCMP::Model::Station::map_t::iterator,bool> result = model().insertStation( name, BCMP::Model::Station( type, scheduling, multiplicity ) );
 	if ( !result.second ) throw std::runtime_error( "Duplicate station" );
-	Model::Station * station = &result.first->second;
+	BCMP::Model::Station * station = &result.first->second;
 	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(multiplicity) ) _multiplicity_vars.emplace(station,multiplicity->getName());
 	return station;						
     }
@@ -1017,17 +1011,17 @@ namespace BCMP {
     void
     JMVA_Document::createMeasure( Object& object, const XML_Char ** attributes )
     {
-	static const std::map<const std::string,const Model::Result::Type> measure_table = {
-	    {XNumber_of_Customers,  Model::Result::Type::QUEUE_LENGTH},
-	    {XThroughput, 	    Model::Result::Type::THROUGHPUT},
-	    {XResidence_Time, 	    Model::Result::Type::RESIDENCE_TIME},
-	    {XUtilization, 	    Model::Result::Type::UTILIZATION}
+	static const std::map<const std::string,const BCMP::Model::Result::Type> measure_table = {
+	    {XNumber_of_Customers,  BCMP::Model::Result::Type::QUEUE_LENGTH},
+	    {XThroughput, 	    BCMP::Model::Result::Type::THROUGHPUT},
+	    {XResidence_Time, 	    BCMP::Model::Result::Type::RESIDENCE_TIME},
+	    {XUtilization, 	    BCMP::Model::Result::Type::UTILIZATION}
 	};
 
 	std::string value = XML::getStringAttribute( attributes, XmeanValue );
 	if ( !value.empty() && value[0] == '$' ) {
-	    const Model::Station * m = const_cast<Model::Station*>(object.getMK().first);
-	    const Model::Station::Class * k = const_cast<Model::Station::Class *>(object.getMK().second);
+	    const BCMP::Model::Station * m = const_cast<BCMP::Model::Station*>(object.getMK().first);
+	    const BCMP::Model::Station::Class * k = const_cast<BCMP::Model::Station::Class *>(object.getMK().second);
 
 	    createObservation( value, measure_table.at(XML::getStringAttribute( attributes, XmeasureType ) ), m, k );
 	}
@@ -1036,10 +1030,10 @@ namespace BCMP {
     std::string
     JMVA_Document::setArrivalRate( const std::string& stationName, const std::string& className )
     {
-	Model::Chain& k = chains().at(className);
+	BCMP::Model::Chain& k = chains().at(className);
 	LQIO::DOM::SymbolExternalVariable * x = nullptr;
 	std::string name;
-	std::map<const Model::Chain *,std::string>::iterator var = _arrival_rate_vars.find( &k );		/* chain, var	*/
+	std::map<const BCMP::Model::Chain *,std::string>::iterator var = _arrival_rate_vars.find( &k );		/* chain, var	*/
 	if ( var != _arrival_rate_vars.end() ) {
 	    x = _variables.at(var->second);
 	    name = x->getName();
@@ -1057,11 +1051,11 @@ namespace BCMP {
     std::string
     JMVA_Document::setCustomers( const std::string& stationName, const std::string& className )
     {
-	Model::Chain& k = chains().at(className);
+	BCMP::Model::Chain& k = chains().at(className);
 	LQIO::DOM::SymbolExternalVariable * x = nullptr;
 	std::string name;
 	/* Get a variable... $N1,$N2,... */
-	std::map<const Model::Chain *,std::string>::iterator var = _population_vars.find(&k);	/* Look for class 		*/
+	std::map<const BCMP::Model::Chain *,std::string>::iterator var = _population_vars.find(&k);	/* Look for class 		*/
 	if ( var != _population_vars.end() ) {							/* Var is defined for class	*/
 	    x = _variables.at(var->second);							/* So use it			*/
 	    name = x->getName();
@@ -1078,13 +1072,13 @@ namespace BCMP {
     std::string
     JMVA_Document::setDemand( const std::string& stationName, const std::string& className )
     {
-	Model::Station& m = stations().at(stationName);
+	BCMP::Model::Station& m = stations().at(stationName);
 	LQIO::DOM::SymbolExternalVariable * x = nullptr;
 	std::string name;
 	if ( !className.empty() ) {
-	    Model::Station::Class& d = m.classes().at(className);
+	    BCMP::Model::Station::Class& d = m.classes().at(className);
 	    /* Get a variable... $S1,$S2,... */
-	    std::map<const Model::Station::Class *,std::string>::iterator var = _service_time_vars.find( &d );
+	    std::map<const BCMP::Model::Station::Class *,std::string>::iterator var = _service_time_vars.find( &d );
 	    if ( var != _service_time_vars.end() ) {
 		x = _variables.at(var->second);
 		name = x->getName();
@@ -1104,11 +1098,11 @@ namespace BCMP {
     std::string
     JMVA_Document::setMultiplicity( const std::string& stationName, const std::string& className )
     {
-	Model::Station& m = stations().at(stationName);
+	BCMP::Model::Station& m = stations().at(stationName);
 	LQIO::DOM::SymbolExternalVariable * x = nullptr;
 	std::string name;
 	/* Get a variable... $S1,$S2,... */
-	std::map<const Model::Station *,std::string>::iterator var = _multiplicity_vars.find( &m );
+	std::map<const BCMP::Model::Station *,std::string>::iterator var = _multiplicity_vars.find( &m );
 	if ( var != _multiplicity_vars.end() ) {
 	    x = _variables.at(var->second);
 	    name = x->getName();
@@ -1135,8 +1129,8 @@ namespace BCMP {
  	if ( chains().size() != 2 ) throw std::runtime_error( "JMVA_Document::setPopulationMix" );
 	setPlotPopulationMix( true );
 	
-	const Model::Chain::map_t::iterator i = chains().begin();
-	const Model::Chain::map_t::iterator j = std::next(i);
+	const BCMP::Model::Chain::map_t::iterator i = chains().begin();
+	const BCMP::Model::Chain::map_t::iterator j = std::next(i);
 	const std::string beta = "$Beta";					/* Local variable	*/
 
 	LQX::SyntaxTreeNode * assignment_expr;
@@ -1148,8 +1142,8 @@ namespace BCMP {
 	 * highest integer.  Return the "beta" value to the caller.
 	 */
 	
-	const Model::Chain::map_t::iterator k1 = i->first == className ? i : j;
-	const Model::Chain::map_t::iterator k2 = i->first == className ? j : i;
+	const BCMP::Model::Chain::map_t::iterator k1 = i->first == className ? i : j;
+	const BCMP::Model::Chain::map_t::iterator k2 = i->first == className ? j : i;
 	const double k1_customers = to_double( *k1->second.customers() );	/* Get original (constant) values	*/
 	const double k2_customers = to_double( *k2->second.customers() );	/* Get original (constant) values	*/
 
@@ -1223,7 +1217,7 @@ namespace BCMP {
      */
 
     void
-    JMVA_Document::create_result::operator()( const std::pair<const std::string,const Model::Result::Type>& r ) const
+    JMVA_Document::create_result::operator()( const std::pair<const std::string,const BCMP::Model::Result::Type>& r ) const
     {
 	std::string name;
 	name = r.first + "_" + _m->first;	// Don't forget leading $!
@@ -1234,7 +1228,7 @@ namespace BCMP {
 
 
     LQX::SyntaxTreeNode *
-    JMVA_Document::createObservation( const std::string& name, Model::Result::Type type, const Model::Station * m, const Model::Station::Class * k )
+    JMVA_Document::createObservation( const std::string& name, BCMP::Model::Result::Type type, const BCMP::Model::Station * m, const BCMP::Model::Station::Class * k )
     {
 	static const std::map<const BCMP::Model::Result::Type,const char * const> lqx_function = {
 	    { BCMP::Model::Result::Type::RESIDENCE_TIME, BCMP::__lqx_residence_time },
@@ -1252,7 +1246,7 @@ namespace BCMP {
 	
 	if ( k == nullptr ) {
 	    /* No class, so return station function to extract result */
-	    const_cast<Model::Station *>(m)->insertResultVariable( type, name );
+	    const_cast<BCMP::Model::Station *>(m)->insertResultVariable( type, name );
 	    
 	} else {
 	    /* Get the class object for m the station */
@@ -1268,7 +1262,7 @@ namespace BCMP {
     }
 
     LQX::SyntaxTreeNode *
-    JMVA_Document::createObservation( const std::string& name, Model::Result::Type type, const std::string& clasx )
+    JMVA_Document::createObservation( const std::string& name, BCMP::Model::Result::Type type, const std::string& clasx )
     {
 	static const std::map<const BCMP::Model::Result::Type,const char * const> lqx_function = {
 	    { BCMP::Model::Result::Type::QUEUE_LENGTH,	 BCMP::__lqx_queue_length },
@@ -1353,21 +1347,21 @@ namespace BCMP {
      */
 
     void
-    JMVA_Document::plot( Model::Result::Type type, const std::string& arg )
+    JMVA_Document::plot( BCMP::Model::Result::Type type, const std::string& arg )
     {
 	LQIO::Spex::__observation_variables.clear();	/* Get rid of them all. */
 	LQIO::Spex::__result_variables.clear();		/* Get rid of them all. */
-	_model.clearAllResultVariables();		/* Get rid of them all.	*/
-	_gnuplot.push_back( LQIO::Spex::print_node( "set title \"" + _model.comment() + "\"" ) );
-	_gnuplot.push_back( LQIO::Spex::print_node( "#set output \"" + LQIO::Filename( _input_file_name, "svg", "", "" )() + "\"" ) );
+	model().clearAllResultVariables();		/* Get rid of them all.	*/
+	_gnuplot.push_back( LQIO::Spex::print_node( "set title \"" + model().comment() + "\"" ) );
+	_gnuplot.push_back( LQIO::Spex::print_node( "#set output \"" + LQIO::Filename( getInputFileName(), "svg", "", "" )() + "\"" ) );
 	_gnuplot.push_back( LQIO::Spex::print_node( "#set terminal svg" ) );
 
 	std::ostringstream plot;		// Plot command collected here.
 	plot << "plot ";
 
-	if ( type == Model::Result::Type::THROUGHPUT && plotPopulationMix() ) {
+	if ( type == BCMP::Model::Result::Type::THROUGHPUT && plotPopulationMix() ) {
 	    plot_population_mix_vs_throughput( plot );
-	} else if ( type == Model::Result::Type::UTILIZATION && plotPopulationMix() ) {
+	} else if ( type == BCMP::Model::Result::Type::UTILIZATION && plotPopulationMix() ) {
 	    plot_population_mix_vs_utilization( plot );
 	} else if ( arg.empty() ) {
 	    plot_chain( plot, type );
@@ -1390,7 +1384,7 @@ namespace BCMP {
      */
 
     std::ostream&
-    JMVA_Document::plot_class( std::ostream& plot, Model::Result::Type type, const std::string& arg )
+    JMVA_Document::plot_class( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& arg )
     {
 	appendResultVariable( _x1.var );
 	_gnuplot.push_back( LQIO::Spex::print_node( "set xlabel \"" + _x1.label + "\"" ) );			// X axis
@@ -1401,7 +1395,7 @@ namespace BCMP {
 	const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
 	size_t y = x;
 	
-	for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
+	for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
 	    if ( m->second.reference() || !m->second.hasClass(arg) ) continue;
 
 	    if ( y > 1 ) plot << ", ";
@@ -1427,7 +1421,7 @@ namespace BCMP {
      */
 
     std::ostream&
-    JMVA_Document::plot_station( std::ostream& plot, Model::Result::Type type, const std::string& arg )
+    JMVA_Document::plot_station( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& arg )
     {
 	appendResultVariable( _x1.var );
 	_gnuplot.push_back( LQIO::Spex::print_node( "set xlabel \"" + _x1.label + "\"" ) );			// X axis
@@ -1438,8 +1432,8 @@ namespace BCMP {
 	const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
 	size_t y = x;
 	
-	const Model::Station& station = stations().at( arg );
-	for ( Model::Station::Class::map_t::const_iterator k = station.classes().begin(); k != station.classes().end(); ++k ) {
+	const BCMP::Model::Station& station = stations().at( arg );
+	for ( BCMP::Model::Station::Class::map_t::const_iterator k = station.classes().begin(); k != station.classes().end(); ++k ) {
 	    if ( k != station.classes().begin() ) plot << ", ";
 
 	    /* Create observation, var name is class name. */
@@ -1460,17 +1454,17 @@ namespace BCMP {
 
 
     std::ostream&
-    JMVA_Document::plot_chain( std::ostream& plot, Model::Result::Type type )
+    JMVA_Document::plot_chain( std::ostream& plot, BCMP::Model::Result::Type type )
     {
-	static const std::map<const Model::Result::Type, const std::string> y_labels = {
-	    {Model::Result::Type::THROUGHPUT,     XThroughput },
-	    {Model::Result::Type::RESPONSE_TIME,  XResponse_Time },
+	static const std::map<const BCMP::Model::Result::Type, const std::string> y_labels = {
+	    { BCMP::Model::Result::Type::THROUGHPUT,     XThroughput },
+	    { BCMP::Model::Result::Type::RESPONSE_TIME,  XResponse_Time },
 	};
 
 	appendResultVariable( _x1.var );
 	_gnuplot.push_back( LQIO::Spex::print_node( "set xlabel \"" + _x1.label + "\"" ) );		// X axis
 	_gnuplot.push_back( LQIO::Spex::print_node( "set ylabel \"" + y_labels.at(type) + "\"" ) );	// Y1 axis
-	if ( type == Model::Result::Type::THROUGHPUT ) {
+	if ( type == BCMP::Model::Result::Type::THROUGHPUT ) {
 	    _gnuplot.push_back( LQIO::Spex::print_node( "set key bottom right" ) );
 	    _gnuplot.push_back( LQIO::Spex::print_node( "set key box" ) );
 	}
@@ -1483,8 +1477,8 @@ namespace BCMP {
 	const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
 	size_t y = x;
 
-	for ( Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
-	    Model::Bound bounds( *k, stations() );
+	for ( BCMP::Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
+	    BCMP::Model::Bound bounds( *k, stations() );
 
 	    if ( k != chains().begin() ) plot << ", ";
 
@@ -1504,7 +1498,7 @@ namespace BCMP {
 		 << " title \"" << title << "\"";
 
 	    /* Now plot the bounds. */
-	    if ( type == Model::Result::Type::THROUGHPUT || type == Model::Result::Type::RESPONSE_TIME ) {
+	    if ( type == BCMP::Model::Result::Type::THROUGHPUT || type == BCMP::Model::Result::Type::RESPONSE_TIME ) {
 		std::ostringstream label1;
 		std::ostringstream label2;
 		std::string title1;
@@ -1517,12 +1511,12 @@ namespace BCMP {
 		    title2 = k->first + " ";
 		}
 		switch ( type ) {
-		case Model::Result::Type::THROUGHPUT:
+		case BCMP::Model::Result::Type::THROUGHPUT:
 		    bound1 = 1. / bounds.D_max();
 		    title1 += "1/Dmax";
 		    title2 += "1/(Dsum+Z)";
 		    break;
-		case Model::Result::Type::RESPONSE_TIME:
+		case BCMP::Model::Result::Type::RESPONSE_TIME:
 		    bound1 = bounds.D_sum();
 		    title1 += "Dsum";
 		    title2 += "N*Dmax-Z";
@@ -1541,11 +1535,11 @@ namespace BCMP {
 
 		plot << ", " << bound1 << " with lines title \"" << title1 << "\"";
 		switch ( type ) {
-		case Model::Result::Type::THROUGHPUT:
+		case BCMP::Model::Result::Type::THROUGHPUT:
 		    plot << ", x/(" << bounds.D_sum() << "+" << bounds.Z() << ") with lines title \"" << title2 << "\"";
 		    y_max = std::max( y_max, 1./bounds.D_max() );
 		    break;
-		case Model::Result::Type::RESPONSE_TIME:
+		case BCMP::Model::Result::Type::RESPONSE_TIME:
 		    plot << ", x*" << bounds.D_max() << "-" << bounds.Z() << " with lines title \"" << title2 << "\"";
 		    y_max = std::max( y_max, _x1.max*bounds.D_max()-bounds.Z() );
 		    break;
@@ -1570,13 +1564,13 @@ namespace BCMP {
     std::ostream&
     JMVA_Document::plot_population_mix_vs_throughput( std::ostream& plot )
     {
-	const Model::Chain::map_t::iterator x = chains().begin();
-	const Model::Chain::map_t::iterator y = std::next(x);
+	const BCMP::Model::Chain::map_t::iterator x = chains().begin();
+	const BCMP::Model::Chain::map_t::iterator y = std::next(x);
 
 	std::string x_var = "$" + x->first;
 	std::string y_var = "$" + y->first;
-	createObservation( x_var, Model::Result::Type::THROUGHPUT, x->first );
-	createObservation( y_var, Model::Result::Type::THROUGHPUT, y->first );
+	createObservation( x_var, BCMP::Model::Result::Type::THROUGHPUT, x->first );
+	createObservation( y_var, BCMP::Model::Result::Type::THROUGHPUT, y->first );
 
 	std::ostringstream x_cust;
 	std::ostringstream y_cust;
@@ -1598,12 +1592,12 @@ namespace BCMP {
 
 	double x_max = 0;
 	double y_max = 0;
-	for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
-	    if (     m->second.type() != Model::Station::Type::LOAD_INDEPENDENT
-		  && m->second.type() != Model::Station::Type::MULTISERVER ) continue;
+	for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
+	    if (     m->second.type() != BCMP::Model::Station::Type::LOAD_INDEPENDENT
+		  && m->second.type() != BCMP::Model::Station::Type::MULTISERVER ) continue;
 
-	    double D_x = Model::Bound::D( m->second, *x );		/* Adjusted for multiservers	*/
-	    double D_y = Model::Bound::D( m->second, *y );
+	    double D_x = BCMP::Model::Bound::D( m->second, *x );		/* Adjusted for multiservers	*/
+	    double D_y = BCMP::Model::Bound::D( m->second, *y );
 	    if ( D_x == 0. && D_y == 0. ) continue;
 
 	    x_max = std::max( x_max, D_x );
@@ -1654,23 +1648,23 @@ namespace BCMP {
 
 	_gnuplot.push_back( LQIO::Spex::print_node( "set xlabel \""  + _x1.label + "\"" ) );			// X axis
 //	_gnuplot.push_back( LQIO::Spex::print_node( "set x2label \"" + _x2.label + "\"" ) );			// X axis
-	_gnuplot.push_back( LQIO::Spex::print_node( "set ylabel \""  + y_label_table.at(Model::Result::Type::UTILIZATION) + "\"" ) );	// Y1 axis
+	_gnuplot.push_back( LQIO::Spex::print_node( "set ylabel \""  + y_label_table.at(BCMP::Model::Result::Type::UTILIZATION) + "\"" ) );	// Y1 axis
 	_gnuplot.push_back( LQIO::Spex::print_node( "set key title \"Station\"" ) );
 //	_gnuplot.push_back( LQIO::Spex::print_node( "set key top left box" ) );
 
 	const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
 	size_t y = x + 1;		/* Skip "mirror" x */
 	
-	for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
-	    if (     m->second.type() != Model::Station::Type::LOAD_INDEPENDENT
-		  && m->second.type() != Model::Station::Type::MULTISERVER ) continue;
+	for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
+	    if (     m->second.type() != BCMP::Model::Station::Type::LOAD_INDEPENDENT
+		  && m->second.type() != BCMP::Model::Station::Type::MULTISERVER ) continue;
 
 	    if ( y > 2 ) plot << ", ";
 
 	    /* Create observation, var name is class name. */
 	    y += 1;
 	    const std::string y_var = "$" + m->first;
-	    createObservation( y_var, Model::Result::Type::UTILIZATION, &m->second, nullptr );
+	    createObservation( y_var, BCMP::Model::Result::Type::UTILIZATION, &m->second, nullptr );
 	    appendResultVariable( y_var );
 
 	    /* Append plot command to plot */
@@ -1681,7 +1675,7 @@ namespace BCMP {
     }
 }
 
-namespace BCMP {
+namespace QNIO {
 
     /* ---------------------------------------------------------------- */
     /* Output.								*/
@@ -1699,8 +1693,8 @@ namespace BCMP {
 	    output << "<!-- " << LQIO::io_vars.lq_command_line << " -->" << std::endl;
 	}
 
-	if ( !_pragmas.empty() ) {
-	    const std::map<std::string,std::string>& pragmas = _pragmas.getList();
+	if ( hasPragmas() ) {
+	    const std::map<std::string,std::string>& pragmas = getPragmaList();
 	    for ( std::map<std::string,std::string>::const_iterator next_pragma = pragmas.begin(); next_pragma != pragmas.end(); ++next_pragma ) {
 		output << XML::start_element( Xpragma, false )
 		       << XML::attribute( Xparam, next_pragma->first )
@@ -1713,9 +1707,9 @@ namespace BCMP {
 	       << XML::attribute( "xsi:noNamespaceSchemaLocation", std::string("JMTmodel.xsd") )
 	       << ">" << std::endl;
 	
-	if ( !_model.comment().empty() ) {
+	if ( !model().comment().empty() ) {
 	    output << XML::start_element( Xdescription ) << ">" << std::endl
-		   << XML::cdata( _model.comment() ) << std::endl
+		   << XML::cdata( model().comment() ) << std::endl
 		   << XML::end_element( Xdescription ) << ">" << std::endl;
 	}
 
@@ -1743,21 +1737,21 @@ namespace BCMP {
 	/* Insert WhatIf for statements for arrays and completions. */
 	/* 	<whatIf className="c1" stationName="p2" type="Service Demands" values="1.0;1.1;1.2;1.3;1.4;1.5;1.6;1.7;1.8;1.9;2.0"/> */
 
-	if ( !Spex::input_variables().empty() ) {
+	if ( !LQIO::Spex::input_variables().empty() ) {
 	    output << "   <!-- SPEX input variables -->" << std::endl;
-	    What_If what_if( output, _model );
-	    std::for_each( Spex::scalar_variables().begin(), Spex::scalar_variables().end(), what_if );		/* Do scalars in order	*/
-	    std::for_each( Spex::array_variables().begin(),  Spex::array_variables().end(),  what_if );		/* Do arrays in order	*/
+	    What_If what_if( output, model() );
+	    std::for_each( LQIO::Spex::scalar_variables().begin(), LQIO::Spex::scalar_variables().end(), what_if );		/* Do scalars in order	*/
+	    std::for_each( LQIO::Spex::array_variables().begin(),  LQIO::Spex::array_variables().end(),  what_if );		/* Do arrays in order	*/
 	}
 
 	/* SPEX */
 	/* Insert a results section, but only to output the variables */
 	
-	if ( !Spex::result_variables().empty() ) {
+	if ( !LQIO::Spex::result_variables().empty() ) {
 	    output << "   <!-- SPEX results -->" << std::endl;
 	    /* Store in a map<station,pair<string,map<class,string>>, then output by station and class. */
 	    output << XML::start_element( Xsolutions ) << XML::attribute( Xok, Xfalse );
-	    const std::string result_vars = std::accumulate( Spex::result_variables().begin(), Spex::result_variables().end(), std::string(""), &fold );
+	    const std::string result_vars = std::accumulate( LQIO::Spex::result_variables().begin(), LQIO::Spex::result_variables().end(), std::string(""), &fold );
 	    if ( !result_vars.empty() ) output << XML::attribute( XResultVariables, result_vars );
 	    output << ">" << std::endl;
 	    output << XML::start_element( Xalgorithm ) << XML::attribute( Xiterations, static_cast<unsigned int>(0) ) << ">" << std::endl;
@@ -1790,7 +1784,7 @@ namespace BCMP {
      */
     
     void
-    JMVA_Document::printMeasure::operator()( const Model::Result::pair_t& r ) const
+    JMVA_Document::printMeasure::operator()( const BCMP::Model::Result::pair_t& r ) const
     {
 	static const std::map<const BCMP::Model::Result::Type,const char * const> attribute = {
 	    { BCMP::Model::Result::Type::QUEUE_LENGTH, XNumberOfCustomers },
@@ -1809,13 +1803,13 @@ namespace BCMP {
      */
 
     void
-    JMVA_Document::printStation::operator()( const Model::Station::pair_t& m ) const
+    JMVA_Document::printStation::operator()( const BCMP::Model::Station::pair_t& m ) const
     {
 	const BCMP::Model::Station& station = m.second;
-	static const std::map<Model::Station::Type,const char * const> type = {
-	    { Model::Station::Type::DELAY, Xdelaystation },
-	    { Model::Station::Type::MULTISERVER, Xldstation },
-	    { Model::Station::Type::LOAD_INDEPENDENT, Xlistation }
+	static const std::map<BCMP::Model::Station::Type,const char * const> type = {
+	    { BCMP::Model::Station::Type::DELAY, Xdelaystation },
+	    { BCMP::Model::Station::Type::MULTISERVER, Xldstation },
+	    { BCMP::Model::Station::Type::LOAD_INDEPENDENT, Xlistation }
 	};
 	const char * const element = type.at(station.type());
 
@@ -1852,7 +1846,7 @@ namespace BCMP {
     void
     JMVA_Document::printReference::operator()( const BCMP::Model::Chain::pair_t& k ) const
     {
-	BCMP::Model::Station::map_t::const_iterator m = std::find_if( _stations.begin(), _stations.end(), &Model::Station::isCustomer );
+	BCMP::Model::Station::map_t::const_iterator m = std::find_if( _stations.begin(), _stations.end(), &BCMP::Model::Station::isCustomer );
 	if ( m != _stations.end() ) {
 	    _output << XML::simple_element( XClass )
 		    << XML::attribute( Xname, k.first )
@@ -1895,7 +1889,7 @@ namespace BCMP {
     void
     JMVA_Document::What_If::operator()( const std::string& var ) const
     {
-	const std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator y = Spex::input_variables().find(var);
+	const std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator y = LQIO::Spex::input_variables().find(var);
 	this->operator()( *y );
     }
 
@@ -1942,16 +1936,16 @@ namespace BCMP {
 	
 	std::ostringstream ss;
 	std::string values;
-	std::map<std::string,Spex::ComprehensionInfo>::const_iterator comprehension;
+	std::map<std::string,LQIO::Spex::ComprehensionInfo>::const_iterator comprehension;
 	std::vector<std::string>::const_iterator array;
-	if ( (comprehension = Spex::comprehensions().find( var.first )) != Spex::comprehensions().end() ) {
+	if ( (comprehension = LQIO::Spex::comprehensions().find( var.first )) != LQIO::Spex::comprehensions().end() ) {
 	    /* Simple, run the comprehension directly */
 	    for ( double value = comprehension->second.getInit(); value <= comprehension->second.getTest(); value += comprehension->second.getStep() ) {
 		if ( value != comprehension->second.getInit() ) ss << ";";
 		ss << value;
 	    }
 	    values = ss.str();
-	} else if ( (array = std::find( Spex::array_variables().begin(), Spex::array_variables().end(), var.first )) != Spex::array_variables().end() ) {
+	} else if ( (array = std::find( LQIO::Spex::array_variables().begin(), LQIO::Spex::array_variables().end(), var.first )) != LQIO::Spex::array_variables().end() ) {
 	    /* Little harder, the values are encoded in the varible's LQX statement directly */
 	    var.second->print(ss);		/* So print out the LQX */
 	    values = ss.str();
@@ -1971,7 +1965,7 @@ namespace BCMP {
     /* Return true if this class has the variable */
 
     bool
-    JMVA_Document::What_If::has_customers::operator()( const Model::Chain::pair_t& k ) const
+    JMVA_Document::What_If::has_customers::operator()( const BCMP::Model::Chain::pair_t& k ) const
     {
 	if ( !k.second.isClosed() ) return false;
 	const LQIO::DOM::ExternalVariable * var = k.second.customers();
@@ -1979,7 +1973,7 @@ namespace BCMP {
     }
 
     bool
-    JMVA_Document::What_If::has_arrival_rate::operator()( const Model::Chain::pair_t& k ) const
+    JMVA_Document::What_If::has_arrival_rate::operator()( const BCMP::Model::Chain::pair_t& k ) const
     {
 	if ( !k.second.isOpen() ) return false;
 	const LQIO::DOM::ExternalVariable * var = k.second.arrival_rate();
@@ -1987,7 +1981,7 @@ namespace BCMP {
     }
 
     bool
-    JMVA_Document::What_If::has_copies::operator()( const Model::Station::pair_t& m ) const
+    JMVA_Document::What_If::has_copies::operator()( const BCMP::Model::Station::pair_t& m ) const
     {
 	const LQIO::DOM::ExternalVariable * var = m.second.copies();
 	return var != nullptr && !var->wasSet() && var->getName() == _var;
@@ -1996,7 +1990,7 @@ namespace BCMP {
     /* Search for the variable in all classes */
 
     bool
-    JMVA_Document::What_If::has_var::operator()( const Model::Station::pair_t& m ) const
+    JMVA_Document::What_If::has_var::operator()( const BCMP::Model::Station::pair_t& m ) const
     {
 	const BCMP::Model::Station::Class::map_t& classes = m.second.classes();
 	return std::any_of( classes.begin(), classes.end(), What_If::has_service_time( _var ) )
@@ -2004,21 +1998,21 @@ namespace BCMP {
     }
 
     bool
-    JMVA_Document::What_If::has_service_time::operator()( const Model::Station::Class::pair_t& d ) const
+    JMVA_Document::What_If::has_service_time::operator()( const BCMP::Model::Station::Class::pair_t& d ) const
     {
 	const LQIO::DOM::ExternalVariable * var = d.second.service_time();
 	return var != nullptr && !var->wasSet() && var->getName() == _var;
     }
 
     bool
-    JMVA_Document::What_If::has_visits::operator()( const Model::Station::Class::pair_t& d ) const
+    JMVA_Document::What_If::has_visits::operator()( const BCMP::Model::Station::Class::pair_t& d ) const
     {
 	const LQIO::DOM::ExternalVariable * var = d.second.visits();
 	return var != nullptr && !var->wasSet() && var->getName() == _var;
     }
 
     std::string
-    JMVA_Document::fold( const std::string& s1, const Spex::var_name_and_expr& v2 )
+    JMVA_Document::fold( const std::string& s1, const LQIO::Spex::var_name_and_expr& v2 )
     {
 	if ( !s1.empty() ) {
 	    return s1 + ";" + v2.first;
@@ -2028,31 +2022,30 @@ namespace BCMP {
     }
 }
 
-namespace BCMP {
+namespace QNIO {
     using namespace LQIO;
 
     bool JMVA_Document::convertToLQN( DOM::Document& document ) const
     {
-	if ( !_model.convertToLQN( document ) ) return false;
+	if ( !model().convertToLQN( document ) ) return false;
 	LQIO::Spex::__result_variables.clear();		/* Get rid of them all. */
 	/* Add SPEX */
 	return true;
     }
 }
-
 
-namespace BCMP {
+namespace QNIO {
     /* Tables for input parsing */
     const std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::algParams_table = { XmaxSamples, Xname, Xtolerance };
     const std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::compareAlgs_table = { XmeanValue, XmeasureType, Xsuccessful };
     const std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::null_table = {};
 
     /* Table for y label when plotting */
-    const std::map<const Model::Result::Type, const std::string> JMVA_Document::y_label_table = {
-	{Model::Result::Type::QUEUE_LENGTH,   JMVA_Document::XNumber_of_Customers },
-	{Model::Result::Type::RESIDENCE_TIME, JMVA_Document::XResidence_Time },
-	{Model::Result::Type::THROUGHPUT,     JMVA_Document::XThroughput },
-	{Model::Result::Type::UTILIZATION,    JMVA_Document::XUtilization }
+    const std::map<const BCMP::Model::Result::Type, const std::string> JMVA_Document::y_label_table = {
+	{ BCMP::Model::Result::Type::QUEUE_LENGTH,   JMVA_Document::XNumber_of_Customers },
+	{ BCMP::Model::Result::Type::RESIDENCE_TIME, JMVA_Document::XResidence_Time },
+	{ BCMP::Model::Result::Type::THROUGHPUT,     JMVA_Document::XThroughput },
+	{ BCMP::Model::Result::Type::UTILIZATION,    JMVA_Document::XUtilization }
     };
 
     /* Schema element/attribute names */

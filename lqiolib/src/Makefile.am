@@ -1,4 +1,4 @@
-# $Id: Makefile.am 15880 2022-09-21 12:52:01Z greg $
+# $Id: Makefile.am 15918 2022-09-27 17:12:59Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 # This project uses Libtool to generate a product
@@ -30,6 +30,7 @@ liblqio_la_SOURCES = bcmp_bindings.cpp \
 	getsubopt.cpp \
 	json_document.cpp \
 	labels.cpp \
+	qnio_document.cpp \
 	qnap2_document.cpp \
 	qnap2_gram.y \
 	qnap2_scan.l \
@@ -76,7 +77,7 @@ srvn_result_gram.c srvn_result_gram.h: srvn_result_gram.y
 qnap2_scan.c: qnap2_scan.l qnap2_gram.h
 	$(LEX) -t $(LFLAGS) -Pqnap2 qnap2_scan.l > qnap2_scan.c
 
-qnap2_gram.c: qnap2_gram.y 
+qnap2_gram.c qnap2_gram.h: qnap2_gram.y 
 	$(YACC) -dtv -p qnap2 -o qnap2_gram.c qnap2_gram.y
 
 

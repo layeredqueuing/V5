@@ -38,7 +38,7 @@
 bool print_spex = false;				/* Print LQX program		*/
 bool debug_flag = false;
 
-Model::Model( BCMP::JMVA_Document& input, Model::Solver solver, const std::string& output_file_name )
+Model::Model( QNIO::Document& input, Model::Solver solver, const std::string& output_file_name )
     : _model(input.model()), _solver(solver),
       _result(false), _input(input), _output_file_name(output_file_name), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr), Q()
 {
@@ -47,7 +47,7 @@ Model::Model( BCMP::JMVA_Document& input, Model::Solver solver, const std::strin
 }
 
 
-Model::Model( BCMP::JMVA_Document& input, Model::Solver solver )
+Model::Model( QNIO::Document& input, Model::Solver solver )
     : _model(input.model()), _solver(solver),
       _result(false), _input(input), _output_file_name(), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr), Q()
 {
@@ -185,7 +185,7 @@ Model::solve()
 	    if ( !output ) {
 		runtime_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 	    } else {
-		print ( output );
+		print( output );
 	    }
 	    output.close();
 	}
@@ -245,6 +245,12 @@ Model::compute()
 }
 
 
+std::ostream&
+Model::print( std::ostream& output ) const
+{
+    return _input.print( output );
+}
+
 void
 Model::saveResults()
 {
@@ -303,8 +309,8 @@ Model::InstantiateStation::InstantiateClass::operator()( const BCMP::Model::Stat
     try {
 	const BCMP::Model::Chain& chain = chainAt(input.first);
 	const BCMP::Model::Station::Class& demand = input.second;	// From BCMP model.
-	const double service_time = demand.service_time()->wasSet() ? LQIO::DOM::to_double( *demand.service_time() ) : 0.;
-	const double visits = demand.visits()->wasSet() ? LQIO::DOM::to_double( *demand.visits() ) : 0.;
+	const double service_time = (demand.service_time() != nullptr && demand.service_time()->wasSet()) ? LQIO::DOM::to_double( *demand.service_time() ) : 0.;
+	const double visits = (demand.visits() != nullptr && demand.visits()->wasSet()) ? LQIO::DOM::to_double( *demand.visits() ) : 0.;
 	if ( closed_model() != nullptr && chain.isClosed() ) {
 	    const size_t k = indexAt(chain.type(),input.first);
 	    _server.setService( k, service_time );
@@ -312,7 +318,7 @@ Model::InstantiateStation::InstantiateClass::operator()( const BCMP::Model::Stat
 	} else if ( open_model() != nullptr && chain.isOpen() ) {
 	    static const size_t k = 0;
 	    const size_t e = indexAt(chain.type(),input.first);
-	    const double arrival_rate = chain.arrival_rate()->wasSet() ? LQIO::DOM::to_double( *chain.arrival_rate() ) : 0.;
+	    const double arrival_rate = (chain.arrival_rate() != nullptr && chain.arrival_rate()->wasSet()) ? LQIO::DOM::to_double( *chain.arrival_rate() ) : 0.;
 	    _server.setService( e, k, service_time );
 	    _server.setVisits( e, k, visits * arrival_rate );
 	}
@@ -334,7 +340,7 @@ Model::InstantiateStation::InstantiateStation( const Model& model ) : _model(mod
 	for ( BCMP::Model::Chain::map_t::const_iterator ki = chains().begin(); ki != chains().end(); ++ki ) {
 	    if ( !ki->second.isClosed() ) continue;
 	    const size_t k = indexAt( BCMP::Model::Chain::Type::CLOSED, ki->first );	/* Grab index from closed model */
-	    N[k] = ki->second.customers()->wasSet() ? to_unsigned( *ki->second.customers() ) : 1;
+	    N[k] = (ki->second.customers() != nullptr && ki->second.customers()->wasSet()) ? to_unsigned( *ki->second.customers() ) : 1;
 	}
     }
 }
@@ -356,7 +362,7 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
     /* Swap stations if necessary */
     
     const BCMP::Model::Station& station = input.second;
-    const unsigned int copies = station.copies()->wasSet() ? LQIO::DOM::to_unsigned( *station.copies() ) : 1;
+    const unsigned int copies = (station.copies() != nullptr && station.copies()->wasSet()) ? LQIO::DOM::to_unsigned( *station.copies() ) : 1;
     
     if ( station.type() == BCMP::Model::Station::Type::DELAY || station.scheduling() == SCHEDULE_DELAY ) {
 	if ( copies != 1 ) {
@@ -465,111 +471,3 @@ Model::InstantiateStation::replace_server( const std::string& name, Server * old
     return new_server;
 }
 
-std::streamsize Model::__width = 10;
-std::streamsize Model::__precision = 6;
-std::string Model::__separator = "*";
-
-
-std::ostream&
-Model::print( std::ostream& output ) const
-{
-    const std::streamsize old_precision = output.precision(__precision);
-//    output << " - (" << _solver << ") - " << std::endl;
-    output.fill('*');
-    output << std::setw(__width*6+7) << "*" << std::endl;
-    output.fill(' ');
-    output << __separator << std::setw(__width) << "name " << header() << __separator << std::endl;
-    output.fill('*');
-    output << std::setw(__width*6+7) << "*" << std::endl;
-    output.fill(' ');
-    output << __separator << std::setw(__width) << " " << Model::blankline() << __separator << std::endl;
-    for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
-	const BCMP::Model::Station::Class::map_t& results = mi->second.classes();
-	const BCMP::Model::Station::Class sum = std::accumulate( std::next(results.begin()), results.end(), results.begin()->second, &BCMP::Model::Station::sumResults ).deriveResidenceTime();
-	const double service = sum.throughput() > 0 ? sum.utilization() / sum.throughput() : 0.0;
-	
-	/* Sum will work for single class too. */
-	output.setf(std::ios::left, std::ios::adjustfield);
-	output << __separator << std::setw(__width) << ( " " + mi->first );
-	print(output,service,sum);
-	output << __separator << std::endl;
-	if ( results.size() > 1 ) {
-	    for ( BCMP::Model::Station::Class::map_t::const_iterator result = results.begin(); result != results.end(); ++result ) {
-		if (result->second.throughput() == 0 ) continue;
-		output << __separator << std::setw(__width) <<  ( "(" + result->first + ")");
-		const double service_time = LQIO::DOM::to_double( *mi->second.classAt(result->first).service_time() );
-		const double visits = LQIO::DOM::to_double( *mi->second.classAt(result->first).visits() );
-		print( output, service_time * visits, result->second );
-		output << __separator << std::endl;
-	    }
-	}
-	output << __separator << std::setw(__width) << " " << Model::blankline() << __separator << std::endl;
-    }
-    output.fill('*');
-    output << std::setw(__width*6+7) << "*" << std::endl;
-    output.fill(' ');
-    output.precision(old_precision);
-    return output;
-}
-
-std::ostream&
-Model::print( std::ostream& output, double service_time, const BCMP::Model::Station::Result& item ) const
-{
-    output.unsetf( std::ios::floatfield );
-    output << __separator << std::setw(__width) << service_time
-	   << __separator << std::setw(__width) << item.utilization()
-	   << __separator << std::setw(__width) << item.queue_length()
-	   << __separator << std::setw(__width) << item.residence_time()		// per visit.
-	   << __separator << std::setw(__width) << item.throughput();
-    return output;
-}
-
-
-std::string
-Model::header()
-{
-    std::ostringstream output;
-    output << __separator << std::setw(__width) << "service "
-	   << __separator << std::setw(__width) << "busy pct "
-	   << __separator << std::setw(__width) << "cust nb "
-	   << __separator << std::setw(__width) << "response "
-	   << __separator << std::setw(__width) << "thruput ";
-    return output.str();
-}
-
-std::string
-Model::blankline()
-{
-    std::ostringstream output;
-    for ( unsigned i = 0; i < 5; ++i ) {
-	output << std::setfill(' ');
-	output << __separator << std::setw(__width) << " ";
-    }
-    return output.str();
-}
-
-/*
- - mean value analysis ("mva") -
- *******************************************************************
- *  name    *  service * busy pct *  cust nb * response *  thruput *
- *******************************************************************
- *          *          *          *          *          *          *
- * terminal *0.2547    * 0.000    * 1.579    *0.2547    * 6.201    *
- *(c1      )*0.3333    * 0.000    * 1.417    *0.3333    * 4.250    *
- *(c2      )*0.8333E-01* 0.000    *0.1625    *0.8333E-01* 1.951    *
- *          *          *          *          *          *          *
- * p1       *0.4000    *0.8267    * 2.223    * 1.076    * 2.067    *
- *(c1      )*0.4000    *0.5667    * 1.512    * 1.067    * 1.417    *
- *(c2      )*0.4000    *0.2601    *0.7109    * 1.093    *0.6502    *
- *          *          *          *          *          *          *
- * p2       *0.2000    *0.6317    * 1.215    *0.3848    * 3.158    *
- *(c1      )*0.2000    *0.5667    * 1.071    *0.3780    * 2.833    *
- *(c2      )*0.2000    *0.6502E-01*0.1442    *0.4436    *0.3251    *
- *          *          *          *          *          *          *
- * p3       *0.7000    *0.6827    *0.9823    * 1.007    *0.9753    *
- *(c2      )*0.7000    *0.6827    *0.9823    * 1.007    *0.9753    *
- *          *          *          *          *          *          *
- *******************************************************************
-              memory used:       4024 words of 4 bytes
-               (  1.55  % of total memory)     
-*/

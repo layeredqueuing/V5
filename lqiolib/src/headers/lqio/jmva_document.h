@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 15724 2022-06-28 15:05:23Z greg $
+ *  $Id: jmva_document.h 15918 2022-09-27 17:12:59Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -15,9 +15,8 @@
 #if HAVE_STRINGS_H
 #include <strings.h>
 #endif
-#include "dom_pragma.h"
 #include "bcmp_document.h"
-#include "srvn_spex.h"
+#include "qnio_document.h"
 
 namespace LQIO {
     namespace DOM {
@@ -25,24 +24,24 @@ namespace LQIO {
     }
 }
 
-namespace BCMP {
+namespace QNIO {
     typedef std::map<const std::string,std::multimap<const std::string,const std::string> > result_t;
 
-    class JMVA_Document {
+    class JMVA_Document : public Document {
 	typedef std::string (JMVA_Document::*setIndependentVariable)( const std::string&, const std::string& );
 	
 	/* Safe union for stack object */
 	class Object {
 	public:
 	    enum class type { VOID, MODEL, CLASS, OBJECT, STATION, DEMAND, PAIR };
-	    typedef std::pair<const Model::Station *,const Model::Station::Class *> MK;
+	    typedef std::pair<const BCMP::Model::Station *,const BCMP::Model::Station::Class *> MK;
 	    Object(const Object&);
 	    Object() : _discriminator(type::VOID), u() {}
-	    Object(Model * _m_) : _discriminator(type::MODEL), u(_m_) {}
-	    Object(Model::Chain * _k_) : _discriminator(type::CLASS), u(_k_) {}
-	    Object(Model::Object * _o_ ) : _discriminator(type::OBJECT), u(_o_) {}
-	    Object(Model::Station *_s_) : _discriminator(type::STATION), u(_s_) {}
-	    Object(Model::Station::Class * _d_) : _discriminator(type::DEMAND), u(_d_) {}
+	    Object(BCMP::Model * _m_) : _discriminator(type::MODEL), u(_m_) {}
+	    Object(BCMP::Model::Chain * _k_) : _discriminator(type::CLASS), u(_k_) {}
+	    Object(BCMP::Model::Object * _o_ ) : _discriminator(type::OBJECT), u(_o_) {}
+	    Object(BCMP::Model::Station *_s_) : _discriminator(type::STATION), u(_s_) {}
+	    Object(BCMP::Model::Station::Class * _d_) : _discriminator(type::DEMAND), u(_d_) {}
 	    Object(const MK& _mk_) : _discriminator(type::PAIR), u(_mk_) {}
 	    type getDiscriminator() const { return _discriminator; }
 	    bool isModel() const { return _discriminator == type::MODEL; }
@@ -51,11 +50,11 @@ namespace BCMP {
 	    bool isDemand() const { return _discriminator == type::DEMAND; }
 	    bool isObject() const { return _discriminator == type::OBJECT; }
 	    bool isMK() const { return _discriminator == type::PAIR; }
-	    Model * getModel() const { assert( _discriminator == type::MODEL ); return u.m; }
-	    Model::Chain * getClass() const { assert( _discriminator == type::CLASS ); return u.k; }
-	    Model::Station * getStation() const { assert( _discriminator == type::STATION ); return u.s; }
-	    Model::Station::Class * getDemand() const { assert( _discriminator == type::DEMAND ); return u.d; }
-	    Model::Object * getObject() const { assert( _discriminator == type::OBJECT ); return u.o; }
+	    BCMP::Model * getModel() const { assert( _discriminator == type::MODEL ); return u.m; }
+	    BCMP::Model::Chain * getClass() const { assert( _discriminator == type::CLASS ); return u.k; }
+	    BCMP::Model::Station * getStation() const { assert( _discriminator == type::STATION ); return u.s; }
+	    BCMP::Model::Station::Class * getDemand() const { assert( _discriminator == type::DEMAND ); return u.d; }
+	    BCMP::Model::Object * getObject() const { assert( _discriminator == type::OBJECT ); return u.o; }
 	    MK& getMK() { assert( _discriminator == type::PAIR ); return u.mk; }
 	    const MK& getMK() const { assert( _discriminator == type::PAIR ); return u.mk; }
 
@@ -63,18 +62,18 @@ namespace BCMP {
 	    const type _discriminator;	/* Once set, that's it. */
 	    union u {
 		u() : v(nullptr) {}
-		u(Model * _m_) : m(_m_) {}
-		u(Model::Chain * _k_) : k(_k_) {}
-		u(Model::Object * _o_ ) : o(_o_) {}
-		u(Model::Station *_s_) : s(_s_) {}
-		u(Model::Station::Class * _d_) : d(_d_) {}
+		u(BCMP::Model * _m_) : m(_m_) {}
+		u(BCMP::Model::Chain * _k_) : k(_k_) {}
+		u(BCMP::Model::Object * _o_ ) : o(_o_) {}
+		u(BCMP::Model::Station *_s_) : s(_s_) {}
+		u(BCMP::Model::Station::Class * _d_) : d(_d_) {}
 		u(const MK& _mk_) : mk(_mk_) {}
 		void * v;
-		Model * m;
-		Model::Object * o;
-		Model::Chain * k;
-		Model::Station * s;
-		Model::Station::Class * d;
+		BCMP::Model * m;
+		BCMP::Model::Object * o;
+		BCMP::Model::Chain * k;
+		BCMP::Model::Station * s;
+		BCMP::Model::Station::Class * d;
 		MK mk;
 	    } u;
 	};
@@ -136,36 +135,29 @@ namespace BCMP {
 	JMVA_Document( const std::string& input_file_name );
 	JMVA_Document( const std::string&, const BCMP::Model& );
 	virtual ~JMVA_Document();
-	bool load();
+
+	virtual bool load();
 	static bool load( LQIO::DOM::Document&, const std::string& );		// Factory.
 
     private:
 	bool parse();
-	static void input_error( const std::string& );
-	static void input_error( const std::string&, const std::string& );
+	void input_error( const std::string& );
+	void input_error( const std::string&, const std::string& );
 
     public:
-	const BCMP::Model& model() const { return _model; }
-	const std::string& getInputFileName() const { return _input_file_name; }
-	const std::map<std::string,std::string>& getPragmaList() const { return _pragmas.getList(); }
-
 	bool hasSPEX() const { return !_variables.empty() || getSPEXProgram() != nullptr; }
-	bool hasPragmas() const { return !_pragmas.empty(); }
 	bool hasVariable( const std::string& name ) { return _variables.find(name) != _variables.end(); }
-	void setLQXProgram( LQX::Program * program ) { _lqx_program = program; }
 	expr_list * getSPEXProgram() const { return _spex_program; }
-	LQX::Program * getLQXProgram() const { return _lqx_program; }
 	std::string& getLQXProgramText() { return _lqx_program_text; }
 	void setLQXProgramLineNumber( const unsigned n ) { _lqx_program_line_number = n; }
 	const unsigned getLQXProgramLineNumber() const { return _lqx_program_line_number; }
-	expr_list * getGNUPlotProgram() { return &_gnuplot; }
-	std::vector<std::string> getUndefinedExternalVariables() const;
+	virtual expr_list * getGNUPlotProgram() { return &_gnuplot; }
+	virtual std::vector<std::string> getUndefinedExternalVariables() const;
 
-	void registerExternalSymbolsWithProgram(LQX::Program* program);
-	void mergePragmas(const std::map<std::string,std::string>&);
+	virtual void registerExternalSymbolsWithProgram(LQX::Program* program);
 
 	std::ostream& print( std::ostream& ) const;
-	void plot( Model::Result::Type, const std::string& );
+	void plot( BCMP::Model::Result::Type, const std::string& );
 	bool plotPopulationMix() const { return _plot_population_mix; }
 	void setPlotPopulationMix( bool plot_population_mix ) { _plot_population_mix = plot_population_mix; }
 
@@ -210,13 +202,13 @@ namespace BCMP {
 
 	void createClosedChain( const XML_Char ** attributes );
 	void createOpenChain( const XML_Char ** attributes );
-	Model::Station * createStation( Model::Station::Type, const XML_Char ** attributes );
+	BCMP::Model::Station * createStation( BCMP::Model::Station::Type, const XML_Char ** attributes );
 	void createWhatIf( const XML_Char ** attributes );
 	void createMeasure( Object& object, const XML_Char ** attributes );
 
 	void setResultVariables( const std::string& );
-	LQX::SyntaxTreeNode * createObservation( const std::string& name, Model::Result::Type type, const Model::Station *, const Model::Station::Class * );
-	LQX::SyntaxTreeNode * createObservation( const std::string& name, Model::Result::Type type, const std::string& clasx );
+	LQX::SyntaxTreeNode * createObservation( const std::string& name, BCMP::Model::Result::Type type, const BCMP::Model::Station *, const BCMP::Model::Station::Class * );
+	LQX::SyntaxTreeNode * createObservation( const std::string& name, BCMP::Model::Result::Type type, const std::string& clasx );
 
 	std::string setArrivalRate( const std::string&, const std::string& );
 	std::string setCustomers( const std::string&, const std::string& );
@@ -232,7 +224,7 @@ namespace BCMP {
 	    class has_customers {
 	    public:
 		has_customers( const std::string& var ) : _var(var) {}
-		bool operator()( const Model::Chain::pair_t& c2 ) const;
+		bool operator()( const BCMP::Model::Chain::pair_t& c2 ) const;
 	    private:
 		const std::string& _var;
 	    };
@@ -240,7 +232,7 @@ namespace BCMP {
 	    class has_arrival_rate {
 	    public:
 		has_arrival_rate( const std::string& var ) : _var(var) {}
-		bool operator()( const Model::Chain::pair_t& c2 ) const;
+		bool operator()( const BCMP::Model::Chain::pair_t& c2 ) const;
 	    private:
 		const std::string& _var;
 	    };
@@ -248,7 +240,7 @@ namespace BCMP {
 	    class has_copies {
 	    public:
 		has_copies( const std::string& var ) : _var(var) {}
-		bool operator()( const Model::Station::pair_t& c2 ) const;
+		bool operator()( const BCMP::Model::Station::pair_t& c2 ) const;
 	    private:
 		const std::string& _var;
 	    };
@@ -256,7 +248,7 @@ namespace BCMP {
 	    class has_var {
 	    public:
 		has_var( const std::string& var ) : _var(var) {}
-		bool operator()( const Model::Station::pair_t& c2 ) const;
+		bool operator()( const BCMP::Model::Station::pair_t& c2 ) const;
 	    private:
 		const std::string& _var;
 	    };
@@ -264,8 +256,8 @@ namespace BCMP {
 	    class has_service_time {
 	    public:
 		has_service_time( const std::string& var ) : _var(var) {}
-		bool operator()( const Model::Station::pair_t& c2 ) const;
-		bool operator()( const Model::Station::Class::pair_t& c2 ) const;
+		bool operator()( const BCMP::Model::Station::pair_t& c2 ) const;
+		bool operator()( const BCMP::Model::Station::Class::pair_t& c2 ) const;
 	    private:
 		const std::string& _var;
 	    };
@@ -273,8 +265,8 @@ namespace BCMP {
 	    class has_visits {
 	    public:
 		has_visits( const std::string& var ) : _var(var) {}
-		bool operator()( const Model::Station::pair_t& c2 ) const;
-		bool operator()( const Model::Station::Class::pair_t& c2 ) const;
+		bool operator()( const BCMP::Model::Station::pair_t& c2 ) const;
+		bool operator()( const BCMP::Model::Station::Class::pair_t& c2 ) const;
 	    private:
 		const std::string& _var;
 	    };
@@ -283,8 +275,8 @@ namespace BCMP {
 	    What_If( std::ostream& output, const BCMP::Model& model ) : _output(output), _model(model) {}
 	    void operator()( const std::pair<std::string,LQX::SyntaxTreeNode *>& ) const;
 	    void operator()( const std::string& ) const;
-	    const Model::Model::Station::map_t& stations() const { return _model.stations(); }
-	    const Model::Chain::map_t& chains() const { return _model.chains(); }
+	    const BCMP::Model::Station::map_t& stations() const { return _model.stations(); }
+	    const BCMP::Model::Chain::map_t& chains() const { return _model.chains(); }
 	private:
 	    std::ostream& _output;
 	    const BCMP::Model _model;
@@ -292,13 +284,13 @@ namespace BCMP {
 
 	class create_result {
 	public:
-	    create_result( JMVA_Document& self, const Model::Station::map_t::const_iterator& m ) : _self(self), _m(m) {}
+	    create_result( JMVA_Document& self, const BCMP::Model::Station::map_t::const_iterator& m ) : _self(self), _m(m) {}
 
-	    void operator()( const std::pair<const std::string,const Model::Result::Type>& r ) const;
+	    void operator()( const std::pair<const std::string,const BCMP::Model::Result::Type>& r ) const;
 	    
 	private:
 	    JMVA_Document& _self;
-	    const Model::Station::map_t::const_iterator& _m;
+	    const BCMP::Model::Station::map_t::const_iterator& _m;
 	};
 	
 
@@ -312,87 +304,83 @@ namespace BCMP {
 	    std::vector<std::string>& _list;
 	};
 
-	std::ostream& plot_chain( std::ostream& plot, Model::Result::Type type );
-	std::ostream& plot_class( std::ostream& plot, Model::Result::Type type, const std::string& );
-	std::ostream& plot_station( std::ostream& plot, Model::Result::Type type, const std::string& );
+	std::ostream& plot_chain( std::ostream& plot, BCMP::Model::Result::Type type );
+	std::ostream& plot_class( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& );
+	std::ostream& plot_station( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& );
 	std::ostream& plot_population_mix_vs_throughput( std::ostream& plot );
 	std::ostream& plot_population_mix_vs_utilization( std::ostream& plot );
 
 	/* -------------------------- Output -------------------------- */
 
     private:
-	Model::Station::map_t& stations() { return _model.stations(); }	/* Not const */
-	const Model::Station::map_t& stations() const { return _model.stations(); }
-	Model::Chain::map_t& chains() { return _model.chains(); }
-	const Model::Chain::map_t& chains() const { return _model.chains(); }
+	BCMP::Model::Station::map_t& stations() { return model().stations(); }	/* Not const */
+	const BCMP::Model::Station::map_t& stations() const { return model().stations(); }
+	BCMP::Model::Chain::map_t& chains() { return model().chains(); }
+	const BCMP::Model::Chain::map_t& chains() const { return model().chains(); }
 
 	struct printClass {
 	    printClass( std::ostream& output ) : _output(output) {}
-	    void operator()( const Model::Chain::pair_t& k ) const;
+	    void operator()( const BCMP::Model::Chain::pair_t& k ) const;
 	private:
 	    std::ostream& _output;
 	};
 
 	struct printStation {
 	    printStation( std::ostream& output ) : _output(output) {}
-	    void operator()( const Model::Station::pair_t& m ) const;
+	    void operator()( const BCMP::Model::Station::pair_t& m ) const;
 	private:
 	    std::ostream& _output;
 	};
 
 	struct printReference {
-	    printReference( std::ostream& output, const Model::Station::map_t& stations ) : _output(output), _stations(stations) {}
-	    void operator()( const Model::Chain::pair_t& ) const;
+	    printReference( std::ostream& output, const BCMP::Model::Station::map_t& stations ) : _output(output), _stations(stations) {}
+	    void operator()( const BCMP::Model::Chain::pair_t& ) const;
 	private:
 	    std::ostream& _output;
-	    const Model::Station::map_t& _stations;
+	    const BCMP::Model::Station::map_t& _stations;
 	};
 
 	struct printService {
 	    printService( std::ostream& output ) : _output(output) {}
-	    void operator()( const Model::Station::Class::pair_t& d ) const;
+	    void operator()( const BCMP::Model::Station::Class::pair_t& d ) const;
 	private:
 	    std::ostream& _output;
 	};
 
 	struct printVisits {
 	    printVisits( std::ostream& output ) : _output(output) {}
-	    void operator()( const Model::Station::Class::pair_t& d ) const;
+	    void operator()( const BCMP::Model::Station::Class::pair_t& d ) const;
 	private:
 	    std::ostream& _output;
 	};
 
 	struct printMeasure {
 	    printMeasure( std::ostream& output ) : _output(output) {}
-	    void operator()( const Model::Result::pair_t& r ) const;
+	    void operator()( const BCMP::Model::Result::pair_t& r ) const;
 	private:
 	    std::ostream& _output;
 	};
 
-	static std::string fold( const std::string& s1, const Spex::var_name_and_expr& v2 );
+	static std::string fold( const std::string& s1, const LQIO::Spex::var_name_and_expr& v2 );
 
     private:
-	BCMP::Model _model;
-	const std::string _input_file_name;
 	XML_Parser _parser;
 	std::string _text;
 	std::stack<parse_stack_t> _stack;
-	LQIO::DOM::Pragma _pragmas;
 	std::string _lqx_program_text;
 	unsigned int _lqx_program_line_number;
-	LQX::Program * _lqx_program;
 	
 	/* SPEX */
 	expr_list* _spex_program;
 	std::map<const std::string,LQIO::DOM::SymbolExternalVariable*> _variables;	/* Spex vars */
 
 	/* Maps for asssociating var (the string) to an object */
-	std::map<const Model::Chain *,std::string> _think_time_vars;		/* chain, var 	*/
-	std::map<const Model::Chain *,std::string> _population_vars;		/* chain, var	*/
-	std::map<const Model::Chain *,std::string> _arrival_rate_vars;		/* chain, var	*/
-	std::map<const Model::Station *,std::string> _multiplicity_vars;	/* station, var	*/
-	std::map<const Model::Station::Class *,std::string> _service_time_vars;	/* class, var	*/
-	std::map<const Model::Station::Class *,std::string> _visit_vars;	/* class, var	*/
+	std::map<const BCMP::Model::Chain *,std::string> _think_time_vars;		/* chain, var 	*/
+	std::map<const BCMP::Model::Chain *,std::string> _population_vars;		/* chain, var	*/
+	std::map<const BCMP::Model::Chain *,std::string> _arrival_rate_vars;		/* chain, var	*/
+	std::map<const BCMP::Model::Station *,std::string> _multiplicity_vars;	/* station, var	*/
+	std::map<const BCMP::Model::Station::Class *,std::string> _service_time_vars;	/* class, var	*/
+	std::map<const BCMP::Model::Station::Class *,std::string> _visit_vars;	/* class, var	*/
 
 	/* Plotting */
 	expr_list _gnuplot;			/* GNUPlot program		*/
@@ -407,7 +395,7 @@ namespace BCMP {
 	static const std::set<const XML_Char *,attribute_table_t> demand_table;
 	static const std::set<const XML_Char *,attribute_table_t> measure_table;
 	static const std::set<const XML_Char *,attribute_table_t> null_table;
-	static const std::map<const Model::Result::Type, const std::string> y_label_table;
+	static const std::map<const BCMP::Model::Result::Type, const std::string> y_label_table;
 
 	static const XML_Char * XArrivalProcess;
 	static const XML_Char * XClass;

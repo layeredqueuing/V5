@@ -9,7 +9,7 @@
  *
  * February 2022.
  *
- * $Id: boundsmodel.h 15433 2022-02-06 16:43:56Z greg $
+ * $Id: boundsmodel.h 15918 2022-09-27 17:12:59Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -33,7 +33,7 @@ class BoundsModel : public Model {
 public:
     friend class Model;
     
-    BoundsModel( Model& parent, BCMP::JMVA_Document& input );
+    BoundsModel( Model& parent, QNIO::Document& input );
     virtual ~BoundsModel();
 
     explicit operator bool() const { return _result == true; }

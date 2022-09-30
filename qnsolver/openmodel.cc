@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: openmodel.cc 15223 2021-12-15 19:31:15Z greg $
+ * $Id: openmodel.cc 15918 2022-09-27 17:12:59Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -29,7 +29,7 @@
 #include <mva/multserv.h>
 #include <mva/open.h>
 
-OpenModel::OpenModel( Model& parent, BCMP::JMVA_Document& input ) : Model(input,Model::Solver::OPEN), _parent(parent), _solver(nullptr)
+OpenModel::OpenModel( Model& parent, QNIO::Document& input ) : Model(input,Model::Solver::OPEN), _parent(parent), _solver(nullptr)
 {
     const size_t K = _model.n_chains(type());
     const size_t M = _model.n_stations(type());

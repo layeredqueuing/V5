@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: closedmodel.cc 15429 2022-02-04 23:04:05Z greg $
+ * $Id: closedmodel.cc 15926 2022-09-29 17:56:23Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -24,7 +24,7 @@
 #include <mva/multserv.h>
 #include "closedmodel.h"
 
-ClosedModel::ClosedModel( Model& parent, BCMP::JMVA_Document& input, Model::Solver mva )
+ClosedModel::ClosedModel( Model& parent, QNIO::Document& input, Model::Solver mva )
     : Model(input,mva), _parent(parent), _solver(nullptr), _mva(mva), N(), Z(), priority()
 {
     const size_t K = _model.n_chains(BCMP::Model::Chain::Type::CLOSED);
@@ -132,7 +132,7 @@ ClosedModel::InstantiateChain::operator()( const BCMP::Model::Chain::pair_t& inp
     if ( !input.second.isClosed() ) return;
     const size_t k = indexAt(input.first);
     N(k) = LQIO::DOM::to_unsigned(*input.second.customers());
-    Z(k) = LQIO::DOM::to_double(*input.second.think_time());
+    Z(k) = input.second.think_time() != nullptr ? LQIO::DOM::to_double(*input.second.think_time()) : 0.;
     priority(k) = 0;
 }
 

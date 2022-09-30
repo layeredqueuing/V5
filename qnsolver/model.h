@@ -10,7 +10,7 @@
  *
  * December 2020
  *
- * $Id: model.h 15429 2022-02-04 23:04:05Z greg $
+ * $Id: model.h 15921 2022-09-28 20:49:00Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -28,8 +28,8 @@
 extern bool print_spex;				/* Print LQX program		*/
 extern bool debug_flag;;
 
-namespace BCMP {
-    class JMVA_Document;
+namespace QNIO {
+    class Document;
 }
 
 namespace SolverInterface {
@@ -51,8 +51,8 @@ public:
     enum class Multiserver { DEFAULT, CONWAY, REISER, REISER_PS, ROLIA, ROLIA_PS, BRUELL, SCHMIDT, SURI, ZHOU };
     
 public:
-    Model( BCMP::JMVA_Document& input, Model::Solver mva, const std::string& );
-    Model( BCMP::JMVA_Document& input, Model::Solver mva );
+    Model( QNIO::Document& input, Model::Solver mva, const std::string& );
+    Model( QNIO::Document& input, Model::Solver mva );
     Model();
     virtual ~Model();
 
@@ -63,6 +63,7 @@ public:
     virtual bool solve();
     void bounds();
     Solver solver() const { return _solver; }
+    std::ostream& print( std::ostream& output ) const;
     
 protected:
     virtual BCMP::Model::Chain::Type type() const { return BCMP::Model::Chain::Type::UNDEFINED; }
@@ -148,27 +149,6 @@ private:
 	std::map<const std::string,size_t> m;
     };
 
-#if 0
-    class OutputQNAP {
-#endif
-	static std::streamsize __width;
-	static std::streamsize __precision;
-	static std::string __separator;
-
-	static std::string header();
-	static std::string blankline();
-
-	std::ostream& print( std::ostream& output, double service_time, const BCMP::Model::Station::Result& item ) const;
-    public:
-	std::ostream& print( std::ostream& ) const;
-    private:
-#if 0
-    };
-
-    class OutputLQN {
-    };
-#endif
-    
 protected:
     const BCMP::Model& _model;			/* Input */
     const Model::Solver _solver;
@@ -176,7 +156,7 @@ protected:
     bool _result;
 
 private:
-    BCMP::JMVA_Document& _input;		/* Input */
+    QNIO::Document& _input;		/* Input */
     const std::string _output_file_name;
     /* mixed model */  /* Might change to a vector */
     ClosedModel * _closed_model;

@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: closedmodel.h 15429 2022-02-04 23:04:05Z greg $
+ * $Id: closedmodel.h 15918 2022-09-27 17:12:59Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -45,7 +45,7 @@ public:
     };
 
 public:
-    ClosedModel( Model& parent, BCMP::JMVA_Document& input, Model::Solver mva );
+    ClosedModel( Model& parent, QNIO::Document& input, Model::Solver mva );
     virtual ~ClosedModel();
 
     bool construct();

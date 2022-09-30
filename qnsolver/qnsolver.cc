@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 15883 2022-09-21 14:03:23Z greg $
+ * $Id: qnsolver.cc 15928 2022-09-29 19:46:37Z greg $
  */
 
 #include "config.h"
@@ -45,8 +45,8 @@ const struct option longopts[] =
     { "verbose",				no_argument,		0, 'v' },
     { "help",					no_argument,		0, 'h' },
     { "export-qnap2",				no_argument,		0, 'Q' },
-    { "debug-qnap2",				no_argument,		0, 'G' },
-    { "debug-mva",				no_argument,		0, 'D' },
+    { "debug-qnap2",				no_argument,		0, 'D' },
+    { "debug-mva",				no_argument,		0, 'd' },
     { "debug-lqx",				no_argument,		0, 'L' },
     { "debug-xml",				no_argument,		0, 'X' },
     { "debug-spex",				no_argument,		0, 'S' },
@@ -94,12 +94,13 @@ static BCMP::Model::Result::Type plot_type = BCMP::Model::Result::Type::THROUGHP
 std::string program_name;
 
 #if HAVE_EXPAT_H
-BCMP::JMVA_Document* __input = nullptr;
+QNIO::JMVA_Document* __input = nullptr;
 #endif
 
 /* Local procedures */
 
 static void exec( const std::string& input_file_name, const std::string& output_file_name, const std::string& );
+static void exec( QNIO::Document& input, const std::string& output_file_name, const std::string& plot_arg );
 
 int main (int argc, char *argv[])
 {
@@ -143,6 +144,10 @@ int main (int argc, char *argv[])
 #endif
 	    break;
 
+	case 'D':
+	    qnap2debug = 1;
+	    break;
+	    
 	case 'e':
 	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_exact_);
 	    break;
@@ -155,10 +160,6 @@ int main (int argc, char *argv[])
 	    pragmas.insert(LQIO::DOM::Pragma::_force_multiserver_,LQIO::DOM::Pragma::_true_);
 	    break;
 
-	case 'G':
-	    qnap2debug = 1;
-	    break;
-	    
 	case 'h':
 	    usage();
 	    return 0;
@@ -263,6 +264,20 @@ int main (int argc, char *argv[])
 
 static void exec( const std::string& input_file_name, const std::string& output_file_name, const std::string& plot_arg )
 {
+    if ( verbose_flag ) std::cerr << input_file_name << ": load... ";
+    if ( LQIO::DOM::Document::getInputFormatFromFilename( input_file_name, LQIO::DOM::Document::InputFormat::JMVA ) == LQIO::DOM::Document::InputFormat::QNAP2 ) {
+	QNIO::QNAP2_Document input( input_file_name );
+	exec( input, output_file_name, plot_arg );
+    } else {
+	QNIO::JMVA_Document input( input_file_name );
+	exec( input, output_file_name, plot_arg );
+    }
+    if ( verbose_flag ) std::cerr << "done" << std::endl;
+}
+
+
+static void exec( QNIO::Document& input, const std::string& output_file_name, const std::string& plot_arg )
+{
     static std::map<const Model::Solver,const std::string> solver_name = {
 	{ Model::Solver::BOUNDS,		"bounds" },
 	{ Model::Solver::EXACT_MVA,		LQIO::DOM::Pragma::_exact_ },
@@ -273,39 +288,26 @@ static void exec( const std::string& input_file_name, const std::string& output_
 	{ Model::Solver::OPEN,			"open" }
     };
 
-    if ( verbose_flag ) std::cerr << input_file_name << ": load... ";
-    if ( LQIO::DOM::Document::getInputFormatFromFilename( input_file_name, LQIO::DOM::Document::InputFormat::JMVA ) == LQIO::DOM::Document::InputFormat::QNAP2 ) {
-	BCMP::QNAP2_Document input( input_file_name );
-	if ( input.load() ) {
-	}
-
+    if ( !input.load() ) return;
+    if ( print_qnap2 ) {
+	std::cout << QNIO::QNAP2_Document( input.getInputFileName(), input.model() ) << std::endl;
     } else {
-#if HAVE_EXPAT_H
-	BCMP::JMVA_Document input( input_file_name );
-	if ( input.load() ) {
-	    if ( print_qnap2 ) {
-		std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
-	    } else {
-		input.mergePragmas( pragmas.getList() );
-		Pragma::set( input.getPragmaList() );		/* load pragmas here */
+	input.mergePragmas( pragmas.getList() );
+	Pragma::set( input.getPragmaList() );		/* load pragmas here */
 
-		try {
-		    if ( print_gnuplot ) input.plot( plot_type, plot_arg );
-		}
-		catch ( const std::invalid_argument& e ) {
-		    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
-		}
-		Model model( input, Pragma::solver(), output_file_name );
-		if ( verbose_flag ) std::cerr << "construct... ";
-		if ( model.construct() ) {
-		    if ( verbose_flag ) std::cerr << "solve using " << solver_name.at(model.solver()) << "... ";
-		    model.solve();
-		}
-	    }
+	try {
+	    if ( print_gnuplot ) input.plot( plot_type, plot_arg );
 	}
-#endif
+	catch ( const std::invalid_argument& e ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
+	}
+	Model model( input, Pragma::solver(), output_file_name );
+	if ( verbose_flag ) std::cerr << "construct... ";
+	if ( model.construct() ) {
+	    if ( verbose_flag ) std::cerr << "solve using " << solver_name.at(model.solver()) << "... ";
+	    model.solve();
+	}
     }
-    if ( verbose_flag ) std::cerr << "done" << std::endl;
 }
 
 static void

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 15572 2022-04-28 19:16:13Z greg $
+ * $Id: srvn_spex.h 15916 2022-09-27 14:36:47Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -42,7 +42,7 @@ namespace LQIO {
 	class BCMP_to_LQN;
     }
 }
-namespace BCMP {
+namespace QNIO {
     class JMVA_Document;
 }
 
@@ -106,7 +106,7 @@ namespace LQIO {
     typedef void (*setSpexFunc)( const LQIO::DOM::ExternalVariable* );
 
     class Spex {
-	friend class BCMP::JMVA_Document;
+	friend class QNIO::JMVA_Document;
 	friend class DOM::JSON_Document;
 	friend class DOM::Expat_Document;
 	friend class DOM::BCMP_to_LQN;

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 15891 2022-09-22 21:48:30Z greg $
+ *  $Id: bcmp_document.h 15926 2022-09-29 17:56:23Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -71,6 +71,7 @@ namespace BCMP {
 
 	    virtual const char * getTypeName() const { return __typeName; }
 	    Type type() const { return _type; }
+	    void setType( Type type ) { _type = type; }
  	    const DOM::ExternalVariable* customers() const { assert(type()==Type::CLOSED); return _customers; }
 	    void setCustomers( DOM::ExternalVariable* customers ) { assert(type()==Type::CLOSED); _customers = customers; }
 	    const DOM::ExternalVariable* think_time() const { assert(type()==Type::CLOSED); return _think_time; }
@@ -137,6 +138,9 @@ namespace BCMP {
 		Class( const DOM::ExternalVariable* visits=nullptr, const DOM::ExternalVariable* service_time=nullptr );
 		~Class() {}
 
+		Class& operator=( const Class& );
+		void clear();
+
 		void setResults( double throughput, double queue_length, double residence_time, double utilization );
 		virtual const char * getTypeName() const { return __typeName; }
 
@@ -181,6 +185,9 @@ namespace BCMP {
 	    Station( Type type=Type::NOT_DEFINED, scheduling_type scheduling=SCHEDULE_DELAY, const DOM::ExternalVariable* copies=nullptr ) :
 		_type(type), _scheduling(scheduling), _copies(copies), _reference(false) {}
 	    ~Station();
+
+	    Station& operator=( const Station& );
+	    void clear();
 
 	    std::pair<Station::Class::map_t::iterator,bool> insertClass( const std::string&, const Class& );
 	    std::pair<Station::Class::map_t::iterator,bool> insertClass( const std::string&, const DOM::ExternalVariable* visits=nullptr, const DOM::ExternalVariable* service_time=nullptr );
