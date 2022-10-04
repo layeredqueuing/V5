@@ -40,13 +40,17 @@ static bool station_found = false;
 %token <aReal>		DOUBLE
 %token <aLong>		LONG
 
-%type <aPointer>	class_reference identifier_list service transit transit_list transit_pair variable variable_list
-%type <aPointer>	compound_statement  expression expression_list factor power prefix_statement postfix_statement statement term 
+%type <aPointer>	class_list class_reference identifier_list service transit transit_list transit_pair variable variable_list loop_list
+%type <aPointer>	assignment_statement closed_statement compound_statement exec expression expression_list factor open_statement power prefix_statement postfix_statement procedure_call simple_statement statement term 
 %type <aCode>		compound_station_type simple_station_type variable_type 
 %type <aString>		identifier
 %%
 
-qnap2			: declare { qnap2_default_class(); } station_list opt_control exec QNAP_END
+qnap2			: declare 					{ qnap2_default_class(); }
+			  station_list 					{ qnap2_map_transit_to_visits(); }
+			  opt_control
+			  exec						{ qnap2_set_program( $6 ); }
+			  QNAP_END
 			;
 
 /*
@@ -124,8 +128,13 @@ parameter		: QNAP_NAME '=' identifier ';'			{ qnap2_set_station_name( $3 ); free
 
 class_reference		:						{ $$ = NULL; }
 			| '(' QNAP_ALL QNAP_CLASS ')'			{ $$ = NULL; }
-			| '(' identifier_list ')'			{ $$ = $2; }
+			| '(' class_list ')'				{ $$ = $2; }
 			;
+
+class_list		: identifier					{ $$ = qnap2_append_identifier( NULL, qnap2_get_class_name( $1 ) ); free( $1 ); }
+			| class_list ',' identifier			{ $$ = qnap2_append_identifier( $1, qnap2_get_class_name( $3 ) ); free( $3 ); }
+			;
+
 
 service			: QNAP_CST '(' factor ')'			{ $$ = qnap2_get_service_distribution( $1, $3, NULL ); }
 			| QNAP_COX '(' factor ')'			{ $$ = qnap2_get_service_distribution( $1, $3, NULL ); }
@@ -142,7 +151,7 @@ transit_list		: transit_pair					{ $$ = qnap2_append_node( NULL, $1 ); }
 			| transit_list ',' transit_pair			{ $$ = qnap2_append_node( $1, $3 ); }
 			;
 
-transit_pair		: identifier ',' factor				{ $$ = qnap2_get_transit_pair( $1, $3 ); }
+transit_pair		: identifier ',' factor				{ $$ = qnap2_get_transit_pair( qnap2_get_station_name( $1 ), $3 ); }
 			;
 
 
@@ -175,18 +184,44 @@ control			: QNAP_CLASS '=' QNAP_ALL QNAP_QUEUE ';'
 
 /* ------------------------------------------------------------------------ */
 
-exec 			: QNAP_EXEC statement				{ qnap2_set_program( $2 ); }
+exec 			: QNAP_EXEC statement ';'			{ $$ = $2; }
 			;
 
-statement		: QNAP_BEGIN compound_statement QNAP_END ';'	{ $$ = $2; }
-			| identifier ';'					{ $$ = qnap2_get_function( $1, NULL ); }
-			| identifier '(' expression_list ')' ';'		{ $$ = qnap2_get_function( $1, $3 ); }
-			| postfix_statement QNAP_ASSIGNMENT expression ';'	{ $$ = qnap2_assignment( $1, $3 ); }
-			| identifier '.' identifier QNAP_ASSIGNMENT expression ';'
+statement		: open_statement				{ $$ = $1; }
+			| closed_statement				{ $$ = $1; }
+
+open_statement		: QNAP_IF expression QNAP_THEN statement		{ $$ = qnap2_if_statement( $2, $4, NULL ); }
+			| QNAP_IF expression QNAP_THEN closed_statement 	/* -- */
+			  QNAP_ELSE open_statement				{ $$ = qnap2_if_statement( $2, $4, $6 ); }
+			| QNAP_WHILE expression QNAP_THEN open_statement	{ $$ = qnap2_while_statement( $2, $4 ); }
+			| QNAP_FOR identifier QNAP_ASSIGNMENT loop_list		/* -- */
+			  QNAP_DO open_statement				{ $$ = qnap2_for_statement( $2, $4, $6 ); }
+			;
+
+closed_statement	: simple_statement					{ $$ = $1; }
+			| QNAP_IF expression QNAP_THEN closed_statement   	/* -- */
+			  QNAP_ELSE closed_statement				{ $$ = qnap2_if_statement( $2, $4, $6 ); }
+			| QNAP_WHILE expression QNAP_THEN closed_statement	{ $$ = qnap2_while_statement( $2, $4 ); }
+			| QNAP_FOR identifier QNAP_ASSIGNMENT loop_list		/* -- */
+			  QNAP_DO closed_statement				{ $$ = qnap2_for_statement( $2, $4, $6 ); }
+			;
+
+simple_statement	: QNAP_BEGIN compound_statement QNAP_END	{ $$ = $2; }
+			| assignment_statement				{ $$ = $1; }
+			| procedure_call				{ $$ = $1; }
 			;
 
 compound_statement	: statement					{ $$ = qnap2_append_node( NULL, $1 ); }
-			| compound_statement statement			{ $$ = qnap2_append_node( $1, $2 ); }
+			| compound_statement ';' statement		{ $$ = qnap2_append_node( $1, $3 ); }
+			;
+
+assignment_statement	: identifier '(' identifier ')' QNAP_ASSIGNMENT expression 	{ $$ = qnap2_array_assignment( $1, $3, $6 ); }
+			| identifier '.' identifier QNAP_ASSIGNMENT expression		{ $$ = qnap2_object_assignment( $1, $3, $5 ); }
+			| identifier QNAP_ASSIGNMENT expression		{ $$ = qnap2_assignment( $1, $3 ); }
+			;
+
+procedure_call		: identifier					{ $$ = qnap2_get_function( $1, NULL ); }
+			| identifier '(' expression_list ')'		{ $$ = qnap2_get_function( $1, $3 ); }
 			;
 
 
@@ -210,8 +245,7 @@ prefix_statement	: '+' factor					{ $$ = $2; }
 			| postfix_statement				{ $$ = $1; }
 			;
 
-postfix_statement	: identifier '(' ')'				{ $$ = qnap2_get_function( $1, NULL ); }
-			| identifier '(' expression_list ')'		{ $$ = qnap2_get_function( $1, $3 ); }
+postfix_statement	: identifier '(' expression_list ')'		{ $$ = qnap2_get_function( $1, $3 ); }
 			| factor					{ $$ = $1; }
 			;
 
@@ -224,6 +258,10 @@ factor			: identifier					{ $$ = qnap2_get_variable( $1 ); }
 
 expression_list		: expression					{ $$ = qnap2_append_node( NULL, $1 ); }
 			| expression_list ',' expression		{ $$ = qnap2_append_node( $1, $3 ); }
+			;
+
+loop_list		: identifier { $$ = $1; }
+/* QNAP STEP UNTIL; id, id,..; */
 			;
 
 /* ------------------------------------------------------------------------ */

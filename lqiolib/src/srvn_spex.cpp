@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 15731 2022-06-29 18:22:10Z greg $
+ *  $Id: srvn_spex.cpp 15938 2022-10-04 01:48:07Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -1193,12 +1193,7 @@ namespace LQIO {
 void spex_set_program( void * param_arg, void * result_arg, void * convergence_arg )
 {
     if ( !LQIO::spex.has_vars() ) return;	/* Nothing to do */
-    expr_list * program;
-    if ( param_arg == nullptr ) {
-	program = new expr_list;
-    } else {
-	program = static_cast<expr_list *>(param_arg);
-    }
+    expr_list * program = static_cast<expr_list * >(spex_list( param_arg, nullptr ));
 	
     if ( LQIO::spex.__observations.empty() ) {
 	LQIO::runtime_error( LQIO::WRN_NO_SPEX_OBSERVATIONS );
