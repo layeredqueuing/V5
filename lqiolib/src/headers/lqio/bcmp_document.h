@@ -68,9 +68,9 @@ namespace BCMP {
 	    enum class Type { UNDEFINED, CLOSED, OPEN };
 
 	public:
-	    Chain() : _type(Type::UNDEFINED), _customers(nullptr), _think_time(nullptr), _arrival_rate(nullptr) {}
-	    Chain( Type type, LQX::SyntaxTreeNode * customers, LQX::SyntaxTreeNode * think_time ) : _type(Type::CLOSED), _customers(customers), _think_time(think_time), _arrival_rate(nullptr) { assert(type==Type::CLOSED); }
-	    Chain( Type type, LQX::SyntaxTreeNode * arrival_rate ) : _type(Type::OPEN), _customers(nullptr), _think_time(nullptr), _arrival_rate(arrival_rate) { assert(type==Type::OPEN); }
+	    Chain() : _type(Type::UNDEFINED), _customers(nullptr), _think_time(nullptr), _arrival_rate(nullptr), _result_vars() {}
+	    Chain( Type type, LQX::SyntaxTreeNode * customers, LQX::SyntaxTreeNode * think_time ) : _type(Type::CLOSED), _customers(customers), _think_time(think_time), _arrival_rate(nullptr), _result_vars() { assert(type==Type::CLOSED); }
+	    Chain( Type type, LQX::SyntaxTreeNode * arrival_rate ) : _type(Type::OPEN), _customers(nullptr), _think_time(nullptr), _arrival_rate(arrival_rate), _result_vars() { assert(type==Type::OPEN); }
 
 	    virtual const char * getTypeName() const { return __typeName; }
 	    Type type() const { return _type; }
@@ -81,6 +81,9 @@ namespace BCMP {
 	    void setThinkTime( LQX::SyntaxTreeNode* think_time ) { assert(type()==Type::CLOSED); _think_time = think_time; }
 	    LQX::SyntaxTreeNode * arrival_rate() const { assert(type()==Type::OPEN); return _arrival_rate; }
 	    void setArrivalRate( LQX::SyntaxTreeNode* arrival_rate ) { assert(type()==Type::OPEN); _arrival_rate = arrival_rate; }
+	    Result::map_t& resultVariables()  { return _result_vars; }
+	    const Result::map_t& resultVariables() const { return _result_vars; }
+
 	    bool isClosed() const { return _type == Type::CLOSED; }
 	    bool isOpen() const { return _type == Type::OPEN; }
 	    static bool closedChain( const Chain::pair_t& k ) { return k.second.type() == Type::CLOSED; }
@@ -90,6 +93,7 @@ namespace BCMP {
 	    virtual double queue_length() const { return 0; }
 	    virtual double residence_time() const { return 0; }
 	    virtual double utilization() const { return 0; }
+	    void insertResultVariable( Result::Type, const std::string& );
 
 	    struct fold {
 		fold( const std::string& suffix="" ) : _suffix(suffix) {}
@@ -114,6 +118,7 @@ namespace BCMP {
 	    LQX::SyntaxTreeNode * _customers;
 	    LQX::SyntaxTreeNode * _think_time;
 	    LQX::SyntaxTreeNode * _arrival_rate;
+	    Result::map_t _result_vars;
 	};
 
 	/* -------------------------- Station ------------------------- */

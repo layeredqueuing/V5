@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 15994 2022-10-18 16:55:07Z greg $
+ * $Id: bcmp_document.cpp 16006 2022-10-19 18:25:39Z greg $
  *
  * Read in XML input files.
  *
@@ -173,7 +173,7 @@ namespace BCMP {
     Model::isDefault( LQX::SyntaxTreeNode * var, double default_value )
     {
 	if ( var == nullptr ) return true;
-	if ( !dynamic_cast<LQX::ConstantValueExpression *>(var) && !dynamic_cast<LQX::VariableExpression *>(var) ) return false;
+	if ( !dynamic_cast<LQX::ConstantValueExpression *>(var) ) return false;
 	return getDoubleValue(var) == default_value;
     }
 
@@ -182,7 +182,7 @@ namespace BCMP {
     Model::getDoubleValue( LQX::SyntaxTreeNode * var )
     {
 	if ( var == nullptr ) return 0.0;
-	return const_cast<LQX::SyntaxTreeNode *>(var)->invoke(nullptr)->getDoubleValue();
+	return var->invoke(nullptr)->getDoubleValue();
     }
 
     /*
@@ -228,6 +228,17 @@ namespace BCMP {
 	    return s1 + "," + c2.first + _suffix;
 	} else {
 	    return c2.first + _suffix;
+	}
+    }
+
+
+    void
+    Model::Chain::insertResultVariable( Result::Type type, const std::string& name  )
+    {
+	if ( type != Result::Type::RESPONSE_TIME && type != Result::Type::THROUGHPUT ) {
+	    throw std::runtime_error( std::string("Invalid Result::Type: ") + name );
+	} else if ( !_result_vars.emplace(type,name).second ) {
+	    throw std::runtime_error( std::string("Duplicate Result Variable: ") + name );
 	}
     }
 

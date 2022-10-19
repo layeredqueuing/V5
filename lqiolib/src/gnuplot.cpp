@@ -10,6 +10,7 @@
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <cstdarg>
 #include <vector>
 #include <string>
 #include <lqx/SyntaxTree.h>
