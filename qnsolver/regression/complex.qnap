@@ -1,0 +1,71 @@
+& $Id$
+& Complex model
+/declare/
+   queue Users,DB,Disk1,Disk2,Disk3,WS;                        & Station identifiers
+   class string name;                                          & Name (for output)
+   class integer n_users;                                      & Population.
+   class real think_t;                                         & Think time.
+   class real DB_t,Disk1_t,Disk2_t,Disk3_t,WS_t;               & Station service time
+   class Class1,Class2;                                        & Class names
+&
+/station/ name=Users;
+   type=infinite;
+   init=n_users;                                               & Population by class
+   service=exp(think_t);
+   transit(all class)=WS;
+&
+/station/ name=WS;
+   sched=ps;
+   service=exp(WS_t);
+   transit(Class1)=DB,2,Disk1,3,Users,1;                       & visits to servers
+   transit(Class2)=DB,2,Disk1,3,Users,1;                       & visits to servers
+&
+/station/ name=DB;
+   sched=ps;
+   service=exp(DB_t);
+   transit(all class)=Users;
+   transit(Class1)=Disk2,2,Disk3,3,WS,1;                       & visits to servers
+   transit(Class2)=Disk2,2,Disk3,3,WS,1;                       & visits to servers
+&
+/station/ name=Disk1;
+   sched=ps;
+   service=exp(Disk1_t);
+   transit(all class)=WS;
+&
+/station/ name=Disk2;
+   sched=ps;
+   service=exp(Disk2_t);
+   transit(all class)=DB;
+&
+/station/ name=Disk3;
+   sched=ps;
+   service=exp(Disk3_t);
+   transit(all class)=DB;
+&
+/control/
+   class=all queue;                                            & Compute for all classes
+&
+/exec/
+   begin
+&  -- Class variables --
+   Class1.name:="Class1";                                      & Class (client) name
+   Class1.n_users:=20;
+   Class1.think_t:=2.;                                         & Slice time at client
+   Class2.name:="Class2";                                      & Class (client) name
+   Class2.n_users:=50;
+   Class2.think_t:=5.;                                         & Slice time at client
+&  -- Station variables --
+   Class1.DB_t:=0.001;
+   Class2.DB_t:=0.002;
+   Class1.Disk1_t:=0.005;
+   Class2.Disk1_t:=0.005;
+   Class1.Disk2_t:=0.004;
+   Class2.Disk2_t:=0.004;
+   Class1.Disk3_t:=0.004;
+   Class2.Disk3_t:=0.004;
+   Class1.WS_t:=0.04;
+   Class2.WS_t:=0.01;
+&  -- Let 'er rip! --
+   solve;
+   end;
+/end/

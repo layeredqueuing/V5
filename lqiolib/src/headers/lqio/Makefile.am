@@ -1,4 +1,4 @@
-# $Id: Makefile.am 15918 2022-09-27 17:12:59Z greg $
+# $Id: Makefile.am 16002 2022-10-19 15:45:42Z greg $
 # ------------------------------------------------------------------------
 noinst_HEADERS = bcmp_bindings.h \
 	bcmp_document.h \
@@ -26,6 +26,7 @@ noinst_HEADERS = bcmp_bindings.h \
 	filename.h \
 	getsbopt.h \
 	glblerr.h \
+	gnuplot.h \
 	input.h \
 	jmva_document.h \
 	json_document.h \

@@ -2,7 +2,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/share.cc $
  *
  * ------------------------------------------------------------------------
- * $Id: share.cc 15725 2022-06-28 16:23:33Z greg $
+ * $Id: share.cc 15957 2022-10-07 17:14:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <lqio/error.h>
 #include <lqio/glblerr.h>
-#include <lqio/input.h>
 #include <lqio/dom_group.h>
 #include <lqio/dom_processor.h>
 #include "processor.h"

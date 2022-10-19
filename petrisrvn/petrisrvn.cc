@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 15895 2022-09-23 17:21:55Z greg $
+ * $Id: petrisrvn.cc 15955 2022-10-07 11:05:00Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -42,7 +42,6 @@
 #if !HAVE_GETSUBOPT
 #include <lqio/getsbopt.h>
 #endif
-#include <lqio/input.h>
 #include <lqio/error.h>
 #include <lqio/glblerr.h>
 #include <lqio/commandline.h>

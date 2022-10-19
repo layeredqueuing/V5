@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 15818 2022-08-12 17:58:53Z greg $
+ * $Id: submodel.h 15956 2022-10-07 13:54:20Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -15,12 +15,9 @@
 
 
 #include <set>
-#include <cstdlib>
-#include <lqio/input.h>
 #include <mva/vector.h>
 #include <mva/pop.h>
 
-class Call;
 class Entry;
 class Entity;
 class Group;
@@ -28,7 +25,6 @@ class MVA;
 class MVACount;
 class Model;
 class Open;
-class Processor;
 class Server;
 class SubModelManip;
 class Task;

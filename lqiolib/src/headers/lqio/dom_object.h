@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 15788 2022-08-03 16:10:55Z greg $
+ *  $Id: dom_object.h 15968 2022-10-13 19:23:03Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -57,8 +57,8 @@ namespace LQIO {
 	    bool hasResults() const;
 	    void setComment( const std::string& );
 	    const std::string& getComment() const;
-	    error_severity getSeverity( unsigned code ) const;
-	    DocumentObject& setSeverity( unsigned code, error_severity );
+	    static error_severity getSeverity( unsigned code );
+	    static error_severity setSeverity( unsigned code, error_severity );
 
 	protected:
 	    const ExternalVariable * checkIntegerVariable( const ExternalVariable * var, int floor_value ) const;

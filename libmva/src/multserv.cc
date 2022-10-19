@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 15772 2022-07-28 22:33:31Z greg $
+ * $Id: multserv.cc 15984 2022-10-17 08:47:09Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -51,8 +51,8 @@
 #include <cassert>
 #include <cstdlib>
 #include <limits>
-#include "multserv.h"
 #include "mva.h"
+#include "multserv.h"
 #include "mvaexception.h"
 #include "prob.h"
 #include "vector.h"

@@ -8,12 +8,12 @@
 /************************************************************************/
 
 /*
- * $Id: errmsg.cc 15757 2022-07-24 14:29:03Z greg $
+ * $Id: errmsg.cc 15955 2022-10-07 11:05:00Z greg $
  */
 
 #include "petrisrvn.h"
 #include <lqio/error.h>
-#include <lqio/input.h>
+#include <lqio/dom_document.h>
 #include "errmsg.h"
 
 /*

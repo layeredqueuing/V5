@@ -10,7 +10,7 @@
  * November, 1994
  * November, 2021
  *
- * $Id: multserv.h 15772 2022-07-28 22:33:31Z greg $
+ * $Id: multserv.h 15984 2022-10-17 08:47:09Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -230,7 +230,7 @@ private:
     double meanMinimumService( const Population& N ) const;
     double A( const MVA& solver, const Population& n, const Population& N, const unsigned k ) const;
 
-#if	DEBUG_MVA
+#if DEBUG_MVA
     std::ostream& printXE( std::ostream&, const unsigned int i, const Population& N, const unsigned int k, const double xe, const double q ) const;
     std::ostream& printXR( std::ostream&, const Population& N, const unsigned int k, const double xr, const double PB ) const;
 

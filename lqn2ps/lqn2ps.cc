@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 15881 2022-09-21 12:58:42Z greg $
+ * $Id: lqn2ps.cc 16003 2022-10-19 17:22:13Z greg $
  *
  * Command line processing.
  *
@@ -213,7 +213,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2022-09-21 08:58:42 -0400 (Wed, 21 Sep 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-10-19 13:22:13 -0400 (Wed, 19 Oct 2022) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -222,6 +222,8 @@ main(int argc, char *argv[])
 #else
     makeopts( opts );
 #endif
+
+    LQIO::DOM::DocumentObject::setSeverity(LQIO::ERR_NO_QUANTUM_SCHEDULING, LQIO::error_severity::WARNING );	// Don't care for lqn2ps.
 
     for ( ;; ) {
 	char * endptr = nullptr;

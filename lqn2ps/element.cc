@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 15734 2022-06-30 02:19:44Z greg $
+ * $Id: element.cc 15958 2022-10-07 20:27:02Z greg $
  */
 
 #include "element.h"
@@ -9,16 +9,13 @@
 #include <cctype>
 #include <map>
 #include <lqio/error.h>
+#include <lqx/SyntaxTree.h>
 #include "errmsg.h"
 #include "entry.h"
 #include "task.h"
 #include "label.h"
 #include "processor.h"
 #include "activity.h"
-
-const LQIO::DOM::ConstantExternalVariable Element::ZERO(0.);
-const LQIO::DOM::ConstantExternalVariable Element::ONE(1.);
-
 
 Element::Element( const LQIO::DOM::DocumentObject * dom, const size_t id )
     : _documentObject( dom ),
@@ -165,7 +162,7 @@ Element::addForwardingRendezvous( CallStack& callStack ) const
 
     for ( CallStack::const_reverse_iterator call = callStack.rbegin(); call != callStack.rend(); ++call ) {
 	if ( (*call)->hasRendezvous() ) {
-	    rate *= to_double( *(*call)->sumOfRendezvous() ); 
+	    rate *= (*call)->sumOfRendezvous()->invoke(nullptr)->getDoubleValue();
 	    Call * psuedo = const_cast<Call *>((*call))->addForwardingCall( const_cast<Entry *>(callStack.back()->dstEntry()), rate );
 	    if ( psuedo ) {
 		psuedo->proxy( const_cast<Call *>(callStack.back()) );

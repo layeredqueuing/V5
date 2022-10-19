@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: xml_output.h 15317 2022-01-01 16:44:56Z greg $
+ *  $Id: xml_output.h 15957 2022-10-07 17:14:47Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -13,6 +13,9 @@ namespace LQIO {
     namespace DOM {
 	class ExternalVariable;
     }
+}
+namespace LQX {
+    class SyntaxTreeNode;
 }
 
 namespace XML {
@@ -100,6 +103,17 @@ namespace XML {
 	friend std::ostream& operator<<(std::ostream & os, const String2Manip& m ) { return m._f(os,m._e,m._a,m._v,m._t); }
     };
 
+    class SyntaxTreeNodeManip {
+    public:
+	SyntaxTreeNodeManip( std::ostream& (*f)(std::ostream&, const std::string&, const LQX::SyntaxTreeNode& ), const std::string& a, const LQX::SyntaxTreeNode& v ) : _f(f), _a(a), _v(v) {}
+    private:
+	std::ostream& (*_f)( std::ostream&, const std::string&, const LQX::SyntaxTreeNode& );
+	const std::string& _a;
+	const LQX::SyntaxTreeNode& _v;
+
+	friend std::ostream& operator<<(std::ostream & os, const SyntaxTreeNodeManip& m ) { return m._f(os,m._a,m._v); }
+    };
+
     class UnsignedManip {
     public:
     UnsignedManip( std::ostream& (*f)(std::ostream&, const std::string&, const unsigned int ), const std::string& a, const unsigned int u ) : _f(f), _a(a), _u(u) {}
@@ -126,6 +140,7 @@ namespace XML {
     UnsignedManip attribute( const std::string& a, unsigned int v );
     BooleanManip  attribute( const std::string& a, bool v );
     LongManip attribute( const std::string& a, long v );
+    SyntaxTreeNodeManip attribute( const std::string& a, const LQX::SyntaxTreeNode& v );
     ExternalVariableManip attribute( const std::string& a, const LQIO::DOM::ExternalVariable& v );
     DoubleManip time_attribute( const std::string& a, const double v );
     StringManip comment( const std::string& s );

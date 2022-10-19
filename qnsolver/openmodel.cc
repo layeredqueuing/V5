@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: openmodel.cc 15918 2022-09-27 17:12:59Z greg $
+ * $Id: openmodel.cc 15968 2022-10-13 19:23:03Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,6 +21,7 @@
 #include <numeric>
 #include <lqio/jmva_document.h>
 #include <lqio/dom_extvar.h>
+#include <lqx/SyntaxTree.h>
 #include "openmodel.h"
 #include "closedmodel.h"
 #include <mva/fpgoop.h>
@@ -31,6 +32,7 @@
 
 OpenModel::OpenModel( Model& parent, QNIO::Document& input ) : Model(input,Model::Solver::OPEN), _parent(parent), _solver(nullptr)
 {
+    setEnvironment(parent.getEnvironment());
     const size_t K = _model.n_chains(type());
     const size_t M = _model.n_stations(type());
     _result = K > 0 && M > 0;
@@ -135,14 +137,8 @@ OpenModel::debug( std::ostream& output ) const
 {
     for ( BCMP::Model::Chain::map_t::const_iterator ki = chains().begin(); ki != chains().end(); ++ki ) {
 	if ( !ki->second.isOpen() ) continue;
-	output << ": customers=" << *ki->second.customers() << ": arrival rate=" << *ki->second.arrival_rate() << std::endl;
+	const double arrival_rate = getDoubleValue( ki->second.arrival_rate() );
+	output << ": arrival rate=" << arrival_rate << std::endl;
     }
-    for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
-	const BCMP::Model::Station::Class::map_t& classes = mi->second.classes();
-	output << "Station " << mi->first << ": servers=" << *mi->second.copies() << std::endl;
-	for ( BCMP::Model::Station::Class::map_t::const_iterator ki = classes.begin(); ki != classes.end(); ++ki ) {
-	    output << "    Class " << ki->first << ": visits=" << *ki->second.visits() << ", service time=" << *ki->second.service_time() << std::endl;
-	}
-    }
-    return output;
+    return Model::debug( output );
 }

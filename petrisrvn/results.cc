@@ -9,7 +9,7 @@
 /************************************************************************/
 
 /*
- * $Id: results.cc 14898 2021-07-14 12:20:37Z greg $
+ * $Id: results.cc 15955 2022-10-07 11:05:00Z greg $
  *
  * Store the results.
  */
@@ -20,7 +20,6 @@
 #include "petrisrvn.h"
 #include <lqio/error.h>
 #include <lqio/glblerr.h>
-#include <lqio/input.h>
 #include <wspnlib/wspn.h>
 #include <wspnlib/global.h>
 #include "errmsg.h"

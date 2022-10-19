@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 15895 2022-09-23 17:21:55Z greg $
+ * $Id: expat_document.cpp 15961 2022-10-11 17:27:29Z greg $
  *
  * Read in XML input files.
  *
@@ -45,6 +45,7 @@
 #include <strings.h>
 #endif
 #include <lqx/SyntaxTree.h>
+#include <lqx/Program.h>
 #include "dom_activity.h"
 #include "dom_actlist.h"
 #include "dom_call.h"

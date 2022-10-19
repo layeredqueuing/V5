@@ -10,7 +10,7 @@
  *
  * December 2020
  *
- * $Id: model.h 15921 2022-09-28 20:49:00Z greg $
+ * $Id: model.h 15986 2022-10-17 09:35:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -24,9 +24,6 @@
 #include <mva/vector.h>
 #include <mva/pop.h>
 #include "runlqx.h"
-
-extern bool print_spex;				/* Print LQX program		*/
-extern bool debug_flag;;
 
 namespace QNIO {
     class Document;
@@ -57,7 +54,7 @@ public:
     virtual ~Model();
 
     explicit operator bool() const { return _result == true; }
-    std::ostream& debug( std::ostream& output ) const;
+    virtual std::ostream& debug( std::ostream& output ) const;
     bool construct();
     bool instantiate();
     virtual bool solve();
@@ -75,6 +72,10 @@ protected:
     const BCMP::Model::Station::Class::map_t& classesAt( const std::string& name ) const { return _model.stationAt(name).classes(); }
 
 private:
+    void setEnvironment( LQX::Environment * environment ) { _environment = environment; }
+    LQX::Environment * getEnvironment() const { return _environment; }
+    double getDoubleValue( LQX::SyntaxTreeNode * ) const;
+    unsigned int getUnsignedValue( LQX::SyntaxTreeNode *, unsigned int default_value ) const;
     size_t indexAt(BCMP::Model::Chain::Type, const std::string& name) const;
     bool compute();
     void saveResults();
@@ -119,6 +120,7 @@ private:
 	    size_t indexAt(BCMP::Model::Chain::Type type, const std::string& name) const { return _model.indexAt( type, name ); }
 	    const ClosedModel * closed_model() const { return _model._closed_model; }
 	    const OpenModel * open_model() const { return _model._open_model; }
+	    double getDoubleValue( LQX::SyntaxTreeNode * variable ) const { return _model.getDoubleValue( variable ); }
 	    
 	private:
 	    const Model& _model;
@@ -138,6 +140,8 @@ private:
 	Server * replace_server( const std::string&, Server *, Server * ) const;
 	const ClosedModel * closed_model() const { return _model._closed_model; }
 	const OpenModel * open_model() const { return _model._open_model; }
+	double getDoubleValue( LQX::SyntaxTreeNode * variable ) const { return _model.getDoubleValue( variable ); }
+	unsigned getUnsignedValue( LQX::SyntaxTreeNode * variable, unsigned int default_value=0 ) const { return _model.getUnsignedValue( variable, default_value ); }
 
     private:
 	const Model& _model;
@@ -149,6 +153,12 @@ private:
 	std::map<const std::string,size_t> m;
     };
 
+public:
+    static bool verbose_flag;			/* Print steps		*/
+    static bool no_execute;
+    static bool print_program;			/* Print LQX program		*/
+    static bool debug_flag;;
+    
 protected:
     const BCMP::Model& _model;			/* Input */
     const Model::Solver _solver;
@@ -156,12 +166,15 @@ protected:
     bool _result;
 
 private:
-    QNIO::Document& _input;		/* Input */
+    QNIO::Document& _input;			/* Input */
     const std::string _output_file_name;
+    LQX::Environment * _environment;
     /* mixed model */  /* Might change to a vector */
     ClosedModel * _closed_model;
     OpenModel * _open_model;
     BoundsModel * _bounds_model;
     Vector<Server *> Q;				/* Stations. */
+
+    static std::map<const Model::Solver,const std::string> __solver_name;
 };
 #endif

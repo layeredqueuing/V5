@@ -1,6 +1,6 @@
 /* -*- c++ -*-  activity.h	-- Greg Franks
  *
- * $Id: activity.h 15255 2021-12-24 17:42:46Z greg $
+ * $Id: activity.h 15958 2022-10-07 20:27:02Z greg $
  */
 
 #ifndef _ACTIVITY_H
@@ -80,9 +80,9 @@ public:
     ActivityList * outputTo ( ActivityList * );
     ActivityList * outputTo() const { return _outputTo; }
 
-    const LQIO::DOM::ExternalVariable & rendezvous ( const Entry *) const;
+    const LQIO::DOM::ExternalVariable& rendezvous ( const Entry *) const;
     Activity& rendezvous( Entry *, const LQIO::DOM::Call * );
-    const LQIO::DOM::ExternalVariable & sendNoReply ( const Entry *) const;
+    const LQIO::DOM::ExternalVariable& sendNoReply ( const Entry *) const;
     Activity& sendNoReply( Entry *, const LQIO::DOM::Call * );
     Call * forwardingRendezvous( Entry *, const double );
 

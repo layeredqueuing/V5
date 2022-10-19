@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15894 2022-09-23 14:04:46Z greg $
+ * $Id: task.cc 15968 2022-10-13 19:23:03Z greg $
  */
 
 #include "lqsim.h"
@@ -728,7 +728,9 @@ void
 Reference_Task::create_instance()
 {
     if ( n_entries() != 1 ) {
-	getDOM()->setSeverity( LQIO::ERR_TASK_ENTRY_COUNT, LQIO::error_severity::WARNING ).runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), 1 );
+	LQIO::error_severity old = LQIO::DOM::DocumentObject::setSeverity( LQIO::ERR_TASK_ENTRY_COUNT, LQIO::error_severity::WARNING );
+	getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), 1 );
+	LQIO::DOM::DocumentObject::setSeverity( LQIO::ERR_TASK_ENTRY_COUNT, old );
     }
     if ( getDOM()->hasThinkTime() ) {
 	_think_time = getDOM()->getThinkTimeValue();

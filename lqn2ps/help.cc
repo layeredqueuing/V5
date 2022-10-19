@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 15271 2021-12-27 12:36:48Z greg $
+ * $Id: help.cc 15957 2022-10-07 17:14:47Z greg $
  */
 
 #include "lqn2ps.h"
@@ -8,7 +8,6 @@
 #include <cctype>
 #include <algorithm>
 #include <numeric>
-#include <lqio/input.h>
 
 class HelpManip {
 public:
@@ -152,7 +151,7 @@ man()
 	      << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 15271 2021-12-27 12:36:48Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 15957 2022-10-07 17:14:47Z greg $" << std::endl
 	      << comm << std::endl
 	      << comm << " --------------------------------" << std::endl;
 

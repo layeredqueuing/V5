@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 15743 2022-07-02 16:57:45Z greg $
+ * $Id: entry.h 15958 2022-10-07 20:27:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -112,11 +112,11 @@ public:
 
     bool hasServiceTime( const unsigned int p ) const;
     const LQIO::DOM::ExternalVariable& serviceTime( const unsigned p ) const;
-    const LQIO::DOM::ExternalVariable * serviceTime() const;		/* sums up over all phases */
+    LQX::SyntaxTreeNode * serviceTime() const;		/* sums up over all phases */
 
     bool hasThinkTime( const unsigned int p ) const;
     const LQIO::DOM::ExternalVariable& thinkTime( const unsigned p ) const;
-    const LQIO::DOM::ExternalVariable * thinkTime() const;		/* sums up over all phases */
+    LQX::SyntaxTreeNode * thinkTime() const;		/* sums up over all phases */
 
     Entry& histogram( const unsigned p, const double min, const double max, const unsigned n_bins );
     Entry& histogramBin( const unsigned p, const double begin, const double end, const double prob, const double conf95, const double conf99 );

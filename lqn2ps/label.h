@@ -1,6 +1,6 @@
 /* -*- c++ -*- node.h	-- Greg Franks
  *
- * $Id: label.h 15612 2022-06-01 01:06:26Z greg $
+ * $Id: label.h 15957 2022-10-07 17:14:47Z greg $
  */
 
 #ifndef _LABEL_H
@@ -90,6 +90,7 @@ public:
     Label& operator<<( const std::string& s ) { return appendS( s ); }
     Label& operator<<( const unsigned i ) { return appendUI( i ); }
     Label& operator<<( const LQIO::DOM::ExternalVariable& v ) { return appendV( v ); }
+    Label& operator<<( const LQX::SyntaxTreeNode& n ) { return appendN( n ); }
 
     int size() const { return _lines.size(); }
 
@@ -139,6 +140,7 @@ protected:
     virtual Label& appendS( const std::string& s ) { _lines.back() << s; return *this; }
     virtual Label& appendUI( const unsigned i ) { _lines.back() << i; return *this; }
     virtual Label& appendV( const LQIO::DOM::ExternalVariable& v );
+    virtual Label& appendN( const LQX::SyntaxTreeNode& n );
 
     const Label& boundingBox( Point& boxOrigin, Point& boxExtent, const double scaling ) const;
     virtual Point initialPoint() const = 0;

@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 15737 2022-06-30 22:59:33Z greg $
+ * $Id: actlist.cc 15956 2022-10-07 13:54:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,7 +22,6 @@
 #include <iostream>
 #include <map>
 #include <numeric>
-#include <lqio/input.h>
 #include <lqio/error.h>
 #include <lqio/dom_actlist.h>
 #include "activity.h"

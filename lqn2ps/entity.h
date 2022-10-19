@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 15440 2022-03-02 01:56:46Z greg $
+ * $Id: entity.h 16003 2022-10-19 17:22:13Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -9,7 +9,6 @@
 #include "lqn2ps.h"
 #include <vector>
 #include <map>
-#include <lqio/input.h>
 #include <lqio/bcmp_document.h>
 #include "element.h"
 
@@ -68,10 +67,13 @@ public:
     };
 
 public:    
+    static double to_double( LQX::SyntaxTreeNode * );
+    static unsigned int to_unsigned( LQX::SyntaxTreeNode * );
+    static LQX::SyntaxTreeNode * getLQXVariable( const LQIO::DOM::ExternalVariable* );
     static LQX::SyntaxTreeNode * getVariableExpression( const LQIO::DOM::ExternalVariable * variable );
-    static const LQIO::DOM::ExternalVariable * addExternalVariables( const LQIO::DOM::ExternalVariable *, const LQIO::DOM::ExternalVariable * );
-    static const LQIO::DOM::ExternalVariable * multiplyExternalVariables( const LQIO::DOM::ExternalVariable *, const LQIO::DOM::ExternalVariable * );
-    static const LQIO::DOM::ExternalVariable * divideExternalVariables( const LQIO::DOM::ExternalVariable *, const LQIO::DOM::ExternalVariable * );
+    static LQX::SyntaxTreeNode * addLQXExpressions( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
+    static LQX::SyntaxTreeNode * multiplyLQXExpressions( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
+    static LQX::SyntaxTreeNode * divideLQXExpressions( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
 
 public:
     Entity( const LQIO::DOM::Entity*, const size_t id );

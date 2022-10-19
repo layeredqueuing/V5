@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: boundsmodel.cc 15918 2022-09-27 17:12:59Z greg $
+ * $Id: boundsmodel.cc 15964 2022-10-12 19:38:13Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -20,6 +20,7 @@
 #include <numeric>
 #include <lqio/jmva_document.h>
 #include <lqio/dom_extvar.h>
+#include <lqx/SyntaxTree.h>
 #include "boundsmodel.h"
 
 BoundsModel::BoundsModel( Model& parent, QNIO::Document& input ) : Model(input,Model::Solver::BOUNDS), _parent(parent), _bounds()
@@ -75,9 +76,9 @@ BoundsModel::solve()
 		_results.emplace(result_pair_t(mi->first,std::pair<const std::string,double>(chain,1.0)));	/* Insert chain for station */
 
 	    } else {
-		const double throughput = 1.0 / bound.D_max();
-		const double demand = LQIO::DOM::to_double( *station.classAt(chain).service_time() ) * LQIO::DOM::to_double( *station.classAt(chain).visits() );
-		utilization[chain] = throughput * demand;
+		LQX::MathExpression demand( LQX::MathExpression::MULTIPLY, station.classAt(chain).service_time(), station.classAt(chain).visits() );
+		LQX::ConstantValueExpression demand_max( bound.D_max() );
+		utilization[chain] = LQX::MathExpression( LQX::MathExpression::DIVIDE, &demand, &demand_max ).invoke(nullptr)->getDoubleValue();
 	    }
 	}
 
@@ -100,13 +101,10 @@ BoundsModel::saveResults()
 	const std::string& station = result->first;
 	const std::string& chain = result->second.first;
 	const BCMP::Model::Bound& bound = bounds().at(chain);
-	const double utilization = result->second.second;
 	const BCMP::Model::Station::Class& k = stations().at(station).classes().at(chain);
 
-	const double service_time = LQIO::DOM::to_double( *k.service_time() );
-	const double visits = LQIO::DOM::to_double( *k.visits() );
-	const double demand = visits * service_time;
-	const double throughput = 1.0 / bound.D_max();
+	const double utilization = result->second.second;
+	const double throughput = 1.0 / bound.D_max()->invoke(nullptr)->getDoubleValue();
 	const double residence_time = utilization / throughput;
 
 	const_cast<BCMP::Model::Station::Class&>(k).setResults( throughput,

@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 15819 2022-08-12 18:26:27Z greg $
+ * $Id: help.h 15968 2022-10-13 19:23:03Z greg $
  */
 
 #ifndef _HELP_H
@@ -138,7 +138,7 @@ private:
     std::ostream& flagDebug( std::ostream& output, bool verbose ) const;
     std::ostream& flagDebugJSON( std::ostream& output, bool verbose ) const;
     std::ostream& flagDebugLQX( std::ostream& output, bool verbose ) const;
-    std::ostream& flagDebugSPEX( std::ostream& output, bool verbose ) const;
+    std::ostream& flagPrintSPEX( std::ostream& output, bool verbose ) const;
     std::ostream& flagDebugSRVN( std::ostream& output, bool verbose ) const;
     std::ostream& flagDebugSubmodels( std::ostream& output, bool verbose ) const;
     std::ostream& flagDebugXML( std::ostream& output, bool verbose ) const;
@@ -191,7 +191,7 @@ public:
     std::ostream& debugMVA( std::ostream & output, bool verbose ) const;
     std::ostream& debugOvertaking( std::ostream & output, bool verbose ) const;
     std::ostream& debugQuorum( std::ostream & output, bool verbose ) const;
-    std::ostream& debugSPEX( std::ostream& output, bool verbose ) const;
+    std::ostream& printSPEX( std::ostream& output, bool verbose ) const;
     std::ostream& debugSRVN( std::ostream& output, bool verbose ) const;
     std::ostream& debugSubmodels( std::ostream & output, bool verbose ) const;
     std::ostream& debugVariance( std::ostream & output, bool verbose ) const;

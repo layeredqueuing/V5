@@ -166,38 +166,38 @@ ternary_expr		: or_expr '?' or_expr ':' or_expr 		{ $$ = spex_ternary( $1, $3, $
 			| or_expr					{ $$ = $1; }
 			;
 
-or_expr			: or_expr TOK_LOGIC_OR and_expr			{ $$ = spex_or( $1, $3 ); }
+or_expr			: or_expr TOK_LOGIC_OR and_expr			{ $$ = spex_logic( TOK_LOGIC_OR, $1, $3 ); }
 			| and_expr					{ $$ = $1; }
 
-and_expr		: and_expr TOK_LOGIC_AND compare_expr		{ $$ = spex_and( $1, $3 ); }
+and_expr		: and_expr TOK_LOGIC_AND compare_expr		{ $$ = spex_logic( TOK_LOGIC_AND, $1, $3 ); }
 			| compare_expr					{ $$ = $1; }
 			;
 
-compare_expr		: compare_expr TOK_EQUALS expression		{ $$ = spex_equals( $1, $3 ); }
-			| compare_expr TOK_NOT_EQUALS expression	{ $$ = spex_not_equals( $1, $3 ); }
-			| compare_expr TOK_LESS_THAN expression 	{ $$ = spex_less_than( $1, $3 ); }
-			| compare_expr TOK_LESS_EQUAL expression 	{ $$ = spex_less_than_or_equals( $1, $3 ); }
-			| compare_expr TOK_GREATER_THAN expression 	{ $$ = spex_greater_than( $1, $3 ); }
-			| compare_expr TOK_GREATER_EQUAL expression	{ $$ = spex_greater_than_or_equals( $1, $3 ); }
+compare_expr		: compare_expr TOK_EQUALS expression		{ $$ = spex_compare( TOK_EQUALS, $1, $3 ); }
+			| compare_expr TOK_NOT_EQUALS expression	{ $$ = spex_compare( TOK_NOT_EQUALS, $1, $3 ); }
+			| compare_expr TOK_LESS_THAN expression 	{ $$ = spex_compare( TOK_LESS_THAN, $1, $3 ); }
+			| compare_expr TOK_LESS_EQUAL expression 	{ $$ = spex_compare( TOK_LESS_EQUAL, $1, $3 ); }
+			| compare_expr TOK_GREATER_THAN expression 	{ $$ = spex_compare( TOK_GREATER_THAN, $1, $3 ); }
+			| compare_expr TOK_GREATER_EQUAL expression	{ $$ = spex_compare( TOK_GREATER_EQUAL, $1, $3 ); }
 			| expression					{ $$ = $1; }
 			;
 
-expression		: expression '+' term				{ $$ = spex_add( $1, $3 ); }
-			| expression '-' term				{ $$ = spex_subtract( $1, $3 ); }
+expression		: expression '+' term				{ $$ = spex_math( '+', $1, $3 ); }
+			| expression '-' term				{ $$ = spex_math( '-', $1, $3 ); }
 			| term						{ $$ = $1; }
 			;
 
-term			: term '*' power				{ $$ = spex_multiply( $1, $3 ); }
-			| term '/' power				{ $$ = spex_divide( $1, $3 ); }
-			| term '%' power				{ $$ = spex_modulus( $1, $3 ); }
+term			: term '*' power				{ $$ = spex_math( '*', $1, $3 ); }
+			| term '/' power				{ $$ = spex_math( '/', $1, $3 ); }
+			| term '%' power				{ $$ = spex_math( '%', $1, $3 ); }
 			| power						{ $$ = $1; }
 			;
 
-power			: prefix TOK_POWER power			{ $$ = spex_power( $1, $3 ); }
+power			: prefix TOK_POWER power			{ $$ = spex_math( '^', $1, $3 ); }
 			| prefix					{ $$ = $1; }
 			;
 
-prefix			: TOK_LOGIC_NOT arrayref			{ $$ = spex_not( $2 ); }
+prefix			: TOK_LOGIC_NOT arrayref			{ $$ = spex_logic( TOK_LOGIC_NOT, $2, NULL ); }
 			| arrayref					{ $$ = $1; }
 			;
 

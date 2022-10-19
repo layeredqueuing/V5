@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15895 2022-09-23 17:21:55Z greg $
+ * $Id: lqns.cc 15970 2022-10-13 23:15:17Z greg $
  *
  * Command line processing.
  *
@@ -103,9 +103,9 @@ const struct option longopts[] =
     { "debug-submodels",			no_argument,	   nullptr, 256+'S' },
     { "debug-json",				no_argument,	   nullptr, 512+'j' },
     { "debug-lqx",				no_argument,	   nullptr, 512+'l' },
-    { "debug-spex",				no_argument,	   nullptr, 512+'s' },
     { "debug-srvn",				no_argument,	   nullptr, 512+'y' },
     { "debug-xml",				no_argument,	   nullptr, 512+'x' },
+    { "print-lqx",				no_argument,	   nullptr, 512+'s' },
     { nullptr, 0, nullptr, 0 }
 };
 #else
@@ -142,13 +142,15 @@ int main (int argc, char *argv[])
     
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2022-09-23 13:21:55 -0400 (Fri, 23 Sep 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-10-13 19:15:17 -0400 (Thu, 13 Oct 2022) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = FP_IMMEDIATE_ABORT;
 
     init_flags();
 
     pragmas.insert( getenv( "LQNS_PRAGMAS" ) );
+
+    LQIO::DOM::DocumentObject::setSeverity(LQIO::ERR_NO_QUANTUM_SCHEDULING, LQIO::error_severity::WARNING );	// Don't care for lqns.
 
     for ( ;; ) {
 #if HAVE_GETOPT_LONG

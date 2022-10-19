@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15894 2022-09-23 14:04:46Z greg $
+ * $Id: task.cc 16003 2022-10-19 17:22:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -36,6 +36,7 @@
 #include <lqio/labels.h>
 #include <lqio/../../srvn_gram.h>
 #include <lqio/srvn_output.h>
+#include <lqx/SyntaxTree.h>
 #include "activity.h"
 #include "actlist.h"
 #include "call.h"
@@ -1197,11 +1198,10 @@ Task::create_chain::operator()( const Task * task ) const
 {
     if ( task->isInClosedModel(_servers) ) {
 	/* Think time for a task is the class think time. */
-	const LQIO::DOM::ExternalVariable * copies = task->isMultiServer() ? &task->copies() : &Element::ONE;
-	_model.insertClosedChain( task->name(), copies, &Element::ZERO );
+	_model.insertClosedChain( task->name(), getLQXVariable(&task->copies()), nullptr );
     }
     if ( task->isInOpenModel(_servers) ) {
-	_model.insertOpenChain( task->name(), &Element::ZERO );
+	_model.insertOpenChain( task->name(), nullptr );
     }
 }
 
@@ -1218,15 +1218,16 @@ Task::create_customers::operator()( const Task * task )
     /* If processor is missing, use service time here.  "class" may have to generalize to entry */
 
     const ReferenceTask * client = dynamic_cast<const ReferenceTask *>(task);
-    const LQIO::DOM::ExternalVariable * service_time = nullptr;
+    LQX::SyntaxTreeNode * service_time = nullptr;
     if ( client != nullptr ) {
-	service_time = addExternalVariables( client->entries().front()->thinkTime(), &client->thinkTime() );
+//	service_time = addExternalVariables( client->entries().front()->thinkTime(), &client->thinkTime() );
+	service_time = getLQXVariable( &client->thinkTime() );
     }
     if ( task->processor() == nullptr ) {
 	// for all entries s += prVisit(e) * e->serviceTime ??
-	service_time = addExternalVariables( service_time, task->entries().at(0)->serviceTime() );
+	service_time = addLQXExpressions( service_time, task->entries().at(0)->serviceTime() );
     }
-    BCMP::Model::Station::Class demand( &Element::ONE, service_time );	/* One visit */
+    BCMP::Model::Station::Class demand( new LQX::ConstantValueExpression( 1. ), service_time );	/* One visit */
 
     const std::string name = task->name();
     _terminals.insertClass( name, demand );
@@ -1966,10 +1967,10 @@ Task::mergeCalls()
     for ( merge_iter lower = merge.begin(); lower != merge.end(); lower = upper ) {
 	const Entity * server = lower->first;
 	upper = merge.upper_bound( server ); 
-	const LQIO::DOM::ExternalVariable * visits       = std::accumulate( lower, upper, static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &Task::sum_rendezvous );
+	LQX::SyntaxTreeNode * visits       = std::accumulate( lower, upper, static_cast<LQX::SyntaxTreeNode *>(nullptr), &Task::sum_rendezvous );
 	/* Accumlating visits appears to be correct, but service time is NOT... I need demand, then normalize to visits */
-	const LQIO::DOM::ExternalVariable * demand 	 = std::accumulate( lower, upper, static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &Task::sum_demand );
-	const LQIO::DOM::ExternalVariable * service_time = Entity::divideExternalVariables( demand, visits );
+	LQX::SyntaxTreeNode * demand 	 = std::accumulate( lower, upper, static_cast<LQX::SyntaxTreeNode *>(nullptr), &Task::sum_demand );
+	LQX::SyntaxTreeNode * service_time = Entity::divideLQXExpressions( demand, visits );
 #if BUG_270_DEBUG
 	size_t count = merge.count( server );
 	std::cout << "  To " << server->name() << ", count=" << count
@@ -2005,21 +2006,21 @@ Task::mergeCalls()
 }
 
 
-const LQIO::DOM::ExternalVariable *
-Task::sum_rendezvous( const LQIO::DOM::ExternalVariable * augend, const merge_pair& addend ) 
+LQX::SyntaxTreeNode *
+Task::sum_rendezvous( LQX::SyntaxTreeNode * augend, const merge_pair& addend ) 
 {
-    return Entity::addExternalVariables( augend, addend.second->sumOfRendezvous() );
+    return Entity::addLQXExpressions( augend, addend.second->sumOfRendezvous() );
 }
 
 
-const LQIO::DOM::ExternalVariable *
-Task::sum_demand( const LQIO::DOM::ExternalVariable * augend, const merge_pair& addend )
+LQX::SyntaxTreeNode *
+Task::sum_demand( LQX::SyntaxTreeNode * augend, const merge_pair& addend )
 {
     const ProcessorCall * call = dynamic_cast<const ProcessorCall *>(addend.second);
     if ( call == nullptr || call->srcEntry() == nullptr ) return augend;
     // !!! Fix this!!
-    const LQIO::DOM::ExternalVariable * demand = Entity::multiplyExternalVariables( call->sumOfRendezvous(), call->srcEntry()->serviceTime() );
-    return Entity::addExternalVariables( augend, demand );
+    LQX::SyntaxTreeNode * demand = Entity::multiplyLQXExpressions( call->sumOfRendezvous(), call->srcEntry()->serviceTime() );
+    return Entity::addLQXExpressions( augend, demand );
 }
 #endif
 
@@ -2035,10 +2036,10 @@ Task::removeReplication()
 
     LQIO::DOM::Task * dom = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(getDOM()));
     for ( std::map<const std::string, const LQIO::DOM::ExternalVariable *>::const_iterator fi = dom->getFanIns().begin(); fi != dom->getFanIns().end(); ++fi ) {
-	dom->setFanIn( fi->first, &Element::ONE );
+	dom->setFanIn( fi->first, new LQIO::DOM::ConstantExternalVariable( 1 ) );
     }
     for ( std::map<const std::string, const LQIO::DOM::ExternalVariable *>::const_iterator fo = dom->getFanOuts().begin(); fo != dom->getFanOuts().end(); ++fo ) {
-	dom->setFanOut( fo->first, &Element::ONE );
+	dom->setFanOut( fo->first, new LQIO::DOM::ConstantExternalVariable( 1 ) );
     }
 
     return *this;
@@ -2584,7 +2585,7 @@ ReferenceTask::accumulateDemand( BCMP::Model::Station& station ) const
     typedef std::map<const std::string,BCMP::Model::Station::Class> demand_map;
     BCMP::Model::Station::Class demand;
     if ( hasThinkTime() ) {
-	demand.setServiceTime( thinkTime().clone() );
+	demand.setServiceTime( getLQXVariable(&thinkTime()) );
     }
 
     demand_map& demands = const_cast<demand_map&>(station.classes());

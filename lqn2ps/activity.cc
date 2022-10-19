@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 15845 2022-08-17 16:00:07Z greg $
+ * $Id: activity.cc 15958 2022-10-07 20:27:02Z greg $
  */
 
 #include "activity.h"
@@ -12,14 +12,14 @@
 #include <vector>
 #include <algorithm>
 #include <numeric>
-#include <lqio/error.h>
-#include <lqio/input.h>
 #include <lqio/dom_activity.h>
 #include <lqio/dom_actlist.h>
-#include <lqio/dom_entry.h>
 #include <lqio/dom_call.h>
+#include <lqio/dom_entry.h>
 #include <lqio/dom_extvar.h>
 #include <lqio/dom_task.h>
+#include <lqio/error.h>
+#include <lqx/SyntaxTree.h>
 #include "model.h"
 #include "actlist.h"
 #include "errmsg.h"
@@ -177,7 +177,7 @@ Activity::check() const
 
 
 
-const LQIO::DOM::ExternalVariable &
+const LQIO::DOM::ExternalVariable&
 Activity::rendezvous ( const Entry * toEntry )  const
 {
     Call * aCall = dynamic_cast<Call *>(findCall( toEntry ));
@@ -202,8 +202,8 @@ Activity::rendezvous (Entry * toEntry, const LQIO::DOM::Call * value )
 }
 
 
-const LQIO::DOM::ExternalVariable &
-Activity::sendNoReply ( const Entry * toEntry ) const
+const LQIO::DOM::ExternalVariable&
+Activity::sendNoReply( const Entry * toEntry ) const
 {
     Call * aCall = dynamic_cast<Call *>(findCall( toEntry ));
     if ( aCall ) {
@@ -795,7 +795,7 @@ Activity::serviceTimeForSRVNInput() const
     double time = to_double(*getDOM()->getServiceTime());
     for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	if ( !(*call)->isSelected() && (*call)->hasRendezvous() ) {
-	    time += to_double(*(*call)->sumOfRendezvous()) * ((*call)->waiting(1) + (*call)->dstEntry()->executionTime(1));
+	    time += (*call)->sumOfRendezvous()->invoke(nullptr)->getDoubleValue() * ((*call)->waiting(1) + (*call)->dstEntry()->executionTime(1));
 	}
     }
 

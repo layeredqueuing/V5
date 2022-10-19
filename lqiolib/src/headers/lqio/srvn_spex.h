@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 15916 2022-09-27 14:36:47Z greg $
+ * $Id: srvn_spex.h 16003 2022-10-19 17:22:13Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -73,28 +73,17 @@ extern "C" {
     void * spex_result_function( const char *, void * arg );
     void * spex_task_observation( const void * obj, const int key, const int phase, const int conf, const char * var, const char * var2  );
 
-    void * spex_list( void * list, void * stmt );
-    void * spex_add( void * arg1, void * arg2 );
-    void * spex_and( void * arg1, void * arg3 ); 
-    void * spex_divide( void * arg1, void * arg2 );
-    void * spex_equals( void * arg1, void * arg3 ); 
-    void * spex_greater_than( void * arg1, void * arg3 ); 
-    void * spex_greater_than_or_equals( void * arg1, void * arg3 ); 
     void * spex_array_reference( void * arg1, void *arg3 );
-    void * spex_invoke_function( const char *s, void * arg );
-    void * spex_less_than( void * arg1, void * arg3 ); 
-    void * spex_less_than_or_equals( void * arg1, void * arg3 ); 
-    void * spex_modulus( void * arg1, void * arg2 );
-    void * spex_multiply( void * arg1, void * arg2 );
-    void * spex_not( void * arg2 ); 
-    void * spex_not_equals( void * arg1, void * arg3 ); 
-    void * spex_or( void * arg1, void * arg3 ); 
-    void * spex_power( void * arg1, void * arg2 );
-    void * spex_subtract( void * arg1, void * arg2 );
-    void * spex_ternary( void * arg1, void * arg2, void * arg3 );
-    void * spex_get_symbol( const char * s );
+    void * spex_compare( int, void * arg1, void * arg2 );
     void * spex_get_real( double arg );
     void * spex_get_string( const char * s );
+    void * spex_get_symbol( const char * s );
+    void * spex_invoke_function( const char *s, void * arg );
+    void * spex_list( void * list, void * stmt );
+    void * spex_logic( int, void * arg1, void * arg3 ); 
+    void * spex_math( char, void * arg1, void * arg2 );
+    void * spex_math( char, void * arg1, void * arg2 );
+    void * spex_ternary( void * arg1, void * arg2, void * arg3 );
 
 #if defined(__cplusplus)
 }
@@ -136,7 +125,7 @@ namespace LQIO {
 
 	
     public:
-	typedef std::pair<std::string,LQX::SyntaxTreeNode *> var_name_and_expr;
+	typedef std::pair<const std::string,LQX::SyntaxTreeNode *> var_name_and_expr;
 
     public:
 	class VariableManip {
@@ -320,15 +309,13 @@ namespace LQIO {
 	expr_list * solve_success( expr_list * result ) const;
 	expr_list * solve_failure( expr_list * result ) const;
 
-	LQX::SyntaxTreeNode * print_comment( const std::string& = "" ) const;
 	LQX::SyntaxTreeNode * print_header() const;
-	LQX::SyntaxTreeNode * print_gnuplot_header() const;
+
 	expr_list * plot( expr_list * );
 	expr_list * splot( expr_list * );
 	std::map<const LQX::SyntaxTreeNode *,std::string> get_plot_args( expr_list *, expr_list * );
 
 	static expr_list * make_list( LQX::SyntaxTreeNode*, ... );
-	static LQX::SyntaxTreeNode * print_node( const std::string& );
 	
 	static ObservationInfo * findObservation( const std::string& );		/* Find the observation matching string */
 	static std::ostream& printInputVariable( std::ostream& output, const var_name_and_expr& var );
@@ -338,7 +325,7 @@ namespace LQIO {
 	static std::vector<var_name_and_expr>::const_iterator find( std::vector<var_name_and_expr>::const_iterator, std::vector<var_name_and_expr>::const_iterator, const std::string& );
 
     public:
-	static std::map<const std::string, LQIO::DOM::SymbolExternalVariable*>* __global_variables;	/* Document global variables. (input) */
+	static std::set<std::string> __global_variables;			/* Document global variables. (input) */
 
     private:
 	static std::vector<std::string> __scalar_variables;			/* Saves $<scalar_name> for output */

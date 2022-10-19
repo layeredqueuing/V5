@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="JMTmodel.xsd">
+  <parameters>
+    <classes number="2">
+      <closedclass name="C1" population="8"/>
+      <closedclass name="C2" population="1"/>
+    </classes>
+    <stations number="2">
+      <delaystation name="S1">
+	<servicetimes>
+	  <servicetime customerclass="C1">8.0</servicetime>
+	  <servicetime customerclass="C2">0.0</servicetime>
+	</servicetimes>
+	<visits>
+	  <visit customerclass="C1">1.0</visit>
+	  <visit customerclass="C2">0.0</visit>
+	</visits>
+      </delaystation>
+      <listation name="S2" servers="1">
+	<servicetimes>
+	  <servicetime customerclass="C1">1.0</servicetime>
+	  <servicetime customerclass="C2">1.0</servicetime>
+	</servicetimes>
+	<visits>
+	  <visit customerclass="C1">1.0</visit>
+	  <visit customerclass="C2">1.0</visit>
+	</visits>
+      </listation>
+    </stations>
+    <ReferenceStation number="2">
+      <Class name="C1" refStation="S2"/>
+      <Class name="C2" refStation="S2"/>
+    </ReferenceStation>
+  </parameters>
+  <algParams>
+    <algType maxSamples="10000" name="MVA" tolerance="1.0E-7"/>
+    <compareAlgs value="false"/>
+  </algParams>
+  <solutions algCount="1" ok="true" solutionMethod="analytical">
+    <algorithm iterations="0" name="MVA">
+      <stationresults station="S1">
+	<classresults customerclass="C1">
+	  <measure meanValue="5.226615426120841" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.6533269282651051" measureType="Throughput" successful="true"/>
+	  <measure meanValue="8.0" measureType="Residence time" successful="true"/>
+	  <measure meanValue="5.226615426120841" measureType="Utilization" successful="true"/>
+	</classresults>
+	<classresults customerclass="C2">
+	  <measure meanValue="0.0" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.0" measureType="Throughput" successful="true"/>
+	  <measure meanValue="0.0" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.0" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="S2">
+	<classresults customerclass="C1">
+	  <measure meanValue="2.77338457387916" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.6533269282651051" measureType="Throughput" successful="true"/>
+	  <measure meanValue="4.245018005371094" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.6533269282651051" measureType="Utilization" successful="true"/>
+	</classresults>
+	<classresults customerclass="C2">
+	  <measure meanValue="1.0" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.346673071734895" measureType="Throughput" successful="true"/>
+	  <measure meanValue="2.8845620889894557" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.346673071734895" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <normconst logValue="NaN"/>
+    </algorithm>
+  </solutions>
+</model>

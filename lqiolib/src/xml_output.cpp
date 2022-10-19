@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: xml_output.cpp 15317 2022-01-01 16:44:56Z greg $
+ * $Id: xml_output.cpp 15957 2022-10-07 17:14:47Z greg $
  *
  * Read in XML input files.
  *
@@ -17,6 +17,7 @@
 #endif
 #include <map>
 #include <iomanip>
+#include <lqx/SyntaxTree.h>
 #include "xml_output.h"
 #include "dom_extvar.h"
 #include "common_io.h"
@@ -129,6 +130,12 @@ namespace XML {
 	return output;
     }
     
+    static std::ostream& printAttribute( std::ostream& output, const std::string& a, const LQX::SyntaxTreeNode& v )
+    {
+	output << " " << a << "=\"" << v << "\"";
+	return output;
+    }
+    
     static std::ostream& printAttribute( std::ostream& output, const std::string& a, const LQIO::DOM::ExternalVariable& v )
     {
 	output << " " << a << "=\"" << v << "\"";
@@ -189,6 +196,7 @@ namespace XML {
     UnsignedManip attribute( const std::string& a, unsigned v ) { return UnsignedManip( &printAttribute, a, v ); }
     BooleanManip attribute( const std::string& a, bool v ) { return BooleanManip( &printAttribute, a, v ); }
     ExternalVariableManip attribute( const std::string& a, const LQIO::DOM::ExternalVariable& v ) { return ExternalVariableManip( &printAttribute, a, v ); }
+    SyntaxTreeNodeManip attribute( const std::string& a, const LQX::SyntaxTreeNode& v ) { return SyntaxTreeNodeManip( &printAttribute, a, v ); }
     DoubleManip time_attribute( const std::string& a, const double v ) { return DoubleManip( &printTime, a, v ); }
     StringManip comment( const std::string& s ) { return StringManip( &printComment, s, std::string("") ); }
     StringManip cdata( const std::string& s ) { return StringManip( &printCData, s, std::string("") ); }

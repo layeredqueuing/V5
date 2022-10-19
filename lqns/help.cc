@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 15874 2022-09-20 14:51:09Z greg $
+ * $Id: help.cc 15970 2022-10-13 23:15:17Z greg $
  */
 
 #include "lqns.h"
@@ -82,7 +82,7 @@ static const std::map<const std::string,const std::string> opt_help = {
     { "debug-lqx",				"Output debugging information while parsing LQX input." },
     { "debug-xml",				"Output debugging information while parsing XML input." },
     { "debug-srvn",				"Output debugging information while parsing SRVN input." },
-    { "debug-spex",				"Output LQX progam corresponding to SPEX input." }
+    { "print-lqx",				"Output LQX progam corresponding to SPEX input." }
 };
 
 
@@ -136,7 +136,7 @@ const std::map<const int,const Help::help_fptr> Help::__option_table =
     { 256+'t',	&Help::flagTraceMVA },
     { 512+'j',	&Help::flagDebugJSON },
     { 512+'l',	&Help::flagDebugLQX },
-    { 512+'s',	&Help::flagDebugSPEX },
+    { 512+'s',	&Help::flagPrintSPEX },
     { 512+'x',	&Help::flagDebugXML },
     { 512+'y',	&Help::flagDebugSRVN }
 };
@@ -683,9 +683,9 @@ Help::flagDebugLQX( std::ostream& output, bool verbose ) const
 }
 
 std::ostream&
-Help::flagDebugSPEX( std::ostream& output, bool verbose ) const
+Help::flagPrintSPEX( std::ostream& output, bool verbose ) const
 {
-    output << opt_help.at( "debug-spex" ) << std::endl;
+    output << opt_help.at( "print-lqx" ) << std::endl;
     return output;
 }
 
@@ -1125,9 +1125,9 @@ Help::debugQuorum( std::ostream & output, bool verbose ) const
 }
 
 std::ostream&
-Help::debugSPEX( std::ostream & output, bool verbose ) const
+Help::printSPEX( std::ostream & output, bool verbose ) const
 {
-    output << opt_help.at( "debug-spex" ) << std::endl;
+    output << opt_help.at( "print-lqx" ) << std::endl;
     return output;
 }
 
@@ -2230,7 +2230,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 15874 2022-09-20 14:51:09Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 15970 2022-10-13 23:15:17Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2529,7 +2529,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 15874 2022-09-20 14:51:09Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 15970 2022-10-13 23:15:17Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

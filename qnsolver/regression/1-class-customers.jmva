@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="JMTmodel.xsd">
+  <description>
+    <![CDATA[Lazowska, Ch 6, Pg 117 (libmva/regression/test0)]]>
+  </description>
+  <parameters>
+    <classes number="1">
+      <closedclass name="Class1" population="1"/>
+    </classes>
+    <stations number="4">
+      <listation name="CPU" servers="1">
+	<servicetimes>
+	  <servicetime customerclass="Class1">0.005</servicetime>
+	</servicetimes>
+	<visits>
+	  <visit customerclass="Class1">121.0</visit>
+	</visits>
+      </listation>
+      <listation name="Disk1" servers="1">
+	<servicetimes>
+	  <servicetime customerclass="Class1">0.03</servicetime>
+	</servicetimes>
+	<visits>
+	  <visit customerclass="Class1">70.0</visit>
+	</visits>
+      </listation>
+      <listation name="Disk2" servers="1">
+	<servicetimes>
+	  <servicetime customerclass="Class1">0.027</servicetime>
+	</servicetimes>
+	<visits>
+	  <visit customerclass="Class1">50.0</visit>
+	</visits>
+      </listation>
+      <delaystation name="Terminal">
+	<servicetimes>
+	  <servicetime customerclass="Class1">15.0</servicetime>
+	</servicetimes>
+	<visits>
+	  <visit customerclass="Class1">1.0</visit>
+	</visits>
+      </delaystation>
+    </stations>
+    <ReferenceStation number="1">
+      <Class name="Class1" refStation="Terminal"/>
+    </ReferenceStation>
+  </parameters>
+  <algParams>
+    <algType maxSamples="10000" name="MVA" tolerance="1.0E-7"/>
+    <compareAlgs value="false"/>
+  </algParams>
+  <whatIf className="Class1" type="Customer Numbers" values="1.0;2.0;3.0;4.0;5.0;6.0;7.0;8.0;9.0;10.0"/>
+  <solutions algCount="1" iteration="0" iterationValue="1.0" ok="true" solutionMethod="analytical whatif">
+    <algorithm iterations="0" name="MVA">
+      <normconst logValue="0.0"/>
+      <stationresults station="CPU">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.031750196798740485" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="6.350039359748098" measureType="Throughput" successful="true"/>
+	  <measure meanValue="0.605" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.031750196798740485" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk1">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.1102072946733141" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="3.6735764891104696" measureType="Throughput" successful="true"/>
+	  <measure meanValue="2.1" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.1102072946733141" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk2">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.07084754657570191" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="2.623983206507478" measureType="Throughput" successful="true"/>
+	  <measure meanValue="1.35" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.07084754657570191" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Terminal">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.7871949619522435" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.05247966413014957" measureType="Throughput" successful="true"/>
+	  <measure meanValue="15.0" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.7871949619522435" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+    </algorithm>
+  </solutions>
+  <solutions algCount="1" iteration="1" iterationValue="2.0" ok="true" solutionMethod="analytical whatif">
+    <algorithm iterations="0" name="MVA">
+      <normconst logValue="0.0"/>
+      <stationresults station="CPU">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.0643471564335187" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="12.473398431746679" measureType="Throughput" successful="true"/>
+	  <measure meanValue="0.624208869063238" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.0623669921587334" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk1">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.2403381954496931" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="7.216015621671633" measureType="Throughput" successful="true"/>
+	  <measure meanValue="2.3314353188139596" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.216480468650149" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk2">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.14902558633000942" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="5.154296872622595" measureType="Throughput" successful="true"/>
+	  <measure meanValue="1.4456441878771977" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.13916601556081007" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Terminal">
+	<classresults customerclass="Class1">
+	  <measure meanValue="1.5462890617867784" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.1030859374524519" measureType="Throughput" successful="true"/>
+	  <measure meanValue="15.0" measureType="Residence time" successful="true"/>
+	  <measure meanValue="1.5462890617867784" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+    </algorithm>
+  </solutions>
+  <solutions algCount="1" iteration="2" iterationValue="3.0" ok="true" solutionMethod="analytical whatif">
+    <algorithm iterations="0" name="MVA">
+      <normconst logValue="0.0"/>
+      <stationresults station="CPU">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.09756601940835935" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="18.33349557399856" measureType="Throughput" successful="true"/>
+	  <measure meanValue="0.6439300296422789" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.09166747786999281" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk1">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.39465655466719385" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="10.606154464296688" measureType="Throughput" successful="true"/>
+	  <measure meanValue="2.6047102104443556" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.3181846339289007" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk2">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.23503004071801362" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="7.575824617354778" measureType="Throughput" successful="true"/>
+	  <measure meanValue="1.5511845415455128" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.204547264668579" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Terminal">
+	<classresults customerclass="Class1">
+	  <measure meanValue="2.2727473852064333" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.15151649234709555" measureType="Throughput" successful="true"/>
+	  <measure meanValue="15.0" measureType="Residence time" successful="true"/>
+	  <measure meanValue="2.2727473852064333" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+    </algorithm>
+  </solutions>
+  <solutions algCount="1" iteration="3" iterationValue="4.0" ok="true" solutionMethod="analytical whatif">
+    <algorithm iterations="0" name="MVA">
+      <normconst logValue="0.0"/>
+      <stationresults station="CPU">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.13110054696352508" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="23.88932321979038" measureType="Throughput" successful="true"/>
+	  <measure meanValue="0.6640274417420574" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.1194466160989519" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk1">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.5782358888561329" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="13.82026963128369" measureType="Throughput" successful="true"/>
+	  <measure meanValue="2.928778764801107" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.41460808893851075" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk2">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.3291772146195515" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="9.871621165202637" measureType="Throughput" successful="true"/>
+	  <measure meanValue="1.6672905549693187" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.2665337714604712" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Terminal">
+	<classresults customerclass="Class1">
+	  <measure meanValue="2.961486349560791" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.19743242330405272" measureType="Throughput" successful="true"/>
+	  <measure meanValue="15.0" measureType="Residence time" successful="true"/>
+	  <measure meanValue="2.961486349560791" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+    </algorithm>
+  </solutions>
+  <solutions algCount="1" iteration="4" iterationValue="5.0" ok="true" solutionMethod="analytical whatif">
+    <algorithm iterations="0" name="MVA">
+      <normconst logValue="0.0"/>
+      <stationresults station="CPU">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.16455437323203592" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="29.096329883985522" measureType="Throughput" successful="true"/>
+	  <measure meanValue="0.6843158309129327" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.1454816494199276" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk1">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.7969738125578234" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="16.832587536189973" measureType="Throughput" successful="true"/>
+	  <measure meanValue="3.3142953665978796" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.5049776260856992" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk2">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.4314887707408605" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="12.023276811564266" measureType="Throughput" successful="true"/>
+	  <measure meanValue="1.7943892397363947" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.3246284739122352" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Terminal">
+	<classresults customerclass="Class1">
+	  <measure meanValue="3.6069830434692793" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.2404655362312853" measureType="Throughput" successful="true"/>
+	  <measure meanValue="15.0" measureType="Residence time" successful="true"/>
+	  <measure meanValue="3.6069830434692793" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+    </algorithm>
+  </solutions>
+  <solutions algCount="1" iteration="5" iterationValue="6.0" ok="true" solutionMethod="analytical whatif">
+    <algorithm iterations="0" name="MVA">
+      <normconst logValue="0.0"/>
+      <stationresults station="CPU">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.19744008147876127" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="33.908263283713865" measureType="Throughput" successful="true"/>
+	  <measure meanValue="0.7045553958053816" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.16954131641856934" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk1">
+	<classresults customerclass="Class1">
+	  <measure meanValue="1.0575020530191281" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="19.616350659999757" measureType="Throughput" successful="true"/>
+	  <measure meanValue="3.7736450063714293" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.5884905197999928" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk2">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.5415541526450197" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="14.01167904285697" measureType="Throughput" successful="true"/>
+	  <measure meanValue="1.932509840500162" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.3783153341571382" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Terminal">
+	<classresults customerclass="Class1">
+	  <measure meanValue="4.203503712857091" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.2802335808571394" measureType="Throughput" successful="true"/>
+	  <measure meanValue="15.0" measureType="Residence time" successful="true"/>
+	  <measure meanValue="4.203503712857091" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+    </algorithm>
+  </solutions>
+  <solutions algCount="1" iteration="6" iterationValue="7.0" ok="true" solutionMethod="analytical whatif">
+    <algorithm iterations="0" name="MVA">
+      <normconst logValue="0.0"/>
+      <stationresults station="CPU">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.2291914104339689" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="38.28023029777528" measureType="Throughput" successful="true"/>
+	  <measure meanValue="0.7244512492946505" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.19140115148887643" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk1">
+	<classresults customerclass="Class1">
+	  <measure meanValue="1.3669377694066707" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="22.14558777557248" measureType="Throughput" successful="true"/>
+	  <measure meanValue="4.32075431134017" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.6643676332671744" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk2">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.6583877253938291" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="15.81827698255177" measureType="Throughput" successful="true"/>
+	  <measure meanValue="2.081098106070777" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.42709347852889784" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Terminal">
+	<classresults customerclass="Class1">
+	  <measure meanValue="4.7454830947655315" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.3163655396510354" measureType="Throughput" successful="true"/>
+	  <measure meanValue="15.0" measureType="Residence time" successful="true"/>
+	  <measure meanValue="4.7454830947655315" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+    </algorithm>
+  </solutions>
+  <solutions algCount="1" iteration="7" iterationValue="8.0" ok="true" solutionMethod="analytical whatif">
+    <algorithm iterations="0" name="MVA">
+      <normconst logValue="0.0"/>
+      <stationresults station="CPU">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.25919368043858976" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="42.17303802132506" measureType="Throughput" successful="true"/>
+	  <measure meanValue="0.7436608033125512" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.2108651901066253" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk1">
+	<classresults customerclass="Class1">
+	  <measure meanValue="1.7324298243051695" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="24.39762530159301" measureType="Throughput" successful="true"/>
+	  <measure meanValue="4.970569315754009" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.7319287590477903" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk2">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.780313930629167" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="17.42687521542358" measureType="Throughput" successful="true"/>
+	  <measure meanValue="2.2388234292816693" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.47052563081643667" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Terminal">
+	<classresults customerclass="Class1">
+	  <measure meanValue="5.2280625646270735" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.3485375043084716" measureType="Throughput" successful="true"/>
+	  <measure meanValue="15.0" measureType="Residence time" successful="true"/>
+	  <measure meanValue="5.2280625646270735" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+    </algorithm>
+  </solutions>
+  <solutions algCount="1" iteration="8" iterationValue="9.0" ok="true" solutionMethod="analytical whatif">
+    <algorithm iterations="0" name="MVA">
+      <normconst logValue="0.0"/>
+      <stationresults station="CPU">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.28683481001086986" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="45.55848944714565" measureType="Throughput" successful="true"/>
+	  <measure meanValue="0.7618121766653467" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.22779244723572822" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk1">
+	<classresults customerclass="Class1">
+	  <measure meanValue="2.1604899848174672" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="26.356150919836324" measureType="Throughput" successful="true"/>
+	  <measure meanValue="5.7381026310408565" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.7906845275950898" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk2">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.9049285794924518" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="18.825822085597373" measureType="Throughput" successful="true"/>
+	  <measure meanValue="2.403423806349376" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.5082971963111291" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Terminal">
+	<classresults customerclass="Class1">
+	  <measure meanValue="5.647746625679212" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.3765164417119475" measureType="Throughput" successful="true"/>
+	  <measure meanValue="15.0" measureType="Residence time" successful="true"/>
+	  <measure meanValue="5.647746625679212" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+    </algorithm>
+  </solutions>
+  <solutions algCount="1" iteration="9" iterationValue="10.0" ok="true" solutionMethod="analytical whatif">
+    <algorithm iterations="0" name="MVA">
+      <normconst logValue="0.0"/>
+      <stationresults station="CPU">
+	<classresults customerclass="Class1">
+	  <measure meanValue="0.3115733300892997" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="48.42475936544923" measureType="Throughput" successful="true"/>
+	  <measure meanValue="0.7785350600565761" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.24212379682724616" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk1">
+	<classresults customerclass="Class1">
+	  <measure meanValue="2.65616967506253" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="28.014323599846662" measureType="Throughput" successful="true"/>
+	  <measure meanValue="6.637028968116682" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.8404297079954" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Disk2">
+	<classresults customerclass="Class1">
+	  <measure meanValue="1.0291876520238856" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="20.010231142747617" measureType="Throughput" successful="true"/>
+	  <measure meanValue="2.57165358231481" measureType="Residence time" successful="true"/>
+	  <measure meanValue="0.5402762408541857" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+      <stationresults station="Terminal">
+	<classresults customerclass="Class1">
+	  <measure meanValue="6.003069342824285" measureType="Number of Customers" successful="true"/>
+	  <measure meanValue="0.40020462285495234" measureType="Throughput" successful="true"/>
+	  <measure meanValue="15.0" measureType="Residence time" successful="true"/>
+	  <measure meanValue="6.003069342824285" measureType="Utilization" successful="true"/>
+	</classresults>
+      </stationresults>
+    </algorithm>
+  </solutions>
+</model>

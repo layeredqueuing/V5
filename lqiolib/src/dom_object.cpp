@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 15880 2022-09-21 12:52:01Z greg $
+ *  $Id: dom_object.cpp 15968 2022-10-13 19:23:03Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -212,15 +212,16 @@ namespace LQIO {
 	    throw should_implement( getTypeName() );
 	}
 
-	error_severity DocumentObject::getSeverity( unsigned code ) const
+	error_severity DocumentObject::getSeverity( unsigned code )
 	{
 	    return __error_messages.at(code).severity;
 	}
 
-	DocumentObject& DocumentObject::setSeverity( unsigned code, error_severity severity )
+	error_severity DocumentObject::setSeverity( unsigned code, error_severity severity )
 	{
+	    error_severity previous = __error_messages.at(code).severity;
 	    __error_messages.at(code).severity = severity;
-	    return *this;
+	    return previous;
 	}
 
 	const ExternalVariable * DocumentObject::checkIntegerVariable( const ExternalVariable * var, int floor_value ) const
@@ -241,7 +242,7 @@ namespace LQIO {
 	    if ( var->wasSet() != true ) throw std::domain_error( "not set" );
 	    if ( var->getValue(value) != true ) throw std::domain_error( "not a number" );	/* Sets value for return! */
 	    if ( std::isinf(value) ) throw std::domain_error( "infinity" );
-	    if ( value != rint(value) ) throw std::domain_error( "invalid integer" );
+	    if ( value != rint(value) ) throw std::domain_error( std::string("invalid integer: ") + std::to_string(value)  );
 	    if ( value < floor_value ) {
 		std::stringstream ss;
 		ss << value << " < " << floor_value;

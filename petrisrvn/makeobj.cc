@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: makeobj.cc 15545 2022-04-17 22:42:21Z greg $
+ * $Id: makeobj.cc 15955 2022-10-07 11:05:00Z greg $
  *
  * Make various model objects.
  */
@@ -30,7 +30,6 @@
 #include <wspnlib/global.h>
 #include <wspnlib/wspn.h>
 #include <lqio/glblerr.h>
-#include <lqio/input.h>
 #include "errmsg.h"
 #include "makeobj.h"
 

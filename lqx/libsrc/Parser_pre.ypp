@@ -233,8 +233,8 @@ file_close_stmt(X) ::= FILE_CLOSE OBRACKET IDENTIFIER(A)
   CBRACKET.	    							     { X = new FileCloseStatementNode( A->getStoredIdentifier() ); }
 
 postfix_stmt(X) ::= file_input_stmt(A). 				     { X = A; } 
-file_input_stmt(X) ::= READ_DATA OBRACKET IDENTIFIER(A) 
- COMMA expr_list(B) CBRACKET.						     { X = new ReadDataStatementNode( A->getStoredIdentifier(), B ); }
+file_input_stmt(X) ::= READ_DATA OBRACKET IDENTIFIER(A)
+  COMMA expr_list(B) CBRACKET.						     { X = new ReadDataStatementNode( A->getStoredIdentifier(), B ); }
 file_input_stmt(X) ::= READ_DATA OBRACKET IDENTIFIER(A)
   COMMA READ_LOOP CBRACKET.						     { X = new ReadDataStatementNode( A->getStoredIdentifier(), NULL ); }
 

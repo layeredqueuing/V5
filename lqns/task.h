@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 15895 2022-09-23 17:21:55Z greg $
+ * $Id: task.h 15950 2022-10-06 13:46:48Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -228,12 +228,12 @@ private:
     Task& initReplication( const unsigned );	 	// REP N-R
 #endif
     double bottleneckStrength() const;
+    void store_activity_service_time ( const char * activity_name, const double service_time );	// quorum.
 
     /* Thread stuff */
 
     double overlapFactor( const unsigned i, const unsigned j ) const;
 
-    void store_activity_service_time ( const char * activity_name, const double service_time );	// quorum.
 
 private:
     const Processor * _processor;	/* proc. allocated to task. 	*/

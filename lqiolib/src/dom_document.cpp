@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 15916 2022-09-27 14:36:47Z greg $
+ *  $Id: dom_document.cpp 15970 2022-10-13 23:15:17Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -78,6 +78,7 @@ namespace LQIO {
 	    { "lqnx",			InputFormat::XML },
 	    { "lqx",			InputFormat::XML },
 	    { "lqxo",			InputFormat::XML },
+	    { "qnp",			InputFormat::QNAP2 },
 	    { "qnap",			InputFormat::QNAP2 },
 	    { "qnap2",			InputFormat::QNAP2 },
 	    { "spex",			InputFormat::LQN },
@@ -396,6 +397,7 @@ namespace LQIO {
 	    } else {
 		SymbolExternalVariable* variable = new SymbolExternalVariable(name);
 		_variables[name] = variable;
+		LQIO::Spex::__global_variables.insert(name);		/* For SPEX */
 		return variable;
 	    }
 	}
@@ -457,8 +459,7 @@ namespace LQIO {
 	    /* Make sure all of the variables are registered in the program */
 	    std::map<const std::string, SymbolExternalVariable*>::iterator sym_iter;
 	    for (sym_iter = _variables.begin(); sym_iter != _variables.end(); ++sym_iter) {
-		SymbolExternalVariable* current = sym_iter->second;
-		current->registerInEnvironment(program);
+		sym_iter->second->registerInEnvironment(program);
 	    }
 
 	    /* Instantiate and initialize all control variables.  Program must exist before we can initialize */
@@ -768,7 +769,7 @@ namespace LQIO {
 	{
 	    __input_file_name = input_filename;
             io_vars.reset();                   /* See error.c */
-
+	    
 	    /* Figure out input file type based on suffix */
 
 	    if ( format == InputFormat::AUTOMATIC ) {
@@ -779,7 +780,6 @@ namespace LQIO {
 
 	    bool rc = true;
 	    Document * document = new Document( format );
-	    LQIO::Spex::__global_variables = &document->_variables;	/* For SPEX */
 
 	    /* Read in the model, invoke the builder, and see what happened */
 
@@ -818,6 +818,7 @@ namespace LQIO {
 
 	    if ( rc ) {
 		return document;
+
 	    } else {
 		delete document;
 		return nullptr;

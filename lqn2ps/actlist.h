@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 15730 2022-06-29 16:35:46Z greg $
+ * $Id: actlist.h 15957 2022-10-07 17:14:47Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -11,7 +11,6 @@
 #include <vector>
 #include <map>
 #include <set>
-#include <lqio/input.h>
 #include "activity.h"
 #include "element.h"
 #include "arc.h"

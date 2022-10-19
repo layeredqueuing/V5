@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 15895 2022-09-23 17:21:55Z greg $
+ * $Id: entity.h 15956 2022-10-07 13:54:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,7 +21,6 @@
 #include <set>
 #include <map>
 #include <lqio/dom_entity.h>
-#include <lqio/input.h>
 #include <mva/prob.h>
 #include <mva/vector.h>
 #include "call.h"

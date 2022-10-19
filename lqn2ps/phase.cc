@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 15737 2022-06-30 22:59:33Z greg $
+ * $Id: phase.cc 16003 2022-10-19 17:22:13Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -18,6 +18,7 @@
 #include <lqio/error.h>
 #include <lqio/dom_phase.h>
 #include <lqio/dom_extvar.h>
+#include <lqx/SyntaxTree.h>
 #include "activity.h"
 #include "call.h"
 #include "entity.h"
@@ -198,18 +199,18 @@ Phase::utilization() const
 /* +BUG_270 */
 
 /* static */
-const LQIO::DOM::ExternalVariable *
-Phase::accumulate_service_time( const LQIO::DOM::ExternalVariable * augend, const std::pair<unsigned int, Phase>& phase )
+LQX::SyntaxTreeNode *
+Phase::accumulate_service_time( LQX::SyntaxTreeNode* augend, const std::pair<unsigned int, Phase>& phase )
 {
-    return Entity::addExternalVariables( augend, phase.second.getDOM()->getServiceTime() ); 
+    return Entity::addLQXExpressions( augend, Entity::getLQXVariable( phase.second.getDOM()->getServiceTime() ) ); 
 }
 
 
 /* static */
-const LQIO::DOM::ExternalVariable *
-Phase::accumulate_think_time( const LQIO::DOM::ExternalVariable * augend, const std::pair<unsigned int, Phase>& phase )
+LQX::SyntaxTreeNode *
+Phase::accumulate_think_time( LQX::SyntaxTreeNode * augend, const std::pair<unsigned int, Phase>& phase )
 {
-    return Entity::addExternalVariables( augend, phase.second.getDOM()->getThinkTime() ); 
+    return Entity::addLQXExpressions( augend, Entity::getLQXVariable( phase.second.getDOM()->getThinkTime() ) ); 
 }
 /* -BUG_270 */
 
@@ -221,7 +222,13 @@ Phase::accumulate_think_time( const LQIO::DOM::ExternalVariable * augend, const 
 /* static */ BCMP::Model::Station::Class
 Phase::accumulate_demand( const BCMP::Model::Station::Class& augend, const std::pair<unsigned,Phase>& p )
 {
-    return augend + BCMP::Model::Station::Class( &Element::ONE, &p.second.serviceTime() );
+    if ( dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(&p.second.serviceTime()) ) {
+	return augend + BCMP::Model::Station::Class( new LQX::ConstantValueExpression( 1.0 ), new LQX::ConstantValueExpression(to_double(p.second.serviceTime())) );
+    } else if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(&p.second.serviceTime()) ) {
+	return augend + BCMP::Model::Station::Class( new LQX::ConstantValueExpression( 1.0 ), new LQX::VariableExpression(p.second.serviceTime().getName(), true) );
+    } else {
+	return augend;
+    }
 }
 
 /* static */ double
@@ -414,7 +421,7 @@ Phase::serviceTimeForSRVNInput() const
 
 	for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	    if ( !(*call)->isSelected() && (*call)->hasRendezvousForPhase(p) ) {
-		time += to_double((*call)->rendezvous(p)) * ((*call)->waiting(p) + (*call)->dstEntry()->executionTime(1));
+		time += LQIO::DOM::to_double((*call)->rendezvous(p)) * ((*call)->waiting(p) + (*call)->dstEntry()->executionTime(1));
 	    }
 	}
 

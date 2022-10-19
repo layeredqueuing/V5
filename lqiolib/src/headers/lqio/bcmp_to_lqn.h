@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_to_lqn.h 15220 2021-12-15 15:18:47Z greg $
+ *  $Id: bcmp_to_lqn.h 15958 2022-10-07 20:27:02Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -16,6 +16,7 @@ namespace LQIO {
 	class Entry;
 	class Task;
 	class Document;
+	class ExternalVariable;
     }
 }
 
@@ -30,6 +31,8 @@ namespace LQIO {
 	    BCMP_to_LQN( const BCMP::Model& bcmp, Document& lqn ) : _bcmp(bcmp), _lqn(lqn), _client_entries(), _server_entries() {}
 
 	    bool convert();
+
+	    static LQIO::DOM::ExternalVariable * getExternalVariable( const LQX::SyntaxTreeNode * );
 
 	private:
 	    const BCMP::Model::Model::Station::map_t& stations() const { return _bcmp.stations(); }

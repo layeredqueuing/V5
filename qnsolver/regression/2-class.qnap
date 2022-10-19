@@ -1,0 +1,41 @@
+& $Id$
+/declare/
+   real _Q_S1,_R_S1,_U_S1,_X_S1,_Q_S2,_R_S2,_U_S2,_X_S2;       & SPEX result vars.
+   queue S2,S1;                                                & Station identifiers
+   class string name;                                          & Name (for output)
+   class integer n_users;                                      & Population.
+   class real S2_t;                                            & Think time.
+   class real S1_t;                                            & Station service time
+   class C1,C2;                                                & Class names
+&
+/station/ name=S1;
+   type=infinite;
+   service=exp(S1_t);
+   transit(all class)=S2;
+&
+/station/ name=S2;
+   sched=ps;
+   init=n_users;                                               & Population by class
+   service=exp(S2_t);
+   transit(C1)=S1,1.;                                          & visits to servers
+   transit(C2)=S2,1.;
+&
+/control/
+   class=all queue;                                            & Compute for all classes
+&
+/exec/
+   begin
+&  -- Class variables --
+   C1.name:="C1";                                              & Class (client) name
+   C1.n_users:=8;
+   C2.name:="C2";                                              & Class (client) name
+   C2.n_users:=1;
+&  -- Station variables --
+   C1.S1_t:=8.;
+   C1.S2_t:=1./(1);                                            & Slice time at client
+   C2.S1_t:=0.00001;                                           & QNAP does not like zero (0)
+   C2.S2_t:=1.;
+&  -- Let 'er rip! --
+   solve;
+   end;
+/end/

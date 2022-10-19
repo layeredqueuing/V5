@@ -23,9 +23,11 @@
 #include <string>
 #include <lqio/bcmp_bindings.h>
 #include <lqio/jmva_document.h>
+#include <lqio/dom_document.h>
 #include <lqio/srvn_spex.h>
 #include <lqio/glblerr.h>
 #include <lqx/Program.h>
+#include <lqx/SyntaxTree.h>
 #include <mva/multserv.h>
 #include <mva/mva.h>
 #include "boundsmodel.h"
@@ -35,12 +37,24 @@
 #include "pragma.h"
 #include "runlqx.h"
 
-bool print_spex = false;				/* Print LQX program		*/
-bool debug_flag = false;
+bool Model::print_program = false;			/* Print LQX program		*/
+bool Model::debug_flag = false;
+bool Model::verbose_flag = false;			/* Print steps			*/
+bool Model::no_execute = false;
 
+std::map<const Model::Solver,const std::string> Model::__solver_name = {
+    { Model::Solver::BOUNDS,		"bounds" },
+    { Model::Solver::EXACT_MVA,		LQIO::DOM::Pragma::_exact_ },
+    { Model::Solver::BARD_SCHWEITZER,	LQIO::DOM::Pragma::_schweitzer_ },
+    { Model::Solver::LINEARIZER,	LQIO::DOM::Pragma::_linearizer_ },
+    { Model::Solver::LINEARIZER2,	LQIO::DOM::Pragma::_fast_ },
+    { Model::Solver::EXPERIMENTAL,	"experimental" },
+    { Model::Solver::OPEN,		"open" }
+};
+
 Model::Model( QNIO::Document& input, Model::Solver solver, const std::string& output_file_name )
-    : _model(input.model()), _solver(solver),
-      _result(false), _input(input), _output_file_name(output_file_name), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr), Q()
+    : _model(input.model()), _solver(solver), 
+      _result(false), _input(input), _output_file_name(output_file_name), _environment(nullptr), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr), Q()
 {
     const size_t M = _model.n_stations(type());	// Size based on type.
     Q.resize(M);
@@ -49,7 +63,7 @@ Model::Model( QNIO::Document& input, Model::Solver solver, const std::string& ou
 
 Model::Model( QNIO::Document& input, Model::Solver solver )
     : _model(input.model()), _solver(solver),
-      _result(false), _input(input), _output_file_name(), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr), Q()
+      _result(false), _input(input), _output_file_name(), _environment(nullptr), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr), Q()
 {
     const size_t M = _model.n_stations(type());	// Size based on type.
     Q.resize(M);
@@ -126,31 +140,15 @@ Model::solve()
 {
     bool ok = true;
     LQX::Program * lqx = _input.getLQXProgram();
-    std::vector<LQX::SyntaxTreeNode *> * program = _input.getSPEXProgram();
-    expr_list result_vars;		/* needs to be scoped here, else println args are cleared */
-    if ( program != nullptr ) {
-	if ( lqx != nullptr ) {
-	    LQIO::runtime_error( LQIO::ERR_LQX_SPEX, _input.getInputFileName().c_str() );
-	    return false;
-	}
-		
-	/* Get the result variables and convert to an expression list for construct */
-	const std::vector<LQIO::Spex::var_name_and_expr>& result_variables = LQIO::Spex::result_variables();
-	for ( std::vector<LQIO::Spex::var_name_and_expr>::const_iterator result = result_variables.begin(); result != result_variables.end(); ++result ) {
-	    result_vars.push_back( result->second );
-	}
-	if ( !LQIO::spex.construct_program( program, &result_vars, nullptr, _input.getGNUPlotProgram() ) ) return false;
-	lqx = LQX::Program::loadRawProgram( program );
-    }
-
     if ( lqx != nullptr ) {
 	_input.registerExternalSymbolsWithProgram( lqx );
-	if ( print_spex ) {
+	if ( print_program ) {
 	    lqx->print( std::cerr );
 	    std::cerr << std::endl;
 	}
 	FILE * output = nullptr;
 	LQX::Environment * environment = lqx->getEnvironment();
+	setEnvironment( environment );
 	environment->getMethodTable()->registerMethod(new SolverInterface::Solve(*this));
 	BCMP::RegisterBindings(environment, &_input.model());
 	if ( !_output_file_name.empty() ) {
@@ -181,7 +179,7 @@ Model::solve()
 	    print( std::cout );
 	} else {
 	    std::ofstream output;
-	    output.open( _output_file_name.c_str(), std::ios::out );
+	    output.open( _output_file_name, std::ios::out );
 	    if ( !output ) {
 		runtime_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 	    } else {
@@ -208,8 +206,13 @@ Model::compute()
 {
     bool ok = true;
     try {
-	instantiate();
+	if ( verbose_flag ) std::cerr << "construct... ";
+
+	if ( !construct() || !instantiate() ) return false;
+	if ( no_execute ) return true;
 	
+	if ( verbose_flag ) std::cerr << "solve using " << __solver_name.at(solver()) << "... ";
+
 	if ( _bounds_model ) {
 	    _bounds_model->solve();
 	}
@@ -219,12 +222,10 @@ Model::compute()
 	    }
 	    if ( debug_flag ) _closed_model->debug(std::cout);
 	    _closed_model->solve();
-	    if ( debug_flag ) _closed_model->print(std::cout);
 	}
 	if ( _open_model ) {
 	    if ( debug_flag ) _open_model->debug(std::cout);
 	    _open_model->solve( _closed_model );
-	    if ( debug_flag ) _open_model->print(std::cout);
 	}
 	saveResults();
     }
@@ -248,7 +249,8 @@ Model::compute()
 std::ostream&
 Model::print( std::ostream& output ) const
 {
-    return _input.print( output );
+    _model.print( output );
+    return output;
 }
 
 void
@@ -273,6 +275,25 @@ Model::indexAt(BCMP::Model::Chain::Type type, const std::string& name) const
     } else {
 	return _open_model->_index.k.at(name);
     }
+}
+
+
+double
+Model::getDoubleValue( LQX::SyntaxTreeNode * variable ) const
+{
+    if ( variable == nullptr ) return 0.0;
+    return variable->invoke(getEnvironment())->getDoubleValue();
+}
+
+
+
+unsigned int
+Model::getUnsignedValue( LQX::SyntaxTreeNode * variable, unsigned int default_value ) const
+{
+    if ( variable == nullptr ) return default_value;
+    const double value = variable->invoke(getEnvironment())->getDoubleValue();
+    if ( value != rint(value) ) throw std::domain_error( std::string("invalid integer") + std::to_string(value) );
+    return static_cast<unsigned int>(value);
 }
 
 /*
@@ -309,8 +330,8 @@ Model::InstantiateStation::InstantiateClass::operator()( const BCMP::Model::Stat
     try {
 	const BCMP::Model::Chain& chain = chainAt(input.first);
 	const BCMP::Model::Station::Class& demand = input.second;	// From BCMP model.
-	const double service_time = (demand.service_time() != nullptr && demand.service_time()->wasSet()) ? LQIO::DOM::to_double( *demand.service_time() ) : 0.;
-	const double visits = (demand.visits() != nullptr && demand.visits()->wasSet()) ? LQIO::DOM::to_double( *demand.visits() ) : 0.;
+	const double service_time = getDoubleValue( demand.service_time() );
+	const double visits = getDoubleValue( demand.visits() );
 	if ( closed_model() != nullptr && chain.isClosed() ) {
 	    const size_t k = indexAt(chain.type(),input.first);
 	    _server.setService( k, service_time );
@@ -318,7 +339,7 @@ Model::InstantiateStation::InstantiateClass::operator()( const BCMP::Model::Stat
 	} else if ( open_model() != nullptr && chain.isOpen() ) {
 	    static const size_t k = 0;
 	    const size_t e = indexAt(chain.type(),input.first);
-	    const double arrival_rate = (chain.arrival_rate() != nullptr && chain.arrival_rate()->wasSet()) ? LQIO::DOM::to_double( *chain.arrival_rate() ) : 0.;
+	    const double arrival_rate = getDoubleValue( chain.arrival_rate() );
 	    _server.setService( e, k, service_time );
 	    _server.setVisits( e, k, visits * arrival_rate );
 	}
@@ -340,7 +361,7 @@ Model::InstantiateStation::InstantiateStation( const Model& model ) : _model(mod
 	for ( BCMP::Model::Chain::map_t::const_iterator ki = chains().begin(); ki != chains().end(); ++ki ) {
 	    if ( !ki->second.isClosed() ) continue;
 	    const size_t k = indexAt( BCMP::Model::Chain::Type::CLOSED, ki->first );	/* Grab index from closed model */
-	    N[k] = (ki->second.customers() != nullptr && ki->second.customers()->wasSet()) ? to_unsigned( *ki->second.customers() ) : 1;
+	    N[k] = getUnsignedValue( ki->second.customers() );
 	}
     }
 }
@@ -362,7 +383,7 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
     /* Swap stations if necessary */
     
     const BCMP::Model::Station& station = input.second;
-    const unsigned int copies = (station.copies() != nullptr && station.copies()->wasSet()) ? LQIO::DOM::to_unsigned( *station.copies() ) : 1;
+    const unsigned int copies = getUnsignedValue( station.copies(), 1 );
     
     if ( station.type() == BCMP::Model::Station::Type::DELAY || station.scheduling() == SCHEDULE_DELAY ) {
 	if ( copies != 1 ) {
@@ -471,3 +492,17 @@ Model::InstantiateStation::replace_server( const std::string& name, Server * old
     return new_server;
 }
 
+std::ostream& Model::debug( std::ostream& output ) const
+{
+    for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
+	const BCMP::Model::Station::Class::map_t& classes = mi->second.classes();
+	const unsigned int servers = getUnsignedValue( mi->second.copies(), 1 );
+	output << "Station " << mi->first << ": servers=" << servers << std::endl;
+	for ( BCMP::Model::Station::Class::map_t::const_iterator ki = classes.begin(); ki != classes.end(); ++ki ) {
+	    const double visits = getDoubleValue( ki->second.visits() );
+	    const double service_time = getDoubleValue( ki->second.service_time() );
+	    output << "    Class " << ki->first << ": visits=" << visits << ", service time=" << service_time << std::endl;
+	}
+    }
+    return output;
+}

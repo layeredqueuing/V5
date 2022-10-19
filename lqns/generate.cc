@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 15773 2022-07-29 00:51:05Z greg $
+ * $Id: generate.cc 15975 2022-10-14 12:50:14Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -173,7 +173,7 @@ Generate::program( const MVASubmodel& submodel )
     fileName << __directory_name << "/submodel-" << submodel.number() << ".cc";
 
     std::ofstream output;
-    output.open( fileName.str().c_str(), std::ios::out );
+    output.open( fileName.str(), std::ios::out );
 
     if ( !output ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << fileName.str() << " - " << strerror( errno ) << std::endl;
@@ -196,7 +196,7 @@ Generate::makefile( const unsigned nSubmodels )
     const std::string makefileName = __directory_name + "/Makefile";
 	
     std::ofstream output;
-    output.open( makefileName.c_str(), std::ios::out );
+    output.open( makefileName, std::ios::out );
 
     if ( !output ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << makefileName << " - " << strerror( errno ) << std::endl;

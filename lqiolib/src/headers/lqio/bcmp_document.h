@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 15926 2022-09-29 17:56:23Z greg $
+ *  $Id: bcmp_document.h 15982 2022-10-16 20:52:42Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -7,20 +7,23 @@
 #ifndef __LQIO_BCMP_DOCUMENT__
 #define __LQIO_BCMP_DOCUMENT__
 
+#include <cassert>
+#include <iostream>
 #include <map>
 #include <string>
-#include <iostream>
 #include "input.h"
-#include "dom_extvar.h"
 
 namespace LQIO {
     namespace DOM {
 	class Document;
     }
 }
+namespace LQX {
+    class SyntaxTreeNode;
+    class Environment;
+}
 
 namespace BCMP {
-    using namespace LQIO;
     class Model {
 
     public:
@@ -66,18 +69,18 @@ namespace BCMP {
 
 	public:
 	    Chain() : _type(Type::UNDEFINED), _customers(nullptr), _think_time(nullptr), _arrival_rate(nullptr) {}
-	    Chain( Type type, const DOM::ExternalVariable* customers, const DOM::ExternalVariable* think_time ) : _type(Type::CLOSED), _customers(customers), _think_time(think_time), _arrival_rate(nullptr) { assert(type==Type::CLOSED); }
-	    Chain( Type type, const DOM::ExternalVariable* arrival_rate ) : _type(Type::OPEN), _customers(nullptr), _think_time(nullptr), _arrival_rate(arrival_rate) { assert(type==Type::OPEN); }
+	    Chain( Type type, LQX::SyntaxTreeNode * customers, LQX::SyntaxTreeNode * think_time ) : _type(Type::CLOSED), _customers(customers), _think_time(think_time), _arrival_rate(nullptr) { assert(type==Type::CLOSED); }
+	    Chain( Type type, LQX::SyntaxTreeNode * arrival_rate ) : _type(Type::OPEN), _customers(nullptr), _think_time(nullptr), _arrival_rate(arrival_rate) { assert(type==Type::OPEN); }
 
 	    virtual const char * getTypeName() const { return __typeName; }
 	    Type type() const { return _type; }
 	    void setType( Type type ) { _type = type; }
- 	    const DOM::ExternalVariable* customers() const { assert(type()==Type::CLOSED); return _customers; }
-	    void setCustomers( DOM::ExternalVariable* customers ) { assert(type()==Type::CLOSED); _customers = customers; }
-	    const DOM::ExternalVariable* think_time() const { assert(type()==Type::CLOSED); return _think_time; }
-	    void setThinkTime( DOM::ExternalVariable* think_time ) { assert(type()==Type::CLOSED); _think_time = think_time; }
-	    const DOM::ExternalVariable* arrival_rate() const { assert(type()==Type::OPEN); return _arrival_rate; }
-	    void setArrivalRate( DOM::ExternalVariable* arrival_rate ) { assert(type()==Type::OPEN); _arrival_rate = arrival_rate; }
+ 	    LQX::SyntaxTreeNode * customers() const { assert(type()==Type::CLOSED); return _customers; }
+	    void setCustomers( LQX::SyntaxTreeNode* customers ) { assert(type()==Type::CLOSED); _customers = customers; }
+	    LQX::SyntaxTreeNode * think_time() const { assert(type()==Type::CLOSED); return _think_time; }
+	    void setThinkTime( LQX::SyntaxTreeNode* think_time ) { assert(type()==Type::CLOSED); _think_time = think_time; }
+	    LQX::SyntaxTreeNode * arrival_rate() const { assert(type()==Type::OPEN); return _arrival_rate; }
+	    void setArrivalRate( LQX::SyntaxTreeNode* arrival_rate ) { assert(type()==Type::OPEN); _arrival_rate = arrival_rate; }
 	    bool isClosed() const { return _type == Type::CLOSED; }
 	    bool isOpen() const { return _type == Type::OPEN; }
 	    static bool closedChain( const Chain::pair_t& k ) { return k.second.type() == Type::CLOSED; }
@@ -108,9 +111,9 @@ namespace BCMP {
 
 	private:
 	    Type _type;
-	    const DOM::ExternalVariable * _customers;
-	    const DOM::ExternalVariable * _think_time;
-	    const DOM::ExternalVariable * _arrival_rate;
+	    LQX::SyntaxTreeNode * _customers;
+	    LQX::SyntaxTreeNode * _think_time;
+	    LQX::SyntaxTreeNode * _arrival_rate;
 	};
 
 	/* -------------------------- Station ------------------------- */
@@ -135,7 +138,7 @@ namespace BCMP {
 		typedef std::map<const std::string,Class> map_t;
 		typedef std::pair<const std::string,Class> pair_t;
 
-		Class( const DOM::ExternalVariable* visits=nullptr, const DOM::ExternalVariable* service_time=nullptr );
+		Class( LQX::SyntaxTreeNode * visits=nullptr, LQX::SyntaxTreeNode * service_time=nullptr );
 		~Class() {}
 
 		Class& operator=( const Class& );
@@ -144,10 +147,10 @@ namespace BCMP {
 		void setResults( double throughput, double queue_length, double residence_time, double utilization );
 		virtual const char * getTypeName() const { return __typeName; }
 
-		const DOM::ExternalVariable* visits() const { return _visits; }
-		const DOM::ExternalVariable* service_time() const { return _service_time; }
-		void setVisits( const DOM::ExternalVariable* visits ) { _visits = visits; }
-		void setServiceTime( const DOM::ExternalVariable* service_time ) { _service_time = service_time; }
+		LQX::SyntaxTreeNode * visits() const { return _visits; }
+		LQX::SyntaxTreeNode * service_time() const { return _service_time; }
+		void setVisits( LQX::SyntaxTreeNode * visits ) { _visits = visits; }
+		void setServiceTime( LQX::SyntaxTreeNode * service_time ) { _service_time = service_time; }
 		Result::map_t& resultVariables()  { return _result_vars; }
 		const Result::map_t& resultVariables() const { return _result_vars; }
 
@@ -155,6 +158,7 @@ namespace BCMP {
 		Class& operator+=( const Class& addend );
 		Class& accumulate( double visits, double demand );
 		Class& accumulate( const Class& addend );
+		Class& accumulateResults( const Class& addend );
 
 		double throughput() const { return _results.at(Result::Type::THROUGHPUT); }
 		double queue_length() const { return _results.at(Result::Type::QUEUE_LENGTH); }
@@ -162,6 +166,13 @@ namespace BCMP {
 		double utilization() const { return _results.at(Result::Type::UTILIZATION); }
 		Class& deriveResidenceTime();
 		void insertResultVariable( Result::Type, const std::string& );
+
+		struct print {
+		    print( std::ostream& output ) : _output(output) {}
+		    void operator()( const Class::pair_t& ) const;
+		private:
+		    std::ostream& _output;
+		};
 
 	    private:
 		static Class::map_t collect( const Class::map_t& augend_t, const Class::pair_t& );
@@ -171,8 +182,8 @@ namespace BCMP {
 		static const char * const __typeName;
 
 	    private:
-		const DOM::ExternalVariable* _visits;
-		const DOM::ExternalVariable* _service_time;
+		LQX::SyntaxTreeNode* _visits;
+		LQX::SyntaxTreeNode* _service_time;
 		std::map<Result::Type,double> _results;
 		Result::map_t _result_vars;
 	    };
@@ -182,7 +193,7 @@ namespace BCMP {
 	/* ------------------------------------------------------------ */
 
 	public:
-	    Station( Type type=Type::NOT_DEFINED, scheduling_type scheduling=SCHEDULE_DELAY, const DOM::ExternalVariable* copies=nullptr ) :
+	    Station( Type type=Type::NOT_DEFINED, scheduling_type scheduling=SCHEDULE_DELAY, LQX::SyntaxTreeNode * copies=nullptr ) :
 		_type(type), _scheduling(scheduling), _copies(copies), _reference(false) {}
 	    ~Station();
 
@@ -190,7 +201,7 @@ namespace BCMP {
 	    void clear();
 
 	    std::pair<Station::Class::map_t::iterator,bool> insertClass( const std::string&, const Class& );
-	    std::pair<Station::Class::map_t::iterator,bool> insertClass( const std::string&, const DOM::ExternalVariable* visits=nullptr, const DOM::ExternalVariable* service_time=nullptr );
+	    std::pair<Station::Class::map_t::iterator,bool> insertClass( const std::string&, LQX::SyntaxTreeNode * visits=nullptr, LQX::SyntaxTreeNode * service_time=nullptr );
 	    void insertResultVariable( Result::Type, const std::string& );
 
 	    virtual const char * getTypeName() const { return __typeName; }
@@ -198,8 +209,8 @@ namespace BCMP {
 	    void setType(Type type) { _type = type; }
 	    scheduling_type scheduling() const { return _scheduling; }
 	    void setScheduling( scheduling_type type ) { _scheduling = type; }
-	    const DOM::ExternalVariable* copies() const { return _copies; }
-	    void setCopies( const DOM::ExternalVariable* copies ) { _copies = copies; }
+	    LQX::SyntaxTreeNode * copies() const { return _copies; }
+	    void setCopies( LQX::SyntaxTreeNode * copies ) { _copies = copies; }
 	    bool reference() const { return _reference; }
 	    void setReference( bool reference ) { _reference = reference; }
 	    Class::map_t& classes() { return _classes; }
@@ -258,13 +269,21 @@ namespace BCMP {
 	    static double sum_queue_length( double addend, const BCMP::Model::Station::Class::pair_t& augend );
 	    static void clear_all_result_variables( BCMP::Model::Station::pair_t& m );
 
+	    struct print {
+		print( std::ostream& output ) : _output(output) {}
+		void operator()( const Station::pair_t& m ) const;
+	    private:
+		std::ostream& _output;
+	    };
+	    
+
 	public:
 	    static const char * const __typeName;
 
 	private:
 	    Type _type;
 	    scheduling_type _scheduling;
-	    const DOM::ExternalVariable* _copies;
+	    LQX::SyntaxTreeNode * _copies;
 	    bool _reference;
 	    Class::map_t _classes;
 	    Result::map_t _result_vars;
@@ -278,48 +297,52 @@ namespace BCMP {
 	public:
 	    Bound( const Chain::pair_t& chain, const Station::map_t& stations );
 
-	    double think_time() const;
-	    static double D( const Station& m, const Chain::pair_t& chain );
+	    static LQX::SyntaxTreeNode * D( const Station& m, const Chain::pair_t& chain );
 
-	    double D_max() const { return _D_max; }		/* Max Demand (adjusted for multiservers) */
-	    double D_sum() const { return _D_sum; }		/* Sum of Demands */
-	    double Z() const { return _Z; }
-	    double N() const { return D_sum() / D_max(); }
+	    LQX::SyntaxTreeNode * D_max() const { return _D_max; }		/* Max Demand (adjusted for multiservers) */
+	    LQX::SyntaxTreeNode * D_sum() const { return _D_sum; }		/* Sum of Demands */
+	    LQX::SyntaxTreeNode * Z_sum() const { return _Z_sum; }
+	    LQX::SyntaxTreeNode * N() const;
+	    LQX::SyntaxTreeNode * Z() const;
+	    LQX::SyntaxTreeNode * N_star() const;
 	    bool is_D_max( const Station& ) const;		/* Station with highest demand		*/
+	    static LQX::SyntaxTreeNode * max( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
+	    static LQX::SyntaxTreeNode * reciprocal( LQX::SyntaxTreeNode * );
 	
 	private:
 	    const std::string& chain() const { return _chain.first; }
 	    const Station::map_t& stations() const { return _stations; }
 
 	    void compute();
-	    static double demand( const Station& m, const std::string& chain );
-
+	    static LQX::SyntaxTreeNode * demand( const Station& m, const std::string& chain );
+	    static LQX::SyntaxTreeNode * demand( const Model::Station::Class& k );
+	    
 	    struct max_demand {
 		max_demand( const std::string& chain ) : _class(chain) {}
-		double operator()( double, const Station::pair_t& );
+		LQX::SyntaxTreeNode * operator()( LQX::SyntaxTreeNode *, const Station::pair_t& );
 	    private:
 		const std::string& _class;
 	    };
 	
 	    struct sum_demand {
 		sum_demand( const std::string& chain ) : _class(chain) {}
-		double operator()( double, const Station::pair_t& );
+		LQX::SyntaxTreeNode * operator()( LQX::SyntaxTreeNode *, const Station::pair_t& );
 	    private:
 		const std::string& _class;
 	    };
 	
 	    struct sum_think_time {
 		sum_think_time( const std::string& chain ) : _class(chain) {}
-		double operator()( double, const Station::pair_t& );
+		LQX::SyntaxTreeNode * operator()( LQX::SyntaxTreeNode *, const Station::pair_t& );
 	    private:
 		const std::string& _class;
 	    };
 
 	    const Chain::pair_t _chain;
 	    const Station::map_t& _stations;
-	    double _D_max;
-	    double _D_sum;
-	    double _Z;
+	    LQX::SyntaxTreeNode * _D_max;
+	    LQX::SyntaxTreeNode * _D_sum;
+	    LQX::SyntaxTreeNode * _Z_sum;
 	};
 
 	/* ------------------------------------------------------------ */
@@ -340,6 +363,7 @@ namespace BCMP {
 	const Station& stationAt( const std::string& name ) const { return _stations.at(name); }
 	Chain& chainAt( const std::string& name ) { return _chains.at(name); }
 	const Chain& chainAt( const std::string& name ) const { return _chains.at(name); }
+	void setEnvironment( LQX::Environment * environment ) { _environment = environment; }
 
 	size_t n_chains(Chain::Type) const;
 	size_t n_stations(Chain::Type) const;
@@ -347,21 +371,21 @@ namespace BCMP {
 	Station::map_t::const_iterator findStation( const Station* m ) const;
 
 	bool insertComment( const std::string comment ) { _comment = comment; return true; }
-	std::pair<Chain::map_t::iterator,bool> insertClosedChain( const std::string&, const DOM::ExternalVariable *, const DOM::ExternalVariable * think_time=nullptr );
-	std::pair<Chain::map_t::iterator,bool> insertOpenChain( const std::string&, const DOM::ExternalVariable * );
+	std::pair<Chain::map_t::iterator,bool> insertClosedChain( const std::string&, LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * think_time=nullptr );
+	std::pair<Chain::map_t::iterator,bool> insertOpenChain( const std::string&, LQX::SyntaxTreeNode * );
 	std::pair<Station::map_t::iterator,bool> insertStation( const std::string&, const Station& );
-	std::pair<Station::map_t::iterator,bool> insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, const DOM::ExternalVariable* copies=nullptr ) { return insertStation( name, Station( type, scheduling, copies ) ); }
+	std::pair<Station::map_t::iterator,bool> insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, LQX::SyntaxTreeNode * copies=nullptr ) { return insertStation( name, Station( type, scheduling, copies ) ); }
 
 	Station::Class::map_t computeCustomerDemand( const std::string& ) const;
-	bool convertToLQN( DOM::Document& ) const;
 	void clearAllResultVariables();
 
 	double response_time( const std::string& ) const;
 	double throughput( const std::string& ) const;
 
-	virtual std::ostream& print( std::ostream& output ) const;	/* NOP (lqn2ps will render) */
+	virtual std::ostream& print( std::ostream& output ) const;
 
-	static bool isSet( const LQIO::DOM::ExternalVariable * var, double default_value=0.0 );
+	static bool isDefault( LQX::SyntaxTreeNode * var, double default_value=0.0 );
+	static double getDoubleValue( LQX::SyntaxTreeNode * );
 
 	struct pad_demand {
 	    pad_demand( const Chain::map_t& chains ) : _chains(chains) {}
@@ -397,6 +421,7 @@ namespace BCMP {
 	std::string _comment;
 	Chain::map_t _chains;
 	Station::map_t _stations;
+	LQX::Environment * _environment;
     };
 }
 #endif /* */

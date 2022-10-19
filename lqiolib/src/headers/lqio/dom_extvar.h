@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_extvar.h 15687 2022-06-22 14:39:28Z greg $
+ *  $Id: dom_extvar.h 15961 2022-10-11 17:27:29Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -11,9 +11,12 @@
 
 #include <string>
 #include <ostream>
-#include <stdexcept>
 #include <lqx/SymbolTable.h>
-#include <lqx/Program.h>
+
+namespace LQX {
+    class Program;
+}
+    
 
 namespace LQIO {
     class LQXDocument;

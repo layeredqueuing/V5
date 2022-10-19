@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 15612 2022-06-01 01:06:26Z greg $
+ * $Id: lqn2ps.h 15957 2022-10-07 17:14:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -29,7 +29,7 @@
 #include <string>
 #include <stdexcept>
 #include <regex>
-#include <lqio/input.h>
+#include <lqio/dom_document.h>
 #include <lqio/dom_extvar.h>
 #include "option.h"
 

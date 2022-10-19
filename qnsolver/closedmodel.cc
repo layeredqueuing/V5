@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: closedmodel.cc 15926 2022-09-29 17:56:23Z greg $
+ * $Id: closedmodel.cc 15985 2022-10-17 08:48:37Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -19,6 +19,7 @@
 #include <numeric>
 #include <lqio/jmva_document.h>
 #include <lqio/dom_extvar.h>
+#include <lqx/SyntaxTree.h>
 #include <mva/fpgoop.h>
 #include <mva/prob.h>
 #include <mva/multserv.h>
@@ -27,6 +28,7 @@
 ClosedModel::ClosedModel( Model& parent, QNIO::Document& input, Model::Solver mva )
     : Model(input,mva), _parent(parent), _solver(nullptr), _mva(mva), N(), Z(), priority()
 {
+    setEnvironment(parent.getEnvironment());
     const size_t K = _model.n_chains(BCMP::Model::Chain::Type::CLOSED);
     const size_t M = _model.n_stations(BCMP::Model::Chain::Type::CLOSED);
     _result = K > 0 && M > 0;
@@ -131,8 +133,8 @@ ClosedModel::InstantiateChain::operator()( const BCMP::Model::Chain::pair_t& inp
 {
     if ( !input.second.isClosed() ) return;
     const size_t k = indexAt(input.first);
-    N(k) = LQIO::DOM::to_unsigned(*input.second.customers());
-    Z(k) = input.second.think_time() != nullptr ? LQIO::DOM::to_double(*input.second.think_time()) : 0.;
+    N(k) = getUnsignedValue( input.second.customers() );
+    Z(k) = getDoubleValue( input.second.think_time() );
     priority(k) = 0;
 }
 
@@ -141,14 +143,8 @@ ClosedModel::debug( std::ostream& output ) const
 {
     for ( BCMP::Model::Chain::map_t::const_iterator ki = chains().begin(); ki != chains().end(); ++ki ) {
 	if ( !ki->second.isClosed() ) continue;
-	output << "Class "  << ": customers=" << *ki->second.customers() << std::endl;
+	const unsigned int customers = getUnsignedValue( ki->second.customers(), 0 );
+	output << "Class " << ki->first << ": customers=" << customers << std::endl;
     }
-    for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
-	const BCMP::Model::Station::Class::map_t& classes = mi->second.classes();
-	output << "Station " << mi->first << ": servers=" << *mi->second.copies() << std::endl;
-	for ( BCMP::Model::Station::Class::map_t::const_iterator ki = classes.begin(); ki != classes.end(); ++ki ) {
-	    output << "    Class " << ki->first << ": visits=" << *ki->second.visits() << ", service time=" << *ki->second.service_time() << std::endl;
-	}
-    }
-    return output;
+    return Model::debug( output );
 }

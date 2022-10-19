@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15743 2022-07-02 16:57:45Z greg $
+ * $Id: model.cc 15958 2022-10-07 20:27:02Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -1564,14 +1564,14 @@ Model::accumulateEntryStats( const std::string& filename ) const
 		    for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
 			for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
 			    if ( (*call)->hasRendezvousForPhase(p) ) {
-				stats[RNV_RATE_PER_CALL].accumulate( LQIO::DOM::to_double((*call)->rendezvous(p)), filename );
+				stats[RNV_RATE_PER_CALL].accumulate( to_double((*call)->rendezvous(p)), filename );
 			    }
 			    if ( (*call)->hasSendNoReplyForPhase(p) ) {
-				stats[RNV_RATE_PER_CALL].accumulate( LQIO::DOM::to_double((*call)->sendNoReply(p)), filename );
+				stats[RNV_RATE_PER_CALL].accumulate( to_double((*call)->sendNoReply(p)), filename );
 			    }
 			}
 			if ( (*call)->hasForwarding() ) {
-			    stats[FORWARDING_PROBABILITY_PER_CALL].accumulate( LQIO::DOM::to_double((*call)->forward()), filename );
+			    stats[FORWARDING_PROBABILITY_PER_CALL].accumulate( to_double((*call)->forward()), filename );
 			}
 		    }
 		}
@@ -1579,7 +1579,7 @@ Model::accumulateEntryStats( const std::string& filename ) const
 		const std::vector<Activity *> activities = aTask->activities();
 		for ( std::vector<Activity *>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity ) {
 		    if ( (*activity)->hasServiceTime() ) {
-			stats[SERVICE_TIME_PER_PHASE].accumulate( LQIO::DOM::to_double((*activity)->serviceTime()), filename );
+			stats[SERVICE_TIME_PER_PHASE].accumulate( to_double((*activity)->serviceTime()), filename );
 		    }
 		}
 	    }

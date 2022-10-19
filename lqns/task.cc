@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15895 2022-09-23 17:21:55Z greg $
+ * $Id: task.cc 15968 2022-10-13 19:23:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1692,7 +1692,8 @@ ReferenceTask::check() const
     Task::check();
 
     if ( nEntries() != 1 ) {
-	getDOM()->setSeverity(LQIO::ERR_TASK_ENTRY_COUNT, LQIO::error_severity::WARNING ).runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, nEntries(), 1 );
+	LQIO::DOM::DocumentObject::setSeverity(LQIO::ERR_TASK_ENTRY_COUNT, LQIO::error_severity::WARNING );
+	getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, nEntries(), 1 );
     }
     if ( getDOM()->hasQueueLength() ) {
 	getDOM()->runtime_error( LQIO::ERR_NOT_SUPPORTED, "queue length" );
@@ -2154,6 +2155,7 @@ SemaphoreTask::check() const
 {
     bool rc = true;
     if ( nEntries() != 2 ) {
+	LQIO::DOM::DocumentObject::setSeverity(LQIO::ERR_TASK_ENTRY_COUNT, LQIO::error_severity::ERROR );
 	getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, nEntries(), N_SEMAPHORE_ENTRIES );
 	rc = false;
     } else if ( !((entryAt(1)->isSignalEntry() && entryAt(2)->entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::WAIT))

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_to_lqn.cpp 15724 2022-06-28 15:05:23Z greg $
+ * $Id: bcmp_to_lqn.cpp 15956 2022-10-07 13:54:20Z greg $
  *
  * Read in XML input files.
  *
@@ -17,6 +17,7 @@
 #endif
 #include <sstream>
 #include <algorithm>
+#include <lqx/SyntaxTree.h>
 #include "dom_document.h"
 #include "dom_processor.h"
 #include "dom_task.h"
@@ -75,10 +76,10 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Chain::
 //    phase->setServiceTimeValue(k.second.think_time());
     DOM::Phase* phase = entry->getPhase(1);
     phase->setName(k.first);
-    phase->setServiceTime(const_cast<DOM::ExternalVariable *>(clasx.service_time()));
+    phase->setServiceTime(getExternalVariable(clasx.service_time()));
 
     DOM::Task * task = new DOM::Task( &lqn(), name, SCHEDULE_CUSTOMER, entries, processor );
-    task->setCopies(const_cast<DOM::ExternalVariable *>(k.second.customers()));
+    task->setCopies(getExternalVariable(k.second.customers()));
     processor->addTask(task);
     lqn().addTaskEntity(task);
 }
@@ -98,7 +99,7 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
     std::replace( name.begin(), name.end(), ' ', '_' );
     DOM::Processor * processor = new DOM::Processor( &lqn(), name, SCHEDULE_PS );
     lqn().addProcessorEntity(processor);
-    processor->setCopies(const_cast<DOM::ExternalVariable *>(m.second.copies()));
+    processor->setCopies(getExternalVariable(m.second.copies()));
 
     /* Create the entries */
     std::vector<DOM::Entry *> entries;
@@ -116,14 +117,14 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
 	DOM::Phase* phase = entry->getPhase(1);
 	phase->setName( entry_name.str() );
 	const BCMP::Model::Station::Class& clasx = m.second.classAt( k->first );
-	phase->setServiceTime( const_cast<DOM::ExternalVariable *>( clasx.service_time() ));
+	phase->setServiceTime(getExternalVariable(clasx.service_time()));
 	entries.push_back( entry );
     }
 
     /* Create the task */
     scheduling_type scheduling = m.second.type() == BCMP::Model::Station::Type::DELAY ? SCHEDULE_DELAY : SCHEDULE_FIFO;
     DOM::Task * task = new DOM::Task( &lqn(), name, scheduling, entries, processor );
-    task->setCopies(const_cast<DOM::ExternalVariable *>(m.second.copies()));
+    task->setCopies(getExternalVariable(m.second.copies()));
     processor->addTask(task);
     lqn().addTaskEntity(task);
 }
@@ -150,7 +151,38 @@ DOM::BCMP_to_LQN::connectClassToStation::operator()( const BCMP::Model::Chain::p
 	LQIO::DOM::Phase * client_phase = client_entry->getPhase(1);
 	LQIO::DOM::Call* call = new LQIO::DOM::Call(&lqn(), LQIO::DOM::Call::Type::RENDEZVOUS, client_phase, server_entry );
 	const BCMP::Model::Station::Class& clasx = m->second.classAt(k.first);
-	call->setCallMean( const_cast<DOM::ExternalVariable *>(clasx.visits()) );
+	call->setCallMean(getExternalVariable(clasx.visits()));
 	client_phase->addCall(call);
     }
+}
+
+
+LQIO::DOM::ExternalVariable *
+DOM::BCMP_to_LQN::getExternalVariable( const LQX::SyntaxTreeNode * expression ) 
+{
+    LQIO::DOM::ExternalVariable * variable = nullptr;
+    if ( dynamic_cast<const LQX::ConstantValueExpression *>(expression) ) {
+
+	/* It's a constant. */
+
+	LQX::SymbolAutoRef value = const_cast<LQX::SyntaxTreeNode *>(expression)->invoke(nullptr);
+	assert( value->getType() == LQX::Symbol::SYM_DOUBLE );
+//	    std::cerr << "*** Value is " << value->getDoubleValue() << " ***" << std::endl;
+	variable = new LQIO::DOM::ConstantExternalVariable( value->getDoubleValue() );
+
+    } else if ( dynamic_cast<const LQX::VariableExpression *>( expression ) ) {
+
+	/* It's a variable */
+	    
+	std::ostringstream name;
+	expression->print( name );
+//	    std::cerr << "*** Value is " << name.str() << " ***" << std::endl;
+	variable = LQIO::DOM::__document->db_build_parameter_variable( name.str().c_str(), nullptr );
+
+    } else {
+
+	/* It's an expression.  create a temporary variable, then assign the expression  */
+    }
+
+    return variable;
 }

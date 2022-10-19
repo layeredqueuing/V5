@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 15262 2021-12-26 18:55:49Z greg $
+ * $Id: call.h 15958 2022-10-07 20:27:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -97,7 +97,7 @@ public:
     virtual bool isLoopBack() const { return false; }
     virtual bool isProcessorCall() const { return false; }
 
-    virtual const LQIO::DOM::ExternalVariable * sumOfRendezvous() const = 0;			/* Sum over all phases. */
+    virtual LQX::SyntaxTreeNode * sumOfRendezvous() const = 0;			/* Sum over all phases. */
     virtual double sumOfSendNoReply() const = 0;		/* Sum over all phases.	*/
 
     virtual GenericCall& setChain( const unsigned ) = 0;
@@ -142,6 +142,10 @@ class Call : public GenericCall
 {
     friend class Entry;
     friend class ProcessorCall;
+
+    static const LQIO::DOM::ConstantExternalVariable ZERO;
+    static const LQIO::DOM::ConstantExternalVariable ONE;
+     
     
 public:
     class cycle_error : public std::runtime_error
@@ -200,7 +204,7 @@ public:
 
     virtual const LQIO::DOM::Call * getDOM( const unsigned p ) const;
     const LQIO::DOM::Call * getFwdDOM() const { return _forwarding; }
-    virtual const LQIO::DOM::ExternalVariable * sumOfRendezvous() const;
+    virtual LQX::SyntaxTreeNode * sumOfRendezvous() const;
     Call& rendezvous( const unsigned p, const double value );
     Call& rendezvous( const unsigned p, const LQIO::DOM::Call * value );
     const LQIO::DOM::ExternalVariable & rendezvous( const unsigned p = 1 ) const;
@@ -279,7 +283,7 @@ protected:
     virtual void dump() const;
 
 private:
-    static const LQIO::DOM::ExternalVariable * sum_of_calls( const LQIO::DOM::ExternalVariable *, const LQIO::DOM::Call * );
+    static LQX::SyntaxTreeNode * sum_of_calls( LQX::SyntaxTreeNode *, const LQIO::DOM::Call * );
     
 private:
     /* Input */
@@ -445,7 +449,7 @@ public:
 
     virtual const LQIO::DOM::ExternalVariable& rendezvous() const { return _rendezvous; }
     TaskCall& rendezvous( const LQIO::DOM::ConstantExternalVariable& );
-    virtual const LQIO::DOM::ExternalVariable * sumOfRendezvous() const;
+    virtual LQX::SyntaxTreeNode * sumOfRendezvous() const;
     virtual const LQIO::DOM::ExternalVariable& sendNoReply() const { return _sendNoReply; }
     TaskCall& sendNoReply( const LQIO::DOM::ConstantExternalVariable& );
     virtual double sumOfSendNoReply() const;
@@ -518,17 +522,17 @@ public:
     virtual bool hasSendNoReply() const { return _callType == LQIO::DOM::Call::Type::SEND_NO_REPLY; }
     virtual LQIO::DOM::Call::Type callType() const { return _callType; }
 
-    ProcessorCall& rendezvous( const LQIO::DOM::ExternalVariable * value );
+    ProcessorCall& rendezvous( LQX::SyntaxTreeNode * value );
     virtual const LQIO::DOM::ExternalVariable& rendezvous() const;
-    virtual const LQIO::DOM::ExternalVariable * sumOfRendezvous() const;
+    virtual LQX::SyntaxTreeNode * sumOfRendezvous() const;
     virtual const LQIO::DOM::ExternalVariable& sendNoReply() const;
     virtual double sumOfSendNoReply() const;
     virtual const LQIO::DOM::ExternalVariable& forward() const;
     virtual unsigned fanIn() const;
     virtual unsigned fanOut() const;
-    const LQIO::DOM::ExternalVariable * visits() const { return _demand.visits(); }
-    const LQIO::DOM::ExternalVariable * service_time() const { return _demand.service_time(); }
-    void setServiceTime( const LQIO::DOM::ExternalVariable * service_time ) { _demand.setServiceTime( service_time ); }
+    LQX::SyntaxTreeNode * visits() const { return _demand.visits(); }
+    LQX::SyntaxTreeNode * service_time() const { return _demand.service_time(); }
+    void setServiceTime( LQX::SyntaxTreeNode * service_time ) { _demand.setServiceTime( service_time ); }
 #if defined(BUG_270)
     virtual ProcessorCall& updateRateFrom( const Call& );
 #endif
@@ -557,6 +561,7 @@ private:
     LQIO::DOM::Call::Type _callType;		/* Union discriminator		*/
     BCMP::Model::Station::Class _demand;
     const Entry * _source;			/* not null if a clone.		*/
+    LQIO::DOM::ExternalVariable * _rendezvous;
 };
 
 class PseudoProcessorCall : public ProcessorCall 
@@ -593,7 +598,7 @@ public:
     virtual unsigned fanIn() const;
     virtual unsigned fanOut() const;
 
-    virtual const LQIO::DOM::ExternalVariable * sumOfRendezvous() const { return nullptr; }
+    virtual LQX::SyntaxTreeNode * sumOfRendezvous() const { return nullptr; }
     virtual double sumOfSendNoReply() const;
     virtual const LQIO::DOM::ExternalVariable & rendezvous() const;
     virtual const LQIO::DOM::ExternalVariable & sendNoReply() const;

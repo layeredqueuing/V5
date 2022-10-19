@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15755 2022-07-24 10:34:56Z greg $
+ * $Id: entry.cc 15958 2022-10-07 20:27:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -21,9 +21,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
-#include <lqio/input.h>
 #include <lqio/error.h>
 #include <lqio/dom_extvar.h>
+#include <lqio/bcmp_to_lqn.h>
 #include <lqio/dom_document.h>
 #include "activity.h"
 #include "arc.h"
@@ -337,7 +337,7 @@ Entry::rendezvous( const Entry * anEntry ) const
 {
     const Call * aCall = findCall( anEntry, &GenericCall::hasRendezvous  );
     if ( aCall ) {
-	return to_double( *aCall->sumOfRendezvous() );
+	return Entity::to_double( aCall->sumOfRendezvous() );
     } else {
 	return 0.0;
     }
@@ -644,17 +644,17 @@ Entry::serviceTime( const unsigned p ) const
     return getPhase(p).serviceTime();
 }
 
-const LQIO::DOM::ExternalVariable *
+LQX::SyntaxTreeNode *
 Entry::serviceTime() const
 {
-    return std::accumulate( _phases.begin(), _phases.end(), static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &Phase::accumulate_service_time );
+    return std::accumulate( _phases.begin(), _phases.end(), static_cast<LQX::SyntaxTreeNode *>(nullptr), &Phase::accumulate_service_time );
 }
 
 
-const LQIO::DOM::ExternalVariable *
+LQX::SyntaxTreeNode *
 Entry::thinkTime() const
 {
-    return std::accumulate( _phases.begin(), _phases.end(), static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &Phase::accumulate_think_time );
+    return std::accumulate( _phases.begin(), _phases.end(), static_cast<LQX::SyntaxTreeNode *>(nullptr), &Phase::accumulate_think_time );
 }
 
 
@@ -1291,7 +1291,7 @@ Entry::aggregatePhases()
 
     /* Merge up the times. */
     
-    phase_1->setServiceTime(const_cast<LQIO::DOM::ExternalVariable *>(serviceTime()));		/*Sums over all phases */
+    phase_1->setServiceTime(LQIO::DOM::BCMP_to_LQN::getExternalVariable(serviceTime()));		/*Sums over all phases */
     phase_1->setResultServiceTime(std::accumulate( _phases.begin(), _phases.end(), 0., &Phase::accumulate_execution ));
 
     /* Merge all calls to phase 1 */
@@ -2055,7 +2055,7 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 	    std::cerr << "  Move " << (*server_call)->srcName() <<  "->" << (*server_call)->dstName()
 		      << "    to " << clone->srcName() << "->" << clone->dstName();
 	    if ( clone->sumOfRendezvous() != nullptr ) {
-		std::cerr << ", visits=" << *clone->sumOfRendezvous();
+		std::cerr << ", visits=" << Entity::to_double(clone->sumOfRendezvous());
 	    }
 #endif
 	}
@@ -2080,12 +2080,12 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 	    std::cerr << "  Move " << (*p)->srcName() <<  "->" << (*p)->dstName()
 		      << "    to " << clone->srcName() << "->" << clone->dstName();
 	    if ( clone->sumOfRendezvous() != nullptr ) {
-		std::cerr << ", visits=" << *clone->sumOfRendezvous();
+		std::cerr << ", visits=" << Entity::to_double(clone->sumOfRendezvous());
 	    }
 #endif
 	    if ( dynamic_cast<ProcessorCall *>(clone) != nullptr && dynamic_cast<ProcessorCall *>(clone)->service_time() != nullptr ) {
 		const Entry * entry = dynamic_cast<ProcessorCall *>(clone)->srcEntry();
-		std::cerr << ", service time=" << *dynamic_cast<ProcessorCall *>(clone)->service_time() << " from " << entry->name();
+		std::cerr << ", service time=" << Entity::to_double(dynamic_cast<ProcessorCall *>(clone)->service_time()) << " from " << entry->name();
 	    }
 	    std::cerr << std::endl;
 	}

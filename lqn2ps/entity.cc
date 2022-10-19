@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15614 2022-06-01 12:17:43Z greg $
+ * $Id: entity.cc 16003 2022-10-19 17:22:13Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -740,7 +740,8 @@ Entity::create_station::operator()( const Entity * entity ) const
     if ( entity->isInfinite() ) type = BCMP::Model::Station::Type::DELAY;
     else if ( entity->isMultiServer() ) type = BCMP::Model::Station::Type::MULTISERVER;
     else type = BCMP::Model::Station::Type::LOAD_INDEPENDENT;
-    _model.insertStation( entity->name(), type, entity->scheduling(), dynamic_cast<const LQIO::DOM::Entity *>(entity->getDOM())->getCopies() );
+    const LQIO::DOM::ExternalVariable * copies = dynamic_cast<const LQIO::DOM::Entity *>(entity->getDOM())->getCopies();
+    _model.insertStation( entity->name(), type, entity->scheduling(), getLQXVariable( copies ) );
 }
 
 
@@ -752,72 +753,88 @@ Entity::create_station::operator()( const Entity * entity ) const
  * add the two.
  */
 
-/* static */ LQX::SyntaxTreeNode *
-Entity::getVariableExpression( const LQIO::DOM::ExternalVariable * variable )
+
+double
+Entity::to_double( LQX::SyntaxTreeNode * var )
 {
+    if ( var == nullptr ) return 0.0;
+    LQX::SymbolAutoRef symbol = var->invoke(nullptr);
+    if ( symbol->getType() != LQX::Symbol::SYM_DOUBLE ) throw std::domain_error( "invalid double" );
+    return symbol->getDoubleValue();
+}
+
+
+unsigned int
+Entity::to_unsigned( LQX::SyntaxTreeNode * var )
+{
+    if ( var == nullptr ) return 0.0;
+    LQX::SymbolAutoRef symbol = var->invoke(nullptr);
+    if ( symbol->getType() != LQX::Symbol::SYM_DOUBLE ) throw std::domain_error( "invalid unsigned integer" );
+    double value = symbol->getDoubleValue();
+    if ( value != rint(value) ) throw std::domain_error( "invalid integer" );
+    return static_cast<unsigned int>(value);
+}
+
+
+/* static */ LQX::SyntaxTreeNode *
+Entity::getLQXVariable( const LQIO::DOM::ExternalVariable* variable )
+{
+    if ( variable == nullptr ) return nullptr;
+
     double value;
     LQX::SyntaxTreeNode * expression;
     if ( variable->wasSet() && variable->getValue( value ) ) {
-	expression = new LQX::ConstantValueExpression( to_double(*variable) );
+	expression = new LQX::ConstantValueExpression( LQIO::DOM::to_double(*variable) );
     } else {
 	expression = new LQX::VariableExpression( variable->getName(), true );
     }
     return expression;
 }
 
-const LQIO::DOM::ExternalVariable *
-Entity::addExternalVariables( const LQIO::DOM::ExternalVariable * augend, const LQIO::DOM::ExternalVariable * addend )
+LQX::SyntaxTreeNode *
+Entity::addLQXExpressions( LQX::SyntaxTreeNode * augend, LQX::SyntaxTreeNode * addend )
 {
-    if ( LQIO::DOM::ExternalVariable::isDefault( augend ) ) {
+    if ( BCMP::Model::isDefault( augend ) ) {
 	return addend;
-    } else if ( LQIO::DOM::ExternalVariable::isDefault( addend ) ) {
+    } else if ( BCMP::Model::isDefault( addend ) ) {
 	return augend;
-    } else if ( dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(augend) && dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(addend) ) {
-	return new LQIO::DOM::ConstantExternalVariable( to_double(*augend) + to_double(*addend) );
+    } else if ( dynamic_cast<LQX::ConstantValueExpression *>(augend) && dynamic_cast<LQX::ConstantValueExpression *>(addend) ) {
+	return new LQX::ConstantValueExpression( to_double(augend) + to_double(addend) );
     } else {
-	/* More complicated... */
-	LQX::SyntaxTreeNode * arg1 = getVariableExpression( augend );
-	LQX::SyntaxTreeNode * arg2 = getVariableExpression( addend );
-	LQIO::DOM::ExternalVariable * sum = static_cast<LQIO::DOM::ExternalVariable *>(spex_inline_expression( spex_add( arg1, arg2 ) ));
-	std::cout << "Entity::addExternalVariables(" << *augend << "," << *addend << ") --> " << *(sum) << std::endl;
+	LQX::SyntaxTreeNode * sum =  new LQX::MathExpression( LQX::MathExpression::ADD, augend, addend );
+//	std::cout << "Entity::addLQXExpressions(" << *augend << "," << *addend << ") --> " << *(sum) << std::endl;
 	return sum;
     }
 }
 
-const LQIO::DOM::ExternalVariable *
-Entity::multiplyExternalVariables( const LQIO::DOM::ExternalVariable * multiplicand, const LQIO::DOM::ExternalVariable * multiplier )
+LQX::SyntaxTreeNode *
+Entity::multiplyLQXExpressions( LQX::SyntaxTreeNode * multiplicand, LQX::SyntaxTreeNode * multiplier )
 {
-    if ( LQIO::DOM::ExternalVariable::isDefault( multiplicand, 1. ) ) {
+    if ( BCMP::Model::isDefault( multiplicand, 1. ) ) {
 	return multiplier;
-    } else if ( LQIO::DOM::ExternalVariable::isDefault( multiplier, 1. ) ) {
+    } else if ( BCMP::Model::isDefault( multiplier, 1. ) ) {
 	return multiplicand;
-    } else if ( dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(multiplicand) && dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(multiplier) ) {
-	return new LQIO::DOM::ConstantExternalVariable( to_double(*multiplicand) + to_double(*multiplier) );
+    } else if ( dynamic_cast<LQX::ConstantValueExpression *>(multiplicand) && dynamic_cast<LQX::ConstantValueExpression *>(multiplier) ) {
+	return new LQX::ConstantValueExpression( to_double(multiplicand) + to_double(multiplier) );
     } else {
-	/* More complicated... */
-	LQX::SyntaxTreeNode * arg1 = getVariableExpression( multiplicand );
-	LQX::SyntaxTreeNode * arg2 = getVariableExpression( multiplier );
-	LQIO::DOM::ExternalVariable * product = static_cast<LQIO::DOM::ExternalVariable *>(spex_inline_expression( spex_multiply( arg1, arg2 ) ));
-	std::cout << "Entity::addExternalVariables(" << *multiplicand << "," << *multiplier << ") --> " << *(product) << std::endl;
+	LQX::SyntaxTreeNode * product = new LQX::MathExpression( LQX::MathExpression::MULTIPLY, multiplicand, multiplier );
+//	std::cout << "Entity::addLQXExpressions(" << *multiplicand << "," << *multiplier << ") --> " << *(product) << std::endl;
 	return product;
     }
 }
 
-const LQIO::DOM::ExternalVariable *
-Entity::divideExternalVariables( const LQIO::DOM::ExternalVariable * dividend, const LQIO::DOM::ExternalVariable * divisor )
+LQX::SyntaxTreeNode *
+Entity::divideLQXExpressions( LQX::SyntaxTreeNode * dividend, LQX::SyntaxTreeNode * divisor )
 {
-    if ( LQIO::DOM::ExternalVariable::isDefault( dividend, 0. ) ) {		/* zero / ? -> zero */
+    if ( BCMP::Model::isDefault( dividend, 0. ) ) {		/* zero / ? -> zero */
 	return dividend;
-    } else if ( LQIO::DOM::ExternalVariable::isDefault( divisor, 1. ) ) {	/* division by one */
+    } else if ( BCMP::Model::isDefault( divisor, 1. ) ) {	/* division by one */
 	return dividend;
-    } else if ( dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(dividend) && dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(divisor) ) {
-	return new LQIO::DOM::ConstantExternalVariable( to_double(*dividend) / to_double(*divisor) );
+    } else if ( dynamic_cast<LQX::ConstantValueExpression *>(dividend) && dynamic_cast<LQX::ConstantValueExpression *>(divisor) ) {
+	return new LQX::ConstantValueExpression( to_double(dividend) / to_double(divisor) );
     } else {
-	/* More complicated... */
-	LQX::SyntaxTreeNode * arg1 = getVariableExpression( dividend );
-	LQX::SyntaxTreeNode * arg2 = getVariableExpression( divisor );
-	LQIO::DOM::ExternalVariable * quotient = static_cast<LQIO::DOM::ExternalVariable *>(spex_inline_expression( spex_divide( arg1, arg2 ) ));
-	std::cout << "Entity::addExternalVariables(" << *dividend << "," << *divisor << ") --> " << *(quotient) << std::endl;
+	LQX::SyntaxTreeNode * quotient =  new LQX::MathExpression( LQX::MathExpression::DIVIDE, divisor, dividend );
+//	std::cout << "Entity::addLQXExpressions(" << *dividend << "," << *divisor << ") --> " << *(quotient) << std::endl;
 	return quotient;
     }
 }

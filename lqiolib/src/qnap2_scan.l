@@ -35,7 +35,7 @@ D	[0-9]
 E	[DEde][-+]?{D}+
 C	[a-zA-Z]
 U	[_]
-S	[+-/*().,:;=<>"]
+S	[().,:;"]
 
 %%
 %{
@@ -44,10 +44,20 @@ S	[+-/*().,:;=<>"]
 [ \t\r\n]+		;
 
 "&"(.*)			;	/* Comment */
-"<="			return QNAP_LESS_EQUAL;
-">="			return QNAP_GREATER_EQUAL;
-"**"			return QNAP_POWER;
-":="	 		return QNAP_ASSIGNMENT;
+
+"<="			{ qnap2lval.aCode = QNAP_LESS_EQUAL; return QNAP_LESS_EQUAL; }
+">="			{ qnap2lval.aCode = QNAP_GREATER_EQUAL; return QNAP_GREATER_EQUAL; }
+"<>"			{ qnap2lval.aCode = QNAP_NOT_EQUAL; return QNAP_NOT_EQUAL; }
+"**"			{ qnap2lval.aCode = QNAP_POWER; return QNAP_POWER; }
+":="	 		{ qnap2lval.aCode = QNAP_ASSIGNMENT; return QNAP_ASSIGNMENT; }
+"<"			{ qnap2lval.aCode = QNAP_LESS; return QNAP_LESS; }
+">"			{ qnap2lval.aCode = QNAP_GREATER; return QNAP_GREATER; }
+"="			{ qnap2lval.aCode = QNAP_EQUAL; return QNAP_EQUAL; }
+"+"			{ qnap2lval.aCode = QNAP_PLUS; return QNAP_PLUS; }
+"-"			{ qnap2lval.aCode = QNAP_MINUS; return QNAP_MINUS; }
+"*"			{ qnap2lval.aCode = QNAP_MULTIPLY; return QNAP_MULTIPLY; }
+"/"			{ qnap2lval.aCode = QNAP_DIVIDE; return QNAP_DIVIDE; }
+"%"			{ qnap2lval.aCode = QNAP_MODULUS; return QNAP_MODULUS; }
 
 \"[^"]*			{
     			    if ( qnap2text[qnap2leng-1] == '\\' ) {
@@ -112,6 +122,7 @@ init			return QNAP_INIT;
 integer			{ qnap2lval.aCode = QNAP_INTEGER; return QNAP_INTEGER; }
 multiple 		{ qnap2lval.aCode = QNAP_MULTIPLE; return QNAP_MULTIPLE; }
 name			return QNAP_NAME;
+option			{ return QNAP_OPTION; }
 prio			return QNAP_PRIO;
 quantum			return QNAP_QUANTUM;
 queue			return QNAP_QUEUE;

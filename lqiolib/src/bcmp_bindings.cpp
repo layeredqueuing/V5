@@ -1,5 +1,5 @@
 /*
- *  $Id: bcmp_bindings.cpp 14530 2021-03-08 03:01:26Z greg $
+ *  $Id: bcmp_bindings.cpp 15955 2022-10-07 11:05:00Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -17,6 +17,7 @@
 #include <lqx/RuntimeException.h>
 
 #include "bcmp_document.h"
+#include "error.h"
 
 namespace BCMP {
     const char * __lqx_residence_time           = "residence_time";

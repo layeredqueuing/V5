@@ -9,22 +9,22 @@
  *
  * November 2022
  *
- * $Id: qnio_document.h 15921 2022-09-28 20:49:00Z greg $
+ * $Id: qnio_document.h 16003 2022-10-19 17:22:13Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
 #if !defined(QN_DOCUMENT_H)
 #define QN_DOCUMENT_H
-#include <vector>
+#include <iostream>
+#include <map>
 #include <string>
+#include <vector>
 #include "bcmp_document.h"
-#include "srvn_spex.h"
 #include "dom_pragma.h"
 
 namespace LQX {
     class Program;
-    class SyntaxTreeNode;
 }
 namespace BCMP {
     class Model;
@@ -42,10 +42,10 @@ namespace QNIO {
 	BCMP::Model& model() { return _model; }
 	const std::string& getInputFileName() const { return _input_file_name; }
 	
-	LQX::Program * getLQXProgram() const { return _lqx_program; }
+	virtual LQX::Program * getLQXProgram() const { return _lqx_program; }
+    protected:
 	void setLQXProgram( LQX::Program * program ) { _lqx_program = program; }
-	virtual expr_list * getSPEXProgram() const = 0;
-	virtual expr_list * getGNUPlotProgram() = 0;
+    public:
 	virtual void registerExternalSymbolsWithProgram( LQX::Program * ) {}	/* Might hoist */
 	virtual std::vector<std::string> getUndefinedExternalVariables() const { return std::vector<std::string>(); }
 	const std::map<std::string,std::string>& getPragmaList() const { return _pragmas.getList(); }
