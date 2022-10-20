@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 15982 2022-10-16 20:52:42Z greg $
+ *  $Id: bcmp_document.h 16008 2022-10-20 02:54:34Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -308,10 +308,13 @@ namespace BCMP {
 	    LQX::SyntaxTreeNode * D_sum() const { return _D_sum; }		/* Sum of Demands */
 	    LQX::SyntaxTreeNode * Z_sum() const { return _Z_sum; }
 	    LQX::SyntaxTreeNode * N() const;
-	    LQX::SyntaxTreeNode * Z() const;
 	    LQX::SyntaxTreeNode * N_star() const;
 	    bool is_D_max( const Station& ) const;		/* Station with highest demand		*/
+	    static LQX::SyntaxTreeNode * add( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
+	    static LQX::SyntaxTreeNode * subtract( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
 	    static LQX::SyntaxTreeNode * max( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
+	    static LQX::SyntaxTreeNode * divide( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
+	    static LQX::SyntaxTreeNode * multiply( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
 	    static LQX::SyntaxTreeNode * reciprocal( LQX::SyntaxTreeNode * );
 	
 	private:
@@ -319,6 +322,8 @@ namespace BCMP {
 	    const Station::map_t& stations() const { return _stations; }
 
 	    void compute();
+
+	    LQX::SyntaxTreeNode * Z() const;
 	    static LQX::SyntaxTreeNode * demand( const Station& m, const std::string& chain );
 	    static LQX::SyntaxTreeNode * demand( const Model::Station::Class& k );
 	    

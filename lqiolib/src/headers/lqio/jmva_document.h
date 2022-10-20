@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16005 2022-10-19 17:57:02Z greg $
+ *  $Id: jmva_document.h 16008 2022-10-20 02:54:34Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -167,6 +167,8 @@ namespace QNIO {
 	void plot( BCMP::Model::Result::Type, const std::string& );
 	bool plotPopulationMix() const { return _plot_population_mix; }
 	void setPlotPopulationMix( bool plot_population_mix ) { _plot_population_mix = plot_population_mix; }
+	bool plotCustomers() const { return _plot_customers; }
+	void setPlotCustomers( bool plot_customers ) { _plot_customers = plot_customers; }
 
     private:
 	bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,JMVA_Document::attribute_table_t>& table ) const;
@@ -291,7 +293,7 @@ namespace QNIO {
 	    void operator()( const std::string& ) const;
 	    const BCMP::Model::Station::map_t& stations() const { return model().stations(); }
 	    const BCMP::Model::Chain::map_t& chains() const { return model().chains(); }
-	    const std::deque<Generator>& whatif_loop() const { return _document._whatif_statements; }
+	    const std::deque<Generator>& whatif_statements() const { return _document._whatif_statements; }
 	private:
 	    const BCMP::Model& model() const { return _document.model(); }
 	    static bool match( const LQX::SyntaxTreeNode * var, const std::string& );
@@ -342,7 +344,7 @@ namespace QNIO {
 	std::ostream& plot_station( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& );
 	std::ostream& plot_population_mix_vs_throughput( std::ostream& plot );
 	std::ostream& plot_population_mix_vs_utilization( std::ostream& plot );
-	size_t get_y_index( const std::string& ) const;
+	size_t get_gnuplot_index( const std::string& ) const;
 
 	/* -------------------------- Output -------------------------- */
 
@@ -425,6 +427,7 @@ namespace QNIO {
 	/* Plotting */
 	std::vector<LQX::SyntaxTreeNode*> _gnuplot;					/* GNUPlot program		*/
 	bool _plot_population_mix;
+	bool _plot_customers;
 
 	static const std::map<const std::string,JMVA_Document::setIndependentVariable> independent_var_table;
 	

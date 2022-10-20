@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 16006 2022-10-19 18:25:39Z greg $
+ * $Id: bcmp_document.cpp 16008 2022-10-20 02:54:34Z greg $
  *
  * Read in XML input files.
  *
@@ -654,16 +654,14 @@ namespace BCMP {
     Model::Bound::N() const
     {
 	if ( Model::isDefault( D_sum(), 0.0 ) || Model::isDefault( D_max(), 1.0) ) return D_sum();
-	return new LQX::MathExpression( LQX::MathExpression::DIVIDE, D_sum(), D_max() );
+	return Model::Bound::divide( D_sum(), D_max() );
     }
 
     
     LQX::SyntaxTreeNode *
     Model::Bound::N_star() const
     {
-	return new LQX::MathExpression( LQX::MathExpression::DIVIDE,
-					new LQX::MathExpression( LQX::MathExpression::ADD, D_sum(), Z_sum() ),
-					D_max() );
+	return divide( Model::Bound::add( D_sum(), Z_sum() ), D_max() );
     }
     
     /*
@@ -673,7 +671,9 @@ namespace BCMP {
     bool
     Model::Bound::is_D_max( const Model::Station& m ) const
     {
-	return demand( m, chain() ) == _D_max;
+	LQX::SyntaxTreeNode * demand = this->demand( m, chain() );
+	if ( dynamic_cast<LQX::ConstantValueExpression *>(demand) && dynamic_cast<LQX::ConstantValueExpression *>(_D_max) ) return Model::getDoubleValue(demand) == Model::getDoubleValue(_D_max);
+	return demand == _D_max;
     }
 
 
@@ -692,42 +692,68 @@ namespace BCMP {
 	const Model::Station::Class& k = m.classAt( chain );
 	if ( isDefault( k.visits() ) || isDefault( k.service_time() ) ) return nullptr;
 
-	LQX::SyntaxTreeNode * demand = Bound::demand( k );
-	if ( m.type() == Model::Station::Type::MULTISERVER && !isDefault( m.copies(), 1.0 ) ) {
-	    demand = new LQX::MathExpression( LQX::MathExpression::DIVIDE, demand, m.copies() );
-	}
-	return demand;
+	return divide( Bound::demand( k ), m.copies() );
     }
 
 
     LQX::SyntaxTreeNode *
     Model::Bound::demand( const Model::Station::Class& k )
     {
-	LQX::SyntaxTreeNode * demand = nullptr;
-
-	if ( isDefault( k.visits(), 1.0 ) ) {
-	    demand = k.service_time();
-	} else if ( isDefault( k.service_time(), 1.0 ) ) {
-	    demand = k.visits();
-	} else {
-	    demand = new LQX::MathExpression( LQX::MathExpression::MULTIPLY, k.visits(), k.service_time() );
-	}
-	return demand;
+	return Model::Bound::multiply( k.visits(), k.service_time() );
     }
 
+
+    LQX::SyntaxTreeNode *
+    Model::Bound::add( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
+    {
+	if ( a1 == nullptr ) return a2;
+	else if ( a2 == nullptr ) return a1;
+	if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) + Model::getDoubleValue(a2) );
+	else return new LQX::MathExpression( LQX::MathExpression::ADD, a1, a2 );
+    }
+
+    LQX::SyntaxTreeNode *
+    Model::Bound::subtract( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
+    {
+	if ( a2 == nullptr ) return a1;
+	else if ( a1 == nullptr ) return subtract( new LQX::ConstantValueExpression( 0. ), a2 );
+	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) - Model::getDoubleValue(a2) );
+	else return new LQX::MathExpression( LQX::MathExpression::SUBTRACT, a1, a2 );
+    }
+
+    LQX::SyntaxTreeNode *
+    Model::Bound::divide( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
+    {
+	if ( isDefault( a1 ) ) return new LQX::ConstantValueExpression( 0. );
+	else if ( isDefault( a2, 1.0 ) ) return a1;
+	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) / Model::getDoubleValue(a2) );
+	else return new LQX::MathExpression( LQX::MathExpression::DIVIDE, a1, a2 );
+    }
+
+    LQX::SyntaxTreeNode *
+    Model::Bound::multiply( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
+    {
+	if ( isDefault( a1 ) || isDefault( a2 ) ) return new LQX::ConstantValueExpression( 0. );
+	else if ( isDefault( a1, 1.0 ) ) return a2;
+	else if ( isDefault( a2, 1.0 ) ) return a1;
+	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) * Model::getDoubleValue(a2) );
+	else return new LQX::MathExpression( LQX::MathExpression::MULTIPLY, a1, a2 );
+    }
 
     LQX::SyntaxTreeNode *
     Model::Bound::max( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
     {
 	if ( a1 == nullptr ) return a2;
-	if ( a2 == nullptr ) return a1;
-	return new LQX::MethodInvocationExpression( "max", a1, a2, nullptr );
+	else if ( a2 == nullptr ) return a1;
+	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( std::max( Model::getDoubleValue(a1), Model::getDoubleValue(a2) ) );
+	else return new LQX::MethodInvocationExpression( "max", a1, a2, nullptr );
     }
 
     LQX::SyntaxTreeNode *
     Model::Bound::reciprocal( LQX::SyntaxTreeNode * divisor )
     {
 	if ( divisor == nullptr ) return nullptr;
+	else if ( dynamic_cast<LQX::ConstantValueExpression *>(divisor) ) return new LQX::ConstantValueExpression( 1. / Model::getDoubleValue(divisor) );
 	return new LQX::MathExpression( LQX::MathExpression::DIVIDE, new LQX::ConstantValueExpression( 1. ), divisor );
     }
 
@@ -757,12 +783,12 @@ namespace BCMP {
 	if ( (    m.type() != Model::Station::Type::DELAY
 	       && m.type() != Model::Station::Type::LOAD_INDEPENDENT
 	       && m.type() != Model::Station::Type::MULTISERVER )
+	     || m.reference() 
 	     || !m.hasClass( _class ) ) return a1;
 
 	const Model::Station::Class& k = m.classAt( _class );
 	if ( isDefault( k.visits() ) || isDefault( k.service_time() ) ) return a1;
-
-	return new LQX::MathExpression( LQX::MathExpression::ADD, a1, Bound::demand( k ) );
+	else return Model::Bound::add( a1, Bound::demand( k ) );
     }
 
 
@@ -774,8 +800,7 @@ namespace BCMP {
 	if ( !m.reference() || !m.hasClass( _class ) ) return a1;
 	const Model::Station::Class& k = m.classAt( _class );
 	if ( isDefault( k.visits() ) || isDefault( k.service_time() ) ) return a1;
-
-	return new LQX::MathExpression( LQX::MathExpression::ADD, a1, demand( k ) );
+	else return Model::Bound::add( a1, Bound::demand( k ) );
     }
 
 }
