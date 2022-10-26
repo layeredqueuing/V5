@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 16008 2022-10-20 02:54:34Z greg $
+ * $Id: bcmp_document.cpp 16037 2022-10-26 12:07:22Z greg $
  *
  * Read in XML input files.
  *
@@ -102,7 +102,7 @@ namespace BCMP {
     double
     Model::response_time( const std::string& name ) const
     {
-	return std::accumulate( stations().begin(), stations().end(), 0.0, sum_residence_time( name ) );
+	return std::accumulate( stations().begin(), stations().end(), 0.0, sum_response_time( name ) );
     }
 
     double
@@ -185,6 +185,62 @@ namespace BCMP {
 	return var->invoke(nullptr)->getDoubleValue();
     }
 
+    LQX::SyntaxTreeNode *
+    Model::add( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
+    {
+	if ( a1 == nullptr ) return a2;
+	else if ( a2 == nullptr ) return a1;
+	if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) + Model::getDoubleValue(a2) );
+	else return new LQX::MathExpression( LQX::MathExpression::ADD, a1, a2 );
+    }
+
+    LQX::SyntaxTreeNode *
+    Model::subtract( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
+    {
+	if ( a2 == nullptr ) return a1;
+	else if ( a1 == nullptr ) return subtract( new LQX::ConstantValueExpression( 0. ), a2 );
+	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) - Model::getDoubleValue(a2) );
+	else return new LQX::MathExpression( LQX::MathExpression::SUBTRACT, a1, a2 );
+    }
+
+    LQX::SyntaxTreeNode *
+    Model::divide( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
+    {
+	if ( isDefault( a1 ) ) return new LQX::ConstantValueExpression( 0. );
+	else if ( isDefault( a2, 1.0 ) ) return a1;
+	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) / Model::getDoubleValue(a2) );
+	else return new LQX::MathExpression( LQX::MathExpression::DIVIDE, a1, a2 );
+    }
+
+    LQX::SyntaxTreeNode *
+    Model::multiply( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
+    {
+	if ( isDefault( a1 ) || isDefault( a2 ) ) return new LQX::ConstantValueExpression( 0. );
+	else if ( isDefault( a1, 1.0 ) ) return a2;
+	else if ( isDefault( a2, 1.0 ) ) return a1;
+	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) * Model::getDoubleValue(a2) );
+	else return new LQX::MathExpression( LQX::MathExpression::MULTIPLY, a1, a2 );
+    }
+
+    LQX::SyntaxTreeNode *
+    Model::max( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
+    {
+	if ( a1 == nullptr ) return a2;
+	else if ( a2 == nullptr ) return a1;
+	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( std::max( Model::getDoubleValue(a1), Model::getDoubleValue(a2) ) );
+	else return new LQX::MethodInvocationExpression( "max", a1, a2, nullptr );
+    }
+
+    LQX::SyntaxTreeNode *
+    Model::reciprocal( LQX::SyntaxTreeNode * divisor )
+    {
+	if ( divisor == nullptr ) return nullptr;
+	else if ( dynamic_cast<LQX::ConstantValueExpression *>(divisor) ) return new LQX::ConstantValueExpression( 1. / Model::getDoubleValue(divisor) );
+	return new LQX::MathExpression( LQX::MathExpression::DIVIDE, new LQX::ConstantValueExpression( 1. ), divisor );
+    }
+
+    
+
     /*
      * JMVA insists that service time/visits exist for --all-- chains for --all--stations
      * so pad the class_map to make it so.
@@ -200,16 +256,16 @@ namespace BCMP {
 	}
     }
 
-    double Model::sum_residence_time::operator()( double augend, const Station::pair_t& m ) const
+    double Model::sum_response_time::operator()( double augend, const Station::pair_t& m ) const
     {
 	const Model::Station& station = m.second;
 
 	if ( !Station::isServer( m ) ) {
 	    return augend;
 	} else if ( _name.empty() ) {
-	    return augend + station.residence_time();
+	    return augend + station.response_time();
 	} else if ( station.hasClass( _name ) ) {
-	    return augend + station.classAt( _name ).residence_time();
+	    return augend + station.classAt( _name ).response_time();
 	} else {
 	    return augend;
 	}
@@ -271,7 +327,7 @@ namespace BCMP {
     Model::Station::clear()
     {
 	_type = Model::Station::Type::NOT_DEFINED;
-	_scheduling = SCHEDULE_DELAY;
+	_scheduling = SCHEDULE_PS;
 	_copies = nullptr;
 	_reference = false;
 	_classes.clear();
@@ -320,6 +376,11 @@ namespace BCMP {
 	else return 0.0;
     }
 
+    double Model::Station::response_time() const
+    {
+	return residence_time();				// Likely only the reference station, so visits = 1.
+    }
+    
     double Model::Station::utilization() const
     {
 	return std::accumulate( classes().begin(), classes().end(), 0.0, &sum_utilization );
@@ -335,9 +396,9 @@ namespace BCMP {
 	return augend + addend.second.utilization();
     }
 
-    double Model::Station::sum_residence_time( double augend, const BCMP::Model::Station::Class::pair_t& addend )
+    double Model::Station::sum_response_time( double augend, const BCMP::Model::Station::Class::pair_t& addend )
     {
-	return augend + addend.second.residence_time();
+	return augend + addend.second.response_time();
     }
 
     double Model::Station::sum_queue_length( double augend, const BCMP::Model::Station::Class::pair_t& addend )
@@ -356,7 +417,7 @@ namespace BCMP {
 	Class sum = augend;
 	sum._results[Result::Type::THROUGHPUT]     += addend.second._results.at(Result::Type::THROUGHPUT);
 	sum._results[Result::Type::QUEUE_LENGTH]   += addend.second._results.at(Result::Type::QUEUE_LENGTH);
-	sum._results[Result::Type::RESIDENCE_TIME]  = 0.0;	/* Need to derive 	*/
+	sum._results[Result::Type::RESPONSE_TIME]  = 0.0;	/* Need to derive 	*/
 	sum._results[Result::Type::UTILIZATION]    += addend.second._results.at(Result::Type::UTILIZATION);
 	return sum;
     }
@@ -437,7 +498,7 @@ namespace BCMP {
 
 	std::for_each( classes.begin(), classes.end(), Class::print( _output ) );
 	if ( classes.size() > 1 ) {
-	    const BCMP::Model::Station::Class sum = std::accumulate( std::next(classes.begin()), classes.end(), classes.begin()->second, &BCMP::Model::Station::sumResults ).deriveResidenceTime();
+	    const BCMP::Model::Station::Class sum = std::accumulate( std::next(classes.begin()), classes.end(), classes.begin()->second, &BCMP::Model::Station::sumResults );
 	    _output << ", "<< sum.utilization()
 		    << ", "<< sum.queue_length()
 		    << ", "<< sum.residence_time()		// per visit.
@@ -458,7 +519,7 @@ namespace BCMP {
     {
 	_results[Result::Type::THROUGHPUT] = 0.;
 	_results[Result::Type::QUEUE_LENGTH] = 0.;
-	_results[Result::Type::RESIDENCE_TIME] = 0.;
+	_results[Result::Type::RESPONSE_TIME] = 0.;
 	_results[Result::Type::UTILIZATION] = 0.;
     }
 
@@ -484,11 +545,11 @@ namespace BCMP {
     
 
     void
-    Model::Station::Class::setResults( double throughput, double queue_length, double residence_time, double utilization )
+    Model::Station::Class::setResults( double throughput, double queue_length, double response_time, double utilization )
     {
 	_results[Result::Type::THROUGHPUT] = throughput;
 	_results[Result::Type::QUEUE_LENGTH] = queue_length;
-	_results[Result::Type::RESIDENCE_TIME] = residence_time;
+	_results[Result::Type::RESPONSE_TIME] = response_time;
 	_results[Result::Type::UTILIZATION] = utilization;
     }
 
@@ -500,19 +561,6 @@ namespace BCMP {
 	} else if ( !_result_vars.emplace(type,name).second ) {
 	    throw std::runtime_error( std::string("Duplicate Result Variable") + name );
 	}
-    }
-
-    /*
-     * Derive waiting time over all chains.  Usually after summing in
-     * an external application such as qnap2_output.
-     */
-
-    Model::Station::Class&
-    Model::Station::Class::deriveResidenceTime()
-    {
-	if ( _results.at(Result::Type::THROUGHPUT) == 0. ) return *this;
-	_results.at(Result::Type::RESIDENCE_TIME) = _results.at(Result::Type::QUEUE_LENGTH) / _results.at(Result::Type::THROUGHPUT);
-	return *this;
     }
 
     Model::Station::Class::map_t
@@ -593,11 +641,10 @@ namespace BCMP {
     {
 	_results[Result::Type::THROUGHPUT]     += addend._results.at(Result::Type::THROUGHPUT);
 	_results[Result::Type::QUEUE_LENGTH]   += addend._results.at(Result::Type::QUEUE_LENGTH);
-	_results[Result::Type::RESIDENCE_TIME]  = 0.0;	/* Need to derive 	*/
+	_results[Result::Type::RESPONSE_TIME]   = 0.0;	/* Need to derive 	*/
 	_results[Result::Type::UTILIZATION]    += addend._results.at(Result::Type::UTILIZATION);
 	return *this;
     }
-
 
     void
     Model::Station::Class::print::operator()( const Model::Station::Class::pair_t& ki ) const
@@ -654,14 +701,14 @@ namespace BCMP {
     Model::Bound::N() const
     {
 	if ( Model::isDefault( D_sum(), 0.0 ) || Model::isDefault( D_max(), 1.0) ) return D_sum();
-	return Model::Bound::divide( D_sum(), D_max() );
+	return Model::divide( D_sum(), D_max() );
     }
 
     
     LQX::SyntaxTreeNode *
     Model::Bound::N_star() const
     {
-	return divide( Model::Bound::add( D_sum(), Z_sum() ), D_max() );
+	return divide( Model::add( D_sum(), Z_sum() ), D_max() );
     }
     
     /*
@@ -699,65 +746,9 @@ namespace BCMP {
     LQX::SyntaxTreeNode *
     Model::Bound::demand( const Model::Station::Class& k )
     {
-	return Model::Bound::multiply( k.visits(), k.service_time() );
+	return Model::multiply( k.visits(), k.service_time() );
     }
 
-
-    LQX::SyntaxTreeNode *
-    Model::Bound::add( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
-    {
-	if ( a1 == nullptr ) return a2;
-	else if ( a2 == nullptr ) return a1;
-	if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) + Model::getDoubleValue(a2) );
-	else return new LQX::MathExpression( LQX::MathExpression::ADD, a1, a2 );
-    }
-
-    LQX::SyntaxTreeNode *
-    Model::Bound::subtract( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
-    {
-	if ( a2 == nullptr ) return a1;
-	else if ( a1 == nullptr ) return subtract( new LQX::ConstantValueExpression( 0. ), a2 );
-	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) - Model::getDoubleValue(a2) );
-	else return new LQX::MathExpression( LQX::MathExpression::SUBTRACT, a1, a2 );
-    }
-
-    LQX::SyntaxTreeNode *
-    Model::Bound::divide( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
-    {
-	if ( isDefault( a1 ) ) return new LQX::ConstantValueExpression( 0. );
-	else if ( isDefault( a2, 1.0 ) ) return a1;
-	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) / Model::getDoubleValue(a2) );
-	else return new LQX::MathExpression( LQX::MathExpression::DIVIDE, a1, a2 );
-    }
-
-    LQX::SyntaxTreeNode *
-    Model::Bound::multiply( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
-    {
-	if ( isDefault( a1 ) || isDefault( a2 ) ) return new LQX::ConstantValueExpression( 0. );
-	else if ( isDefault( a1, 1.0 ) ) return a2;
-	else if ( isDefault( a2, 1.0 ) ) return a1;
-	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) * Model::getDoubleValue(a2) );
-	else return new LQX::MathExpression( LQX::MathExpression::MULTIPLY, a1, a2 );
-    }
-
-    LQX::SyntaxTreeNode *
-    Model::Bound::max( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
-    {
-	if ( a1 == nullptr ) return a2;
-	else if ( a2 == nullptr ) return a1;
-	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( std::max( Model::getDoubleValue(a1), Model::getDoubleValue(a2) ) );
-	else return new LQX::MethodInvocationExpression( "max", a1, a2, nullptr );
-    }
-
-    LQX::SyntaxTreeNode *
-    Model::Bound::reciprocal( LQX::SyntaxTreeNode * divisor )
-    {
-	if ( divisor == nullptr ) return nullptr;
-	else if ( dynamic_cast<LQX::ConstantValueExpression *>(divisor) ) return new LQX::ConstantValueExpression( 1. / Model::getDoubleValue(divisor) );
-	return new LQX::MathExpression( LQX::MathExpression::DIVIDE, new LQX::ConstantValueExpression( 1. ), divisor );
-    }
-
-    
 
     /*
      * Find the largest demand at a station that forms queues.  Adjust
@@ -767,7 +758,7 @@ namespace BCMP {
     LQX::SyntaxTreeNode *
     Model::Bound::max_demand::operator()( LQX::SyntaxTreeNode * a1, const Model::Station::pair_t& m2 )
     {
-	return Model::Bound::max( a1,  Bound::demand( m2.second, _class ) );
+	return Model::max( a1,  Bound::demand( m2.second, _class ) );
     }
 
 
@@ -788,7 +779,7 @@ namespace BCMP {
 
 	const Model::Station::Class& k = m.classAt( _class );
 	if ( isDefault( k.visits() ) || isDefault( k.service_time() ) ) return a1;
-	else return Model::Bound::add( a1, Bound::demand( k ) );
+	else return Model::add( a1, Bound::demand( k ) );
     }
 
 
@@ -800,7 +791,7 @@ namespace BCMP {
 	if ( !m.reference() || !m.hasClass( _class ) ) return a1;
 	const Model::Station::Class& k = m.classAt( _class );
 	if ( isDefault( k.visits() ) || isDefault( k.service_time() ) ) return a1;
-	else return Model::Bound::add( a1, Bound::demand( k ) );
+	else return Model::add( a1, Bound::demand( k ) );
     }
 
 }

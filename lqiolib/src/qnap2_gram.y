@@ -184,7 +184,7 @@ control_list		: control
 			;
 
 control			: QNAP_CLASS QNAP_EQUAL QNAP_ALL QNAP_QUEUE ';'
-			| QNAP_OPTION QNAP_EQUAL identifier ';'
+			| QNAP_OPTION QNAP_EQUAL identifier ';'			{ qnap2_set_option( $3 ); }
 			;
 
 /* ------------------------------------------------------------------------ */
@@ -199,7 +199,7 @@ open_statement		: QNAP_IF expression QNAP_THEN statement		{ $$ = qnap2_if_statem
 			| QNAP_IF expression QNAP_THEN closed_statement 	/* -- */
 			  QNAP_ELSE open_statement				{ $$ = qnap2_if_statement( $2, $4, $6 ); }
 			| QNAP_WHILE expression QNAP_THEN open_statement	{ $$ = qnap2_while_statement( $2, $4 ); }
-			| QNAP_FOR identifier QNAP_ASSIGNMENT loop_list		/* -- */
+			| QNAP_FOR lvalue QNAP_ASSIGNMENT loop_list		/* -- */
 			  QNAP_DO open_statement				{ $$ = qnap2_for_statement( $2, $4, $6 ); }
 			;
 
@@ -207,11 +207,11 @@ closed_statement	: simple_statement					{ $$ = $1; }
 			| QNAP_IF expression QNAP_THEN closed_statement   	/* -- */
 			  QNAP_ELSE closed_statement				{ $$ = qnap2_if_statement( $2, $4, $6 ); }
 			| QNAP_WHILE expression QNAP_THEN closed_statement	{ $$ = qnap2_while_statement( $2, $4 ); }
-			| QNAP_FOR identifier QNAP_ASSIGNMENT loop_list		/* -- */
+			| QNAP_FOR lvalue QNAP_ASSIGNMENT loop_list		/* -- */
 			  QNAP_DO closed_statement				{ $$ = qnap2_for_statement( $2, $4, $6 ); }
 			;
 
-simple_statement	: QNAP_BEGIN compound_statement QNAP_END		{ $$ = $2; }
+simple_statement	: QNAP_BEGIN compound_statement QNAP_END		{ $$ = qnap2_compound_statement( $2 ); }
 			| lvalue QNAP_ASSIGNMENT relation 			{ $$ = qnap2_assignment( $1, $3 ); }
 			| procedure_call					{ $$ = $1; }
 			|							{ $$ = NULL; }
@@ -276,7 +276,7 @@ expression_list		: expression						{ $$ = qnap2_append_pointer( NULL, $1 ); }
 			| expression_list ',' expression			{ $$ = qnap2_append_pointer( $1, $3 ); }
 			;
 
-loop_list		: lvalue QNAP_STEP expression QNAP_UNTIL expression	{ $$ = qnap2_list( $1, $3, $5 ); }
+loop_list		: expression QNAP_STEP expression QNAP_UNTIL expression	{ $$ = qnap2_list( $1, $3, $5 ); }
 			;
 
 /* ------------------------------------------------------------------------ */

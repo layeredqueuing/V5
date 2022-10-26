@@ -10,7 +10,7 @@
  *
  * December 2020
  *
- * $Id: model.h 15986 2022-10-17 09:35:47Z greg $
+ * $Id: model.h 16017 2022-10-21 10:51:04Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -72,8 +72,6 @@ protected:
     const BCMP::Model::Station::Class::map_t& classesAt( const std::string& name ) const { return _model.stationAt(name).classes(); }
 
 private:
-    void setEnvironment( LQX::Environment * environment ) { _environment = environment; }
-    LQX::Environment * getEnvironment() const { return _environment; }
     double getDoubleValue( LQX::SyntaxTreeNode * ) const;
     unsigned int getUnsignedValue( LQX::SyntaxTreeNode *, unsigned int default_value ) const;
     size_t indexAt(BCMP::Model::Chain::Type, const std::string& name) const;
@@ -168,7 +166,6 @@ protected:
 private:
     QNIO::Document& _input;			/* Input */
     const std::string _output_file_name;
-    LQX::Environment * _environment;
     /* mixed model */  /* Might change to a vector */
     ClosedModel * _closed_model;
     OpenModel * _open_model;

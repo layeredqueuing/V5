@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 15970 2022-10-13 23:15:17Z greg $
+ *  $Id: dom_document.cpp 16027 2022-10-25 02:18:21Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -514,7 +514,7 @@ namespace LQIO {
 	    _pragmas.clear();
 	}
 
-	const std::string Document::getPragma( const std::string& param ) const
+	const std::string& Document::getPragma( const std::string& param ) const
 	{
 	    return _pragmas.get( param );
 	}
@@ -926,18 +926,20 @@ namespace LQIO {
 
 		/* Regular output */
 
-		LQIO::Filename filename( __input_file_name, rtf_output ? "rtf" : "out", directory_name, suffix );
+		if ( LQIO::DOM::Pragma::isTrue(LQIO::DOM::__document->getPragma( LQIO::DOM::Pragma::_default_output_ )) ) {
+		    LQIO::Filename filename( __input_file_name, rtf_output ? "rtf" : "out", directory_name, suffix );
 
-		output.open( filename(), std::ios::out );
-		if ( !output ) {
-		    runtime_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
-		} else if ( rtf_output ) {
-		    print( output, LQIO::DOM::Document::OutputFormat::RTF );
-		} else {
-		    print( output );
+		    output.open( filename(), std::ios::out );
+		    if ( !output ) {
+			runtime_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
+		    } else if ( rtf_output ) {
+			print( output, LQIO::DOM::Document::OutputFormat::RTF );
+		    } else {
+			print( output );
+		    }
+		    output.close();
 		}
-		output.close();
-
+		
 	    } else if ( Filename::isFileName( output_file_name ) ) {
 
 		/* case for -o xxx, do not map filename. */

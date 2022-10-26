@@ -1,7 +1,7 @@
 & $Id$
 /declare/
    integer N1;                                                 & SPEX customers vars.
-   real _Q_CPU,_R_CPU,_U_CPU,_X_CPU;
+   real Q_CPU,R_CPU,U_CPU,X_CPU;
    queue Terminal,CPU,Disk1,Disk2;                             & Station identifiers
    integer n_users;                                            & Population
    real think_t;                                               & Think time.
@@ -33,7 +33,7 @@
 &
 /exec/
    begin
-   print("N1",",","_Q_CPU",",","_R_CPU",",","_U_CPU",",","_X_CPU");
+   print("N1",",","Q_CPU",",","R_CPU",",","U_CPU",",","X_CPU");
 &  -- SPEX scalar variables --
 &  -- SPEX arrays and completions --
    for N1:=1 step 1 until 10 do begin
@@ -52,11 +52,11 @@
 &  -- and not the aggregate so divide by the number of transits.
 &  -- Service time is mservice() + sum of mresponse().
 &  -- Waiting time is mresponse() - mservice().
-   _Q_CPU:=mresponse(CPU)-mservice(CPU);                       & Convert to LQN queueing time
-   _R_CPU:=mresponse(CPU);                                     & Convert to LQN service time.
-   _U_CPU:=mbusypct(CPU);
-   _X_CPU:=mthruput(CPU);
-   print(N1,",",_Q_CPU,",",_R_CPU,",",_U_CPU,",",_X_CPU);
+   Q_CPU:=mcustnb(CPU);                                        & Convert to LQN queueing time
+   R_CPU:=mresponse(CPU);                                      & Convert to LQN service time.
+   U_CPU:=mbusypct(CPU);
+   X_CPU:=mthruput(CPU);
+   print(N1,",",Q_CPU,",",R_CPU,",",U_CPU,",",X_CPU);
    end;                                                        & for _i
    end;
 /end/

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 15961 2022-10-11 17:27:29Z greg $
+ *  $Id: dom_document.h 16027 2022-10-25 02:18:21Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -121,7 +121,7 @@ namespace LQIO {
 	    void mergePragmas(const std::map<std::string,std::string>&);
 	    const std::map<std::string,std::string>& getPragmaList() const;
 	    bool hasPragmas() const { return getPragmaList().size() > 0; }
-	    const std::string getPragma( const std::string& ) const;
+	    const std::string& getPragma( const std::string& ) const;
 	    void clearPragmaList();
 
 	    /* Model Parameters */

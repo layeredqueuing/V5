@@ -54,7 +54,7 @@ std::map<const Model::Solver,const std::string> Model::__solver_name = {
 
 Model::Model( QNIO::Document& input, Model::Solver solver, const std::string& output_file_name )
     : _model(input.model()), _solver(solver), 
-      _result(false), _input(input), _output_file_name(output_file_name), _environment(nullptr), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr), Q()
+      _result(false), _input(input), _output_file_name(output_file_name), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr), Q()
 {
     const size_t M = _model.n_stations(type());	// Size based on type.
     Q.resize(M);
@@ -63,7 +63,7 @@ Model::Model( QNIO::Document& input, Model::Solver solver, const std::string& ou
 
 Model::Model( QNIO::Document& input, Model::Solver solver )
     : _model(input.model()), _solver(solver),
-      _result(false), _input(input), _output_file_name(), _environment(nullptr), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr), Q()
+      _result(false), _input(input), _output_file_name(), _closed_model(nullptr), _open_model(nullptr), _bounds_model(nullptr), Q()
 {
     const size_t M = _model.n_stations(type());	// Size based on type.
     Q.resize(M);
@@ -141,14 +141,16 @@ Model::solve()
     bool ok = true;
     LQX::Program * lqx = _input.getLQXProgram();
     if ( lqx != nullptr ) {
+	LQX::Environment * environment = lqx->getEnvironment();
+	_input.setEnvironment( environment );
 	_input.registerExternalSymbolsWithProgram( lqx );
 	if ( print_program ) {
 	    lqx->print( std::cerr );
 	    std::cerr << std::endl;
 	}
+	Pragma::noDefaultOutput( _input.disableDefaultOutputWithLQX() );	// Suppress default output
+
 	FILE * output = nullptr;
-	LQX::Environment * environment = lqx->getEnvironment();
-	setEnvironment( environment );
 	environment->getMethodTable()->registerMethod(new SolverInterface::Solve(*this));
 	BCMP::RegisterBindings(environment, &_input.model());
 	if ( !_output_file_name.empty() ) {
@@ -160,9 +162,15 @@ Model::solve()
 		environment->setDefaultOutput( output );      /* Default is stdout */
 	    }
 	}
+
 	/* Invoke the LQX program itself */
 	if ( !lqx->invoke() ) {
 	    LQIO::runtime_error( LQIO::ERR_LQX_EXECUTION, _input.getInputFileName().c_str() );
+//	    LQX::SymbolTable* symbol_table = environment->getSymbolTable();
+	    LQX::SymbolTable* symbol_table = environment->getSpecialSymbolTable();
+	    std::stringstream output;
+	    symbol_table->dump( output );
+	    std::cerr << output.str() << std::endl;
 	    ok = false;
 	} else if ( !SolverInterface::Solve::solveCallViaLQX ) {
 	    /* There was no call to solve the LQX */
@@ -174,21 +182,7 @@ Model::solve()
 	    fclose( output );
 	}
 	
-    } else if ( compute() ) {
-	if ( _output_file_name.empty() ) {
-	    print( std::cout );
-	} else {
-	    std::ofstream output;
-	    output.open( _output_file_name, std::ios::out );
-	    if ( !output ) {
-		runtime_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
-	    } else {
-		print( output );
-	    }
-	    output.close();
-	}
-
-    } else {
+    } else if ( !compute() ) {
 	ok = false;
     }
 
@@ -220,14 +214,30 @@ Model::compute()
 	    if ( _open_model ) {
 		_open_model->convert( _closed_model );
 	    }
-	    if ( debug_flag ) _closed_model->debug(std::cout);
+	    if ( debug_flag ) _closed_model->debug( std::cout );
 	    _closed_model->solve();
+	    if ( debug_flag ) _closed_model->print( std::cout );
 	}
 	if ( _open_model ) {
-	    if ( debug_flag ) _open_model->debug(std::cout);
+	    if ( debug_flag ) _open_model->debug( std::cout );
 	    _open_model->solve( _closed_model );
+	    if ( debug_flag ) _open_model->print( std::cout );
 	}
 	saveResults();
+	if ( Pragma::defaultOutput() ) {
+	    if ( _output_file_name.empty() ) {
+		print( std::cout );
+	    } else {
+		std::ofstream output;
+		output.open( _output_file_name, std::ios::app );
+		if ( !output ) {
+		    runtime_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
+		} else {
+		    print( output );
+		}
+		output.close();
+	    }
+	}
     }
     catch ( const floating_point_error& error ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << error.what() << std::endl;
@@ -249,7 +259,7 @@ Model::compute()
 std::ostream&
 Model::print( std::ostream& output ) const
 {
-    _model.print( output );
+    _input.print( output );
     return output;
 }
 
@@ -282,7 +292,7 @@ double
 Model::getDoubleValue( LQX::SyntaxTreeNode * variable ) const
 {
     if ( variable == nullptr ) return 0.0;
-    return variable->invoke(getEnvironment())->getDoubleValue();
+    else return variable->invoke( _model.environment() )->getDoubleValue();
 }
 
 
@@ -291,7 +301,7 @@ unsigned int
 Model::getUnsignedValue( LQX::SyntaxTreeNode * variable, unsigned int default_value ) const
 {
     if ( variable == nullptr ) return default_value;
-    const double value = variable->invoke(getEnvironment())->getDoubleValue();
+    const double value = variable->invoke(_model.environment())->getDoubleValue();
     if ( value != rint(value) ) throw std::domain_error( std::string("invalid integer") + std::to_string(value) );
     return static_cast<unsigned int>(value);
 }
@@ -494,6 +504,7 @@ Model::InstantiateStation::replace_server( const std::string& name, Server * old
 
 std::ostream& Model::debug( std::ostream& output ) const
 {
+#if 0
     for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
 	const BCMP::Model::Station::Class::map_t& classes = mi->second.classes();
 	const unsigned int servers = getUnsignedValue( mi->second.copies(), 1 );
@@ -504,5 +515,10 @@ std::ostream& Model::debug( std::ostream& output ) const
 	    output << "    Class " << ki->first << ": visits=" << visits << ", service time=" << service_time << std::endl;
 	}
     }
+#else
+    for ( Vector<Server *>::const_iterator q = Q.begin(); q != Q.end(); ++q ) {
+	output << **q << std::endl;
+    }
+#endif
     return output;
 }

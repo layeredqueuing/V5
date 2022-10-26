@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16008 2022-10-20 02:54:34Z greg $
+ *  $Id: jmva_document.h 16027 2022-10-25 02:18:21Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -161,6 +161,8 @@ namespace QNIO {
 	virtual std::vector<std::string> getUndefinedExternalVariables() const;
 
 	virtual void registerExternalSymbolsWithProgram(LQX::Program* program);
+
+	virtual bool disableDefaultOutputWithLQX() const { return true; }
 
 	std::ostream& print( std::ostream& ) const;
 	std::ostream& printInput( std::ostream& ) const;

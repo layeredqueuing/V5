@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 16008 2022-10-20 02:54:34Z greg $
+ *  $Id: bcmp_document.h 16037 2022-10-26 12:07:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -41,15 +41,17 @@ namespace BCMP {
 
 	class Result {
 	public:
-	    enum class Type { QUEUE_LENGTH, RESIDENCE_TIME, RESPONSE_TIME, THROUGHPUT, UTILIZATION };
+	    enum class Type { QUEUE_LENGTH, RESIDENCE_TIME, RESPONSE_TIME, MEAN_SERVICE, THROUGHPUT, UTILIZATION };
 	    typedef std::map<Type,std::string> map_t;
 	    typedef std::pair<Type,std::string> pair_t;
 
 	    Result() {}
 
-	    virtual double throughput() const = 0;
+	    virtual double mean_service() const = 0;
 	    virtual double queue_length() const = 0;
-	    virtual double residence_time() const = 0;
+	    virtual double residence_time() const = 0;		// Per visit
+	    virtual double response_time() const = 0;		// residence time * visits (derived)
+	    virtual double throughput() const = 0;
 	    virtual double utilization() const = 0;
 	};
 
@@ -89,9 +91,11 @@ namespace BCMP {
 	    static bool closedChain( const Chain::pair_t& k ) { return k.second.type() == Type::CLOSED; }
 	    static bool openChain( const Chain::pair_t& k ) { return k.second.type() == Type::OPEN; }
 
-	    virtual double throughput() const { return 0; }
+	    virtual double mean_service() const { return 0; }
 	    virtual double queue_length() const { return 0; }
 	    virtual double residence_time() const { return 0; }
+	    virtual double responce_time() const { return 0; }
+	    virtual double throughput() const { return 0; }
 	    virtual double utilization() const { return 0; }
 	    void insertResultVariable( Result::Type, const std::string& );
 
@@ -149,7 +153,7 @@ namespace BCMP {
 		Class& operator=( const Class& );
 		void clear();
 
-		void setResults( double throughput, double queue_length, double residence_time, double utilization );
+		void setResults( double throughput, double queue_length, double response_time, double utilization );
 		virtual const char * getTypeName() const { return __typeName; }
 
 		LQX::SyntaxTreeNode * visits() const { return _visits; }
@@ -165,11 +169,12 @@ namespace BCMP {
 		Class& accumulate( const Class& addend );
 		Class& accumulateResults( const Class& addend );
 
-		double throughput() const { return _results.at(Result::Type::THROUGHPUT); }
-		double queue_length() const { return _results.at(Result::Type::QUEUE_LENGTH); }
-		double residence_time() const { return _results.at(Result::Type::RESIDENCE_TIME); }
-		double utilization() const { return _results.at(Result::Type::UTILIZATION); }
-		Class& deriveResidenceTime();
+		virtual double mean_service() const { return throughput() > 0. ? utilization() / throughput() : 0.; }
+		virtual double queue_length() const { return _results.at(Result::Type::QUEUE_LENGTH); }
+		virtual double residence_time() const { return throughput() > 0. ? queue_length() / throughput() : 0.; }	// Per visit.
+		virtual double response_time() const { return _results.at(Result::Type::RESPONSE_TIME); }	// Over all visits.
+		virtual double throughput() const { return _results.at(Result::Type::THROUGHPUT); }
+		virtual double utilization() const { return _results.at(Result::Type::UTILIZATION); }
 		void insertResultVariable( Result::Type, const std::string& );
 
 		struct print {
@@ -198,7 +203,7 @@ namespace BCMP {
 	/* ------------------------------------------------------------ */
 
 	public:
-	    Station( Type type=Type::NOT_DEFINED, scheduling_type scheduling=SCHEDULE_DELAY, LQX::SyntaxTreeNode * copies=nullptr ) :
+	    Station( Type type=Type::NOT_DEFINED, scheduling_type scheduling=SCHEDULE_PS, LQX::SyntaxTreeNode * copies=nullptr ) :
 		_type(type), _scheduling(scheduling), _copies(copies), _reference(false) {}
 	    ~Station();
 
@@ -231,9 +236,11 @@ namespace BCMP {
 	    static bool isCustomer( const Station::pair_t& m ) { return m.second.reference(); }
 	    static bool isServer( const Station::pair_t& m ) { return !m.second.reference() && m.second.type() != Type::NOT_DEFINED; }
 
-	    virtual double throughput() const;
+	    virtual double mean_service() const { const double x = throughput(); return x > 0 ? utilization() / x : 0.; }
 	    virtual double queue_length() const;
 	    virtual double residence_time() const;
+	    virtual double response_time() const;
+	    virtual double throughput() const;
 	    virtual double utilization() const;
 	    static Class sumResults( const Class& augend, const Class::pair_t& addend );
 
@@ -270,7 +277,7 @@ namespace BCMP {
 	private:
 	    static double sum_throughput( double addend, const BCMP::Model::Station::Class::pair_t& augend );
 	    static double sum_utilization( double addend, const BCMP::Model::Station::Class::pair_t& augend );
-	    static double sum_residence_time( double addend, const BCMP::Model::Station::Class::pair_t& augend );
+	    static double sum_response_time( double addend, const BCMP::Model::Station::Class::pair_t& augend );
 	    static double sum_queue_length( double addend, const BCMP::Model::Station::Class::pair_t& augend );
 	    static void clear_all_result_variables( BCMP::Model::Station::pair_t& m );
 
@@ -310,12 +317,6 @@ namespace BCMP {
 	    LQX::SyntaxTreeNode * N() const;
 	    LQX::SyntaxTreeNode * N_star() const;
 	    bool is_D_max( const Station& ) const;		/* Station with highest demand		*/
-	    static LQX::SyntaxTreeNode * add( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
-	    static LQX::SyntaxTreeNode * subtract( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
-	    static LQX::SyntaxTreeNode * max( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
-	    static LQX::SyntaxTreeNode * divide( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
-	    static LQX::SyntaxTreeNode * multiply( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
-	    static LQX::SyntaxTreeNode * reciprocal( LQX::SyntaxTreeNode * );
 	
 	private:
 	    const std::string& chain() const { return _chain.first; }
@@ -360,7 +361,7 @@ namespace BCMP {
 	/* ------------------------------------------------------------ */
 
     public:
-	Model() : _comment(), _chains(), _stations() {}
+	Model() : _comment(), _chains(), _stations(), _environment(nullptr) {}
 	virtual ~Model();
 
 	bool empty() const { return _chains.size() == 0 || _stations.size() == 0; }
@@ -374,6 +375,7 @@ namespace BCMP {
 	Chain& chainAt( const std::string& name ) { return _chains.at(name); }
 	const Chain& chainAt( const std::string& name ) const { return _chains.at(name); }
 	void setEnvironment( LQX::Environment * environment ) { _environment = environment; }
+	LQX::Environment * environment() const { return _environment; }
 
 	size_t n_chains(Chain::Type) const;
 	size_t n_stations(Chain::Type) const;
@@ -395,7 +397,14 @@ namespace BCMP {
 	virtual std::ostream& print( std::ostream& output ) const;
 
 	static bool isDefault( LQX::SyntaxTreeNode * var, double default_value=0.0 );
+
 	static double getDoubleValue( LQX::SyntaxTreeNode * );
+	static LQX::SyntaxTreeNode * add( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
+	static LQX::SyntaxTreeNode * subtract( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
+	static LQX::SyntaxTreeNode * max( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
+	static LQX::SyntaxTreeNode * divide( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
+	static LQX::SyntaxTreeNode * multiply( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
+	static LQX::SyntaxTreeNode * reciprocal( LQX::SyntaxTreeNode * );
 
 	struct pad_demand {
 	    pad_demand( const Chain::map_t& chains ) : _chains(chains) {}
@@ -411,8 +420,8 @@ namespace BCMP {
 	    const Station::Class::map_t& _visits;
 	};
 
-	struct sum_residence_time {
-	    sum_residence_time( const std::string& name ) : _name(name) {}
+	struct sum_response_time {
+	    sum_response_time( const std::string& name ) : _name(name) {}
 	    double operator()( double augend, const Station::pair_t& m ) const;
 	private:
 	    const std::string& _name;

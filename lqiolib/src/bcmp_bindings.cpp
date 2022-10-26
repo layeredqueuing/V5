@@ -1,5 +1,5 @@
 /*
- *  $Id: bcmp_bindings.cpp 15955 2022-10-07 11:05:00Z greg $
+ *  $Id: bcmp_bindings.cpp 16033 2022-10-25 21:01:00Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -16,6 +16,7 @@
 #include <lqx/Array.h>
 #include <lqx/RuntimeException.h>
 
+#include "bcmp_bindings.h"
 #include "bcmp_document.h"
 #include "error.h"
 
@@ -31,47 +32,24 @@ namespace BCMP {
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Object] */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
-    class LQXObject : public LQX::LanguageObject {
-    protected:
-	typedef double (Model::Result::*get_result_fptr)() const;
+    LQX::SymbolAutoRef LQXObject::attribute_table_t::operator()( const Model::Result& result ) const { return LQX::Symbol::encodeDouble( (result.*_f)() ); }
 
-	struct attribute_table_t
-	{
-	    attribute_table_t( get_result_fptr m=nullptr ) : mean(m) {}
-	    LQX::SymbolAutoRef operator()( const Model::Result& result ) const { return LQX::Symbol::encodeDouble( (result.*mean)() ); }
-	    const get_result_fptr mean;
-	};
-
-    public:
-	LQXObject( uint32_t kLQXobject, const Model::Result * result ) : LQX::LanguageObject(kLQXobject), _result(result)
-	    {
-	    }
-
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
-	    {
-		std::map<const std::string,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
-		if ( attribute != __attributeTable.end() ) {
-		    try {
-			if ( _result ) {
-			    return attribute->second( *_result );
-			}
-		    }
-		    catch ( const LQIO::should_implement& e ) {
-		    }
+    LQX::SymbolAutoRef LQXObject::getPropertyNamed(LQX::Environment* env, const std::string& name) 
+    {
+	std::map<const std::string,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
+	if ( attribute != __attributeTable.end() ) {
+	    try {
+		if ( _result ) {
+		    return attribute->second( *_result );
 		}
-
-		/* Anything we don't handle may be handled by our superclass */
-		return this->LanguageObject::getPropertyNamed(env, name);
 	    }
+	    catch ( const LQIO::should_implement& e ) {
+	    }
+	}
 
-        const Model::Result* getObject() const { return _result; }
-
-    protected:
-
-        const Model::Result * _result;
-        static const std::map<const std::string,attribute_table_t> __attributeTable;
-
-    };
+	/* Anything we don't handle may be handled by our superclass */
+	return this->LanguageObject::getPropertyNamed(env, name);
+    }
 
     const std::map<const std::string,LQXObject::attribute_table_t> LQXObject::__attributeTable =
     {
@@ -88,42 +66,22 @@ namespace BCMP {
 
     /* Note: A station is a subclass of a result */
 
-    class LQXStation : public LQXObject {
-    public:
+    const uint32_t LQXStation::kLQXStationObjectTypeId = 10+1;
 
-        const static uint32_t kLQXStationObjectTypeId = 10+1;
+    /* Comparison and Operators */
+    bool LQXStation::isEqualTo(const LQX::LanguageObject* other) const
+    {
+	const LQXObject* object = dynamic_cast<const LQXObject *>(other);
+	return object && object->getObject() == getObject();  /* Return a comparison of the types */
+    }
 
-        /* Designated Initializers */
-        LQXStation(const Model::Station* station) : LQXObject(kLQXStationObjectTypeId,station)
-            {
-            }
-
-        virtual ~LQXStation()
-            {
-            }
-
-        /* Comparison and Operators */
-        virtual bool isEqualTo(const LQX::LanguageObject* other) const
-            {
-                const LQXObject* object = dynamic_cast<const LQXObject *>(other);
-                return object && object->getObject() == getObject();  /* Return a comparison of the types */
-            }
-
-        virtual std::string description() const
-            {
-                /* Return a description of the class */
-                std::stringstream ss;
+    std::string LQXStation::description() const
+    {
+	/* Return a description of the class */
+	std::stringstream ss;
 //                ss << getTypeName() << "(" << getStation()->getName() << ")";
-		return ss.str();
-	    }
-
-	virtual std::string getTypeName() const
-	    {
-		return Model::Station::__typeName;
-	    }
-
-	const Model::Station* getStation() const { return dynamic_cast<const Model::Station*>(_result); }
-    };
+	return ss.str();
+    }
 
     class LQXGetStation : public LQX::Method {
     public:
@@ -351,6 +309,86 @@ namespace BCMP {
 	const Model* _model;
 	std::map<std::string,LQX::SymbolAutoRef> _symbolCache;
     };
+}
+
+namespace BCMP
+{ 
+    /* ------------------------------------------------------------------------ */
+    /*                              LQX Methods                                 */
+    /* ------------------------------------------------------------------------ */
+
+    const BCMP::Model::Station* QNAP2Result::getStation( const BCMP::LQXStation * lqx_station ) const
+    {
+	if ( lqx_station == nullptr ) {
+	    throw std::logic_error( "undefined station" );
+	}
+	return lqx_station->getStation();
+    }
+    
+    const BCMP::Model::Station::Class& QNAP2Result::getClass( const BCMP::Model::Station * station, const BCMP::LQXChain * lqx_chain ) const
+    {
+	if ( lqx_chain == nullptr ) {
+	    throw LQX::RuntimeException("Undefined chain");
+	}
+	return station->classAt( lqx_chain->getChain() );
+    }
+
+
+    LQX::SymbolAutoRef QNAP2Result::getResult( BCMP::Model::Result::Type type, LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args )
+    {
+	static const std::map<BCMP::Model::Result::Type,Result> getResult = {
+	    { BCMP::Model::Result::Type::MEAN_SERVICE,	    { "mservice",   &BCMP::Model::Station::mean_service,    &BCMP::Model::Station::Class::mean_service } },
+	    { BCMP::Model::Result::Type::QUEUE_LENGTH,	    { "mcustnb",    &BCMP::Model::Station::queue_length,    &BCMP::Model::Station::Class::queue_length } },
+	    { BCMP::Model::Result::Type::RESIDENCE_TIME,    { "mresponse",  &BCMP::Model::Station::residence_time,  &BCMP::Model::Station::Class::residence_time } },
+	    { BCMP::Model::Result::Type::THROUGHPUT,	    { "mthruput",   &BCMP::Model::Station::throughput,	    &BCMP::Model::Station::Class::throughput } },
+	    { BCMP::Model::Result::Type::UTILIZATION,	    { "mbusypct",   &BCMP::Model::Station::utilization,     &BCMP::Model::Station::Class::utilization } }
+	};
+
+	if (args.size() == 0) {
+	    return LQX::Symbol::encodeDouble( 0. );
+	} 
+	try {
+	    const BCMP::Model::Station* station = getStation( dynamic_cast<BCMP::LQXStation *>( decodeObject(args, 0) ) );
+	    if ( args.size() == 1 ) {
+		return LQX::Symbol::encodeDouble( (station->*getResult.at(type)._getStationResult)() );
+	    } else if ( args.size() == 2 ) {
+		return LQX::Symbol::encodeDouble( (getClass( station, dynamic_cast<BCMP::LQXChain *>( decodeObject(args, 0) ) ).*getResult.at(type)._getClassResult)() );
+	    } else {
+		throw std::logic_error( "arg count" );
+	    }
+	}
+	catch ( std::logic_error& error ) {
+	    throw LQX::RuntimeException( getResult.at(type)._name + ": " + error.what() );
+	}
+	return LQX::Symbol::encodeDouble( 0. );
+    }
+
+
+
+    LQX::SymbolAutoRef Mbusypct::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args)
+    {
+	return getResult( BCMP::Model::Result::Type::UTILIZATION, env, args );
+    }
+
+    LQX::SymbolAutoRef Mcustnb::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args)
+    {
+	return getResult( BCMP::Model::Result::Type::QUEUE_LENGTH, env, args );
+    }
+
+    LQX::SymbolAutoRef Mresponse::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args)
+    {
+	return getResult( BCMP::Model::Result::Type::RESIDENCE_TIME, env, args );
+    }
+
+    LQX::SymbolAutoRef Mservice::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args)
+    {
+	return getResult( BCMP::Model::Result::Type::MEAN_SERVICE, env, args );
+    }
+
+    LQX::SymbolAutoRef Mthruput::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args)
+    {
+	return getResult( BCMP::Model::Result::Type::THROUGHPUT, env, args );
+    }
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */

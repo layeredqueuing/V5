@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: openmodel.cc 15968 2022-10-13 19:23:03Z greg $
+ * $Id: openmodel.cc 16034 2022-10-25 23:20:32Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -32,7 +32,6 @@
 
 OpenModel::OpenModel( Model& parent, QNIO::Document& input ) : Model(input,Model::Solver::OPEN), _parent(parent), _solver(nullptr)
 {
-    setEnvironment(parent.getEnvironment());
     const size_t K = _model.n_chains(type());
     const size_t M = _model.n_stations(type());
     _result = K > 0 && M > 0;
@@ -141,4 +140,11 @@ OpenModel::debug( std::ostream& output ) const
 	output << ": arrival rate=" << arrival_rate << std::endl;
     }
     return Model::debug( output );
+}
+
+std::ostream&
+OpenModel::print( std::ostream& output ) const
+{
+    output << *_solver << std::endl;
+    return output;
 }

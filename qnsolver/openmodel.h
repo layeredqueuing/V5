@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: openmodel.h 15967 2022-10-13 15:23:20Z greg $
+ * $Id: openmodel.h 16034 2022-10-25 23:20:32Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -44,6 +44,7 @@ public:
     virtual void saveResults();
     
     virtual std::ostream& debug( std::ostream& output ) const;
+    virtual std::ostream& print( std::ostream& output ) const;
 
 private:
     virtual BCMP::Model::Chain::Type type() const { return BCMP::Model::Chain::Type::OPEN; }

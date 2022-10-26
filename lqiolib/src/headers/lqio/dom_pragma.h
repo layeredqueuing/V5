@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 15819 2022-08-12 18:26:27Z greg $
+ * $Id: dom_pragma.h 16027 2022-10-25 02:18:21Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -40,7 +40,7 @@ namespace LQIO {
 	    const std::map<std::string,std::string>& getList() const;
 	    bool empty() const { return getList().empty(); }
 	    size_t size() const { return getList().size(); }
-	    const std::string get( const std::string& ) const;
+	    const std::string& get( const std::string& ) const;
 	    static const std::set<std::string>* getValues( const std::string& );
 	    static bool isTrue(const std::string& value);
 	    static LQIO::error_severity getSeverityLevel( const std::string& value );
@@ -90,6 +90,7 @@ namespace LQIO {
 	    static const char * _cycles_;
 	    static const char * _default_;
 	    static const char * _default_natural_;
+	    static const char * _default_output_;
 	    static const char * _deterministic_;	// Quorum
 	    static const char * _exact_;
 	    static const char * _expand_;

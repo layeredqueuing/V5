@@ -9,7 +9,7 @@
  *
  * November 2022
  *
- * $Id: qnio_document.h 16003 2022-10-19 17:22:13Z greg $
+ * $Id: qnio_document.h 16027 2022-10-25 02:18:21Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -42,6 +42,7 @@ namespace QNIO {
 	BCMP::Model& model() { return _model; }
 	const std::string& getInputFileName() const { return _input_file_name; }
 	
+	void setEnvironment( LQX::Environment * environment ) { _model.setEnvironment( environment ); }
 	virtual LQX::Program * getLQXProgram() const { return _lqx_program; }
     protected:
 	void setLQXProgram( LQX::Program * program ) { _lqx_program = program; }
@@ -55,6 +56,7 @@ namespace QNIO {
 	void insertPragma( const std::string param, const std::string value ) { _pragmas.insert( param, value ); }
 	void mergePragmas( const std::map<std::string,std::string>& list ) { _pragmas.merge( list ); }
 
+	virtual bool disableDefaultOutputWithLQX() const { return false; }
 	virtual void plot( BCMP::Model::Result::Type, const std::string& ) {}
 
 	virtual std::ostream& print( std::ostream& output ) const = 0;

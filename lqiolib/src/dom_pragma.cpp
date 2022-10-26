@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 15895 2022-09-23 17:21:55Z greg $
+ *  $Id: dom_pragma.cpp 16027 2022-10-25 02:18:21Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -79,14 +79,11 @@ namespace LQIO {
 	    return _loadedPragmas;
 	}
 
-	const std::string Pragma::get( const std::string& s ) const
+	const std::string& Pragma::get( const std::string& s ) const
 	{
 	    std::map<std::string,std::string>::const_iterator iter = _loadedPragmas.find( s );
-	    if ( iter != _loadedPragmas.end() ) {
-		return iter->second;
-	    } else {
-		return std::string("");
-	    }
+	    if ( iter == _loadedPragmas.end() ) throw std::invalid_argument( s );
+	    return iter->second;
 	}
 	
 	const std::set<std::string>* Pragma::getValues( const std::string& s )
@@ -192,6 +189,7 @@ namespace LQIO {
 	const char * Pragma::_cycles_ =				"cycles";
 	const char * Pragma::_default_ =			"default";
 	const char * Pragma::_default_natural_ =		"default-natural";
+	const char * Pragma::_default_output_ =			"default-output";
 	const char * Pragma::_deterministic_ =			"deterministic";	// Quorum
 	const char * Pragma::_exact_ =				"exact-mva";
 	const char * Pragma::_expand_ =				"expand";
@@ -309,6 +307,7 @@ namespace LQIO {
 	    { _block_period_,      	    nullptr },			    /* lqsim */
 	    { _convergence_value_,	    nullptr },			    /* lqns */
 	    { _cycles_,  	    	    &__true_false_arg },	    /* lqns */
+	    { _default_output_,		    &__true_false_arg },	    /* all */
 	    { _force_infinite_,		    &__force_infinite_args },	    /* */
 	    { _force_multiserver_, 	    &__force_multiserver_args },    /* lqns */
 	    { _force_random_queueing_,	    &__true_false_arg },	    /* petrisrvn */

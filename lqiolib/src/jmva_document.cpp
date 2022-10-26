@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16012 2022-10-20 13:52:21Z greg $
+ * $Id: jmva_document.cpp 16034 2022-10-25 23:20:32Z greg $
  *
  * Read in XML input files.
  *
@@ -1435,7 +1435,7 @@ namespace QNIO {
 	    }
 	    switch ( type ) {
 	    case BCMP::Model::Result::Type::THROUGHPUT:
-		bound1 = BCMP::Model::Bound::reciprocal( bounds.D_max() );
+		bound1 = BCMP::Model::reciprocal( bounds.D_max() );
 		title1 += "1/Dmax";
 		title2 += "1/(Dsum+Z)";
 		break;
@@ -1459,12 +1459,12 @@ namespace QNIO {
 	    plot << ", " << *bound1 << " with lines title \"" << title1 << "\"";
 	    switch ( type ) {
 	    case BCMP::Model::Result::Type::THROUGHPUT:
-		plot << ", x/" << *BCMP::Model::Bound::add( bounds.D_sum(), bounds.Z_sum() ) << " with lines title \"" << title2 << "\"";
-		y_max = BCMP::Model::Bound::max( y_max, BCMP::Model::Bound::reciprocal( bounds.D_max() ) );
+		plot << ", x/" << *BCMP::Model::add( bounds.D_sum(), bounds.Z_sum() ) << " with lines title \"" << title2 << "\"";
+		y_max = BCMP::Model::max( y_max, BCMP::Model::reciprocal( bounds.D_max() ) );
 		break;
 	    case BCMP::Model::Result::Type::RESPONSE_TIME:
 		plot << ", x*" << *bounds.D_max() <<  "-" << *bounds.Z_sum() << " with lines title \"" << title2 << "\"";
-		y_max = BCMP::Model::Bound::max( y_max, BCMP::Model::Bound::subtract( BCMP::Model::Bound::multiply( x_max, bounds.D_max() ), bounds.Z_sum() ) );
+		y_max = BCMP::Model::max( y_max, BCMP::Model::subtract( BCMP::Model::multiply( x_max, bounds.D_max() ), bounds.Z_sum() ) );
 		break;
 	    default:
 		break;
@@ -1514,8 +1514,8 @@ namespace QNIO {
 	    LQX::SyntaxTreeNode * D_y = BCMP::Model::Bound::D( m->second, *y );
 	    if ( D_x == nullptr && D_y == nullptr ) continue;
 
-	    x_max = BCMP::Model::Bound::max( x_max, D_x );
-	    y_max = BCMP::Model::Bound::max( y_max, D_y );
+	    x_max = BCMP::Model::max( x_max, D_x );
+	    y_max = BCMP::Model::max( y_max, D_y );
 	    if ( BCMP::Model::isDefault( D_y, 0. ) ) {
 		plot << ", 1/" << *D_x << ",t";
 	    } else {
@@ -1542,19 +1542,19 @@ namespace QNIO {
 	
 	/* Set range (if possible), otherwise punt */
 	if ( !BCMP::Model::isDefault( x_max ) && !BCMP::Model::isDefault( y_max ) ) {
-	    LQX::SyntaxTreeNode * x_pos = BCMP::Model::Bound::reciprocal( x_max );
-	    LQX::SyntaxTreeNode * y_pos = BCMP::Model::Bound::reciprocal( y_max );
+	    LQX::SyntaxTreeNode * x_pos = BCMP::Model::reciprocal( x_max );
+	    LQX::SyntaxTreeNode * y_pos = BCMP::Model::reciprocal( y_max );
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set parametric" ) );
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression( "set xrange [0:" ),
-							   BCMP::Model::Bound::multiply( x_pos, new LQX::ConstantValueExpression(1.05) ),
+							   BCMP::Model::multiply( x_pos, new LQX::ConstantValueExpression(1.05) ),
 							   new LQX::ConstantValueExpression( "]" ),
 							   nullptr ) );
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression( "set trange [0:" ),
-							   BCMP::Model::Bound::multiply( x_pos, new LQX::ConstantValueExpression(1.05) ),
+							   BCMP::Model::multiply( x_pos, new LQX::ConstantValueExpression(1.05) ),
 							   new LQX::ConstantValueExpression( "]" ),
 							   nullptr ) );
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression( "set yrange [0:" ),
-							   BCMP::Model::Bound::multiply( y_pos, new LQX::ConstantValueExpression(1.05) ),
+							   BCMP::Model::multiply( y_pos, new LQX::ConstantValueExpression(1.05) ),
 							   new LQX::ConstantValueExpression( "]" ),
 							   nullptr ) );
 
@@ -2115,9 +2115,9 @@ namespace QNIO
 	    /* No WhatIf and default output */
 	    std::map<const std::string,const std::string>::const_iterator current_station = _station_index.begin();
 	    for ( std::vector<var_name_and_expr>::const_iterator result = _result_variables.begin(); result != _result_variables.end(); ++result ) {
-		if ( current_station->first == result->first ) {
+		if ( current_station != _station_index.end() && current_station->first == result->first ) {
 		    /* First item in the vector. */
-		    print_arguments.push_back( new std::vector<LQX::SyntaxTreeNode *> );								/* New row. */
+		    print_arguments.push_back( new std::vector<LQX::SyntaxTreeNode *> );				/* New row. */
 		    print_arguments.back()->push_back( new LQX::ConstantValueExpression( ", " ) );			/* CSV. */
 		    print_arguments.back()->push_back( new LQX::ConstantValueExpression( current_station->second ) );	/* Station name */
 		    current_station++;
@@ -2127,13 +2127,13 @@ namespace QNIO
 
 	} else {
 	    print_arguments.push_back( new std::vector<LQX::SyntaxTreeNode *> );
-	    print_arguments.back()->push_back( new LQX::ConstantValueExpression( ", " ) );	/* CSV. */
+	    print_arguments.back()->push_back( new LQX::ConstantValueExpression( ", " ) );				/* CSV. */
 	
 	    for ( std::vector<std::string>::const_iterator input = _independent_variables.begin(); input != _independent_variables.end(); ++input ) {
-		print_arguments.back()->push_back( new LQX::VariableExpression( *input, false ) );	/* Print out input variables */
+		print_arguments.back()->push_back( new LQX::VariableExpression( *input, false ) );			/* Print out input variables */
 	    }
 	    for ( std::vector<var_name_and_expr>::const_iterator result = _result_variables.begin(); result != _result_variables.end(); ++result ) {
-		print_arguments.back()->push_back( new LQX::VariableExpression( result->first, false ) );	/* Print out results */
+		print_arguments.back()->push_back( new LQX::VariableExpression( result->first, false ) );		/* Print out results */
 	    }
 	}
 
