@@ -24,6 +24,9 @@
 *.lot
 *.lqjo
 *.lqxo
+*.maf
+*.mtc
+*.mtc0
 *.o
 *.out
 *.p
@@ -127,13 +130,13 @@ lqiolib/src/qnap2_gram.c
 lqiolib/src/qnap2_gram.h
 lqiolib/src/qnap2_scan.c
 lqiolib/src/qnap2_gram.output
-srvn_gram.c
-srvn_gram.h
-srvn_gram.output
+lqiolib/src/srvn_gram.c
+lqiolib/src/srvn_gram.h
+lqiolib/src/srvn_gram.output
+lqiolib/src/srvn_scan.c
 srvn_result_gram.c
 srvn_result_gram.h
 srvn_result_gram.output
 srvn_result_scan.c
-srvn_scan.c
 srvndiff/srvndiff
 stamp-h1

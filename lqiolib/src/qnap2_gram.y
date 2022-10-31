@@ -42,7 +42,7 @@ static bool station_found = false;
 %token <aReal>		DOUBLE
 %token <aLong>		LONG
 
-%type <aPointer>	class_list class_reference identifier_list service transit transit_list transit_pair variable variable_list loop_list
+%type <aPointer>	class_list class_reference service transit transit_list transit_pair variable variable_list loop_list
 %type <aPointer>	closed_statement compound_statement exec expression expression_list factor lvalue open_statement power prefix_statement postfix_statement procedure_call simple_statement statement term 
 %type <aPointer>	relation 
 %type <aCode>		compound_station_type simple_station_type variable_type 
@@ -78,7 +78,7 @@ declare_list		: declare_statement
 
 declare_statement	: QNAP_QUEUE variable_list ';'				{ qnap2_declare_queue( $2 ); }
 			| QNAP_CLASS variable_list ';'				{ qnap2_declare_class( $2 ); }
-			| QNAP_CLASS variable_type variable_list ';'		{ qnap2_declare_field( $2, $3 ); }
+			| QNAP_CLASS variable_type variable_list ';'		{ qnap2_declare_attribute( $2, $3 ); }
 			| variable_type variable_list ';'			{ qnap2_define_variable( $1, $2 ); }
 			;
 
@@ -147,7 +147,7 @@ service			: QNAP_CST '(' factor ')'				{ $$ = qnap2_get_service_distribution( $1
 			| QNAP_HEXP '(' factor ',' factor ')'			{ $$ = qnap2_get_service_distribution( $1, $3, $5 ); }		/* $4 == k == 1/c^2 */
 			;
 
-transit			: identifier						{ $$ = qnap2_append_pointer( NULL, qnap2_get_transit_pair( $1, NULL ) ); }
+transit			: identifier						{ $$ = qnap2_append_pointer( NULL, qnap2_get_transit_pair( $1, NULL ) ); free( $1 ); }
 			| transit_list 						{ $$ = $1; }
 			;
 
@@ -155,7 +155,7 @@ transit_list		: transit_pair						{ $$ = qnap2_append_pointer( NULL, $1 ); }
 			| transit_list ',' transit_pair				{ $$ = qnap2_append_pointer( $1, $3 ); }
 			;
 
-transit_pair		: identifier ',' factor					{ $$ = qnap2_get_transit_pair( qnap2_get_station_name( $1 ), $3 ); }
+transit_pair		: identifier ',' factor					{ $$ = qnap2_get_transit_pair( qnap2_get_station_name( $1 ), $3 ); free( $1 ); }
 			;
 
 
@@ -184,7 +184,7 @@ control_list		: control
 			;
 
 control			: QNAP_CLASS QNAP_EQUAL QNAP_ALL QNAP_QUEUE ';'
-			| QNAP_OPTION QNAP_EQUAL identifier ';'			{ qnap2_set_option( $3 ); }
+			| QNAP_OPTION QNAP_EQUAL identifier ';'			{ qnap2_set_option( $3 ); free( $3 );}
 			;
 
 /* ------------------------------------------------------------------------ */
@@ -221,12 +221,14 @@ compound_statement	: statement						{ $$ = qnap2_append_pointer( NULL, $1 ); }
 			| compound_statement ';' statement			{ $$ = qnap2_append_pointer( $1, $3 ); }
 			;
 
-lvalue			: identifier '(' identifier ')' 			{ $$ = qnap2_get_vector_lvalue( $1, $3 ); }
-			| identifier '.' identifier 				{ $$ = qnap2_get_object_lvalue( $1, $3 ); }
-			| identifier  						{ $$ = qnap2_get_scalar_lvalue( $1 ); }
+lvalue			: identifier  						{ $$ = qnap2_get_scalar_lvalue( $1 ); free( $1 ); }
+			| identifier '.' identifier 				{ $$ = qnap2_get_object_lvalue( qnap2_get_scalar_lvalue( $1 ), $3 ); free( $1 ); free( $3 ); }
+			| identifier '(' expression ')' 			{ $$ = qnap2_get_vector_lvalue( qnap2_get_scalar_lvalue( $1 ), $3 ); free( $1 ); free( $3 ); }
+			| identifier '(' expression ')' '.' identifier 		{ $$ = qnap2_get_object_lvalue( qnap2_get_vector_lvalue( $1, $3 ), $6 ); free( $1 ); free( $3 ); }
+			;
 
-procedure_call		: identifier						{ $$ = qnap2_get_function( $1, NULL ); }
-			| identifier '(' expression_list ')'			{ $$ = qnap2_get_function( $1, $3 ); }
+procedure_call		: identifier						{ $$ = qnap2_get_function( $1, NULL ); free( $1 ); }
+			| identifier '(' expression_list ')'			{ $$ = qnap2_get_function( $1, $3 ); free( $1 ); }
 			;
 
 relation		: expression						{ $$ = $1; }
@@ -261,11 +263,12 @@ prefix_statement	: QNAP_PLUS postfix_statement				{ $$ = $2; }
 			| postfix_statement					{ $$ = $1; }
 			;
 
-postfix_statement	: identifier '(' expression_list ')'			{ $$ = qnap2_get_function( $1, $3 ); }
+postfix_statement	: postfix_statement '(' expression_list ')'		{ $$ = qnap2_get_function( $1, $3 ); free( $1 ); }
+			| postfix_statement '.' identifier			{ $$ = NULL; }
 			| factor						{ $$ = $1; }
 			;
 
-factor			: identifier						{ $$ = qnap2_get_variable( $1 ); }
+factor			: identifier						{ $$ = qnap2_get_variable( $1 ); free( $1 ); }
 			| LONG 							{ $$ = qnap2_get_integer( $1 ); }
 			| DOUBLE						{ $$ = qnap2_get_real( $1 ); }
 			| STRING						{ $$ = qnap2_get_string( $1 ); }
@@ -285,10 +288,6 @@ loop_list		: expression QNAP_STEP expression QNAP_UNTIL expression	{ $$ = qnap2_
 step_until		: '(' LONG QNAP_STEP LONG QNAP_UNTIL identifier ')'
 			;
 */
-
-identifier_list		: identifier						{ $$ = qnap2_append_string( NULL, $1 ); free( $1 ); }
-			| identifier_list ',' identifier			{ $$ = qnap2_append_string( $1, $3 ); free( $3 ); }
-			;
 
 identifier		: QNAP_IDENTIFIER					{ $$ = $1; }
 			| QNAP_CLASS						{ $$ = strdup( "class" ); }

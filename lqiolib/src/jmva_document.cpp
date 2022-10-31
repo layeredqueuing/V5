@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16034 2022-10-25 23:20:32Z greg $
+ * $Id: jmva_document.cpp 16045 2022-10-30 10:29:01Z greg $
  *
  * Read in XML input files.
  *
@@ -82,7 +82,7 @@ namespace QNIO {
 	Document( input_file_name, BCMP::Model() ),
 	_parser(nullptr), _stack(),
 	_lqx_program_text(), _lqx_program_line_number(0),
-	_main_program(), _input_variables(), _whatif_statements(), _whatif_body(), _independent_variables(), _result_variables(), _station_index(),
+	_main_program(), _input_variables(), _whatif_body(), _independent_variables(), _result_variables(), _station_index(),
 	_think_time_vars(), _population_vars(), _arrival_rate_vars(), _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 	_plot_population_mix(false), _plot_customers(false)
     {
@@ -919,7 +919,7 @@ namespace QNIO {
      * If only a className XOR a station name is present, then apply
      * proportinately to all classes or stations, otherwise assign
      * values.  We can be a bit more flexible.  The values are a list
-     * which can be converted to a generator.  The latter is better
+     * which can be converted to a comprehension.  The latter is better
      * for QNAP2 output.
      *
      * type can be "Customer Numbers" or "Service Demands" (or
@@ -946,12 +946,12 @@ namespace QNIO {
 
 	const std::string x_var = (this->*(f->second))( stationName, className );
 	const bool is_unsigned = (f->second == &JMVA_Document::setMultiplicity || f->second == &JMVA_Document::setCustomers);
-	const Generator generator( x_var, XML::getStringAttribute( attributes, Xvalues ), is_unsigned );
+	const Comprehension comprehension( x_var, XML::getStringAttribute( attributes, Xvalues ), is_unsigned );
 	_independent_variables.emplace_back( x_var );
-	if ( generator.begin() == generator.end() ) {
+	if ( comprehension.begin() == comprehension.end() ) {
 	    /* One item = scalar */
 	} else {
-	    _whatif_statements.emplace_front( generator );
+	    insertComprehension( comprehension );
 	}
     }
 
@@ -1399,10 +1399,10 @@ namespace QNIO {
 	}
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key box" ) );
 
-	std::deque<Generator>::const_iterator whatif = std::find_if( _whatif_statements.begin(), _whatif_statements.end(), Generator::find(_independent_variables.at(0)) );
-	if ( whatif == _whatif_statements.end() || whatif->size() <= 1 ) throw std::invalid_argument( _independent_variables.at(0) + " is not a whatif" );
+	std::deque<Comprehension>::const_iterator whatif = std::find_if( this->whatif_statements().begin(), this->whatif_statements().end(), Comprehension::find(_independent_variables.at(0)) );
+	if ( whatif == whatif_statements().end() || whatif->size() <= 1 ) throw std::invalid_argument( _independent_variables.at(0) + " is not a whatif" );
 
-	LQX::ConstantValueExpression * x_max = new LQX::ConstantValueExpression( whatif->begin() + whatif->step() * (whatif->size() - 1) );
+	LQX::ConstantValueExpression * x_max = new LQX::ConstantValueExpression( whatif->max() );
 
 	size_t n_labels = 0;
 	LQX::SyntaxTreeNode * y_max = nullptr;
@@ -1609,57 +1609,6 @@ namespace QNIO {
     JMVA_Document::get_gnuplot_index( const std::string& name ) const
     {
 	return _independent_variables.size() + _result_index.at( name );
-    }
-
-    JMVA_Document::Generator& JMVA_Document::Generator::operator=( const JMVA_Document::Generator& src )
-    {
-	_name = src._name;
-	_begin = src._begin; 
-	_step = src._step;
-	_size = src._size;
-	return *this;
-    }
-
-    /*
-     * Convert a string of the form "v_1;v_2;...;v_n" to v_1, v_n, n.
-     * The assumption is that all of the values "v" are monotonically
-     * increasing and evenly distributed.
-     */
-    
-    void
-    JMVA_Document::Generator::convert( const std::string& s, bool integer )
-    {
-	/* tokenize the string on ';' */
-	const char delim = ';';
-	std::vector<double> values;
-	size_t start;
-	size_t finish = 0;
-	while ((start = s.find_first_not_of(delim, finish)) != std::string::npos) {
-	    finish = s.find(delim, start);
-	    const std::string token = s.substr(start, finish - start);
-	    char * endptr = nullptr;
-	    values.push_back(::strtod( token.c_str(), &endptr ));
-	    if ( *endptr != '\0') throw std::domain_error( "invalid double" );
-	}
-	if ( values.size() == 0 ) return;
-
-	/* Now compute the parameters for the generator */
-	_size = values.size();
-	_begin = values.front();
-	if ( _size > 1 ) {
-	    _step = (values.at(1) - _begin);
-	} else {
-	    _step = 0;
-	}
-	if ( integer ) {
-	    _step = ::rint( _step );
-	}
-    }
-
-    LQX::VariableExpression *
-    JMVA_Document::Generator::getVariable() const
-    {
-	return new LQX::VariableExpression( _name, false );
     }
 }
 
@@ -1942,13 +1891,10 @@ namespace QNIO {
 	/* Print it out */
 	
 	std::ostringstream values;
-	std::deque<Generator>::const_iterator whatif = std::find_if( whatif_statements().begin(), whatif_statements().end(), Generator::find(var) );
+	std::deque<Comprehension>::const_iterator whatif = std::find_if( whatif_statements().begin(), whatif_statements().end(), Comprehension::find(var) );
 	if ( whatif != whatif_statements().end() ) {
 	    /* Simple, run the comprehension directly */
-	    for ( double value = whatif->begin(); value < whatif->end(); value += whatif->step() ) {
-		if ( value != whatif->begin() ) values << ";";
-		values << value;
-	    }
+	    values << *whatif;
 	}
 	_output << XML::attribute( Xvalues, values.str() );
 	_output << "/>  <!--" << var << "-->" << std::endl;
@@ -2040,7 +1986,7 @@ namespace QNIO
 	    program->push_back( print_csv_header() );
 	}
 	program->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "_0", false ), new LQX::ConstantValueExpression( 0. ) ) );
-	program->push_back( foreach_loop( _whatif_statements.begin(), _whatif_statements.end() ) );
+	program->push_back( foreach_loop( whatif_statements().begin(), whatif_statements().end() ) );
 
 	/*+ gnuplo t-> append the gnuplot program. */
 	if ( !_gnuplot.empty() ) {
@@ -2056,18 +2002,13 @@ namespace QNIO
     /* Creat a for-loop for each whatif */
     
     LQX::SyntaxTreeNode *
-    JMVA_Document::foreach_loop( std::deque<Generator>::const_iterator generator, std::deque<Generator>::const_iterator end ) const
+    JMVA_Document::foreach_loop( std::deque<Comprehension>::const_iterator comprehension, std::deque<Comprehension>::const_iterator end ) const
     {
-	if ( generator != end ) {
-	    LQX::SyntaxTreeNode * expr = foreach_loop( std::next( generator ), end );
+	if ( comprehension != end ) {
+	    LQX::SyntaxTreeNode * expr = foreach_loop( std::next( comprehension ), end );
 	    std::vector<LQX::SyntaxTreeNode *>* loop_body = new std::vector<LQX::SyntaxTreeNode *>();
 	    loop_body->push_back( expr );
-//	    loop_body->push_back( new LQX::FilePrintStatementNode( new std::vector<LQX::SyntaxTreeNode *>(), true, false ) );	/* Insert a blank line */
-	    /* for ( variable = begin, variable < end, variable += stride ) { loop_body } */
-	    return new LQX::LoopStatementNode( new LQX::AssignmentStatementNode( generator->getVariable(), new LQX::ConstantValueExpression( generator->begin() ) ),
-					       new LQX::ComparisonExpression(LQX::ComparisonExpression::LESS_THAN, generator->getVariable(), new LQX::ConstantValueExpression( generator->end() ) ),
-					       new LQX::AssignmentStatementNode( generator->getVariable(), new LQX::MathExpression( LQX::MathExpression::ADD, generator->getVariable(), new LQX::ConstantValueExpression( generator->step() ) ) ),
-					       new LQX::CompoundStatementNode( loop_body ) );
+	    return comprehension->collect( loop_body );
 	} else {
 	    return new LQX::CompoundStatementNode( this->loop_body() );
 	}

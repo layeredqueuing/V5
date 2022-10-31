@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16027 2022-10-25 02:18:21Z greg $
+ *  $Id: jmva_document.h 16045 2022-10-30 10:29:01Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -104,35 +104,6 @@ namespace QNIO {
 	    bool operator()( const XML_Char * s1, const XML_Char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
 	};
 
-	class Generator
-	{
-	    /* Variable = begin(); variable < end(); variable += step() */
-	public:
-	    Generator( const std::string name, const std::string& s, bool integer ) : _name(name), _begin(0.), _step(0.), _size(0) { convert(s,integer); }
-	    Generator& operator=( const Generator& );
-
-	    LQX::VariableExpression * getVariable() const;
-	    double begin() const { return _begin; }
-	    double end() const { return _begin + _size * _step; }
-	    double step() const { return _step; }
-	    size_t size() const { return _size; }
-
-	    struct find {
-		find( const std::string& name ) : _name(name) {}
-		bool operator()( const Generator& generator ) const { return generator._name == _name; }
-	    private:
-		const std::string _name;
-	    };
-	    
-	private:
-	    void convert( const std::string&, bool );
-
-	    std::string _name;
-	    double _begin;
-	    double _step;
-	    size_t _size;
-	};
-
 	struct register_variable {
 	    register_variable( LQX::Program * lqx ) : _lqx(lqx) {}
 	    void operator()( const std::string& symbol ) const;
@@ -159,6 +130,7 @@ namespace QNIO {
 	void setLQXProgramLineNumber( const unsigned n ) { _lqx_program_line_number = n; }
 	const unsigned getLQXProgramLineNumber() const { return _lqx_program_line_number; }
 	virtual std::vector<std::string> getUndefinedExternalVariables() const;
+	const std::deque<Comprehension>& whatif_statements() const { return comprehensions(); }
 
 	virtual void registerExternalSymbolsWithProgram(LQX::Program* program);
 
@@ -232,7 +204,7 @@ namespace QNIO {
 
 	/* LQX */
 	virtual LQX::Program * getLQXProgram() const;
-	LQX::SyntaxTreeNode * foreach_loop( std::deque<Generator>::const_iterator, std::deque<Generator>::const_iterator ) const;
+	LQX::SyntaxTreeNode * foreach_loop( std::deque<Comprehension>::const_iterator, std::deque<Comprehension>::const_iterator ) const;
 	std::vector<LQX::SyntaxTreeNode *>* loop_body() const;
 	std::vector<LQX::SyntaxTreeNode *>* solve_failure() const;
 	std::vector<LQX::SyntaxTreeNode *>* solve_success() const;
@@ -295,7 +267,7 @@ namespace QNIO {
 	    void operator()( const std::string& ) const;
 	    const BCMP::Model::Station::map_t& stations() const { return model().stations(); }
 	    const BCMP::Model::Chain::map_t& chains() const { return model().chains(); }
-	    const std::deque<Generator>& whatif_statements() const { return _document._whatif_statements; }
+	    const std::deque<Comprehension>& whatif_statements() const { return _document.comprehensions(); }
 	private:
 	    const BCMP::Model& model() const { return _document.model(); }
 	    static bool match( const LQX::SyntaxTreeNode * var, const std::string& );
@@ -411,7 +383,6 @@ namespace QNIO {
 	/* SPEX */
 	std::vector<LQX::SyntaxTreeNode*> _main_program;
 	std::set<std::string> _input_variables;						/* Spex vars -- may move to QNAP/QNIO */
-	std::deque<Generator> _whatif_statements;					/* For loops from WhatIf */
 	std::vector<LQX::SyntaxTreeNode*> _whatif_body;
 	std::vector<std::string> _independent_variables;				/* x variables */
 	std::vector<var_name_and_expr> _result_variables;				/* y variables */
