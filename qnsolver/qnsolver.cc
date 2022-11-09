@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 15986 2022-10-17 09:35:47Z greg $
+ * $Id: qnsolver.cc 16079 2022-11-08 15:35:44Z greg $
  */
 
 #include "config.h"
@@ -284,14 +284,14 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
     if ( print_qnap2 ) {
 	QNIO::QNAP2_Document qnap_model( input.getInputFileName(), input.model() );
 	if ( output_file_name.empty() ) {
-	    qnap_model.printInput( std::cout );
+	    qnap_model.exportModel( std::cout );
 	} else {
 	    std::ofstream output;
 	    output.open( output_file_name, std::ios::out );
 	    if ( !output ) {
 		std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << output_file_name << "\" -- " << strerror( errno ) << std::endl;
 	    } else {
-		qnap_model.print( output );
+		qnap_model.exportModel( output );
 	    }
 	    output.close();
 	}

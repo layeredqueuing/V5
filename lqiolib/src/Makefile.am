@@ -1,4 +1,4 @@
-# $Id: Makefile.am 16014 2022-10-20 16:06:05Z greg $
+# $Id: Makefile.am 16069 2022-11-05 21:32:04Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 # This project uses Libtool to generate a product
@@ -64,7 +64,7 @@ srvn_scan.c: srvn_scan.l srvn_gram.h headers/lqio/srvn_input.h
 	$(LEX) -t $(LFLAGS) -Psrvn srvn_scan.l > srvn_scan.c
 
 # Force rename of variables.  For BISON -- should check. :-)
-srvn_gram.c srvn_gram.h: srvn_gram.y headers/lqio/srvn_input.h
+srvn_gram.h srvn_gram.c: srvn_gram.y headers/lqio/srvn_input.h
 	$(YACC) -dtv -p srvn -o srvn_gram.c srvn_gram.y
 
 # Force rename of variables.  For FLEX -- should check. :-)
@@ -72,13 +72,13 @@ srvn_result_scan.c: srvn_result_scan.l srvn_result_gram.h
 	$(LEX) -t $(LFLAGS) -Presult srvn_result_scan.l > srvn_result_scan.c
 
 # Force rename of variables.  For BISON -- should check. :-)
-srvn_result_gram.c srvn_result_gram.h: srvn_result_gram.y
+srvn_result_gram.h srvn_result_gram.c: srvn_result_gram.y
 	$(YACC) -dtv -p result -o srvn_result_gram.c srvn_result_gram.y
 
 qnap2_scan.c: qnap2_scan.l qnap2_gram.h
 	$(LEX) -t $(LFLAGS) -Pqnap2 qnap2_scan.l > qnap2_scan.c
 
-qnap2_gram.c qnap2_gram.h: qnap2_gram.y 
+qnap2_gram.h qnap2_gram.c: qnap2_gram.y 
 	$(YACC) -dtv -p qnap2 -o qnap2_gram.c qnap2_gram.y
 
 

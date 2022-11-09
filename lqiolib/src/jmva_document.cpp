@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16045 2022-10-30 10:29:01Z greg $
+ * $Id: jmva_document.cpp 16079 2022-11-08 15:35:44Z greg $
  *
  * Read in XML input files.
  *
@@ -81,8 +81,8 @@ namespace QNIO {
     JMVA_Document::JMVA_Document( const std::string& input_file_name ) :
 	Document( input_file_name, BCMP::Model() ),
 	_parser(nullptr), _stack(),
-	_lqx_program_text(), _lqx_program_line_number(0),
-	_main_program(), _input_variables(), _whatif_body(), _independent_variables(), _result_variables(), _station_index(),
+	_lqx_program_text(), _lqx_program_line_number(0), _lqx(nullptr), _program(), 
+	_input_variables(), _whatif_body(), _independent_variables(), _result_variables(), _station_index(),
 	_think_time_vars(), _population_vars(), _arrival_rate_vars(), _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 	_plot_population_mix(false), _plot_customers(false)
     {
@@ -91,7 +91,8 @@ namespace QNIO {
     JMVA_Document::JMVA_Document( const std::string& input_file_name, const BCMP::Model& model ) :
 	Document( input_file_name, model ),
 	_parser(nullptr), _stack(),
-	_lqx_program_text(), _lqx_program_line_number(0), _main_program(), _input_variables(), _independent_variables(), _result_variables(), _station_index(),
+	_lqx_program_text(), _lqx_program_line_number(0), _lqx(nullptr), _program(),
+	_input_variables(), _whatif_body(), _independent_variables(), _result_variables(), _station_index(),
 	_think_time_vars(), _population_vars(), _arrival_rate_vars(), _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 	_plot_population_mix(false), _plot_customers(false)
     {
@@ -113,9 +114,7 @@ namespace QNIO {
 	/* LQX present? */
 	const std::string& program_text = getLQXProgramText();
 	if ( !program_text.empty() ) {
-	    LQX::Program* program = nullptr;
-	    program = LQX::Program::loadFromText(getInputFileName().c_str(), getLQXProgramLineNumber(), program_text.c_str());
-	    setLQXProgram( program );
+	    _lqx = LQX::Program::loadFromText(getInputFileName().c_str(), getLQXProgramLineNumber(), program_text.c_str());
 	}
 	return true;
     }
@@ -1101,8 +1100,8 @@ namespace QNIO {
 	_population_vars.emplace( &k1->second, class1_population );
 	_input_variables.emplace( class1_population );
 	k1->second.setCustomers( new LQX::VariableExpression( class1_population, is_external ) );	/* ... so swap constant for variable in class.	*/
-	_main_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( x_name, false ),
-								   new LQX::ConstantValueExpression( k1_customers ) ) );
+	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( x_name, false ),
+							      new LQX::ConstantValueExpression( k1_customers ) ) );
 	std::vector<LQX::SyntaxTreeNode *> * function_args = new std::vector<LQX::SyntaxTreeNode *>;
 	function_args->push_back( new LQX::MathExpression( LQX::MathExpression::MULTIPLY,
 							   new LQX::VariableExpression( beta, false ),
@@ -1116,8 +1115,8 @@ namespace QNIO {
 	_population_vars.emplace( &k2->second, class2_population );
 	_input_variables.emplace( class2_population );
 	k2->second.setCustomers( new LQX::VariableExpression( class2_population, is_external ) );	/* ... so swap constanst for variable in class.	*/
-	_main_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( y_name, false ),
-								   new LQX::ConstantValueExpression( k2_customers ) ) );
+	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( y_name, false ),
+							      new LQX::ConstantValueExpression( k2_customers ) ) );
 	function_args = new std::vector<LQX::SyntaxTreeNode *>;
 	function_args->push_back( new LQX::MathExpression( LQX::MathExpression::MULTIPLY,
 							   new LQX::MathExpression( LQX::MathExpression::SUBTRACT,  new LQX::ConstantValueExpression( 1. ), new LQX::VariableExpression( beta, false ) ),
@@ -1158,7 +1157,6 @@ namespace QNIO {
     JMVA_Document::create_result::operator()( const std::pair<const std::string,const BCMP::Model::Station>& m ) const
     {
 	const BCMP::Model::Station& station = stations().at(m.first);		// Can't use m.second as m is a copy.
-	_station_index_set = false;
 	for ( std::map<const std::string,const BCMP::Model::Result::Type>::const_iterator r = JMVA_Document::__result_name_table.begin(); r != JMVA_Document::__result_name_table.end(); ++r ) {
 	    if ( r->second == BCMP::Model::Result::Type::RESPONSE_TIME ) continue;
 	    
@@ -1194,10 +1192,7 @@ namespace QNIO {
     JMVA_Document::create_result::createObservation( const std::string& station_name, const std::string& result_name, BCMP::Model::Result::Type type, const BCMP::Model::Station * m, const BCMP::Model::Station::Class * k ) const
     {
 	_self.createObservation( result_name, type, m, k );
-	if ( !_station_index_set ) {
-	    _self.setResultIndex( result_name, station_name );
-	    _station_index_set = true;
-	}
+	_self.setResultIndex( result_name, station_name );
     }
 
 
@@ -1257,9 +1252,9 @@ namespace QNIO {
      */
     
     void
-    JMVA_Document::setResultIndex( const std::string& station_name, const std::string& result_name )
+    JMVA_Document::setResultIndex( const std::string& result_name, const std::string& station_name )
     {
-	_station_index.emplace( station_name, result_name );		// Where in the array is the variable?
+	_station_index.emplace( result_name, station_name );		// Where in the array is the variable?
     }
 
 
@@ -1627,7 +1622,7 @@ namespace QNIO {
     }
     
     std::ostream&
-    JMVA_Document::printInput( std::ostream& output ) const
+    JMVA_Document::exportModel( std::ostream& output ) const
     {
 	printModel( output );
 	printSPEX( output );
@@ -1969,34 +1964,31 @@ namespace QNIO
      */
     
     LQX::Program *
-    JMVA_Document::getLQXProgram() const
+    JMVA_Document::getLQXProgram()
     {
-	if ( QNIO::Document::getLQXProgram() != nullptr ) return QNIO::Document::getLQXProgram();
-
-	std::vector<LQX::SyntaxTreeNode *>* program = new std::vector<LQX::SyntaxTreeNode *>();
 	
-	program->reserve( _main_program.size() + 3 );
-	std::copy( _main_program.begin(), _main_program.end(), std::back_inserter( *program ) );
+	if ( _lqx != nullptr ) return _lqx;
 
 	/* insert the actual program (the loops) */
 
 	if ( !_gnuplot.empty() ) {
-	    LQIO::GnuPlot::insert_header( program, model().comment(), _result_variables );
+	    LQIO::GnuPlot::insert_header( &_program, model().comment(), _result_variables );
 	} else {
-	    program->push_back( print_csv_header() );
+	    _program.push_back( print_csv_header() );
 	}
-	program->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "_0", false ), new LQX::ConstantValueExpression( 0. ) ) );
-	program->push_back( foreach_loop( whatif_statements().begin(), whatif_statements().end() ) );
+	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "_0", false ), new LQX::ConstantValueExpression( 0. ) ) );
+	_program.push_back( foreach_loop( whatif_statements().begin(), whatif_statements().end() ) );
 
 	/*+ gnuplo t-> append the gnuplot program. */
 	if ( !_gnuplot.empty() ) {
-	    program->push_back( LQIO::GnuPlot::print_node( "EOF" ) );
-	    program->insert( program->end(), _gnuplot.begin(), _gnuplot.end() );
+	    _program.push_back( LQIO::GnuPlot::print_node( "EOF" ) );
+	    _program.insert( _program.end(), _gnuplot.begin(), _gnuplot.end() );
 	}
 	
 	/* Convert and return */
-	
-	return LQX::Program::loadRawProgram( program );
+
+	_lqx = LQX::Program::loadRawProgram( &_program );
+	return _lqx;
     }
 
     /* Creat a for-loop for each whatif */
@@ -2054,14 +2046,16 @@ namespace QNIO
 
 	if ( _independent_variables.empty() && !_station_index.empty() ) {
 	    /* No WhatIf and default output */
-	    std::map<const std::string,const std::string>::const_iterator current_station = _station_index.begin();
+	    std::map<const std::string,const std::string>::const_iterator current_station = _station_index.end();
 	    for ( std::vector<var_name_and_expr>::const_iterator result = _result_variables.begin(); result != _result_variables.end(); ++result ) {
-		if ( current_station != _station_index.end() && current_station->first == result->first ) {
-		    /* First item in the vector. */
+		const std::map<const std::string,const std::string>::const_iterator next_station = _station_index.find( result->first );
+		if ( next_station == _station_index.end() ) break;
+		if ( next_station->second != current_station->second ) {
+		    /* Station name changed so start a new output line */
+		    current_station = next_station;
 		    print_arguments.push_back( new std::vector<LQX::SyntaxTreeNode *> );				/* New row. */
 		    print_arguments.back()->push_back( new LQX::ConstantValueExpression( ", " ) );			/* CSV. */
 		    print_arguments.back()->push_back( new LQX::ConstantValueExpression( current_station->second ) );	/* Station name */
-		    current_station++;
 		}
 		print_arguments.back()->push_back( new LQX::VariableExpression( result->first, false ) );		/* Add result. */
 	    }
@@ -2113,12 +2107,7 @@ namespace QNIO
 	if ( _independent_variables.empty() && !_station_index.empty() ) {
 	    /* Default... organize by station as rows and results as columns */
 	    list->push_back( new LQX::ConstantValueExpression( "Station" ) );	/* Print out input variables */
-	    if ( chains().size() > 1 ) {
-		for ( BCMP::Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
-		    std::for_each( JMVA_Document::__result_name_table.begin(), JMVA_Document::__result_name_table.end(), csv_heading( list, std::string("(") + k->first + ")") );
-		}
-	    }
-	    std::for_each( JMVA_Document::__result_name_table.begin(), JMVA_Document::__result_name_table.end(), csv_heading( list, std::string() ) );
+	    std::for_each( JMVA_Document::__result_name_table.begin(), JMVA_Document::__result_name_table.end(), csv_heading( list, chains() ) );
 	} else {
 	    for ( std::vector<std::string>::const_iterator input = _independent_variables.begin(); input != _independent_variables.end(); ++input ) {
 		list->push_back( new LQX::ConstantValueExpression( *input ) );	/* Print out input variables */
@@ -2135,7 +2124,13 @@ namespace QNIO
     JMVA_Document::csv_heading::operator()( const std::pair<const std::string,const BCMP::Model::Result::Type>& result )
     {
 	if ( result.second == BCMP::Model::Result::Type::RESPONSE_TIME ) return;	// ignore chain results as they are not output 
-	_arguments->push_back( new LQX::ConstantValueExpression( result.first + _suffix ) );
+	if ( chains().size() > 1 ) {
+	    for ( BCMP::Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
+		_arguments->push_back( new LQX::ConstantValueExpression( result.first + "(" + k->first  + ")" ) );
+	    }
+	}
+	/* Total */
+	_arguments->push_back( new LQX::ConstantValueExpression( result.first ) );
     }
 
     void

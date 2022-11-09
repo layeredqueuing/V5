@@ -292,7 +292,10 @@ double
 Model::getDoubleValue( LQX::SyntaxTreeNode * variable ) const
 {
     if ( variable == nullptr ) return 0.0;
-    else return variable->invoke( _model.environment() )->getDoubleValue();
+    LQX::SymbolAutoRef symbol = variable->invoke( _model.environment() );
+    if ( symbol->getType() == LQX::Symbol::SYM_DOUBLE ) return symbol->getDoubleValue();
+    else if ( symbol->getType() != LQX::Symbol::SYM_NULL ) throw std::domain_error( std::string("invalid double") );
+    else return 0.0;
 }
 
 
@@ -301,7 +304,7 @@ unsigned int
 Model::getUnsignedValue( LQX::SyntaxTreeNode * variable, unsigned int default_value ) const
 {
     if ( variable == nullptr ) return default_value;
-    const double value = variable->invoke(_model.environment())->getDoubleValue();
+    const double value = getDoubleValue( variable );
     if ( value != rint(value) ) throw std::domain_error( std::string("invalid integer") + std::to_string(value) );
     return static_cast<unsigned int>(value);
 }

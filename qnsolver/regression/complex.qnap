@@ -1,5 +1,8 @@
-& $Id$
+& $Id: complex.qnap 16077 2022-11-08 14:43:21Z greg $
 & Complex model
+/control/
+   option=nsource;                                             & Suppress input.
+&
 /declare/
    queue Users,DB,Disk1,Disk2,Disk3,WS;                        & Station identifiers
    class string name;                                          & Name (for output)
@@ -23,7 +26,6 @@
 /station/ name=DB;
    sched=ps;
    service=exp(DB_t);
-   transit(all class)=Users;
    transit(Class1)=Disk2,2,Disk3,3,WS,1;                       & visits to servers
    transit(Class2)=Disk2,2,Disk3,3,WS,1;                       & visits to servers
 &

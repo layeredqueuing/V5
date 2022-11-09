@@ -171,14 +171,21 @@ namespace LQX {
     }
   }
   
+  bool MethodTable::isDefined(const std::string& name)
+  {
+    return _methods.find(name) != _methods.end();
+  }
+
   void MethodTable::registerMethod(Method* method)
   {
     _methods[method->getName()] = method;
   }
   
-  Method* MethodTable::getMethod(std::string& name)
+  Method* MethodTable::getMethod(const std::string& name)
   {
-    return _methods[name];
+    std::map<std::string,Method*>::iterator method = _methods.find(name);
+    if ( method != _methods.end() ) return method->second;
+    return nullptr;
   }
   
 };

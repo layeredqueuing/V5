@@ -29,6 +29,7 @@ extern YYSTYPE qnap2lval;
 #define	INPUT	input
 #endif
 
+static int return_code( int code );
 %}
 
 D	[0-9]
@@ -45,19 +46,19 @@ S	[().,:;"]
 
 "&"(.*)			;	/* Comment */
 
-"<="			{ qnap2lval.aCode = QNAP_LESS_EQUAL; return QNAP_LESS_EQUAL; }
-">="			{ qnap2lval.aCode = QNAP_GREATER_EQUAL; return QNAP_GREATER_EQUAL; }
-"<>"			{ qnap2lval.aCode = QNAP_NOT_EQUAL; return QNAP_NOT_EQUAL; }
-"**"			{ qnap2lval.aCode = QNAP_POWER; return QNAP_POWER; }
-":="	 		{ qnap2lval.aCode = QNAP_ASSIGNMENT; return QNAP_ASSIGNMENT; }
-"<"			{ qnap2lval.aCode = QNAP_LESS; return QNAP_LESS; }
-">"			{ qnap2lval.aCode = QNAP_GREATER; return QNAP_GREATER; }
-"="			{ qnap2lval.aCode = QNAP_EQUAL; return QNAP_EQUAL; }
-"+"			{ qnap2lval.aCode = QNAP_PLUS; return QNAP_PLUS; }
-"-"			{ qnap2lval.aCode = QNAP_MINUS; return QNAP_MINUS; }
-"*"			{ qnap2lval.aCode = QNAP_MULTIPLY; return QNAP_MULTIPLY; }
-"/"			{ qnap2lval.aCode = QNAP_DIVIDE; return QNAP_DIVIDE; }
-"%"			{ qnap2lval.aCode = QNAP_MODULUS; return QNAP_MODULUS; }
+"<="			return return_code( QNAP_LESS_EQUAL );
+">="			return return_code( QNAP_GREATER_EQUAL );
+"<>"			return return_code( QNAP_NOT_EQUAL );
+"<"			return return_code( QNAP_LESS );
+">"			return return_code( QNAP_GREATER );
+"="			return return_code( QNAP_EQUAL );
+":="	 		return return_code( QNAP_ASSIGNMENT );
+"+"			return return_code( QNAP_PLUS );
+"-"			return return_code( QNAP_MINUS );
+"*"			return return_code( QNAP_MULTIPLY );
+"/"			return return_code( QNAP_DIVIDE );
+"%"			return return_code( QNAP_MODULUS );
+"**"			return return_code( QNAP_POWER );
 
 \"[^"]*			{
     			    if ( qnap2text[qnap2leng-1] == '\\' ) {
@@ -74,7 +75,7 @@ S	[().,:;"]
 
 "/control/"		return QNAP_CONTROL;
 "/declare/"		return QNAP_DECLARE;
-"/end/"			return QNAP_END;
+"/end/"			return QNAP_END_PROGRAM;
 "/exec/"		return QNAP_EXEC;
 "/restart/"		return QNAP_RESTART;
 "/reboot/"		return QNAP_REBOOT;
@@ -100,7 +101,7 @@ nil			return QNAP_NIL;
 not			return QNAP_NOT;
 object			return QNAP_OBJECT;
 or			return QNAP_OR;
-ref			return QNAP_REF;
+ref			return return_code( QNAP_REF );
 repeat			return QNAP_REPEAT;
 step			return QNAP_STEP;
 then			return QNAP_THEN;
@@ -111,29 +112,31 @@ watched			return QNAP_WATCHED;
 while			return QNAP_WHILE;
 with			return QNAP_WITH;
 
-boolean			{ qnap2lval.aCode = QNAP_BOOLEAN; return QNAP_BOOLEAN; }
+boolean			return return_code( QNAP_BOOLEAN );
 class			return QNAP_CLASS;	/* Other */
-cst			{ qnap2lval.aCode = QNAP_CST; return QNAP_CST; }
-erlang			{ qnap2lval.aCode = QNAP_ERLANG; return QNAP_ERLANG; }
-exp			{ qnap2lval.aCode = QNAP_EXP; return QNAP_EXP; }
-hexp			{ qnap2lval.aCode = QNAP_HEXP; return QNAP_HEXP; }
-infinite 		{ qnap2lval.aCode = QNAP_INFINITE; return QNAP_INFINITE; }
+cst			return return_code( QNAP_CST );
+entry			return return_code( QNAP_ENTRY );
+erlang			return return_code( QNAP_ERLANG );
+exit			return return_code( QNAP_EXIT );
+exp			return return_code( QNAP_EXP );
+hexp			return return_code( QNAP_HEXP );
+infinite 		return return_code( QNAP_INFINITE );
 init			return QNAP_INIT;
-integer			{ qnap2lval.aCode = QNAP_INTEGER; return QNAP_INTEGER; }
-multiple 		{ qnap2lval.aCode = QNAP_MULTIPLE; return QNAP_MULTIPLE; }
+integer			return return_code( QNAP_INTEGER );
+multiple 		return return_code( QNAP_MULTIPLE );
 name			return QNAP_NAME;
-option			{ return QNAP_OPTION; }
+option			return return_code( QNAP_OPTION );
 prio			return QNAP_PRIO;
 quantum			return QNAP_QUANTUM;
 queue			return QNAP_QUEUE;
 rate			return QNAP_RATE;
-real			{ qnap2lval.aCode = QNAP_REAL; return QNAP_REAL; }
+real			return return_code( QNAP_REAL );
 sched			return QNAP_SCHED;
-server 			{ qnap2lval.aCode = QNAP_SERVER; return QNAP_SERVER; }
+server 			return return_code( QNAP_SERVER );
 service			return QNAP_SERVICE;
-single 			{ qnap2lval.aCode = QNAP_SINGLE; return QNAP_SINGLE; }
-source 			{ qnap2lval.aCode = QNAP_SOURCE; return QNAP_SOURCE; }
-string			{ qnap2lval.aCode = QNAP_STRING; return QNAP_STRING; }
+single 			return return_code( QNAP_SINGLE );
+source 			return return_code( QNAP_SOURCE );
+string			return return_code( QNAP_STRING );
 transit			return QNAP_TRANSIT;
 type			return QNAP_TYPE;
 
@@ -164,3 +167,8 @@ type			return QNAP_TYPE;
 
 ({C}|{U})({C}|{D}|{U})*	{ qnap2lval.aString = lqio_duplicate_string( &qnap2text[0], qnap2leng ); return QNAP_IDENTIFIER; }
 %%
+static int return_code( int code )
+{
+    qnap2lval.aCode = code;
+    return code;
+}

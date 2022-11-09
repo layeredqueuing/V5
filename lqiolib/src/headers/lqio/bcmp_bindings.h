@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: bcmp_bindings.h 16028 2022-10-25 11:23:30Z greg $
+ *  $Id: bcmp_bindings.h 16079 2022-11-08 15:35:44Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -159,7 +159,7 @@ namespace BCMP {
     class Mthruput : public QNAP2Result {
     public:
 	/* Parameters necessary to call runSolverOnCurrentDOM() */
-	Mthruput(BCMP::Model& model ) : QNAP2Result(model) {}
+	Mthruput( BCMP::Model& model ) : QNAP2Result(model) {}
 	virtual ~Mthruput() {}
 		
 	/* All of the glue code to make sure LQX can call solve() */

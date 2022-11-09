@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16045 2022-10-30 10:29:01Z greg $
+ *  $Id: jmva_document.h 16079 2022-11-08 15:35:44Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -137,7 +137,7 @@ namespace QNIO {
 	virtual bool disableDefaultOutputWithLQX() const { return true; }
 
 	std::ostream& print( std::ostream& ) const;
-	std::ostream& printInput( std::ostream& ) const;
+	std::ostream& exportModel( std::ostream& ) const;
 	void plot( BCMP::Model::Result::Type, const std::string& );
 	bool plotPopulationMix() const { return _plot_population_mix; }
 	void setPlotPopulationMix( bool plot_population_mix ) { _plot_population_mix = plot_population_mix; }
@@ -203,7 +203,7 @@ namespace QNIO {
 	void appendResultVariable( const std::string&, LQX::SyntaxTreeNode * );
 
 	/* LQX */
-	virtual LQX::Program * getLQXProgram() const;
+	virtual LQX::Program * getLQXProgram();
 	LQX::SyntaxTreeNode * foreach_loop( std::deque<Comprehension>::const_iterator, std::deque<Comprehension>::const_iterator ) const;
 	std::vector<LQX::SyntaxTreeNode *>* loop_body() const;
 	std::vector<LQX::SyntaxTreeNode *>* solve_failure() const;
@@ -291,12 +291,13 @@ namespace QNIO {
 
 	class csv_heading {
 	public:
-	    csv_heading( std::vector<LQX::SyntaxTreeNode *>* arguments, const std::string& suffix ) : _arguments(arguments), _suffix(suffix) {}
+	    csv_heading( std::vector<LQX::SyntaxTreeNode *>* arguments, const BCMP::Model::Chain::map_t& chains ) : _arguments(arguments), _chains(chains) {}
 	    void operator()( const std::pair<const std::string,const BCMP::Model::Result::Type>& );
+	    const BCMP::Model::Chain::map_t& chains() const { return _chains; }
 
 	private:
 	    std::vector<LQX::SyntaxTreeNode *>* _arguments;
-	    const std::string& _suffix;
+	    const BCMP::Model::Chain::map_t& _chains;
 	};
 	
 	struct notSet {
@@ -379,9 +380,10 @@ namespace QNIO {
 	std::stack<parse_stack_t> _stack;
 	std::string _lqx_program_text;
 	unsigned int _lqx_program_line_number;
+	LQX::Program * _lqx;
 	
 	/* SPEX */
-	std::vector<LQX::SyntaxTreeNode*> _main_program;
+	std::vector<LQX::SyntaxTreeNode*> _program;
 	std::set<std::string> _input_variables;						/* Spex vars -- may move to QNAP/QNIO */
 	std::vector<LQX::SyntaxTreeNode*> _whatif_body;
 	std::vector<std::string> _independent_variables;				/* x variables */

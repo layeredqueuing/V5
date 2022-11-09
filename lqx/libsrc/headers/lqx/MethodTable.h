@@ -113,8 +113,9 @@ namespace LQX {
   public:
     
     /* Adding and Obtaining Methods */
+    bool isDefined(const std::string& name);
     void registerMethod(Method* method);
-    Method* getMethod(std::string& name);
+    Method* getMethod(const std::string& name);
     
   private:
     

@@ -9,7 +9,7 @@
  *
  * November 2022
  *
- * $Id: qnio_document.h 16046 2022-10-30 10:52:45Z greg $
+ * $Id: qnio_document.h 16058 2022-11-03 17:02:56Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -85,10 +85,9 @@ namespace QNIO {
 	const std::deque<Comprehension>& comprehensions() const { return _comprehensions; }		/* For loops from WhatIf */
 	
 	void setEnvironment( LQX::Environment * environment ) { _model.setEnvironment( environment ); }
-	virtual LQX::Program * getLQXProgram() const { return _lqx_program; }
+	virtual LQX::Program * getLQXProgram() = 0;
     protected:
 	void insertComprehension( const Comprehension& comprehension ) { _comprehensions.emplace_front( comprehension); }
-	void setLQXProgram( LQX::Program * program ) { _lqx_program = program; }
     public:
 	virtual void registerExternalSymbolsWithProgram( LQX::Program * ) {}	/* Might hoist */
 	virtual std::vector<std::string> getUndefinedExternalVariables() const { return std::vector<std::string>(); }
@@ -109,7 +108,6 @@ namespace QNIO {
 	LQIO::DOM::Pragma _pragmas;
 	BCMP::Model _model;
 	std::deque<Comprehension> _comprehensions; 			/* For loops from WhatIf */
-	LQX::Program * _lqx_program;
     };
 }
 #endif

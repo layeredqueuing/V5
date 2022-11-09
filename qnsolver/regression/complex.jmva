@@ -56,8 +56,8 @@
 	  <servicetime customerclass="Class2">0.004</servicetime>
 	</servicetimes>
 	<visits>
-	  <visit customerclass="Class1">2.0</visit>
-	  <visit customerclass="Class2">2.0</visit>
+	  <visit customerclass="Class1">4.0</visit>
+	  <visit customerclass="Class2">4.0</visit>
 	</visits>
       </listation>
       <listation name="Disk3" servers="1">
@@ -66,8 +66,8 @@
 	  <servicetime customerclass="Class2">0.004</servicetime>
 	</servicetimes>
 	<visits>
-	  <visit customerclass="Class1">3.0</visit>
-	  <visit customerclass="Class2">3.0</visit>
+	  <visit customerclass="Class1">6.0</visit>
+	  <visit customerclass="Class2">6.0</visit>
 	</visits>
       </listation>
     </stations>

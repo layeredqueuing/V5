@@ -771,6 +771,9 @@ namespace LQX {
       case Symbol::SYM_STRING:
 	output << "\"" << _current->getStringValue() << "\"";
         break;
+      case Symbol::SYM_NULL:
+	output << "@null";
+        break;
       default:
 	output << "<<invalid>>";
         break;
