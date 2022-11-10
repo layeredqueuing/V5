@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16086 2022-11-09 02:41:14Z greg $
+ * $Id: qnap2_document.cpp 16089 2022-11-09 15:40:39Z greg $
  *
  * Read in XML input files.
  *
@@ -139,17 +139,21 @@ qnap2_append_string( void * list, const char * name )
 
 
 void
-qnap2_declare_attribute( int code, void * list )
+qnap2_declare_attribute( int code1, int code2, void * list )
 {
     if ( list == nullptr ) return;
-    const std::map<int,const QNIO::QNAP2_Document::Type>::const_iterator type = QNIO::QNAP2_Document::__parser_to_type.find(code);
-    if ( type == QNIO::QNAP2_Document::__parser_to_type.end() ) {
+    const std::map<int,const QNIO::QNAP2_Document::Type>::const_iterator type1 = QNIO::QNAP2_Document::__parser_to_type.find(code1);
+    const std::map<int,const QNIO::QNAP2_Document::Type>::const_iterator type2 = QNIO::QNAP2_Document::__parser_to_type.find(code2);
+    if ( type1 == QNIO::QNAP2_Document::__parser_to_type.end() ) {
 	qnap2error( "type error." );
-    }
-    std::vector<QNIO::QNAP2_Document::Symbol *>* symbol_list = static_cast<std::vector<QNIO::QNAP2_Document::Symbol *>*>(list);
-    for ( std::vector<QNIO::QNAP2_Document::Symbol *>::const_iterator symbol = symbol_list->begin(); symbol != symbol_list->end(); ++symbol ) {
-	if ( !QNIO::QNAP2_Document::__document->declareAttribute( type->second, **symbol ) ) {
-	    qnap2error( "duplicate attribute: %s.", (*symbol)->name().c_str() );
+    } else if ( type2 == QNIO::QNAP2_Document::__parser_to_type.end() ) {
+	qnap2error( "type error." );
+    } else {
+	std::vector<QNIO::QNAP2_Document::Symbol *>* symbol_list = static_cast<std::vector<QNIO::QNAP2_Document::Symbol *>*>(list);
+	for ( std::vector<QNIO::QNAP2_Document::Symbol *>::const_iterator symbol = symbol_list->begin(); symbol != symbol_list->end(); ++symbol ) {
+	    if ( !QNIO::QNAP2_Document::__document->declareAttribute( type1->second, type2->second, **symbol ) ) {
+		qnap2error( "duplicate attribute: %s.", (*symbol)->name().c_str() );
+	    }
 	}
     }
 }
@@ -239,7 +243,8 @@ void qnap2_map_transit_to_visits()
 }
 
 
-void * qnap2_get_array( int code )
+
+void * qnap2_get_all_objects( int code )
 {
     static const std::map<int,const QNIO::QNAP2_Document::Type> parser_to_array = {
 	{ QNAP_CLASS, 	QNIO::QNAP2_Document::Type::Queue },
@@ -247,7 +252,7 @@ void * qnap2_get_array( int code )
     };
 
     try {
-	return QNIO::QNAP2_Document::__document->getArray( parser_to_array.at(code) );
+	return QNIO::QNAP2_Document::__document->getAllObjects( parser_to_array.at(code) );
     }
     catch ( const std::logic_error& error ) {
 	qnap2error( "%s.", error.what() );
@@ -513,24 +518,32 @@ void * qnap2_if_statement( void * condition, void * if_stmt, void * else_stmt )
  *    _onBegin(onStart), _stopCondition(stop), _onEachRun(onEachRun), _action(action)
  */
 
-void * qnap2_for_statement( void * variable, void * arg2, void * loop_body ) 
+void * qnap2_for_statement( void * arg1, void * arg2, void * loop_body ) 
 {
+    LQX::SyntaxTreeNode * variable = static_cast<LQX::SyntaxTreeNode *>(arg1);
     const QNIO::QNAP2_Document::List * sublist = static_cast<QNIO::QNAP2_Document::List *>(arg2);
-    LQX::SyntaxTreeNode * start = new LQX::AssignmentStatementNode( static_cast<LQX::SyntaxTreeNode *>(variable), sublist->initial_value() );
-    LQX::SyntaxTreeNode * stop  = new LQX::ComparisonExpression( LQX::ComparisonExpression::LESS_OR_EQUAL, static_cast<LQX::SyntaxTreeNode *>(variable), sublist->until() );
-    LQX::SyntaxTreeNode * step  = new LQX::AssignmentStatementNode( static_cast<LQX::SyntaxTreeNode *>(variable),
-								    new LQX::MathExpression( LQX::MathExpression::ADD,
-											     static_cast<LQX::SyntaxTreeNode *>(variable), sublist->step() ) );
-    return new LQX::LoopStatementNode( start, stop, step, static_cast<LQX::SyntaxTreeNode *>(loop_body) );
+    return new LQX::LoopStatementNode( new LQX::AssignmentStatementNode( variable, sublist->initial_value() ),
+				       new LQX::ComparisonExpression( LQX::ComparisonExpression::LESS_OR_EQUAL, variable, sublist->until() ),
+				       new LQX::AssignmentStatementNode( variable, new LQX::MathExpression( LQX::MathExpression::ADD, variable, sublist->step() ) ),
+				       static_cast<LQX::SyntaxTreeNode *>(loop_body) );
 }
 
+
+
 /*
- * Loop through either all of the stations or all of the chains
+ * Loop through either all of the objects in "list".
  */
 
-void * qnap2_foreach_statement( void * variable, int arg2, void * loop_body )
+void * qnap2_foreach_statement( void * arg1, void * arg2, void * loop_body )
 {
-    abort();
+    LQX::SyntaxTreeNode * variable = static_cast<LQX::SyntaxTreeNode *>(arg1);
+    LQX::SyntaxTreeNode * array = static_cast<LQX::SyntaxTreeNode *>(arg2);
+    if ( dynamic_cast<LQX::VariableExpression *>(variable) != nullptr ) {
+	return new LQX::ForeachStatementNode( "", dynamic_cast<LQX::VariableExpression *>(variable)->getName(), false, is_external,
+					      array, static_cast<LQX::SyntaxTreeNode *>(loop_body) );	/* Key, value, key_is_ext, var_is_ext, array, loop_body */
+    } else {
+	throw std::logic_error( "invalid foreach loop variable." );
+    }
     return nullptr;
 }
 
@@ -734,9 +747,9 @@ namespace QNIO {
 
 
     bool
-    QNAP2_Document::declareAttribute( QNAP2_Document::Type type, Symbol& symbol )
+    QNAP2_Document::declareAttribute( QNAP2_Document::Type object_type, QNAP2_Document::Type attribute_type, Symbol& symbol )
     {
-	return symbol.isScalar() && defineSymbol( QNAP2_Document::Type::Attribute, symbol ) && _attributes.emplace( symbol.name(), type ).second;
+	return symbol.isScalar() && defineSymbol( QNAP2_Document::Type::Attribute, symbol ) && _attributes.emplace( symbol.name(), std::pair<const QNAP2_Document::Type,const QNAP2_Document::Type>(object_type,attribute_type) ).second;
     }
 
     bool
@@ -1056,7 +1069,7 @@ namespace QNIO {
      */
     
     LQX::SyntaxTreeNode *
-    QNAP2_Document::getArray( QNIO::QNAP2_Document::Type type )
+    QNAP2_Document::getAllObjects( QNIO::QNAP2_Document::Type type ) const
     {
 	std::vector<LQX::SyntaxTreeNode *>* items = new std::vector<LQX::SyntaxTreeNode *>();
 	if ( type == QNIO::QNAP2_Document::Type::Queue ) {
@@ -1254,7 +1267,7 @@ namespace QNIO {
     }
 
     std::streamsize QNAP2_Document::Output::__width = 10;
-    std::streamsize QNAP2_Document::Output::__precision = 6;
+    std::streamsize QNAP2_Document::Output::__precision = 5;
     std::string QNAP2_Document::Output::__separator = "*";
 
     std::ostream&
@@ -1265,11 +1278,14 @@ namespace QNIO {
 	output.fill('*');
 	output << std::setw(__width*6+7) << "*" << std::endl;
 	output.fill(' ');
-	output << __separator << std::setw(__width) << "name " << header() << __separator << std::endl;
+	output.setf(std::ios::left, std::ios::adjustfield);
+	output << __separator << " " << std::setw(__width-1) << "name" << header() << __separator << std::endl;
 	output.fill('*');
 	output << std::setw(__width*6+7) << "*" << std::endl;
 	output.fill(' ');
-	output << __separator << std::setw(__width) << " " << QNAP2_Document::Output::blankline() << __separator << std::endl;
+	output << __separator << std::setw(__width) << " ";
+	output.setf(std::ios::right, std::ios::adjustfield);
+	output << QNAP2_Document::Output::blankline() << __separator << std::endl;
 	for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
 	    const BCMP::Model::Station::Class::map_t& results = mi->second.classes();
 	    if ( results.empty() ) continue;
@@ -1301,11 +1317,11 @@ namespace QNIO {
     QNAP2_Document::Output::print( std::ostream& output, const BCMP::Model::Station::Result& item ) const
     {
 	output.unsetf( std::ios::floatfield );
-	output << __separator << std::setw(__width) << item.mean_service()
-	       << __separator << std::setw(__width) << item.utilization()
-	       << __separator << std::setw(__width) << item.queue_length()
-	       << __separator << std::setw(__width) << item.residence_time()		// per visit.
-	       << __separator << std::setw(__width) << item.throughput();
+	output << __separator << " " << std::setw(__width-1) << item.mean_service()
+	       << __separator << " " << std::setw(__width-1) << item.utilization()
+	       << __separator << " " << std::setw(__width-1) << item.queue_length()
+	       << __separator << " " << std::setw(__width-1) << item.residence_time()		// per visit.
+	       << __separator << " " << std::setw(__width-1) << item.throughput();
 	return output;
     }
 

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: bcmp_bindings.h 16079 2022-11-08 15:35:44Z greg $
+ *  $Id: bcmp_bindings.h 16090 2022-11-10 12:40:49Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -21,7 +21,11 @@ namespace LQX {
 
 /* LQIO DOM Bindings */
 namespace BCMP {
-    class LQXChain;
+    struct Attributes {
+	Attributes() : _attributes() {}
+	std::map<const std::string,LQX::SymbolAutoRef> _attributes;		/* Not used internally but for lqx interface. */
+    };
+
 
     class LQXObject : public LQX::LanguageObject {
     protected:
@@ -40,13 +44,13 @@ namespace BCMP {
 	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name);
         const Model::Result* getObject() const { return _result; }
 
-    protected:
+    private:
         const Model::Result * _result;
         static const std::map<const std::string,attribute_table_t> __attributeTable;
 
     };
 
-    class LQXStation : public LQXObject {
+    class LQXStation : public LQXObject, public Attributes {
     public:
         const static uint32_t kLQXStationObjectTypeId;
         LQXStation(const Model::Station* station) : LQXObject(kLQXStationObjectTypeId,station) {}
@@ -56,7 +60,38 @@ namespace BCMP {
         virtual bool isEqualTo(const LQX::LanguageObject* other) const;
         virtual std::string description() const;
 	virtual std::string getTypeName() const { return Model::Station::__typeName; }
-	const Model::Station* getStation() const { return dynamic_cast<const Model::Station*>(_result); }
+	const Model::Station* getStation() const { return dynamic_cast<const Model::Station*>(getObject()); }
+    };
+
+    class LQXChain : public LQX::LanguageObject, public Attributes {
+    protected:
+	typedef double (Model::*get_model_fptr)( const std::string& ) const;
+
+	struct attribute_table_t
+	{
+	    attribute_table_t( get_model_fptr v=nullptr ) : value(v) {}
+	    LQX::SymbolAutoRef operator()( const Model& model, const std::string& k ) const { return LQX::Symbol::encodeDouble( (model.*value)(k) ); }
+	    const get_model_fptr value;
+	};
+
+    public:
+        const static uint32_t kLQXChainObjectTypeId = 10+3;
+
+        /* Designated Initializers */
+        LQXChain(const BCMP::Model& model, const std::string& chain) : LQX::LanguageObject(kLQXChainObjectTypeId), _model(model), _chain(chain) {}
+        virtual ~LQXChain() {}
+
+        /* Comparison and Operators */
+        virtual bool isEqualTo(const LQX::LanguageObject* other) const;
+        virtual std::string description() const;
+	virtual std::string getTypeName() const { return Model::Chain::__typeName; }
+        const std::string& getChain() const { return _chain; }
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name);
+
+    private:
+	const BCMP::Model& _model;
+        const std::string _chain;
+	static const std::map<const std::string,attribute_table_t> __attributeTable;
     };
 
     /* Names of the bindings */

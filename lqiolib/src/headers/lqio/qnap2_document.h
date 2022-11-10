@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 16086 2022-11-09 02:41:14Z greg $
+ *  $Id: qnap2_document.h 16089 2022-11-09 15:40:39Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -27,7 +27,7 @@ extern "C" {
     void * qnap2_append_string( void * list, const char * name );
     void * qnap2_declare_variable( const char *, void *, void *, void * );
     void qnap2_declare_class( void * );
-    void qnap2_declare_attribute( int, void * );
+    void qnap2_declare_attribute( int, int, void * );
     void qnap2_declare_queue( void * );
     void qnap2_declare_objects();
     void qnap2_define_station();
@@ -35,6 +35,7 @@ extern "C" {
     void qnap2_map_transit_to_visits();
     const char * qnap2_get_class_name( const char * );		/* checks for class name */
     const char * qnap2_get_station_name( const char * );	/* checks for station name */
+    void * qnap2_get_all_objects( int code );
     void * qnap2_get_transit_pair( const char *, void * );
     void * qnap2_get_service_distribution( int, void *, void * );
     void qnap2_set_option( const void * );
@@ -49,7 +50,6 @@ extern "C" {
     void qnap2_set_station_transit( const void *, const void * );
     void qnap2_set_station_type( const void * );
     /* LQX */
-    void * qnap2_get_array( int );
     void * qnap2_get_attribute( void *, const char * );
     void * qnap2_get_function( const char * , void * );			/* Returns LQX */
     void * qnap2_get_integer( long );					/* Returns LQX */
@@ -62,7 +62,7 @@ extern "C" {
     void * qnap2_assignment( void *, void * );
     void * qnap2_compound_statement( void * );
     void * qnap2_for_statement( void *, void *, void * ); 
-    void * qnap2_foreach_statement( void *, int, void * ); 
+    void * qnap2_foreach_statement( void *, void *, void * ); 
     void * qnap2_if_statement( void *, void *, void * );
     void * qnap2_list( void * initial_value, void * step, void * until );
     void * qnap2_logic( int operation, void * arg1, void * arg2 );
@@ -96,7 +96,7 @@ namespace QNIO {
 	friend const char * ::qnap2_get_station_name( const char * );		/* checks for station name */
 	friend void * ::qnap2_declare_variable( const char * name, void * begin, void * end, void * init );
 	friend void ::qnap2_declare_class( void * );
-	friend void ::qnap2_declare_attribute( int, void * );
+	friend void ::qnap2_declare_attribute( int, int, void * );
 	friend void ::qnap2_declare_queue( void * );
 	friend void ::qnap2_declare_objects();
 	friend void ::qnap2_define_station();
@@ -113,7 +113,7 @@ namespace QNIO {
 	friend void ::qnap2_set_station_transit( const void *, const void * );
 	friend void ::qnap2_set_station_type( const void * );
 	friend void ::qnap2error( const char * fmt, ... );
-	friend void * ::qnap2_get_array( int );
+	friend void * ::qnap2_get_all_objects( int code );
 	friend void * ::qnap2_get_attribute( void *, const char * );
 	friend void * ::qnap2_get_function( const char * , void * );
 	friend void * ::qnap2_get_procedure( const char * symbol, void * );
@@ -121,7 +121,7 @@ namespace QNIO {
 	friend void * ::qnap2_get_variable( const char * ); 
 	friend void * ::qnap2_list( void * initial_value, void * step, void * until );
 	friend void * ::qnap2_for_statement( void * variable, void * arg2, void * loop_body );
-	friend void * ::qnap2_foreach_statement( void * variable, int arg2, void * loop_body );
+	friend void * ::qnap2_foreach_statement( void * variable, void * list, void * loop_body );
 	
 	enum class Type { Undefined, Attribute, Boolean, Class, Integer, Queue, Real, Reference, String };
 	enum class Distribution { Constant, Exponential, Erlang, Hyperexponential, Coxian };
@@ -194,7 +194,7 @@ namespace QNIO {
 	bool multiclass() const { return chains().size() > 1; }
 
     private:
-	LQX::SyntaxTreeNode * getArray( QNIO::QNAP2_Document::Type type );
+	LQX::SyntaxTreeNode * getAllObjects( QNIO::QNAP2_Document::Type ) const;
 	LQX::SyntaxTreeNode * getAttribute( LQX::SyntaxTreeNode *, const std::string& );
 	LQX::SyntaxTreeNode * getFunction( const std::string& name, std::vector<LQX::SyntaxTreeNode *>* args );
 	LQX::VariableExpression * getVariable( const std::string& name );
@@ -203,7 +203,7 @@ namespace QNIO {
 
 	/* QNAP2 interface */
 	bool declareClass( const Symbol& );
-	bool declareAttribute( Type, Symbol& );
+	bool declareAttribute( Type, Type, Symbol& );
 	bool declareStation( const Symbol& );
 	bool defineSymbol( Type, const Symbol& );
 	bool defineStation();
@@ -478,7 +478,7 @@ namespace QNIO {
 	/* */
 	/* -------------------------------------------------------------------- */
     private:
-	std::map<std::string,Type> _attributes;
+	std::map<std::string,std::pair<const Type,const Type>> _attributes;			/* Object, Scalar */
 	std::map<std::string,std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>> _transit; /* from, chain, to, value under construction */
 	std::vector<LQX::SyntaxTreeNode *> _program;
 	LQX::Program * _lqx;

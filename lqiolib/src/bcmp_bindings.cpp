@@ -1,5 +1,5 @@
 /*
- *  $Id: bcmp_bindings.cpp 16033 2022-10-25 21:01:00Z greg $
+ *  $Id: bcmp_bindings.cpp 16090 2022-11-10 12:40:49Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -36,15 +36,9 @@ namespace BCMP {
 
     LQX::SymbolAutoRef LQXObject::getPropertyNamed(LQX::Environment* env, const std::string& name) 
     {
-	std::map<const std::string,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
-	if ( attribute != __attributeTable.end() ) {
-	    try {
-		if ( _result ) {
-		    return attribute->second( *_result );
-		}
-	    }
-	    catch ( const LQIO::should_implement& e ) {
-	    }
+	std::map<const std::string,attribute_table_t>::const_iterator attribute = __attributeTable.find( name );
+	if ( attribute != __attributeTable.end() && _result != nullptr ) {
+	    return attribute->second( *_result );
 	}
 
 	/* Anything we don't handle may be handled by our superclass */
@@ -71,8 +65,8 @@ namespace BCMP {
     /* Comparison and Operators */
     bool LQXStation::isEqualTo(const LQX::LanguageObject* other) const
     {
-	const LQXObject* object = dynamic_cast<const LQXObject *>(other);
-	return object && object->getObject() == getObject();  /* Return a comparison of the types */
+	const LQXStation* station = dynamic_cast<const LQXStation *>(other);
+	return station && station->getStation() == getStation();  /* Return a comparison of the types */
     }
 
     std::string LQXStation::description() const
@@ -159,7 +153,7 @@ namespace BCMP {
 		return Model::Station::Class::__typeName;
 	    }
 
-        const Model::Station::Class* getClass() const { return dynamic_cast<const Model::Station::Class*>(_result); }
+        const Model::Station::Class* getClass() const { return dynamic_cast<const Model::Station::Class*>(getObject()); }
 
     private:
     };
@@ -200,77 +194,44 @@ namespace BCMP {
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 #pragma mark -
 
-    class LQXChain : public LQX::LanguageObject {
-    protected:
-	typedef double (Model::*get_model_fptr)( const std::string& ) const;
+    /* Comparison and Operators */
+    bool LQXChain::isEqualTo(const LQX::LanguageObject* other) const
+    {
+	const LQXChain* chain = dynamic_cast<const LQXChain *>(other);
+	return chain && chain->getChain() == getChain();  /* Return a comparison of the types */
+    }
 
-	struct attribute_table_t
-	{
-	    attribute_table_t( get_model_fptr v=nullptr ) : value(v) {}
-	    LQX::SymbolAutoRef operator()( const Model& model, const std::string& k ) const { return LQX::Symbol::encodeDouble( (model.*value)(k) ); }
-	    const get_model_fptr value;
-	};
-
-    public:
-        const static uint32_t kLQXChainObjectTypeId = 10+3;
-
-        /* Designated Initializers */
-        LQXChain(const BCMP::Model& model, const std::string& chain) : LQX::LanguageObject(kLQXChainObjectTypeId), _model(model), _chain(chain)
-            {
-            }
-
-        virtual ~LQXChain()
-            {
-            }
-
-        /* Comparison and Operators */
-        virtual bool isEqualTo(const LQX::LanguageObject* other) const
-            {
-                const LQXChain* chain = dynamic_cast<const LQXChain *>(other);
-                return chain && chain->getChain() == getChain();  /* Return a comparison of the types */
-            }
-
-        virtual std::string description() const
-            {
-                /* Return a description of the class */
-                std::stringstream ss;
+    std::string LQXChain::description() const
+    {
+	/* Return a description of the class */
+	std::stringstream ss;
 //                ss << getTypeName() << "(" << getChain()->getName() << ")";
-		return ss.str();
-	    }
+	return ss.str();
+    }
 
-	virtual std::string getTypeName() const
-	    {
-		return Model::Chain::__typeName;
-	    }
+    LQX::SymbolAutoRef LQXChain::getPropertyNamed(LQX::Environment* env, const std::string& name) 
+    {
+	/* Check local attributes for match */
 
-        const std::string& getChain() const { return _chain; }
+	std::map<const std::string,LQX::SymbolAutoRef>::iterator local = _attributes.find( name );		/* Not used internally but for lqx interface. */
+	if ( local != _attributes.end() ) {
+	    return local->second;
+	}
 
+	/* All the valid properties of classs */
+	std::map<const std::string,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name );
+	if ( attribute != __attributeTable.end() ) {
+	    return attribute->second( _model, _chain );
+	}
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
-	    {
-		/* All the valid properties of classs */
-		std::map<const std::string,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
-		if ( attribute != __attributeTable.end() ) {
-		    try {
-			return attribute->second( _model, _chain );
-		    }
-		    catch ( const LQIO::should_implement& e ) {
-		    }
-		}
+	/* Anything we don't handle may be handled by our superclass */
+	return this->LanguageObject::getPropertyNamed(env, name);
+    }
 
-		/* Anything we don't handle may be handled by our superclass */
-		return this->LanguageObject::getPropertyNamed(env, name);
-	    }
-
-    private:
-	const BCMP::Model& _model;
-        const std::string _chain;
-
-	const std::map<const std::string,attribute_table_t> __attributeTable =
-	{
-	    { __lqx_response_time,  attribute_table_t( &Model::response_time ) },
-	    { __lqx_throughput,     attribute_table_t( &Model::throughput ) }
-	};
+    const std::map<const std::string,LQXChain::attribute_table_t> LQXChain::__attributeTable =
+    {
+	{ __lqx_response_time,  LQXChain::attribute_table_t( &Model::response_time ) },
+	{ __lqx_throughput,     LQXChain::attribute_table_t( &Model::throughput ) }
     };
 
     class LQXGetChain : public LQX::Method {

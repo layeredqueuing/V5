@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16079 2022-11-08 15:35:44Z greg $
+ *  $Id: jmva_document.h 16089 2022-11-09 15:40:39Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -278,7 +278,7 @@ namespace QNIO {
 
 	class create_result {
 	public:
-	    create_result( JMVA_Document& self ) : _self(self), _station_index_set(false) {}
+	    create_result( JMVA_Document& self ) : _self(self) {}
 	    void operator()( const std::pair<const std::string,const BCMP::Model::Station>& m ) const;
 	    void operator()( const std::pair<const std::string,const BCMP::Model::Chain>& k ) const;
 	    const BCMP::Model::Station::map_t& stations() const { return _self.model().stations(); }
@@ -286,7 +286,6 @@ namespace QNIO {
 	    
 	private:
 	    JMVA_Document& _self;
-	    mutable bool _station_index_set;
 	};
 
 	class csv_heading {
