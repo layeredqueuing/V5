@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: bcmp_bindings.h 16090 2022-11-10 12:40:49Z greg $
+ *  $Id: bcmp_bindings.h 16094 2022-11-11 16:53:00Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -19,11 +19,23 @@ namespace LQX {
 };
 
 
-/* LQIO DOM Bindings */
+/* QNIO DOM Bindings */
 namespace BCMP {
-    struct Attributes {
+    /* Mixin class for QNAP class (chain) and queue (station) attributes. */
+    class Attributes {
+    public:
 	Attributes() : _attributes() {}
+
+	static bool addAttribute( const std::string&, LQX::SyntaxTreeNode * );
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name);
+	
+    protected:
+	bool add_attribute( const std::string&, LQX::SymbolAutoRef );
+
+    private:
 	std::map<const std::string,LQX::SymbolAutoRef> _attributes;		/* Not used internally but for lqx interface. */
+
+	static std::map<const std::string,LQX::SyntaxTreeNode *> __attributes;
     };
 
 
@@ -53,7 +65,7 @@ namespace BCMP {
     class LQXStation : public LQXObject, public Attributes {
     public:
         const static uint32_t kLQXStationObjectTypeId;
-        LQXStation(const Model::Station* station) : LQXObject(kLQXStationObjectTypeId,station) {}
+        LQXStation(const Model::Station* station);
         virtual ~LQXStation() {}
 
         /* Comparison and Operators */
@@ -61,6 +73,7 @@ namespace BCMP {
         virtual std::string description() const;
 	virtual std::string getTypeName() const { return Model::Station::__typeName; }
 	const Model::Station* getStation() const { return dynamic_cast<const Model::Station*>(getObject()); }
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name);
     };
 
     class LQXChain : public LQX::LanguageObject, public Attributes {

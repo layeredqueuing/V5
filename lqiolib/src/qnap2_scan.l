@@ -113,7 +113,7 @@ while			return QNAP_WHILE;
 with			return QNAP_WITH;
 
 boolean			return return_code( QNAP_BOOLEAN );
-class			return QNAP_CLASS;	/* Other */
+class			return return_code( QNAP_CLASS );	/* Other */
 cst			return return_code( QNAP_CST );
 entry			return return_code( QNAP_ENTRY );
 erlang			return return_code( QNAP_ERLANG );
@@ -128,7 +128,7 @@ name			return QNAP_NAME;
 option			return return_code( QNAP_OPTION );
 prio			return QNAP_PRIO;
 quantum			return QNAP_QUANTUM;
-queue			return QNAP_QUEUE;
+queue			return return_code( QNAP_QUEUE );
 rate			return QNAP_RATE;
 real			return return_code( QNAP_REAL );
 sched			return QNAP_SCHED;

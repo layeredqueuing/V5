@@ -1,5 +1,5 @@
 /*
- *  $Id: bcmp_bindings.cpp 16090 2022-11-10 12:40:49Z greg $
+ *  $Id: bcmp_bindings.cpp 16094 2022-11-11 16:53:00Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -27,6 +27,41 @@ namespace BCMP {
     const char * __lqx_utilization              = "utilization";
     const char * __lqx_queue_length             = "queue_length";
     
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Attributes] */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+
+    std::map<const std::string,LQX::SyntaxTreeNode *> Attributes::__attributes;
+    
+    /* Mixin */
+
+    bool Attributes::add_attribute( const std::string& name, LQX::SymbolAutoRef value )
+    {
+	return _attributes.emplace( name, value ).second;
+    }
+
+    LQX::SymbolAutoRef Attributes::getPropertyNamed(LQX::Environment* env, const std::string& name) 
+    {
+	/* Already been used. */
+	std::map<const std::string,LQX::SymbolAutoRef>::const_iterator attribute = _attributes.find( name );
+	if ( attribute != _attributes.end() ) return attribute->second;
+
+	/* See if it's a valid attribute, but never used */
+	std::map<const std::string,LQX::SyntaxTreeNode *>::const_iterator defined = __attributes.find( name );
+	if ( defined == __attributes.end() ) LQX::Symbol::encodeNull();	/* Not defined */
+
+	/* Duplicate the template value and make it writable */
+	LQX::SymbolAutoRef value = LQX::Symbol::duplicate( defined->second->invoke( env ) );
+	value->setIsConstant( false );
+	return _attributes.emplace( name, value ).first->second;
+    }
+    
+    /* static */ bool Attributes::addAttribute( const std::string& name, LQX::SyntaxTreeNode * value )
+    {
+	return __attributes.emplace( name, value ).second;
+    }
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Object] */
@@ -76,6 +111,20 @@ namespace BCMP {
 //                ss << getTypeName() << "(" << getStation()->getName() << ")";
 	return ss.str();
     }
+
+    LQX::SymbolAutoRef LQXStation::getPropertyNamed(LQX::Environment* env, const std::string& name) 
+    {
+	/* Check local attributes for match */
+
+	LQX::SymbolAutoRef property = Attributes::getPropertyNamed(env, name);
+	if ( property->getType() != LQX::Symbol::SYM_NULL ) {
+	    return property;
+	} else {
+	    /* Anything we don't handle may be handled by our superclass */
+	    return LQXObject::getPropertyNamed(env, name);
+	}
+    }
+
 
     class LQXGetStation : public LQX::Method {
     public:
@@ -211,21 +260,19 @@ namespace BCMP {
 
     LQX::SymbolAutoRef LQXChain::getPropertyNamed(LQX::Environment* env, const std::string& name) 
     {
-	/* Check local attributes for match */
-
-	std::map<const std::string,LQX::SymbolAutoRef>::iterator local = _attributes.find( name );		/* Not used internally but for lqx interface. */
-	if ( local != _attributes.end() ) {
-	    return local->second;
+	LQX::SymbolAutoRef property = Attributes::getPropertyNamed(env, name);
+	if ( property->getType() != LQX::Symbol::SYM_NULL ) {
+	    return property;
 	}
 
-	/* All the valid properties of classs */
-	std::map<const std::string,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name );
+	std::map<const std::string,attribute_table_t>::const_iterator attribute = __attributeTable.find( name );
 	if ( attribute != __attributeTable.end() ) {
+	    /* All the valid properties of classs */
 	    return attribute->second( _model, _chain );
+	} else {
+	    /* Anything we don't handle may be handled by our superclass */
+	    return this->LanguageObject::getPropertyNamed(env, name);
 	}
-
-	/* Anything we don't handle may be handled by our superclass */
-	return this->LanguageObject::getPropertyNamed(env, name);
     }
 
     const std::map<const std::string,LQXChain::attribute_table_t> LQXChain::__attributeTable =
@@ -277,6 +324,13 @@ namespace BCMP
     /* ------------------------------------------------------------------------ */
     /*                              LQX Methods                                 */
     /* ------------------------------------------------------------------------ */
+
+    LQXStation::LQXStation(const Model::Station* station) : LQXObject(kLQXStationObjectTypeId,station), Attributes()
+    {
+	LQX::SymbolAutoRef value = LQX::Symbol::encodeString("");
+	value->setIsConstant(false);
+	Attributes::add_attribute( "name", value );
+    }
 
     const BCMP::Model::Station* QNAP2Result::getStation( const BCMP::LQXStation * lqx_station ) const
     {

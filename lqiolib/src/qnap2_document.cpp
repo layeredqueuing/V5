@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16089 2022-11-09 15:40:39Z greg $
+ * $Id: qnap2_document.cpp 16098 2022-11-12 20:26:41Z greg $
  *
  * Read in XML input files.
  *
@@ -91,10 +91,12 @@ namespace QNIO {
 
     const std::map<int,const QNIO::QNAP2_Document::Type> QNAP2_Document::__parser_to_type =
     {
-	{ QNAP_STRING, 	QNIO::QNAP2_Document::Type::String },
-	{ QNAP_INTEGER, QNIO::QNAP2_Document::Type::Integer },
-	{ QNAP_REAL, 	QNIO::QNAP2_Document::Type::Real },
 	{ QNAP_BOOLEAN, QNIO::QNAP2_Document::Type::Boolean },
+	{ QNAP_CLASS, 	QNIO::QNAP2_Document::Type::Class },
+	{ QNAP_INTEGER, QNIO::QNAP2_Document::Type::Integer },
+	{ QNAP_QUEUE,	QNIO::QNAP2_Document::Type::String },
+	{ QNAP_REAL, 	QNIO::QNAP2_Document::Type::Real },
+	{ QNAP_STRING, 	QNIO::QNAP2_Document::Type::String },
     };
   
     const std::map<const std::string,std::pair<QNIO::QNAP2_Document::option_fptr,bool>> QNIO::QNAP2_Document::__option = {
@@ -195,8 +197,37 @@ qnap2_declare_queue( void * list )
 }
 
 
+void
+qnap2_declare_reference( int code, void * list )
+{
+    if ( list == nullptr ) return;
+    const std::map<int,const QNIO::QNAP2_Document::Type>::const_iterator type = QNIO::QNAP2_Document::__parser_to_type.find(code);
+    if ( type == QNIO::QNAP2_Document::__parser_to_type.end() ) abort();
+    std::vector<std::string>* identifier_list = static_cast<std::vector<std::string>*>(list);
+    for ( std::vector<std::string>::const_iterator identifier = identifier_list->begin(); identifier != identifier_list->end(); ++identifier ) {
+	if ( !QNIO::QNAP2_Document::__document->defineSymbol( type->second, *identifier, true ) ) {
+	    qnap2error( "duplicate symbol: %s.", (*identifier).c_str() );
+	}
+    }
+}
+
+void
+qnap2_declare_variable( int code, void * list )
+{
+    if ( list == nullptr ) return;
+    const std::map<int,const QNIO::QNAP2_Document::Type>::const_iterator type = QNIO::QNAP2_Document::__parser_to_type.find(code);
+    if ( type == QNIO::QNAP2_Document::__parser_to_type.end() ) abort();
+    std::vector<QNIO::QNAP2_Document::Symbol *>* symbol_list = static_cast<std::vector<QNIO::QNAP2_Document::Symbol *>*>(list);
+    for ( std::vector<QNIO::QNAP2_Document::Symbol *>::const_iterator symbol = symbol_list->begin(); symbol != symbol_list->end(); ++symbol ) {
+	if ( !QNIO::QNAP2_Document::__document->defineSymbol( type->second, **symbol ) ) {
+	    qnap2error( "duplicate symbol: %s.", (*symbol)->name().c_str() );
+	}
+    }
+}
+
+
 void *
-qnap2_declare_variable( const char * name, void * begin, void * end, void * init )
+qnap2_define_variable( const char * name, void * begin, void * end, void * init )
 {
     return new QNIO::QNAP2_Document::Symbol( std::string(name), QNIO::QNAP2_Document::Type::Undefined, static_cast<LQX::SyntaxTreeNode *>(begin), 
 					     static_cast<LQX::SyntaxTreeNode *>(end), static_cast<LQX::SyntaxTreeNode *>(init) );
@@ -214,21 +245,6 @@ void qnap2_define_station()
 void qnap2_declare_objects()
 {
     QNIO::QNAP2_Document::__document->declareObjects();
-}
-
-
-void
-qnap2_define_variable( int code, void * list )
-{
-    if ( list == nullptr ) return;
-    const std::map<int,const QNIO::QNAP2_Document::Type>::const_iterator type = QNIO::QNAP2_Document::__parser_to_type.find(code);
-    if ( type == QNIO::QNAP2_Document::__parser_to_type.end() ) abort();
-    std::vector<QNIO::QNAP2_Document::Symbol *>* symbol_list = static_cast<std::vector<QNIO::QNAP2_Document::Symbol *>*>(list);
-    for ( std::vector<QNIO::QNAP2_Document::Symbol *>::const_iterator symbol = symbol_list->begin(); symbol != symbol_list->end(); ++symbol ) {
-	if ( !QNIO::QNAP2_Document::__document->defineSymbol( type->second, **symbol ) ) {
-	    qnap2error( "duplicate symbol: %s.", (*symbol)->name().c_str() );
-	}
-    }
 }
 
 
@@ -262,13 +278,7 @@ void * qnap2_get_all_objects( int code )
 
 void * qnap2_get_attribute( void * arg1, const char * arg2 )
 {
-    try {
-	return QNIO::QNAP2_Document::__document->getAttribute( static_cast<LQX::SyntaxTreeNode *>(arg1), arg2 );
-    }
-    catch ( const std::logic_error& error ) {
-	qnap2error( "%s.", error.what() );
-    }
-    return nullptr;
+    return new LQX::ObjectPropertyReadNode( static_cast<LQX::SyntaxTreeNode *>(arg1), arg2 );
 }
 
 
@@ -313,12 +323,15 @@ void * qnap2_get_integer( long value )
 const char *
 qnap2_get_station_name( const char * station_name )
 {
+#if 0
+    /*!!! Check the symbol table.  add symbolIsDefined( name ) const {} */
     try {
 	QNIO::QNAP2_Document::__document->getStation( station_name );
     }
     catch ( const std::logic_error& error ) {
 	qnap2error( "%s.", error.what() );
     }
+#endif
     return station_name;
     
 }
@@ -350,9 +363,7 @@ void * qnap2_get_service_distribution( int code, void * mean, void * shape )
     };
 
     if ( mean == nullptr ) return nullptr;
-    const std::map<int,const QNIO::QNAP2_Document::Distribution>::const_iterator distribution_type = parser_to_distribution.find(code);
-    if ( distribution_type == parser_to_distribution.end() ) abort();
-    return new QNIO::QNAP2_Document::ServiceDistribution( distribution_type->second, static_cast<LQX::SyntaxTreeNode *>(mean), static_cast<LQX::SyntaxTreeNode *>(shape) );
+    return new QNIO::QNAP2_Document::ServiceDistribution( parser_to_distribution.at(code), static_cast<LQX::SyntaxTreeNode *>(mean), static_cast<LQX::SyntaxTreeNode *>(shape) );
 }
 
 void * qnap2_get_station_type_pair( int code, int copies )
@@ -430,13 +441,7 @@ void qnap2_set_station_init( const void * list, void * value )
  
 void qnap2_set_station_name( const char * name )
 {
-    try {
-	QNIO::QNAP2_Document::__document->getStation( std::string( name ) );
-	QNIO::QNAP2_Document::__station.first = name;
-    }
-    catch ( const std::logic_error& error ) {
-	qnap2error( "%s.", error.what() );
-    }
+    QNIO::QNAP2_Document::__station.first = name;
 }
 
 void qnap2_set_station_sched( const char * scheduling )
@@ -749,42 +754,33 @@ namespace QNIO {
     bool
     QNAP2_Document::declareAttribute( QNAP2_Document::Type object_type, QNAP2_Document::Type attribute_type, Symbol& symbol )
     {
-	return symbol.isScalar() && defineSymbol( QNAP2_Document::Type::Attribute, symbol ) && _attributes.emplace( symbol.name(), std::pair<const QNAP2_Document::Type,const QNAP2_Document::Type>(object_type,attribute_type) ).second;
+	return symbol.isScalar() && defineSymbol( QNAP2_Document::Type::Attribute, symbol ) && _attributes.emplace( symbol.name(), object_type ).second
+	    && BCMP::Attributes::addAttribute( symbol.name(), getInitialValue( attribute_type, symbol ) );
     }
 
     bool
     QNAP2_Document::declareStation( const Symbol& symbol )
     {
-	return defineSymbol( QNAP2_Document::Type::Queue, symbol ) && model().stations().emplace( BCMP::Model::Station::pair_t( symbol.name(), BCMP::Model::Station() ) ).second;
+	return defineSymbol( QNAP2_Document::Type::Queue, symbol );
     }
 
     bool
-    QNAP2_Document::defineSymbol( QNAP2_Document::Type type, const Symbol& symbol )
+    QNAP2_Document::defineSymbol( QNAP2_Document::Type type, const Symbol& symbol, bool is_reference )
     {
+	if ( symbol.name().empty() ) return true;
 	_lqx->defineExternalVariable( symbol.name() );
-	LQX::VariableExpression * lvalue = new LQX::VariableExpression( symbol.name(), is_external );
-	LQX::SyntaxTreeNode * initial_value = symbol.initial_value();
-	if ( initial_value == nullptr ) {
-	    switch ( type ) {
-	    case Type::Boolean:	    initial_value = new LQX::ConstantValueExpression( false ); break;
-	    case Type::Integer:	    /* Fall through, no integers, use real. */
-	    case Type::Real:	    initial_value = new LQX::ConstantValueExpression( 0. ); break;
-	    case Type::String:	    initial_value = new LQX::ConstantValueExpression( "" ); break;
-	    case Type::Queue:	    initial_value = new LQX::MethodInvocationExpression( "station", new LQX::ConstantValueExpression( symbol.name() ), nullptr ); break;
-	    case Type::Class:	    initial_value = new LQX::MethodInvocationExpression( "array_create" ); break;
-	    case Type::Attribute:   initial_value = new LQX::ConstantValueExpression(); break;
-	    default: abort();
+
+	if ( !is_reference ) {
+	    LQX::VariableExpression * lvalue = new LQX::VariableExpression( symbol.name(), is_external );
+	    LQX::SyntaxTreeNode * initial_value = getInitialValue( type, symbol );
+	    if ( initial_value != nullptr ) {
+		_program.push_back( new LQX::AssignmentStatementNode( lvalue, initial_value ) );
 	    }
 	}
-	if ( initial_value != nullptr ) {
-	    _program.push_back( new LQX::AssignmentStatementNode( lvalue, initial_value ) );
-	}
-
 	return true;
     }
-    
 
-    
+
     /*
      * Create LQX objects for all symbols (and classes).
      */
@@ -811,11 +807,14 @@ namespace QNIO {
     QNAP2_Document::defineStation()
     {
 	const std::string& station_name = __station.first;
-	BCMP::Model::Station& station =	getStation( station_name );
+	/* This will have to be a loop if station is an array */
+	std::pair<BCMP::Model::Station::map_t::iterator,bool> insertion = model().stations().emplace( station_name, __station.second );
+	if ( !insertion.second ) return false;
+
+	BCMP::Model::Station& station =	insertion.first->second;
 
 	/* Copy over constructed values */
 	
-	station = __station.second;			/* copy */
 	_transit.emplace( station_name, __transit );	/* copy */
 	    
 	/* Set defaults if not set */
@@ -832,6 +831,9 @@ namespace QNIO {
 	if ( station.copies() == nullptr ) {
 	    station.setCopies( new LQX::ConstantValueExpression( 1. ) );	/* Default 1 */
 	}
+
+	/* Set the name attribute of the station. */
+	_program.push_back( new LQX::AssignmentStatementNode( new LQX::ObjectPropertyReadNode( new LQX::VariableExpression( station_name, is_external ), "name" ), new LQX::ConstantValueExpression( station_name ) ) );
 
 	/* Reset */
 	
@@ -950,14 +952,16 @@ namespace QNIO {
     }
 
     
-    /* get the serivce time.  If _service.mean() is an run of the mill variable, then just use that.  If it is an attribute (!) */
+    /*
+     * get the serivce time.  If _service.mean() is an run of the mill variable, then just use that.  If it is an attribute, then it should be attached to a class.
+     */
 
     LQX::SyntaxTreeNode *
     QNIO::QNAP2_Document::SetChainCustomers::getCustomers( const std::string& class_name ) const
     {
 	LQX::VariableExpression * variable = dynamic_cast<LQX::VariableExpression *>(_customers);
 	if ( isAttribute( variable ) ) {
-	    return new LQX::MethodInvocationExpression( "array_get", new LQX::VariableExpression( class_name, is_external ), new LQX::ConstantValueExpression( variable->getName() ), nullptr );
+	    return new LQX::ObjectPropertyReadNode( new LQX::VariableExpression( class_name, is_external ), variable->getName() );
 	} else {
 	    return _customers;
 	}
@@ -987,7 +991,7 @@ namespace QNIO {
     {
 	LQX::VariableExpression * variable = dynamic_cast<LQX::VariableExpression *>(_service.mean());
 	if ( isAttribute( variable ) ) {
-	    return new LQX::MethodInvocationExpression( "array_get", new LQX::VariableExpression( class_name, is_external ), new LQX::ConstantValueExpression( variable->getName() ), nullptr );
+	    return new LQX::ObjectPropertyReadNode( new LQX::VariableExpression( class_name, is_external ), variable->getName() );
 	} else {
 	    return _service.mean();
 	}
@@ -1014,10 +1018,10 @@ namespace QNIO {
     void
     QNAP2_Document::SetStationTransit::set( const std::string& class_name ) const
     {
-	const BCMP::Model::Station::map_t& stations = QNAP2_Document::__document->model().stations();
+//!!!	const BCMP::Model::Station::map_t& stations = QNAP2_Document::__document->model().stations();
 	for ( std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>*>::const_iterator transit = _transit.begin(); transit != _transit.end(); ++transit ) {
 	    const std::string& station_name = (*transit)->first;
-	    if ( stations.find( station_name ) == stations.end() ) throw std::invalid_argument( std::string( "undefined station: " ) + station_name );
+//!!!	    if ( stations.find( station_name ) == stations.end() ) throw std::invalid_argument( std::string( "undefined station: " ) + station_name );
 	    __transit.emplace( class_name, std::map<std::string,LQX::SyntaxTreeNode *>() ).first->second.emplace( station_name, (*transit)->second );
 	}
     }
@@ -1089,19 +1093,6 @@ namespace QNIO {
 
 
     
-    LQX::SyntaxTreeNode *
-    QNAP2_Document::getAttribute( LQX::SyntaxTreeNode * variable, const std::string& attribute )
-    {
-	if ( _attributes.find( attribute ) == _attributes.end() ) throw std::invalid_argument( std::string( "undefined attribute: " ) + attribute );
-	/* Attribute attached to station?  intercept here. */
-	BCMP::Model::Station::map_t& stations = model().stations();
-	if ( dynamic_cast<LQX::VariableExpression *>(variable) && stations.find( dynamic_cast<LQX::VariableExpression *>(variable)->getName() ) != stations.end() ) {
-	    return nullptr;
-	} else {
-	    return new LQX::MethodInvocationExpression( "array_get", variable, new LQX::ConstantValueExpression( attribute ), nullptr );
-	}
-    }
-
     /*
      * Both functions and arrays have the same syntax, so is it a
      * variable or is it a function.
@@ -1110,9 +1101,9 @@ namespace QNIO {
     LQX::SyntaxTreeNode *
     QNAP2_Document::getFunction( const std::string& name, std::vector<LQX::SyntaxTreeNode *>* args )
     {
-	if ( _env->getSpecialSymbolTable()->isDefined( name ) ) {
+	if ( getLQXEnvironment()->getSpecialSymbolTable()->isDefined( name ) ) {
 	    /* array */
-	} else if ( _env->getMethodTable()->isDefined( name ) ) {
+	} else if ( getLQXEnvironment()->getMethodTable()->isDefined( name ) ) {
 	    if ( args != nullptr ) {
 		return new LQX::MethodInvocationExpression( name, args );
 	    } else {
@@ -1121,6 +1112,25 @@ namespace QNIO {
 	}
 	throw std::invalid_argument( std::string( "undefined function or array: " ) + name );
 	return nullptr;
+    }
+
+    
+    LQX::SyntaxTreeNode * QNAP2_Document::getInitialValue( QNAP2_Document::Type type, const Symbol& symbol ) 
+    {
+    	LQX::SyntaxTreeNode * initial_value = symbol.initial_value();
+	if ( initial_value == nullptr ) {
+	    switch ( type ) {
+	    case Type::Boolean:	    initial_value = new LQX::ConstantValueExpression( false ); break;
+	    case Type::Integer:	    /* Fall through, no integers, use real. */
+	    case Type::Real:	    initial_value = new LQX::ConstantValueExpression( 0. ); break;
+	    case Type::String:	    initial_value = new LQX::ConstantValueExpression( "" ); break;
+	    case Type::Queue:	    initial_value = new LQX::MethodInvocationExpression( "station", new LQX::ConstantValueExpression( symbol.name() ), nullptr ); break;
+	    case Type::Class:	    initial_value = new LQX::MethodInvocationExpression( "chain", new LQX::ConstantValueExpression( symbol.name() ), nullptr ); break;
+	    case Type::Attribute:   initial_value = new LQX::ConstantValueExpression( symbol.name() ); break;
+	    default: abort();
+	    }
+	}
+	return initial_value;
     }
 
     
@@ -1145,7 +1155,7 @@ namespace QNIO {
     LQX::VariableExpression *
     QNAP2_Document::getVariable( const std::string& name )
     {
-	LQX::SymbolTable* symbol_table = _env->getSpecialSymbolTable();
+	LQX::SymbolTable* symbol_table = getLQXEnvironment()->getSpecialSymbolTable();
 	if ( !symbol_table->isDefined( name ) ) {
 	    throw std::invalid_argument( std::string( "undefined variable: " ) + name );
 	}
@@ -1232,7 +1242,7 @@ namespace QNIO {
     void
     QNAP2_Document::registerMethods()
     {
-	LQX::MethodTable * method_table = _env->getMethodTable();
+	LQX::MethodTable * method_table = getLQXEnvironment()->getMethodTable();
 	method_table->registerMethod(new BCMP::Mbusypct(model()));
 	method_table->registerMethod(new BCMP::Mcustnb(model()));
 	method_table->registerMethod(new BCMP::Mresponse(model()));

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 16089 2022-11-09 15:40:39Z greg $
+ *  $Id: qnap2_document.h 16097 2022-11-12 20:01:52Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -25,13 +25,14 @@ extern "C" {
     void qnap2error( const char * fmt, ... );
     void * qnap2_append_pointer( void *, void * );
     void * qnap2_append_string( void * list, const char * name );
-    void * qnap2_declare_variable( const char *, void *, void *, void * );
+    void * qnap2_define_variable( const char *, void *, void *, void * );
     void qnap2_declare_class( void * );
     void qnap2_declare_attribute( int, int, void * );
     void qnap2_declare_queue( void * );
     void qnap2_declare_objects();
+    void qnap2_declare_reference( int, void * list );
+    void qnap2_declare_variable( int, void * );
     void qnap2_define_station();
-    void qnap2_define_variable( int, void * );
     void qnap2_map_transit_to_visits();
     const char * qnap2_get_class_name( const char * );		/* checks for class name */
     const char * qnap2_get_station_name( const char * );	/* checks for station name */
@@ -94,13 +95,14 @@ namespace QNIO {
 	friend class SetStationService;
 	friend const char * ::qnap2_get_class_name( const char * );		/* checks for class name */
 	friend const char * ::qnap2_get_station_name( const char * );		/* checks for station name */
-	friend void * ::qnap2_declare_variable( const char * name, void * begin, void * end, void * init );
-	friend void ::qnap2_declare_class( void * );
+	friend void * ::qnap2_define_variable( const char * name, void * begin, void * end, void * init );
 	friend void ::qnap2_declare_attribute( int, int, void * );
-	friend void ::qnap2_declare_queue( void * );
+	friend void ::qnap2_declare_class( void * );
 	friend void ::qnap2_declare_objects();
+	friend void ::qnap2_declare_queue( void * );
+	friend void ::qnap2_declare_reference( int, void * );
+	friend void ::qnap2_declare_variable( int, void * );
 	friend void ::qnap2_define_station();
-	friend void ::qnap2_define_variable( int, void * );
 	friend void ::qnap2_map_transit_to_visits();
 	friend void ::qnap2_set_option( const void * );
 	friend void ::qnap2_set_program( void * );
@@ -195,7 +197,6 @@ namespace QNIO {
 
     private:
 	LQX::SyntaxTreeNode * getAllObjects( QNIO::QNAP2_Document::Type ) const;
-	LQX::SyntaxTreeNode * getAttribute( LQX::SyntaxTreeNode *, const std::string& );
 	LQX::SyntaxTreeNode * getFunction( const std::string& name, std::vector<LQX::SyntaxTreeNode *>* args );
 	LQX::VariableExpression * getVariable( const std::string& name );
 
@@ -205,7 +206,7 @@ namespace QNIO {
 	bool declareClass( const Symbol& );
 	bool declareAttribute( Type, Type, Symbol& );
 	bool declareStation( const Symbol& );
-	bool defineSymbol( Type, const Symbol& );
+	bool defineSymbol( Type, const Symbol&, bool=false );
 	bool defineStation();
 	bool mapTransitToVisits();
 	bool mapTransitToVisits( const std::string&, const std::string&, LQX::SyntaxTreeNode *, std::deque<std::string>& );
@@ -224,7 +225,8 @@ namespace QNIO {
 	
     private:
 	static BCMP::Model::Chain& getChain( const std::string& ); /* throws if not found */
-	static BCMP::Model::Station& getStation( const std::string& ); 
+	static BCMP::Model::Station& getStation( const std::string& );
+	static LQX::SyntaxTreeNode * getInitialValue( QNAP2_Document::Type type, const Symbol& symbol );
 
 	class SetOption {
 	public:
@@ -478,7 +480,7 @@ namespace QNIO {
 	/* */
 	/* -------------------------------------------------------------------- */
     private:
-	std::map<std::string,std::pair<const Type,const Type>> _attributes;			/* Object, Scalar */
+	std::map<const std::string,const Type> _attributes;			/* Object, Scalar */
 	std::map<std::string,std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>> _transit; /* from, chain, to, value under construction */
 	std::vector<LQX::SyntaxTreeNode *> _program;
 	LQX::Program * _lqx;
