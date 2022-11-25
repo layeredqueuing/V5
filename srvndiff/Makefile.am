@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15865 2022-09-15 19:28:53Z greg $
+# $Id: Makefile.am 16118 2022-11-17 18:45:33Z greg $
 #----------------------------------------------------------------------
 
 AM_CPPFLAGS	= -I..
@@ -24,11 +24,10 @@ all-local:	srvndiff.pdf
 install-data-local:	srvndiff.pdf
 
 srvndiff.pdf:	$(man1_MANS)
-		groff -man $(man1_MANS) | ps2pdf - $@
+		groff -man $(man1_MANS)  > $<.ps
+		ps2pdf $<.ps $@
+		rm $<.ps
 endif
-
-srvndiff.txt:	$(man1_MANS)
-		nroff -man $(man1_MANS) | col -b > srvndiff.txt
 
 # Force rename of variables.  For FLEX -- should check. :-)
 srvn_result_scan.c: srvn_result_scan.l srvn_result_gram.h

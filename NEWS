@@ -26,7 +26,7 @@
 338 	lqns 		Queuing time not equal to zero when NCust = NServers for Zhou multiserver. 
 352 	lqn2xxx 	--no-xxxx doesn't work. 
 353 	lqns 		Assertion failed: (ix && ix <= sz), function operator[], file vector.h, line 174. 
-357 	para_lib 	parasol/include/semaphore.h conflicts with /usr/include/semaphore.h 
+357 	para_lib 	parasol/include/sem*caphore.h conflicts with /usr/include/semaphore.h 
 360 	lqngen	 	lqngen -L<n> doesn't work. 
 361 	lqn2xxx 	EXC_BAD_ACCESS (code=EXC_I386_GPFLT) LQIO::DOM::Document::~Document(this=0x0000000100a04080) at dom_document.cpp:123:3 
 362 	lqn2csv 	terminate called after throwing an instance of 'std::runtime_error' 

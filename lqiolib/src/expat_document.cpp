@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 15961 2022-10-11 17:27:29Z greg $
+ * $Id: expat_document.cpp 16114 2022-11-17 17:29:07Z greg $
  *
  * Read in XML input files.
  *
@@ -194,12 +194,11 @@ namespace LQIO {
 		} else {
 		    /* Try the old way (for pipes) */
 #endif
-		    const size_t BUFFSIZE = 1024;
-		    char buffer[BUFFSIZE];
+		    char buffer[BUFSIZ];
 		    size_t len = 0;
 
 		    do {
-			len = read( input_fd, buffer, BUFFSIZE );
+			len = read( input_fd, buffer, BUFSIZ );
 			if ( static_cast<int>(len) < 0 ) {
 			    std::cerr << LQIO::io_vars.lq_toolname << ": Read error on " << _input_file_name << " - " << strerror( errno ) << std::endl;
 			    rc = false;
@@ -2325,7 +2324,8 @@ namespace LQIO {
         Expat_Document::exportGeneral( std::ostream& output ) const
         {
 	    const std::vector<Spex::ObservationInfo> doc_vars = Spex::document_variables();
-	    const bool complex_element = hasResults() || _document.hasPragmas() || doc_vars.size() > 0;
+	    const std::map<std::string,std::string>& pragmas = _document.getPragmaList();
+	    const bool complex_element = hasResults() || !pragmas.empty() || doc_vars.size() > 0;
 
 	    if ( _document.getSymbolExternalVariableCount() > 0 ) {
 		std::ostringstream ss;
@@ -2341,8 +2341,7 @@ namespace LQIO {
                    << XML::attribute( Xprint_int, *_document.getModelPrintInterval() );
             if ( complex_element ) {
                 output << ">" << std::endl;
-                if ( _document.hasPragmas() ) {
-                    const std::map<std::string,std::string>& pragmas = _document.getPragmaList();
+                if ( !pragmas.empty() ) {
                     for ( std::map<std::string,std::string>::const_iterator next_pragma = pragmas.begin(); next_pragma != pragmas.end(); ++next_pragma ) {
                         output << XML::start_element( Xpragma, false )
                                << XML::attribute( Xparam, next_pragma->first )

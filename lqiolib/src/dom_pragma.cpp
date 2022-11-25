@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 16027 2022-10-25 02:18:21Z greg $
+ *  $Id: dom_pragma.cpp 16114 2022-11-17 17:29:07Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -86,6 +86,11 @@ namespace LQIO {
 	    return iter->second;
 	}
 	
+	bool Pragma::have( const std::string& s ) const
+	{
+	    return _loadedPragmas.find( s ) != _loadedPragmas.end();
+	}
+
 	const std::set<std::string>* Pragma::getValues( const std::string& s )
 	{
 	    const std::map<const std::string,const std::set<std::string>*>::const_iterator i = __pragmas.find(s);

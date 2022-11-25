@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 15968 2022-10-13 19:23:03Z greg $
+ * $Id: task.cc 16121 2022-11-17 20:31:33Z greg $
  */
 
 #include "lqsim.h"
@@ -125,7 +125,7 @@ Task::configure()
 
     for ( std::vector<Activity *>::const_iterator ap = _activity.begin(); ap != _activity.end(); ++ap ) {
 	if ( !(*ap)->is_reachable() ) {
-	    (*ap)->getDOM()->runtime_error( LQIO::WRN_NOT_USED, "Activity", (*ap)->name() );
+	    (*ap)->getDOM()->runtime_error( LQIO::WRN_NOT_USED, "Activity", (*ap)->name().c_str() );
 	} else if ( !(*ap)->is_specified() ) {
 	    (*ap)->getDOM()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
 	}
@@ -154,7 +154,7 @@ Task::create()
     trace_flag	= std::regex_match( name(), task_match_pattern );
 
     if ( debug_flag ){
-	(void) fprintf( stddbg, "\n-+++++---- %s task %s", type_name().c_str(), name() );
+	(void) fprintf( stddbg, "\n-+++++---- %s task %s", type_name().c_str(), name().c_str() );
 	if ( _compute_func == ps_sleep ) {
 	    (void) fprintf( stddbg, " [delay]" );
 	}
@@ -195,17 +195,17 @@ Task::initialize()
 	const Activity * src = (*lp)->front();
 	const Activity * dst = (*lp)->back();
 
-	(*lp)->r_join.init( SAMPLE, "Join delay %-11.11s %-11.11s ", src->name(), dst->name() );
-	(*lp)->r_join_sqr.init( SAMPLE, "Join delay squared %-11.11s %-11.11s ", src->name(), dst->name() );
+	(*lp)->r_join.init( SAMPLE, "Join delay %-11.11s %-11.11s ", src->name().c_str(), dst->name().c_str() );
+	(*lp)->r_join_sqr.init( SAMPLE, "Join delay squared %-11.11s %-11.11s ", src->name().c_str(), dst->name().c_str() );
     }
 
     /* statistics */
     _active = 0;		/* Reset counts */
     _hold_active = 0;
 
-    r_cycle.init( SAMPLE,        "%s %-11.11s - Cycle Time        ", type_name().c_str(), name() );
-    r_util.init( VARIABLE,       "%s %-11.11s - Utilization       ", type_name().c_str(), name() );
-    r_group_util.init( VARIABLE, "%s %-11.11s - Group Utilization ", type_name().c_str(), name() );
+    r_cycle.init( SAMPLE,        "%s %-11.11s - Cycle Time        ", type_name().c_str(), name().c_str() );
+    r_util.init( VARIABLE,       "%s %-11.11s - Utilization       ", type_name().c_str(), name().c_str() );
+    r_group_util.init( VARIABLE, "%s %-11.11s - Group Utilization ", type_name().c_str(), name().c_str() );
     return *this;
 }
 
@@ -251,9 +251,7 @@ Task::build_links()
 		if ( proc != processor() && inter_proc_delay > 0.0 ) {
 		    const int h = proc->node_id();
 		    if ( static_cast<int>(link_tab[h]) == -1 ) {
-			char link_name[BUFSIZ];
-
-			(void) sprintf( link_name, "%s.%s", name(), proc->name() );
+			const std::string link_name = name() + "." + proc->name();
 
 			/*
 			 * !!!DANGER!!!!
@@ -261,7 +259,7 @@ Task::build_links()
 			 * we have to fudge it here.
 			 */
 
-			link_tab[h] = ps_build_link( link_name,
+			link_tab[h] = ps_build_link( link_name.c_str(),
 						     processor()->node_id(),
 						     h,
 						     (double)LINKS_MESSAGE_SIZE * 2 / inter_proc_delay,
@@ -433,11 +431,11 @@ Task::accumulate_data()
 FILE *
 Task::print( FILE * output ) const
 {
-    r_util.print_raw( output,     "%-6.6s %-11.11s - Utilization", type_name().c_str(), name() );
-    r_cycle.print_raw( output,    "%-6.6s %-11.11s - Cycle Time ", type_name().c_str(), name() );
+    r_util.print_raw( output,     "%-6.6s %-11.11s - Utilization", type_name().c_str(), name().c_str() );
+    r_cycle.print_raw( output,    "%-6.6s %-11.11s - Cycle Time ", type_name().c_str(), name().c_str() );
 
     for ( std::vector<Entry *>::const_iterator entry = _entry.begin(); entry != _entry.end(); ++entry ) {
-	(*entry)->r_cycle.print_raw( output, "Entry %-11.11s  - Cycle Time      ", (*entry)->name() );
+	(*entry)->r_cycle.print_raw( output, "Entry %-11.11s  - Cycle Time      ", (*entry)->name().c_str() );
 
 	for_each( (*entry)->_phase.begin(), (*entry)->_phase.end(), ConstExec1<Activity,FILE *>( &Activity::print_raw_stat, output ) );
     }
@@ -445,8 +443,8 @@ Task::print( FILE * output ) const
     for_each( _activity.begin(), _activity.end(), ConstExec1<Activity,FILE *>( &Activity::print_raw_stat, output ) );
 
     for ( std::vector<AndJoinActivityList *>::const_iterator lp = _joins.begin(); lp != _joins.end(); ++lp ) {
-	(*lp)->r_join.print_raw( output, "%-6.6s %-11.11s - Join Delay ", type_name().c_str(), name() );
-	(*lp)->r_join_sqr.print_raw( output, "%-6.6s %-11.11s - Join DelSqr", type_name().c_str(), name() );
+	(*lp)->r_join.print_raw( output, "%-6.6s %-11.11s - Join Delay ", type_name().c_str(), name().c_str() );
+	(*lp)->r_join_sqr.print_raw( output, "%-6.6s %-11.11s - Join DelSqr", type_name().c_str(), name().c_str() );
     }
 
     return output;
@@ -737,7 +735,7 @@ Reference_Task::create_instance()
     }
     _task_list.clear();
     for ( unsigned i = 0; i < multiplicity(); ++i ) {
-	_task_list.push_back( new srn_client( this, name() ) );
+	_task_list.push_back( new srn_client( this, name().c_str() ) );
     }
 }
 
@@ -802,14 +800,14 @@ Server_Task::create_instance()
 {
     if ( is_infinite() ) {
 	_task = new srn_multiserver( this, name(), ~0 );
-	_worker_port = ps_allocate_port( name(), _task->task_id() );
+	_worker_port = ps_allocate_port( name().c_str(), _task->task_id() );
 	_type = Task::Type::INFINITE_SERVER;
 	if ( is_aysnc_inf_server() ) {
 	    getDOM()->runtime_error( LQIO::WRN_INFINITE_SERVER_OPEN_ARRIVALS );
 	}
     } else if ( is_multiserver() ) {
 	_task = new srn_multiserver( this, name(), multiplicity() );
-	_worker_port = ps_allocate_port( name(), _task->task_id() );
+	_worker_port = ps_allocate_port( name().c_str(), _task->task_id() );
 	_type = Task::Type::MULTI_SERVER;
     } else {
 	_task = new srn_server( this, name() );
@@ -854,9 +852,9 @@ Semaphore_Task::create()
 {
     Task::create();
 
-    r_hold.init( SAMPLE,         "%s %-11.11s - Hold Time         ", type_name().c_str(), name() );
-    r_hold_sqr.init( SAMPLE,     "%s %-11.11s - Hold Time Sq      ", type_name().c_str(), name() );
-    r_hold_util.init( VARIABLE,  "%s %-11.11s - Hold Utilization  ", type_name().c_str(), name() );
+    r_hold.init( SAMPLE,         "%s %-11.11s - Hold Time         ", type_name().c_str(), name().c_str() );
+    r_hold_sqr.init( SAMPLE,     "%s %-11.11s - Hold Time Sq      ", type_name().c_str(), name().c_str() );
+    r_hold_util.init( VARIABLE,  "%s %-11.11s - Hold Utilization  ", type_name().c_str(), name().c_str() );
     return *this;
 }
 
@@ -956,9 +954,9 @@ FILE *
 Semaphore_Task::print( FILE * output ) const
 {
     Task::print( output );
-    r_hold.print_raw( output,      "%-6.6s %-11.11s - Hold Time  ", type_name().c_str(), name() );
-    r_hold_sqr.print_raw( output,  "%-6.6s %-11.11s - Hold Sqr   ", type_name().c_str(), name() );
-    r_hold_util.print_raw( output, "%-6.6s %-11.11s - Hold Util  ", type_name().c_str(), name() );
+    r_hold.print_raw( output,      "%-6.6s %-11.11s - Hold Time  ", type_name().c_str(), name().c_str() );
+    r_hold_sqr.print_raw( output,  "%-6.6s %-11.11s - Hold Sqr   ", type_name().c_str(), name().c_str() );
+    r_hold_util.print_raw( output, "%-6.6s %-11.11s - Hold Util  ", type_name().c_str(), name().c_str() );
 
     return output;
 }
@@ -989,25 +987,25 @@ ReadWriteLock_Task::create_instance()
 	if ( _entry[i]->is_r_unlock() ) {
 	    if (E[0]== -1) { E[0]=i; }
 	    else{ // duplicate entry TYPE error
-		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name() );
+		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name().c_str() );
 	    }
 	} else if ( _entry[i]->is_r_lock() ) {
 	    if (E[1]== -1) { E[1]=i; }
 	    else{
-		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name() );
+		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name().c_str() );
 	    }
 	} else if ( _entry[i]->is_w_unlock() ) {
 	    if (E[2]== -1) { E[2]=i; }
 	    else{
-		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name() );
+		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name().c_str() );
 	    }
 	} else if ( _entry[i]->is_w_lock() ) {
 	    if (E[3]== -1) { E[3]=i; }
 	    else{
-		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name() );
+		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name().c_str() );
 	    }
 	} else {
-	    LQIO::runtime_error( LQIO::ERR_NO_RWLOCK, name() );
+	    LQIO::runtime_error( LQIO::ERR_NO_RWLOCK, name().c_str() );
 	    std::cerr << "entry names: " << _entry[0]->name() << ", " << _entry[1]->name() <<", " << _entry[2]->name()<< ", " << _entry[3]->name() << std::endl;
 	}
     }
@@ -1074,16 +1072,16 @@ ReadWriteLock_Task::create()
 {
     Semaphore_Task::create();
 
-    r_reader_hold.init( SAMPLE,         "%s %-11.11s - Reader Hold Time         ", type_name().c_str(), name() );
-    r_reader_hold_sqr.init( SAMPLE,     "%s %-11.11s - Reader Hold Time sq      ", type_name().c_str(), name() );
-    r_reader_wait.init( SAMPLE,         "%s %-11.11s - Reader Blocked Time      ", type_name().c_str(), name() );
-    r_reader_wait_sqr.init( SAMPLE,     "%s %-11.11s - Reader Blocked Time sq   ", type_name().c_str(), name() );
-    r_reader_hold_util.init( VARIABLE,  "%s %-11.11s - Reader Hold Utilization  ", type_name().c_str(), name() );
-    r_writer_hold.init( SAMPLE,         "%s %-11.11s - Writer Hold Time         ", type_name().c_str(), name() );
-    r_writer_hold_sqr.init( SAMPLE,     "%s %-11.11s - Writer Hold Time sq      ", type_name().c_str(), name() );
-    r_writer_wait.init( SAMPLE,         "%s %-11.11s - Writer Blocked Time      ", type_name().c_str(), name() );
-    r_writer_wait_sqr.init( SAMPLE,     "%s %-11.11s - Writer Blocked Time sq   ", type_name().c_str(), name() );
-    r_writer_hold_util.init( VARIABLE,  "%s %-11.11s - Writer Hold Utilization  ", type_name().c_str(), name() );
+    r_reader_hold.init( SAMPLE,         "%s %-11.11s - Reader Hold Time         ", type_name().c_str(), name().c_str() );
+    r_reader_hold_sqr.init( SAMPLE,     "%s %-11.11s - Reader Hold Time sq      ", type_name().c_str(), name().c_str() );
+    r_reader_wait.init( SAMPLE,         "%s %-11.11s - Reader Blocked Time      ", type_name().c_str(), name().c_str() );
+    r_reader_wait_sqr.init( SAMPLE,     "%s %-11.11s - Reader Blocked Time sq   ", type_name().c_str(), name().c_str() );
+    r_reader_hold_util.init( VARIABLE,  "%s %-11.11s - Reader Hold Utilization  ", type_name().c_str(), name().c_str() );
+    r_writer_hold.init( SAMPLE,         "%s %-11.11s - Writer Hold Time         ", type_name().c_str(), name().c_str() );
+    r_writer_hold_sqr.init( SAMPLE,     "%s %-11.11s - Writer Hold Time sq      ", type_name().c_str(), name().c_str() );
+    r_writer_wait.init( SAMPLE,         "%s %-11.11s - Writer Blocked Time      ", type_name().c_str(), name().c_str() );
+    r_writer_wait_sqr.init( SAMPLE,     "%s %-11.11s - Writer Blocked Time sq   ", type_name().c_str(), name().c_str() );
+    r_writer_hold_util.init( VARIABLE,  "%s %-11.11s - Writer Hold Utilization  ", type_name().c_str(), name().c_str() );
     return *this;
 }
 
@@ -1183,17 +1181,17 @@ ReadWriteLock_Task::print( FILE * output ) const
 {
     Semaphore_Task::print( output );
 
-    r_reader_hold.print_raw( output,      "%-6.6s %-11.11s - Reader Hold Time    ", type_name().c_str(), name() );
-    r_reader_hold_sqr.print_raw( output,  "%-6.6s %-11.11s - Reader Hold Sqr     ", type_name().c_str(), name() );
-    r_reader_wait.print_raw( output,      "%-6.6s %-11.11s - Reader Blocked Time ", type_name().c_str(), name() );
-    r_reader_wait_sqr.print_raw( output,  "%-6.6s %-11.11s - Reader Blocked Sqr  ", type_name().c_str(), name() );
-    r_reader_hold_util.print_raw( output, "%-6.6s %-11.11s - Reader Hold Util    ", type_name().c_str(), name() );
+    r_reader_hold.print_raw( output,      "%-6.6s %-11.11s - Reader Hold Time    ", type_name().c_str(), name().c_str() );
+    r_reader_hold_sqr.print_raw( output,  "%-6.6s %-11.11s - Reader Hold Sqr     ", type_name().c_str(), name().c_str() );
+    r_reader_wait.print_raw( output,      "%-6.6s %-11.11s - Reader Blocked Time ", type_name().c_str(), name().c_str() );
+    r_reader_wait_sqr.print_raw( output,  "%-6.6s %-11.11s - Reader Blocked Sqr  ", type_name().c_str(), name().c_str() );
+    r_reader_hold_util.print_raw( output, "%-6.6s %-11.11s - Reader Hold Util    ", type_name().c_str(), name().c_str() );
 
-    r_writer_hold.print_raw( output,      "%-6.6s %-11.11s - Writer Hold Time    ", type_name().c_str(), name() );
-    r_writer_hold_sqr.print_raw( output,  "%-6.6s %-11.11s - Writer Hold Sqr     ", type_name().c_str(), name() );
-    r_writer_wait.print_raw( output,      "%-6.6s %-11.11s - Writer Blocked Time ", type_name().c_str(), name() );
-    r_writer_wait_sqr.print_raw( output,  "%-6.6s %-11.11s - Writer Blocked Sqr  ", type_name().c_str(), name() );
-    r_writer_hold_util.print_raw( output, "%-6.6s %-11.11s - Writer Hold Util    ", type_name().c_str(), name() );
+    r_writer_hold.print_raw( output,      "%-6.6s %-11.11s - Writer Hold Time    ", type_name().c_str(), name().c_str() );
+    r_writer_hold_sqr.print_raw( output,  "%-6.6s %-11.11s - Writer Hold Sqr     ", type_name().c_str(), name().c_str() );
+    r_writer_wait.print_raw( output,      "%-6.6s %-11.11s - Writer Blocked Time ", type_name().c_str(), name().c_str() );
+    r_writer_wait_sqr.print_raw( output,  "%-6.6s %-11.11s - Writer Blocked Sqr  ", type_name().c_str(), name().c_str() );
+    r_writer_hold_util.print_raw( output, "%-6.6s %-11.11s - Writer Hold Util    ", type_name().c_str(), name().c_str() );
 
     return output;
 }

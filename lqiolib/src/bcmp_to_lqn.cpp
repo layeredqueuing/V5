@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_to_lqn.cpp 15956 2022-10-07 13:54:20Z greg $
+ * $Id: bcmp_to_lqn.cpp 16123 2022-11-18 11:06:45Z greg $
  *
  * Read in XML input files.
  *
@@ -177,7 +177,7 @@ DOM::BCMP_to_LQN::getExternalVariable( const LQX::SyntaxTreeNode * expression )
 	std::ostringstream name;
 	expression->print( name );
 //	    std::cerr << "*** Value is " << name.str() << " ***" << std::endl;
-	variable = LQIO::DOM::__document->db_build_parameter_variable( name.str().c_str(), nullptr );
+	variable = LQIO::DOM::__document->db_build_parameter_variable( name.str(), nullptr );
 
     } else {
 

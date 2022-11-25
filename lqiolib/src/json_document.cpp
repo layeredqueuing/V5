@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 15961 2022-10-11 17:27:29Z greg $
+ * $Id: json_document.cpp 16114 2022-11-17 17:29:07Z greg $
  *
  * Read in JSON input files.
  *
@@ -19,6 +19,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
 #include <cstdlib>
 #include <cstdio>
 #include <cstdarg>
@@ -69,9 +70,6 @@ namespace LQIO {
 	int JSON_Document::Import::__indent = 0;
 	int JSON_Document::Export::__indent = -1;		/* suppress initial newline */
 
-#if !__clang__ && __cplusplus < 201103L
-	static regex_t pattern;
-#endif
 	/* ---------------------------------------------------------------- */
 	/* Function objects for for_each.				    */
 	/* ---------------------------------------------------------------- */
@@ -219,8 +217,21 @@ namespace LQIO {
 		std::cerr << LQIO::io_vars.lq_toolname << ": Read error on " << _input_file_name << " - " << strerror( errno ) << std::endl;
 	    }
 #else
-	    char * buffer = static_cast<char *>(malloc( statbuf.st_size ) );
-	    if ( read( input_fd, buffer, statbuf.st_size ) == statbuf.st_size ) {
+	    size_t size = statbuf.st_size;
+	    char * buffer = static_cast<char *>(malloc( size ) );
+	    char * p = buffer;
+	    size_t len = 0;
+	    do {
+	        len = read( input_fd, p, std::min( size, static_cast<size_t>(BUFSIZ) ) );	/* BUG 400 -- windows issue */
+		if ( static_cast<int>(len) < 0 ) {
+		    std::cerr << LQIO::io_vars.lq_toolname << ": Read error on " << _input_file_name << " - " << strerror( errno ) << std::endl;
+		    rc = false;
+		    break;
+		}
+		p += len;
+		size -= len;
+	    } while ( len > 0 );
+	    if ( len == 0 ) {
 		std::string err = picojson::parse( _dom, buffer, buffer + statbuf.st_size );
 		if ( err.empty() ) {
 		    try {
@@ -234,8 +245,6 @@ namespace LQIO {
 		    input_error( err.c_str() );
 		    rc = false;
 		}
-	    } else {
-		std::cerr << LQIO::io_vars.lq_toolname << ": Read error on " << _input_file_name << " - " << strerror( errno ) << std::endl;
 	    }
 	    free( buffer );
 #endif
@@ -1752,17 +1761,10 @@ namespace LQIO {
 	ExternalVariable *
 	JSON_Document::get_external_variable( const picojson::value& value ) const
 	{
-#if __clang__ || __cplusplus >= 201103L
 	    static const std::regex e( "^\\$[_$A-Za-z0-9]+$" );
-#endif
 	    if ( value.is<std::string>() ) {
 		const std::string& s = value.get<std::string>();
-#if !__clang__ && __cplusplus < 201103L
-		const bool match = regexec( &pattern, s.c_str(), 0, 0, 0 ) == 0;
-#else
-		const bool match = std::regex_match( s, e );
-#endif
-		if ( match ) {
+		if ( std::regex_match( s, e ) ) {
 		    bool is_symbol = false;
 		    return getDocument().db_build_parameter_variable( s.c_str(), &is_symbol );
 		} else {
@@ -2775,9 +2777,9 @@ namespace LQIO {
 		    << next_attribute( Xunderrelax_coeff, *document.getModelUnderrelaxationCoefficient() )
 		    << next_attribute( Xprint_int, *document.getModelPrintInterval() );
 
-	    if ( document.hasPragmas() ) {
+	    const std::map<std::string,std::string>& pragmas = document.getPragmaList();
+	    if ( !pragmas.empty() ) {
 		_output << next_begin_array( Xpragma );
-		const std::map<std::string,std::string>& pragmas = document.getPragmaList();
 		std::for_each( pragmas.begin(), pragmas.end(), ExportPragma( _output, _conf_95 ) );
 		_output << end_array();
 	    }

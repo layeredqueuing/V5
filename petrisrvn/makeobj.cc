@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: makeobj.cc 15955 2022-10-07 11:05:00Z greg $
+ * $Id: makeobj.cc 16121 2022-11-17 20:31:33Z greg $
  *
  * Make various model objects.
  */
@@ -495,7 +495,7 @@ groupize (void)
 
 	group[i].group      = cur_group;
 	group[i].trans	    = &cur_group->trans;
-	sprintf( buf, "G%d", i+1 );
+	snprintf( buf, 32, "G%d", i+1 );
 
 	cur_group->tag      = buf;
 	cur_group->pri	    = i+1;

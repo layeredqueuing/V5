@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 15741 2022-07-01 11:57:03Z greg $
+ * $Id: model.cc 16121 2022-11-17 20:31:33Z greg $
  */
 
 #include "lqsim.h"
@@ -449,7 +449,7 @@ Model::print_raw_stats( FILE * output ) const
 		    (((number_blocks > 2) ? long_width : short_width) - 23) / 2, dashes,
 		    (((number_blocks > 2) ? long_width : short_width) - 23) / 2, dashes );
     for ( std::set<Processor *>::const_iterator processor = Processor::__processors.begin(); processor != Processor::__processors.end(); ++processor ) {
-	(*processor)->r_util.print_raw( output, "Processor %-11.11s - Utilization", (*processor)->name() );
+	(*processor)->r_util.print_raw( output, "Processor %-11.11s - Utilization", (*processor)->name().c_str() );
     }
 
 #ifdef	NOTDEF

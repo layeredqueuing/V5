@@ -165,7 +165,7 @@ type			return QNAP_TYPE;
 			    }
 			}
 
-({C}|{U})({C}|{D}|{U})*	{ qnap2lval.aString = lqio_duplicate_string( &qnap2text[0], qnap2leng ); return QNAP_IDENTIFIER; }
+({C}|{U})({C}|{D}|{U})*	{ qnap2lval.aString = lqio_duplicate_string( &qnap2text[0], qnap2leng ); return IDENTIFIER; }
 %%
 static int return_code( int code )
 {

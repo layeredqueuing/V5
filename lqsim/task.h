@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * Lqsim-parasol task interface.
  *
- * $Id: task.h 15650 2022-06-07 17:32:49Z greg $
+ * $Id: task.h 16121 2022-11-17 20:31:33Z greg $
  */
 
 /************************************************************************/
@@ -57,7 +57,7 @@ class Task {
 
     struct ltTask
     {
-	bool operator()(const Task * p1, const Task * p2) const { return strcmp( p1->name(), p2->name() ) < 0; }
+	bool operator()(const Task * p1, const Task * p2) const { return p1->name() < p2->name(); }
     };
 
 
@@ -68,11 +68,11 @@ class Task {
 
     struct eqTaskStr
     {
-	eqTaskStr( const char * s ) : _s(s) {}
-	bool operator()(const Task * p1 ) const { return strcmp( p1->name(), _s ) == 0; }
+	eqTaskStr( const std::string& s ) : _s(s) {}
+	bool operator()(const Task * p1 ) const { return p1->name() == _s; }
 
     private:
-	const char * _s;
+	const std::string& _s;
     };
 
 public:
@@ -115,7 +115,7 @@ public:
     LQIO::DOM::Task * getDOM() const{ return _dom; }
 
     virtual double think_time() const { abort(); return 0.0; }			/* Cached.  see create()	*/
-    virtual const char * name() const { return _dom->getName().c_str(); }
+    virtual const std::string& name() const { return _dom->getName(); }
     virtual scheduling_type discipline() const { return _dom->getSchedulingType(); }
     virtual unsigned multiplicity() const;					/* Special access!		*/
     virtual int priority() const;
@@ -345,9 +345,9 @@ private:
 class Pseudo_Task : public Task
 {
 public:
-    Pseudo_Task( const char * name ) : Task( Type::OPEN_ARRIVAL_SOURCE, nullptr, nullptr, nullptr ), _name(name) {}
+    Pseudo_Task( const std::string& name ) : Task( Type::OPEN_ARRIVAL_SOURCE, nullptr, nullptr, nullptr ), _name(name) {}
 
-    virtual const char * name() const { return _name.c_str(); }
+    virtual const std::string& name() const { return _name; }
     virtual scheduling_type discipline() const { return SCHEDULE_DELAY; }
     virtual unsigned multiplicity() const { return 1; }			/* Special access!		*/
     virtual int priority() const { return 0; }				/* priority		        */

@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 15895 2022-09-23 17:21:55Z greg $
+ * $Id: processor.cc 16121 2022-11-17 20:31:33Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -82,12 +82,12 @@ Processor::Processor( LQIO::DOM::Processor* domProcessor )
 Processor&
 Processor::create()
 {
-    _node_id = ps_build_node( name(), multiplicity(), cpu_rate(), quantum(),
+    _node_id = ps_build_node( name().c_str(), multiplicity(), cpu_rate(), quantum(),
 			      scheduling_types.at(discipline()),
 			      SF_PER_NODE|SF_PER_HOST );
 
     if ( _node_id < 0 || MAX_NODES < _node_id ) {
-	LQIO::input_error2( ERR_CANNOT_CREATE_X, "processor", name() );
+	LQIO::input_error2( ERR_CANNOT_CREATE_X, "processor", name().c_str() );
     } else {
 	processor_table[_node_id] = this;
 	r_util.init( ps_get_node_stat_index( _node_id ) );
@@ -177,10 +177,10 @@ Custom_Processor::~Custom_Processor()
 Custom_Processor&
 Custom_Processor::create()
 {
-    _node_id = ps_build_node2( name(), multiplicity(), cpu_rate(), cpu_scheduler_task, SF_PER_NODE|SF_PER_HOST );
+    _node_id = ps_build_node2( name().c_str(), multiplicity(), cpu_rate(), cpu_scheduler_task, SF_PER_NODE|SF_PER_HOST );
 
     if ( _node_id < 0 || MAX_NODES < _node_id ) {
-	LQIO::input_error2( ERR_CANNOT_CREATE_X, "processor", name() );
+	LQIO::input_error2( ERR_CANNOT_CREATE_X, "processor", name().c_str() );
     } else {
 	processor_table[_node_id] = this;
     }
@@ -367,9 +367,9 @@ Custom_Processor::trace( const processor_events event, ... )
 	double quantum;
 
 	if ( trace_driver ) {
-	    (void) fprintf( stddbg, "\nTime* %8g P %s: ", ps_now, name() );
+	    (void) fprintf( stddbg, "\nTime* %8g P %s: ", ps_now, name().c_str() );
 	} else {
-	    (void) fprintf( stddbg, "%8g P %s: ", ps_now, name() );
+	    (void) fprintf( stddbg, "%8g P %s: ", ps_now, name().c_str() );
 	}
 
 	switch ( event ) {
@@ -377,15 +377,15 @@ Custom_Processor::trace( const processor_events event, ... )
 	    ip  = va_arg( args, Instance * );
 	    ip2 = va_arg( args, Instance *  );
 	    (void) fprintf( stddbg, "%s (%ld) preempting %s (%ld).",
-			    ip->name(),  ip->task_id(),
-			    ip2->name(), ip2->task_id() );
+			    ip->name().c_str(),  ip->task_id(),
+			    ip2->name().c_str(), ip2->task_id() );
 	    break;
 
 	case PROC_PREEMPTING_TASK:
 	    ip      = va_arg( args, Instance * );
 	    quantum = va_arg( args, double );
 	    (void) fprintf( stddbg, "Preempting %s (%ld). quantum=%g",
-			    ip->name(), ip->task_id(),
+			    ip->name().c_str(), ip->task_id(),
 			    quantum );
 	    break;
 
@@ -393,7 +393,7 @@ Custom_Processor::trace( const processor_events event, ... )
 	    ip = va_arg( args, Instance * );
 	    quantum = va_arg( args, double );
 	    (void) fprintf( stddbg, "Running %s (%ld). Delay to schedule %g.",
-			    ip->name(), ip->task_id(),
+			    ip->name().c_str(), ip->task_id(),
 			    ps_now - ps_schedule_time(ip->task_id()) );
 	    break;
 
@@ -406,7 +406,7 @@ Custom_Processor::trace( const processor_events event, ... )
 	    type    = va_arg( args, unsigned );
 	    task_id = va_arg( args, unsigned );
 	    (void) fprintf( stddbg, "Processor for task %s (%ld): ",
-			    ip->name(), ip->task_id() );
+			    ip->name().c_str(), ip->task_id() );
 	    switch ( type ) {
 	    case SN_PREEMPT:
 		(void) fprintf( stddbg, "PREEMPT - task %d (%s)", task_id, ps_task_name(task_id) );

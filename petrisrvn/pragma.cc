@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 15895 2022-09-23 17:21:55Z greg $
+ * $Id: pragma.cc 16116 2022-11-17 17:48:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -188,6 +188,6 @@ Pragma::str_to_scheduling_type( const std::string& s )
 	{ LQIO::SCHEDULE::RAND,   SCHEDULE_RAND }
     };
     std::map<const std::string, const scheduling_type>::const_iterator i = scheduling_pragma.find(s);
-    if ( i == scheduling_pragma.end() ) return i->second;
+    if ( i != scheduling_pragma.end() ) return i->second;
     throw std::domain_error( s );
 }

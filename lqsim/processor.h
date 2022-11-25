@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.h 15317 2022-01-01 16:44:56Z greg $
+ * $Id: processor.h 16121 2022-11-17 20:31:33Z greg $
  */
 
 #ifndef	PROCESSOR_H
@@ -36,7 +36,7 @@ public:
 
     struct ltProcessor
     {
-	bool operator()(const Processor * p1, const Processor * p2) const { return strcmp( p1->name(), p2->name() ) < 0; }
+	bool operator()(const Processor * p1, const Processor * p2) const { return p1->name() < p2->name(); }
     };
 
 
@@ -83,7 +83,7 @@ public:
 
     LQIO::DOM::Processor * getDOM() const { return _dom; }
 
-    const char * name() const { return _dom->getName().c_str(); }
+    const std::string& name() const { return _dom->getName(); }
     double cpu_rate() const { return _dom->hasRate() ? _dom->getRateValue() : 1.0; }	/* Processor rate.		*/
     double quantum() const { return _dom->hasQuantum() ? _dom->getQuantumValue() : 0.0; }	/* Time quantum.		*/
     int replicas() const { return _dom->hasReplicas() ? _dom->getReplicasValue() : 0.0; } 

@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15865 2022-09-15 19:28:53Z greg $
+# $Id: Makefile.am 16118 2022-11-17 18:45:33Z greg $
 #----------------------------------------------------------------------
 
 SUBDIRS=	wspnlib regression
@@ -48,5 +48,7 @@ all-local:	petrisrvn.pdf
 install-data-local:	petrisrvn.pdf
 
 petrisrvn.pdf:	$(man1_MANS)
-		groff -t -man $(man1_MANS) | ps2pdf - $@
+		groff -t -man $(man1_MANS)  > $<.ps
+		ps2pdf $<.ps $@
+		rm $<.ps
 endif

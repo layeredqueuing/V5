@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 15863 2022-09-13 23:06:14Z greg $
+ * $Id: model.cc 16114 2022-11-17 17:29:07Z greg $
  *
  * Load the SRVN model.
  */
@@ -609,9 +609,7 @@ Model::compute()
     const std::string suffix = _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : "";
     const LQIO::Filename netname( _input_file_name, "", "", suffix );
 
-    if ( reload_net_flag ) {
-	sprintf(edit_file, "%s", netname().c_str() );
-    } else {
+    if ( !reload_net_flag ) {
 	if ( verbose_flag ) {
 	    std::cerr << "Solve: " << _input_file_name << "..." << std::endl;
 	}
@@ -1506,23 +1504,22 @@ Model::trans_rpar()
 void
 Model::trans_res ()
 {
-    char name_str[BUFSIZ];
+    std::string name_str;
 
     for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 	if ( (*t)->type() != Task::Type::REF_TASK ) continue;
 			
 	for ( std::vector<Entry *>::const_iterator e = (*t)->entries.begin(); e != (*t)->entries.end(); ++e ) {
 
-	    name_str[0] = '\0';
 	    if ( (*e)->is_regular_entry() ) {
 		for ( unsigned int p = 1; p <= (*e)->n_phases(); p++) {
 		    if ( (*e)->phase[p].s() ) {	/* BUG_21 */
-			sprintf( name_str, "S%s00", (*e)->phase[p].name() );
+			name_str = std::string( "S" ) + (*e)->phase[p].name() + "00";
 			break;			/* Stop on first found */
 		    }
 		}
 	    } else {
-		sprintf( name_str, "S%s00", (*e)->start_activity()->name() );
+		name_str = std::string( "S" ) + (*e)->start_activity()->name() + "00";
 	    }
 	    if ( name_str[0] ) {
 		(void) create_res( Phase::__parameter_x, Phase::__parameter_y, "E%s", "E{#%s};", insert_netobj_name( name_str ).c_str() );
@@ -1533,7 +1530,7 @@ Model::trans_res ()
 
     for ( std::vector<Processor *>::const_iterator p = ::__processor.begin(); p != ::__processor.end(); ++p ) {
         if ( !(*p)->PX ) continue;
-	sprintf( name_str, "P%s", (*p)->name() );
+	name_str = std::string( "P" ) + (*p)->name();
 	(void) create_res( Phase::__parameter_x, Phase::__parameter_y, "U%s", "P{#%s=0};", insert_netobj_name( name_str ).c_str() );
 	Phase::inc_par_offsets();
     }

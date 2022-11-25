@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 16027 2022-10-25 02:18:21Z greg $
+ *  $Id: srvn_spex.cpp 16123 2022-11-18 11:06:45Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -1039,7 +1039,7 @@ namespace LQIO {
     {
 	switch ( _t ) {
 	case attribute::IS_EXTVAR:
-	    (DOM::__document->*_f.a_extvar)( DOM::__document->db_build_parameter_variable( name.c_str(), nullptr ) );
+	    (DOM::__document->*_f.a_extvar)( DOM::__document->db_build_parameter_variable( name, nullptr ) );
 	    return new LQX::VariableExpression(name.c_str(),true);
 
 	case attribute::IS_PROPERTY:
@@ -1401,7 +1401,7 @@ void * spex_inline_expression( void * expr )
     name << "$_" << std::setw(3) << std::setfill('0') << LQIO::Spex::__inline_expression.size() << "_" << std::setfill(' ');
     LQX::SyntaxTreeNode * statement = new LQX::AssignmentStatementNode( new LQX::VariableExpression(name.str(),true), static_cast<LQX::SyntaxTreeNode *>(expr) );
     LQIO::Spex::__deferred_assignment.push_back( statement );
-    LQIO::DOM::ExternalVariable * var = LQIO::DOM::__document->db_build_parameter_variable(name.str().c_str(),nullptr);
+    LQIO::DOM::ExternalVariable * var = LQIO::DOM::__document->db_build_parameter_variable(name.str(),nullptr);
     LQIO::Spex::__inline_expression.insert( std::pair<const LQIO::DOM::ExternalVariable *,const LQX::SyntaxTreeNode*>(var,static_cast<LQX::SyntaxTreeNode *>(expr)) );
     return var;
 }

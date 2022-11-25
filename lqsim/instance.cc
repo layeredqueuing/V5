@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 15741 2022-07-01 11:57:03Z greg $
+ * $Id: instance.cc 16121 2022-11-17 20:31:33Z greg $
  */
 
 /*
@@ -43,7 +43,7 @@
 volatile int client_init_count = 0;	/* Semaphore for -C...*/
 std::vector<Instance *> object_tab(MAX_TASKS+1);	/* object table		*/
 
-Instance::Instance( Task * cp, const char * task_name, long task_id )
+Instance::Instance( Task * cp, const std::string& task_name, long task_id )
     : r_e_execute(-1),
       r_a_execute(-1),
       _cp(cp),
@@ -52,9 +52,9 @@ Instance::Instance( Task * cp, const char * task_name, long task_id )
       _task_id(task_id),
       _node_id(cp->node_id()),
       _std_port( ps_std_port(task_id) ),
-      _reply_port( ps_allocate_port( task_name, task_id ) ),	/* reply port id	*/
-      _thread_port( ps_allocate_port( cp->name(), task_id ) ),
-      _start_port( cp->has_threads() ? ps_allocate_shared_port( _cp->name() ) : -1 ),
+      _reply_port( ps_allocate_port( task_name.c_str(), task_id ) ),	/* reply port id	*/
+      _thread_port( ps_allocate_port( cp->name().c_str(), task_id ) ),
+      _start_port( cp->has_threads() ? ps_allocate_shared_port( _cp->name().c_str() ) : -1 ),
       active_threads(0),	/* no threads -- initialize */
       idle_threads(0),
       _phase_start_time(0),
@@ -88,7 +88,7 @@ Instance::start( void * )
 	object_tab[ps_myself]->run();
     } 
     catch ( const std::runtime_error& e ) {
-	fprintf( stderr, "%s: task \"%s\": runtime error: %s\n", LQIO::io_vars.toolname(), object_tab[ps_myself]->name(), e.what() );
+	fprintf( stderr, "%s: task \"%s\": runtime error: %s\n", LQIO::io_vars.toolname(), object_tab[ps_myself]->name().c_str(), e.what() );
 	LQIO::io_vars.error_count += 1;
 	deferred_exception = true;
 	ps_suspend( ps_myself );
@@ -239,19 +239,19 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
  * These tasks do the actual "computation" for the simulation 
  */
 
-Real_Instance::Real_Instance( Task * cp, const char * task_name ) 
+Real_Instance::Real_Instance( Task * cp, const std::string& task_name ) 
     : Instance( cp, task_name, Real_Instance::create_task( cp, task_name ) )
 {
 }
 
 
 int
-Real_Instance::create_task( Task * cp, const char * task_name )
+Real_Instance::create_task( Task * cp, const std::string& task_name )
 {
     if ( cp->group_id() != -1 ) {
-	return ps_create_group( task_name, cp->node_id(), ANY_HOST, Instance::start, cp->priority(), cp->group_id() );
+	return ps_create_group( task_name.c_str(), cp->node_id(), ANY_HOST, Instance::start, cp->priority(), cp->group_id() );
     } else {
-	return ps_create( task_name, cp->node_id(), ANY_HOST, Instance::start, cp->priority() );
+	return ps_create( task_name.c_str(), cp->node_id(), ANY_HOST, Instance::start, cp->priority() );
     }
 }
 
@@ -262,13 +262,13 @@ Real_Instance::create_task( Task * cp, const char * task_name )
  * other.
  */
 
-Virtual_Instance::Virtual_Instance( Task * cp, const char * task_name ) 
+Virtual_Instance::Virtual_Instance( Task * cp, const std::string& task_name ) 
     : Instance( cp, task_name, Virtual_Instance::create_task( cp, task_name ) )
 {
 }
 
 int
-Virtual_Instance::create_task( Task * cp, const char * task_name )
+Virtual_Instance::create_task( Task * cp, const std::string& task_name )
 {
 
     /*
@@ -276,12 +276,12 @@ Virtual_Instance::create_task( Task * cp, const char * task_name )
      * group, we still create a fcfs node for it.  
      */
 
-    const int local_node_id = ps_build_node( task_name, 1, 1.0, 0.0, 0, true );
+    const int local_node_id = ps_build_node( task_name.c_str(), 1, 1.0, 0.0, 0, true );
     if ( local_node_id < 0 ) {
-	LQIO::runtime_error( ERR_CANNOT_CREATE_X, "processor for task", task_name );
+	LQIO::runtime_error( ERR_CANNOT_CREATE_X, "processor for task", task_name.c_str() );
 	return 0;
     } else {
-	return ps_create( task_name, local_node_id, 0, Instance::start, cp->priority() );
+	return ps_create( task_name.c_str(), local_node_id, 0, Instance::start, cp->priority() );
     }
 }
 
@@ -295,8 +295,8 @@ Virtual_Instance::create_task( Task * cp, const char * task_name )
  * is performed in store_open_arrival_rate in parainout.c.
  */
 
-srn_open_arrivals::srn_open_arrivals( Task * cp, const char * a_name )
-    : Virtual_Instance( cp, a_name ) 
+srn_open_arrivals::srn_open_arrivals( Task * cp, const std::string& task_name )
+    : Virtual_Instance( cp, task_name ) 
 {
     client_init_count += 1;		/* For -C auto init. 			*/
 }
@@ -336,8 +336,8 @@ srn_sync_server::run()
  * component.
  */
 
-srn_client::srn_client( Task * cp, const char * a_name  )
-    : Real_Instance( cp, a_name ) 
+srn_client::srn_client( Task * cp, const std::string& task_name  )
+    : Real_Instance( cp, task_name ) 
 {
     client_init_count += 1;		/* For -C auto init. 			*/
 }
@@ -442,7 +442,7 @@ srn_multiserver::run()
 	    /* Time out -- make a worker */
 
 	    n_workers += 1;
-	    Instance * task = new srn_worker( _cp, _cp->name() );
+	    Instance * task = new srn_worker( _cp, _cp->name().c_str() );
 	    ps_resume( task->task_id() );
 	    rc = ps_receive( _cp->worker_port(), NEVER, &worker_id, &worker_time,
 			     (char **)&worker_msg, &worker_port );
@@ -556,7 +556,7 @@ srn_signal::run()
 
 	int rc = ps_receive( cp->signal_port(), IMMEDIATE, &worker_id, &worker_time, (char **)&worker_msg, &worker_port );
 	if ( rc == 0 ) {
-	    LQIO::runtime_error( ERR_SIGNAL_NO_WAIT, cp->name() );
+	    LQIO::runtime_error( ERR_SIGNAL_NO_WAIT, cp->name().c_str() );
 	    continue;
 	} else if ( rc == SYSERR ) {
 	    abort();
@@ -895,7 +895,7 @@ srn_rwlock_server::run()
 	    int rc = ps_receive(cp->signal_port2(), IMMEDIATE, &writer_id,  &time_stamp, (char **)&msg1, &reply_port);
 		
 	    if ( rc == 0 ) {
-		LQIO::runtime_error( ERR_SIGNAL_NO_WAIT, cp->name() );
+		LQIO::runtime_error( ERR_SIGNAL_NO_WAIT, cp->name().c_str() );
 		continue;
 
 	    } else if ( rc == SYSERR ) {     abort();  }
@@ -1435,7 +1435,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 		}
 
 	    } else {
-		LQIO::runtime_error( ERR_REPLY_NOT_FOUND, ap->name(), reply_ep->name() );
+		LQIO::runtime_error( ERR_REPLY_NOT_FOUND, ap->name().c_str(), reply_ep->name().c_str() );
 	    }
 
 	}
@@ -1638,8 +1638,7 @@ Instance::spawn_activities( const long entry_id, ActivityList * fork_list )
 
 	    /* No worker available -- Allocate a new task... */
 
-	    char * nextThreadName = (char *)malloc( strlen( ap->name() ) + 32 );
-	    sprintf( nextThreadName, "%s_thread_%d",ap->name(),  active_threads + 1);
+	    const std::string nextThreadName = ap->name() + "_thread_" + std::to_string( active_threads + 1 );
 	    Instance * task = new srn_thread( _cp, nextThreadName, root_ptr() );
 	    const int id = task->task_id();
 	    timeline_trace( THREAD_CREATE, id );
@@ -1803,9 +1802,9 @@ Instance::timeline_trace( const trace_events event, ... )
 	}
 
 	if ( trace_driver ) {
-	    (void) fprintf( stddbg, "\nTime* %8g T %s(%ld): ", ps_now, _cp->name(), task_id() );
+	    (void) fprintf( stddbg, "\nTime* %8g T %s(%ld): ", ps_now, _cp->name().c_str(), task_id() );
 	} else {
-	    (void) fprintf( stddbg, "%8g %8s %8s(%2ld): ", ps_now, type_name().c_str(), _cp->name(), task_id() );
+	    (void) fprintf( stddbg, "%8g %8s %8s(%2ld): ", ps_now, type_name().c_str(), _cp->name().c_str(), task_id() );
 	}
 
 	switch ( event ) {
@@ -1817,18 +1816,18 @@ Instance::timeline_trace( const trace_events event, ... )
 	    from_entry = va_arg( args, Entry * );
 	    to_entry   = va_arg( args, Entry * );
 	    (void) fprintf( stddbg, "Entry %s -- Sending SNR to task %s, entry %s",
-			    from_entry->name(),
-			    to_entry->task()->name(),
-			    to_entry->name() );
+			    from_entry->name().c_str(),
+			    to_entry->task()->name().c_str(),
+			    to_entry->name().c_str() );
 	    break;
 
 	case SYNC_INTERACTION_INITIATED:
 	    from_entry = va_arg( args, Entry * );
 	    to_entry   = va_arg( args, Entry * );
 	    (void) fprintf( stddbg, "Entry %s -- Sending RNV to task %s, entry %s",
-			    from_entry->name(),
-			    to_entry->task()->name(),
-			    to_entry->name() );
+			    from_entry->name().c_str(),
+			    to_entry->task()->name().c_str(),
+			    to_entry->name().c_str() );
 	    break;
 
 	case SYNC_INTERACTION_ESTABLISHED:
@@ -1837,14 +1836,14 @@ Instance::timeline_trace( const trace_events event, ... )
 	    to_entry   = va_arg( args, Entry * );
 	    time       = va_arg( args, double );
 	    (void) fprintf( stddbg, "Entry %s -- Received msg from task %s, entry %s (t=%g)",
-			    to_entry->name(),
-			    from_entry->task()->name(), 
-			    from_entry->name(),
+			    to_entry->name().c_str(),
+			    from_entry->task()->name().c_str(), 
+			    from_entry->name().c_str(),
 			    time );
 	    if ( int_entry ) {
 		(void) fprintf( stddbg, ", forwarded via task %s, entry %s",
-				int_entry->task()->name(), 
-				int_entry->name() );
+				int_entry->task()->name().c_str(), 
+				int_entry->name().c_str() );
 	    }
 	    break;
 
@@ -1852,18 +1851,18 @@ Instance::timeline_trace( const trace_events event, ... )
 	    to_entry   = va_arg( args, Entry * );
 	    from_entry = va_arg( args, Entry * );
 	    (void) fprintf( stddbg, "Entry %s -- Reply sent to task %s, entry %s",
-			    to_entry->name(),
-			    from_entry->task()->name(), 
-			    from_entry->name() );
+			    to_entry->name().c_str(),
+			    from_entry->task()->name().c_str(), 
+			    from_entry->name().c_str() );
 	    break;
 
 	case SYNC_INTERACTION_COMPLETED:
 	    to_entry   = va_arg( args, Entry * );
 	    from_entry = va_arg( args, Entry * );
 	    (void) fprintf( stddbg, "Entry %s -- Reply received from task %s, entry %s",
-			    to_entry->name(),
-			    from_entry->task()->name(),
-			    from_entry->name() );
+			    to_entry->name().c_str(),
+			    from_entry->task()->name().c_str(),
+			    from_entry->name().c_str() );
 
 	    break;
 
@@ -1872,11 +1871,11 @@ Instance::timeline_trace( const trace_events event, ... )
 	    from_entry = va_arg( args, Entry * );
 	    to_entry   = va_arg( args, Entry * );
 	    (void) fprintf( stddbg, "Entry %s -- Message from task %s, entry %s forwarded to task %s, entry %s",
-			    int_entry->name(),
-			    from_entry->task()->name(), 
-			    from_entry->name(),
-			    to_entry->task()->name(),
-			    to_entry->name() );
+			    int_entry->name().c_str(),
+			    from_entry->task()->name().c_str(), 
+			    from_entry->name().c_str(),
+			    to_entry->task()->name().c_str(),
+			    to_entry->name().c_str() );
 	    break;
 
 
@@ -1884,9 +1883,9 @@ Instance::timeline_trace( const trace_events event, ... )
 	    to_entry   = va_arg( args, Entry * );
 	    from_entry = va_arg( args, Entry * );
 	    (void) fprintf( stddbg, "Entry %s -- Reply tossed for task %s, entry %s",
-			    to_entry->name(),
-			    from_entry->task()->name(), 
-			    from_entry->name() );
+			    to_entry->name().c_str(),
+			    from_entry->task()->name().c_str(), 
+			    from_entry->name().c_str() );
 	    break;
 
 	case TASK_IS_READY:
@@ -1917,16 +1916,16 @@ Instance::timeline_trace( const trace_events event, ... )
 
 	case THREAD_START:
 	    ap = va_arg( args, Activity * );
-	    (void) fprintf( stddbg, "Thread start, activity %s.", ap->name() );
+	    (void) fprintf( stddbg, "Thread start, activity %s.", ap->name().c_str() );
 	    break;
 
 	case THREAD_STOP:
 	    ap   = va_arg( args, Activity * );
 	    root = va_arg( args, Instance * );
-	    (void) fprintf( stddbg, "Thread stop, activity %s", ap->name() );
+	    (void) fprintf( stddbg, "Thread stop, activity %s", ap->name().c_str() );
 	    if ( root ) {
 		(void) fprintf( stddbg, ", root is %s(%ld).", 
-				root->_cp->name(), root->task_id() );
+				root->_cp->name().c_str(), root->task_id() );
 	    } else {
 		(void) fprintf( stddbg, ", root is null??" );
 	    }
@@ -1944,18 +1943,18 @@ Instance::timeline_trace( const trace_events event, ... )
 
 	case THREAD_ENQUEUE_MSG:
 	    from_entry = va_arg( args, Entry * );
-	    (void) fprintf( stddbg, "Entry %s -- Message ENqueued.", from_entry->name() );
+	    (void) fprintf( stddbg, "Entry %s -- Message ENqueued.", from_entry->name().c_str() );
 	    break;
 
 	case THREAD_DEQUEUE_MSG:
 	    from_entry = va_arg( args, Entry * );
-	    (void) fprintf( stddbg, "Entry %s -- Message DEqueued.", from_entry->name() );
+	    (void) fprintf( stddbg, "Entry %s -- Message DEqueued.", from_entry->name().c_str() );
 	    break;
 
 	case THREAD_REAP:
 	    ap = va_arg( args, Activity * );
 	    if ( ap ) {
-		(void) fprintf( stddbg, "Reaped %s.", ap->name() );
+		(void) fprintf( stddbg, "Reaped %s.", ap->name().c_str() );
 	    } else {
 		(void) fprintf( stddbg, "Reaped unknown." );
 	    }
@@ -1963,21 +1962,21 @@ Instance::timeline_trace( const trace_events event, ... )
 
 	case ACTIVITY_START:
 	    ap = va_arg( args, Activity * );
-	    (void) fprintf( stddbg, "Start activity %s.", ap->name() );
+	    (void) fprintf( stddbg, "Start activity %s.", ap->name().c_str() );
 	    break;
 
 	case ACTIVITY_EXECUTE:
 	    ap = va_arg( args, Activity * );
-	    (void) fprintf( stddbg, "Execute activity %s.", ap->name() );
+	    (void) fprintf( stddbg, "Execute activity %s.", ap->name().c_str() );
 	    break;
 
 	case ACTIVITY_FORK:
 	    ap    = va_arg( args, Activity * );
 	    root  = va_arg( args, Instance * );
-	    (void) fprintf( stddbg, "activity %s --FORK--", ap->name()  );
+	    (void) fprintf( stddbg, "activity %s --FORK--", ap->name().c_str()  );
 	    if ( root ) {
 		(void) fprintf( stddbg, ", root is %s(%ld).", 
-				root->_cp->name(), root->task_id() );
+				root->_cp->name().c_str(), root->task_id() );
 	    } else {
 		(void) fprintf( stddbg, ", root is NULL." );
 	    }
@@ -1986,7 +1985,7 @@ Instance::timeline_trace( const trace_events event, ... )
 	case ACTIVITY_JOIN:
 	    ap    = va_arg( args, Activity * );
 	    alp   = va_arg( args, ActivityList * );
-	    (void) fprintf( stddbg, "activity %s --JOIN--, %ld", ap->name(), reinterpret_cast<size_t>(alp) );
+	    (void) fprintf( stddbg, "activity %s --JOIN--, %ld", ap->name().c_str(), reinterpret_cast<size_t>(alp) );
 	    break;
 
 	case ENQUEUE_READER:
@@ -2023,7 +2022,7 @@ Instance::timeline_trace( const trace_events event, ... )
 	    (void) fprintf( stddbg, "%d %12.3f %s(%02ld) %#04x %#04lx\n",
 			    event,
 			    ps_now * 1000,
-			    _cp->name(),
+			    _cp->name().c_str(),
 			    ps_myself,
 			    0,
 			    ps_myself );

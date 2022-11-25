@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol entry interface.
  *
- * $Id: entry.h 15726 2022-06-28 17:04:56Z greg $
+ * $Id: entry.h 16121 2022-11-17 20:31:33Z greg $
  */
 
 #ifndef ENTRY_H
@@ -49,7 +49,7 @@ class Entry {				/* task entry struct	        */
 
     struct ltEntry
     {
-	bool operator()(const Entry * p1, const Entry * p2) const { return strcmp( p1->name(), p2->name() ) < 0; }
+	bool operator()(const Entry * p1, const Entry * p2) const { return p1->name() < p2->name(); }
     };
 
     /*
@@ -59,11 +59,11 @@ class Entry {				/* task entry struct	        */
 
     struct eqEntryStr 
     {
-    eqEntryStr( const char * s ) : _s(s) {}
-	bool operator()(const Entry * p1 ) const { return strcmp( p1->name(), _s ) == 0; }
+	eqEntryStr( const std::string& s ) : _s(s) {}
+	bool operator()(const Entry * p1 ) const { return p1->name() == _s; }
 
     private:
-	const char * _s;
+	const std::string& _s;
     };
 
 private:
@@ -87,7 +87,7 @@ public:
 
     Task * task() const { return _task; }
 
-    virtual const char * name() const { return _dom->getName().c_str(); }
+    virtual const std::string& name() const { return _dom->getName(); }
     unsigned int index() const { return _local_id; }
     double open_arrival_rate() const { return _dom->hasOpenArrivalRate() ? _dom->getOpenArrivalRateValue() : 0; }
     int priority() const { return _dom->hasEntryPriority() ? (int)_dom->getEntryPriorityValue() : 0; }
@@ -175,7 +175,7 @@ public:
 
     virtual double configure();
 
-    virtual const char * name() const { return _name.c_str(); }
+    virtual const std::string& name() const { return _name; }
     virtual bool is_defined() const { return true; }
     virtual bool is_regular() const { return true; }
     virtual bool is_activity() const { return false; }

@@ -30,7 +30,7 @@ extern int qnap2lex();
 %token QNAP_WHILE QNAP_WITH
 %token RANGE_ERR
 
-%token <aString>	STRING QNAP_IDENTIFIER
+%token <aString>	STRING IDENTIFIER
 %token <aCode>		QNAP_AND QNAP_OR QNAP_NOT QNAP_EQUAL QNAP_NOT_EQUAL QNAP_LESS QNAP_LESS_EQUAL QNAP_GREATER QNAP_GREATER_EQUAL
 %token <aCode>		QNAP_POWER QNAP_PLUS QNAP_MINUS QNAP_DIVIDE QNAP_MULTIPLY QNAP_MODULUS
 %token <aCode>		QNAP_BOOLEAN QNAP_REAL QNAP_INTEGER QNAP_STRING	QNAP_QUEUE QNAP_CLASS	/* variable types */
@@ -39,8 +39,9 @@ extern int qnap2lex();
 %token <aReal>		DOUBLE
 %token <aLong>		LONG
 
-%type <aPointer>	class_list class_reference identifier_list object_list optional_init option_list optional_list service station_type transit transit_list transit_pair variable variable_list loop_list
-%type <aPointer>	closed_statement compound_statement expression expression_list factor open_statement open_closed_statement power prefix_statement postfix_statement procedure_call relation simple_statement statement term
+%type <aPointer>	array_list class_list class_reference comprehension identifier_list list loop_list object_list optional_init option_list optional_list service station_type transit transit_list transit_pair variable variable_list
+%type <aPointer>	closed_statement compound_statement open_statement open_closed_statement prefix_statement postfix_statement simple_statement statement
+%type <aPointer>	expression expression_list factor power procedure_call relation term
 %type <aCode>		compound_station_type object_type simple_station_type variable_type
 %type <aString>		identifier
 %%
@@ -53,13 +54,13 @@ command_list		: command_list command
 			;
 
 command			: QNAP_CONTROL control_list
-			| QNAP_DECLARE declare_list				{ qnap2_declare_objects(); }
+			| QNAP_DECLARE declare_list				{ qnap2_construct_chains(); }
 			| QNAP_EXEC						{ qnap2_map_transit_to_visits(); }
 			  statement						{ qnap2_set_program( $3 ); }
 			| QNAP_REBOOT
 			| QNAP_RESTART
 			| QNAP_TERMINAL
-			| QNAP_STATION station_list				{ qnap2_define_station(); }
+			| QNAP_STATION station_list				{ qnap2_construct_station(); }
 			;
 
 /* ------------------------------------------------------------------------ */
@@ -70,10 +71,8 @@ declare_list		: declare_statement ';'
 			| declare_list declare_statement ';'
 			;
 
-declare_statement	: QNAP_QUEUE variable_list				{ qnap2_declare_queue( $2 ); }
-			| QNAP_QUEUE variable_type variable_list		{ qnap2_declare_attribute( $1, $2, $3 ); }
-			| QNAP_CLASS variable_list				{ qnap2_declare_class( $2 ); }
-			| QNAP_CLASS variable_type variable_list		{ qnap2_declare_attribute( $1, $2, $3 ); }
+declare_statement	: object_type variable_list				{ qnap2_declare_object( $1, $2 ); }
+			| object_type variable_type variable_list		{ qnap2_declare_attribute( $1, $2, $3 ); }
 			| QNAP_REF object_type identifier_list			{ qnap2_declare_reference( $2, $3 ); }
 			| variable_type variable_list				{ qnap2_declare_variable( $1, $2 ); }
 			;
@@ -89,7 +88,7 @@ variable_list		: variable						{ $$ = qnap2_append_pointer( NULL, $1 ); }
 			;
 
 variable		: identifier optional_init				{ $$ = qnap2_define_variable( $1, NULL, NULL, $2 ); free( $1 ); }
-			| identifier '(' factor ')' optional_init		{ $$ = qnap2_define_variable( $1, $3, NULL, $5 ); free( $1 ); }
+			| identifier '(' factor ')' optional_init		{ $$ = qnap2_define_variable( $1, qnap2_get_integer(1), $3, $5 ); free( $1 ); }
 			| identifier '(' factor ':' factor ')' optional_init	{ $$ = qnap2_define_variable( $1, $3, $5, $7 ); free( $1 ); }
 			;
 
@@ -100,18 +99,6 @@ identifier_list		: identifier						{ $$ = qnap2_append_string( NULL, $1 ); free(
 optional_init		: QNAP_EQUAL factor					{ $$ = $2; }
 			| 							{ $$ = NULL; }
 			;
-
-optional_list		: '(' loop_list ')'					{ $$ = $2; }
-			| 							{ $$ = NULL; }
-			;
-/*
-sublist			: simple_sublist
-			| sublist ',' simple_sublist
-			;
-
-simple_sublist		: expression
-			;
-*/
 
 
 /* ------------------------------------------------------------------------ */
@@ -130,7 +117,7 @@ station			: QNAP_INIT class_reference QNAP_EQUAL factor		{ qnap2_set_station_ini
 			| QNAP_SCHED QNAP_EQUAL identifier			{ qnap2_set_station_sched( $3 ); free( $3 ); }
 			| QNAP_SERVICE class_reference QNAP_EQUAL service	{ qnap2_set_station_service( $2, $4 ); }
 			| QNAP_TRANSIT class_reference QNAP_EQUAL transit	{ qnap2_set_station_transit( $2, $4 ); }
-			| QNAP_TYPE QNAP_EQUAL station_type			{ qnap2_set_station_type( $3 ); free( $3 ); }
+			| QNAP_TYPE QNAP_EQUAL station_type			{ qnap2_set_station_type( $3 ); qnap2_delete_station_pair( $3 ); }
 			;
 
 class_reference		:							{ $$ = NULL; }
@@ -150,7 +137,7 @@ service			: QNAP_CST '(' factor ')'				{ $$ = qnap2_get_service_distribution( $1
 			| QNAP_HEXP '(' factor ',' factor ')'			{ $$ = qnap2_get_service_distribution( $1, $3, $5 ); }		/* $4 == k == 1/c^2 */
 			;
 
-transit			: identifier						{ $$ = qnap2_append_pointer( NULL, qnap2_get_transit_pair( $1, NULL ) ); free( $1 ); }
+transit			: identifier						{ $$ = qnap2_append_pointer( NULL, qnap2_get_transit_pair( $1, NULL, NULL, NULL ) ); free( $1 ); }
 			| transit_list						{ $$ = $1; }
 			;
 
@@ -159,7 +146,7 @@ transit_list		: transit_pair						{ $$ = qnap2_append_pointer( NULL, $1 ); }
 			;
 
 transit_pair		: identifier optional_list ','
-			  factor optional_list					{ $$ = qnap2_get_transit_pair( qnap2_get_station_name( $1 ), $4 ); free( $1 ); }
+			  factor optional_list					{ $$ = qnap2_get_transit_pair( qnap2_get_station_name( $1 ), $2, $4, $5 ); free( $1 ); }
 			;
 
 
@@ -175,6 +162,10 @@ simple_station_type	: QNAP_INFINITE						{ $$ = $1; }
 			;
 
 compound_station_type	: QNAP_SERVER ',' simple_station_type			{ $$ = $1; }
+			;
+
+optional_list		: '(' loop_list ')'					{ $$ = $2; }
+			| 							{ $$ = NULL; }
 			;
 
 /* ------------------------------------------------------------------------ */
@@ -210,24 +201,24 @@ open_statement		: QNAP_IF expression QNAP_THEN statement		{ $$ = qnap2_if_statem
 			| QNAP_IF expression QNAP_THEN closed_statement		/* -- */
 			  QNAP_ELSE open_statement				{ $$ = qnap2_if_statement( $2, $4, $6 ); }
 			| QNAP_WHILE expression QNAP_THEN open_statement	{ $$ = qnap2_while_statement( $2, $4 ); }
-			| QNAP_FOR postfix_statement QNAP_ASSIGNMENT loop_list	/* -- */
+			| QNAP_FOR postfix_statement QNAP_ASSIGNMENT loop_list
 			  QNAP_DO open_statement				{ $$ = qnap2_for_statement( $2, $4, $6 ); }
-			| QNAP_FOR postfix_statement QNAP_ASSIGNMENT		/* -- */
-			   QNAP_ALL object_list QNAP_DO open_statement		{ $$ = qnap2_foreach_statement( $2, $5, $7 ); }
+			| QNAP_FOR postfix_statement QNAP_ASSIGNMENT list
+			  QNAP_DO open_statement				{ $$ = qnap2_foreach_statement( $2, $4, $6 ); }
 			;
 
 closed_statement	: simple_statement					{ $$ = $1; }
 			| QNAP_IF expression QNAP_THEN closed_statement		/* -- */
 			  QNAP_ELSE closed_statement				{ $$ = qnap2_if_statement( $2, $4, $6 ); }
 			| QNAP_WHILE expression QNAP_THEN closed_statement	{ $$ = qnap2_while_statement( $2, $4 ); }
-			| QNAP_FOR postfix_statement QNAP_ASSIGNMENT loop_list	/* -- */
+			| QNAP_FOR postfix_statement QNAP_ASSIGNMENT loop_list
 			  QNAP_DO closed_statement				{ $$ = qnap2_for_statement( $2, $4, $6 ); }
-			| QNAP_FOR postfix_statement QNAP_ASSIGNMENT 		/* -- */
-			  QNAP_ALL object_list QNAP_DO closed_statement		{ $$ = qnap2_foreach_statement( $2, $5, $7 ); }
+			| QNAP_FOR postfix_statement QNAP_ASSIGNMENT list
+			  QNAP_DO closed_statement				{ $$ = qnap2_foreach_statement( $2, $4, $6 ); }
 			;
 
 simple_statement	: QNAP_BEGIN compound_statement QNAP_END		{ $$ = qnap2_compound_statement( $2 ); }
-			| postfix_statement QNAP_ASSIGNMENT relation		{ $$ = qnap2_assignment( $1, $3 ); }
+			| postfix_statement QNAP_ASSIGNMENT list 		{ $$ = qnap2_assignment( $1, $3 ); }
 			| procedure_call					{ $$ = $1; }
 			|							{ $$ = NULL; }
 			;
@@ -272,8 +263,8 @@ prefix_statement	: QNAP_PLUS postfix_statement				{ $$ = $2; }
 			| postfix_statement					{ $$ = $1; }
 			;
 
-postfix_statement	: identifier '(' expression_list ')'			{ $$ = qnap2_get_function( $1, $3 ); }
-			| identifier '.' identifier				{ $$ = qnap2_get_attribute( qnap2_get_variable( $1 ), $3 ); free( $3 ); }
+postfix_statement	: identifier '.' identifier				{ $$ = qnap2_get_attribute( qnap2_get_variable( $1 ), $3 ); free( $3 ); }
+			| identifier '(' expression_list ')'			{ $$ = qnap2_get_function( $1, $3 ); }
 			| identifier '(' expression_list ')' '.' identifier	{ $$ = qnap2_get_attribute( qnap2_get_function( $1, $3 ), $6 ); free( $1 ); free( $3 ); free( $6 ); }
 			| factor						{ $$ = $1; }
 			;
@@ -284,6 +275,21 @@ factor			: identifier						{ $$ = qnap2_get_variable( $1 ); free( $1 ); }
 			| STRING						{ $$ = qnap2_get_string( $1 ); free( $1 ); }
 			| '(' relation ')'					{ $$ = $2; }
 			;
+
+/* ------------------------------------------------------------------------ */
+
+/* Lists return arrays */
+
+list			: array_list						{ $$ = $1; }				/* Array */
+			| comprehension						{ $$ = $1; }				/* Array */
+			;
+
+array_list		: object_list						{ $$ = $1; }				/* Array */
+			| expression_list					{ $$ = qnap2_get_array( $1 ); }				/* !! not an Array */
+			;
+
+comprehension		: loop_list						{ $$ = qnap2_comprehension( $1 ); }	/* Array */
+			;
 
 expression_list		: expression						{ $$ = qnap2_append_pointer( NULL, $1 ); }
 			| expression_list ',' expression			{ $$ = qnap2_append_pointer( $1, $3 ); }
@@ -292,7 +298,7 @@ expression_list		: expression						{ $$ = qnap2_append_pointer( NULL, $1 ); }
 loop_list		: expression QNAP_STEP expression QNAP_UNTIL expression	{ $$ = qnap2_list( $1, $3, $5 ); }
 			;
 
-object_list		: object_type						{ $$ = qnap2_get_all_objects( $1 ); }
+object_list		: QNAP_ALL object_type					{ $$ = qnap2_get_all_objects( $2 ); }
 			;
 
 object_type		: QNAP_QUEUE						{ $$ = $1; }
@@ -302,7 +308,7 @@ object_type		: QNAP_QUEUE						{ $$ = $1; }
 
 /* ------------------------------------------------------------------------ */
 
-identifier		: QNAP_IDENTIFIER					{ $$ = $1; }
+identifier		: IDENTIFIER						{ $$ = $1; }
 			| QNAP_CLASS						{ $$ = strdup( "class" ); }
 			| QNAP_COX						{ $$ = strdup( "cox" ); }
 			| QNAP_CST						{ $$ = strdup( "cst" ); }

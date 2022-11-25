@@ -1,5 +1,5 @@
 /*
- *  $Id: bcmp_bindings.cpp 16094 2022-11-11 16:53:00Z greg $
+ *  $Id: bcmp_bindings.cpp 16128 2022-11-21 21:00:42Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -106,10 +106,9 @@ namespace BCMP {
 
     std::string LQXStation::description() const
     {
-	/* Return a description of the class */
-	std::stringstream ss;
-//                ss << getTypeName() << "(" << getStation()->getName() << ")";
-	return ss.str();
+	/* Return a description of the class, in this case the station name attribute.  */
+	LQX::SymbolAutoRef property = const_cast<LQXStation *>(this)->Attributes::getPropertyNamed(nullptr, "name");
+	return property->getStringValue();
     }
 
     LQX::SymbolAutoRef LQXStation::getPropertyNamed(LQX::Environment* env, const std::string& name) 

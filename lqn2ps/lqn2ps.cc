@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 16003 2022-10-19 17:22:13Z greg $
+ * $Id: lqn2ps.cc 16119 2022-11-17 19:14:17Z greg $
  *
  * Command line processing.
  *
@@ -190,7 +190,10 @@ main(int argc, char *argv[])
 	const std::string format = LQIO::io_vars.lq_toolname.substr( pos + 1 );
 #else
 	std::string format = LQIO::io_vars.lq_toolname.substr( pos + 1 );
-	format.erase( format.find_first_of( '.' ) );
+	const size_t ext = format.find_first_of( '.' );
+	if ( ext != std::string::npos ) {
+	    format.erase( ext );
+	}
 #endif
 	try {
 	    setOutputFormat( Options::get_file_format( format ) );		// Throws if ext not found
@@ -213,7 +216,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2022-10-19 13:22:13 -0400 (Wed, 19 Oct 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-11-17 14:14:17 -0500 (Thu, 17 Nov 2022) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H

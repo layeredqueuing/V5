@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 16027 2022-10-25 02:18:21Z greg $
+ *  $Id: dom_document.h 16123 2022-11-18 11:06:45Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -120,7 +120,7 @@ namespace LQIO {
 	    void addPragma(const std::string&,const std::string&);
 	    void mergePragmas(const std::map<std::string,std::string>&);
 	    const std::map<std::string,std::string>& getPragmaList() const;
-	    bool hasPragmas() const { return getPragmaList().size() > 0; }
+	    bool hasPragma(const std::string&) const;
 	    const std::string& getPragma( const std::string& ) const;
 	    void clearPragmaList();
 
@@ -228,7 +228,7 @@ namespace LQIO {
 	    /* Semi-private */
 
 	    static void db_check_set_entry(DOM::Entry* entry, DOM::Entry::Type requisiteType = DOM::Entry::Type::NOT_DEFINED );
-	    ExternalVariable* db_build_parameter_variable(const char* input, bool* isSymbol);
+	    ExternalVariable* db_build_parameter_variable(const std::string& input, bool* isSymbol);
 	    static void lqx_parser_trace( FILE * );
 	    static std::string __input_file_name;
 

@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 15755 2022-07-24 10:34:56Z greg $
+ * $Id: entry.cc 16121 2022-11-17 20:31:33Z greg $
  */
 
 #include "lqsim.h"
@@ -130,7 +130,7 @@ Entry::configure()
 	    if ( (phase->service() + phase->think_time()) > 0. || phase->_calls.size() > 0 ) {
 		task()->max_phases( p );
 	    } else if ( phase->_hist_data ) {
-		LQIO::runtime_error( WRN_NO_PHASE_FOR_HISTOGRAM, name(), p );
+		LQIO::runtime_error( WRN_NO_PHASE_FOR_HISTOGRAM, name().c_str(), p );
 	    }
 
 	    phase->set_phase( p );
@@ -143,15 +143,15 @@ Entry::configure()
     _active.assign( MAX_PHASES, 0 );
 
     if ( task()->type() != Task::Type::SEMAPHORE ) {
-	if ( is_signal() ) task()->getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, "signal", name() );
-	if ( is_wait() ) task()->getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, "wait", name() );
+	if ( is_signal() ) task()->getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, "signal", name().c_str() );
+	if ( is_wait() ) task()->getDOM()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, "wait", name().c_str() );
     }
 
     if ( (is_r_lock() || is_r_unlock() || is_w_lock() || is_w_unlock()) && task()->type() != Task::Type::RWLOCK ) {
 	if ( is_r_lock() || is_r_unlock() ) {
-	    task()->getDOM()->runtime_error( LQIO::ERR_NOT_RWLOCK_TASK, (is_r_lock() ? "r_lock" : "r_unlock"), name() );
+	    task()->getDOM()->runtime_error( LQIO::ERR_NOT_RWLOCK_TASK, (is_r_lock() ? "r_lock" : "r_unlock"), name().c_str() );
 	} else {
-	    task()->getDOM()->runtime_error( LQIO::ERR_NOT_RWLOCK_TASK, (is_w_lock() ? "w_lock" : "w_unlock"), name() );
+	    task()->getDOM()->runtime_error( LQIO::ERR_NOT_RWLOCK_TASK, (is_w_lock() ? "w_lock" : "w_unlock"), name().c_str() );
 	}
     } 
 
@@ -178,7 +178,7 @@ Entry::initialize()
 		
     _join_list = nullptr;		/* Reset */
     
-    r_cycle.init( SAMPLE, "Entry %-11.11s  - Cycle Time      ", name() );
+    r_cycle.init( SAMPLE, "Entry %-11.11s  - Cycle Time      ", name().c_str() );
 
     switch ( task()->type() ) {
     case Task::Type::CLIENT:
@@ -207,7 +207,7 @@ Entry::initialize()
     /* forwarding component */
 			
     if ( is_rendezvous() ) {
-	_fwd.initialize( name() );
+	_fwd.initialize( name().c_str() );
     }
 
     return *this;
@@ -316,7 +316,7 @@ Entry::test_and_set_semaphore( LQIO::DOM::Entry::Semaphore sema )
 {
     const bool rc = getDOM()->entrySemaphoreTypeOk( sema );
     if ( !rc ) {
-	input_error2( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
+	input_error2( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name().c_str() );
     } 
     return rc;
 }
@@ -348,7 +348,7 @@ Entry::add_forwarding( Entry* to_entry, LQIO::DOM::Call * call )
 
     /* Do some checks for sanity */
     if ( task()->is_reference_task() ) {
-	getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_FORWARDING, name() );
+	getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_FORWARDING, name().c_str() );
     } else {
 	_fwd.store_target_info( to_entry, call );
     }
@@ -497,7 +497,7 @@ Entry::compute_minimum_service_time()
 	    _activity->collect( activity_stack, data );
 	}
 	if ( debug_flag ) {
-	    (void) fprintf( stderr, "Entry %s: minimum service time=", name() );
+	    (void) fprintf( stderr, "Entry %s: minimum service time=", name().c_str() );
 	    for ( std::vector<double>::const_iterator i = _minimum_service_time.begin(); i != _minimum_service_time.end(); ++i ) {
 		if ( i != _minimum_service_time.begin() ) (void) fputc( ',', stderr );
 		(void) fprintf( stderr, "%g", *i );
@@ -635,9 +635,7 @@ Entry::add_open_arrival_task()
 {
     if ( !_dom || !_dom->hasOpenArrivalRate() || !test_and_set_recv( Entry::Type::SEND_NO_REPLY ) || dynamic_cast<Pseudo_Entry *>(this) != nullptr ) return *this;	/* Not necessary due to override */
 
-    char * task_name = new char[strlen( name() ) + 20];
-    (void) sprintf( task_name, "(%s)", name() );
-    Task * cp = new Pseudo_Task( task_name );
+    Task * cp = new Pseudo_Task( std::string( "(" ) + name() + ")" );
     Task::__tasks.insert( cp );
 	
     Entry * from_entry = new Pseudo_Entry( _dom, cp );
@@ -734,7 +732,7 @@ Entry::find( const char * from_entry_name, Entry * & from_entry, const char * to
 void
 Entry::print_debug_info()
 {
-    (void) fprintf( stddbg, "---------- Entry %s ----------\n", name() );
+    (void) fprintf( stddbg, "---------- Entry %s ----------\n", name().c_str() );
 
     if ( _fwd.size() > 0 ) {
 	fprintf( stddbg, "\tfwds:  " );

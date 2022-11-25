@@ -1,7 +1,7 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 15741 2022-07-01 11:57:03Z greg $
+ * $Id: target.cc 16121 2022-11-17 20:31:33Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -84,7 +84,7 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
     } else {
 	ps_record_stat( r_loss_prob.raw, 1 );
 	if ( Pragma::__pragmas->abort_on_dropped_message() ) {
-	    LQIO::runtime_error( FTL_MSG_POOL_EMPTY, src->name(), _entry->name() );
+	    LQIO::runtime_error( FTL_MSG_POOL_EMPTY, src->name().c_str(), _entry->name().c_str() );
 	} else {
 	    messages_lost = true;
 	}
@@ -95,7 +95,7 @@ void
 tar_t::configure()
 {
     if ( _entry->task()->is_reference_task() ) {
-	_entry->task()->getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, _entry->name() );
+	_entry->task()->getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, _entry->name().c_str() );
     } else if ( _type == Type::call ) {
 	_reply = (_dom._call->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS || _dom._call->getCallType() == LQIO::DOM::Call::Type::FORWARD);
 	try { 
@@ -164,7 +164,7 @@ tar_t::compute_minimum_service_time() const
 FILE *
 tar_t::print( FILE * output ) const
 {
-    (void) fprintf( output, "%5.2f * %s", calls(), _entry->name() );
+    (void) fprintf( output, "%5.2f * %s", calls(), _entry->name().c_str() );
     return output;
 }
 
@@ -294,7 +294,7 @@ void
 Targets::initialize( const char * srcName )
 {
     for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
-	const char * dstName = tp->entry()->name();
+	const char * dstName = tp->entry()->name().c_str();
     
 	tp->r_delay.init( SAMPLE,     "Wait %-11.11s %-11.11s          ", srcName, dstName );
 	tp->r_delay_sqr.init( SAMPLE, "Wait %-11.11s %-11.11s          ", srcName, dstName );
@@ -377,10 +377,10 @@ Targets::print_raw_stat( FILE * output ) const
 {
     for ( std::vector<tar_t>::const_iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
 	Entry * ep = tp->entry();
-	tp->r_delay.print_raw( output,      "Calling %-11.11s- delay", ep->name() );
-	tp->r_delay_sqr.print_raw( output,  "Calling %-11.11s- delay sqr", ep->name() );
+	tp->r_delay.print_raw( output,      "Calling %-11.11s- delay", ep->name().c_str() );
+	tp->r_delay_sqr.print_raw( output,  "Calling %-11.11s- delay sqr", ep->name().c_str() );
 	if ( !tp->reply() ) {
-	    tp->r_loss_prob.print_raw( output, "Calling %-11.11s- loss prob", ep->name() );
+	    tp->r_loss_prob.print_raw( output, "Calling %-11.11s- loss prob", ep->name().c_str() );
 	}
     }
     return *this;

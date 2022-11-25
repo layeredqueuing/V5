@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: actlist.cc 15737 2022-06-30 22:59:33Z greg $
+ * $Id: actlist.cc 16121 2022-11-17 20:31:33Z greg $
  */
 
 #include "lqsim.h"
@@ -239,7 +239,7 @@ AndJoinActivityList::find_children( std::deque<Activity *>& activity_stack, std:
 		    /* Set type for join */
 	    
 		    if ( !set_join_type( Join::INTERNAL_FORK_JOIN ) ) {
-			getDOM()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, activity_stack.back()->name() );
+			getDOM()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, activity_stack.back()->name().c_str() );
 		    }
 
 		    if ( debug_flag ) {
@@ -266,7 +266,7 @@ AndJoinActivityList::find_children( std::deque<Activity *>& activity_stack, std:
 		
 	    } else {
 		if ( !set_join_type( Join::SYNCHRONIZATION ) ) {
-		    getDOM()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, activity_stack.back()->name() );
+		    getDOM()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, activity_stack.back()->name().c_str() );
 		} else {
 		    Server_Task * cp = dynamic_cast<Server_Task *>(ep->task());
 		    cp->set_synchronization_server();

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 15895 2022-09-23 17:21:55Z greg $
+ * $Id: entity.cc 16114 2022-11-17 17:29:07Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -791,17 +791,17 @@ Entity::output_info( std::ostream& output, const Entity& entity )
 /* static */ std::ostream&
 Entity::output_type( std::ostream& output, const Entity& entity )
 {
-    char buf[12];
+    std::string buf;
     const unsigned n = entity.copies();
 
     if ( entity.scheduling() == SCHEDULE_CUSTOMER ) {
-	sprintf( buf, "ref(%d)", n );
+	buf = std::string( "ref(" ) + std::to_string( n ) + ")";
     } else if ( entity.isInfinite() ) {
-	sprintf( buf, "inf" );
+	buf = "inf";
     } else if ( n > 1 ) {
-	sprintf( buf, "mult(%d)", n );
+	buf = std::string( "mult(" + std::to_string( n ) + ")" );
     } else {
-	sprintf( buf, "serv" );
+	buf = "serv";
     }
     output << buf;
     return output;

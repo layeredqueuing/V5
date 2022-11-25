@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 15795 2022-08-04 14:45:32Z greg $
+ * $Id: srvndiff.cc 16121 2022-11-17 20:31:33Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -935,7 +935,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2022-08-04 10:45:32 -0400 (Thu, 04 Aug 2022) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2022-11-17 15:31:33 -0500 (Thu, 17 Nov 2022) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1294,7 +1294,7 @@ compare_directories (unsigned n, char * const dirs[])
     } else {
 #if HAVE_GLOB
 	for ( unsigned i = 0; i < n; ++i ) {
-	    int rc;
+	    int rc = 0;
 	    dir_list[i].gl_pathc = 0;
 	    if ( file_pattern.empty() ) {
 		for ( std::vector<std::string>::const_iterator match = patterns.begin(); match != patterns.end() && dir_list[i].gl_pathc == 0 ; ++match ) {
@@ -1520,16 +1520,16 @@ build_file_list2 ( const unsigned n,  char * const dirs[] )
 	    char path[MAXPATHLEN];
 	    struct stat stat_buf;
 
-	    (void) sprintf( path, "%s/%s", dirs[i], filename );
+	    (void) snprintf( path, MAXPATHLEN, "%s/%s", dirs[i], filename );
 	    if ( stat( path, &stat_buf ) < 0 ) {
-		(void) sprintf( path, "%s/%s.p", dirs[i], basename );
+		(void) snprintf( path, MAXPATHLEN, "%s/%s.p", dirs[i], basename );
 		if ( stat( path, &stat_buf ) < 0 ) {
-		    (void) sprintf( path, "%s/%s.lqxo", dirs[i], basename );
+		    (void) snprintf( path, MAXPATHLEN, "%s/%s.lqxo", dirs[i], basename );
 		    if ( stat( path, &stat_buf ) < 0 ) {
-			(void) sprintf( path, "%s/%s.lqjo", dirs[i], basename );
+			(void) snprintf( path, MAXPATHLEN, "%s/%s.lqjo", dirs[i], basename );
 			if ( stat( path, &stat_buf ) < 0 ) {
 			    (void) fprintf( stderr, "%s: cannot stat ", lq_toolname );
-			    (void) sprintf( path, "%s/%s", dirs[i], filename );
+			    (void) snprintf( path, MAXPATHLEN, "%s/%s", dirs[i], filename );
 			    perror( path );
 			    continue;
 			}
@@ -3001,7 +3001,7 @@ time_print_func( FILE * output, unsigned j, double value, double delta )
 
     (void) fprintf( output, "%s", separator_format );
 
-    (void) sprintf( buf, "%2.0f:%02.0f:%02.0f.%02.0f", hrs, mins, secs, csecs );
+    (void) snprintf( buf, 32, "%2.0f:%02.0f:%02.0f.%02.0f", hrs, mins, secs, csecs );
     (void) fprintf( output, "%*.*s", result_width, result_width, buf );
 
     if ( j > 0 ) {
@@ -3795,20 +3795,17 @@ unsigned int find_or_add_entry( const char * entry ) { return find_or_add( ST_EN
 unsigned int
 find_or_add_activity( const char * task, const char * activity )
 {
-    char buf[132];
-    unsigned a;
 
     if ( std::any_of( exclude[ST_TASK].begin(), exclude[ST_TASK].end(), match( task ) ) ) return 0;
     if ( !include[ST_TASK].empty() && std::none_of( include[ST_TASK].begin(), include[ST_TASK].end(), match( task ) ) ) return 0;
 
-    sprintf( buf, "%s:%s", task, activity );
-
-    a = find_symbol_name( buf, ST_ACTIVITY );
+    const std::string buf = std::string(task) + ":" + std::string(activity);
+    unsigned a = find_symbol_name( buf.c_str(), ST_ACTIVITY );
     if ( a == 0 ) {
 	if ( pass != FILE1 ) {
 	    results_warning( "Task %s, activity %s not found in source file", task, activity );
 	} else {
-	    a = add_symbol( buf, ST_ACTIVITY );
+	    a = add_symbol( buf.c_str(), ST_ACTIVITY );
 	}
     }
 

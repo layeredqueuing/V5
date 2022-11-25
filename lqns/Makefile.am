@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15865 2022-09-15 19:28:53Z greg $
+# $Id: Makefile.am 16118 2022-11-17 18:45:33Z greg $
 #----------------------------------------------------------------------
 
 SUBDIRS		= regression 
@@ -34,7 +34,9 @@ all-local:	lqns.pdf
 install-data-local:	lqns.pdf
 
 lqns.pdf:	$(man1_MANS)
-		groff -t -man $(man1_MANS) | ps2pdf - $@
+		groff -t -man $(man1_MANS) > $<.ps
+		ps2pdf $<.ps $@
+		rm $<.ps
 endif
 
 lqns.html:	$(man1_MANS)

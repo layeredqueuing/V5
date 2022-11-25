@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 15737 2022-06-30 22:59:33Z greg $
+ * $Id: activity.cc 16121 2022-11-17 20:31:33Z greg $
  */
 
 #include "lqsim.h"
@@ -209,18 +209,18 @@ Activity::configure()
 Activity&
 Activity::initialize()
 {
-    r_util.init( VARIABLE, "%30.30s Utilization", name() );
-    r_cpu_util.init( VARIABLE, "%30.30s Execution  ", name() );
-    r_service.init( SAMPLE,   "%30.30s Service    ", name() );
-    r_slices.init( SAMPLE,   "%30.30s Slices     ", name() );
-    r_sends.init( SAMPLE,   "%30.30s Sends      ", name() );
-    r_proc_delay.init( SAMPLE,   "%30.30s Proc delay ", name() );
-    r_proc_delay_sqr.init( SAMPLE,   "%30.30s Pr dly Sqr ", name() );
-    r_cycle.init( SAMPLE,   "%30.30s Cycle Time ", name() );
-    r_cycle_sqr.init( SAMPLE,   "%30.30s Cycle Sqred", name() );
-    r_afterQuorumThreadWait.init( SAMPLE,   "%30.30s afterQuorumThreadWait Raw Data", name() );	/* tomari quorum */
+    r_util.init( VARIABLE, "%30.30s Utilization", name().c_str() );
+    r_cpu_util.init( VARIABLE, "%30.30s Execution  ", name().c_str() );
+    r_service.init( SAMPLE,   "%30.30s Service    ", name().c_str() );
+    r_slices.init( SAMPLE,   "%30.30s Slices     ", name().c_str() );
+    r_sends.init( SAMPLE,   "%30.30s Sends      ", name().c_str() );
+    r_proc_delay.init( SAMPLE,   "%30.30s Proc delay ", name().c_str() );
+    r_proc_delay_sqr.init( SAMPLE,   "%30.30s Pr dly Sqr ", name().c_str() );
+    r_cycle.init( SAMPLE,   "%30.30s Cycle Time ", name().c_str() );
+    r_cycle_sqr.init( SAMPLE,   "%30.30s Cycle Sqred", name().c_str() );
+    r_afterQuorumThreadWait.init( SAMPLE,   "%30.30s afterQuorumThreadWait Raw Data", name().c_str() );	/* tomari quorum */
 
-    _calls.initialize( name() );
+    _calls.initialize( name().c_str() );
     return *this;
 }
 
@@ -282,11 +282,11 @@ double Activity::count_replies( ActivityList::Collect& data ) const
     const Entry * ep = data._e;
     if ( find_reply( ep ) ) {
 	if ( data.phase >= 2 ) {
-	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_DUPLICATE, ep->name() );
+	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_DUPLICATE, ep->name().c_str() );
 	} else if ( !data.can_reply || data.rate > 1.0 ) {
-	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FROM_BRANCH, ep->name() );
+	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FROM_BRANCH, ep->name().c_str() );
 	} else if ( ep->is_send_no_reply() ) {
-	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, ep->name() );
+	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, ep->name().c_str() );
 	} else {
 	    return data.rate;
 	}
@@ -445,7 +445,7 @@ Activity::add_reply_list()
 	if ( !ep ) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, entry_name );
 	} else if ( ep->task() != task() ) {
-	    getDOM()->input_error( LQIO::ERR_WRONG_TASK_FOR_ENTRY, task()->name() );
+	    getDOM()->input_error( LQIO::ERR_WRONG_TASK_FOR_ENTRY, task()->name().c_str() );
 	} else {
 	    act_add_reply( ep );
 	}
@@ -562,7 +562,7 @@ void
 Activity::print_debug_info()
 {
 	
-    (void) fprintf( stddbg, "----------\n%s, phase %d %s\n", name(), _phase, type() == LQIO::DOM::Phase::Type::DETERMINISTIC ? "Deterministic" : "" );
+    (void) fprintf( stddbg, "----------\n%s, phase %d %s\n", name().c_str(), _phase, type() == LQIO::DOM::Phase::Type::DETERMINISTIC ? "Deterministic" : "" );
 
     (void) fprintf( stddbg, "\tservice: %5.2g {%5.2g, %5.2g}\n", service(), _shape, _scale );
 
@@ -838,16 +838,16 @@ const Activity&
 Activity::print_raw_stat( FILE * output ) const
 {
     if ( r_cycle.has_results() ) {
-	r_util.print_raw( output,           "%-24.24s Utilization", name() );
-	r_service.print_raw( output,        "%-24.24s Service    ", name() );
-	r_slices.print_raw( output,         "%-24.24s Slices     ", name() );
-	r_sends.print_raw( output,          "%-24.24s Sends      ", name() );
-	r_cpu_util.print_raw( output,       "%-24.24s Proc. Util.", name() );
-	r_proc_delay.print_raw( output,     "%-24.24s Proc. delay", name() );
-	r_proc_delay_sqr.print_raw( output, "%-24.24s Prc dly sqr", name() );
-	r_cycle.print_raw( output,          "%-24.24s Cycle Time ", name() );
-	r_cycle_sqr.print_raw( output,      "%-24.24s Cycle Sqred", name() );
-	r_afterQuorumThreadWait.print_raw( output, "%-24.24s afterQuorumThreadWait Raw Data", name() );	/* tomari quorum */
+	r_util.print_raw( output,           "%-24.24s Utilization", name().c_str() );
+	r_service.print_raw( output,        "%-24.24s Service    ", name().c_str() );
+	r_slices.print_raw( output,         "%-24.24s Slices     ", name().c_str() );
+	r_sends.print_raw( output,          "%-24.24s Sends      ", name().c_str() );
+	r_cpu_util.print_raw( output,       "%-24.24s Proc. Util.", name().c_str() );
+	r_proc_delay.print_raw( output,     "%-24.24s Proc. delay", name().c_str() );
+	r_proc_delay_sqr.print_raw( output, "%-24.24s Prc dly sqr", name().c_str() );
+	r_cycle.print_raw( output,          "%-24.24s Cycle Time ", name().c_str() );
+	r_cycle_sqr.print_raw( output,      "%-24.24s Cycle Sqred", name().c_str() );
+	r_afterQuorumThreadWait.print_raw( output, "%-24.24s afterQuorumThreadWait Raw Data", name().c_str() );	/* tomari quorum */
     }
 
     _calls.print_raw_stat( output );

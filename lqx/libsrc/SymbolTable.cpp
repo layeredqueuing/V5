@@ -402,21 +402,17 @@ namespace LQX {
     return true;
   }
   
-  bool SymbolTable::isDefined(const std::string& name, bool globally)
+  bool SymbolTable::isDefined(const std::string& name, bool globally) const
   {
     /* See if this is defined here */
     if (globally == false) {
-      if (_stack.back().find(name) == _stack.back().end()) {
-        return false;
-      } else {
-        return true;
-      }
+      return _stack.back().find(name) != _stack.back().end();
     }
     
     /* Check if the given symbol is defined globally */
-    std::vector< std::map<std::string,SymbolAutoRef > >::reverse_iterator iter;
+    std::vector< std::map<std::string,SymbolAutoRef > >::const_reverse_iterator iter;
     for (iter = _stack.rbegin(); iter != _stack.rend(); ++iter) {
-      std::map<std::string,SymbolAutoRef >& context = *iter;
+      const std::map<std::string,SymbolAutoRef >& context = *iter;
       if (context.find(name) != context.end()) {
         return true;
       }

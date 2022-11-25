@@ -152,7 +152,7 @@ namespace LQX {
     
     /* Interface to the table */
     bool define(const std::string& name);
-    bool isDefined(const std::string& name, bool globally=true);
+    bool isDefined(const std::string& name, bool globally=true) const;
     SymbolAutoRef get(const std::string& name);
     
     /* Variable Scoping */

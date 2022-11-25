@@ -318,6 +318,7 @@ namespace LQX {
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
     virtual SymbolAutoRef invoke(Environment* env);
+    const std::string& getName() const { return _name; }
     
   private:
     
