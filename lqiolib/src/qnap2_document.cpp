@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16143 2022-11-29 21:48:46Z greg $
+ * $Id: qnap2_document.cpp 16147 2022-11-30 13:06:19Z greg $
  *
  * Read in XML input files.
  *
@@ -1319,11 +1319,11 @@ namespace QNIO {
 	    /* Scalar */
 	    BCMP::Model::Station::Class& k = model().stationAt( station_name ).classAt( class_name );
 	    if ( k.visits() != nullptr ) return true;
-	    k.setVisits( BCMP::Model::multiply( visits, sum ) );
+	    k.setVisits( new LQX::MathExpression( LQX::MathExpression::MULTIPLY, visits, sum ) );
 	}
 	stack.push_back( station_name );
 	for ( std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator transit = transits.begin(); transit != transits.end(); ++transit ) {
-	    mapTransitToVisits( transit->first, class_name, BCMP::Model::multiply( visits, transit->second ), stack );
+	    mapTransitToVisits( transit->first, class_name, new LQX::MathExpression( LQX::MathExpression::MULTIPLY, visits, transit->second ), stack );
 	}
 	stack.pop_back();
 	return true;
@@ -1373,6 +1373,15 @@ namespace QNIO {
 	std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>::const_iterator k = m1->second.find(chain);
 	if ( k == m1->second.end() ) throw std::logic_error( std::string( "Missing chain: " ) + from );
 	return k->second;
+    }
+
+
+
+    LQX::SyntaxTreeNode * QNAP2_Document::fold_transit::operator()( const LQX::SyntaxTreeNode* t1, const std::pair<std::string,LQX::SyntaxTreeNode *>& t2 ) const
+    {
+	if ( t1 == nullptr ) return t2.second;
+	else if ( t2.second == nullptr ) return const_cast<LQX::SyntaxTreeNode *>(t1);
+	else return new LQX::MathExpression( LQX::MathExpression::ADD, const_cast<LQX::SyntaxTreeNode *>(t1), t2.second );		// Do not optimize expressions as evaluation has to be deferred.
     }
 }
 
@@ -2013,12 +2022,6 @@ namespace QNIO {
 	}
 	return s;
     }
-
-    LQX::SyntaxTreeNode * QNAP2_Document::fold_transit::operator()( const LQX::SyntaxTreeNode* t1, const std::pair<std::string,LQX::SyntaxTreeNode *>& t2 ) const
-    {
-	return BCMP::Model::add( const_cast<LQX::SyntaxTreeNode *>(t1), t2.second );
-    }
-
 
     void
     QNAP2_Document::printClassVariables( std::ostream& output ) const
