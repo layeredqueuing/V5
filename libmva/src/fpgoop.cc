@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: fpgoop.cc 15329 2022-01-02 20:46:57Z greg $
+ * $Id: fpgoop.cc 16141 2022-11-29 02:19:22Z greg $
  *
  * Floating point exception handling.  It is all different on all machines.
  * See:
@@ -48,8 +48,6 @@
 #undef __STRICT_ANSI__
 #include <float.h>
 #endif
-
-#pragma STDC FENV_ACCESS ON
 
 #include "fpgoop.h"
 
@@ -172,24 +170,7 @@ static int trap_mask = 0x000000f0;
 void
 set_fp_abort()
 {
-#if defined(__APPLE__) && defined(__MACH__)
-    static fenv_t fenv;
-    unsigned int new_excepts = fp_bits & FE_ALL_EXCEPT;
-    // previous masks
-    unsigned int old_excepts;
-
-    if (fegetenv(&fenv)) {
-        return;
-    }
-    old_excepts = fenv.__control & FE_ALL_EXCEPT;
-
-    // unmask
-    fenv.__control &= ~new_excepts;
-    fenv.__mxcsr   &= ~(new_excepts << 7);
-
-    fesetenv(&fenv);
-    
-#elif defined(HAVE_FENV_H) && defined(HAVE_FEENABLEEXCEPT)
+#if defined(HAVE_FENV_H) && defined(HAVE_FEENABLEEXCEPT)
     feenableexcept( fp_bits );
 
 #elif defined(HAVE_FENV_H) && defined(HAVE_FESETEXCEPTFLAG)

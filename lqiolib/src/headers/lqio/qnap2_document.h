@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 16138 2022-11-25 14:50:49Z greg $
+ *  $Id: qnap2_document.h 16143 2022-11-29 21:48:46Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -226,8 +226,8 @@ namespace QNIO {
 	bool setStationTransit( const std::string&, const std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>*>& );
 	std::vector<LQX::SyntaxTreeNode *>* setProgram( LQX::SyntaxTreeNode * );
 	void registerMethods();
-	size_t countOutgoingTransits( const std::string& from, const std::string& chain ) const;
-	size_t countIncommingTransits( const std::string& from, const std::string& chain ) const;
+	bool hasOutgoingTransits( const std::string& from, const std::string& chain ) const;
+	bool hasIncommingTransits( const std::string& from, const std::string& chain ) const;
 	const std::map<std::string,LQX::SyntaxTreeNode *>& getTransits( const std::string& from, const std::string& chain ) const;
 
 
@@ -294,11 +294,14 @@ namespace QNIO {
 	public:
 	    ConstructStation( QNAP2_Document& document, const std::string& name, BCMP::Model::Station& station ) : _document(document), _name(name), _station(station) {}
 	    bool operator()( const std::pair<LQX::SymbolAutoRef,LQX::SymbolAutoRef>& item ) const;
+	    bool operator()() const;
 
 	private:
 	    BCMP::Model& model() const { return _document.model(); }
 	    BCMP::Model::Station& station() const { return _station; }
 	    std::vector<LQX::SyntaxTreeNode *>& program() const { return _document._program; }
+	    const std::map<const std::string,const Type>& attributes() const { return _document._attributes; }
+	    std::map<std::string,std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>>& transit() const { return _document._transit; }
 
 	private:
 	    LQX::SyntaxTreeNode * getServiceTime( const std::string& ) const;
@@ -308,10 +311,11 @@ namespace QNIO {
 	    BCMP::Model::Station& _station;
 	};
 
+
 	class SetServiceTime {
 	public:
-	    SetServiceTime( const std::string& name, size_t index, const std::map<const std::string,const Type>& attributes ) : _name(name), _has_index(true), _index(index), _attributes(attributes ) {}
-	    SetServiceTime( const std::string& name, const std::map<const std::string,const Type>& attributes ) : _name(name), _has_index(false), _index(0), _attributes(attributes ) {}
+	    SetServiceTime( const std::string& name, size_t index, const std::map<const std::string,const Type>& attributes ) : _name(name), _has_index(true), _index(index), _attributes(attributes) {}
+	    SetServiceTime( const std::string& name, const std::map<const std::string,const Type>& attributes ) : _name(name), _has_index(false), _index(0), _attributes(attributes) {}
 	    void operator()( BCMP::Model::Station::Class::pair_t& ) const;
 
 	private:
@@ -528,6 +532,8 @@ namespace QNIO {
 	/* QNAP2_Document attributes.						*/
 	/* -------------------------------------------------------------------- */
     public:
+	typedef std::map<std::string,std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>> TransitFromClassToValue;
+	
 	static const std::map<const scheduling_type,const std::string> __scheduling_str;	/* Maps scheduling_type to qnap2 keyword */
 	static const std::map<const std::string,const scheduling_type> __scheduling_type;
 	static const std::map<const int,const BCMP::Model::Station::Type> __station_type;
@@ -541,7 +547,7 @@ namespace QNIO {
 
     private:
 	std::map<const std::string,const Type> _attributes;			/* Object, Scalar */
-	std::map<std::string,std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>> _transit; /* from, chain, to, value under construction */
+	TransitFromClassToValue _transit; /* from, chain, to, value under construction */
 	std::vector<LQX::SyntaxTreeNode *> _program;
 	LQX::Program * _lqx;
 	LQX::Environment * _env;

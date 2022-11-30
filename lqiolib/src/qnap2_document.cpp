@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16138 2022-11-25 14:50:49Z greg $
+ * $Id: qnap2_document.cpp 16143 2022-11-29 21:48:46Z greg $
  *
  * Read in XML input files.
  *
@@ -864,202 +864,7 @@ namespace QNIO {
     }
 
 
-
-    /*
-     * Since we don't know the station name ahead of time to find the
-     * object in the map, copy the station constructed by the parser
-     * to the BCMP::Document model once everything has been defined.
-     * Fill in defaults as necessary.
-     */
-
-    bool
-    QNAP2_Document::constructStation()
-    {
-	const std::string& station_name = __station.first;
-
-	/* Copy over constructed values */
-
-	_transit.emplace( station_name, __transit );	/* copy */
-
-	/* Set defaults if not set */
-
-	BCMP::Model::Station& source =	__station.second;
-	if ( source.type() == BCMP::Model::Station::Type::NOT_DEFINED ) {	/* Default */
-	    if ( source.scheduling() == SCHEDULE_DELAY ) {
-		source.setType( BCMP::Model::Station::Type::DELAY );
-	    } else if ( source.copies() != nullptr ) {
-		source.setType( BCMP::Model::Station::Type::MULTISERVER );
-	    } else {
-		source.setType( BCMP::Model::Station::Type::LOAD_INDEPENDENT );
-	    }
-	}
-	if ( source.copies() == nullptr ) {
-	    source.setCopies( new LQX::ConstantValueExpression( 1. ) );	/* Default 1 */
-	}
-
-	/* This will have to be a loop if source is an array */
-
-	LQX::ArrayObject* array = getArray( new LQX::VariableExpression( station_name, is_external ) );
-	if ( array != nullptr ) {
-	    std::for_each( array->begin(), array->end(), ConstructStation( *this, station_name, source ) );
-	} else {
-	    std::pair<BCMP::Model::Station::map_t::iterator,bool> insertion = model().stations().emplace( station_name, source );
-	    if ( !insertion.second ) return false;
-	    _program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( station_name, is_external ), new LQX::MethodInvocationExpression( "station", new LQX::ConstantValueExpression( station_name ), nullptr ) ) );
-	    _program.push_back( new LQX::AssignmentStatementNode( new LQX::ObjectPropertyReadNode( new LQX::VariableExpression( station_name, is_external ), "name" ), new LQX::ConstantValueExpression( station_name ) ) );
-	    BCMP::Model::Station& station = insertion.first->second;	/* Get the copy */
-	    std::for_each( station.classes().begin(), station.classes().end(), SetServiceTime( station_name, _attributes ) );
-	}
-
-	/* Reset */
-
-	__transit.clear();
-	__station.first.clear();
-	__station.second.clear();
-
-	return true;
-    }
-
-
-    /*
-     * Copy the __station data to the array instance
-     */
-
-    bool QNAP2_Document::ConstructStation::operator()( const std::pair<LQX::SymbolAutoRef,LQX::SymbolAutoRef>& item ) const
-    {
-	const double index = item.first->getDoubleValue();		// needs to be int for to_string, otherwise get x.0000
-	std::string station_name = _name + "(" + std::to_string( static_cast<int>(index) ) + ")";
-	std::pair<BCMP::Model::Station::map_t::iterator,bool> insertion = model().stations().emplace( station_name, this->station() );	/* Make a copy */
-	if ( !insertion.second ) return false;
-
-	/* Set the LQXStation station object */
-	program().push_back( new LQX::AssignmentStatementNode( new LQX::MethodInvocationExpression( "array_get", new LQX::VariableExpression( _name, is_external ), new LQX::ConstantValueExpression( index ), nullptr ),
-							       new LQX::MethodInvocationExpression( "station", new LQX::ConstantValueExpression( station_name ), nullptr ) ) );
-
-	/* Set station name attribute */
-	program().push_back( new LQX::AssignmentStatementNode( new LQX::ObjectPropertyReadNode( new LQX::MethodInvocationExpression( "array_get", new LQX::VariableExpression( _name, is_external ), new LQX::ConstantValueExpression( index ), nullptr ), "name" ),
-							       new LQX::ConstantValueExpression( station_name ) ) );
-
-	/* For each class in the station, set the service time for the copy.  */
-	BCMP::Model::Station& station = insertion.first->second;	/* Get the copy */
-	std::for_each( station.classes().begin(), station.classes().end(), SetServiceTime( _name, index, _document._attributes ) );
-
-	return true;
-    }
-
-    /*
-     * The copied station has the original value stored by the parser
-     * which is either a variable or an attribute. If this value is an
-     * attribute, it will have to be converted to a an
-     * ObjectPropertyReadNode (class attribute), array_get (station
-     * attribute). VariableExpressions and ConstantValueExpressions
-     * are left alone.  I suppose it could be an array variable too
-     * though.  Later... !!!
-     */
-
-    void QNAP2_Document::SetServiceTime::operator()( BCMP::Model::Station::Class::pair_t& k ) const
-    {
-	if ( k.second.service_time() == nullptr ) return;	// Not set in template.
-	LQX::VariableExpression * variable = dynamic_cast<LQX::VariableExpression *>(k.second.service_time());
-	if ( variable == nullptr ) return;			// Not a variable, so no name.
-	std::map<const std::string,const Type>::const_iterator attribute = _attributes.find( variable->getName() );
-	if ( attribute == _attributes.end() ) return;		// Not an attribute
-
-	LQX::SyntaxTreeNode * destination = nullptr;
-	switch ( attribute->second ) {
-	case QNAP2_Document::Type::Class:
-	    destination = new LQX::VariableExpression( k.first, is_external );
-	    break;
-	case QNAP2_Document::Type::Queue:
-	    if ( _has_index ) {
-		destination = new LQX::MethodInvocationExpression( "array_get", new LQX::VariableExpression( _name, is_external ), new LQX::ConstantValueExpression( static_cast<double>(_index) ), nullptr );
-	    } else {
-		destination = new LQX::VariableExpression( _name, is_external );
-	    }
-	    break;
-	default:
-	    abort();
-	    break;
-	}
-	k.second.setServiceTime( new LQX::ObjectPropertyReadNode( destination, variable->getName() ) );
-    }
-
-
-
-    /*
-     * starting from all reference or source stations, follow the
-     * transit graph and convert the transit chain to visits to the
-     * station.
-     */
-
-    bool
-    QNAP2_Document::mapTransitToVisits()
-    {
-	// for each chain, locate the reference station.  There should be exactly one.
-	// follow the transit list from the reference station (recursive).  We should
-	// end up at the reference station (or out).
-
-	const BCMP::Model::Chain::map_t& chains = model().chains();
-	BCMP::Model::Station::map_t& stations = model().stations();
-	for ( BCMP::Model::Chain::map_t::const_iterator chain = chains.begin(); chain != chains.end(); ++chain ) {
-	    BCMP::Model::Station::map_t::iterator start = stations.end();
-	    for ( BCMP::Model::Station::map_t::iterator station = stations.begin(); station != stations.end(); ++station ) {
-		if ( !station->second.reference() && station->second.type() != BCMP::Model::Station::Type::SOURCE ) continue;
-		if ( start != stations.end() ) throw std::logic_error( std::string( "Duplicate source station: " ) + station->first );
-		start = station;
-	    }
-	    if ( start == stations.end() ) {
-		throw std::logic_error( std::string( "No reference or source stations." ) );
-	    }
-	    const std::string& station_name = start->first;
-	    const std::string& class_name = chain->first;
-	    std::deque<std::string> stack;
-	    mapTransitToVisits( station_name, class_name, new LQX::ConstantValueExpression( 1.0 ), stack );	    // set visits to reference station to 1 */
-	    assert( stack.empty() );
-	}
-	return true;
-    }
-
-
-    /*
-     * If we find we have reached a node which is on the stack, then we are done.  Set the visits to that node to the sum of what so far plus the value on the top of stack.
-     * Otherwise, if the station transits out for this class, set the visits to the current vists, then recurse down the transit list.  If the station doesn't transit out, then simply return.
-     */
-
-    bool
-    QNAP2_Document::mapTransitToVisits( const std::string& station_name, const std::string& class_name, LQX::SyntaxTreeNode * visits, std::deque<std::string>& stack )
-    {
-	BCMP::Model::Station::Class& k = model().stationAt( station_name ).classAt( class_name );
-
-	/* have we completed the cycle? */
-
-	if ( k.visits() != nullptr || std::find( stack.begin(), stack.end(), station_name ) != stack.end() ) return true;	/* Yes, return */
-
-	/* Do we transit out from this station? */
-
-	const size_t outgoing_transits = countOutgoingTransits( station_name, class_name );
-	const size_t incomming_transits = countIncommingTransits( station_name, class_name );
-	if ( outgoing_transits == 0 || incomming_transits == 0 ) return true;		/* No visits here.	*/
-#if 0
-	/* Fails on regression/2-class, though qnap2 needs the definition */
-	if ( outgoing_transits != incomming_transits ) {
-	    throw std::logic_error( std::string( "Transits in do not match transits out for station " ) + station_name );
-	}
-#endif
-	/* Ok, we transit out from here and we have transits in */
-
-	const std::map<std::string,LQX::SyntaxTreeNode *>& transits = getTransits( station_name, class_name  );
-	LQX::SyntaxTreeNode * sum = std::accumulate( transits.begin(), transits.end(), static_cast<LQX::SyntaxTreeNode *>(nullptr), fold_transit( class_name ) );	// class name not needed here.
-	k.setVisits( BCMP::Model::multiply( visits, sum ) );
-	stack.push_back( station_name );
-	for ( std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator transit = transits.begin(); transit != transits.end(); ++transit ) {
-	    mapTransitToVisits( transit->first, class_name, BCMP::Model::multiply( visits, transit->second ), stack );
-	}
-	stack.pop_back();
-	return true;
-    }
-
-
+    
     bool
     QNAP2_Document::setStationScheduling( const std::string& value )
     {
@@ -1287,50 +1092,6 @@ namespace QNIO {
 
 
     /*
-     * Return true is there are any transit out from "from, chain";
-     */
-
-    size_t
-    QNAP2_Document::countOutgoingTransits( const std::string& from, const std::string& chain ) const
-    {
-	std::map<std::string,std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>>::const_iterator m1 = _transit.find(from);
-	if ( m1 == _transit.end() ) throw std::logic_error( std::string( "Missing from station: " ) + from );
-	if ( m1->second.find(chain) == m1->second.end() ) return 0;
-	std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>::const_iterator k = m1->second.find(chain);
-	if ( k == m1->second.end() ) return 0;
-	const std::map<std::string,LQX::SyntaxTreeNode *>& transits = k->second;
-	return transits.size();
-    }
-
-
-    /*
-     * Return true it there are any transits from any station (including "to") to "to".
-     */
-
-    size_t
-    QNAP2_Document::countIncommingTransits( const std::string& to, const std::string& chain ) const
-    {
-	size_t count = 0;
-	for ( std::map<std::string,std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>>::const_iterator m1 = _transit.begin(); m1 != _transit.end(); ++m1 ) {
-	    std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>::const_iterator k = m1->second.find(chain);
-	    if ( k == m1->second.end() ) continue;	/* No chain from this from station */
-	    std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator m2 = k->second.find(to);
-	    if ( m2 != k->second.end() ) count += 1;
-	}
-	return count;
-    }
-
-    const std::map<std::string,LQX::SyntaxTreeNode *>&
-    QNAP2_Document::getTransits( const std::string& from, const std::string& chain ) const
-    {
-	std::map<std::string,std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>>::const_iterator m1 = _transit.find(from);
-	if ( m1 == _transit.end() ) throw std::logic_error( std::string( "Missing from station: " ) + from );
-	std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>::const_iterator k = m1->second.find(chain);
-	if ( k == m1->second.end() ) throw std::logic_error( std::string( "Missing chain: " ) + from );
-	return k->second;
-    }
-
-    /*
      * The output printer is actually the qnap2 function "output", so just redirect.
      */
 
@@ -1356,8 +1117,267 @@ namespace QNIO {
     }
 }
 
-    /* ------------------------------------------------------------------------ */
 namespace QNIO {
+    /* ------------------------ Station Construction ------------------------ */
+
+    /*
+     * Since we don't know the station name ahead of time to find the
+     * object in the map, copy the station constructed by the parser
+     * to the BCMP::Document model once everything has been defined.
+     * Fill in defaults as necessary.
+     */
+
+    bool
+    QNAP2_Document::constructStation()
+    {
+	const std::string& station_name = __station.first;
+
+	/* Set defaults if not set */
+
+	BCMP::Model::Station& station =	__station.second;
+	if ( station.type() == BCMP::Model::Station::Type::NOT_DEFINED ) {	/* Default */
+	    if ( station.scheduling() == SCHEDULE_DELAY ) {
+		station.setType( BCMP::Model::Station::Type::DELAY );
+	    } else if ( station.copies() != nullptr ) {
+		station.setType( BCMP::Model::Station::Type::MULTISERVER );
+	    } else {
+		station.setType( BCMP::Model::Station::Type::LOAD_INDEPENDENT );
+	    }
+	}
+	if ( station.copies() == nullptr ) {
+	    station.setCopies( new LQX::ConstantValueExpression( 1. ) );	/* Default 1 */
+	}
+
+	/* All stations have to be defined, so defer to mapTransitToVisit */
+	   
+
+	/* This will have to be a loop if station is an array */
+
+	LQX::ArrayObject* array = getArray( new LQX::VariableExpression( station_name, is_external ) );
+	if ( array != nullptr ) {
+	    std::for_each( array->begin(), array->end(), ConstructStation( *this, station_name, station ) );
+	} else {
+	    ConstructStation( *this, station_name, station )();
+	}
+
+	/* Reset */
+
+	__transit.clear();
+	__station.first.clear();
+	__station.second.clear();
+
+	return true;
+    }
+
+
+    /*
+     * Copy the __station data to the scalar.
+     */
+
+    bool QNAP2_Document::ConstructStation::operator()() const
+    {
+	std::pair<BCMP::Model::Station::map_t::iterator,bool> insertion = model().stations().emplace( _name, this->station() );
+	if ( !insertion.second ) return false;
+	program().push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( _name, is_external ), new LQX::MethodInvocationExpression( "station", new LQX::ConstantValueExpression( _name ), nullptr ) ) );
+	program().push_back( new LQX::AssignmentStatementNode( new LQX::ObjectPropertyReadNode( new LQX::VariableExpression( _name, is_external ), "name" ), new LQX::ConstantValueExpression( _name ) ) );
+	BCMP::Model::Station& station = insertion.first->second;	/* Get the copy */
+	std::for_each( station.classes().begin(), station.classes().end(), SetServiceTime( _name, attributes() ) );
+	transit().emplace( _name, __transit );				/* copy */
+	return true;
+    }
+
+
+    /*
+     * Copy the __station data to the array instance
+     */
+
+    bool QNAP2_Document::ConstructStation::operator()( const std::pair<LQX::SymbolAutoRef,LQX::SymbolAutoRef>& item ) const
+    {
+	const double index = item.first->getDoubleValue();		// needs to be int for to_string, otherwise get x.0000
+	std::string station_name = _name + "(" + std::to_string( static_cast<int>(index) ) + ")";
+	std::pair<BCMP::Model::Station::map_t::iterator,bool> insertion = model().stations().emplace( station_name, this->station() );	/* Make a copy */
+	if ( !insertion.second ) return false;
+
+	/* Set the LQXStation station object */
+	program().push_back( new LQX::AssignmentStatementNode( new LQX::MethodInvocationExpression( "array_get", new LQX::VariableExpression( _name, is_external ), new LQX::ConstantValueExpression( index ), nullptr ),
+							       new LQX::MethodInvocationExpression( "station", new LQX::ConstantValueExpression( station_name ), nullptr ) ) );
+
+	/* Set station name attribute */
+	program().push_back( new LQX::AssignmentStatementNode( new LQX::ObjectPropertyReadNode( new LQX::MethodInvocationExpression( "array_get", new LQX::VariableExpression( _name, is_external ), new LQX::ConstantValueExpression( index ), nullptr ), "name" ),
+							       new LQX::ConstantValueExpression( station_name ) ) );
+
+	/* For each class in the station, set the service time for the copy.  */
+	BCMP::Model::Station& station = insertion.first->second;	/* Get the copy */
+	std::for_each( station.classes().begin(), station.classes().end(), SetServiceTime( _name, index, attributes() ) );
+	transit().emplace( station_name, __transit );			/* copy */
+
+	return true;
+    }
+
+
+
+    /*
+     * The copied station has the original value stored by the parser
+     * which is either a variable or an attribute. If this value is an
+     * attribute, it will have to be converted to a an
+     * ObjectPropertyReadNode (class attribute), array_get (station
+     * attribute). VariableExpressions and ConstantValueExpressions
+     * are left alone.  I suppose it could be an array variable too
+     * though.  Later... !!!
+     */
+
+    void QNAP2_Document::SetServiceTime::operator()( BCMP::Model::Station::Class::pair_t& k ) const
+    {
+	if ( k.second.service_time() == nullptr ) return;	// Not set in template.
+	LQX::VariableExpression * variable = dynamic_cast<LQX::VariableExpression *>(k.second.service_time());
+	if ( variable == nullptr ) return;			// Not a variable, so no name.
+	std::map<const std::string,const Type>::const_iterator attribute = _attributes.find( variable->getName() );
+	if ( attribute == _attributes.end() ) return;		// Not an attribute
+
+	LQX::SyntaxTreeNode * destination = nullptr;
+	switch ( attribute->second ) {
+	case QNAP2_Document::Type::Class:
+	    destination = new LQX::VariableExpression( k.first, is_external );
+	    break;
+	case QNAP2_Document::Type::Queue:
+	    if ( _has_index ) {
+		destination = new LQX::MethodInvocationExpression( "array_get", new LQX::VariableExpression( _name, is_external ), new LQX::ConstantValueExpression( static_cast<double>(_index) ), nullptr );
+	    } else {
+		destination = new LQX::VariableExpression( _name, is_external );
+	    }
+	    break;
+	default:
+	    abort();
+	    break;
+	}
+	k.second.setServiceTime( new LQX::ObjectPropertyReadNode( destination, variable->getName() ) );
+    }
+
+
+
+    /*
+     * starting from all reference or source stations, follow the
+     * transit graph and convert the transit chain to visits to the
+     * station.
+     */
+
+    bool
+    QNAP2_Document::mapTransitToVisits()
+    {
+	// for each chain, locate the reference station.  There should be exactly one.
+	// follow the transit list from the reference station (recursive).  We should
+	// end up at the reference station (or out).
+
+	const BCMP::Model::Chain::map_t& chains = model().chains();
+	for ( BCMP::Model::Chain::map_t::const_iterator chain = chains.begin(); chain != chains.end(); ++chain ) {
+	    BCMP::Model::Station::map_t& stations = model().stations();
+	    BCMP::Model::Station::map_t::iterator start = stations.end();
+	    
+	    for ( TransitFromClassToValue::const_iterator transit = _transit.begin(); transit != _transit.end(); ++transit ) {
+		BCMP::Model::Station::map_t::iterator station = stations.find( transit->first );	// Scalar so use the name
+		if ( !station->second.reference() && station->second.type() != BCMP::Model::Station::Type::SOURCE ) continue;
+		if ( start != stations.end() ) throw std::logic_error( std::string( "Duplicate source station: " ) + station->first );
+		start = station;
+	    }
+	    if ( start == stations.end() ) {
+		throw std::logic_error( std::string( "No reference or source stations." ) );
+	    }
+	    start->second.setReference( true );
+	    const std::string& station_name = start->first;
+	    const std::string& class_name = chain->first;
+	    std::deque<std::string> stack;
+	    mapTransitToVisits( station_name, class_name, new LQX::ConstantValueExpression( 1.0 ), stack );	    // set visits to reference station to 1 */
+	    assert( stack.empty() );
+	}
+	return true;
+    }
+
+
+    /*
+     * If we find we have reached a node which is on the stack, then we are done.  Set the visits to that node to the sum of what so far plus the value on the top of stack.
+     * Otherwise, if the station transits out for this class, set the visits to the current vists, then recurse down the transit list.  If the station doesn't transit out, then simply return.
+     */
+
+    bool
+    QNAP2_Document::mapTransitToVisits( const std::string& station_name, const std::string& class_name, LQX::SyntaxTreeNode * visits, std::deque<std::string>& stack )
+    {
+	/* have we completed the cycle? */
+
+	if ( std::find( stack.begin(), stack.end(), station_name ) != stack.end() ) return true;	/* Yes, return */
+
+	/* Do we transit out from this station? */
+
+
+	if ( !hasIncommingTransits( station_name, class_name ) ) return true;		/* No visits here.	*/
+
+	/* Ok, we transit out from here and we have transits in */
+
+	const std::map<std::string,LQX::SyntaxTreeNode *>& transits = getTransits( station_name, class_name  );
+	LQX::SyntaxTreeNode * sum = std::accumulate( transits.begin(), transits.end(), static_cast<LQX::SyntaxTreeNode *>(nullptr), fold_transit( class_name ) );	// class name not needed here.
+
+	if ( hasOutgoingTransits( station_name, class_name ) ) {
+	    /* Scalar */
+	    BCMP::Model::Station::Class& k = model().stationAt( station_name ).classAt( class_name );
+	    if ( k.visits() != nullptr ) return true;
+	    k.setVisits( BCMP::Model::multiply( visits, sum ) );
+	}
+	stack.push_back( station_name );
+	for ( std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator transit = transits.begin(); transit != transits.end(); ++transit ) {
+	    mapTransitToVisits( transit->first, class_name, BCMP::Model::multiply( visits, transit->second ), stack );
+	}
+	stack.pop_back();
+	return true;
+    }
+
+
+    
+
+    /*
+     * Return true is there are any transit out from "from, chain";
+     */
+
+    bool
+    QNAP2_Document::hasOutgoingTransits( const std::string& from, const std::string& chain ) const
+    {
+	std::map<std::string,std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>>::const_iterator m1 = _transit.find(from);
+	if ( m1 == _transit.end() ) throw std::logic_error( std::string( "Missing from station: " ) + from );
+	if ( m1->second.find(chain) == m1->second.end() ) return false;
+	std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>::const_iterator k = m1->second.find(chain);
+	if ( k == m1->second.end() ) return false;
+	const std::map<std::string,LQX::SyntaxTreeNode *>& transits = k->second;
+	return !transits.empty();
+    }
+
+
+    /*
+     * Return true it there are any transits from any station (including "to") to "to".
+     */
+
+    bool
+    QNAP2_Document::hasIncommingTransits( const std::string& to, const std::string& chain ) const
+    {
+	for ( std::map<std::string,std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>>::const_iterator m1 = _transit.begin(); m1 != _transit.end(); ++m1 ) {
+	    std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>::const_iterator k = m1->second.find(chain);
+	    if ( k == m1->second.end() ) continue;	/* No chain from this from station */
+	    std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator m2 = k->second.find(to);
+	    if ( m2 != k->second.end() ) return true;
+	}
+	return false;
+    }
+
+    const std::map<std::string,LQX::SyntaxTreeNode *>&
+    QNAP2_Document::getTransits( const std::string& from, const std::string& chain ) const
+    {
+	std::map<std::string,std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>>::const_iterator m1 = _transit.find(from);
+	if ( m1 == _transit.end() ) throw std::logic_error( std::string( "Missing from station: " ) + from );
+	std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>>::const_iterator k = m1->second.find(chain);
+	if ( k == m1->second.end() ) throw std::logic_error( std::string( "Missing chain: " ) + from );
+	return k->second;
+    }
+}
+
+namespace QNIO {
+    /* ------------------------------------------------------------------------ */
 
     void
     QNAP2_Document::SetOption::operator()( const std::string& arg ) const
@@ -1384,7 +1404,7 @@ namespace QNIO {
 	if ( chain.second.type() == BCMP::Model::Chain::Type::OPEN ) throw std::invalid_argument( std::string( "mixed type: " ) + chain.first );
 	chain.second.setType( BCMP::Model::Chain::Type::CLOSED );
 	chain.second.setCustomers( getCustomers( chain.first ) );
-	QNAP2_Document::__station.second.setReference( true );
+	QNAP2_Document::__station.second.setReference( true );	// !!!
     }
 
 
@@ -1395,7 +1415,7 @@ namespace QNIO {
 	if ( chain.type() == BCMP::Model::Chain::Type::OPEN ) throw std::invalid_argument( std::string( "mixed type: " ) + class_name );
 	chain.setType( BCMP::Model::Chain::Type::CLOSED );
 	chain.setCustomers( getCustomers( class_name ) );
-	QNAP2_Document::__station.second.setReference( true );
+	QNAP2_Document::__station.second.setReference( true );	// !!!
     }
 
 

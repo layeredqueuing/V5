@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 16121 2022-11-17 20:31:33Z greg $
+ * $Id: srvndiff.cc 16142 2022-11-29 16:45:39Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -139,23 +139,70 @@ double tput_conf;
 double util_conf;
 double processor_util_conf;
 
-static bool check_act_serv( unsigned i, unsigned j );
-static bool check_act_snrw( unsigned i, unsigned j, unsigned k );
-static bool check_act_wait( unsigned i, unsigned j, unsigned k );
-static bool check_cvsq( unsigned i, unsigned j );
-static bool check_entp( unsigned i, unsigned j );
-static bool check_fwdw( unsigned i, unsigned j, unsigned k );
-static bool check_grup( unsigned i, unsigned j );
-static bool check_hold( unsigned i, unsigned j );
-static bool check_join( unsigned i, unsigned j, unsigned k );
-static bool check_open( unsigned i, unsigned j );
+static bool check_act_serv( unsigned i, unsigned j, unsigned,   unsigned );
+static bool check_act_snrw( unsigned i, unsigned j, unsigned k, unsigned );
+static bool check_act_wait( unsigned i, unsigned j, unsigned k, unsigned );
+static bool check_cvsq( unsigned i, unsigned j, unsigned,   unsigned );
+static bool check_entp( unsigned i, unsigned j, unsigned,   unsigned );
+static bool check_fwdw( unsigned i, unsigned j, unsigned k, unsigned );
+static bool check_grup( unsigned i, unsigned j, unsigned,   unsigned );
+static bool check_hold( unsigned i, unsigned j, unsigned,   unsigned );
+static bool check_join( unsigned i, unsigned j, unsigned k, unsigned );
+static bool check_open( unsigned i, unsigned j, unsigned,   unsigned );
 static bool check_ovtk( unsigned i, unsigned j, unsigned k, unsigned p_i, unsigned p_j );
-static bool check_proc( unsigned i, unsigned j );
-static bool check_rwlock_hold( unsigned i, unsigned j );
-static bool check_serv( unsigned i, unsigned j, unsigned p );
+static bool check_proc( unsigned i, unsigned j, unsigned,   unsigned );
+static bool check_rwlk( unsigned i, unsigned j, unsigned,   unsigned );
+static bool check_serv( unsigned i, unsigned j, unsigned p, unsigned );
 static bool check_snrw( unsigned i, unsigned j, unsigned k, unsigned p );
-static bool check_tput( unsigned i, unsigned j );
+static bool check_tput( unsigned i, unsigned j, unsigned,   unsigned );
 static bool check_wait( unsigned i, unsigned j, unsigned k, unsigned p );
+
+static void get_act_drop( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned  );
+static void get_act_exce( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned  );
+static void get_act_pwat( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned  );
+static void get_act_serv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned  );
+static void get_act_snrv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned  );
+static void get_act_snrw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned  );
+static void get_act_vari( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned  );
+static void get_act_wait( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned  );
+static void get_act_wvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned  );
+static void get_cvsq( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_drop( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_enpr( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_entp( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_enut( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_exce( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_fwdv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_fwdw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_gutl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_iter( double value[], double junk[],       unsigned j, unsigned p, unsigned,   unsigned );
+static void get_join( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_jvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_mvaw( double value[], double junk[],       unsigned j, unsigned p, unsigned,   unsigned );
+static void get_open( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_ovtk( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p_1, unsigned p_j );
+static void get_phut( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_putl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_pwat( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_rpht( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_rput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_rpwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_runt( double value[], double junk[],       unsigned j, unsigned p, unsigned,   unsigned );
+static void get_serv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_snrv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_snrw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_sput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_spwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_tpru( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_tput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_tutl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_util( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_vari( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_wait( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_wpht( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_wput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_wpwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_wvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 
 /*
  * Main table of functions to get and print data.  See result_str_t.
@@ -178,44 +225,44 @@ static unsigned int width_j	= 16*2;
 /* Using pointers for entry-fmt, act-fmt and width makes it easy to change the values on the fly. */
 
 result_str_tab_t result_str[(int)P_LIMIT] = {
-    /*                            Heading,          entry-fmt   act-fmt   width,	entry-get,                            activity-get,                             entry-check,                                  activity-check */
-    /* P_CV_SQUARE,    */       { "CV Square",      &fmt_e,	nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_cvsq), nullptr,                                  reinterpret_cast<check_func_ptr>(check_cvsq), nullptr },
-    /* P_DROP,         */       { "Drop Prob",      &fmt_e_e_p,	&fmt_t_a, &width_e_e_p, reinterpret_cast<func_ptr>(get_drop), reinterpret_cast<func_ptr>(get_act_drop), reinterpret_cast<check_func_ptr>(check_snrw), reinterpret_cast<check_func_ptr>(check_act_snrw) },
-    /* P_ENTRY_PROC,   */       { "Utilization",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_enpr), nullptr,                                  nullptr,                                      nullptr },
-    /* P_ENTRY_TPUT,   */       { "Throughput",     &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_entp), nullptr,                                  reinterpret_cast<check_func_ptr>(check_entp), nullptr },
-    /* P_ENTRY_UTIL,   */       { "Utilization",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_enut), nullptr,                                  nullptr,                                      nullptr },
-    /* P_EXCEEDED,     */       { "Exceeded",       &fmt_e_p,   &fmt_a,   &width_e_p, 	reinterpret_cast<func_ptr>(get_exce), reinterpret_cast<func_ptr>(get_act_exce), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
-    /* P_FWD_WAITING   */       { "Fwd Waiting",    &fmt_e_e,   nullptr,  &width_e_e_p, reinterpret_cast<func_ptr>(get_fwdw), nullptr,                                  reinterpret_cast<check_func_ptr>(check_fwdw), nullptr },
-    /* P_FWD_WAIT_VAR  */       { "Fwd Wt Var.",    &fmt_e_e,   nullptr,  &width_e_e_p, reinterpret_cast<func_ptr>(get_fwdv), nullptr,                                  reinterpret_cast<check_func_ptr>(check_fwdw), nullptr },
-    /* P_GROUP_UTIL,   */       { "Group Util.",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_gutl), nullptr,                                  reinterpret_cast<check_func_ptr>(check_grup), nullptr },
-    /* P_ITERATIONS,   */       { "Iterations",     &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_iter), nullptr,                                  nullptr,                                      nullptr },
-    /* P_JOIN,         */       { "Join Delay",     nullptr,    &fmt_j,   &width_j, 	nullptr,                              reinterpret_cast<func_ptr>(get_join),     nullptr,                                      reinterpret_cast<check_func_ptr>(check_join) },
-    /* P_JOIN_VAR,     */       { "Join Var.",      nullptr,    &fmt_j,   &width_j, 	nullptr,                              reinterpret_cast<func_ptr>(get_jvar),     nullptr,                                      reinterpret_cast<check_func_ptr>(check_join) },
-    /* P_MVA_WAITS,    */       { "MVA waits",      &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_mvaw), nullptr,                                  nullptr,                                      nullptr },
-    /* P_OPEN_WAIT,    */       { "Open Wait",      &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_open), nullptr,                                  reinterpret_cast<check_func_ptr>(check_open), nullptr },
-    /* P_OVERTAKING,   */       { "Overtaking",     &fmt_o,     nullptr,  &width_e_e_p, reinterpret_cast<func_ptr>(get_ovtk), nullptr,                                  reinterpret_cast<check_func_ptr>(check_ovtk), nullptr },
-    /* P_PHASE_UTIL    */       { "Phase Util.",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_phut), nullptr,                                  reinterpret_cast<check_func_ptr>(check_proc), nullptr },
-    /* P_PROCESSOR_UTIL*/       { "Proc. Util.",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_putl), nullptr,                                  reinterpret_cast<check_func_ptr>(check_proc), nullptr },
-    /* P_PROCESSOR_WAIT*/       { "Proc. Wait.",    &fmt_e_p,   &fmt_a,   &width_e_p, 	reinterpret_cast<func_ptr>(get_pwat), reinterpret_cast<func_ptr>(get_act_pwat), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
-    /* P_RUNTIME,      */      	{ "Runtime",        &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_runt), nullptr,                                  nullptr,                                      nullptr },
-    /* P_RWLOCK_READER_HOLD,*/  { "Reader blocked", &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_rpht), nullptr,                                  reinterpret_cast<check_func_ptr>(check_rwlock_hold), nullptr },
-    /* P_RWLOCK_READER_UTIL,*/  { "Reader Util",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_rput), nullptr,                                  reinterpret_cast<check_func_ptr>(check_rwlock_hold), nullptr },
-    /* P_RWLOCK_READER_WAIT,*/  { "Reader Hold",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_rpwt), nullptr,                                  reinterpret_cast<check_func_ptr>(check_rwlock_hold), nullptr },
-    /* P_RWLOCK_WRITER_HOLD,*/  { "Writer blocked", &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_wpht), nullptr,                                  reinterpret_cast<check_func_ptr>(check_rwlock_hold), nullptr },
-    /* P_RWLOCK_WRITER_UTIL,*/  { "Writer Util",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_wput), nullptr,                                  reinterpret_cast<check_func_ptr>(check_rwlock_hold), nullptr },
-    /* P_RWLOCK_WRITER_WAIT,*/  { "Writer Hold",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_wpwt), nullptr,                                  reinterpret_cast<check_func_ptr>(check_rwlock_hold), nullptr },
-    /* P_SEMAPHORE_UTIL*/   	{ "Sema. Util.",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_sput), nullptr,                                  reinterpret_cast<check_func_ptr>(check_hold), nullptr },
-    /* P_SEMAPHORE_WAIT*/   	{ "Sema. Wait.",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_spwt), nullptr,                                  reinterpret_cast<check_func_ptr>(check_hold), nullptr },
-    /* P_SERVICE,      */   	{ "Service",        &fmt_e_p,   &fmt_a,   &width_e_p, 	reinterpret_cast<func_ptr>(get_serv), reinterpret_cast<func_ptr>(get_act_serv), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
-    /* P_SNR_WAITING,  */   	{ "SNR Waiting",    &fmt_e_e_p, &fmt_t_a, &width_e_e_p, reinterpret_cast<func_ptr>(get_snrw), reinterpret_cast<func_ptr>(get_act_snrw), reinterpret_cast<check_func_ptr>(check_snrw), reinterpret_cast<check_func_ptr>(check_act_snrw) },
-    /* P_SNR_WAIT_VAR, */   	{ "SNR Wt Var.",    &fmt_e_e_p, &fmt_t_a, &width_e_e_p, reinterpret_cast<func_ptr>(get_snrv), reinterpret_cast<func_ptr>(get_act_snrv), reinterpret_cast<check_func_ptr>(check_snrw), reinterpret_cast<check_func_ptr>(check_act_snrw) },
-    /* P_TASK_PROC_UTIL*/   	{ "Proc. Util.",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_tpru), nullptr,                                  reinterpret_cast<check_func_ptr>(check_proc), nullptr },
-    /* P_TASK_UTIL     */   	{ "Utilization",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_tutl), nullptr,                                  reinterpret_cast<check_func_ptr>(check_proc), nullptr },
-    /* P_THROUGHPUT,   */   	{ "Throughput",     &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_tput), nullptr,                                  reinterpret_cast<check_func_ptr>(check_tput), nullptr },
-    /* P_UTILIZATION,  */   	{ "Utilization",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_util), nullptr,                                  reinterpret_cast<check_func_ptr>(check_tput), nullptr },
-    /* P_VARIANCE,     */   	{ "Variance",       &fmt_e_p,   &fmt_a,   &width_e_p, 	reinterpret_cast<func_ptr>(get_vari), reinterpret_cast<func_ptr>(get_act_vari), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
-    /* P_WAITING,      */   	{ "Waiting",        &fmt_e_e_p, &fmt_t_a, &width_e_e_p, reinterpret_cast<func_ptr>(get_wait), reinterpret_cast<func_ptr>(get_act_wait), reinterpret_cast<check_func_ptr>(check_wait), reinterpret_cast<check_func_ptr>(check_act_wait) },
-    /* P_WAIT_VAR,     */   	{ "Wait Var.",      &fmt_e_e_p, &fmt_t_a, &width_e_e_p, reinterpret_cast<func_ptr>(get_wvar), reinterpret_cast<func_ptr>(get_act_wvar), reinterpret_cast<check_func_ptr>(check_wait), reinterpret_cast<check_func_ptr>(check_act_wait) },
+    /*                            Heading,          entry-fmt   act-fmt   width,	entry-get,activity-get, entry-check,activity-check */
+    /* P_CV_SQUARE,    */       { "CV Square",      &fmt_e,	nullptr,  &width_e, 	get_cvsq, nullptr,      check_cvsq, nullptr },
+    /* P_DROP,         */       { "Drop Prob",      &fmt_e_e_p,	&fmt_t_a, &width_e_e_p, get_drop, get_act_drop, check_snrw, check_act_snrw },
+    /* P_ENTRY_PROC,   */       { "Utilization",    &fmt_e,     nullptr,  &width_e, 	get_enpr, nullptr,      nullptr,    nullptr },
+    /* P_ENTRY_TPUT,   */       { "Throughput",     &fmt_e,     nullptr,  &width_e, 	get_entp, nullptr,      check_entp, nullptr },
+    /* P_ENTRY_UTIL,   */       { "Utilization",    &fmt_e,     nullptr,  &width_e, 	get_enut, nullptr,      nullptr,    nullptr },
+    /* P_EXCEEDED,     */       { "Exceeded",       &fmt_e_p,   &fmt_a,   &width_e_p, 	get_exce, get_act_exce, check_serv, check_act_serv },
+    /* P_FWD_WAITING   */       { "Fwd Waiting",    &fmt_e_e,   nullptr,  &width_e_e_p, get_fwdw, nullptr,      check_fwdw, nullptr },
+    /* P_FWD_WAIT_VAR  */       { "Fwd Wt Var.",    &fmt_e_e,   nullptr,  &width_e_e_p, get_fwdv, nullptr,      check_fwdw, nullptr },
+    /* P_GROUP_UTIL,   */       { "Group Util.",    &fmt_e,     nullptr,  &width_e, 	get_gutl, nullptr,      check_grup, nullptr },
+    /* P_ITERATIONS,   */       { "Iterations",     &fmt_e,     nullptr,  &width_e, 	get_iter, nullptr,      nullptr,    nullptr },
+    /* P_JOIN,         */       { "Join Delay",     nullptr,    &fmt_j,   &width_j, 	nullptr,  get_join,     nullptr,    check_join },
+    /* P_JOIN_VAR,     */       { "Join Var.",      nullptr,    &fmt_j,   &width_j, 	nullptr,  get_jvar,     nullptr,    check_join },
+    /* P_MVA_WAITS,    */       { "MVA waits",      &fmt_e,     nullptr,  &width_e, 	get_mvaw, nullptr,      nullptr,    nullptr },
+    /* P_OPEN_WAIT,    */       { "Open Wait",      &fmt_e,     nullptr,  &width_e, 	get_open, nullptr,      check_open, nullptr },
+    /* P_OVERTAKING,   */       { "Overtaking",     &fmt_o,     nullptr,  &width_e_e_p, nullptr,  nullptr,      nullptr,    nullptr },	/* extra arg, so handled specially */ 
+    /* P_PHASE_UTIL    */       { "Phase Util.",    &fmt_e,     nullptr,  &width_e, 	get_phut, nullptr,      check_proc, nullptr },
+    /* P_PROCESSOR_UTIL*/       { "Proc. Util.",    &fmt_e,     nullptr,  &width_e, 	get_putl, nullptr,      check_proc, nullptr },
+    /* P_PROCESSOR_WAIT*/       { "Proc. Wait.",    &fmt_e_p,   &fmt_a,   &width_e_p, 	get_pwat, get_act_pwat, check_serv, check_act_serv },
+    /* P_RUNTIME,      */      	{ "Runtime",        &fmt_e,     nullptr,  &width_e, 	get_runt, nullptr,      nullptr,    nullptr },
+    /* P_RWLOCK_READER_HOLD,*/  { "Reader blocked", &fmt_e,     nullptr,  &width_e, 	get_rpht, nullptr,      check_rwlk, nullptr },
+    /* P_RWLOCK_READER_UTIL,*/  { "Reader Util",    &fmt_e,     nullptr,  &width_e, 	get_rput, nullptr,      check_rwlk, nullptr },
+    /* P_RWLOCK_READER_WAIT,*/  { "Reader Hold",    &fmt_e,     nullptr,  &width_e, 	get_rpwt, nullptr,      check_rwlk, nullptr },
+    /* P_RWLOCK_WRITER_HOLD,*/  { "Writer blocked", &fmt_e,     nullptr,  &width_e, 	get_wpht, nullptr,      check_rwlk, nullptr },
+    /* P_RWLOCK_WRITER_UTIL,*/  { "Writer Util",    &fmt_e,     nullptr,  &width_e, 	get_wput, nullptr,      check_rwlk, nullptr },
+    /* P_RWLOCK_WRITER_WAIT,*/  { "Writer Hold",    &fmt_e,     nullptr,  &width_e, 	get_wpwt, nullptr,      check_rwlk, nullptr },
+    /* P_SEMAPHORE_UTIL*/   	{ "Sema. Util.",    &fmt_e,     nullptr,  &width_e, 	get_sput, nullptr,      check_hold, nullptr },
+    /* P_SEMAPHORE_WAIT*/   	{ "Sema. Wait.",    &fmt_e,     nullptr,  &width_e, 	get_spwt, nullptr,      check_hold, nullptr },
+    /* P_SERVICE,      */   	{ "Service",        &fmt_e_p,   &fmt_a,   &width_e_p, 	get_serv, get_act_serv, check_serv, check_act_serv },
+    /* P_SNR_WAITING,  */   	{ "SNR Waiting",    &fmt_e_e_p, &fmt_t_a, &width_e_e_p, get_snrw, get_act_snrw, check_snrw, check_act_snrw },
+    /* P_SNR_WAIT_VAR, */   	{ "SNR Wt Var.",    &fmt_e_e_p, &fmt_t_a, &width_e_e_p, get_snrv, get_act_snrv, check_snrw, check_act_snrw },
+    /* P_TASK_PROC_UTIL*/   	{ "Proc. Util.",    &fmt_e,     nullptr,  &width_e, 	get_tpru, nullptr,      check_proc, nullptr },
+    /* P_TASK_UTIL     */   	{ "Utilization",    &fmt_e,     nullptr,  &width_e, 	get_tutl, nullptr,      check_proc, nullptr },
+    /* P_THROUGHPUT,   */   	{ "Throughput",     &fmt_e,     nullptr,  &width_e, 	get_tput, nullptr,      check_tput, nullptr },
+    /* P_UTILIZATION,  */   	{ "Utilization",    &fmt_e,     nullptr,  &width_e, 	get_util, nullptr,      check_tput, nullptr },
+    /* P_VARIANCE,     */   	{ "Variance",       &fmt_e_p,   &fmt_a,   &width_e_p, 	get_vari, get_act_vari, check_serv, check_act_serv },
+    /* P_WAITING,      */   	{ "Waiting",        &fmt_e_e_p, &fmt_t_a, &width_e_e_p, get_wait, get_act_wait, check_wait, check_act_wait },
+    /* P_WAIT_VAR,     */   	{ "Wait Var.",      &fmt_e_e_p, &fmt_t_a, &width_e_e_p, get_wvar, get_act_wvar, check_wait, check_act_wait },
 };
 
 
@@ -935,7 +982,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2022-11-17 15:31:33 -0500 (Thu, 17 Nov 2022) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2022-11-29 11:45:39 -0500 (Tue, 29 Nov 2022) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -2205,7 +2252,7 @@ forwarding_waiting( const result_str_t result, const unsigned passes, std::vecto
 	    /* Skip entries with all zeros as not interesting */
 
 	    for ( j = 0; j < passes; ++j ) {
-		if ( (*result_str[(int)result].check_func)( i->first, j, k->first ) ) break;
+		if ( (*result_str[(int)result].check_func)( i->first, j, k->first, 0 ) ) break;
 	    }
 	    if ( j == passes ) continue;
 	    count += 1;
@@ -2227,8 +2274,7 @@ forwarding_waiting( const result_str_t result, const unsigned passes, std::vecto
  */
 
 static void
-print_entry_overtaking ( const result_str_t result, const char * file_name, const unsigned passes,
-			 const unsigned n )
+print_entry_overtaking ( const result_str_t result, const char * file_name, const unsigned passes, const unsigned n )
 {
     int count = 0;
     std::vector<stats_buf> rms(passes);
@@ -2269,6 +2315,7 @@ static unsigned
 entry_overtaking( const result_str_t result, const unsigned passes,
 		  std::vector<stats_buf>& rms, entry_waiting_func func )
 {
+    assert ( result == P_OVERTAKING );
     double value[MAX_PASS];
     double conf_value[MAX_PASS];
     unsigned count = 0;
@@ -2281,7 +2328,8 @@ entry_overtaking( const result_str_t result, const unsigned passes,
 		    /* Skip entries with all zeros as not interesting */
 
 		    for ( j = 0; j < passes; ++j ) {
-			if ( (*result_str[(int)result].check_func)( i->first, j, k->first, p_j, p_i ) ) break;
+			check_ovtk( i->first, j, k->first, p_j, p_i );
+/*			if ( (*result_str[(int)result].check_func)( i->first, j, k->first, p_j, p_i ) ) break; */
 		    }
 		    if ( j == passes ) continue;
 
@@ -2296,7 +2344,8 @@ entry_overtaking( const result_str_t result, const unsigned passes,
 					    p_i + 1 );
 			}
 			for ( j = 0; j < passes; ++j ) {
-			    (*result_str[(int)result].func)( value, conf_value, i->first, j, k->first, p_j, p_i );
+			    get_ovtk( value, conf_value, i->first, j, k->first, p_j, p_i );
+/* 			    (*result_str[(int)result].func)( value, conf_value, i->first, j, k->first, p_j, p_i ); */
 			    print_entry_activity( value, conf_value, passes, j, &rms );
 			}
 			if ( !print_rms_error_only ) {
@@ -2369,7 +2418,7 @@ print_phase_result ( const result_str_t result, const char * file_name, const un
 	    /* Skip entries with all zeros as not interesting */
 
 	    for ( j = 0; j < passes; ++j ) {
-		if ( (*result_str[(int)result].check_func)( i->first, j, p ) ) break;
+		if ( (*result_str[(int)result].check_func)( i->first, j, p, 0 ) ) break;
 	    }
 	    if ( j == passes ) continue;
 
@@ -2396,7 +2445,7 @@ print_phase_result ( const result_str_t result, const char * file_name, const un
 	    /* Skip activities with all zeros as not interesting */
 
 	    for ( j = 0; j < passes; ++j ) {
-		if ( (*result_str[(int)result].act_check_func)( i->first, j ) ) break;
+		if ( (*result_str[(int)result].act_check_func)( i->first, j, 0, 0 ) ) break;
 	    }
 	    if ( j == passes ) continue;
 
@@ -2424,7 +2473,7 @@ print_task_result ( const result_str_t result, const char * file_name, const uns
     for ( std::map<int,task_info>::const_iterator i = task_tab[FILE1].begin(); i != task_tab[FILE1].end(); ++i ) {
 	unsigned j;
 	for ( j = 0; j < passes; ++j ) {
-	    if ( (*result_str[(int)result].check_func)( i->first, j ) ) break;
+	    if ( (*result_str[(int)result].check_func)( i->first, j, 0, 0 ) ) break;
 	}
 	if ( j == passes ) continue;
 	if ( first_record ) {
@@ -2453,7 +2502,7 @@ print_entry_result ( const result_str_t result, const char * file_name, const un
     for ( std::map<int,entry_info>::const_iterator i = entry_tab[FILE1].begin(); i != entry_tab[FILE1].end(); ++i ) {
 	unsigned j;
 	for ( j = 0; j < passes; ++j ) {
-	    if ( (result_str[(int)result]).check_func( i->first, j ) ) break;
+	    if ( (result_str[(int)result]).check_func( i->first, j, 0, 0 ) ) break;
 	}
 	if ( j == passes ) continue;
 	if ( first_record ) {
@@ -2526,7 +2575,7 @@ print_runtime ( const result_str_t result, const char * file_name, const unsigne
 	}
 
 	for ( j = 0; j < passes; ++j ) {
-	    (*result_str[(int)result].func)( value, 0, j, p );
+	    (*result_str[(int)result].func)( value, nullptr, j, p, 0, 0 );
 
 	    if ( !print_error_only && !print_rms_error_only ) {
 		time_print_func( output, 0, value[j], 0 );
@@ -2578,7 +2627,7 @@ print_iteration ( const result_str_t result, const char * file_name, const unsig
     }
 
     for ( j = 0; j < passes; ++j ) {
-	(*result_str[(int)result].func)( value, 0, j, 0 );
+	(*result_str[(int)result].func)( value, nullptr, j, 0, 0, 0 );
 
 	if ( !print_error_only && !print_rms_error_only ) {
 	    (void) fprintf( output, "%s", separator_format );
@@ -2678,7 +2727,7 @@ print_entry_2 ( const result_str_t result, const unsigned passes, unsigned i, un
     for ( j = 0; j < passes; ++j ) {
 	value[j]      = 0.0;
 	conf_value[j] = 0.0;
-	(*result_str[(int)result].func)( value, conf_value, i, j, k );
+	(*result_str[(int)result].func)( value, conf_value, i, j, k, 0 );
 
 	print_entry_activity( value, conf_value, passes, j, delta );
     }
@@ -2717,7 +2766,7 @@ print_activity ( const result_str_t result, const unsigned passes, unsigned i, u
     for ( j = 0; j < passes; ++j ) {
 	value[j]      = 0.0;
 	conf_value[j] = 0.0;
-	(*result_str[(int)result].act_func)( value, conf_value, i, j, k );
+	(*result_str[(int)result].act_func)( value, conf_value, i, j, k, 0 );
 
 	print_entry_activity( value, conf_value, passes, j, delta );
     }
@@ -3016,25 +3065,27 @@ time_print_func( FILE * output, unsigned j, double value, double delta )
  */
 
 /*ARGSUSED*/
-void
-get_runt( double value[], double junk[], unsigned j, unsigned p )
+static void
+get_runt( double value[], double junk[], unsigned j, unsigned p, unsigned, unsigned )
 {
     value[j]      = time_tab[j].value[p];
 }
 
-void
-get_iter( double value[], double junk[], unsigned j, unsigned p )
+/*ARGSUSED*/
+static void
+get_iter( double value[], double junk[], unsigned j, unsigned p, unsigned, unsigned )
 {
     value[j]	  = iteration_tab[j];
 }
 
-void
-get_mvaw( double value[], double junk[], unsigned j, unsigned p )
+/*ARGSUSED*/
+static void
+get_mvaw( double value[], double junk[], unsigned j, unsigned p, unsigned, unsigned )
 {
     value[j]	  = mva_wait_tab[j];
 }
 
-void
+static void
 get_ovtk( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p_j, unsigned p_i )
 {
     value[j]      = 0.0;
@@ -3049,7 +3100,7 @@ get_ovtk( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 
-void
+static void
 get_wait( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     std::map<int,call_info>::const_iterator p_k = entry_tab[j][i].phase[p].to.find(k);
@@ -3063,7 +3114,7 @@ get_wait( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 
-void
+static void
 get_wvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     std::map<int,call_info>::const_iterator p_k = entry_tab[j][i].phase[p].to.find(k);
@@ -3077,7 +3128,7 @@ get_wvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 
-void
+static void
 get_drop( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     std::map<int,call_info>::const_iterator p_k = entry_tab[j][i].phase[p].to.find(k);
@@ -3091,8 +3142,9 @@ get_drop( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 
-void
-get_fwdw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_fwdw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     std::map<int,call_info>::const_iterator fwd_k = entry_tab[j][i].fwd_to.find(k);
     if ( fwd_k != entry_tab[j][i].fwd_to.end() ) {
@@ -3105,8 +3157,9 @@ get_fwdw( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 
-void
-get_fwdv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_fwdv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     std::map<int,call_info>::const_iterator fwd_k = entry_tab[j][i].fwd_to.find(k);
     if ( fwd_k != entry_tab[j][i].fwd_to.end() ) {
@@ -3118,8 +3171,7 @@ get_fwdv( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
     }
 }
 
-/*ARGSUSED*/
-void
+static void
 get_serv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     value[j]      = entry_tab[j][i].phase[p].service;
@@ -3127,8 +3179,7 @@ get_serv( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 
-/*ARGSUSED*/
-void
+static void
 get_vari( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     value[j]      = entry_tab[j][i].phase[p].variance;
@@ -3136,8 +3187,7 @@ get_vari( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 
-/*ARGSUSED*/
-void
+static void
 get_exce( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     value[j]      = entry_tab[j][i].phase[p].exceeded;
@@ -3145,7 +3195,6 @@ get_exce( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 
-/*ARGSUSED*/
 void
 get_cvsq( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned xp )
 {
@@ -3168,43 +3217,48 @@ get_cvsq( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 
 /*+ RWLOCK */
 /*ARGSUSED*/
-void
-get_rput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+static void
+get_rput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = task_tab[j][i].rwlock_reader_utilization;
     conf_value[j] = task_tab[j][i].rwlock_reader_utilization_conf;
 }
 
-void
-get_wput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_wput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = task_tab[j][i].rwlock_writer_utilization;
     conf_value[j] = task_tab[j][i].rwlock_writer_utilization_conf;
 }
 
-void
-get_rpwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_rpwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = task_tab[j][i].rwlock_reader_waiting;
     conf_value[j] = task_tab[j][i].rwlock_reader_waiting_conf;
 }
 
-void
-get_wpwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_wpwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = task_tab[j][i].rwlock_writer_waiting;
     conf_value[j] = task_tab[j][i].rwlock_writer_waiting_conf;
 }
 
-void
-get_rpht( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_rpht( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = task_tab[j][i].rwlock_reader_holding;
     conf_value[j] = task_tab[j][i].rwlock_reader_holding_conf;
 }
 
-void
-get_wpht( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_wpht( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = task_tab[j][i].rwlock_writer_holding;
     conf_value[j] = task_tab[j][i].rwlock_writer_holding_conf;
@@ -3215,16 +3269,16 @@ get_wpht( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 
 /*+ BUG_164 */
 /*ARGSUSED*/
-void
-get_sput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+static void
+get_sput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = task_tab[j][i].semaphore_utilization;
     conf_value[j] = task_tab[j][i].semaphore_utilization_conf;
 }
 
-
-void
-get_spwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_spwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = task_tab[j][i].semaphore_waiting;
     conf_value[j] = task_tab[j][i].semaphore_waiting_conf;
@@ -3233,8 +3287,8 @@ get_spwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 
 
 /*ARGSUSED*/
-void
-get_entp( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
+static void
+get_entp( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = entry_tab[j][i].throughput;
     conf_value[j] = entry_tab[j][i].throughput_conf;
@@ -3242,7 +3296,7 @@ get_entp( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 
 
 /*ARGSUSED*/
-void
+static void
 get_tput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     value[j]      = task_tab[j][i].throughput;
@@ -3251,23 +3305,22 @@ get_tput( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 
 
 /*ARGSUSED*/
-void
-get_enut( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
+static void
+get_enut( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = entry_tab[j][i].utilization;
     conf_value[j] = entry_tab[j][i].utilization_conf;
 }
 
 /*ARGSUSED*/
-void
-get_util( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
+static void
+get_util( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = task_tab[j][i].utilization;
     conf_value[j] = task_tab[j][i].utilization_conf;
 }
 
-/*ARGSUSED*/
-void
+static void
 get_tutl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     value[j]      = task_tab[j][i].total_utilization[p];
@@ -3275,24 +3328,24 @@ get_tutl( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 /*ARGSUSED*/
-void
-get_tpru( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
+static void
+get_tpru( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = task_tab[j][i].processor_utilization;
     conf_value[j] = task_tab[j][i].processor_utilization_conf;
 }
 
 /*ARGSUSED*/
-void
-get_enpr( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
+static void
+get_enpr( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = entry_tab[j][i].processor_utilization;
     conf_value[j] = entry_tab[j][i].processor_utilization_conf;
 }
 
 /*ARGSUSED*/
-void
-get_open( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
+static void
+get_open( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = entry_tab[j][i].open_waiting;
     conf_value[j] = entry_tab[j][i].open_wait_conf;
@@ -3300,8 +3353,8 @@ get_open( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 
 
 /*ARGSUSED*/
-void
-get_putl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
+static void
+get_putl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     std::map<int,processor_info>::const_iterator p_i = processor_tab[j].find(i);
     if ( p_i != processor_tab[j].end() ) {
@@ -3312,8 +3365,8 @@ get_putl( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 
 
 /*ARGSUSED*/
-void
-get_gutl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
+static void
+get_gutl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     std::map<int,group_info>::const_iterator p_i = group_tab[j].find(i);
     if ( p_i != group_tab[j].end() ) {
@@ -3323,8 +3376,7 @@ get_gutl( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 
-/*ARGSUSED*/
-void
+static void
 get_phut( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     value[j]      = entry_tab[j][i].phase[p].utilization;
@@ -3332,16 +3384,15 @@ get_phut( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 
-/*ARGSUSED*/
 void
-get_pwat( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
+static get_pwat( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     value[j]      = entry_tab[j][i].phase[p].processor_waiting;
     conf_value[j] = entry_tab[j][i].phase[p].processor_waiting_conf;
 }
 
 
-void
+static void
 get_snrw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     std::map<int,call_info>::const_iterator p_k = entry_tab[j][i].phase[p].to.find(k);
@@ -3355,7 +3406,7 @@ get_snrw( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 
-void
+static void
 get_snrv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     std::map<int,call_info>::const_iterator p_k = entry_tab[j][i].phase[p].to.find(k);
@@ -3368,8 +3419,10 @@ get_snrv( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
     }
 }
 
-void
-get_act_wait( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+
+/*ARGSUSED*/
+static void
+get_act_wait( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = 0.0;
     conf_value[j] = 0.0;
@@ -3383,8 +3436,10 @@ get_act_wait( double value[], double conf_value[], unsigned i, unsigned j, unsig
     }
 }
 
-void
-get_act_drop( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+
+/*ARGSUSED*/
+static void
+get_act_drop( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = 0.0;
     conf_value[j] = 0.0;
@@ -3398,8 +3453,9 @@ get_act_drop( double value[], double conf_value[], unsigned i, unsigned j, unsig
     }
 }
 
-void
-get_act_wvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_act_wvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = 0.0;
     conf_value[j] = 0.0;
@@ -3413,8 +3469,9 @@ get_act_wvar( double value[], double conf_value[], unsigned i, unsigned j, unsig
     }
 }
 
-void
-get_join( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_join( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = 0.;
     conf_value[j] = 0.;
@@ -3429,8 +3486,9 @@ get_join( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
     }
 }
 
-void
-get_jvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_jvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = 0.;
     conf_value[j] = 0.;
@@ -3446,8 +3504,8 @@ get_jvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 }
 
 /*ARGSUSED*/
-void
-get_act_serv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+static void
+get_act_serv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     std::map<int,activity_info>::const_iterator p_i = activity_tab[j].find(i);
     if ( p_i != activity_tab[j].end() ) {
@@ -3461,8 +3519,8 @@ get_act_serv( double value[], double conf_value[], unsigned i, unsigned j, unsig
 
 
 /*ARGSUSED*/
-void
-get_act_vari( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+static void
+get_act_vari( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     std::map<int,activity_info>::const_iterator p_i = activity_tab[j].find(i);
     if ( p_i != activity_tab[j].end() ) {
@@ -3476,8 +3534,8 @@ get_act_vari( double value[], double conf_value[], unsigned i, unsigned j, unsig
 
 
 /*ARGSUSED*/
-void
-get_act_exce( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+static void
+get_act_exce( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     std::map<int,activity_info>::const_iterator p_i = activity_tab[j].find(i);
     if ( p_i != activity_tab[j].end() ) {
@@ -3491,8 +3549,8 @@ get_act_exce( double value[], double conf_value[], unsigned i, unsigned j, unsig
 
 
 /*ARGSUSED*/
-void
-get_act_pwat( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+static void
+get_act_pwat( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     std::map<int,activity_info>::const_iterator p_i = activity_tab[j].find(i);
     if ( p_i != activity_tab[j].end() ) {
@@ -3505,8 +3563,9 @@ get_act_pwat( double value[], double conf_value[], unsigned i, unsigned j, unsig
 }
 
 
-void
-get_act_snrw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_act_snrw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = 0.0;
     conf_value[j] = 0.0;
@@ -3521,8 +3580,9 @@ get_act_snrw( double value[], double conf_value[], unsigned i, unsigned j, unsig
 }
 
 
-void
-get_act_snrv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+/*ARGSUSED*/
+static void
+get_act_snrv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = 0.0;
     conf_value[j] = 0.0;
@@ -3548,7 +3608,7 @@ check_wait( unsigned i, unsigned j, unsigned k, unsigned p )
 }
 
 static bool
-check_fwdw( unsigned i, unsigned j, unsigned k )
+check_fwdw( unsigned i, unsigned j, unsigned k, unsigned )
 {
     std::map<int,call_info>::const_iterator fwd_k = entry_tab[j][i].fwd_to.find(k);
     return fwd_k != entry_tab[j][i].fwd_to.end() && fwd_k->second.waiting > 0.0;
@@ -3563,7 +3623,7 @@ check_snrw( unsigned i, unsigned j, unsigned k, unsigned p )
 
 
 static bool
-check_join( unsigned i, unsigned j, unsigned k )
+check_join( unsigned i, unsigned j, unsigned k, unsigned )
 {
     std::map<int, std::map<int,join_info_t> >::const_iterator p_i = join_tab[j].find(i);
     if ( p_i != join_tab[j].end() ) {
@@ -3574,7 +3634,7 @@ check_join( unsigned i, unsigned j, unsigned k )
 }
 
 static bool
-check_act_wait( unsigned i, unsigned j, unsigned k )
+check_act_wait( unsigned i, unsigned j, unsigned k, unsigned )
 {
     std::map<int,activity_info>::const_iterator p_i = activity_tab[j].find(i);
     if ( p_i != activity_tab[j].end() ) {
@@ -3587,7 +3647,7 @@ check_act_wait( unsigned i, unsigned j, unsigned k )
 
 
 static bool
-check_act_snrw( unsigned i, unsigned j, unsigned k )
+check_act_snrw( unsigned i, unsigned j, unsigned k, unsigned )
 {
     std::map<int,activity_info>::const_iterator p_i = activity_tab[j].find(i);
     if ( p_i != activity_tab[j].end() ) {
@@ -3601,21 +3661,21 @@ check_act_snrw( unsigned i, unsigned j, unsigned k )
 
 /*ARGSUSED*/
 static bool
-check_serv( unsigned i, unsigned j, unsigned p )
+check_serv( unsigned i, unsigned j, unsigned p, unsigned )
 {
     return static_cast<bool>( entry_tab[j][i].phase[p].service > 0.0 );
 }
 
 /*ARGSUSED*/
 static bool
-check_entp( unsigned i, unsigned j )
+check_entp( unsigned i, unsigned j, unsigned, unsigned )
 {
     return entry_tab[j][i].throughput;
 }
 
 /*ARGSUSED*/
 static bool
-check_act_serv( unsigned i, unsigned j )
+check_act_serv( unsigned i, unsigned j, unsigned, unsigned )
 {
     std::map<int,activity_info>::const_iterator p_i = activity_tab[j].find(i);
     return p_i != activity_tab[j].end() && p_i->second.service > 0.0;
@@ -3623,7 +3683,7 @@ check_act_serv( unsigned i, unsigned j )
 
 /*ARGSUSED*/
 static bool
-check_cvsq( unsigned i, unsigned j )
+check_cvsq( unsigned i, unsigned j, unsigned, unsigned )
 {
     for ( unsigned p = 0; p < phases; ++p ) {
 	if ( entry_tab[j][i].phase[p].service > 0.0 ) return true;
@@ -3634,7 +3694,7 @@ check_cvsq( unsigned i, unsigned j )
 /*+ BUG_164 */
 /*ARGSUSED*/
 static bool
-check_hold( unsigned i, unsigned j )
+check_hold( unsigned i, unsigned j, unsigned, unsigned )
 {
     return static_cast<bool>( task_tab[j][i].semaphore_waiting > 0.0 );
 }
@@ -3643,28 +3703,28 @@ check_hold( unsigned i, unsigned j )
 /*+ RWLOCK */
 
 static bool
-check_rwlock_hold( unsigned i, unsigned j )
+check_rwlk( unsigned i, unsigned j, unsigned, unsigned )
 {
     return static_cast<bool>( (task_tab[j][i]. rwlock_reader_holding > 0.0 ) ||(task_tab[j][i]. rwlock_writer_holding > 0.0 ));
 }
 /*- RWLOCK */
 
 static bool
-check_tput( unsigned i, unsigned j )
+check_tput( unsigned i, unsigned j, unsigned, unsigned )
 {
     return task_tab[j][i].has_results;
 }
 
 
 static bool
-check_open( unsigned i, unsigned j )
+check_open( unsigned i, unsigned j, unsigned, unsigned )
 {
     return static_cast<bool>( entry_tab[j][i].open_arrivals );
 }
 
 /*ARGSUSED*/
 static bool
-check_proc( unsigned i, unsigned j )
+check_proc( unsigned i, unsigned j, unsigned, unsigned )
 {
     return true;
 }
@@ -3672,7 +3732,7 @@ check_proc( unsigned i, unsigned j )
 
 /*ARGSUSED*/
 static bool
-check_grup( unsigned i, unsigned j )
+check_grup( unsigned i, unsigned j, unsigned, unsigned )
 {
     return true;
 }

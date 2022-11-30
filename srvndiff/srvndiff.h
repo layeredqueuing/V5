@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvndiff.h 15791 2022-08-03 16:49:20Z greg $
+ * $Id: srvndiff.h 16142 2022-11-29 16:45:39Z greg $
  */
 
 #if	!defined(SRVNDIFF_H)
@@ -76,8 +76,8 @@ typedef enum {
     P_LIMIT
 } result_str_t;
 
-typedef void (*func_ptr)( double[], double[], unsigned, unsigned, ... );
-typedef bool (*check_func_ptr)( unsigned, unsigned, ... );
+typedef void (*func_ptr)( double[], double[], unsigned, unsigned, unsigned, unsigned );
+typedef bool (*check_func_ptr)( unsigned, unsigned, unsigned, unsigned );
 
 typedef struct {
     const char * string;
@@ -315,51 +315,4 @@ unsigned int find_or_add_task( const char * task );
 unsigned int find_or_add_entry( const char * task, const char * entry );
 unsigned int find_or_add_entry( const char * name );
 unsigned int find_or_add_activity( const char * task, const char * name );
-
-void get_act_drop( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_act_exce( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_act_pwat( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_act_serv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_act_snrv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_act_snrw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_act_vari( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_act_wait( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_act_wvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_cvsq( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_drop( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_enpr( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_entp( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_enut( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_exce( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_fwdv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_fwdw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_gutl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_iter( double value[], double junk[],       unsigned j, unsigned p );
-void get_join( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_jvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_mvaw( double value[], double junk[],       unsigned j, unsigned p );
-void get_open( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_ovtk( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p_1, unsigned p_j );
-void get_phut( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_putl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_pwat( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_rpht( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_rput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_rpwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_runt( double value[], double junk[],       unsigned j, unsigned p );
-void get_serv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_snrv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_snrw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_sput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_spwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_tpru( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_tput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_tutl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_util( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_vari( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_wait( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
-void get_wpht( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_wput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_wpwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_wvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 #endif

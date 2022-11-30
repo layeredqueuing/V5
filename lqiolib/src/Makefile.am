@@ -1,4 +1,4 @@
-# $Id: Makefile.am 16069 2022-11-05 21:32:04Z greg $
+# $Id: Makefile.am 16145 2022-11-29 23:32:35Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 # This project uses Libtool to generate a product
@@ -46,7 +46,8 @@ liblqio_la_SOURCES = bcmp_bindings.cpp \
 	xml_input.cpp \
 	xml_output.cpp
 
-noinst_HEADERS = srvn_gram.h  srvn_result_gram.h
+BUILT_SOURCES = srvn_gram.h srvn_result_gram.h qnap2_gram.h
+noinst_HEADERS = srvn_gram.h srvn_result_gram.h qnap2_gram.h
 
 #liblqio_la_LIBADD = ../../lqx/libsrc/liblqx.la 
 liblqio_la_LIBADD = -L../../lqx/libsrc/.libs -llqx
@@ -58,28 +59,28 @@ endif
 liblqio_la_CPPFLAGS = -I ../../lqx/libsrc/headers -I headers/lqio
 liblqio_la_CXXFLAGS = -std=c++11 -Wall -Wno-unknown-pragmas
 liblqio_la_LDFLAGS =  -no-undefined -version-info 0:1:0
-
+AM_YFLAGS = -d -t -v
 # Force rename of variables.  For FLEX -- should check. :-)
 srvn_scan.c: srvn_scan.l srvn_gram.h headers/lqio/srvn_input.h
-	$(LEX) -t $(LFLAGS) -Psrvn srvn_scan.l > srvn_scan.c
+	$(LEX) $(LFLAGS) -Psrvn -o srvn_scan.c srvn_scan.l
 
 # Force rename of variables.  For BISON -- should check. :-)
-srvn_gram.h srvn_gram.c: srvn_gram.y headers/lqio/srvn_input.h
-	$(YACC) -dtv -p srvn -o srvn_gram.c srvn_gram.y
+srvn_gram.c: srvn_gram.y headers/lqio/srvn_input.h
+	$(YACC) $(AM_YFLAGS) -p srvn -o srvn_gram.c srvn_gram.y
 
 # Force rename of variables.  For FLEX -- should check. :-)
 srvn_result_scan.c: srvn_result_scan.l srvn_result_gram.h
-	$(LEX) -t $(LFLAGS) -Presult srvn_result_scan.l > srvn_result_scan.c
+	$(LEX) $(LFLAGS) -Presult -o srvn_result_scan.c srvn_result_scan.l
 
 # Force rename of variables.  For BISON -- should check. :-)
-srvn_result_gram.h srvn_result_gram.c: srvn_result_gram.y
-	$(YACC) -dtv -p result -o srvn_result_gram.c srvn_result_gram.y
+srvn_result_gram.c: srvn_result_gram.y
+	$(YACC) $(AM_YFLAGS) -p result -o srvn_result_gram.c srvn_result_gram.y
 
 qnap2_scan.c: qnap2_scan.l qnap2_gram.h
-	$(LEX) -t $(LFLAGS) -Pqnap2 qnap2_scan.l > qnap2_scan.c
+	$(LEX) $(LFLAGS) -Pqnap2 -o qnap2_scan.c qnap2_scan.l
 
-qnap2_gram.h qnap2_gram.c: qnap2_gram.y 
-	$(YACC) -dtv -p qnap2 -o qnap2_gram.c qnap2_gram.y
+qnap2_gram.c: qnap2_gram.y 
+	$(YACC) $(AM_YFLAGS) -p qnap2 -o qnap2_gram.c qnap2_gram.y
 
 
 json_document.cpp: srvn_gram.h
