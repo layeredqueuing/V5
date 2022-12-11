@@ -166,8 +166,8 @@ Model::solve()
 	/* Invoke the LQX program itself */
 	if ( !lqx->invoke() ) {
 	    LQIO::runtime_error( LQIO::ERR_LQX_EXECUTION, _input.getInputFileName().c_str() );
-//	    LQX::SymbolTable* symbol_table = environment->getSymbolTable();
-	    LQX::SymbolTable* symbol_table = environment->getSpecialSymbolTable();
+	    LQX::SymbolTable* symbol_table = environment->getSymbolTable();
+//	    LQX::SymbolTable* symbol_table = environment->getSpecialSymbolTable();
 	    std::stringstream output;
 	    symbol_table->dump( output );
 	    std::cerr << output.str() << std::endl;
@@ -200,6 +200,9 @@ Model::compute()
 {
     bool ok = true;
     try {
+	if ( verbose_flag ) std::cerr << "pre hook..." ;
+	_input.preSolve();
+	
 	if ( verbose_flag ) std::cerr << "construct... ";
 
 	if ( !construct() || !instantiate() ) return false;
@@ -224,6 +227,10 @@ Model::compute()
 	    if ( debug_flag ) _open_model->print( std::cout );
 	}
 	saveResults();
+
+	if ( verbose_flag ) std::cerr << "post hook..." ;
+	_input.postSolve();
+	
 	if ( Pragma::defaultOutput() ) {
 	    if ( _output_file_name.empty() ) {
 		print( std::cout );
@@ -238,6 +245,7 @@ Model::compute()
 		output.close();
 	    }
 	}
+	if ( verbose_flag ) std::cerr << "done." ;
     }
     catch ( const floating_point_error& error ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << error.what() << std::endl;

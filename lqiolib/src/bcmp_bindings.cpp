@@ -1,5 +1,5 @@
 /*
- *  $Id: bcmp_bindings.cpp 16128 2022-11-21 21:00:42Z greg $
+ *  $Id: bcmp_bindings.cpp 16150 2022-12-01 10:39:54Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -49,7 +49,7 @@ namespace BCMP {
 
 	/* See if it's a valid attribute, but never used */
 	std::map<const std::string,LQX::SyntaxTreeNode *>::const_iterator defined = __attributes.find( name );
-	if ( defined == __attributes.end() ) LQX::Symbol::encodeNull();	/* Not defined */
+	if ( defined == __attributes.end() ) return LQX::Symbol::encodeNull();	/* Not defined */
 
 	/* Duplicate the template value and make it writable */
 	LQX::SymbolAutoRef value = LQX::Symbol::duplicate( defined->second->invoke( env ) );

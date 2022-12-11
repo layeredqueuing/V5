@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14476 2021-02-18 00:00:37Z greg $
+ * $Id: runlqx.cc 16154 2022-12-01 20:13:25Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -49,10 +49,6 @@ namespace SolverInterface
 	    ss << "-" << std::setfill( '0' ) << std::setw(3) << invocationCount;
 	    customSuffix = ss.str();
 	}
-			
-#if defined(DEBUG_MESSAGES)
-	env->cleanInvokeGlobalMethod("print_symbol_table", NULL);
-#endif
 			
 	// /* Tell the world the iteration number */
 	// } else if ( flags.verbose ) {

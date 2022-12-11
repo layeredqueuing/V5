@@ -1,4 +1,4 @@
-& $Id: qnap-intro-1.qnap 16127 2022-11-21 14:54:38Z greg $
+& $Id: qnap-intro-1.qnap 16156 2022-12-01 20:57:10Z greg $
 &
 & First model from QNAP intro from section 3.2.3.
 & ------------------------------------------------------------------------
@@ -29,14 +29,23 @@ integer nb_term;                        & number of termainals
         transit=cpu;
 /declare/
         ref queue r_q;
-/control/ entry = begin
-          print(" ");
-          print("input parameters");
-          print(" ");
-          print("number of terminals       : ",nb_term );
-          for r_q := all queue do
-            print("mean service time at ",r_q," : ",r_q.t);
-          end;
+/control/
+	entry = begin
+        print(" ");
+        print("input parameters");
+        print(" ");
+        print("number of terminals       : ",nb_term );
+        for r_q := all queue do
+          print("mean service time at ",r_q," : ",r_q.t);
+        end;
+	exit = begin
+	print(" ");
+	print("results");
+	print(" ");
+	print("mean response time of trans. ",
+	      nb_term/mthruput(terminal)-terminal.t);
+	end;
+	option=nresult;
 /exec/  begin
         nb_term:=5;
         cpu.t:=0.2;

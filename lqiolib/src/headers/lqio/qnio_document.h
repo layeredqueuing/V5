@@ -9,7 +9,7 @@
  *
  * November 2022
  *
- * $Id: qnio_document.h 16058 2022-11-03 17:02:56Z greg $
+ * $Id: qnio_document.h 16149 2022-12-01 02:58:03Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -86,6 +86,8 @@ namespace QNIO {
 	
 	void setEnvironment( LQX::Environment * environment ) { _model.setEnvironment( environment ); }
 	virtual LQX::Program * getLQXProgram() = 0;
+	virtual bool preSolve() { return true; }
+	virtual bool postSolve() { return true; }
     protected:
 	void insertComprehension( const Comprehension& comprehension ) { _comprehensions.emplace_front( comprehension); }
     public:

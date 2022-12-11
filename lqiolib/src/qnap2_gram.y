@@ -40,7 +40,7 @@ extern int qnap2lex();
 %token <aLong>		LONG
 
 %type <aPointer>	array_list class_list class_reference comprehension identifier_list list loop_list object_list optional_init option_list optional_list service station_type transit transit_list transit_pair variable variable_list
-%type <aPointer>	closed_statement compound_statement open_statement open_closed_statement prefix_statement postfix_statement simple_statement statement
+%type <aPointer>	closed_statement compound_statement open_statement postfix_statement prefix_statement simple_statement statement
 %type <aPointer>	expression expression_list factor power procedure_call relation term
 %type <aCode>		compound_station_type object_type simple_station_type variable_type
 %type <aString>		identifier
@@ -55,8 +55,7 @@ command_list		: command_list command
 
 command			: QNAP_CONTROL control_list
 			| QNAP_DECLARE declare_list				{ qnap2_construct_chains(); }
-			| QNAP_EXEC						{ qnap2_map_transit_to_visits(); }
-			  statement						{ qnap2_set_program( $3 ); }
+			| QNAP_EXEC statement					{ qnap2_set_main( $2 ); }
 			| QNAP_REBOOT
 			| QNAP_RESTART
 			| QNAP_TERMINAL
@@ -99,7 +98,6 @@ identifier_list		: identifier						{ $$ = qnap2_append_string( NULL, $1 ); free(
 optional_init		: QNAP_EQUAL factor					{ $$ = $2; }
 			| 							{ $$ = NULL; }
 			;
-
 
 /* ------------------------------------------------------------------------ */
 /*				   STATION				    */
@@ -172,14 +170,14 @@ optional_list		: '(' loop_list ')'					{ $$ = $2; }
 /* 				   CONTROL				    */
 /* ------------------------------------------------------------------------ */
 
-control_list		: control ';'
-			| control_list control ';'
+control_list		: control
+			| control_list control
 			;
 
-control			: QNAP_CLASS QNAP_EQUAL QNAP_ALL QNAP_QUEUE
-			| QNAP_OPTION QNAP_EQUAL option_list			{ qnap2_set_option( $3 ); }
-			| QNAP_ENTRY QNAP_EQUAL open_closed_statement		{ qnap2_set_program( $3 ); }
-			| QNAP_EXIT QNAP_EQUAL open_closed_statement		{ qnap2_set_program( $3 ); }
+control			: QNAP_CLASS QNAP_EQUAL QNAP_ALL QNAP_QUEUE ';'
+			| QNAP_OPTION QNAP_EQUAL option_list ';'		{ qnap2_set_option( $3 ); }
+			| QNAP_ENTRY QNAP_EQUAL statement			{ qnap2_set_entry( $3 ); }
+			| QNAP_EXIT QNAP_EQUAL statement			{ qnap2_set_exit( $3 ); }
 			;
 
 option_list		: identifier						{ $$ = qnap2_append_string( NULL, $1 ); free( $1 ); }
@@ -190,17 +188,14 @@ option_list		: identifier						{ $$ = qnap2_append_string( NULL, $1 ); free( $1 
 /* 				     EXEC				    */
 /* ------------------------------------------------------------------------ */
 
-statement		: open_closed_statement ';'				{ $$ = $1; }
-			;
-
-open_closed_statement	: open_statement					{ $$ = $1; }
+statement		: open_statement					{ $$ = $1; }
 			| closed_statement					{ $$ = $1; }
 			;
 
-open_statement		: QNAP_IF expression QNAP_THEN statement		{ $$ = qnap2_if_statement( $2, $4, NULL ); }
-			| QNAP_IF expression QNAP_THEN closed_statement		/* -- */
+open_statement		: QNAP_IF relation QNAP_THEN statement			{ $$ = qnap2_if_statement( $2, $4, NULL ); }
+			| QNAP_IF relation QNAP_THEN closed_statement		/* -- */
 			  QNAP_ELSE open_statement				{ $$ = qnap2_if_statement( $2, $4, $6 ); }
-			| QNAP_WHILE expression QNAP_THEN open_statement	{ $$ = qnap2_while_statement( $2, $4 ); }
+			| QNAP_WHILE relation QNAP_THEN open_statement		{ $$ = qnap2_while_statement( $2, $4 ); }
 			| QNAP_FOR postfix_statement QNAP_ASSIGNMENT loop_list
 			  QNAP_DO open_statement				{ $$ = qnap2_for_statement( $2, $4, $6 ); }
 			| QNAP_FOR postfix_statement QNAP_ASSIGNMENT list
@@ -208,19 +203,18 @@ open_statement		: QNAP_IF expression QNAP_THEN statement		{ $$ = qnap2_if_statem
 			;
 
 closed_statement	: simple_statement					{ $$ = $1; }
-			| QNAP_IF expression QNAP_THEN closed_statement		/* -- */
+			| QNAP_IF relation QNAP_THEN closed_statement		/* -- */
 			  QNAP_ELSE closed_statement				{ $$ = qnap2_if_statement( $2, $4, $6 ); }
-			| QNAP_WHILE expression QNAP_THEN closed_statement	{ $$ = qnap2_while_statement( $2, $4 ); }
+			| QNAP_WHILE relation QNAP_THEN closed_statement	{ $$ = qnap2_while_statement( $2, $4 ); }
 			| QNAP_FOR postfix_statement QNAP_ASSIGNMENT loop_list
 			  QNAP_DO closed_statement				{ $$ = qnap2_for_statement( $2, $4, $6 ); }
 			| QNAP_FOR postfix_statement QNAP_ASSIGNMENT list
 			  QNAP_DO closed_statement				{ $$ = qnap2_foreach_statement( $2, $4, $6 ); }
 			;
 
-simple_statement	: QNAP_BEGIN compound_statement QNAP_END		{ $$ = qnap2_compound_statement( $2 ); }
-			| postfix_statement QNAP_ASSIGNMENT list 		{ $$ = qnap2_assignment( $1, $3 ); }
-			| procedure_call					{ $$ = $1; }
-			|							{ $$ = NULL; }
+simple_statement	: QNAP_BEGIN compound_statement QNAP_END ';'		{ $$ = qnap2_compound_statement( $2 ); }
+			| postfix_statement QNAP_ASSIGNMENT list ';' 		{ $$ = qnap2_assignment( $1, $3 ); }
+			| procedure_call ';'					{ $$ = $1; }
 			;
 
 compound_statement	: statement						{ $$ = qnap2_append_pointer( NULL, $1 ); }
@@ -285,7 +279,7 @@ list			: array_list						{ $$ = $1; }				/* Array */
 			;
 
 array_list		: object_list						{ $$ = $1; }				/* Array */
-			| expression_list					{ $$ = qnap2_get_array( $1 ); }				/* !! not an Array */
+			| expression_list					{ $$ = qnap2_get_array( $1 ); }		/* !! not an Array */
 			;
 
 comprehension		: loop_list						{ $$ = qnap2_comprehension( $1 ); }	/* Array */
@@ -304,7 +298,6 @@ object_list		: QNAP_ALL object_type					{ $$ = qnap2_get_all_objects( $2 ); }
 object_type		: QNAP_QUEUE						{ $$ = $1; }
 			| QNAP_CLASS						{ $$ = $1; }
 			;
-
 
 /* ------------------------------------------------------------------------ */
 
