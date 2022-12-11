@@ -1,0 +1,102 @@
+& $Id: qnap-intro-2.qnap 16157 2022-12-02 11:48:39Z greg $
+&
+& Second model from QNAP intro from section 3.4.1.  3 classes.
+& ------------------------------------------------------------------------
+/declare/                               & declaration statement
+integer n_disk=2;                       & number of disk units
+&
+class   integer nb_term;                & number of termainals
+class   real t_cpu,                     & mean service time at cpu for a class
+             t_term;                    & mean thinking time for a class
+class   string cl_name;                 & class name
+class   real trans(n_disk);             & visit ratios to disk units
+class   dbase_1,                        & transactions accessing database 1
+        dbase_2,                        & transactions accessing database 2
+        admin;                          & background transactions
+&
+queue   real t;
+queue   cpu,                            & central processing unit
+        terminal,                       & set of terminals
+        disk(n_disk);                   & disk units
+&
+/station/
+    name=cpu;
+    sched=ps;
+    service=exp(t_cpu);
+    transit=disk(1 step 1 until n_disk), trans(1 step 1 until n_disk),
+            terminal, 1;
+/station/
+    name=disk(1 step 1 until n_disk);
+    service=exp(t);
+    transit=cpu;
+/station/
+    name=terminal;
+    type=infinite;
+    service=exp(t_term);
+    init=nb_term;
+    transit=cpu;
+/declare/
+    ref class r_class;
+    integer i;
+/control/
+    entry = begin
+    print(" ");
+    print("input parameters");
+    print(" ");
+    for i:=1 step 1 until n_disk do
+      print("mean service time at ",disk(i)," : ",disk(i).t);
+    for r_class:=all class do
+      begin
+      print(" ");
+      print(r_class.cl_name);
+      print("number of terminals      : ",r_class.nb_term);
+      print("mean service time at cpu : ",r_class.t_cpu);
+      print("mean thinking time       : ",r_class.t_term);
+      end;
+    end;
+/control/       
+    exit = begin
+    print(" ");
+    print("results");
+    print(" ");
+    print("cpu utilization            : ",mbusypct(cpu));
+    for i:=1 step 1 until n_disk do
+      print("utilization of disk ",disk(i),": ",mbusypct(disk(i)));
+    for r_class:=all class do
+      begin
+      print(" ");
+      print(r_class.cl_name);
+      print("throughput                 : ",
+        mthruput(terminal,r_class));
+      if mthruput(terminal,r_class) > 0. then
+        print("mean response time         : ",
+          r_class.nb_term/mthruput(terminal,r_class)-r_class.t_term);
+      end;
+    end;
+/control/
+    option=nresult; class=all queue;
+/exec/
+    begin
+    dbase_1.cl_name:="data-base 1";
+    dbase_2.cl_name:="data-base 2";
+    admin.cl_name:="administrator";
+&
+    dbase_1.nb_term:=5;
+    dbase_2.nb_term:=10;
+    admin.nb_term:=1;
+    dbase_1.trans:=9,0;
+&
+    dbase_1.t_term:=20.;
+    dbase_2.t_term:=30.;
+    admin.t_term:=120.;
+    dbase_1.trans:=0,4;
+&
+    dbase_1.t_cpu:=0.2;
+    dbase_2.t_cpu:=0.1;
+    admin.t_cpu:=1.5;
+    dbase_1.trans:=13,16;
+&
+    disk(1).t:=0.12; disk(2).t:=0.18;
+    solve;
+    end;
+/end/
