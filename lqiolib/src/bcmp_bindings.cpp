@@ -1,5 +1,5 @@
 /*
- *  $Id: bcmp_bindings.cpp 16150 2022-12-01 10:39:54Z greg $
+ *  $Id: bcmp_bindings.cpp 16173 2022-12-12 18:02:46Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -140,15 +140,12 @@ namespace BCMP {
 
 	    /* Decode the name of the class and look it up in cache */
 	    const std::string stationName = decodeString(args, 0);
-	    if (_symbolCache.find(stationName) != _symbolCache.end()) {
-		return _symbolCache[stationName];
-	    }
 
-	    /* Obtain the station reference  */
+	    /* Return an encapsulated reference to the station */
 	    try {
-		/* Return an encapsulated reference to the station */
-		LQXStation* stationObject = new LQXStation(&_model->stationAt(stationName));
-		_symbolCache[stationName] = LQX::Symbol::encodeObject(stationObject, false);
+		if (_symbolCache.find(stationName) == _symbolCache.end()) {
+		    _symbolCache[stationName] = LQX::Symbol::encodeObject( new LQXStation(&_model->stationAt(stationName)), false );
+		}
 		return _symbolCache[stationName];
 	    }
 	    catch ( const std::out_of_range& e ) {
@@ -295,15 +292,12 @@ namespace BCMP {
 
 	    /* Decode the name of the class and look it up in cache */
 	    const std::string chainName = decodeString(args, 0);
-	    if (_symbolCache.find(chainName) != _symbolCache.end()) {
-		return _symbolCache[chainName];
-	    }
 
-	    /* Obtain the chain reference  */
+	    /* Return an encapsulated reference to the chain */
 	    try {
-		/* Return an encapsulated reference to the chain */
-		LQXChain* chainObject = new LQXChain(*_model,chainName);
-		_symbolCache[chainName] = LQX::Symbol::encodeObject(chainObject, false);
+		if (_symbolCache.find(chainName) == _symbolCache.end()) {
+		    _symbolCache[chainName] = LQX::Symbol::encodeObject( new LQXChain(*_model,chainName), false );
+		}
 		return _symbolCache[chainName];
 	    }
 	    catch ( const std::out_of_range& e ) {

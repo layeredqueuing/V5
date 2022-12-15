@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16170 2022-12-10 23:54:49Z greg $
+ * $Id: qnap2_document.cpp 16179 2022-12-15 03:18:53Z greg $
  *
  * Read in XML input files.
  *
@@ -268,7 +268,13 @@ void * qnap2_get_array( void * arg )
     if ( list->size() == 1 ) {
 	return list->front();	/* return a scalar */
     } else {
-	return new LQX::MethodInvocationExpression("array_create", list);
+	/* Save as key value */
+	std::vector<LQX::SyntaxTreeNode *>* items = new std::vector<LQX::SyntaxTreeNode *>();
+	for ( size_t index = 0; index < list->size(); ++index ) {
+	    items->push_back( new LQX::ConstantValueExpression( static_cast<double>(index+1) ) );
+	    items->push_back( list->at(index) );
+	}
+	return new LQX::MethodInvocationExpression("array_create_map", items);
     }
 }
 
@@ -518,14 +524,22 @@ void qnap2_set_station_rate( void * ){}
 
 
 /*
- * arg := list
+ * arg := list.
  */
 
-void * qnap2_assignment( void * arg1, void * arg2 )
+void * qnap2_assignment( void * dst, void * src )
 {
-    if ( arg2 == nullptr ) return nullptr;
+    if ( src == nullptr ) return nullptr;
     try {
-	return QNIO::QNAP2_Document::__document->getAssignmentStatement( static_cast<LQX::SyntaxTreeNode *>(arg1), static_cast<LQX::SyntaxTreeNode *>(arg2) );
+#if 0
+	return new LQX::AssignmentStatementNode( static_cast<LQX::SyntaxTreeNode *>(dst), static_cast<LQX::SyntaxTreeNode *>(src) );
+#else
+	/* Since we don't know whether we have an array or not until runtime, override the assignment operation. */
+	std::vector<LQX::SyntaxTreeNode *>* args = new std::vector<LQX::SyntaxTreeNode *>(2);
+	args->at(0) = static_cast<LQX::SyntaxTreeNode *>(dst);
+	args->at(1) = static_cast<LQX::SyntaxTreeNode *>(src);
+	return new LQX::MethodInvocationExpression( "deep_copy", args );	// destructor deletes list
+#endif	
     }
     catch ( const std::logic_error& error ) {
 	qnap2error( "%s.", error.what() );
@@ -876,17 +890,19 @@ namespace QNIO {
     QNAP2_Document::getAllObjects( QNIO::QNAP2_Document::Type type ) const
     {
 	std::vector<LQX::SyntaxTreeNode *>* items = new std::vector<LQX::SyntaxTreeNode *>();
-	if ( type == QNIO::QNAP2_Document::Type::Queue ) {
+	switch ( type ) {
+	case QNIO::QNAP2_Document::Type::Queue:
 	    for ( BCMP::Model::Station::map_t::const_iterator station = stations().begin(); station != stations().end(); ++station ) {
 		items->push_back( new LQX::MethodInvocationExpression( "station", new LQX::ConstantValueExpression( station->first ), nullptr ) );
 	    }
-	} else if ( type == QNIO::QNAP2_Document::Type::Class ) {
-	    /* chain names are the classes in the document */
+	    break;
+	case QNIO::QNAP2_Document::Type::Class:
 	    for ( BCMP::Model::Chain::map_t::const_iterator chain = chains().begin(); chain != chains().end(); ++chain ) {
-		items->push_back( new LQX::VariableExpression( chain->first, is_external ) );
+		items->push_back( new LQX::MethodInvocationExpression( "chain", new LQX::ConstantValueExpression( chain->first ), nullptr ) );
 	    }
-	} else {
-	    throw std::logic_error( "???" );
+	    break;
+	default:
+	    abort();
 	}
 	return new LQX::MethodInvocationExpression( "array_create", items );
     }
@@ -956,6 +972,16 @@ namespace QNIO {
 
 
     /*
+     * Find the name in the symbol table.
+     */
+    
+    LQX::SymbolAutoRef
+    QNAP2_Document::getLQXSymbol( const std::string& name ) const
+    {
+	return getLQXEnvironment()->getSymbolTable()->get( name );
+    }
+
+    /*
      * Locate the station from the name.  Throw if not found.
      */
 
@@ -993,47 +1019,12 @@ namespace QNIO {
     QNAP2_Document::getArrayObject( LQX::SyntaxTreeNode * variable ) const
     {
 	LQX::MethodInvocationExpression* method = dynamic_cast<LQX::MethodInvocationExpression*>(variable);
-//	if ( dynamic_cast<LQX::VariableExpression*>(variable) || (method != nullptr && method->getName() == "array_get" ) )
-	if ( dynamic_cast<LQX::VariableExpression*>(variable) == nullptr && (method == nullptr || (method->getName() != "array_get" && method->getName() != "array_create") ) ) return nullptr;
+	if ( dynamic_cast<LQX::VariableExpression*>(variable) == nullptr
+	     && (method == nullptr || (method->getName() != "array_get" && method->getName() != "array_create") ) ) {
+	    return nullptr;
+	}
 	LQX::SymbolAutoRef symbol = variable->invoke( getLQXEnvironment() );
 	return symbol->getType() == LQX::Symbol::SYM_OBJECT ? dynamic_cast<LQX::ArrayObject *>(symbol->getObjectValue()) : nullptr;
-    }
-
-    /*
-     * Copy src to dst.  Make sure types match
-     */
-
-    LQX::SyntaxTreeNode *
-    QNAP2_Document::getAssignmentStatement( LQX::SyntaxTreeNode * dst, LQX::SyntaxTreeNode * src )
-    {
-	LQX::ArrayObject * dst_array = getArrayObject( dst );
-	LQX::ArrayObject * src_array = getArrayObject( src );
-
-	if ( dst_array == nullptr && src_array == nullptr ) {
-	    /* Check types? */
-	    return new LQX::AssignmentStatementNode( dst, src );
-	} else if ( dst_array != nullptr && src_array != nullptr ) {
-	    std::vector<LQX::SyntaxTreeNode*>* list = new std::vector<LQX::SyntaxTreeNode*>;
-	    /* copy over each element from src to dst as dst may or may not start from zero */
-	    std::map<LQX::SymbolAutoRef,LQX::SymbolAutoRef>::iterator src_iter = src_array->begin();
-	    for ( std::map<LQX::SymbolAutoRef,LQX::SymbolAutoRef>::iterator dst_iter = dst_array->begin(); dst_iter != dst_array->end() && src_iter != src_array->end(); ++dst_iter, ++src_iter ) {
-		LQX::SymbolAutoRef src_symbol = src_iter->second;
-		LQX::ConstantValueExpression * src_value = nullptr;
-		switch ( src_symbol->getType()) {
-		case LQX::Symbol::SYM_BOOLEAN:  src_value = new LQX::ConstantValueExpression( src_symbol->getBooleanValue() ); break;
-		case LQX::Symbol::SYM_DOUBLE:   src_value = new LQX::ConstantValueExpression( src_symbol->getDoubleValue() ); break;
-		case LQX::Symbol::SYM_STRING:   src_value = new LQX::ConstantValueExpression( src_symbol->getStringValue() ); break;
-		default: abort();
-		}
-		list->push_back( new LQX::AssignmentStatementNode( new LQX::MethodInvocationExpression( "array_get", dst, new LQX::ConstantValueExpression( dst_iter->first->getDoubleValue() ), nullptr ), src_value ) );
-	    }
-	    return new LQX::CompoundStatementNode( list );
-	} else if ( dst_array == nullptr ) {
-	    throw std::invalid_argument( "array assignemnt to scalar" );
-	} else {
-	    throw std::invalid_argument( "scalar assignemnt to array" );
-	}
-	return nullptr;
     }
 
 
@@ -1147,6 +1138,7 @@ namespace QNIO {
 	method_table->registerMethod(new BCMP::Mresponse(model()));
 	method_table->registerMethod(new BCMP::Mservice(model()));
 	method_table->registerMethod(new BCMP::Mthruput(model()));
+	method_table->registerMethod(new DeepCopy);
 	method_table->registerMethod(new Print);
 	method_table->registerMethod(new Output(model()));
     }
@@ -1260,12 +1252,23 @@ namespace QNIO {
 	for ( std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>*>::const_iterator transit = _transit.begin(); transit != _transit.end(); ++transit ) {
 	    const std::string& station_name = (*transit)->first;
 	    if ( !_document.isDefined( station_name ) ) throw std::invalid_argument( std::string( "undefined station: " ) + station_name );
+	    const std::set<Symbol>::const_iterator station_symbol = findSymbol( station_name );
+	    assert( station_symbol != symbolTableEnd() );
 	    LQX::SyntaxTreeNode * value = (*transit)->second;
-	    LQX::ArrayObject* stations = _document.getArrayObject( new LQX::VariableExpression( station_name, is_external ) );
-	    LQX::ArrayObject* values   = _document.getArrayObject( value );
-	    if ( stations == nullptr && values == nullptr ) {
+	    LQX::ArrayObject* values = nullptr;
+	    if ( dynamic_cast<LQX::VariableExpression *>(value) != nullptr ) {
+		const std::set<Symbol>::const_iterator value_symbol = findSymbol( dynamic_cast<LQX::VariableExpression *>(value)->getName() );
+		assert( value_symbol != symbolTableEnd() );
+		//!! check for attribute, then go through hoops to get it's value
+		if ( value_symbol->isVector() ) {
+		    values = dynamic_cast<LQX::ArrayObject *>(getLQXSymbol( dynamic_cast<LQX::VariableExpression *>(value)->getName() )->getObjectValue());
+		}
+	    }
+	    if ( !station_symbol->isVector() && values == nullptr ) {
 		__transit.emplace( class_name, std::map<std::string,LQX::SyntaxTreeNode *>() ).first->second.emplace( station_name, value );
-	    } else if ( stations != nullptr && values != nullptr ) {
+	    } else if ( station_symbol->isVector() && values != nullptr ) {
+		LQX::ArrayObject* stations = dynamic_cast<LQX::ArrayObject *>(getLQXSymbol( station_name )->getObjectValue());
+		assert( stations != nullptr );
 		std::map<LQX::SymbolAutoRef,LQX::SymbolAutoRef>::iterator val_iter = values->begin();
 		for ( std::map<LQX::SymbolAutoRef,LQX::SymbolAutoRef>::iterator stn_iter = stations->begin(); stn_iter != stations->end() && val_iter != values->end(); ++stn_iter, ++val_iter ) {
 		    const double index = stn_iter->first->getDoubleValue();		// needs to be int for to_string, otherwise get x.0000
@@ -1292,7 +1295,7 @@ namespace QNIO {
     {
 	size_t count = 0;
 	for ( std::set<Symbol>::const_iterator symbol = _symbolTable.begin(); symbol != _symbolTable.end(); ++symbol ) {
-	    if ( symbol->type() != Type::Class || !model().chains().emplace( symbol->name(), BCMP::Model::Chain() ).second ) continue;
+	    if ( symbol->type() != Type::Class || symbol->objectType() == Type::Reference || !model().chains().emplace( symbol->name(), BCMP::Model::Chain() ).second ) continue;
 	    _main.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( symbol->name(), is_external ),
 							       new LQX::MethodInvocationExpression( "chain", new LQX::ConstantValueExpression( symbol->name() ), nullptr ) ) );
 	    count += 1;
@@ -1333,10 +1336,12 @@ namespace QNIO {
 	    station.setCopies( new LQX::ConstantValueExpression( 1. ) );	/* Default 1 */
 	}
 
-	/* This will have to be a loop if station is an array */
-
-	LQX::ArrayObject* array = getArrayObject( new LQX::VariableExpression( station_name, is_external ) );
-	if ( array != nullptr ) {
+	/* The station may be an array, so check the symbol table and fetch the array if necessary */
+	const std::set<Symbol>::const_iterator symbol = _symbolTable.find( station_name );
+	assert( symbol != _symbolTable.end() );
+	if ( symbol->isVector() ) {
+	    LQX::ArrayObject* array = dynamic_cast<LQX::ArrayObject *>(getLQXSymbol( station_name )->getObjectValue());
+	    assert( array != nullptr );
 	    std::for_each( array->begin(), array->end(), ConstructStation( *this, station_name, station ) );
 	} else {
 	    ConstructStation( *this, station_name, station )();
@@ -1568,6 +1573,54 @@ namespace QNIO {
     /*                            LQX Functions                                 */
     /* ------------------------------------------------------------------------ */
 
+    /*
+     * Copy the contents of the second argument to the first.  This is
+     * only special if both arguments are arrays, then a member by
+     * member copy is done (one level deep only, but then again, only
+     * one level of array is allowed).
+     */
+    
+    LQX::SymbolAutoRef
+    QNAP2_Document::DeepCopy::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args)
+    {
+	if ( args.size() !=2 ) throw LQX::RuntimeException( "DeepCopy: arg count." );
+	const LQX::SymbolAutoRef& value = args[1];
+	LQX::SymbolAutoRef& target = args[0];
+	if ( target->isConstant() ) {
+	    throw LQX::RuntimeException( "DeepCopy: Attempt to assign to constant." );
+	} else if ( !isArray( target ) ) {
+	    target->copyValue(*value);
+	} else if ( !isArray( value ) ) {
+	    LQX::RuntimeException( "DeepCopy: Attempt to assign to scalar to array." );
+	} else {
+	    std::cerr << "Deep copy arrays... " << std::endl;
+	    LQX::ArrayObject * dst_array = dynamic_cast<LQX::ArrayObject *>(target->getObjectValue());
+	    std::for_each( dst_array->begin(), dst_array->end(), copy_item( dynamic_cast<LQX::ArrayObject *>(value->getObjectValue() ) ) );
+	}
+	return target;
+    }
+
+
+    bool
+    QNAP2_Document::DeepCopy::isArray( const LQX::SymbolAutoRef& symbol ) const
+    {
+	return symbol->getType() == LQX::Symbol::SYM_OBJECT && dynamic_cast<LQX::ArrayObject *>(symbol->getObjectValue());
+    }
+
+
+    void QNAP2_Document::DeepCopy::copy_item::operator()( std::pair<LQX::SymbolAutoRef,LQX::SymbolAutoRef> dst ) const
+    {
+	LQX::SymbolAutoRef dst_index = dst.first;
+	if ( _src->has( dst_index ) ) dst.second->copyValue( *_src->get( dst_index ) );
+	else std::cerr << "...copy failed for " << dst_index->getDoubleValue() << "." << std::endl;
+    }
+	    
+
+
+    /*
+     * The qnap2 print() subroutine.  Print out all of the arguments as is.
+     */
+    
     LQX::SymbolAutoRef
     QNAP2_Document::Print::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef>& args)
     {
@@ -1579,6 +1632,11 @@ namespace QNIO {
     }
 
 
+    /*
+     * The qnap2 output() subroutine.  Print out the results from
+     * solving the model.
+     */
+    
     LQX::SymbolAutoRef
     QNAP2_Document::Output::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef>& args)
     {
@@ -1586,9 +1644,9 @@ namespace QNIO {
 	return LQX::Symbol::encodeNull();
     }
 
-    std::streamsize QNAP2_Document::Output::__width = 10;
-    std::streamsize QNAP2_Document::Output::__precision = 5;
-    std::string QNAP2_Document::Output::__separator = "*";
+    const std::streamsize QNAP2_Document::Output::__width = 10;
+    const std::streamsize QNAP2_Document::Output::__precision = 5;
+    const std::string QNAP2_Document::Output::__separator = "*";
 
     std::ostream&
     QNAP2_Document::Output::print( std::ostream& output ) const

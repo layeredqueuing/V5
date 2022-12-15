@@ -1,4 +1,4 @@
-& $Id: qnap-intro-2.qnap 16157 2022-12-02 11:48:39Z greg $
+& $Id: qnap-intro-2.qnap 16175 2022-12-13 20:54:48Z greg $
 &
 & Second model from QNAP intro from section 3.4.1.  3 classes.
 & ------------------------------------------------------------------------
@@ -89,12 +89,12 @@ queue   cpu,                            & central processing unit
     dbase_1.t_term:=20.;
     dbase_2.t_term:=30.;
     admin.t_term:=120.;
-    dbase_1.trans:=0,4;
+    dbase_2.trans:=0,4;
 &
     dbase_1.t_cpu:=0.2;
     dbase_2.t_cpu:=0.1;
     admin.t_cpu:=1.5;
-    dbase_1.trans:=13,16;
+    admin.trans:=13,16;
 &
     disk(1).t:=0.12; disk(2).t:=0.18;
     solve;

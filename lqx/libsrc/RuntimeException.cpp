@@ -18,7 +18,7 @@
 
 namespace LQX {
   
-  RuntimeException::RuntimeException(std::string format, ...) throw()
+  RuntimeException::RuntimeException(const std::string format, ...) throw()	// Can't be reference due to ...
   {
     /* Format the string */
     va_list ap;
@@ -50,7 +50,7 @@ namespace LQX {
 
 namespace LQX {
   
-  UndefinedVariableException::UndefinedVariableException(std::string& variableName) throw()
+  UndefinedVariableException::UndefinedVariableException(const std::string& variableName) throw()
     : RuntimeException("Undefined Variable `%s'", variableName.c_str())
   {
   }
@@ -99,7 +99,7 @@ namespace LQX {
 
 namespace LQX {
   
-  InternalErrorException::InternalErrorException(std::string message) throw()
+  InternalErrorException::InternalErrorException(const std::string& message) throw()
     : RuntimeException(message)
   {
   }

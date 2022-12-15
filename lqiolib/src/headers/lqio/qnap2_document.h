@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 16169 2022-12-10 16:27:11Z greg $
+ *  $Id: qnap2_document.h 16179 2022-12-15 03:18:53Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -198,6 +198,7 @@ namespace QNIO {
 	virtual bool disableDefaultOutputWithLQX() const { return !_result; }
 	virtual LQX::Program * getLQXProgram() { return _lqx; }
 	LQX::Environment * getLQXEnvironment() const { return _env; }
+	LQX::SymbolAutoRef getLQXSymbol( const std::string& ) const;
 	virtual bool preSolve();
 	virtual bool postSolve();
 
@@ -216,7 +217,6 @@ namespace QNIO {
 	LQX::ArrayObject* getArrayObject( LQX::SyntaxTreeNode * variable ) const;
 	LQX::SyntaxTreeNode * getFunction( const std::string& name, std::vector<LQX::SyntaxTreeNode *>* args );
 	LQX::VariableExpression * getVariable( const std::string& name );
-	LQX::SyntaxTreeNode * getAssignmentStatement( LQX::SyntaxTreeNode * dst, LQX::SyntaxTreeNode * src );
 
 	const std::set<Symbol>::const_iterator findAttribute( LQX::VariableExpression * ) const;
 	double getDouble( LQX::SyntaxTreeNode * ) const;
@@ -310,6 +310,9 @@ namespace QNIO {
 	    void operator()( const BCMP::Model::Chain::pair_t& ) const;
 	private:
 	    void set( const std::string& class_name ) const;
+	    const std::set<Symbol>::const_iterator findSymbol( const std::string& name ) const { return _document._symbolTable.find( name ); }
+	    const std::set<Symbol>::const_iterator symbolTableEnd() const { return _document._symbolTable.end(); }
+	    LQX::SymbolAutoRef getLQXSymbol( const std::string& name ) const { return _document.getLQXSymbol( name ); }
 
 	    const QNAP2_Document& _document;
 	    const std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>*>& _transit;
@@ -335,6 +338,28 @@ namespace QNIO {
 	    BCMP::Model::Station& _station;
 	};
 
+	class DeepCopy : public LQX::Method {
+	public:
+	    DeepCopy() {}
+	    virtual ~DeepCopy() {}
+	    
+	    /* All of the glue code to make sure LQX can call print() */
+	    virtual std::string getName() const { return "deep_copy"; }
+	    virtual const char* getParameterInfo() const { return "aa"; }
+	    virtual std::string getHelp() const { return "Copy the contents of the second argument to the first."; }
+	    virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args);
+
+	private:
+	    bool isArray( const LQX::SymbolAutoRef& ) const;
+
+	    struct copy_item {
+		copy_item( LQX::ArrayObject * src ) : _src(src) {}
+		void operator()( std::pair<LQX::SymbolAutoRef,LQX::SymbolAutoRef> dst ) const;
+
+		LQX::ArrayObject * _src;
+	    };
+	};
+	
 	class Print : public LQX::Method {
 	public:
 	    /* maps print() to LQX::println(); */
@@ -372,9 +397,9 @@ namespace QNIO {
 	    static std::string blankline();
 
 	private:
-	    static std::streamsize __width;
-	    static std::streamsize __precision;
-	    static std::string __separator;
+	    static const std::streamsize __width;
+	    static const std::streamsize __precision;
+	    static const std::string __separator;
 
 	    const BCMP::Model& _model;
 	};

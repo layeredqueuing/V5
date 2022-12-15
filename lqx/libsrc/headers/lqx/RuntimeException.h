@@ -21,7 +21,7 @@ namespace LQX {
   public:
     
     /* Designated initializer and destructor */
-    RuntimeException(std::string format, ...) throw();
+    RuntimeException(const std::string format, ...) throw();
     virtual ~RuntimeException() throw();
     
     /* Access to the instance variables */
@@ -44,7 +44,7 @@ namespace LQX {
   
   class UndefinedVariableException : public RuntimeException {
   public:
-    UndefinedVariableException(std::string& variableName) throw();
+    UndefinedVariableException(const std::string& variableName) throw();
     virtual ~UndefinedVariableException() throw();
   };
   
@@ -68,7 +68,7 @@ namespace LQX {
   
   class InternalErrorException : public RuntimeException {
   public:
-    InternalErrorException(std::string message) throw();
+    InternalErrorException(const std::string& message) throw();
     virtual ~InternalErrorException() throw();
   };
   

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 15304 2021-12-31 15:51:38Z greg $
+ *  $Id: dom_bindings.cpp 16173 2022-12-12 18:02:46Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -163,9 +163,7 @@ namespace LQIO {
         virtual std::string description() const
             {
                 /* Return a description of the task */
-                std::stringstream ss;
-                ss << getTypeName() << "(" << getDOMProcessor()->getName() << ")";
-		return ss.str();
+		return getTypeName() + "(" + getDOMProcessor()->getName() + ")";
 	    }
 
 	virtual std::string getTypeName() const
@@ -256,9 +254,7 @@ namespace LQIO {
         virtual std::string description() const
             {
                 /* Return a description of the group */
-                std::stringstream ss;
-                ss << getTypeName() << "(" << getDOMGroup()->getName() << ")";
-		return ss.str();
+		return getTypeName() + "(" + getDOMGroup()->getName() + ")";
 	    }
 
 	virtual std::string getTypeName() const
@@ -349,9 +345,7 @@ namespace LQIO {
 	virtual std::string description() const
 	    {
 		/* Return a description of the task */
-                std::stringstream ss;
-                ss << getTypeName() << "(" << getDOMTask()->getName() << ")";
-		return ss.str();
+		return getTypeName() + "(" + getDOMTask()->getName() + ")";
 	    }
 
 	virtual std::string getTypeName() const
@@ -432,9 +426,7 @@ namespace LQIO {
 	virtual std::string description() const
 	    {
 		/* Return a description of the task */
-		std::stringstream ss;
-		ss << getTypeName() << "(" << getDOMEntry()->getName() << ")";
-		return ss.str();
+		return getTypeName() + "(" + getDOMEntry()->getName() + ")";
 	    }
 
 	virtual std::string getTypeName() const
@@ -529,9 +521,7 @@ namespace LQIO {
 	virtual std::string description() const
 	    {
 		/* Return a description of the phase */
-		std::stringstream ss;
-		ss << getTypeName() << "(n)";
-		return ss.str();
+		return getTypeName() + "(n)"; 
 	    }
 
 	virtual std::string getTypeName() const
@@ -608,9 +598,7 @@ namespace LQIO {
 	virtual std::string description() const
 	    {
 		/* Return a description of the task */
-		std::stringstream ss;
-		ss << getTypeName() << "(" << getDOMActivity()->getName() << ")";
-		return ss.str();
+		return getTypeName() + "(" + getDOMActivity()->getName() + ")";
 	    }
 
 	virtual std::string getTypeName() const
@@ -690,10 +678,8 @@ namespace LQIO {
 	virtual std::string description() const
 	    {
 		/* Return a description of the task */
-		std::stringstream ss;
-		ss << getTypeName() << "(" << getDOMCall()->getSourceObject()->getName() << "->"
-		   << getDOMCall()->getDestinationEntry()->getName() << ")";
-		return ss.str();
+		return getTypeName() + "(" + getDOMCall()->getSourceObject()->getName() + "->"
+		    + getDOMCall()->getDestinationEntry()->getName() + ")";
 	    }
 
 	virtual std::string getTypeName() const
@@ -781,10 +767,9 @@ namespace LQIO {
 	virtual std::string description() const
 	    {
 		/* Return a description of the task */
-		std::stringstream ss;
-		ss << getTypeName() << "(" << getDOMCall()->getSourceObject()->getName() << "->"
-		   << getDOMCall()->getDestinationEntry()->getName() << ")";
-		return ss.str();
+		return getTypeName() + "(" + getDOMCall()->getSourceObject()->getName() + "->"
+		    + getDOMCall()->getDestinationEntry()->getName() + ")";
+		 
 	    }
 
 	virtual std::string getTypeName() const
@@ -885,8 +870,8 @@ namespace LQIO {
 			/* Fall through to default if not set */
 		    }
 		    default: return LQX::Symbol::encodeNull();
+		    }
 		}
-	    }
 
 	    union {
 		get_double_fptr r_double;
@@ -922,9 +907,7 @@ namespace LQIO {
 	virtual std::string description() const
 	    {
 		/* Return a description of the task */
-		std::stringstream ss;
-		ss << getTypeName() << "()";
-		return ss.str();
+		return getTypeName() + "()";
 	    }
 
 	virtual std::string getTypeName() const
@@ -970,7 +953,7 @@ namespace LQIO {
 
     class LQXGetDocument : public LQX::Method {
     public:
-	LQXGetDocument(const DOM::Document* doc) : _document(doc), _symbolCache() {}
+	LQXGetDocument(const DOM::Document* doc) : _documentObject( LQX::Symbol::encodeObject(new LQXDocument(doc), false ) ) {}
 	virtual ~LQXGetDocument() {}
 
 	/* Basic information for the method itself */
@@ -979,21 +962,14 @@ namespace LQIO {
 	virtual std::string getHelp() const { return "Returns the document."; }
 
 	/* Invocation of the method from the language */
-	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment*, std::vector<LQX::SymbolAutoRef>& ) {
 
 	    /* Return an encapsulated reference to the document */
-	    const char* docName = "lqn-model";
-	    if (_symbolCache.find(docName) != _symbolCache.end()) {
-		return _symbolCache[docName];
-	    }
-	    LQXDocument* docObject = new LQXDocument(_document);
-	    _symbolCache[docName] = LQX::Symbol::encodeObject(docObject, false);
-	    return _symbolCache[docName];
+	    return _documentObject;
 	}
 
     private:
-	const DOM::Document* _document;
-	std::map<std::string,LQX::SymbolAutoRef> _symbolCache;
+	LQX::SymbolAutoRef _documentObject;
     };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -1024,9 +1000,7 @@ namespace LQIO {
         virtual std::string description() const
             {
                 /* Return a description of the pragma */
-                std::stringstream ss;
-                ss << getTypeName() << "(" << getDOMPragma() << ")";
-		return ss.str();
+		return getTypeName() + "(" + getDOMPragma() + ")";
 	    }
 
 	virtual std::string getTypeName() const
@@ -1127,9 +1101,7 @@ namespace LQIO {
 	virtual std::string description() const
 	    {
 		/* Return a description of the task */
-		std::stringstream ss;
-		ss << "ConfidenceInterval(" << ")";
-		return ss.str();
+		return "ConfidenceInterval()";
 	    }
 
 	virtual std::string getTypeName() const
