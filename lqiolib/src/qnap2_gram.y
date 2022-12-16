@@ -39,9 +39,9 @@ extern int qnap2lex();
 %token <aReal>		DOUBLE
 %token <aLong>		LONG
 
-%type <aPointer>	array_list class_list class_reference comprehension identifier_list list loop_list object_list optional_init option_list optional_list service station_type transit transit_list transit_pair variable variable_list
+%type <aPointer>	array_list class_list class_reference comprehension identifier_list list loop_list object_list optional_index optional_init option_list optional_list service station_type transit transit_list transit_pair variable variable_list
 %type <aPointer>	closed_statement compound_statement open_statement postfix_statement prefix_statement simple_statement statement
-%type <aPointer>	expression expression_list factor power procedure_call relation term
+%type <aPointer>	expression expression_list function_call factor power procedure_call relation term
 %type <aCode>		compound_station_type object_type simple_station_type variable_type
 %type <aString>		identifier
 %%
@@ -257,10 +257,17 @@ prefix_statement	: QNAP_PLUS postfix_statement				{ $$ = $2; }
 			| postfix_statement					{ $$ = $1; }
 			;
 
-postfix_statement	: identifier '.' identifier				{ $$ = qnap2_get_attribute( qnap2_get_variable( $1 ), $3 ); free( $3 ); }
-			| identifier '(' expression_list ')'			{ $$ = qnap2_get_function( $1, $3 ); }
-			| identifier '(' expression_list ')' '.' identifier	{ $$ = qnap2_get_attribute( qnap2_get_function( $1, $3 ), $6 ); free( $1 ); free( $3 ); free( $6 ); }
+postfix_statement	: identifier '.' identifier optional_index		{ $$ = qnap2_get_attribute( qnap2_get_variable( $1 ), $3, $4 ); free( $3 ); }
+			| function_call						{ $$ = $1; }
+			| function_call	'.' identifier optional_index		{ $$ = qnap2_get_attribute( $1, $3, $4 ); free( $3 ); }
 			| factor						{ $$ = $1; }
+			;
+
+optional_index		: '(' expression_list ')'				{ $$ = $2; }
+			| 							{ $$ = NULL; }
+			;
+
+function_call		: identifier '(' expression_list ')'			{ $$ = qnap2_get_function( $1, $3 ); free( $1 ); }
 			;
 
 factor			: identifier						{ $$ = qnap2_get_variable( $1 ); free( $1 ); }

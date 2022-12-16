@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 16179 2022-12-15 03:18:53Z greg $
+ *  $Id: qnap2_document.h 16183 2022-12-16 12:37:18Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -54,7 +54,7 @@ extern "C" {
     void qnap2_set_station_type( const void * );
     /* LQX */
     void * qnap2_get_array( void * );
-    void * qnap2_get_attribute( void *, const char * );
+    void * qnap2_get_attribute( void *, const char *, void * );
     void * qnap2_get_function( const char * , void * );			/* Returns LQX */
     void * qnap2_get_integer( long );					/* Returns LQX */
     void * qnap2_get_procedure( const char *, void * );			/* Returns LQX */
@@ -122,7 +122,7 @@ namespace QNIO {
 	friend void ::qnap2error( const char * fmt, ... );
 	friend void * ::qnap2_get_all_objects( int code );
 	friend void * ::qnap2_get_array( void * );
-	friend void * ::qnap2_get_attribute( void *, const char * );
+	friend void * ::qnap2_get_attribute( void *, const char *, void * );
 	friend void * ::qnap2_get_function( const char * , void * );
 	friend void * ::qnap2_get_procedure( const char * symbol, void * );
 	friend void * ::qnap2_get_service_distribution( int code, void *, void * );
@@ -306,8 +306,8 @@ namespace QNIO {
 	class SetStationTransit {
 	public:
 	    SetStationTransit( const QNAP2_Document& document, const std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>*>& transit ) : _document(document), _transit(transit) {}
-	    void operator()( const std::string& ) const;
-	    void operator()( const BCMP::Model::Chain::pair_t& ) const;
+	    void operator()( const std::string& class_name ) const { set( class_name ); }
+	    void operator()( const BCMP::Model::Chain::pair_t& chain ) const { set( chain.first ); }
 	private:
 	    void set( const std::string& class_name ) const;
 	    const std::set<Symbol>::const_iterator findSymbol( const std::string& name ) const { return _document._symbolTable.find( name ); }
@@ -316,6 +316,17 @@ namespace QNIO {
 
 	    const QNAP2_Document& _document;
 	    const std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>*>& _transit;
+
+	    struct insert {
+		insert( const std::string& base_name, const std::string& class_name, LQX::SyntaxTreeNode * src ) : _base_name(base_name), _class_name(class_name), _src(src) {}
+
+		void operator()() const;
+		void operator()( std::pair<LQX::SymbolAutoRef,LQX::SymbolAutoRef> dst ) const;
+
+		const std::string& _base_name;
+		const std::string& _class_name;
+		LQX::SyntaxTreeNode * _src;
+	    };
 	};
 
 	class ConstructStation {

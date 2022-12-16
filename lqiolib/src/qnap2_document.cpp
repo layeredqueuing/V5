@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16179 2022-12-15 03:18:53Z greg $
+ * $Id: qnap2_document.cpp 16183 2022-12-16 12:37:18Z greg $
  *
  * Read in XML input files.
  *
@@ -12,7 +12,7 @@
  * ------------------------------------------------------------------------
  */
 
-#define DEBUG_TRANSITS 	0
+#define DEBUG_TRANSITS 	1
 
 #if HAVE_CONFIG_H
 #include <config.h>
@@ -278,9 +278,14 @@ void * qnap2_get_array( void * arg )
     }
 }
 
-void * qnap2_get_attribute( void * arg1, const char * arg2 )
+void * qnap2_get_attribute( void * arg1, const char * arg2, void * arg3 )
 {
-    return new LQX::ObjectPropertyReadNode( static_cast<LQX::SyntaxTreeNode *>(arg1), arg2 );
+    if ( arg3 != nullptr ) {
+	return new LQX::ObjectPropertyReadNode( static_cast<LQX::SyntaxTreeNode *>(arg1), arg2 );
+    } else {
+	return new LQX::MethodInvocationExpression( "array_get", new LQX::ObjectPropertyReadNode( static_cast<LQX::SyntaxTreeNode *>(arg1), arg2 ),
+						    static_cast<LQX::SyntaxTreeNode *>(arg3), nullptr );
+    }
 }
 
 
@@ -1223,27 +1228,15 @@ namespace QNIO {
 	if ( k.service_time() != nullptr ) throw std::domain_error( "service time previously set." );
 	k.setServiceTime( _service.mean() );		// !!! set the template version to the variable.  ConstructStation will resolve.
     }
-
-
-    /*
-     * Save the transit information ( from station, class, to station, value )
-     * If class is empty, then do all classes that have not been assigned
-     */
-
-    void
-    QNAP2_Document::SetStationTransit::operator()( const std::string& class_name ) const
-    {
-	set( class_name );
-    }
-
-    void
-    QNAP2_Document::SetStationTransit::operator()( const BCMP::Model::Chain::pair_t& chain ) const
-    {
-	set( chain.first );
-    }
+}
+
+namespace QNIO {
+    /* ------------------------ Transit Construction ------------------------ */
 
     /*
-     * Populate the document's _transit table.  If the station is an array, the value must also be an array.
+     * Save the transit information ( from station, class, to station,
+     * value ) If class is empty, then do all classes that have not
+     * been assigned
      */
 
     void
@@ -1255,31 +1248,52 @@ namespace QNIO {
 	    const std::set<Symbol>::const_iterator station_symbol = findSymbol( station_name );
 	    assert( station_symbol != symbolTableEnd() );
 	    LQX::SyntaxTreeNode * value = (*transit)->second;
-	    LQX::ArrayObject* values = nullptr;
+
+	    /* if the value is an variable, determine whether it is an array */
+	    
+	    bool is_array = false;
 	    if ( dynamic_cast<LQX::VariableExpression *>(value) != nullptr ) {
-		const std::set<Symbol>::const_iterator value_symbol = findSymbol( dynamic_cast<LQX::VariableExpression *>(value)->getName() );
+		const std::string& attribute_name = dynamic_cast<LQX::VariableExpression *>(value)->getName();
+		const std::set<Symbol>::const_iterator value_symbol = findSymbol( attribute_name );
 		assert( value_symbol != symbolTableEnd() );
-		//!! check for attribute, then go through hoops to get it's value
-		if ( value_symbol->isVector() ) {
-		    values = dynamic_cast<LQX::ArrayObject *>(getLQXSymbol( dynamic_cast<LQX::VariableExpression *>(value)->getName() )->getObjectValue());
-		}
+		is_array = value_symbol->isVector();
+
+		/* And if the value is class, the reference the class */
+
+		if ( value_symbol->isAttribute () ) {
+		    value = new LQX::ObjectPropertyReadNode( new LQX::VariableExpression( class_name, is_external ), attribute_name );	// Should be an array.
+		} 
 	    }
-	    if ( !station_symbol->isVector() && values == nullptr ) {
-		__transit.emplace( class_name, std::map<std::string,LQX::SyntaxTreeNode *>() ).first->second.emplace( station_name, value );
-	    } else if ( station_symbol->isVector() && values != nullptr ) {
+
+	    if ( !station_symbol->isVector() && !is_array ) {
+		insert( station_name, class_name, value )();
+	    } else if ( station_symbol->isVector() && is_array ) {
 		LQX::ArrayObject* stations = dynamic_cast<LQX::ArrayObject *>(getLQXSymbol( station_name )->getObjectValue());
 		assert( stations != nullptr );
-		std::map<LQX::SymbolAutoRef,LQX::SymbolAutoRef>::iterator val_iter = values->begin();
-		for ( std::map<LQX::SymbolAutoRef,LQX::SymbolAutoRef>::iterator stn_iter = stations->begin(); stn_iter != stations->end() && val_iter != values->end(); ++stn_iter, ++val_iter ) {
-		    const double index = stn_iter->first->getDoubleValue();		// needs to be int for to_string, otherwise get x.0000
-		    std::string instance_name = station_name + "(" + std::to_string( static_cast<int>(index) ) + ")";
-		    __transit.emplace( class_name, std::map<std::string,LQX::SyntaxTreeNode *>() ).first->second.emplace( instance_name, // need array reference.  Punt to auto-generated.
-															  new LQX::MethodInvocationExpression( "array_get", value, new LQX::ConstantValueExpression( index ), nullptr ) );
-		}
+		std::for_each( stations->begin(), stations->end(), insert( station_name, class_name, value ) );
 	    } else {
 		throw std::invalid_argument( "Only one argument to transit pair is an array." );
 	    }
 	}
+    }
+
+
+    void QNAP2_Document::SetStationTransit::insert::operator()() const
+    {
+	__transit.emplace( _class_name, std::map<std::string,LQX::SyntaxTreeNode *>() ).first->second.emplace( _base_name, _src );
+    }
+
+    
+    /*
+     * map "station" at index to "station(index)"
+     */
+    
+    void QNAP2_Document::SetStationTransit::insert::operator()( std::pair<LQX::SymbolAutoRef,LQX::SymbolAutoRef> dst ) const
+    {
+	const double index = dst.first->getDoubleValue();
+	std::string station_name = _base_name + "(" + std::to_string( static_cast<int>(index) ) + ")";
+	__transit.emplace( _class_name, std::map<std::string,LQX::SyntaxTreeNode *>() ).first->second.emplace( station_name, // need array reference.  Punt to auto-generated.
+													       new LQX::MethodInvocationExpression( "array_get", _src, new LQX::ConstantValueExpression( index ), nullptr ) );
     }
 }
 
@@ -1293,15 +1307,13 @@ namespace QNIO {
     void
     QNAP2_Document::constructChains()
     {
-	size_t count = 0;
 	for ( std::set<Symbol>::const_iterator symbol = _symbolTable.begin(); symbol != _symbolTable.end(); ++symbol ) {
 	    if ( symbol->type() != Type::Class || symbol->objectType() == Type::Reference || !model().chains().emplace( symbol->name(), BCMP::Model::Chain() ).second ) continue;
 	    _main.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( symbol->name(), is_external ),
 							       new LQX::MethodInvocationExpression( "chain", new LQX::ConstantValueExpression( symbol->name() ), nullptr ) ) );
-	    count += 1;
 	}
 	
-	if ( count == 0 ) {
+	if ( model().chains().empty() ) {
 	    model().chains().emplace( std::string(), BCMP::Model::Chain() );
 	}
     }
@@ -1457,9 +1469,9 @@ namespace QNIO {
 	// follow the transit list from the reference station (recursive).  We should
 	// end up at the reference station (or out).
 
+	BCMP::Model::Station::map_t& stations = model().stations();
 	const BCMP::Model::Chain::map_t& chains = model().chains();
 	for ( BCMP::Model::Chain::map_t::const_iterator chain = chains.begin(); chain != chains.end(); ++chain ) {
-	    BCMP::Model::Station::map_t& stations = model().stations();
 	    BCMP::Model::Station::map_t::iterator start = stations.end();
 
 	    for ( BCMP::Model::Station::map_t::iterator station = stations.begin(); station != stations.end(); ++station ) {
@@ -1477,6 +1489,16 @@ namespace QNIO {
 	    mapTransitToVisits( station_name, class_name, new LQX::ConstantValueExpression( 1.0 ), stack );	    // set visits to reference station to 1 */
 	    assert( stack.empty() );
 	}
+#if DEBUG_TRANSITS
+	for ( BCMP::Model::Station::map_t::iterator station = stations.begin(); station != stations.end(); ++station ) {
+	    const BCMP::Model::Station::Class::map_t& classes = station->second.classes();
+	    for ( BCMP::Model::Station::Class::map_t::const_iterator k = classes.begin(); k != classes.end(); ++k ) {
+		LQX::SyntaxTreeNode * visits = k->second.visits();
+		if ( visits == nullptr ) continue;
+		std::cerr << station->first << "," << k->first << ": " << *visits << std::endl;
+	    }
+	}
+#endif
 	return true;
     }
 
@@ -1489,7 +1511,7 @@ namespace QNIO {
     bool
     QNAP2_Document::mapTransitToVisits( const std::string& station_name, const std::string& class_name, LQX::SyntaxTreeNode * visits, std::deque<std::string>& stack )
     {
-#if DEBUG_TRANSITS
+#if 0
 	std::cerr << stack.size() << ": mapTransitToVisits(" << station_name << "," << class_name << "," << *visits << ")" << std::endl;
 #endif
 	/* have we completed the cycle or no visits? */
@@ -1507,7 +1529,7 @@ namespace QNIO {
 
 	stack.push_back( station_name );
 	for ( std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator transit = transits.begin(); transit != transits.end(); ++transit ) {
-#if DEBUG_TRANSITS
+#if 0
 	    std::cerr << "  " << station_name << " -> " << transit->first << ": " << *transit->second << std::endl;
 #endif
 	    mapTransitToVisits( transit->first, class_name, BCMP::Model::multiply( visits, transit->second ), stack );
@@ -1610,9 +1632,9 @@ namespace QNIO {
 
     void QNAP2_Document::DeepCopy::copy_item::operator()( std::pair<LQX::SymbolAutoRef,LQX::SymbolAutoRef> dst ) const
     {
-	LQX::SymbolAutoRef dst_index = dst.first;
-	if ( _src->has( dst_index ) ) dst.second->copyValue( *_src->get( dst_index ) );
-	else std::cerr << "...copy failed for " << dst_index->getDoubleValue() << "." << std::endl;
+	LQX::SymbolAutoRef index = dst.first;
+	if ( _src->has( index ) ) dst.second->copyValue( *_src->get( index ) );
+	else std::cerr << "...copy failed for " << index->getDoubleValue() << "." << std::endl;
     }
 	    
 
