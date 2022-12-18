@@ -1,5 +1,5 @@
 /*
- *  $Id: bcmp_bindings.cpp 16173 2022-12-12 18:02:46Z greg $
+ *  $Id: bcmp_bindings.cpp 16186 2022-12-16 22:09:21Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -54,6 +54,10 @@ namespace BCMP {
 	/* Duplicate the template value and make it writable */
 	LQX::SymbolAutoRef value = LQX::Symbol::duplicate( defined->second->invoke( env ) );
 	value->setIsConstant( false );
+	if ( value->getType() == LQX::Symbol::SYM_OBJECT && dynamic_cast<LQX::ArrayObject *>(value->getObjectValue()) ) {
+	    LQX::ArrayObject * array = dynamic_cast<LQX::ArrayObject *>(value->getObjectValue());
+	    std::for_each( array->begin(), array->end(), &BCMP::Attributes::duplicate );
+	}
 	return _attributes.emplace( name, value ).first->second;
     }
     
@@ -62,6 +66,10 @@ namespace BCMP {
 	return __attributes.emplace( name, value ).second;
     }
 
+    /* static */ void Attributes::duplicate( std::pair<LQX::SymbolAutoRef,LQX::SymbolAutoRef> item )
+    {
+	item.second->copyValue( *item.second );
+    }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Object] */
@@ -360,7 +368,7 @@ namespace BCMP
 	    if ( args.size() == 1 ) {
 		return LQX::Symbol::encodeDouble( (station->*getResult.at(type)._getStationResult)() );
 	    } else if ( args.size() == 2 ) {
-		return LQX::Symbol::encodeDouble( (getClass( station, dynamic_cast<BCMP::LQXChain *>( decodeObject(args, 0) ) ).*getResult.at(type)._getClassResult)() );
+		return LQX::Symbol::encodeDouble( (getClass( station, dynamic_cast<BCMP::LQXChain *>( decodeObject(args, 1) ) ).*getResult.at(type)._getClassResult)() );
 	    } else {
 		throw std::logic_error( "arg count" );
 	    }

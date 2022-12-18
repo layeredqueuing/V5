@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: bcmp_bindings.h 16094 2022-11-11 16:53:00Z greg $
+ *  $Id: bcmp_bindings.h 16186 2022-12-16 22:09:21Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -31,6 +31,9 @@ namespace BCMP {
 	
     protected:
 	bool add_attribute( const std::string&, LQX::SymbolAutoRef );
+
+    private:
+	static void duplicate( std::pair<LQX::SymbolAutoRef,LQX::SymbolAutoRef> item );
 
     private:
 	std::map<const std::string,LQX::SymbolAutoRef> _attributes;		/* Not used internally but for lqx interface. */

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16183 2022-12-16 12:37:18Z greg $
+ * $Id: qnap2_document.cpp 16184 2022-12-16 19:28:04Z greg $
  *
  * Read in XML input files.
  *
@@ -280,12 +280,19 @@ void * qnap2_get_array( void * arg )
 
 void * qnap2_get_attribute( void * arg1, const char * arg2, void * arg3 )
 {
-    if ( arg3 != nullptr ) {
+    if ( arg3 == nullptr ) {
+	/* Scalar attribute */
 	return new LQX::ObjectPropertyReadNode( static_cast<LQX::SyntaxTreeNode *>(arg1), arg2 );
     } else {
-	return new LQX::MethodInvocationExpression( "array_get", new LQX::ObjectPropertyReadNode( static_cast<LQX::SyntaxTreeNode *>(arg1), arg2 ),
-						    static_cast<LQX::SyntaxTreeNode *>(arg3), nullptr );
+	/* Array attribute */
+	std::vector<LQX::SyntaxTreeNode *>* args = static_cast<std::vector<LQX::SyntaxTreeNode *>*>(arg3);
+	if ( args->size() == 1 ) {
+	    return new LQX::MethodInvocationExpression( "array_get", new LQX::ObjectPropertyReadNode( static_cast<LQX::SyntaxTreeNode *>(arg1), arg2 ), args->front(), nullptr );
+	} else {
+	    qnap2error( "array arg count" );
+	}
     }
+    return nullptr;
 }
 
 
