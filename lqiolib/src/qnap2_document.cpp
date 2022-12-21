@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16184 2022-12-16 19:28:04Z greg $
+ * $Id: qnap2_document.cpp 16189 2022-12-20 22:30:15Z greg $
  *
  * Read in XML input files.
  *
@@ -12,7 +12,7 @@
  * ------------------------------------------------------------------------
  */
 
-#define DEBUG_TRANSITS 	1
+//#define DEBUG_TRANSITS 	0
 
 #if HAVE_CONFIG_H
 #include <config.h>
@@ -1622,7 +1622,7 @@ namespace QNIO {
 	} else if ( !isArray( value ) ) {
 	    LQX::RuntimeException( "DeepCopy: Attempt to assign to scalar to array." );
 	} else {
-	    std::cerr << "Deep copy arrays... " << std::endl;
+//	    std::cerr << "Deep copy arrays... " << std::endl;
 	    LQX::ArrayObject * dst_array = dynamic_cast<LQX::ArrayObject *>(target->getObjectValue());
 	    std::for_each( dst_array->begin(), dst_array->end(), copy_item( dynamic_cast<LQX::ArrayObject *>(value->getObjectValue() ) ) );
 	}

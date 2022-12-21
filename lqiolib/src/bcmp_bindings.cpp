@@ -1,11 +1,12 @@
 /*
- *  $Id: bcmp_bindings.cpp 16186 2022-12-16 22:09:21Z greg $
+ *  $Id: bcmp_bindings.cpp 16188 2022-12-20 22:11:21Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
 
+#include <algorithm>
 #include <cstdio>
 #include <sstream>
 #include <cstring>
@@ -52,13 +53,16 @@ namespace BCMP {
 	if ( defined == __attributes.end() ) return LQX::Symbol::encodeNull();	/* Not defined */
 
 	/* Duplicate the template value and make it writable */
-	LQX::SymbolAutoRef value = LQX::Symbol::duplicate( defined->second->invoke( env ) );
-	value->setIsConstant( false );
-	if ( value->getType() == LQX::Symbol::SYM_OBJECT && dynamic_cast<LQX::ArrayObject *>(value->getObjectValue()) ) {
-	    LQX::ArrayObject * array = dynamic_cast<LQX::ArrayObject *>(value->getObjectValue());
-	    std::for_each( array->begin(), array->end(), &BCMP::Attributes::duplicate );
+	LQX::SymbolAutoRef src = defined->second->invoke( env );
+	LQX::SymbolAutoRef dst;
+	if ( src->getType() == LQX::Symbol::SYM_OBJECT && dynamic_cast<LQX::ArrayObject *>(src->getObjectValue()) ) {
+	    LQX::ArrayObject * array = dynamic_cast<LQX::ArrayObject *>(src->getObjectValue());
+	    dst = LQX::Symbol::encodeObject( std::for_each( array->begin(), array->end(), BCMP::Attributes::initialize( new LQX::ArrayObject() ) ).dst(), false );
+	} else {
+	    dst = LQX::Symbol::duplicate( src );
 	}
-	return _attributes.emplace( name, value ).first->second;
+	dst->setIsConstant( false );
+	return _attributes.emplace( name, dst ).first->second;
     }
     
     /* static */ bool Attributes::addAttribute( const std::string& name, LQX::SyntaxTreeNode * value )
@@ -66,9 +70,13 @@ namespace BCMP {
 	return __attributes.emplace( name, value ).second;
     }
 
-    /* static */ void Attributes::duplicate( std::pair<LQX::SymbolAutoRef,LQX::SymbolAutoRef> item )
+    /* Copy over the array keys, but create a new array value */
+    /* static */ void Attributes::initialize::operator()( std::pair<LQX::SymbolAutoRef,LQX::SymbolAutoRef> item )
     {
-	item.second->copyValue( *item.second );
+	LQX::SymbolAutoRef value = LQX::Symbol::encodeNull();
+	value->setIsConstant( false );
+	value->copyValue( *item.second );
+	_dst->put( item.first, value );
     }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
