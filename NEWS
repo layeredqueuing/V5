@@ -4,12 +4,21 @@
 380 	lqns 	 	lqns hangs with Conway multiserver. 
 382 	lqn2xxx 	lqn2ps -Oout doesn't print processors. 
 383 	lqiolib 	<pre> precedences can accept more than one activity in XML (JSON?) input. 
+385 	petrisrv 	V5 petrisrvn: faulty models causing aborts.
 386 	lqn2csv 	getopt_long headaches. 
 387 	srvndiff 	File glob not working. 
 389 	srvndiff 	C:\msys64\mingw32\bin\srvndiff.exe: model-001.lqxo:12: error: unclosed token 
 390 	lqn2xxx 	lqn2xxx: command not found. 
 391 	lqsim 		lqsim/regression/Makefile.am, 5*-replication. 
 392 	petrisrv 	Calls are not being constructed
+393 	lqiolib 	Save (and print) marginal queue probabilities.
+395 	petrisrv 	V5 petrisrvn: faulty models causing aborts or failing.
+397 	lqiolib 	Add qnap2 parser for BCMP models.
+398 	lqiolib 	Refactor LQX math handing from ExternalVariables to LQX Expressions.
+399 	lqiolib 	WhatIf construction is bogus.
+400 	lqn2xxx 	Converting from json to lqn fails on Windows.
+401 	libmva 		libc++abi: terminating with uncaught exception of type std::invalid_argument: default-output
+402 	miscella 	Mac M1 issues. 	2022-11-30
 
 * Bugs fixed in 5.26
 365 	lqns	 	The warning for zero service time should be suppressed for reference tasks with think time. 
