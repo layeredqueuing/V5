@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 16069 2022-11-05 21:32:04Z greg $
+ * $Id: lqns.cc 16193 2022-12-22 23:15:19Z greg $
  *
  * Command line processing.
  *
@@ -143,9 +143,9 @@ int main (int argc, char *argv[])
     
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2022-11-05 17:32:04 -0400 (Sat, 05 Nov 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2022-12-22 18:15:19 -0500 (Thu, 22 Dec 2022) $", "%*s %s %*s", copyrightDate );
 
-    matherr_disposition = FP_IMMEDIATE_ABORT;
+    matherr_disposition = fp_exception_reporting::IMMEDIATE_ABORT;
 
     init_flags();
 
@@ -203,19 +203,19 @@ int main (int argc, char *argv[])
 	    case 'e':                       /* Error handling.      */
 		switch ( optarg[0] ) {
 		case 'a':
-		    matherr_disposition = FP_IMMEDIATE_ABORT;
+		    matherr_disposition = fp_exception_reporting::IMMEDIATE_ABORT;
 		    break;
 
 		case 'd':
-		    matherr_disposition = FP_DEFERRED_ABORT;
+		    matherr_disposition = fp_exception_reporting::DEFERRED_ABORT;
 		    break;
 
 		case 'i':
-		    matherr_disposition = FP_IGNORE;
+		    matherr_disposition = fp_exception_reporting::IGNORE;
 		    break;
 
 		case 'w':
-		    matherr_disposition = FP_REPORT;
+		    matherr_disposition = fp_exception_reporting::REPORT;
 		    break;
 
 		default:

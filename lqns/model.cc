@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 15743 2022-07-02 16:57:45Z greg $
+ * $Id: model.cc 16193 2022-12-22 23:15:19Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -228,7 +228,7 @@ Model::load( const std::string& input_filename, const std::string& output_filena
      */
 
     set_fp_ok( false );			// Reset floating point. -- stop on overflow?
-    if ( matherr_disposition == FP_IMMEDIATE_ABORT ) {
+    if ( matherr_disposition == fp_exception_reporting::IMMEDIATE_ABORT ) {
 	set_fp_abort();
     }
 
