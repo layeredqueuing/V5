@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: fpgoop.cc 16193 2022-12-22 23:15:19Z greg $
+ * $Id: fpgoop.cc 16196 2022-12-24 12:40:53Z greg $
  *
  * Floating point exception handling.  It is all different on all machines.
  * See:
@@ -40,7 +40,9 @@
 #if HAVE_IEEEFP_H
 #include <ieeefp.h>
 #endif
-
+#if HAVE_XMMINTRIN_H
+#include <xmmintrin.h>
+#endif
 #include "fpgoop.h"
 
 #define EXCEPTION_EXIT 255		/* See input.h */
@@ -111,12 +113,17 @@ set_fp_abort()
 {
 #if HAVE_FENV_H && HAVE_FEENABLEEXCEPT
     feenableexcept( fp_bits );
-#elif HAVE_FENV_H && HAVE_FESETEXCEPTFLAG
-    fexcept_t fe_flags;
-    fegetexceptflag( &fe_flags, fp_bits );
-    fesetexceptflag( &fe_flags, fp_bits );
 #elif HAVE_IEEEFP_H && HAVE_FPSETMASK
     fpsetmask( fp_bits );
+#elif HAVE_XMMINTRIN_H
+    if ((fp_bits & FE_INVALID) != 0)	{ _mm_setcsr(_MM_MASK_MASK & ~_MM_MASK_INVALID); }
+    if ((fp_bits & FE_DIVBYZERO) != 0)	{ _mm_setcsr(_MM_MASK_MASK & ~_MM_MASK_DIV_ZERO); }
+    if ((fp_bits & FE_OVERFLOW ) != 0) 	{ _mm_setcsr(_MM_MASK_MASK & ~_MM_MASK_OVERFLOW); }
+#elif defined __APPLE__ && __AARCH64EL__
+    std::fenv_t env;
+    fegetenv(&env);
+    env.__fpcr = env.__fpcr | __fpcr_trap_invalid |  __fpcr_trap_divbyzero |  __fpcr_trap_overflow;
+    fesetenv(&env);
 #else
     #warning No FP abort.
 #endif
@@ -134,7 +141,11 @@ set_fp_abort()
     my_action.sa_flags = 0;
 #endif
 
+#if defined __APPLE__ && __AARCH64EL__
+    assert( sigaction( SIGILL, &my_action, 0 ) == 0 );
+#else
     assert( sigaction( SIGFPE, &my_action, 0 ) == 0 );
+#endif
 #else
     signal( SIGFPE, my_handler );
 #endif
@@ -226,17 +237,29 @@ set_fp_ok( bool overflow )
 {
 #if HAVE_FENV_H && HAVE_FECLEAREXCEPT
 
-    fp_bits = FE_DIVBYZERO|FE_INVALID;
-    if ( overflow ) {
-	fp_bits |= FE_OVERFLOW;
+    if ( matherr_disposition == fp_exception_reporting::IGNORE ) {
+	fp_bits = 0;
+    } else {
+#if defined __APPLE__ && __AARCH64EL__
+	fp_bits = FE_DIVBYZERO;		/* Invalid is set for any infinity, so ignore */
+#else
+	fp_bits = FE_DIVBYZERO|FE_INVALID;
+#endif
+	if ( overflow ) {
+	    fp_bits |= FE_OVERFLOW;
+	}
     }
-    feclearexcept( fp_bits|FE_INEXACT|FE_OVERFLOW|FE_UNDERFLOW );
+    feclearexcept( FE_ALL_EXCEPT );
 
 #elif HAVE_IEEEFP_H && HAVE_FPSETSTICKY
 
-    fp_bits = FP_X_INV | FP_X_DZ;
-    if ( overflow ) {
-	fp_bits |= FP_X_OFL;
+    if ( matherr_disposition == fp_exception_reporting::IGNORE ) {
+	fp_bits = 0;
+    } else {
+	fp_bits = FP_X_INV | FP_X_DZ;
+	if ( overflow ) {
+	    fp_bits |= FP_X_OFL;
+	}
     }
 
     fpsetsticky( FP_CLEAR );
@@ -256,7 +279,7 @@ fp_status_bits()
 {
 #if  HAVE_FENV_H && HAVE_FETESTEXCEPT
 
-    return fetestexcept( FE_DIVBYZERO|FE_INEXACT|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW );
+    return fetestexcept( FE_ALL_EXCEPT );
 
 #elif HAVE_IEEEFP_H && HAVE_FPGETSTICKY
 

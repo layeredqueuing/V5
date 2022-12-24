@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: fpgoop.h 16193 2022-12-22 23:15:19Z greg $
+ * $Id: fpgoop.h 16194 2022-12-23 03:22:28Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -65,4 +65,3 @@ private:
 enum class fp_exception_reporting { IGNORE, REPORT, DEFERRED_ABORT, IMMEDIATE_ABORT };
 extern fp_exception_reporting matherr_disposition;	/* What to do about math probs.	*/
 #endif
-

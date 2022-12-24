@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- * $Id: server.cc 15658 2022-06-08 18:00:22Z greg $
+ * $Id: server.cc 16194 2022-12-23 03:22:28Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -40,6 +40,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <limits>
+#include "fpgoop.h"
 #include "mva.h"
 #include "mvaexception.h"
 #include "open.h"

@@ -1,5 +1,5 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 16193 2022-12-22 23:15:19Z greg $
+# $Id: configure.ac 16195 2022-12-23 22:03:52Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
@@ -18,6 +18,7 @@ AC_LANG(C++)
 
 # Checks for header files.
 AC_CHECK_HEADERS([fenv.h ieeefp.h signal.h])
+AC_CHECK_HEADERS([xmmintrin.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 16123 2022-11-18 11:06:45Z greg $
+ *  $Id: srvn_spex.cpp 16195 2022-12-23 22:03:52Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -1174,7 +1174,7 @@ void spex_set_program( void * param_arg, void * result_arg, void * convergence_a
     }
 
     /* Handle this here -- can't change after program is compiled */
-    if ( !LQIO::Spex::__no_header ) {
+    if ( !LQIO::Spex::__no_header && LQIO::DOM::__document->hasPragma( LQIO::DOM::Pragma::_spex_header_ ) ) {
 	LQIO::Spex::__no_header = !LQIO::DOM::Pragma::isTrue(LQIO::DOM::__document->getPragma( LQIO::DOM::Pragma::_spex_header_ ));
     }
 

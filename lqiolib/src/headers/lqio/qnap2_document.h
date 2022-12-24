@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 16183 2022-12-16 12:37:18Z greg $
+ *  $Id: qnap2_document.h 16194 2022-12-23 03:22:28Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -42,7 +42,7 @@ extern "C" {
     void qnap2_set_option( const void * );
     void qnap2_set_station_init( const void *, void * );
     void qnap2_set_station_name( const char * );
-    void qnap2_set_station_prio( const void *, const void * );
+    void qnap2_set_station_prio( const void *, void * );
     void qnap2_set_entry( void * );
     void qnap2_set_main( void * );
     void qnap2_set_exit( void * );
@@ -113,7 +113,7 @@ namespace QNIO {
 	friend void ::qnap2_set_exit( void * );
 	friend void ::qnap2_set_station_init( const void *, void * );
 	friend void ::qnap2_set_station_name( const char * );
-	friend void ::qnap2_set_station_prio( const void *, const void * );
+	friend void ::qnap2_set_station_prio( const void *, void * );
 	friend void ::qnap2_set_station_quantum( const void *, const void * );
 	friend void ::qnap2_set_station_sched( const char * );
 	friend void ::qnap2_set_station_service( const void *, const void * );
@@ -282,6 +282,15 @@ namespace QNIO {
 	    LQX::SyntaxTreeNode * _customers;
 	};
 
+	class SetStationPriority : public SetParameter {
+	public:
+	    SetStationPriority( const QNAP2_Document& document, LQX::SyntaxTreeNode* priority ) : SetParameter(document), _priority(priority) {}
+	    void operator()( const std::string& ) const;
+	    void operator()( BCMP::Model::Chain::pair_t& ) const;
+	private:
+	    LQX::SyntaxTreeNode * _priority;
+	};
+	
 	class SetStationService : public SetParameter {
 	public:
 	    SetStationService( const QNAP2_Document& document, const QNIO::QNAP2_Document::ServiceDistribution& service ) : SetParameter(document), _service(service) {}

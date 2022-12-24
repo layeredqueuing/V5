@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * option.h	-- Greg Franks
  *
- * $Id: option.h 15677 2022-06-21 14:56:19Z greg $
+ * $Id: option.h 16194 2022-12-23 03:22:28Z greg $
  */
 
 #ifndef _OPTION_H
@@ -51,7 +51,7 @@ namespace Options
 	static bool forks() { return __bits[FORKS]; }
 	static bool interlock() { return __bits[INTERLOCK]; }
 //	static bool joins() { return __bits[JOINS]; }
-	static bool submodels( unsigned long submodel = 0 ) { return (submodel == 0 && __submodels != 0) || (((1 << (submodel - 1)) & __submodels) != 0); }
+	static bool submodels( unsigned long submodel = 0 );
 	static bool variance() { return __bits[VARIANCE]; }
 #if HAVE_LIBGSL
 	static bool quorum() { return __bits[QUORUM]; };
@@ -91,8 +91,8 @@ namespace Options
 	static void exec( const int ix, const std::string& );
 	static std::vector<char *> __options;
 	static std::map<const std::string, const Trace> __table;
-	static bool delta_wait( unsigned long submodel = 0 ) { return (submodel == 0 && __delta_wait != 0) || (((1 << (submodel - 1)) & __delta_wait) != 0); }
-	static bool mva( unsigned long submodel = 0 ) { return (submodel == 0 && __mva != 0) || (((1 << (submodel - 1)) & __mva) != 0); }
+	static bool delta_wait( unsigned long submodel = 0 );
+	static bool mva( unsigned long submodel = 0 );
 	static bool verbose() { return __verbose; }
 
     private:

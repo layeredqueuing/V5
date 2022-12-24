@@ -28,6 +28,7 @@
 #include <lqio/glblerr.h>
 #include <lqx/Program.h>
 #include <lqx/SyntaxTree.h>
+#include <mva/fpgoop.h>
 #include <mva/multserv.h>
 #include <mva/mva.h>
 #include "boundsmodel.h"

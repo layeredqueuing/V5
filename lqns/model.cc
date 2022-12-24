@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 16193 2022-12-22 23:15:19Z greg $
+ * $Id: model.cc 16194 2022-12-23 03:22:28Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -48,9 +48,10 @@
 #include <lqio/input.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
-#include <mva/server.h>
+#include <mva/fpgoop.h>
 #include <mva/mva.h>
 #include <mva/open.h>
+#include <mva/server.h>
 #include "activity.h"
 #include "actlist.h"
 #include "call.h"

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16189 2022-12-20 22:30:15Z greg $
+ * $Id: qnap2_document.cpp 16194 2022-12-23 03:22:28Z greg $
  *
  * Read in XML input files.
  *
@@ -470,6 +470,36 @@ void qnap2_set_station_name( const char * name )
     QNIO::QNAP2_Document::__station.first = name;
 }
 
+
+
+/*
+ * Set the priority of each of the classes for the station under construction.
+ */
+
+void qnap2_set_station_prio( const void * list, void * value )
+{
+    if ( value == nullptr ) return;
+    try {
+	QNIO::QNAP2_Document::SetStationPriority set_station_priority( *QNIO::QNAP2_Document::__document, static_cast<LQX::SyntaxTreeNode*>(value) );
+	if ( list == nullptr ) {
+	    BCMP::Model::Chain::map_t& chains = QNIO::QNAP2_Document::__document->model().chains();
+	    std::for_each( chains.begin(), chains.end(), set_station_priority );
+	} else {
+	    const std::vector<std::string>* classes = static_cast<const std::vector<std::string>*>(list);
+	    std::for_each( classes->begin(), classes->end(), set_station_priority );
+	}
+    }
+    catch ( const std::logic_error& error ) {
+	qnap2error( "%s.", error.what() );
+    }
+}
+
+
+
+void qnap2_set_station_quantum( const void *, const void * ){}
+void qnap2_set_station_rate( void * ){}
+
+
 void qnap2_set_station_sched( const char * scheduling )
 {
     if ( !QNIO::QNAP2_Document::__document->setStationScheduling( scheduling ) ) {
@@ -530,9 +560,6 @@ void qnap2_set_station_type( const void * arg )
     QNIO::QNAP2_Document::__document->setStationType( QNIO::QNAP2_Document::__station_type.at(type->first), type->second );
 }
 
-void qnap2_set_station_prio( const void *, const void * ){}
-void qnap2_set_station_quantum( const void *, const void * ){}
-void qnap2_set_station_rate( void * ){}
 
 
 /*
@@ -1220,6 +1247,16 @@ namespace QNIO {
     }
 
 
+    void QNIO::QNAP2_Document::SetStationPriority::operator()( const std::string& ) const
+    {
+    }
+
+    
+    void QNIO::QNAP2_Document::SetStationPriority::operator()( BCMP::Model::Chain::pair_t& ) const
+    {
+    }
+
+    
     void
     QNIO::QNAP2_Document::SetStationService::operator()( const BCMP::Model::Chain::pair_t& chain ) const
     {
