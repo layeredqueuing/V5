@@ -119,7 +119,7 @@ set_fp_abort()
     feenableexcept( fp_bits );
 #elif HAVE_IEEEFP_H && HAVE_FPSETMASK
     fpsetmask( fp_bits );
-#elif HAVE_XMMINTRIN_H
+#elif !defined(__WINNT__) && HAVE_XMMINTRIN_H
     if ((fp_bits & FE_INVALID) != 0)	{ _mm_setcsr(_MM_MASK_MASK & ~_MM_MASK_INVALID); }
     if ((fp_bits & FE_DIVBYZERO) != 0)	{ _mm_setcsr(_MM_MASK_MASK & ~_MM_MASK_DIV_ZERO); }
     if ((fp_bits & FE_OVERFLOW ) != 0) 	{ _mm_setcsr(_MM_MASK_MASK & ~_MM_MASK_OVERFLOW); }
