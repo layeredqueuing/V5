@@ -34,11 +34,14 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-#if HAVE_SIGNAL_H
-#include <signal.h>
+#if HAVE_FLOAT_H
+#include <float.h>
 #endif
 #if HAVE_IEEEFP_H
 #include <ieeefp.h>
+#endif
+#if HAVE_SIGNAL_H
+#include <signal.h>
 #endif
 #if HAVE_XMMINTRIN_H
 #include <xmmintrin.h>
@@ -112,6 +115,7 @@ void
 set_fp_abort()
 {
 #if HAVE_FENV_H && HAVE_FEENABLEEXCEPT
+    /* Best way */
     feenableexcept( fp_bits );
 #elif HAVE_IEEEFP_H && HAVE_FPSETMASK
     fpsetmask( fp_bits );
@@ -124,6 +128,8 @@ set_fp_abort()
     fegetenv(&env);
     env.__fpcr = env.__fpcr | __fpcr_trap_invalid |  __fpcr_trap_divbyzero |  __fpcr_trap_overflow;
     fesetenv(&env);
+#elif defined(__WINNT__) && HAVE__CONTROLFP_S
+    _controlfp_s(NULL, ~(_EM_ZERODIVIDE | _EM_OVERFLOW), _MCW_EM);
 #else
     #warning No FP abort.
 #endif
@@ -216,9 +222,9 @@ check_fp_ok()
 
     return (fpgetsticky() & fp_bits) == 0;
 
-#elif defined(__WINNT__)
+#elif defined(__WINNT__) && HAVE__STATUSFP
 
-    return (_status87() & fp_bits) == 0;
+    return (_statusfp() & (EM_ZERODIVIDE|EM_OVERFLOW)) == 0;
 
 #else
 
@@ -263,6 +269,9 @@ set_fp_ok( bool overflow )
     }
 
     fpsetsticky( FP_CLEAR );
+
+#elif defined(__WINNT__) && HAVE__CLEARFP
+    _clearfp();
 
 #endif
 }
@@ -328,19 +337,11 @@ log_factorial( const unsigned n )
     if ( n == 1 ) return 0.0;
     if ( n <= 100 ) {
 	if ( a[n] == 0 ) {
-#if HAVE_LGAMMA	    
-	    a[n] = lgamma( n + 1.0 );
-#else
-	    a[n] = ::log( n ) + log_factorial( n - 1 );
-#endif
+	    a[n] = std::lgamma( n + 1.0 );
 	}
 	return a[n];
     } else {
-#if HAVE_LGAMMA	    
-	return lgamma( n + 1.0 );
-#else
-	return ::log( n ) + log_factorial( n - 1 );
-#endif
+	return std::lgamma( n + 1.0 );
     }
 }
 

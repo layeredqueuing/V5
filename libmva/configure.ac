@@ -18,6 +18,7 @@ AC_LANG(C++)
 
 # Checks for header files.
 AC_CHECK_HEADERS([fenv.h ieeefp.h signal.h])
+AC_CHECK_HEADERS([float.h])
 AC_CHECK_HEADERS([xmmintrin.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -26,6 +27,7 @@ AC_CHECK_HEADERS([xmmintrin.h])
 AC_CHECK_LIB([m], [sqrt])
 AC_FUNC_ERROR_AT_LINE
 AC_CHECK_FUNCS([feclearexcept feenableexcept fesetexceptflag fetestexcept finite fpgetsticky fpsetmask fpsetsticky])
-AC_CHECK_FUNCS([lgamma sigaction])
+AC_CHECK_FUNCS([sigaction])
+AC_CHECK_FUNCS([_clearfp _controlfp_s _statusfp])		# windows
 AC_CONFIG_FILES([Makefile src/Makefile src/headers/mva/Makefile regression/Makefile])
 AC_OUTPUT
