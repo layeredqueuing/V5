@@ -17,13 +17,15 @@
 #include "config.h"
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <fstream>
 #include <numeric>
 #include <sstream>
 #include <string>
 #include <lqio/bcmp_bindings.h>
-#include <lqio/jmva_document.h>
+#include <lqio/qnio_document.h>
 #include <lqio/dom_document.h>
+#include <lqio/qnio_document.h>
 #include <lqio/srvn_spex.h>
 #include <lqio/glblerr.h>
 #include <lqx/Program.h>

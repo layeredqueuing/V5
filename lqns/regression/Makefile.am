@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16143 2022-11-29 21:48:46Z greg $
+# $Id: Makefile.am 16199 2022-12-26 15:04:39Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -150,11 +150,11 @@ distclean:	clean
 # 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 90-A01-novar.lqxo: 90-A01.lqnx
-	$(SRVN) -Pvariance=none -a -xo$@ $<
+	$(SRVN) -Pvariance=none -a -xo$@ 90-A01.lqnx
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 90-A01-stoch.lqxo: 90-A01.lqnx
-	$(SRVN) -Pvariance=stochastic -a -xo$@ $<
+	$(SRVN) -Pvariance=stochastic -a -xo$@ 90-A01.lqnx
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 94-5101-a2-q2b1.lqxo: 94-5101-a2-q2b1.lqnx

@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 16079 2022-11-08 15:35:44Z greg $
+ * $Id: qnsolver.cc 16204 2022-12-27 15:42:27Z greg $
  */
 
 #include "config.h"
@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iomanip>
 #include <cstdlib>
+#include <cstring>
 #include <getopt.h>
 #include <libgen.h>
 #if HAVE_EXPAT_H
@@ -270,9 +271,11 @@ static void exec( const std::string& input_file_name, const std::string& output_
     if ( LQIO::DOM::Document::getInputFormatFromFilename( input_file_name, LQIO::DOM::Document::InputFormat::JMVA ) == LQIO::DOM::Document::InputFormat::QNAP2 ) {
 	QNIO::QNAP2_Document input( input_file_name );
 	exec( input, output_file_name, plot_arg );
+#if HAVE_EXPAT_H
     } else {
 	QNIO::JMVA_Document input( input_file_name );
 	exec( input, output_file_name, plot_arg );
+#endif
     }
     if ( Model::verbose_flag ) std::cerr << "done" << std::endl;
 }
