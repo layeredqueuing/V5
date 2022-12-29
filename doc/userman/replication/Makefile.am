@@ -2,14 +2,14 @@
 # Copyright (C) 2005 Greg Franks <rgfranks@alumni.uwaterloo.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15446 2022-03-05 00:01:59Z greg $
+# $Id: Makefile.am 16205 2022-12-29 00:40:26Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	flat.fig          multiserver.fig   replicaserver.fig replicated.fig    
 OBJS = $(SRCS:.fig=.eps) 
 
 EXTRA_DIST = $(SRCS) $(OBJS)
-pkgdata_DIST =  $(OBJS)
+pkgdata_DATA =  $(OBJS)
 
 SUFFIXES = .pdf .ps .dvi .bbl .eps .pstex .eps .fig .tex
 
@@ -20,4 +20,3 @@ endif
 
 distclean-local:
 	rm -f *.bak
-
