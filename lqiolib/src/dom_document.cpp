@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 16123 2022-11-18 11:06:45Z greg $
+ *  $Id: dom_document.cpp 16212 2022-12-30 20:39:19Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -16,6 +16,9 @@
 #include <cmath>
 #include <algorithm>
 #include <numeric>
+#if HAVE_SYS_UTSNAME_H
+#include <sys/utsname.h>
+#endif
 #include "glblerr.h"
 #if HAVE_LIBEXPAT
 #include "expat_document.h"
@@ -554,24 +557,29 @@ namespace LQIO {
 	    return *this;
 	}
 
-	Document& Document::setResultPlatformInformation(const std::string& version )
+	Document& Document::setResultPlatformInformation(const std::string& resultPlatformInformation)
 	{
 	    _hasResults = true;
-	    _resultPlatformInformation.clear();
-
+	    if ( !resultPlatformInformation.empty() ) {
+		_resultPlatformInformation = resultPlatformInformation;
+	    } else {
 #if HAVE_UNAME
-	    struct utsname uu;		/* Get system triva. */
-	    uname( &uu );
-	    _resultPlatformInformation += uu.nodename + " " + uu.sysname + " " + uu.release;
+		struct utsname uu;		/* Get system triva. */
+		uname( &uu );
+		_resultPlatformInformation = std::string(uu.nodename) + " " + uu.sysname + " " + uu.release;
 #endif
-	    _resultPlatformInformation += LQIO::io_vars.lq_toolname + " " + version;
+	    }
 	    return *this;
 	}
 
 	Document& Document::setResultSolverInformation(const std::string& resultSolverInformation)
 	{
 	    _hasResults = true;
-	    _resultSolverInformation = resultSolverInformation;
+	    if ( !resultSolverInformation.empty() ) {
+		_resultSolverInformation = resultSolverInformation;
+	    } else {
+		_resultSolverInformation = LQIO::io_vars.lq_toolname + " " + LQIO::io_vars.lq_version;
+	    }
 	    return *this;
 	}
 

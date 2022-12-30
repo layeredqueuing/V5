@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 16121 2022-11-17 20:31:33Z greg $
+ * $Id: model.cc 16212 2022-12-30 20:39:19Z greg $
  */
 
 #include "lqsim.h"
@@ -483,7 +483,8 @@ Model::insertDOMResults()
     _document->setResultConvergenceValue(_confidence)
 	.setResultValid( _confidence <= _parameters._precision || _parameters._precision == 0.0 )
 	.setResultIterations(number_blocks)
-	.setResultSolverInformation(VERSION);
+	.setResultSolverInformation()
+	.setResultPlatformInformation();
 
     for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::insertDOMResults ) );
     for_each( Group::__groups.begin(), Group::__groups.end(), Exec<Group>( &Group::insertDOMResults ) );

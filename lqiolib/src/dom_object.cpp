@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 15968 2022-10-13 19:23:03Z greg $
+ *  $Id: dom_object.cpp 16212 2022-12-30 20:39:19Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -92,13 +92,12 @@ namespace LQIO {
 	    { LQIO::ERR_REFERENCE_TASK_REPLIES,		{ LQIO::error_severity::ERROR,    "replies to entry \"%s\"" } },
 	    { LQIO::ERR_REPLY_NOT_GENERATED,		{ LQIO::error_severity::ERROR,    "must reply; the reply is not specified in the activity graph" } },
 	    { LQIO::ERR_TASK_ENTRY_COUNT, 		{ LQIO::error_severity::ERROR, 	  "has %d entries defined, exactly %d are required" } },
-	    { LQIO::ERR_TASK_HAS_NO_ENTRIES,	 	{ LQIO::error_severity::ERROR, 	  "has no entries" } },
 	    { LQIO::ERR_WRONG_TASK_FOR_ENTRY,		{ LQIO::error_severity::ERROR,    "is not part of task \"%s\""} },
 	    { LQIO::WRN_ENTRY_HAS_NO_REQUESTS,		{ LQIO::error_severity::WARNING,  "does not receive any requests" } },
 	    { LQIO::WRN_ENTRY_TYPE_MISMATCH,		{ LQIO::error_severity::WARNING,  "was previously set to type \"%s\" - changing to type \"%s\"" } },
 	    { LQIO::WRN_INFINITE_MULTI_SERVER, 		{ LQIO::error_severity::WARNING,  "is an infinite server with a multiplicity of %d" } },
 	    { LQIO::WRN_INFINITE_SERVER_OPEN_ARRIVALS,	{ LQIO::error_severity::WARNING,  "is an infinite server that accepts either asynchronous messages or open arrivals" } },
-	    { LQIO::WRN_NON_CFS_PROCESSOR,		{ LQIO::error_severity::WARNING,  "specified for processor \"%s\" which is not running fair share scheduling" } },
+	    { LQIO::WRN_NON_CFS_PROCESSOR,		{ LQIO::error_severity::WARNING,  "is a processor which is not running fair share scheduling" } },
 	    { LQIO::WRN_NOT_USED,			{ LQIO::error_severity::WARNING,  "is not used" } },
 	    { LQIO::WRN_PRIO_TASK_ON_FIFO_PROC,		{ LQIO::error_severity::WARNING,  "with priority is running on processor \"%s\" which does not have priority scheduling" } },
 	    { LQIO::WRN_PROCESSOR_HAS_NO_TASKS,		{ LQIO::error_severity::WARNING,  "has no tasks" } },

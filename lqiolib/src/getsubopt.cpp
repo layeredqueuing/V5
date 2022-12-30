@@ -13,17 +13,17 @@
  *
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: getsubopt.cpp 15217 2021-12-14 21:32:46Z greg $
+ * $Id: getsubopt.cpp 16212 2022-12-30 20:39:19Z greg $
  */
 
-#if defined(HAVE_CONFIG_H)
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
 #if defined(__cplusplus) && defined(inline)
 #undef inline
 #endif
 
-#if !defined(HAVE_GETSUBOPT) 
+#if !HAVE_GETSUBOPT
 #include "getsbopt.h"
 #include <string.h>
 #include <ctype.h>

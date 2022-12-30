@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 15895 2022-09-23 17:21:55Z greg $
+ *  $Id: srvn_input.cpp 16212 2022-12-30 20:39:19Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -152,7 +152,7 @@ srvn_add_group( const char *group_name, void * group_share, const char *processo
     }
 
     if ( processor->getSchedulingType() != SCHEDULE_CFS ) {
-	group->input_error( LQIO::WRN_NON_CFS_PROCESSOR, processor_name );
+	processor->input_error( LQIO::WRN_NON_CFS_PROCESSOR );
 	return nullptr;		/* Ignore group */
     }
     
@@ -178,9 +178,8 @@ srvn_add_task (const char * task_name, const scheduling_type scheduling, const v
     if ( task != nullptr ) {
 	task->input_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	return nullptr;
-
     } else if ( entries == nullptr ) {
-	task->input_error( LQIO::ERR_TASK_HAS_NO_ENTRIES );
+	LQIO::input_error2( LQIO::ERR_TASK_HAS_NO_ENTRIES, task_name );
 	return nullptr;
     } else if ( scheduling == SCHEDULE_SEMAPHORE ) {
 	task = new LQIO::DOM::SemaphoreTask( LQIO::DOM::__document, task_name, *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor );

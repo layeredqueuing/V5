@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: report.cc 15329 2022-01-02 20:46:57Z greg $
+ * $Id: report.cc 16212 2022-12-30 20:39:19Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -324,7 +324,8 @@ SolverReport::insertDOMResults() const
 	.setResultValid(_valid)
 	.setResultIterations(_iterations)
 	.setMVAStatistics(MVAStats.size(),total._n,total.step,total.step_sqr,total.wait,total.wait_sqr,total.faults)
-	.setResultPlatformInformation(VERSION);
+	.setResultSolverInformation()
+	.setResultPlatformInformation();
     _delta_time.insertDOMResults( *_document );
     
     return *this;

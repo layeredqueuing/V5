@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 16123 2022-11-18 11:06:45Z greg $
+ *  $Id: dom_document.h 16212 2022-12-30 20:39:19Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -172,9 +172,9 @@ namespace LQIO {
 	    Document& setResultHasConfidenceIntervals( const bool hasConfidenceIntervals ) { _hasConfidenceIntervals = hasConfidenceIntervals; return *this; }
 	    Document& setResultHasBottleneckStrength( const bool hasBottleneckStrength ) { _hasBottleneckStrength = hasBottleneckStrength; return *this; }
 	    const std::string& getResultPlatformInformation() const { return _resultPlatformInformation; }
-	    Document& setResultPlatformInformation(const std::string& resultPlatformInformation);
+	    Document& setResultPlatformInformation(const std::string& resultPlatformInformation="");
 	    const std::string& getResultSolverInformation() const { return _resultSolverInformation; }
-	    Document& setResultSolverInformation(const std::string& resultSolverInformation);
+	    Document& setResultSolverInformation(const std::string& resultSolverInformation="");
 	    double getResultElapsedTime() const { return _resultElapsedTime; }
 	    Document& setResultElapsedTime(double resultElapsedTime);
 	    double getResultSysTime() const { return _resultSysTime; }

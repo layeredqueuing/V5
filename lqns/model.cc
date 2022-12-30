@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 16194 2022-12-23 03:22:28Z greg $
+ * $Id: model.cc 16212 2022-12-30 20:39:19Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -772,6 +772,7 @@ Model::reinitStations()
 bool
 Model::compute()
 {
+
     SolverReport report( const_cast<LQIO::DOM::Document *>(_document), _MVAStats );
     setModelParameters( _document );
 
