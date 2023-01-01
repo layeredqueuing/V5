@@ -573,16 +573,16 @@ namespace LQIO {
 	    struct utsname uu;		/* Get system triva. */
 	    uname( &uu );
 	    _resultPlatformInformation = std::string(uu.nodename) + " " + uu.sysname + " " + uu.release;
-#elif HAVE_GETHOSTNAME
-	    char buf[128];
-	    gethostname( buf, 128 );
-	    _resultPlatformInfomation = std::string(buf);
-#if defined(__WINNT__) && HAVE_WINDOWS_H
-	    OSVERSIONINFOEX info;
-	    memset(static_cast<char *>(&info), 0, sizeof(OSVERSIONINFOEX));
-	    GetVersionEx(static_cast<LPOSVERSIONINFO>&info);//info requires typecasting
-	    _resultPlatformInformation += " WinNT " + " " + std::tostring(info.dwMajorVersion) + "." + std::tostring(info.dwMinorVersion);
-#endif
+#elif defined(__WINNT__) && HAVE_WINDOWS_H
+	    char name[MAX_COMPUTERNAME_LENGTH+1];
+	    OSVERSIONINFOEXA info;
+	    DWORD length = sizeof(name);
+	    GetComputerNameExA(static_cast<COMPUTER_NAME_FORMAT>(0), name, &length );
+	    _resultPlatformInformation = name;
+	    memset(reinterpret_cast<char *>(&info), 0, sizeof(info));
+	    info.dwOSVersionInfoSize = sizeof(info);
+	    GetVersionExA( reinterpret_cast<LPOSVERSIONINFOA>(&info) );
+	    _resultPlatformInformation += " WinNT " + std::to_string(info.dwMajorVersion) + "." + std::to_string(info.dwMinorVersion);
 #endif
 	    return *this;
 	}

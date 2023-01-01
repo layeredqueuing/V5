@@ -14,9 +14,10 @@
  * $Id: srvndiff.cc 9689 2010-07-06 18:36:54Z greg $
  */
 
-#if defined(HAVE_CONFIG_H)
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <limits>
 #include <string>
 #include "srvndiff.h"
 #include "srvn_results.h"
