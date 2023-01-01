@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!-- lqn2xml -o../regression-xml/16-open-arrival.lqnx -->
-<lqn-model name="Number of Phases per Entry" description="lqn2xml 5.7 solution for model from: Number of Phases per Entry." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="08 Sanity" description="Interlocked model with open arrivals." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="lqngen" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
    <processor name="p1" scheduling="fcfs">
       <task name="t1" scheduling="ref" queue-length="0">

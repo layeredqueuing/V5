@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<!-- $Id: 52-replication.lqxo 13791 2020-08-23 01:43:45Z greg $ -->
+<!-- $Id: 52-replication.lqxo 16232 2023-01-01 22:14:46Z greg $ -->
 <!-- lqns -pragma=variance=mol,threads=mak -no-warnings -->
 <lqn-model name="52-replication" description="lqns 5.14 solution for model from: 52-replication.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Simplified model from bug 166" conv_val="0.01" it_limit="75" underrelax_coeff="0.9" print_int="1">
-      <result-general valid="YES" conv-val="0.00391427" iterations="2" platform-info="Gregs-MacBookPro-2.local Darwin 19.5.0" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000">
+      <result-general valid="YES" solver-info="lqns 5.14" conv-val="0.00391427" iterations="2" platform-info="Gregs-MacBookPro-2.local Darwin 19.5.0" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000">
          <mva-info submodels="2" core="6" step="35" step-squared="205" wait="543" wait-squared="50985" faults="0"/>
       </result-general>
       <pragma param="severity-level" value="warning"/>

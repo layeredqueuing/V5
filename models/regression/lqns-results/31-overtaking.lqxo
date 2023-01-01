@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<!-- $Id: 31-overtaking.lqxo 15540 2022-04-17 13:26:30Z greg $ -->
+<!-- $Id: 31-overtaking.lqxo 16232 2023-01-01 22:14:46Z greg $ -->
 <!-- lqns -pragma=variance=mol,threads=hyper -->
 <lqn-model name="31-overtaking" description="lqns 5.26 solution for model from: 31-overtaking.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Simplest model - rendezvous with overtaking." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
       <pragma param="threads" value="hyper"/>
       <pragma param="variance" value="mol"/>
-      <result-general solver-info="" valid="true" conv-val="0" iterations="2" platform-info="lqns 5.26" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000" max-rss="4653056">
+      <result-general solver-info="lqns 5.26" valid="true" conv-val="0" iterations="2" platform-info="lqns 5.26" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000" max-rss="4653056">
          <mva-info submodels="2" core="4" step="22" step-squared="122" wait="305" wait-squared="24973" faults="0"/>
       </result-general>
    </solver-params>

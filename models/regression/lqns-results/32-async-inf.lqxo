@@ -5,7 +5,7 @@
    <solver-params comment="Open arrivals to an infinite server (from Giuliano Casale)" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
       <pragma param="threads" value="hyper"/>
       <pragma param="variance" value="mol"/>
-      <result-general solver-info="" valid="true" conv-val="0" iterations="3" platform-info="lqns 5.27" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000" max-rss="4759552">
+      <result-general solver-info="lqns 5.27" valid="true" conv-val="0" iterations="3" platform-info="lqns 5.27" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000" max-rss="4759552">
          <mva-info submodels="2" core="3" step="16" step-squared="86" wait="172" wait-squared="10184" faults="0"/>
       </result-general>
    </solver-params>

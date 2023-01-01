@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvndiff.h 16142 2022-11-29 16:45:39Z greg $
+ * $Id: srvndiff.h 16230 2023-01-01 15:01:53Z greg $
  */
 
 #if	!defined(SRVNDIFF_H)
@@ -66,6 +66,7 @@ typedef enum {
     P_SERVICE,
     P_SNR_WAITING,
     P_SNR_WAIT_VAR,
+    P_SOLVER_VERSION,
     P_TASK_PROC_UTIL,
     P_TASK_UTILIZATION,
     P_THROUGHPUT,
@@ -101,12 +102,12 @@ struct ot {
  * Primary data structures for storing results.
  */
 
-typedef struct time_info {
+struct general_info {
     double value[3];
     const char * sysname;
     const char * nodename;
-    const char * release;
-} time_info_type;
+    double version;
+};
 
 struct call_info
 {
@@ -290,7 +291,7 @@ extern double processor_util_conf;
 extern bool open_arrivals;
 
 
-extern time_info_type time_tab[MAX_PASS];
+extern general_info general_tab[MAX_PASS];
 extern double iteration_tab[MAX_PASS];
 extern double mva_wait_tab[MAX_PASS];
 extern bool confidence_intervals_present[MAX_PASS];

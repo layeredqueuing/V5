@@ -1,5 +1,5 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 16212 2022-12-30 20:39:19Z greg $
+# $Id: configure.ac 16231 2023-01-01 21:55:04Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
@@ -22,6 +22,7 @@ AC_LANG(C++)
 AC_FUNC_ALLOCA
 AC_CHECK_HEADERS([strings.h pwd.h time.h unistd.h])
 AC_CHECK_HEADERS([sys/errno.h sys/mman.h sys/resource.h sys/time.h sys/times.h sys/types.h sys/utsname.h])
+AC_CHECK_HEADERS([windows.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_SYS_WAIT
@@ -35,7 +36,7 @@ AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([ctime getopt_long])
-AC_CHECK_FUNCS([geteuid getpwuid getrusage gettimeofday uname])
+AC_CHECK_FUNCS([geteuid gethostname getpwuid getrusage gettimeofday uname])
 
 AC_CHECK_HEADERS([expat.h])
 AC_CHECK_LIB([expat], [XML_ParserCreateNS])

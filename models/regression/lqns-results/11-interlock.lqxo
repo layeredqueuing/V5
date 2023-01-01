@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
+<!-- $Id: 11-interlock.lqxo 16232 2023-01-01 22:14:46Z greg $ -->
 <!-- Invoked as: lqns -Pvariance=mol,threads=mak 11-interlock.lqnx -->
 <lqn-model name="11-interlock" description="lqns 5.3 solution for model from: 11-interlock.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Simple Interlock" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
-      <result-general valid="YES" conv-val="0" iterations="2" platform-info="Gregs-MacBook.local Darwin 10.7.0" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00">
+      <result-general valid="YES" solver-info="lqns 5.3" conv-val="0" iterations="2" platform-info="Gregs-MacBook.local Darwin 10.7.0" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00">
          <mva-info submodels="3" core="6" step="40" step-squared="292" wait="1665" wait-squared="1.11566e+06" faults="0"/>
       </result-general>
    </solver-params>

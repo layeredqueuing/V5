@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: model.h 15825 2022-08-12 20:45:37Z greg $
+ * $Id: model.h 16227 2022-12-31 18:27:59Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -91,6 +91,7 @@ namespace Model {
 	    PHASE_WAITING,
 	    PROCESSOR_MULTIPLICITY,
 	    PROCESSOR_UTILIZATION,
+	    SOLVER_VERSION,
 	    TASK_MULTIPLICITY,
 	    TASK_THROUGHPUT,
 	    TASK_UTILIZATION,

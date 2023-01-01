@@ -62,9 +62,9 @@ add_output_pragma( const char *str, int len )
 
 /*ARGSUSED*/
 void
-add_elapsed_time ( double time )
+add_elapsed_time( double time )
 {
-    time_tab[pass].value[REAL_TIME] = time;
+    general_tab[pass].value[REAL_TIME] = time;
 }
 
 /*
@@ -72,9 +72,9 @@ add_elapsed_time ( double time )
  */
 
 void
-add_user_time ( double time )
+add_user_time( double time )
 {
-    time_tab[pass].value[USER_TIME] = time;
+    general_tab[pass].value[USER_TIME] = time;
 }
 
 /*
@@ -82,11 +82,19 @@ add_user_time ( double time )
  */
 
 void
-add_system_time ( double time )
+add_system_time( double time )
 {
-    time_tab[pass].value[SYST_TIME] = time;
+    general_tab[pass].value[SYST_TIME] = time;
 }
 
+
+void
+add_solver_info( const char * info )
+{
+    if ( sscanf( info, "%*s %lf", &general_tab[pass].version ) <= 0 ) {
+	general_tab[pass].version = std::numeric_limits<double>::quiet_NaN();	/* None found */
+    }
+}
 
 void
 add_comment( const char * comment )

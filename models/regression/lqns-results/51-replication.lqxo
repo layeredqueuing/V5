@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
+<!-- $Id: 51-replication.lqxo 16232 2023-01-01 22:14:46Z greg $ -->
 <!-- lt-lqns -pragma=variance=mol,threads=mak -no-warnings -->
 <lqn-model name="51-replication" description="lt-lqns 5.9.2 solution for model from: 51-replication.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="" conv_val="1e-05" it_limit="500" underrelax_coeff="0.9" print_int="10">
-      <result-general valid="YES" conv-val="1.45159e-06" iterations="2" platform-info="greg-VirtualBox Linux 4.13.0-26-generic" user-cpu-time="00:00:00.08" system-cpu-time="00:00:00.02" elapsed-time="00:00:00.09" max-rss="6072">
+      <result-general valid="YES" solver-info="lqns 5.9.2" conv-val="1.45159e-06" iterations="2" platform-info="greg-VirtualBox Linux 4.13.0-26-generic" user-cpu-time="00:00:00.08" system-cpu-time="00:00:00.02" elapsed-time="00:00:00.09" max-rss="6072">
          <mva-info submodels="2" core="30" step="1751" step-squared="153109" wait="4.58999e+06" wait-squared="1.56247e+12" faults="0"/>
       </result-general>
       <pragma param="severity-level" value="warning"/>

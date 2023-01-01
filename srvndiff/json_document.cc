@@ -214,9 +214,11 @@ namespace LQIO {
 			 0,
 			 1 );
 	    try {
-		time_tab[pass].value[REAL_TIME] = get_time_attribute( Xelapsed_time, results );
-		time_tab[pass].value[USER_TIME] = get_time_attribute( Xuser_cpu_time, results );
-		time_tab[pass].value[SYST_TIME] = get_time_attribute( Xsystem_cpu_time, results );
+		add_elapsed_time( get_time_attribute( Xelapsed_time, results ) );
+		add_user_time( get_time_attribute( Xuser_cpu_time, results ) );
+		add_system_time( get_time_attribute( Xsystem_cpu_time, results ) );
+		const std::string& version = get_string_attribute( Xsolver_info, results );
+		add_solver_info( version.data() );
 	    }
 	    catch ( missing_attribute& e ) {
 	    }
@@ -1255,6 +1257,7 @@ namespace LQIO {
         const char * Json_Document::Xservice_type       = "service-time";
         const char * Json_Document::Xshare              = "share";
         const char * Json_Document::Xsignal             = "signal";
+	const char * Json_Document::Xsolver_info	= "solver-info";
         const char * Json_Document::Xspeed_factor       = "rate";
         const char * Json_Document::Xsquared_coeff_variation = 		"squared-coeff-variation";
         const char * Json_Document::Xstart_activity     = "start-activity";

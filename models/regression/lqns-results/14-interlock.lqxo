@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<!-- $Id: 14-interlock.lqxo 15603 2022-05-27 18:30:56Z greg $ -->
+<!-- $Id: 14-interlock.lqxo 16232 2023-01-01 22:14:46Z greg $ -->
 <!-- lqns -pragma=variance=mol,threads=hyper -->
 <lqn-model name="14-interlock" description="lqns 5.26 solution for model from: 14-interlock.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Split Interlock with all infinite servers." conv_val="0.0001" it_limit="150" underrelax_coeff="0.4" print_int="10">
       <pragma param="threads" value="hyper"/>
       <pragma param="variance" value="mol"/>
-      <result-general solver-info="" valid="true" conv-val="6.69911e-05" iterations="25" platform-info="lqns 5.26" user-cpu-time=" 0:00:00.004" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.004" max-rss="11984">
+      <result-general solver-info="lqns 5.26" valid="true" conv-val="6.69911e-05" iterations="25" platform-info="lqns 5.26" user-cpu-time=" 0:00:00.004" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.004" max-rss="11984">
          <mva-info submodels="4" core="100" step="1026" step-squared="18980" wait="322126" wait-squared="1.27634e+10" faults="0"/>
       </result-general>
    </solver-params>

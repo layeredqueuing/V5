@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 15825 2022-08-12 20:45:37Z greg $
+ * $Id: model.cc 16227 2022-12-31 18:27:59Z greg $
  *
  * Command line processing.
  *
@@ -67,6 +67,7 @@ const std::map<Model::Result::Type,Model::Result::result_fields> Model::Result::
     { Model::Result::Type::PHASE_WAITING,              { Model::Object::Type::PHASE_CALL,    "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultWaitingTime         } },
     { Model::Result::Type::PROCESSOR_MULTIPLICITY,     { Model::Object::Type::PROCESSOR,     "Copies",      "mult", &LQIO::DOM::DocumentObject::getCopiesValueAsDouble       } },
     { Model::Result::Type::PROCESSOR_UTILIZATION,      { Model::Object::Type::PROCESSOR,     "Utilization", "util", &LQIO::DOM::DocumentObject::getResultUtilization         } },
+    { Model::Result::Type::SOLVER_VERSION,	       { Model::Object::Type::DOCUMENT,      "Version",     "vrsn", nullptr } },
     { Model::Result::Type::TASK_MULTIPLICITY,          { Model::Object::Type::TASK,          "Copies",      "mult", &LQIO::DOM::DocumentObject::getCopiesValueAsDouble       } },
     { Model::Result::Type::TASK_THINK_TIME,            { Model::Object::Type::TASK,          "Think Time",  "thnk", &LQIO::DOM::DocumentObject::getThinkTimeValue            } },
     { Model::Result::Type::TASK_THROUGHPUT,            { Model::Object::Type::TASK,          "Throughput",  "tput", &LQIO::DOM::DocumentObject::getResultThroughput          } },
@@ -203,6 +204,15 @@ Model::Result::operator()( const std::vector<double>& in, const std::pair<std::s
     if ( arg.second == Result::Type::MVA_STEPS ) {
 	out.push_back( dom().getResultMVAStep() );
 
+    } else if ( arg.second == Result::Type::SOLVER_VERSION ) {
+	const std::string& info = dom().getResultSolverInformation();
+	double version = 0;
+	if ( sscanf( info.c_str(), "%*s %lf", &version ) > 0 ) {
+	    out.push_back( version );
+	} else {
+	    out.push_back( std::numeric_limits<double>::quiet_NaN() );
+	}
+	
     } else {
 	const LQIO::DOM::DocumentObject * object = findObject( arg.first, result.type );
 

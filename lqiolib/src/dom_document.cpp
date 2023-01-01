@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 16212 2022-12-30 20:39:19Z greg $
+ *  $Id: dom_document.cpp 16231 2023-01-01 21:55:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -23,6 +23,9 @@
 #if HAVE_LIBEXPAT
 #include "expat_document.h"
 #include "jmva_document.h"
+#endif
+#if HAVE_WINDOWS_H
+#include <windows.h>
 #endif
 #include "dom_activity.h"
 #include "dom_actlist.h"
@@ -560,29 +563,45 @@ namespace LQIO {
 	Document& Document::setResultPlatformInformation(const std::string& resultPlatformInformation)
 	{
 	    _hasResults = true;
-	    if ( !resultPlatformInformation.empty() ) {
 		_resultPlatformInformation = resultPlatformInformation;
-	    } else {
+		return *this;
+	}
+
+	Document& Document::setResultPlatformInformation()
+	{
 #if HAVE_UNAME
-		struct utsname uu;		/* Get system triva. */
-		uname( &uu );
-		_resultPlatformInformation = std::string(uu.nodename) + " " + uu.sysname + " " + uu.release;
+	    struct utsname uu;		/* Get system triva. */
+	    uname( &uu );
+	    _resultPlatformInformation = std::string(uu.nodename) + " " + uu.sysname + " " + uu.release;
+#elif HAVE_GETHOSTNAME
+	    char buf[128];
+	    gethostname( buf, 128 );
+	    _resultPlatformInfomation = std::string(buf);
+#if defined(__WINNT__) && HAVE_WINDOWS_H
+	    OSVERSIONINFOEX info;
+	    memset(static_cast<char *>(&info), 0, sizeof(OSVERSIONINFOEX));
+	    GetVersionEx(static_cast<LPOSVERSIONINFO>&info);//info requires typecasting
+	    _resultPlatformInformation += " WinNT " + " " + std::tostring(info.dwMajorVersion) + "." + std::tostring(info.dwMinorVersion);
 #endif
-	    }
+#endif
+	    return *this;
+	}
+
+	Document& Document::setResultSolverInformation()
+	{
+	    /* Default -- take from io_vars. */
+	    _hasResults = true;
+	    _resultSolverInformation = LQIO::io_vars.lq_toolname + " " + LQIO::io_vars.lq_version;
 	    return *this;
 	}
 
 	Document& Document::setResultSolverInformation(const std::string& resultSolverInformation)
 	{
 	    _hasResults = true;
-	    if ( !resultSolverInformation.empty() ) {
-		_resultSolverInformation = resultSolverInformation;
-	    } else {
-		_resultSolverInformation = LQIO::io_vars.lq_toolname + " " + LQIO::io_vars.lq_version;
-	    }
+	    _resultSolverInformation = resultSolverInformation;
 	    return *this;
 	}
-
+	
 	Document& Document::setResultUserTime(double resultUserTime)
 	{
 	    _hasResults = true;

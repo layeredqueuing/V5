@@ -12,28 +12,23 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 16142 2022-11-29 16:45:39Z greg $
+ * $Id: srvndiff.cc 16230 2023-01-01 15:01:53Z greg $
  */
 
 #define DIFFERENCE_MODE	1
 
+#include <algorithm>
+#include <cassert>
+#include <cfenv>
+#include <cmath>
 #include <config.h>
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
-#include <cstdarg>
-#include <cmath>
+#include <regex>
+#include <string>
 #include <unistd.h>
 #include <vector>
-#include <algorithm>
-#include <string>
-#include <cassert>
-#include <regex>
-#if HAVE_FENV_H && defined(DEBUG)
-#if (defined(__GNUC__) && defined(linux)) || (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 700))
-#define __USE_GNU
-#endif
-#include <fenv.h>
-#endif
 #if HAVE_GLOB_H
 #include <glob.h>
 #else
@@ -198,6 +193,7 @@ static void get_tput( double value[], double conf_value[], unsigned i, unsigned 
 static void get_tutl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 static void get_util( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 static void get_vari( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+static void get_vrsn( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 static void get_wait( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 static void get_wpht( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
 static void get_wput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
@@ -256,6 +252,7 @@ result_str_tab_t result_str[(int)P_LIMIT] = {
     /* P_SERVICE,      */   	{ "Service",        &fmt_e_p,   &fmt_a,   &width_e_p, 	get_serv, get_act_serv, check_serv, check_act_serv },
     /* P_SNR_WAITING,  */   	{ "SNR Waiting",    &fmt_e_e_p, &fmt_t_a, &width_e_e_p, get_snrw, get_act_snrw, check_snrw, check_act_snrw },
     /* P_SNR_WAIT_VAR, */   	{ "SNR Wt Var.",    &fmt_e_e_p, &fmt_t_a, &width_e_e_p, get_snrv, get_act_snrv, check_snrw, check_act_snrw },
+    /* P_SOLVER_VERSION*/	{ "Version",        &fmt_e,     nullptr,  &width_e, 	get_vrsn, nullptr,      nullptr,    nullptr },
     /* P_TASK_PROC_UTIL*/   	{ "Proc. Util.",    &fmt_e,     nullptr,  &width_e, 	get_tpru, nullptr,      check_proc, nullptr },
     /* P_TASK_UTIL     */   	{ "Utilization",    &fmt_e,     nullptr,  &width_e, 	get_tutl, nullptr,      check_proc, nullptr },
     /* P_THROUGHPUT,   */   	{ "Throughput",     &fmt_e,     nullptr,  &width_e, 	get_tput, nullptr,      check_tput, nullptr },
@@ -268,7 +265,7 @@ result_str_tab_t result_str[(int)P_LIMIT] = {
 
 static std::string opts = "";
 LQIO::CommandLine command_line( opts );
-time_info_type time_tab[MAX_PASS];
+general_info general_tab[MAX_PASS];
 double iteration_tab[MAX_PASS];
 double mva_wait_tab[MAX_PASS];
 bool confidence_intervals_present[MAX_PASS];
@@ -421,6 +418,7 @@ static bool print_latex			= false;
 static bool print_quiet 		= false;
 static bool print_results_only 		= false;
 static bool print_rms_error_only 	= false;
+static bool print_solver_version	= false;
 static bool print_total_rms_error 	= true;
 static bool print_totals_only 		= false;
 
@@ -495,6 +493,7 @@ static struct {
     { "asynch-send-waits",           'z', true,  no_argument,       "Print send-no-reply waiting time results", &print_snr_waiting },
     { "compact",		 512+'k', false, no_argument,	    "Use a more compact format for output", nullptr },
     { "print-comment",		 512+'c', false, no_argument,	    "Print model comment field", nullptr },
+    { "solver-version",	         512+'i', false, no_argument,	    "Print solver version  (major.minor only)", nullptr },
     { "latex",			 512+'l', false, no_argument,	    "Format output for LaTeX", nullptr },
     { "heading",		 512+'h', false, required_argument, "Set column heading <col> to <string>", nullptr },
     { "debug-xml",               512+'x', false, no_argument,       "Output debugging information while parsing XML input", nullptr },
@@ -503,7 +502,7 @@ static struct {
     { "no-replication",		 512+'r', false, no_argument,       "Strip replicas from \"flattend\" model from comparison", nullptr },
     { "no-warnings",		 512+'w', false, no_argument,       "Ignore warnings when parsing results", nullptr },
     { "verbose",                 512+'v', false, no_argument,       "Verbose output (direct differences to stderr)", nullptr },
-    { 0, 0, 0, 0, 0, 0 }
+    { nullptr, 0, 0, 0, nullptr, nullptr }
 };
 
 /*
@@ -560,6 +559,7 @@ static void print_phase_result( const result_str_t result, const char * file_nam
 static void print_group( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_processor( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_task_result( const result_str_t result, const char * file_name, const unsigned passes );
+static void print_version( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_rms_error( const char * file_name, const result_str_t result, const std::vector<stats_buf>&, unsigned passes, const bool print_conf );
 static void print_error_totals( unsigned passes, char * const names[] );
 static void print_runtime_totals( unsigned passes, char * const names[] );
@@ -620,11 +620,7 @@ main (int argc, char * const argv[])
 
     for ( ;; ) {
 #if HAVE_GETOPT_LONG
-#if __cplusplus < 201103L
-	const int c = getopt2_long( argc, argv, opts.c_str(), &longopts.front(), NULL );
-#else
 	const int c = getopt2_long( argc, argv, opts.c_str(), longopts.data(), NULL );
-#endif
 #else
 	const int c = getopt2( argc, argv, opts.c_str() );
 #endif
@@ -941,6 +937,10 @@ main (int argc, char * const argv[])
 	    }
 	    break;
 	
+	case (512+'i'):
+	    print_solver_version = true;
+	    break;
+	    
 	case (512+'l'):
 	    print_latex = true;
 	    separator_format = " & ";
@@ -982,7 +982,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2022-11-29 11:45:39 -0500 (Tue, 29 Nov 2022) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2023-01-01 10:01:53 -0500 (Sun, 01 Jan 2023) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1257,7 +1257,8 @@ compact_format()
     result_str[P_RWLOCK_WRITER_WAIT].string = "Wtr Ho";
     result_str[P_SEMAPHORE_UTIL].string="Sema Ut";
     result_str[P_SEMAPHORE_WAIT].string="Sema Wt";
-    result_str[P_SERVICE].string =	"Service";
+    result_str[P_SERVICE].string =	    "Service";
+    result_str[P_SOLVER_VERSION].string =   "Version";
     result_str[P_SNR_WAITING].string =	"SNR Wt";
     result_str[P_SNR_WAIT_VAR].string =	"SNR WV";
     result_str[P_TASK_PROC_UTIL].string="Util";
@@ -1791,6 +1792,10 @@ print ( unsigned passes, char * const names[] )
 
     /* Run times */
 
+    if ( print_solver_version ) {
+	print_version( P_SOLVER_VERSION, file_name.c_str(), passes );
+    }
+    
     if ( print_runtimes ) {
 	print_runtime( P_RUNTIME, file_name.c_str(), passes, 0 );
     }
@@ -2665,6 +2670,40 @@ print_iteration ( const result_str_t result, const char * file_name, const unsig
 
 
 
+static void
+print_version ( const result_str_t result, const char * file_name, const unsigned passes )
+{
+    double value[MAX_PASS];
+
+    int width = (compact_flag ? 8 : 16);
+    (void) fprintf( output, "%-*.*s %s\n", width-1, width-1, file_name, header );
+
+    (void) fprintf( output, *result_str[(int)result].format, "Version" );
+    for ( unsigned int j = 0; j < passes; ++j ) {
+	(*result_str[(int)result].func)( value, nullptr, j, 0, 0, 0 );
+
+	(void) fprintf( output, "%s", separator_format );
+	if ( std::isfinite( value[j] ) ) {
+	    (void) fprintf( output, result_format, value[j] );
+	} else {
+	    (void) fprintf( output, "%*s", result_width, "--" );
+	}
+	if ( j > FILE1 ) {
+	    if ( passes >= 2 && !print_rms_error_only && !print_results_only ) {
+		(void) fprintf( output, "%s", separator_format );
+		(void) fprintf( output, "%*s", error_width, " " );
+		if ( confidence_intervals_present[0] || confidence_intervals_present[j] ) {		/* Allow for * when error is within confidence interval */
+		    (void) fprintf( output, " " );
+		}
+	    }
+	}
+    }
+    (void) fputc( '\n', output );
+    (void) fputc( '\n', output );
+}
+
+
+
 /*
  * Print a line.  Format information is stored in the result_str array which is
  * indexed by result.
@@ -2674,7 +2713,6 @@ static void
 print_entry ( const result_str_t result, const unsigned passes, unsigned i, unsigned k, unsigned p,
 	      std::vector<stats_buf>* delta, ... )
 {
-    unsigned j;
     double value[MAX_PASS];
     double conf_value[MAX_PASS];
     va_list args;
@@ -2685,7 +2723,7 @@ print_entry ( const result_str_t result, const unsigned passes, unsigned i, unsi
     }
     va_end( args );
 
-    for ( j = 0; j < passes; ++j ) {
+    for ( unsigned int j = 0; j < passes; ++j ) {
 	value[j]      = 0.0;
 	conf_value[j] = 0.0;
 	(*result_str[(int)result].func)( value, conf_value, i, j, k, p );
@@ -3068,21 +3106,28 @@ time_print_func( FILE * output, unsigned j, double value, double delta )
 static void
 get_runt( double value[], double junk[], unsigned j, unsigned p, unsigned, unsigned )
 {
-    value[j]      = time_tab[j].value[p];
+    value[j]      = general_tab[j].value[p];
 }
 
 /*ARGSUSED*/
 static void
-get_iter( double value[], double junk[], unsigned j, unsigned p, unsigned, unsigned )
+get_iter( double value[], double junk[], unsigned j, unsigned, unsigned, unsigned )
 {
     value[j]	  = iteration_tab[j];
 }
 
 /*ARGSUSED*/
 static void
-get_mvaw( double value[], double junk[], unsigned j, unsigned p, unsigned, unsigned )
+get_mvaw( double value[], double junk[], unsigned j, unsigned, unsigned, unsigned )
 {
     value[j]	  = mva_wait_tab[j];
+}
+
+/*ARGSUSED*/
+static void
+get_vrsn( double value[], double junk[], unsigned j, unsigned, unsigned, unsigned )
+{
+    value[j]	  = general_tab[j].version;
 }
 
 static void

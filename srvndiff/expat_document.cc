@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cc 15817 2022-08-12 17:20:52Z greg $
+ * $Id: expat_document.cc 16230 2023-01-01 15:01:53Z greg $
  *
  * Read in XML input files.
  *
@@ -497,6 +497,7 @@ namespace LQIO {
 		add_elapsed_time( getTimeAttribute(attributes,Xelapsed_time) );
 		add_system_time( getTimeAttribute(attributes,Xsystem_cpu_time) );
 		add_user_time( getTimeAttribute(attributes,Xuser_cpu_time) );
+		add_solver_info( getStringAttribute(attributes,Xsolver_info,"") );
 		_stack.push( parse_stack_t(element,&Expat_Document::startMVAInfo,object) );
 
 	    } else if ( strcasecmp( element, Xpragma ) == 0 ) {
@@ -1346,7 +1347,6 @@ namespace LQIO {
 		data->variance_conf = getDoubleAttribute( attributes, Xjoin_variance, 0.0 );
 	    }
 	}
-
 
 	const XML_Char *
 	Expat_Document::getStringAttribute(const XML_Char ** attributes, const XML_Char * attribute, const XML_Char * default_value ) const

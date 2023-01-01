@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id: 22-multiserver.lqxo 15838 2022-08-16 01:23:25Z greg $ -->
+<!-- $Id: 22-multiserver.lqxo 16232 2023-01-01 22:14:46Z greg $ -->
 <!-- lqns -pragma=variance=mol,threads=hyper -->
 <lqn-model name="22-multiserver" description="lqns 5.27 solution for model from: 22-multiserver.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Product form model (simplest)." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
@@ -8,7 +8,7 @@
       <pragma param="save-marginal-probabilities" value="true"/>
       <pragma param="threads" value="hyper"/>
       <pragma param="variance" value="mol"/>
-      <result-general solver-info="" valid="true" conv-val="0" iterations="3" platform-info="lqns 5.27" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000" max-rss="11648">
+      <result-general solver-info="lqns 5.27" valid="true" conv-val="0" iterations="3" platform-info="lqns 5.27" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000" max-rss="11648">
          <mva-info submodels="1" core="3" step="12" step-squared="48" wait="96" wait-squared="3072" faults="0"/>
       </result-general>
    </solver-params>

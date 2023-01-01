@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id: 94-5101-a2-q2b1.lqxo 15798 2022-08-10 11:19:47Z greg $ -->
+<!-- $Id: 94-5101-a2-q2b1.lqxo 16232 2023-01-01 22:14:46Z greg $ -->
 <!-- lqns -pragma=variance=mol,threads=hyper -no-warnings -no-advisories -->
 <lqn-model name="94-5101-a2-q2b1" description="lqns 5.27 solution for model from: 94-5101-a2-q2b1.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="  Experiment name: q2b1  SRVN description file: web-server.in  Comment: ''   Declared variables:  n_users = 225   Controlled parameters:  [9]  n_users  = 225 " conv_val="1e-05" it_limit="100" underrelax_coeff="0.9" print_int="10">
@@ -7,7 +7,7 @@
       <pragma param="severity-level" value="warning"/>
       <pragma param="threads" value="hyper"/>
       <pragma param="variance" value="mol"/>
-      <result-general solver-info="" valid="true" conv-val="7.37966e-06" iterations="35" platform-info="lqns 5.27" user-cpu-time=" 0:00:00.030" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.031" max-rss="5210112">
+      <result-general solver-info="lqns 5.27" valid="true" conv-val="7.37966e-06" iterations="35" platform-info="lqns 5.27" user-cpu-time=" 0:00:00.030" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.031" max-rss="5210112">
          <mva-info submodels="5" core="175" step="2001" step-squared="60045" wait="738936" wait-squared="6.09018e+10" faults="0"/>
       </result-general>
    </solver-params>

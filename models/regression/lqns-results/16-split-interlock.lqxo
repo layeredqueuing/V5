@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<!-- $Id: 16-split-interlock.lqxo 15603 2022-05-27 18:30:56Z greg $ -->
+<!-- $Id: 16-split-interlock.lqxo 16232 2023-01-01 22:14:46Z greg $ -->
 <!-- lqns -pragma=variance=mol,threads=hyper -->
 <lqn-model name="16-split-interlock" description="lqns 5.26 solution for model from: 16-split-interlock.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="interlocking Test model1" conv_val="1e-05" it_limit="10" underrelax_coeff="0.9" print_int="10">
       <pragma param="threads" value="hyper"/>
       <pragma param="variance" value="mol"/>
-      <result-general solver-info="" valid="true" conv-val="4.13932e-07" iterations="8" platform-info="lqns 5.26" user-cpu-time=" 0:00:00.001" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.001" max-rss="11988">
+      <result-general solver-info="lqns 5.26" valid="true" conv-val="4.13932e-07" iterations="8" platform-info="lqns 5.26" user-cpu-time=" 0:00:00.001" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.001" max-rss="11988">
          <mva-info submodels="2" core="16" step="119" step-squared="1025" wait="5684" wait-squared="4.07192e+06" faults="0"/>
       </result-general>
    </solver-params>

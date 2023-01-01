@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<!-- $Id: 90-A01.lqxo 13791 2020-08-23 01:43:45Z greg $ -->
+<!-- $Id: 90-A01.lqxo 16232 2023-01-01 22:14:46Z greg $ -->
 <!-- lqns -pragma=variance=mol,threads=mak -no-warnings -->
 <lqn-model name="90-A01" description="lqns 5.14 solution for model from: 90-A01.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="A1 " conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="5">
-      <result-general valid="YES" conv-val="4.69881e-07" iterations="9" platform-info="Gregs-MacBookPro-2.local Darwin 19.5.0" user-cpu-time=" 0:00:00.010" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.010">
+      <result-general valid="YES" solver-info="lqns 5.14" conv-val="4.69881e-07" iterations="9" platform-info="Gregs-MacBookPro-2.local Darwin 19.5.0" user-cpu-time=" 0:00:00.010" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.010">
          <mva-info submodels="3" core="27" step="298" step-squared="3952" wait="55140" wait-squared="3.35771e+08" faults="0"/>
       </result-general>
       <pragma param="severity-level" value="warning"/>

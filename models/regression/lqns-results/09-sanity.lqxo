@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
-<!-- $Id: 09-sanity.lqxo 15798 2022-08-10 11:19:47Z greg $ -->
+<!-- $Id: 09-sanity.lqxo 16232 2023-01-01 22:14:46Z greg $ -->
 <!-- lqns -pragma=variance=mol,threads=hyper -no-warnings -->
 <lqn-model name="09-sanity" description="lqns 5.27 solution for model from: 09-sanity.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Most Common features." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
       <pragma param="severity-level" value="run-time"/>
       <pragma param="threads" value="hyper"/>
       <pragma param="variance" value="mol"/>
-      <result-general solver-info="" valid="true" conv-val="2.79965e-06" iterations="10" platform-info="lqns 5.27" user-cpu-time=" 0:00:00.002" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.035" max-rss="5062656">
+      <result-general solver-info="lqns 5.27" valid="true" conv-val="2.79965e-06" iterations="10" platform-info="lqns 5.27" user-cpu-time=" 0:00:00.002" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.035" max-rss="5062656">
          <mva-info submodels="3" core="30" step="286" step-squared="2990" wait="15942" wait-squared="1.23688e+07" faults="0"/>
       </result-general>
    </solver-params>
