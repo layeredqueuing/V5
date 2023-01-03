@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 16230 2023-01-01 15:01:53Z greg $
+ * $Id: srvndiff.cc 16248 2023-01-02 23:51:15Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -983,7 +983,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2023-01-01 10:01:53 -0500 (Sun, 01 Jan 2023) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2023-01-02 18:51:15 -0500 (Mon, 02 Jan 2023) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -2675,9 +2675,14 @@ static void
 print_version ( const result_str_t result, const char * file_name, const unsigned passes )
 {
     double value[MAX_PASS];
-
     int width = (compact_flag ? 8 : 16);
-    (void) fprintf( output, "%-*.*s %s\n", width-1, width-1, file_name, header );
+
+    if ( print_latex ) {
+	(void) fprintf( output, header, width-1, width-1, file_name );
+	(void) fprintf( output, "\\hline\n" );
+    } else {
+	(void) fprintf( output, "%-*.*s %s\n", width-1, width-1, file_name, header );
+    }
 
     (void) fprintf( output, *result_str[(int)result].format, "Version" );
     for ( unsigned int j = 0; j < passes; ++j ) {
@@ -2699,8 +2704,13 @@ print_version ( const result_str_t result, const char * file_name, const unsigne
 	    }
 	}
     }
-    (void) fputc( '\n', output );
-    (void) fputc( '\n', output );
+    if ( print_latex ) {
+	(void) fprintf( output, " \\\\\n\\hline\n" );
+	(void) fprintf( output, "\\end{tabular}\n" );
+    } else {
+	(void) fputc( '\n', output );
+	(void) fputc( '\n', output );
+    }
 }
 
 

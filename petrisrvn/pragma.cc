@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 16116 2022-11-17 17:48:54Z greg $
+ * $Id: pragma.cc 16245 2023-01-02 17:32:52Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -38,6 +38,7 @@ const std::map<const std::string,Pragma::fptr> Pragma::__set_pragma = {
 Pragma::Pragma() :
     _processor_scheduling(SCHEDULE_FIFO),
     _reschedule_on_async_send(false),
+    _save_marginal_probabilities(false),
     _severity_level(LQIO::error_severity::ALL),
     _spex_comment(true),
     _spex_header(true),

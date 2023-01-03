@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
-<!-- $Id: 22-multiserver.lqxo 15833 2022-08-15 17:42:16Z greg $ -->
+<!-- $Id: 22-multiserver.lqxo 16240 2023-01-02 01:54:06Z greg $ -->
 <!-- lqsim -confidence=1.0,1000 -xml -seed=1049217653 -output=22-multiserver.lqxo -->
 <lqn-model name="22-multiserver" description="lqsim 5.27 solution for model from: 22-multiserver.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Product form model (simplest)." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
       <pragma param="initial-loops" value="1000"/>
       <pragma param="precision" value="1.0"/>
       <pragma param="seed-value" value="1049217653"/>
-      <result-general solver-info="5.27" valid="true" conv-val="0.785245" iterations="5" platform-info="" user-cpu-time=" 0:00:01.175" system-cpu-time=" 0:00:00.005" elapsed-time=" 0:00:01.209" max-rss="15804"/>
+      <result-general solver-info="lqsim 5.27" valid="true" conv-val="0.785245" iterations="5" platform-info="" user-cpu-time=" 0:00:01.175" system-cpu-time=" 0:00:00.005" elapsed-time=" 0:00:01.209" max-rss="15804"/>
    </solver-params>
    <processor name="p0" scheduling="fcfs" multiplicity="2">
       <result-processor utilization="1.69985">

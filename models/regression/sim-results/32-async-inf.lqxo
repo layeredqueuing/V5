@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
+<!-- $Id: 32-async-inf.lqxo 16240 2023-01-02 01:54:06Z greg $ -->
 <!-- lqsim -verbose -confidence=1.0,250000,1000000 -pragma=stop-on-message-loss=f -no-warnings -seed=1049217653 -->
 <lqn-model name="32-async-inf" description="lqsim 5.27 solution for model from: 32-async-inf.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Open arrivals to an infinite server (from Giuliano Casale)" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
@@ -9,7 +9,7 @@
       <pragma param="seed-value" value="1049217653"/>
       <pragma param="severity-level" value="advisory"/>
       <pragma param="stop-on-message-loss" value="f"/>
-      <result-general solver-info="5.27" valid="true" conv-val="0.910245" iterations="6" platform-info="" user-cpu-time=" 0:00:00.182" system-cpu-time=" 0:00:00.027" elapsed-time=" 0:00:00.268" max-rss="46060"/>
+      <result-general solver-info="lqsim 5.27" valid="true" conv-val="0.910245" iterations="6" platform-info="" user-cpu-time=" 0:00:00.182" system-cpu-time=" 0:00:00.027" elapsed-time=" 0:00:00.268" max-rss="46060"/>
    </solver-params>
    <processor name="P1" scheduling="fcfs">
       <result-processor utilization="0.000249535">

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_call.cpp 15751 2022-07-04 21:39:22Z greg $
+ *  $Id: dom_call.cpp 16244 2023-01-02 17:26:57Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -36,7 +36,7 @@ namespace LQIO {
 	    DocumentObject(document,""),
 	    _callType(Call::Type::FORWARD), _sourceObject(source), _destinationEntry(destination), 
 	    _callMean(callMean), _histogram(nullptr),
-	    _hasResultVarianceWaitingTime(false),
+	    _hasResultVarianceWaitingTime(false), _hasResultDropProbability(false),
 	    _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
 	    _resultVarianceWaitingTime(0.0), _resultVarianceWaitingTimeVariance(0.0),
 	    _resultDropProbability(0.0), _resultDropProbabilityVariance(0.0)
@@ -47,7 +47,7 @@ namespace LQIO {
 	    DocumentObject(src.getDocument(),""),
 	    _callType(src._callType), _sourceObject(nullptr), _destinationEntry(nullptr), 
 	    _callMean(ExternalVariable::clone(src._callMean)), _histogram(src._histogram),
-	    _hasResultVarianceWaitingTime(false),
+	    _hasResultVarianceWaitingTime(false), _hasResultDropProbability(false),
 	    _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
 	    _resultVarianceWaitingTime(0.0), _resultVarianceWaitingTimeVariance(0.0),
 	    _resultDropProbability(0.0), _resultDropProbabilityVariance(0.0)
