@@ -18,7 +18,12 @@
 399 	lqiolib 	WhatIf construction is bogus.
 400 	lqn2xxx 	Converting from json to lqn fails on Windows.
 401 	libmva 		libc++abi: terminating with uncaught exception of type std::invalid_argument: default-output
-402 	miscella 	Mac M1 issues. 	2022-11-30
+402 	miscella 	Mac M1 issues.
+403 	libmva 	 	43-activities.lqnx: Floating point exception: mva.cc 541: Inexact result, Invalid operation
+405 	lqns 	 	Optimizer bug: option.h
+406 	libmva 	 	Refactor fpgoop.
+407 	lqns 	 	--srvn-layering crashes in V6 interlocking code
+409 	petrisrv 	Petrisrvn fails when SPEX/LQX is used to alter the arrival rate to an entry. 
 
 * Bugs fixed in 5.26
 365 	lqns	 	The warning for zero service time should be suppressed for reference tasks with think time. 

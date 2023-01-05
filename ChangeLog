@@ -1,3 +1,12 @@
+2023-01-04  Gregory Franks  <greg@Gregs-Retina-iMac.local>
+
+	* lqn2csv, lqn2ps, srvndiff
+	- Added --comment to print out the model comment.
+	- Added --solver-info to print out the solver used and its version.
+
+	* lqiolib
+	- Deleted the comment variable.
+
 2022-12-21  Gregory Franks  <greg@Gregs-Retina-iMac.local>
 
 	* lqiolib, qnsolver
@@ -556,4 +565,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 16191 2022-12-21 19:32:38Z greg $
+$Id: ChangeLog 16270 2023-01-05 01:16:31Z greg $
