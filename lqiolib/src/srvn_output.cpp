@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 16212 2022-12-30 20:39:19Z greg $
+ *  $Id: srvn_output.cpp 16253 2023-01-03 19:37:15Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -765,7 +765,7 @@ namespace LQIO {
 	    output << std::endl;
 	}
 
-	const std::string comment( document.getModelCommentString() );
+	const std::string comment( document.getModelComment() );
 	if ( !comment.empty() ) {
 	    output << "#!Comment: " << print_comment( comment ) << std::endl;
 	}
@@ -1162,7 +1162,7 @@ namespace LQIO {
     std::ostream&
     SRVN::Input::printGeneral( std::ostream& output ) const
     {
-        output << std::endl << "G \"" << *_document.getModelComment() << "\" " ;
+        output << std::endl << "G \"" << _document.getModelComment() << "\" " ;
         if ( _annotate ) {
             output << "\t\t\t# Model comment " << std::endl
                    << *_document.getModelConvergence() << "\t\t\t# Convergence test value." << std::endl
@@ -1325,7 +1325,7 @@ namespace LQIO {
         _output << ctime( &clock ) << newline;
 #endif
 
-	const std::string comment( document.getModelCommentString() );
+	const std::string& comment = document.getModelComment();
         if ( !comment.empty() ) {
             _output << "Comment: " << comment << newline;
         }

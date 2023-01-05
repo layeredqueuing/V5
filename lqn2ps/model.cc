@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 15958 2022-10-07 20:27:02Z greg $
+ * $Id: model.cc 16253 2023-01-03 19:37:15Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -91,7 +91,6 @@ bool Model::histogramPresent		= false;
 
 Model::Stats Model::stats[Model::N_STATS];
 
-static CommentManip print_comment( const char * aPrefix, const LQIO::DOM::ExternalVariable& );
 static DoubleManip to_inches( const double );
 
 /*
@@ -816,7 +815,7 @@ Model::process()
 	}
 	if ( Flags::print[MODEL_COMMENT].opts.value.b ) {
 	    if ( _label->size() > 0 ) _label->newLine();
-	    *_label << _document->getModelCommentString();
+	    *_label << _document->getModelComment();
 	}
 	if ( _label != nullptr && _label->size() ) {
 	    _extent.moveBy( 0, _label->height() );
@@ -1645,7 +1644,7 @@ Model::print( std::ostream& output ) const
     };
 
     if ( Flags::print_comment && Flags::output_format() != File_Format::TXT) {
-	const std::string comment( getDOM()->getModelCommentString() );
+	const std::string comment( getDOM()->getModelComment() );
 	if ( !comment.empty() ) {
 	    std::cout << _inputFileName << ": " << comment << std::endl;
 	}
@@ -1798,7 +1797,7 @@ Model::printFIG( std::ostream& output ) const
     output << "# Created By: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << std::endl
 	   << "# Invoked as: " << command_line << ' ' << _inputFileName << std::endl
 	   << "# " << LQIO::DOM::Common_IO::svn_id() << std::endl
-	   << print_comment( "# ", *getDOM()->getModelComment() ) << std::endl;
+	   << "# " << getDOM()->getModelComment() << std::endl;
     output << "1200 2" << std::endl;
     Fig::initColours( output );
 
@@ -2572,22 +2571,6 @@ Model::Stats::print( std::ostream& output) const
 
 
 static std::ostream&
-print_comment_str( std::ostream& output, const char * prefix, const LQIO::DOM::ExternalVariable& var )
-{
-    output << prefix;
-    const char * s = 0;
-    if ( var.getString( s ) && s ) {
-	for ( ; *s; ++s ) {
-	    output << *s;
-	    if ( *s == '\n' ) {
-		output << prefix;
-	    }
-	}
-    }
-    return output;
-}
-
-static std::ostream&
 to_inches_str( std::ostream& output, const double value )
 {
     switch ( Flags::output_format() ) {
@@ -2621,12 +2604,6 @@ to_inches_str( std::ostream& output, const double value )
     return output;
 }
 
-
-
-static CommentManip print_comment( const char * prefix, const LQIO::DOM::ExternalVariable& var )
-{
-    return CommentManip( &print_comment_str, prefix, var );
-}
 
 
 static DoubleManip

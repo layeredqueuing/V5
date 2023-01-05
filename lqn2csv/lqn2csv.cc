@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 16227 2022-12-31 18:27:59Z greg $
+ * $Id: lqn2csv.cc 16260 2023-01-04 19:18:19Z greg $
  *
  * Command line processing.
  *
@@ -78,14 +78,15 @@ const std::vector<struct option> longopts = {
     { "activity-waiting",      required_argument, nullptr, 'W' }, 
     { "service-exceeded",      required_argument, nullptr, 'x' },
     { "think-time",	       required_argument, nullptr, 'z' },
+    { "comment",	       no_argument,	  nullptr, '#' },
     { "arguments",	       required_argument, nullptr, '@' },
     { "gnuplot",               no_argument,       &gnuplot_flag, 1 },
     { "help",		       no_argument,	  nullptr, 0x100+'h' },
-    { "limit",		       required_argument, nullptr, 0x100+'l' },
     { "mva-steps",	       no_argument,	  nullptr, 0x100+'s' },
-    { "no-header",             no_argument,       &no_header,    1 },
     { "precision",	       required_argument, nullptr, 0x100+'p' },
-    { "solver-version",	       no_argument,	  nullptr, 0x100+'i' },
+    { "solver-information",    no_argument,	  nullptr, 'i' },
+    { "limit",		       required_argument, nullptr, 0x100+'l' },
+    { "no-header",             no_argument,       &no_header,    1 },
     { "width",		       required_argument, nullptr, 0x100+'w' },
     { "version",	       no_argument,	  nullptr, 0x100+'v' },
     { nullptr,                 0,                 nullptr, 0 }
@@ -102,6 +103,7 @@ const static std::map<int,const std::string> help_str
     { 'f', "print throughput for <entry>." }, 
     { 'F', "print througput for <task>, <activity>." }, 
     { 'h', "Hold time." }, 
+    { 'i', "print the solver used and its version number." },
     { 'j', "Join delay." }, 
     { 'l', "print asynchronous send drop probability from source <entry>, phase <n> to destination <entry>." }, 
     { 'L', "print asynchronous send drop probability from source <task>, <activity> to destination <entry>." }, 
@@ -126,8 +128,8 @@ const static std::map<int,const std::string> help_str
     { 'X', "print probability service time exceeded for <task>, <activity>." },
     { 'z', "print think time for <task> (independent variable)" },
     { '@', "Read the argument list from <arg>.  --output-file and --arguments are ignored." },
+    { '#', "print out the model comment field." },
     { 0x100+'s', "print out the number of times the MVA step() function was called."  },
-    { 0x100+'i', "print out the solver version (major.minor only)." },
     { 0x100+'l', "Limit output to the first <arg> files read." },
     { 0x100+'w', "Set the width of the result columns to <arg>.  Suppress commas." },
     { 0x100+'p', "Set the precision for output to <arg>." },
@@ -165,7 +167,8 @@ const static std::map<int,Model::Result::Type> result_type
     { 'x', Model::Result::Type::PHASE_PR_SVC_EXCD      }, 
     { 'X', Model::Result::Type::ACTIVITY_PR_SVC_EXCD   }, 
     { 'z', Model::Result::Type::TASK_THINK_TIME	       },
-    { 0x100+'i', Model::Result::Type::SOLVER_VERSION   },
+    { '#', Model::Result::Type::COMMENT	       	       },
+    { 'i', Model::Result::Type::SOLVER_VERSION         },
     { 0x100+'s', Model::Result::Type::MVA_STEPS	       },
 };
 
@@ -230,7 +233,7 @@ main( int argc, char *argv[] )
     extern int optind;
     static char copyrightDate[20];
 
-    sscanf( "$Date: 2022-12-31 13:27:59 -0500 (Sat, 31 Dec 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2023-01-04 14:18:19 -0500 (Wed, 04 Jan 2023) $", "%*s %s %*s", copyrightDate );
 
     toolname = basename( argv[0] );
     opts = makeopts( longopts );	/* Convert to regular options */
@@ -265,7 +268,7 @@ main( int argc, char *argv[] )
 	    files.push_back( optarg );
 	    break;
 
-	case '?':
+	case ':':
 	    usage();
 	    exit( 1 );
 	}
@@ -518,7 +521,7 @@ handle_arguments( int argc, char * argv[], Disposition disposition, std::vector<
 		}
 		break;
 
-	    case '?':
+	    case ':':
 		usage();
 		exit( 1 );
 	    }
@@ -539,7 +542,7 @@ handle_arguments( int argc, char * argv[], Disposition disposition, std::vector<
 static std::string
 makeopts( const std::vector<struct option>& longopts )
 {
-    std::string opts;
+    std::string opts = ":";	/* use : as error, rather than ? */
 
     for ( std::vector<struct option>::const_iterator opt = longopts.begin(); opt != longopts.end() && opt->name != nullptr; ++opt ) {
 	if ( !isgraph( opt->val ) ) continue;

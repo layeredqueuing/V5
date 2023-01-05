@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 16227 2022-12-31 18:27:59Z greg $
+ * $Id: model.cc 16264 2023-01-04 19:59:18Z greg $
  *
  * Command line processing.
  *
@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <iomanip>
 #include <limits>
 #include <numeric>
@@ -50,6 +51,7 @@ const std::map<Model::Result::Type,Model::Result::result_fields> Model::Result::
     { Model::Result::Type::ACTIVITY_THROUGHPUT,        { Model::Object::Type::ACTIVITY,      "Throughput",  "tput", &LQIO::DOM::DocumentObject::getResultThroughput          } },
     { Model::Result::Type::ACTIVITY_VARIANCE,          { Model::Object::Type::ACTIVITY,      "Variance",    "vari", &LQIO::DOM::DocumentObject::getResultServiceTimeVariance } },
     { Model::Result::Type::ACTIVITY_WAITING,           { Model::Object::Type::ACTIVITY_CALL, "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultWaitingTime         } },
+    { Model::Result::Type::COMMENT,		       { Model::Object::Type::DOCUMENT,      "Comment",     "comm", nullptr } },
     { Model::Result::Type::ENTRY_THROUGHPUT,           { Model::Object::Type::ENTRY,         "Throughput",  "tput", &LQIO::DOM::DocumentObject::getResultThroughput          } },
     { Model::Result::Type::ENTRY_UTILIZATION,          { Model::Object::Type::ENTRY,         "Utilization", "util", &LQIO::DOM::DocumentObject::getResultUtilization         } },
     { Model::Result::Type::HOLD_TIMES,                 { Model::Object::Type::JOIN,          "Hold Time",   "hold", &LQIO::DOM::DocumentObject::getResultHoldingTime         } },
@@ -75,6 +77,13 @@ const std::map<Model::Result::Type,Model::Result::result_fields> Model::Result::
     { Model::Result::Type::THROUGHPUT_BOUND,           { Model::Object::Type::ENTRY,         "Bound",       "bond", &LQIO::DOM::DocumentObject::getResultThroughputBound     } }
 };
 
+const std::map<Model::Result::Type,Model::Result::sfptr> Model::Result::__document_results =
+{
+    { Model::Result::Type::MVA_STEPS,                  nullptr },		/* Returns a double */
+    { Model::Result::Type::COMMENT,		       &LQIO::DOM::Document::getModelComment },
+    { Model::Result::Type::SOLVER_VERSION,	       &LQIO::DOM::Document::getResultSolverInformation }
+};
+
 const std::map<const Model::Object::Type,const std::pair<const std::string,const std::string>> Model::Object::__object_type = {
     { Model::Object::Type::ACTIVITY,  { "Activity",  "Act"   } },
     { Model::Object::Type::DOCUMENT,  { "Document",  "Doc"   } },
@@ -85,6 +94,18 @@ const std::map<const Model::Object::Type,const std::pair<const std::string,const
     { Model::Object::Type::PROCESSOR, { "Processor", "Proc"  } },
     { Model::Object::Type::TASK,      { "Task",      "Task"  } }
 };
+
+
+Model::Output& Model::Output::operator=( const Output& src )
+{
+    std::memcpy( reinterpret_cast<char *>(this), reinterpret_cast<const char *>(&src), sizeof( *this ) );
+    return *this;
+}
+
+bool Model::Output::operator!=( const Output& dst ) const
+{
+    return std::memcmp( reinterpret_cast<const char *>(this), reinterpret_cast<const char *>(&dst), sizeof( *this ) ) != 0;
+}
 
 bool Model::Result::isIndependentVariable( Model::Result::Type type )
 {
@@ -147,7 +168,7 @@ void Model::Process::operator()( const std::string& pathname )
 
     /* Extract into vector of doubles */
 
-    std::vector<double> data;
+    std::vector<Model::Output> data;
     data = std::accumulate( _results.begin(), _results.end(), data, Model::Result( *dom ) );
 
     /* We now have a vector of doubles */
@@ -195,34 +216,30 @@ Model::Process::print_filename( const std::string& filename ) const
  * Get the value of the result and append it to the string "in" (fold operation for std::accumulate).
  */
 
-std::vector<double>
-Model::Result::operator()( const std::vector<double>& in, const std::pair<std::string,Model::Result::Type>& arg ) const
+std::vector<Model::Output>
+Model::Result::operator()( const std::vector<Model::Output>& in, const std::pair<std::string,Model::Result::Type>& arg ) const
 {
     const Model::Result::result_fields& result = __results.at( arg.second );
-    std::vector<double> out = in;
+    std::vector<Model::Output> out = in;
 
-    if ( arg.second == Result::Type::MVA_STEPS ) {
-	out.push_back( dom().getResultMVAStep() );
-
-    } else if ( arg.second == Result::Type::SOLVER_VERSION ) {
-	const std::string& info = dom().getResultSolverInformation();
-	double version = 0;
-	if ( sscanf( info.c_str(), "%*s %lf", &version ) > 0 ) {
-	    out.push_back( version );
+    if ( result.type == Model::Object::Type::DOCUMENT ) {
+	const Model::Result::sfptr f = __document_results.at( arg.second );
+	if ( f != nullptr ) {
+	    out.emplace_back( Model::Output( ((_dom.*f)()).c_str() ) );
 	} else {
-	    out.push_back( std::numeric_limits<double>::quiet_NaN() );
+	    out.emplace_back( Model::Output( dom().getResultMVAStep() ) );
 	}
 	
     } else {
 	const LQIO::DOM::DocumentObject * object = findObject( arg.first, result.type );
 
 	if ( object == nullptr ) {
-	    out.push_back( std::numeric_limits<double>::quiet_NaN() );
+	    out.emplace_back( Model::Output( std::numeric_limits<double>::quiet_NaN() ) );
 	} else if ( result.f != nullptr ) {
-	    out.push_back( (object->*(result.f))() );		/* Invoke function to find value	*/
+	    out.emplace_back( Model::Output( (object->*(result.f))() ) );		/* Invoke function to find value	*/
 	} else if ( arg.second == Result::Type::MARGINAL_PROBABILITIES && dynamic_cast<const LQIO::DOM::Entity *>(object) != nullptr ) {
 	    const std::vector<double>& marginals = dynamic_cast<const LQIO::DOM::Entity *>(object)->getResultMarginalQueueProbabilities();
-	    copy(marginals.begin(), marginals.end(), back_inserter(out));
+	    copy(marginals.begin(), marginals.end(), back_inserter( out ));
 	}
     }
 
@@ -383,7 +400,7 @@ Model::Result::getTypeName( const std::pair<std::string,Model::Result::Type>& re
 /* Output an item, separated by commas. */
 
 void
-Model::PrintLine::operator()( double item ) const
+Model::PrintLine::operator()( const Model::Output& item ) const
 {
     if ( width == 0 ) {
 	_output << ",";
@@ -391,11 +408,18 @@ Model::PrintLine::operator()( double item ) const
 	_output << " ";
 	_output.width( width-1 );
     }
-    if ( std::isnan( item ) ) {
-	_output << "NULL";
-    } else if ( precision > 0 ) {
-	_output << std::setprecision(precision) << item;
-    } else {
-	_output << item;
-    }
+
+    if ( precision > 0 ) {
+	_output.precision(precision);
+    } 
+    _output << item;
+}
+
+
+std::ostream& Model::operator<<( std::ostream& output, const Model::Output& item )
+{
+    if ( item._type == Model::Output::Type::DOUBLE && !std::isnan( item._u._double ) ) output << item._u._double;
+    else if ( item._type == Model::Output::Type::STRING && item._u._string != nullptr ) output << "\"" << item._u._string << "\"";
+    else output << "NULL";
+    return output;
 }

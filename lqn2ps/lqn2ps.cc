@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 16119 2022-11-17 19:14:17Z greg $
+ * $Id: lqn2ps.cc 16260 2023-01-04 19:18:19Z greg $
  *
  * Command line processing.
  *
@@ -102,7 +102,7 @@ std::vector<Options::Type> Flags::print = {
     { "waiting",               'w', nullptr,               {&Options::result,       true},              "Print waiting time results." },
     { "service-exceeded",      'x', nullptr,               {&Options::result,       false},             "Print maximum execution time exceeded." },
     { "comment",         0x300+'#', nullptr,               {&Options::result,       false},             "Print model comment." },
-    { "solver-info",     0x300+'!', nullptr,               {&Options::none,         0},                 "Print solver information." },
+    { "solver-information", 0x300+'!', nullptr,            {&Options::none,         0},                 "Print solver information." },
     { "ignore-errors",   0x200+'E', nullptr,               {&Options::none,         0},                 "Ignore errors during model checking phase." },
     { "task-service-time", 512+'P', nullptr,               {&Options::none,         0},                 "Print task service times (for --tasks-only)." },
     { "run-lqx",         0x200+'l', nullptr,               {&Options::none,         0},                 "\"Run\" the LQX program instantiating variables and generating model files." },
@@ -138,7 +138,7 @@ std::vector<Options::Type> Flags::print = {
 #endif
     { "jlqndef",         0x200+'j', nullptr,               {&Options::none,         0},                 "Use jlqnDef-style icons (rectangles)." },
     { "parse-file",      0x200+'p', "filename",            {&Options::none,         0},                 "Load parseable results from filename." },
-    { "print-comment",   0x200+'c', nullptr,               {&Options::none,         0},                 "Print the model comment on stdout." },
+    { "print-comment",   0x200+'c', nullptr,               {&Options::none,         0},                 "Print the model comment." },
     { "print-submodels", 0x200+'D', nullptr,               {&Options::none,         0},                 "Show submodels." },
     { "print-summary",   0x200+'S', nullptr,               {&Options::none,         0},                 "Print model summary on stdout." },
     { "debug-json",      0x200+'J', nullptr,               {&Options::none,         0},                 "Output debugging information while parsing JSON input." },
@@ -216,7 +216,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2022-11-17 14:14:17 -0500 (Thu, 17 Nov 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2023-01-04 14:18:19 -0500 (Wed, 04 Jan 2023) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H

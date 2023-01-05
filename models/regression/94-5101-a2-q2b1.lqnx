@@ -1,17 +1,7 @@
 <?xml version="1.0"?>
 <!-- Invoked as: lqn2xml 94-5101-a2-q2b1.in -->
-<lqn-model name="94-5101-a2-q2b1" description="lqn2xml 5.3 solution for model from: 94-5101-a2-q2b1.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="
-	Experiment name: q2b1
-	SRVN description file: web-server.in
-	Comment: ''
-
-	Declared variables:
-	n_users = 225
-
-	Controlled parameters:
-	[9]  n_users  = 225
-" conv_val="1e-05" it_limit="100" underrelax_coeff="0.9" print_int="10">
+<lqn-model name="94-5101-a2-q2b1" description="$Id: 94-5101-a2-q2b1.lqnx 16258 2023-01-04 01:33:08Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="q2b1, web-server.in" conv_val="1e-05" it_limit="100" underrelax_coeff="0.9" print_int="10">
       <pragma param="multiserver" value="conway"/>
    </solver-params>
    <processor name="DB_CPU" scheduling="fcfs">

@@ -9,9 +9,9 @@
 <!--   month =   aug, -->
 <!--   pages =   "165-184", -->
 <!--   doi =     "10.1016/S0166-5316(99)00034-6", -->
-<lqn-model description="peva model." name="peva-99" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="Overtkaing " conv_val="1e-06" it_limit="50" print_int="5" underrelax_coeff="0.9">
-   <result-general conv-val="9.70343e-08" elapsed-time=" 0:00:00.00ce.carleton.ca Linux 2.6.24.7-92.fc8&#xA;" iterations="6.00000e+00" platform-info="merlin-pc.sce.carleton.ca Linux 2.6.24.7-92.fc8&#xA;" solver-info="lqns 4.3.00ce.carleton.ca Linux 2.6.24.7-92.fc8&#xA;" system-cpu-time=" 0:00:00.00ce.carleton.ca Linux 2.6.24.7-92.fc8&#xA;" user-cpu-time=" 0:00:00.00ce.carleton.ca Linux 2.6.24.7-92.fc8&#xA;" valid="YES"/>
+<lqn-model description="$Id: 99-peva-99.lqnx 16258 2023-01-04 01:33:08Z greg $" name="peva-99" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="PEVA Overtkaing model" conv_val="1e-06" it_limit="50" print_int="5" underrelax_coeff="0.9">
+   <result-general conv-val="9.70343e-08" elapsed-time=" 0:00:00.00" iterations="6" platform-info="merlin-pc.sce.carleton.ca Linux 2.6.24.7-92.fc8" solver-info="lqns 4.3" system-cpu-time=" 0:00:00.00" user-cpu-time=" 0:00:00.00" valid="YES"/>
    </solver-params>
    <processor name="p0" scheduling="inf">
    <result-processor utilization="9.07554e-01"/>

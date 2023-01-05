@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 16173 2022-12-12 18:02:46Z greg $
+ *  $Id: dom_bindings.cpp 16253 2023-01-03 19:37:15Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -942,7 +942,6 @@ namespace LQIO {
 	{ "invocation",	    				attribute_table_t( &DOM::Document::getResultInvocationNumber ) },
 	{ "waits",				    	attribute_table_t( &DOM::Document::getResultMVAWait ) },
 	{ "steps",				    	attribute_table_t( &DOM::Document::getResultMVAStep ) },
-	{ DOM::Document::XComment,		    	attribute_table_t( &DOM::Document::getModelComment ) },
 	{ DOM::Document::XConvergence,		    	attribute_table_t( &DOM::Document::getModelConvergence ) },
 	{ DOM::Document::XIterationLimit,	    	attribute_table_t( &DOM::Document::getModelIterationLimit ) },
 	{ DOM::Document::XUnderrelaxationCoefficient,	attribute_table_t( &DOM::Document::getModelUnderrelaxationCoefficient ) },

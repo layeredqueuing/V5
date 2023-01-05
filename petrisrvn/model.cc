@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 16212 2022-12-30 20:39:19Z greg $
+ * $Id: model.cc 16253 2023-01-03 19:37:15Z greg $
  *
  * Load the SRVN model.
  */
@@ -258,7 +258,7 @@ void
 Model::set_comment()
 {
     struct com_object * buf	= (struct com_object *)malloc( CMMOBJ_SIZE );
-    const std::string& comment = _document->getModelCommentString();
+    const std::string& comment = _document->getModelComment();
     const char * p = comment.c_str();
 
     netobj->comment = buf;
@@ -397,6 +397,10 @@ Model::construct()
 	}
     }
 
+    /* Add open arrivals. */
+    
+    build_open_arrivals();
+
     /* Use the generated connections list to finish up */
     Activity::complete_activity_connections();
 
@@ -408,7 +412,11 @@ Model::construct()
  * Dynamic Updates / Late Finalization
  * In order to integrate LQX's support for model changes we need to
  * have a way of re-calculating what used to be static for all
- * dynamically editable values
+ * dynamically editable values.
+ *
+ * For petrisrvn, the model is rebuilt from scratch.  However, the value
+ * for the service time for the pseudo open arrival source entry has to be
+ * set.
  */
 
 void
@@ -417,6 +425,23 @@ Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
 //    setModelParameters(document);
 //    for_each( ____processor.begin(), ____processor.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
 //    for_each( ____task.begin(), ____task.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
+
+    /* Find the pseudo phases for open arrivals and set the service time */
+       
+    const unsigned n_entries = document->getNumberOfEntries();
+    for ( unsigned int e = 0; e < n_entries; ++e  ) {
+	LQIO::DOM::Phase * phase = __entry[e]->open_arrival_phase();
+	if ( phase == nullptr ) continue;
+	const LQIO::DOM::Entry * entry = __entry[e]->get_dom();
+	
+	try {
+	    phase->setServiceTimeValue( 1.0 / entry->getOpenArrivalRateValue() );
+	}
+	catch ( const std::domain_error& e ) {
+	    entry->runtime_error( LQIO::ERR_INVALID_PARAMETER, "open arrival rate", "entry", e.what() );
+	    throw std::domain_error( std::string( "invalid parameter: " ) + e.what() ); 
+	}
+    }
 }
 
 
@@ -444,8 +469,6 @@ bool
 Model::transform()
 {
     unsigned max_width = 0;
-
-    build_open_arrivals();
 
     std::for_each( ::__processor.begin(), ::__processor.end(), Exec<Processor>( &Processor::initialize ) );
     std::for_each( ::__entry.begin(), ::__entry.end(), Exec<Entry>( &Entry::initialize ) );
@@ -1395,7 +1418,7 @@ Model::create_inservice_net( const Phase * a, const Entry * b, unsigned int k, c
 /*
  * Open arrivals are converted to a psuedo reference task with one
  * customer.  The reference task makes asycnhronous calls to the
- * server. We need to check the resutls to ensure that the throughput
+ * server. We need to check the results to ensure that the throughput
  * is correct.
  */
 
@@ -1420,14 +1443,8 @@ Model::build_open_arrivals ()
 	LQIO::DOM::Entry * pseudo = new LQIO::DOM::Entry( dst_dom->getDocument(), buf.c_str() );
 	pseudo->setEntryType( LQIO::DOM::Entry::Type::STANDARD );
 	LQIO::DOM::Phase* phase = pseudo->getPhase(1);
-	try {
-	    phase->setServiceTimeValue( 1.0 / dst_dom->getOpenArrivalRateValue() );
-	}
-	catch ( const std::domain_error& e ) {
-	    dst_entry->get_dom()->runtime_error( LQIO::ERR_INVALID_PARAMETER, "open arrival rate", "entry", e.what() );
-	    throw std::domain_error( std::string( "invalid parameter: " ) + e.what() ); 
-	}
-	phase->setName(buf);
+	phase->setName( buf );
+	dst_entry->set_open_arrival_phase( phase );
 
 	Entry * an_entry = new Entry( pseudo, a_task );
 	::__entry.push_back( an_entry );		// Do this because add_call will try to find it.

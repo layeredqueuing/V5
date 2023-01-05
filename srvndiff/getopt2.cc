@@ -51,7 +51,7 @@ extern "C" char *optarg;
 extern "C" int optind, opterr, optopt;
 char    optsign;		/* '-' || '+'. */
 
-#define	BADCH	(int)'?'
+#define	BADCH	(int)':'
 #define	EMSG	""
 
 int

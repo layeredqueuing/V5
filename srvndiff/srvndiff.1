@@ -1,5 +1,5 @@
-.TH SRVN 1 "4 August 2022"
-.\" $HeadURL$
+.TH SRVNDIFF 1 "4 January 2023"
+.\" $Id: srvndiff.1 16260 2023-01-04 19:18:19Z greg $
 .SH NAME
 srvndiff \- compare SRVN results.
 .SH SYNOPSIS
@@ -41,6 +41,9 @@ the contents of the first for the purposes of error reporting.
 \fB\-@\fP, \fB\-\-files\fR=\fIarg\fR
 Only select those files in the directory that match the files listed
 in the file \fIfilelist\fR.
+.TP 12
+\fB\-?\fP, \fB\-\-solver\-information\fR
+Print out the solver used and its version number.
 .TP 12
 \fB\-a\fP, \fB\-\-aggregate\fR=\fR(task|processor)\fR=\fIname\fR
 Aggregate the throughput or utilizations of all tasks or processors
@@ -240,7 +243,7 @@ is to print send-no-reply waiting time results.
 Use a more compact format for output. Generally, output fields are
 eight characters wide rather than the default sixteen.
 .TP
-\fB\-\-print-comment\P
+\fB\-\-comment\fP
 Print the model comment field.
 .TP
 \fB\-\-latex\fP

@@ -74,6 +74,8 @@ public:
     bool random_queueing( ) const { return _random_queueing; }
     Activity * start_activity() const { return _start_activity; }
     Entry& set_start_activity( Activity * activity );
+    LQIO::DOM::Phase * open_arrival_phase() const { return _open_arrival_phase; }
+    Entry& set_open_arrival_phase( LQIO::DOM::Phase * phase ) { _open_arrival_phase = phase; return *this; }
     double prob_fwd( const Entry * ) const;		/* Forwarding probabilites.	*/
     double yy( const Entry * e ) const;
     double zz( const Entry * e ) const;
@@ -118,6 +120,7 @@ private:
     LQIO::DOM::Entry * _dom;
     const Task * _task;				/* Owning task.			*/
     Activity * _start_activity;
+    LQIO::DOM::Phase * _open_arrival_phase;	/* set if open arrivals present	*/
     const unsigned int _entry_id;		/* Only for layer number	*/
     Requesting_Type _requests;
     bool _replies;				/* true if reply generated.	*/

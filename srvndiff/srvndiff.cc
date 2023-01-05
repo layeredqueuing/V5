@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 16248 2023-01-02 23:51:15Z greg $
+ * $Id: srvndiff.cc 16262 2023-01-04 19:54:01Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -253,7 +253,7 @@ result_str_tab_t result_str[(int)P_LIMIT] = {
     /* P_SERVICE,      */   	{ "Service",        &fmt_e_p,   &fmt_a,   &width_e_p, 	get_serv, get_act_serv, check_serv, check_act_serv },
     /* P_SNR_WAITING,  */   	{ "SNR Waiting",    &fmt_e_e_p, &fmt_t_a, &width_e_e_p, get_snrw, get_act_snrw, check_snrw, check_act_snrw },
     /* P_SNR_WAIT_VAR, */   	{ "SNR Wt Var.",    &fmt_e_e_p, &fmt_t_a, &width_e_e_p, get_snrv, get_act_snrv, check_snrw, check_act_snrw },
-    /* P_SOLVER_VERSION*/	{ "Version",        &fmt_e,     nullptr,  &width_e, 	get_vrsn, nullptr,      nullptr,    nullptr },
+    /* P_SOLVER_VERSION*/	{ "Solver",         &fmt_e,     nullptr,  &width_e, 	get_vrsn, nullptr,      nullptr,    nullptr },
     /* P_TASK_PROC_UTIL*/   	{ "Proc. Util.",    &fmt_e,     nullptr,  &width_e, 	get_tpru, nullptr,      check_proc, nullptr },
     /* P_TASK_UTIL     */   	{ "Utilization",    &fmt_e,     nullptr,  &width_e, 	get_tutl, nullptr,      check_proc, nullptr },
     /* P_THROUGHPUT,   */   	{ "Throughput",     &fmt_e,     nullptr,  &width_e, 	get_tput, nullptr,      check_tput, nullptr },
@@ -419,7 +419,7 @@ static bool print_latex			= false;
 static bool print_quiet 		= false;
 static bool print_results_only 		= false;
 static bool print_rms_error_only 	= false;
-static bool print_solver_version	= false;
+static bool print_solver_information	= false;
 static bool print_total_rms_error 	= true;
 static bool print_totals_only 		= false;
 
@@ -492,9 +492,9 @@ static struct {
     { "service-time-exceeded",       'x', true,  no_argument,       "Print max service time exceeded", &print_exceeded },
     { "waiting-time-variances",      'y', true,  no_argument,       "Print waiting time variance results", &print_waiting_variance },
     { "asynch-send-waits",           'z', true,  no_argument,       "Print send-no-reply waiting time results", &print_snr_waiting },
+    { "solver-information",          '?', true,  no_argument,	    "Print the solver used and its version", &print_solver_information },
     { "compact",		 512+'k', false, no_argument,	    "Use a more compact format for output", nullptr },
-    { "print-comment",		 512+'c', false, no_argument,	    "Print model comment field", nullptr },
-    { "solver-version",	         512+'i', false, no_argument,	    "Print solver version  (major.minor only)", nullptr },
+    { "comment",		 512+'c', false, no_argument,	    "Print model comment ", nullptr },
     { "latex",			 512+'l', false, no_argument,	    "Format output for LaTeX", nullptr },
     { "heading",		 512+'h', false, required_argument, "Set column heading <col> to <string>", nullptr },
     { "debug-xml",               512+'x', false, no_argument,       "Output debugging information while parsing XML input", nullptr },
@@ -560,7 +560,7 @@ static void print_phase_result( const result_str_t result, const char * file_nam
 static void print_group( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_processor( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_task_result( const result_str_t result, const char * file_name, const unsigned passes );
-static void print_version( const result_str_t result, const char * file_name, const unsigned passes );
+static void print_information( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_rms_error( const char * file_name, const result_str_t result, const std::vector<stats_buf>&, unsigned passes, const bool print_conf );
 static void print_error_totals( unsigned passes, char * const names[] );
 static void print_runtime_totals( unsigned passes, char * const names[] );
@@ -938,8 +938,8 @@ main (int argc, char * const argv[])
 	    }
 	    break;
 	
-	case (512+'i'):
-	    print_solver_version = true;
+	case '?':
+	    print_solver_information = true;
 	    break;
 	    
 	case (512+'l'):
@@ -983,7 +983,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2023-01-02 18:51:15 -0500 (Mon, 02 Jan 2023) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2023-01-04 14:54:01 -0500 (Wed, 04 Jan 2023) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1033,6 +1033,7 @@ main (int argc, char * const argv[])
 	 && !print_snr_waiting
 	 && !print_snr_waiting_variance
 	 && !print_entry_throughput
+	 && !print_solver_information
 	 && !print_task_throughput
 	 && !print_task_util
 	 && !print_variance
@@ -1259,7 +1260,7 @@ compact_format()
     result_str[P_SEMAPHORE_UTIL].string="Sema Ut";
     result_str[P_SEMAPHORE_WAIT].string="Sema Wt";
     result_str[P_SERVICE].string =	    "Service";
-    result_str[P_SOLVER_VERSION].string =   "Version";
+    result_str[P_SOLVER_VERSION].string =   "Solver";
     result_str[P_SNR_WAITING].string =	"SNR Wt";
     result_str[P_SNR_WAIT_VAR].string =	"SNR WV";
     result_str[P_TASK_PROC_UTIL].string="Util";
@@ -1793,8 +1794,8 @@ print ( unsigned passes, char * const names[] )
 
     /* Run times */
 
-    if ( print_solver_version ) {
-	print_version( P_SOLVER_VERSION, file_name.c_str(), passes );
+    if ( print_solver_information ) {
+	print_information( P_SOLVER_VERSION, file_name.c_str(), passes );
     }
     
     if ( print_runtimes ) {
@@ -2672,9 +2673,8 @@ print_iteration ( const result_str_t result, const char * file_name, const unsig
 
 
 static void
-print_version ( const result_str_t result, const char * file_name, const unsigned passes )
+print_information ( const result_str_t result, const char * file_name, const unsigned passes )
 {
-    double value[MAX_PASS];
     int width = (compact_flag ? 8 : 16);
 
     if ( print_latex ) {
@@ -2686,22 +2686,23 @@ print_version ( const result_str_t result, const char * file_name, const unsigne
 
     (void) fprintf( output, *result_str[(int)result].format, "Version" );
     for ( unsigned int j = 0; j < passes; ++j ) {
-	(*result_str[(int)result].func)( value, nullptr, j, 0, 0, 0 );
 
-	(void) fprintf( output, "%s", separator_format );
-	if ( std::isfinite( value[j] ) ) {
-	    (void) fprintf( output, result_format, value[j] );
-	} else {
-	    (void) fprintf( output, "%*s", result_width, "--" );
-	}
+	size_t width = result_width;
 	if ( j > FILE1 ) {
 	    if ( passes >= 2 && !print_rms_error_only && !print_results_only ) {
-		(void) fprintf( output, "%s", separator_format );
-		(void) fprintf( output, "%*s", error_width, " " );
+		width += error_width;
 		if ( confidence_intervals_present[0] || confidence_intervals_present[j] ) {		/* Allow for * when error is within confidence interval */
-		    (void) fprintf( output, " " );
+		    width += error_width + 1;
 		}
 	    }
+	    // Might need multicolumn here.
+	}
+	
+	(void) fprintf( output, "%s", separator_format );
+	if ( general_tab[j].solver_info.empty() ) {
+	    (void) fprintf( output, "%*s", width, "--" );
+	} else {
+	    (void) fprintf( output, "%*s", width, general_tab[j].solver_info.c_str() );
 	}
     }
     if ( print_latex ) {
@@ -3138,7 +3139,7 @@ get_mvaw( double value[], double junk[], unsigned j, unsigned, unsigned, unsigne
 static void
 get_vrsn( double value[], double junk[], unsigned j, unsigned, unsigned, unsigned )
 {
-    value[j]	  = general_tab[j].version;
+    value[j]	  = 0.0;
 }
 
 static void

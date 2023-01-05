@@ -1,4 +1,4 @@
-$Id: README-LOCAL 16248 2023-01-02 23:51:15Z greg $
+$Id: README-LOCAL 16267 2023-01-04 20:23:46Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -61,7 +61,7 @@ The simulator does not execute on a 64 bit environment, so it is
 necessary to build a 32 bit version:
 
 sudo apt install gcc-multilib g++-multilib
-./.configure-ubuntu	      # to use -m32
+./.configure-m32	      # to use -m32
 make
 make install
 
@@ -82,6 +82,8 @@ If using MinGW2
      % pacman -S base-devel
    - You can run MSYS2 with mingw32_shell.bat and install mingw-w64 toolchain:
      % pacman -S mingw-w64-i686-toolchain
+   - Ghostscript is needed to build .pdf manual pages.
+     % pacman -S mingw-w64-i686-ghostscript
 
 2) Install other libraries for mingw.
    None needed with the above.

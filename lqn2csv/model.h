@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: model.h 16227 2022-12-31 18:27:59Z greg $
+ * $Id: model.h 16253 2023-01-03 19:37:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,9 +17,10 @@
 #if !defined MODEL_H
 #define MODEL_H
 #include <map>
+#include <cmath>
 #include <string>
 
-//#include <lqio/dom_object.h>
+#include <lqio/dom_document.h>
 
 namespace LQIO {
     namespace DOM {
@@ -33,8 +34,10 @@ namespace LQIO {
     }
 }
 
-
 namespace Model {
+
+    class Output;
+    std::ostream& operator<<( std::ostream&, const Model::Output& );
 
     enum class Mode { PATHNAME, FILENAME_STRIP, DIRECTORY_STRIP, DIRECTORY };
 
@@ -56,11 +59,34 @@ namespace Model {
 
 	static const std::map<const Object::Type,const std::pair<const std::string,const std::string>> __object_type;
     };
-    
+
+    class Output
+    {
+	friend std::ostream& operator<<( std::ostream&, const Model::Output& );
+
+    public:
+	enum class Type { DOUBLE, STRING };
+
+	Output( double value ) : _type(Type::DOUBLE) { _u._double = value; }
+	Output( const char * string ) : _type(Type::STRING) { _u._string = string; }
+
+	Output& operator=( const Output& src );
+	bool operator!=( const Output& dst ) const;
+	
+	bool isnan() const { return _type == Type::DOUBLE && std::isnan( _u._double ); }
+
+	const Type _type;
+	union {
+	    double _double;
+	    const char * _string;
+	} _u;
+    };
+
     class Result {
     public:
 	typedef double (LQIO::DOM::DocumentObject::*fptr)() const;
-
+	typedef const std::string& (LQIO::DOM::Document::*sfptr)() const;
+	
 	enum class Type
 	{
 	    NONE,
@@ -73,6 +99,7 @@ namespace Model {
 	    ACTIVITY_THROUGHPUT,
 	    ACTIVITY_VARIANCE,
 	    ACTIVITY_WAITING,
+	    COMMENT,
 	    ENTRY_THROUGHPUT,
 	    ENTRY_UTILIZATION, 
 	    HOLD_TIMES, 
@@ -117,7 +144,7 @@ namespace Model {
 
     public:
 	Result( const LQIO::DOM::Document& dom ) : _dom(dom) {}
-	std::vector<double> operator()( const std::vector<double>&, const std::pair<std::string,Model::Result::Type>& ) const;
+	std::vector<Model::Output> operator()( const std::vector<Model::Output>&, const std::pair<std::string,Model::Result::Type>& ) const;
 	static std::string ObjectName( const std::string&, const std::pair<std::string,Model::Result::Type>& );
 	static std::string TypeName( const std::string&, const std::pair<std::string,Model::Result::Type>& );
 	static bool equal( Type, Type );
@@ -144,6 +171,7 @@ namespace Model {
 
     public:
 	static const std::map<Type,result_fields> __results;
+	static const std::map<Type,sfptr> __document_results;
 
     private:
 	const LQIO::DOM::Document& _dom;
@@ -157,8 +185,8 @@ namespace Model {
 
     private:
 	size_t x_index() const { return _x_index.first; }
-	size_t x_value() const { return _x_index.second; }
-	void set_x_value( double value ) { _x_index.second = value; }
+	Model::Output x_value() const { return _x_index.second; }
+	void set_x_value( const Model::Output& value ) { _x_index.second = value; }
 	void print_filename( const std::string& ) const;
 
     private:
@@ -167,7 +195,7 @@ namespace Model {
 	const size_t _limit;
 	const size_t _header_column_width;
 	const Mode _mode;
-	std::pair<size_t,double> _x_index;	/* For splot output */
+	std::pair<size_t,Model::Output> _x_index;	/* For splot output */
 	unsigned int _i;			/* Record number */
     };
 
@@ -184,11 +212,10 @@ namespace Model {
     class PrintLine {
     public:
 	PrintLine( std::ostream& output ) : _output(output) {}
-	void operator()( double ) const;
+	void operator()( const Model::Output& ) const;
 
     private:
 	std::ostream& _output;
-
     };
 }
 #endif

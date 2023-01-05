@@ -70,6 +70,9 @@ Print the througput for \fItask\fP, \fIactivity\fP.
 \fB\-h\fP, \fB\-\-hold\-times\fR
 Print the hold time at a join.  Not implemented.
 .TP 8
+\fB\-i\fP, \fB\-\-solver-information\fR
+Print out the name and version of the solver used to solve the model.
+.TP 8
 \fB\-j\fP, \fB\-\-join\-delays\fR
 Print the join delay at a join.  Not implemented.
 .TP 8
@@ -146,6 +149,9 @@ Print the think time for the \fItask\fP.  \fITask\fP should be a
 reference task (client) as non-reference tasks should not have think
 times.  This is an independent variable for plotting.
 .TP 8
+\fB\-#\fP, \fB\-\-comment=\fIn\fR
+Print out the model comment field.
+.TP 8
 \fB\fB\-\-mva-step\fIn\fR
 Print out the number of times the MVA step() function was called when
 solving the model.
@@ -161,9 +167,6 @@ Do not output header information for CSV output.
 .TP 8
 \fB\fB\-\-precision=\fIn\fR
 Set the output precision to \fIn\fP digits.
-.TP 8
-\fB\fB\-\-solver-version\fR
-Print out the major and minor numbers of the solver used to solve the model.
 .TP 8
 \fB\fB\-\-width=\fIn\fR
 Set the output column width to \fIn\fP digits.  Commas are suppressed.

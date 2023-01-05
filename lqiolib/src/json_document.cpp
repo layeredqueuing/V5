@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 16114 2022-11-17 17:29:07Z greg $
+ * $Id: json_document.cpp 16253 2023-01-03 19:37:15Z greg $
  *
  * Read in JSON input files.
  *
@@ -346,7 +346,6 @@ namespace LQIO {
 
 	const std::map<const char*,const JSON_Document::ImportGeneral,JSON_Document::ImportGeneral>  JSON_Document::general_table =
 	{
-	    { Xcomment,		    ImportGeneral( &Document::setModelCommentString ) },
 	    { Xconv_val,	    ImportGeneral( &Document::setModelConvergence ) },
 	    { Xit_limit,	    ImportGeneral( &Document::setModelIterationLimit ) },
 	    { Xunderrelax_coeff,    ImportGeneral( &Document::setModelUnderrelaxationCoefficient ) },
@@ -2768,7 +2767,7 @@ namespace LQIO {
 	JSON_Document::ExportGeneral::print( const Document& document ) const
 	{
 	    _output << begin_object( Xgeneral );
-	    const std::string& comment = document.getModelCommentString();
+	    const std::string& comment = document.getModelComment();
 	    if ( !comment.empty() ) {
 		_output << attribute( Xcomment, comment ) << ",";
 	    }

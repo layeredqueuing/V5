@@ -13,7 +13,7 @@
 #define _PETRISRVN_H
 
 /*
- * $Id: petrisrvn.h 15955 2022-10-07 11:05:00Z greg $
+ * $Id: petrisrvn.h 16251 2023-01-03 16:51:11Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -75,7 +75,7 @@ extern struct lqio_params_stats io_vars;
 #define MAX_BRANCH 10			/* 10 branchs per fork-join.	*/
 #define MAX 1.e+12
 #define MAX_STAGE 4			/* For erlang distributions.	*/
-#define OPEN_MODEL_TOKENS 15		/* Number of tokens in open pl.	*/
+#define OPEN_MODEL_TOKENS 20		/* Number of tokens in open pl.	*/
 #define N_SEMAPHORE_ENTRIES 2		/* N entries for semaphore task	*/
 
 #define	INFINITE_SERVER	0

@@ -92,9 +92,7 @@ add_system_time( double time )
 void
 add_solver_info( const char * info )
 {
-    if ( sscanf( info, "%*s %lf", &general_tab[pass].version ) <= 0 ) {
-	general_tab[pass].version = std::numeric_limits<double>::quiet_NaN();	/* None found */
-    }
+    general_tab[pass].solver_info = info;
 }
 
 void

@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 15718 2022-06-27 12:52:14Z greg $
+ * $Id: runlqx.cc 16253 2023-01-03 19:37:15Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -77,7 +77,7 @@ namespace SolverInterface
 
 	    std::stringstream ss;
 	    _document->printExternalVariables( ss );
-	    _document->setModelCommentString( ss.str() );
+	    _document->setModelComment( ss.str() );
 	    _document->setResultInvocationNumber(invocationCount);
 	    const bool ok = (_aModel->*_solve)();
 	    return LQX::Symbol::encodeBoolean(ok);

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 16195 2022-12-23 22:03:52Z greg $
+ *  $Id: srvn_spex.cpp 16253 2023-01-03 19:37:15Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -178,10 +178,10 @@ namespace LQIO {
 
 	/*+ GNUPlot or other header stuff. */
 	if ( gnuplot != nullptr && !gnuplot->empty() ) {
-	    GnuPlot::insert_header( main_line, DOM::__document->getModelCommentString(), __result_variables );
+	    GnuPlot::insert_header( main_line, DOM::__document->getModelComment(), __result_variables );
 	} else {
 	    if ( __print_comment ) {
-		main_line->push_back( GnuPlot::print_node( "\"" + DOM::__document->getModelCommentString() + "\"" ) );
+		main_line->push_back( GnuPlot::print_node( "\"" + DOM::__document->getModelComment() + "\"" ) );
 	    }
 	    if ( !__no_header ) {
 		main_line->push_back( print_header() );
@@ -600,7 +600,7 @@ namespace LQIO {
 	std::ostringstream plot;		// Plot command collected here.
 
 	_gnuplot.push_back( GnuPlot::print_node( "set datafile separator \",\"" ) );		/* Use CSV. */
-	_gnuplot.push_back( GnuPlot::print_node( "set title \"" + DOM::__document->getModelCommentString() + "\"" ) );
+	_gnuplot.push_back( GnuPlot::print_node( "set title \"" + DOM::__document->getModelComment() + "\"" ) );
 	_gnuplot.push_back( GnuPlot::print_node( "#set output \"" + LQIO::Filename( DOM::__document->__input_file_name, "svg", "", "" )() + "\"" ) );
 	_gnuplot.push_back( GnuPlot::print_node( "#set terminal svg" ) );
 
@@ -715,7 +715,7 @@ namespace LQIO {
 	const std::map<const LQX::SyntaxTreeNode *,std::string> index = get_plot_args( list, args );
 	std::ostringstream splot;		// Plot command collected here.
 
-	const std::string comment = "set title \"" + DOM::__document->getModelCommentString() + "\"";
+	const std::string comment = "set title \"" + DOM::__document->getModelComment() + "\"";
 	_gnuplot.push_back( GnuPlot::print_node( comment ) );
 
 	/* Go through the args, (x, y, z1, z2, z3..). */
@@ -946,7 +946,6 @@ namespace LQIO {
 	{ "$convergence_under_relax",	    Spex::attribute_table_t( DOM::Document::XSpexUnderrelaxation ) },
 	{ Spex::__convergence_limit_str,    Spex::attribute_table_t( &DOM::Document::setModelConvergence ) },
 	{ "$iteration_limit",		    Spex::attribute_table_t( &DOM::Document::setModelIterationLimit ) },
-	{ "$model_comment",		    Spex::attribute_table_t( DOM::Document::XComment ) },
 	{ "$print_interval",		    Spex::attribute_table_t( &DOM::Document::setModelPrintInterval ) },
 	{ "$underrelaxation",		    Spex::attribute_table_t( &DOM::Document::setModelUnderrelaxationCoefficient ) }
     };

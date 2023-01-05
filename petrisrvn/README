@@ -1,0 +1,3 @@
+petrisrvn is used to convert lqn models into Petri Nets which can be solved using the GreatSPN solver.
+
+To install the GreatSPN solver, please go to github.

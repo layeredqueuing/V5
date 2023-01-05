@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvndiff.h 16230 2023-01-01 15:01:53Z greg $
+ * $Id: srvndiff.h 16259 2023-01-04 01:53:42Z greg $
  */
 
 #if	!defined(SRVNDIFF_H)
@@ -106,7 +106,7 @@ struct general_info {
     double value[3];
     const char * sysname;
     const char * nodename;
-    double version;
+    std::string solver_info;
 };
 
 struct call_info

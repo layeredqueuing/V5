@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 16204 2022-12-27 15:42:27Z greg $
+ * $Id: qnsolver.cc 16250 2023-01-03 15:23:44Z greg $
  */
 
 #include "config.h"
@@ -96,7 +96,7 @@ static BCMP::Model::Result::Type plot_type = BCMP::Model::Result::Type::THROUGHP
 
 std::string program_name;
 
-#if HAVE_EXPAT_H
+#if HAVE_LIBEXPAT
 QNIO::JMVA_Document* __input = nullptr;
 #endif
 
@@ -271,7 +271,7 @@ static void exec( const std::string& input_file_name, const std::string& output_
     if ( LQIO::DOM::Document::getInputFormatFromFilename( input_file_name, LQIO::DOM::Document::InputFormat::JMVA ) == LQIO::DOM::Document::InputFormat::QNAP2 ) {
 	QNIO::QNAP2_Document input( input_file_name );
 	exec( input, output_file_name, plot_arg );
-#if HAVE_EXPAT_H
+#if HAVE_LIBEXPAT
     } else {
 	QNIO::JMVA_Document input( input_file_name );
 	exec( input, output_file_name, plot_arg );

@@ -42,7 +42,8 @@ Entry::Entry( LQIO::DOM::Entry * dom, Task * task )
 #endif
       _dom(dom),
       _task(task),
-      _start_activity(0),
+      _start_activity(nullptr),
+      _open_arrival_phase(nullptr),
       _entry_id(__next_entry_id++),
       _requests(Requesting_Type::NOT_CALLED),
       _replies(false),
