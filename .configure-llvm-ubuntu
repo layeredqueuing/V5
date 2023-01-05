@@ -1,1 +1,0 @@
-./configure 'CC=/usr/lib/llvm-9/bin/clang' 'CXX=/usr/lib/llvm-9/bin/clang++' -C --prefix=/usr/local

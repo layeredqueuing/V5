@@ -7,11 +7,11 @@
  *
  */
 
-#include <iostream>
-#include <sstream>
-#include <algorithm>
-
 #include <config.h>
+#include <algorithm>
+#include <iostream>
+#include <limits>
+#include <sstream>
 #include "Intrinsics.h"
 #include "SymbolTable.h"
 #include "Environment.h"
