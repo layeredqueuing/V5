@@ -150,9 +150,9 @@ transit_pair		: identifier optional_list ','
 
 station_type		: simple_station_type					{ $$ = qnap2_get_station_type_pair( $1, 1 ); }
 			| QNAP_SOURCE						{ $$ = qnap2_get_station_type_pair( $1, 1 ); }
-			| QNAP_MULTIPLE '(' QNAP_INTEGER ')'			{ $$ = qnap2_get_station_type_pair( $1, $3 ); }
+			| QNAP_MULTIPLE '(' LONG ')'				{ $$ = qnap2_get_station_type_pair( $1, $3 ); }
 			| compound_station_type					{ $$ = qnap2_get_station_type_pair( $1, 1 ); }
-			| compound_station_type '(' QNAP_INTEGER ')'		{ $$ = qnap2_get_station_type_pair( $1, $3 ); }
+			| compound_station_type '(' LONG ')'			{ $$ = qnap2_get_station_type_pair( $1, $3 ); }
 			;
 
 simple_station_type	: QNAP_INFINITE						{ $$ = $1; }

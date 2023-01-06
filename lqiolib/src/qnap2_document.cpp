@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16194 2022-12-23 03:22:28Z greg $
+ * $Id: qnap2_document.cpp 16285 2023-01-06 00:06:03Z greg $
  *
  * Read in XML input files.
  *
@@ -2189,7 +2189,7 @@ namespace QNIO {
 	LQX::SyntaxTreeNode * visits = station.classAt(_name).visits();
 	if ( !station.reference() && station.hasClass(_name) && !BCMP::Model::isDefault(visits) ) {
 	    if ( !s.empty() ) s += ",";
-	    s += m2.first + "," + to_unsigned(visits);
+	    s += m2.first + "," + to_real(visits);
 	}
 	return s;
     }
@@ -2511,7 +2511,7 @@ namespace QNIO {
 	if ( !station.hasClass(_name) || station.reference() ) return s1;	/* Don't visit self */
 	LQX::SyntaxTreeNode * visits = station.classAt(_name).visits();
 	if ( BCMP::Model::isDefault( visits ) ) return s1;	/* ignore zeros */
-	std::string s2 = to_unsigned( visits );
+	std::string s2 = to_real( visits );
 	if ( s1.empty() ) {
 	    return s2;
 	} else {
@@ -2549,11 +2549,14 @@ namespace QNIO {
 	if ( dynamic_cast<LQX::VariableExpression *>(v) ) {
 	    str = dynamic_cast<LQX::VariableExpression *>(v)->getName();
 	} else {
-	    char buf[16];
-	    snprintf( buf, 15, "%g", v->invoke(nullptr)->getDoubleValue() );
-	    str = buf;
+	    str = std::to_string( v->invoke(nullptr)->getDoubleValue() );
 	    if ( str.find( '.' ) == std::string::npos ) {
 		str += ".";	/* Force real */
+	    } else {
+		size_t end = str.find_last_not_of("0 ");
+		if ( end != std::string::npos) {
+		    str = str.erase(end + 1);	/* Trim trailing 0s and blanks */
+		}
 	    }
 	}
 	return str;
@@ -2566,12 +2569,11 @@ namespace QNIO {
 	if ( dynamic_cast<LQX::VariableExpression *>(v) ) {
 	    str = dynamic_cast<LQX::VariableExpression *>(v)->getName();
 	} else {
-	    char buf[16];
-	    snprintf( buf, 15, "%g", v->invoke(nullptr)->getDoubleValue() );
-	    str = buf;
-	    if ( str.find( '.' ) != std::string::npos ) {
-		throw std::domain_error( "Invalid integer" );
+	    const double value = v->invoke(nullptr)->getDoubleValue();
+	    if ( value != std::rint(value) || value < 0.0 ) {
+		throw std::domain_error( std::string("Invalid integer")+std::to_string( value ) );
 	    }
+	    str = std::to_string( static_cast<unsigned int>(value) );
 	}
 	return str;
     }

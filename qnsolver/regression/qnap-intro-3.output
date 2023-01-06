@@ -1,0 +1,36 @@
+ input parameters
+  
+ mean service time at disk   1   :   0.1200    
+ mean service time at disk   2   :   0.1800    
+  
+ data-base 1
+ number of terminals        :         5.
+ mean service time at cpu   :   0.2000    
+ mean thinking time         :    20.00    
+  
+ data-base 2
+ number of terminals        :        10.
+ mean service time at cpu   :   0.1000    
+ mean thinking time         :    30.00    
+  
+ administrator
+ mean service time at cpu   :    1.500    
+ mean inter-arrival time    :    250.0    
+  
+ results
+  
+ cpu utilization            :   0.7146    
+ utilization of disk   1    :   0.2114    
+ utilization of disk   2    :   0.2343    
+  
+ data-base 1
+ throughput                 :   0.1899    
+ mean response time         :    6.325    
+  
+ data-base 2
+ throughput                 :   0.3094    
+ mean response time         :    2.317    
+  
+ administrator
+ throughput                 :   0.4000E-02
+ mean response time         :    136.9    
