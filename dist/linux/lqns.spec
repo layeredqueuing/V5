@@ -1,6 +1,6 @@
 # LQNS RPM file.
 # ------------------------------------------------------------------------
-# $Id: lqns.spec 16191 2022-12-21 19:32:38Z greg $
+# $Id: lqns.spec 16291 2023-01-06 21:03:21Z greg $
 # ------------------------------------------------------------------------
 
 %define product_name lqns
@@ -40,8 +40,6 @@ resources, and the modeling concepts include asynchronous messaging,
 and parallel execution.
 
 %changelog
-* Mon Sep 13 2021 Gregory Franks <greg@Gregs-Retina-iMac.local> - VERSION-2
-- Bug 315 	Phase think time not working 
 
 %prep
 cd ${RPM_BUILD_DIR}
@@ -111,11 +109,8 @@ rm -f lqn2xml.%{product_man_section}
 %attr( 0755 , root , root ) %{install_prefix}/bin/srvndiff
 %dir %attr( - , root , root ) %{install_prefix}/lib
 %attr( 0755 , root , root ) %{install_prefix}/lib/liblqio.a
-%attr( 0644 , root , root ) %{install_prefix}/lib/liblqio.la
 %attr( 0755 , root , root ) %{install_prefix}/lib/liblqx.a
-%attr( 0644 , root , root ) %{install_prefix}/lib/liblqx.la
 %attr( 0755 , root , root ) %{install_prefix}/lib/libmva.a
-%attr( 0644 , root , root ) %{install_prefix}/lib/libmva.la
 %dir %attr( - , root , root ) %{install_prefix}/share
 %dir %attr( - , root , root ) %{install_prefix}/share/man/man%{product_man_section}*
 %attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/lqn2csv.%{product_man_section}*
