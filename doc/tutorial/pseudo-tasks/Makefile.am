@@ -3,7 +3,7 @@
 # Carleton University, Ottawa, Ontario, Canada. K1S 5B6
 #
 #----------------------------------------------------------------------
-# $Id: Makefile.am 15463 2022-03-10 23:32:21Z greg $
+# $Id: Makefile.am 16299 2023-01-07 17:01:32Z greg $
 #----------------------------------------------------------------------
 
 SUBDIRS = 
@@ -11,7 +11,7 @@ SRCS =  shared-module.fig	network-latency.fig		instrumentation.fig
 OBJS = $(SRCS:.fig=.eps) 
 
 EXTRA_DIST = $(SRCS) 
-pkgdata_DATA = $(OBJS)
+noinst_DATA = $(OBJS)
 
 SUFFIXES = .pdf .ps .dvi .bbl .eps .pstex .eps .fig .tex
 
