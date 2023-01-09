@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16089 2022-11-09 15:40:39Z greg $
+ *  $Id: jmva_document.h 16303 2023-01-09 01:52:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -145,6 +145,8 @@ namespace QNIO {
 	void setPlotCustomers( bool plot_customers ) { _plot_customers = plot_customers; }
 
     private:
+	void setStrictJMVA( bool value ) { _strict_jmva = value; }
+	bool strictJMVA() const { return  _strict_jmva; }
 	bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,JMVA_Document::attribute_table_t>& table ) const;
 
 	static void start( void *data, const XML_Char *el, const XML_Char **attr );
@@ -168,6 +170,8 @@ namespace QNIO {
 	void startServiceTimes( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void startServiceTime( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void endServiceTime( Object&, const XML_Char * element );
+	void startServiceTimeList( Object& station, const XML_Char * element, const XML_Char ** attributes );	/* BUG_411 */
+	void endServiceTimeList( Object&, const XML_Char * element );	/* BUG_411 */
 	void startVisits( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void startVisit( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void endVisit( Object&, const XML_Char * element );
@@ -199,7 +203,7 @@ namespace QNIO {
 	std::string setDemand( const std::string&, const std::string& );
 	std::string setMultiplicity( const std::string&, const std::string& );
 	std::string setPopulationMix( const std::string& stationName, const std::string& className );
-	
+
 	void appendResultVariable( const std::string&, LQX::SyntaxTreeNode * );
 
 	/* LQX */
@@ -283,7 +287,7 @@ namespace QNIO {
 	    void operator()( const std::pair<const std::string,const BCMP::Model::Chain>& k ) const;
 	    const BCMP::Model::Station::map_t& stations() const { return _self.model().stations(); }
 	    void createObservation( const std::string&, const std::string& name, BCMP::Model::Result::Type type, const BCMP::Model::Station * m, const BCMP::Model::Station::Class * k=nullptr ) const;
-	    
+
 	private:
 	    JMVA_Document& _self;
 	};
@@ -298,7 +302,7 @@ namespace QNIO {
 	    std::vector<LQX::SyntaxTreeNode *>* _arguments;
 	    const BCMP::Model::Chain::map_t& _chains;
 	};
-	
+
 	struct notSet {
 	    notSet( const JMVA_Document& document ) : _variables() { getVariables(document); }
 	    std::vector<std::string> operator()( const std::vector<std::string>& arg1, const std::string& arg2 ) const;
@@ -336,10 +340,16 @@ namespace QNIO {
 	};
 
 	struct printStation {
-	    printStation( std::ostream& output ) : _output(output) {}
+	    printStation( std::ostream& output, const BCMP::Model& model, bool strict_jmva=true ) : _output(output), _model(model), _strict_jmva(strict_jmva) {}
 	    void operator()( const BCMP::Model::Station::pair_t& m ) const;
 	private:
+	    const BCMP::Model::Chain::map_t& chains() const { return _model.chains(); }
+	    static LQX::SyntaxTreeNode * add_customers( LQX::SyntaxTreeNode * addend, const BCMP::Model::Chain::pair_t& augend );
+	    bool strictJMVA() const { return _strict_jmva; }
+	private:
 	    std::ostream& _output;
+	    const BCMP::Model& _model;
+	    const bool _strict_jmva;
 	};
 
 	struct printReference {
@@ -350,11 +360,20 @@ namespace QNIO {
 	    const BCMP::Model::Station::map_t& _stations;
 	};
 
-	struct printService {
-	    printService( std::ostream& output ) : _output(output) {}
+	struct printServiceTime {
+	    printServiceTime( std::ostream& output ) : _output(output) {}
 	    void operator()( const BCMP::Model::Station::Class::pair_t& d ) const;
 	private:
 	    std::ostream& _output;
+	};
+
+	struct printServiceTimeList {	/*+ BUG_411 */
+	    printServiceTimeList( std::ostream& output, LQX::SyntaxTreeNode * copies, LQX::SyntaxTreeNode * customers ) : _output(output), _copies(copies), _customers(customers) {}
+	    void operator()( const BCMP::Model::Station::Class::pair_t& d ) const;
+	private:
+	    std::ostream& _output;
+	    LQX::SyntaxTreeNode * _copies;
+	    LQX::SyntaxTreeNode * _customers;
 	};
 
 	struct printVisits {
@@ -374,13 +393,14 @@ namespace QNIO {
 	static std::string fold( const std::string& s1, const var_name_and_expr& v2 );
 
     private:
+	bool _strict_jmva;								/* True if outputting strict JMVA. */
 	XML_Parser _parser;
 	std::string _text;
 	std::stack<parse_stack_t> _stack;
 	std::string _lqx_program_text;
 	unsigned int _lqx_program_line_number;
 	LQX::Program * _lqx;
-	
+
 	/* SPEX */
 	std::vector<LQX::SyntaxTreeNode*> _program;
 	std::set<std::string> _input_variables;						/* Spex vars -- may move to QNAP/QNIO */
@@ -404,7 +424,7 @@ namespace QNIO {
 	bool _plot_customers;
 
 	static const std::map<const std::string,JMVA_Document::setIndependentVariable> independent_var_table;
-	
+
 	static const std::set<const XML_Char *,attribute_table_t> algParams_table;
 	static const std::set<const XML_Char *,attribute_table_t> compareAlgs_table;
 	static const std::set<const XML_Char *,attribute_table_t> demand_table;

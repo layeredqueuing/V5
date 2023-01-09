@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 16250 2023-01-03 15:23:44Z greg $
+ * $Id: qnsolver.cc 16300 2023-01-08 03:06:26Z greg $
  */
 
 #include "config.h"
@@ -48,6 +48,7 @@ const struct option longopts[] =
     { "verbose",				no_argument,		0, 'v' },
     { "help",					no_argument,		0, 'h' },
     { "export-qnap2",				no_argument,		0, 'Q' },
+    { "export-jmva",				no_argument,		0, 'J' },
     { "debug-qnap2",				no_argument,		0, 'D' },
     { "debug-mva",				no_argument,		0, 'd' },
     { "debug-lqx",				no_argument,		0, 'L' },
@@ -58,7 +59,7 @@ const struct option longopts[] =
 
 static std::string opts;
 #else
-static std::string opts = "bdefhlo:rstvxGDLQSX";
+static std::string opts = "bdefhlo:rstvxDGJLQSX";
 #endif
 
 const static std::map<const std::string,const std::string> opthelp  = {
@@ -79,6 +80,7 @@ const static std::map<const std::string,const std::string> opthelp  = {
     { "verbose",                                "" },
     { "help",                                   "Show this." },
     { "export-qnap2",                           "Export a QNAP2 model.  Do not solve." },
+    { "export-jmva",				"Export a JMVA model after solution (results embedded)." },
     { "debug-qnap2",                            "Debug the QNAP2 input parser." },
     { "debug-lqx",                              "Debug the LQX program." },
     { "debug-mva",                              "Enable debug code in the MVA solver." },
@@ -89,6 +91,7 @@ const static std::map<const std::string,const std::string> opthelp  = {
 /* Flags */
 
 static bool print_qnap2 = false;		/* Export to qnap2.  		*/
+static bool print_jmva = false;			/* Export to JMVA		*/
 static bool print_gnuplot = false;		/* Output WhatIf as gnuplot	*/
 static BCMP::Model::Result::Type plot_type = BCMP::Model::Result::Type::THROUGHPUT;
 
@@ -226,6 +229,10 @@ int main (int argc, char *argv[])
 	    /* Not implemented */
 	    break;
 
+	case 'J':
+	    print_jmva = true;
+	    break;
+	    
 	case 'Q':
 	    print_qnap2 = true;
 	    break;
@@ -284,20 +291,17 @@ static void exec( const std::string& input_file_name, const std::string& output_
 static void exec( QNIO::Document& input, const std::string& output_file_name, const std::string& plot_arg )
 {
     if ( !input.load() ) return;
+
+    std::ofstream output;
+    if ( !output_file_name.empty() ) {
+	output.open( output_file_name, std::ios::out );
+	if ( !output ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << output_file_name << "\" -- " << strerror( errno ) << std::endl;
+	}
+    }
     if ( print_qnap2 ) {
 	QNIO::QNAP2_Document qnap_model( input.getInputFileName(), input.model() );
-	if ( output_file_name.empty() ) {
-	    qnap_model.exportModel( std::cout );
-	} else {
-	    std::ofstream output;
-	    output.open( output_file_name, std::ios::out );
-	    if ( !output ) {
-		std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << output_file_name << "\" -- " << strerror( errno ) << std::endl;
-	    } else {
-		qnap_model.exportModel( output );
-	    }
-	    output.close();
-	}
+	qnap_model.exportModel( std::cout );
     } else {
 	input.mergePragmas( pragmas.getList() );
 	Pragma::set( input.getPragmaList() );		/* load pragmas here */
@@ -308,8 +312,17 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
 	catch ( const std::invalid_argument& e ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
 	}
-	Model model( input, Pragma::solver(), output_file_name );
-	model.solve();
+	if ( print_jmva ) {
+	    Model model( input, Pragma::solver(), std::string() );
+	    model.solve();
+	    input.exportModel( output );
+	} else {
+	    Model model( input, Pragma::solver(), output_file_name );
+	    model.solve();
+	}
+    }
+    if ( output ) {
+	output.close();
     }
 }
 

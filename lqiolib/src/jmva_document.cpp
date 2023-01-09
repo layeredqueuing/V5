@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16079 2022-11-08 15:35:44Z greg $
+ * $Id: jmva_document.cpp 16303 2023-01-09 01:52:04Z greg $
  *
  * Read in XML input files.
  *
@@ -59,7 +59,7 @@ namespace QNIO {
     /*
      * BSD complains about the implicit copy constructor.
      */
-  
+
     JMVA_Document::Object::Object( const Object& o ) : _discriminator(o._discriminator)
     {
         switch ( _discriminator ) {
@@ -73,15 +73,15 @@ namespace QNIO {
 	    /* NO default to catch new discriminators through warning */
 	}
     }
-  
+
     /* ---------------------------------------------------------------- */
     /* DOM input.                                                       */
     /* ---------------------------------------------------------------- */
 
     JMVA_Document::JMVA_Document( const std::string& input_file_name ) :
 	Document( input_file_name, BCMP::Model() ),
-	_parser(nullptr), _stack(),
-	_lqx_program_text(), _lqx_program_line_number(0), _lqx(nullptr), _program(), 
+	_strict_jmva(true), _parser(nullptr), _stack(),
+	_lqx_program_text(), _lqx_program_line_number(0), _lqx(nullptr), _program(),
 	_input_variables(), _whatif_body(), _independent_variables(), _result_variables(), _station_index(),
 	_think_time_vars(), _population_vars(), _arrival_rate_vars(), _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 	_plot_population_mix(false), _plot_customers(false)
@@ -103,9 +103,9 @@ namespace QNIO {
     }
 
     /*
-     * Load the document 
+     * Load the document
      */
-    
+
     bool
     JMVA_Document::load()
     {
@@ -120,12 +120,12 @@ namespace QNIO {
     }
 
 
-    /* 
+    /*
      * For loading a JMVA document into an LQN document.  There is a
      * memory leak here, but the external variables are shared between
      * the jmva document and the dom.
      */
-    
+
     bool
     JMVA_Document::load( LQIO::DOM::Document& lqn, const std::string& input_file_name )
     {
@@ -348,10 +348,17 @@ namespace QNIO {
     void
     JMVA_Document::handle_text( void * data, const XML_Char * text, int length )
     {
+	const static std::vector<JMVA_Document::start_fptr> text_handler = {
+	    &JMVA_Document::startDescription,
+	    &JMVA_Document::startServiceTime,
+	    &JMVA_Document::startServiceTimeList,		/* BUG_411 */
+	    &JMVA_Document::startVisit
+	};
+	
 	JMVA_Document * parser = static_cast<JMVA_Document *>(data);
 	if ( parser->_stack.size() == 0 ) return;
 	const parse_stack_t& top = parser->_stack.top();
-	if ( top.start == &JMVA_Document::startDescription || top.start == &JMVA_Document::startServiceTime || top.start == &JMVA_Document::startVisit ) {
+	if ( std::find( text_handler.begin(), text_handler.end(), top.start ) !=  text_handler.end() ) {
 	    parser->_text.append( text, length );
 	} else if ( top.start == &JMVA_Document::startLQX ) {
 	    std::string& program = const_cast<std::string &>(parser->getLQXProgramText());
@@ -438,7 +445,7 @@ namespace QNIO {
     JMVA_Document::startDocument( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
 	static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> document_table = { Xxml_debug, Xjaba };
-	
+
 	if ( strcasecmp( element, Xmodel ) == 0 ) {
 	    checkAttributes( element, attributes, document_table );
 	    LQIO::DOM::Document::__debugXML = (LQIO::DOM::Document::__debugXML || XML::getBoolAttribute(attributes,Xxml_debug));
@@ -524,7 +531,7 @@ namespace QNIO {
     JMVA_Document::startParameters( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
 	static std::set<const XML_Char *,JMVA_Document::attribute_table_t> parameter_table = { Xnumber };
-	
+
 	checkAttributes( element, attributes, parameter_table );		// Hoist: All elements the same
 	if ( strcasecmp( element, Xclasses ) == 0 ) {
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startClasses) );
@@ -578,9 +585,6 @@ namespace QNIO {
 	if ( strcasecmp( element, Xdelaystation ) == 0 ) {
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,Object(createStation( BCMP::Model::Station::Type::DELAY, attributes )) ) );
 	} else if ( strcasecmp( element, Xlistation ) == 0 ) {
-	    if ( !BCMP::Model::isDefault( getVariableAttribute( attributes, Xservers, 1 ), 1.0 ) ) { 	 
-		runtime_error( LQIO::ERR_INVALID_PARAMETER, Xservers, Xlistation, XML::getStringAttribute( attributes, Xname ), "Not equal to 1" ); 	 
-	    }
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,Object(createStation( BCMP::Model::Station::Type::LOAD_INDEPENDENT, attributes )) ) );
 	} else if ( strcasecmp( element, Xldstation ) == 0 ) {
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,Object(createStation( BCMP::Model::Station::Type::MULTISERVER, attributes )) ) );
@@ -629,8 +633,13 @@ namespace QNIO {
 	    BCMP::Model::Station::Class::map_t& demands = station->classes();		// Will insert...
 	    const std::pair<BCMP::Model::Station::Class::map_t::iterator,bool> result = demands.emplace( class_name, BCMP::Model::Station::Class() );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startServiceTime,&JMVA_Document::endServiceTime,Object(&result.first->second) ) );
+	} else if ( strcasecmp( element, Xservicetimes ) == 0 ) {	// BUG_411 -- pass in station object
+	    _text.clear();					// Reset buffer for handle_text.
+	    BCMP::Model::Station::Class::map_t& demands = station->classes();		// Will insert...
+	    const std::pair<BCMP::Model::Station::Class::map_t::iterator,bool> result = demands.emplace( class_name, BCMP::Model::Station::Class() );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startServiceTimeList,&JMVA_Document::endServiceTimeList,Object(Object::MK(station,&result.first->second)) ) );
 	} else {
-	    XML::throw_element_error( element, attributes );      		/* Should not get here. */
+	    XML::throw_element_error( element, attributes );      	/* Should not get here. */
 	}
     }
 
@@ -640,11 +649,63 @@ namespace QNIO {
 	XML::throw_element_error( element, attributes );           	/* Should not get here. */
     }
 
-    void JMVA_Document::endServiceTime( Object& object, const XML_Char * element )
+    void
+    JMVA_Document::endServiceTime( Object& object, const XML_Char * element )
     {
 	LQX::SyntaxTreeNode * service_time = getVariable( element, _text.c_str() );
 	object.getDemand()->setServiceTime( service_time );			// Through the magic of unions...
 	if ( dynamic_cast<LQX::VariableExpression *>(service_time) ) _service_time_vars.emplace(object.getDemand(),dynamic_cast<LQX::VariableExpression *>(service_time)->getName());
+    }
+
+    /*+ BUG_411
+     * For LIStation... (FESC)
+     */
+
+    void
+    JMVA_Document::startServiceTimeList( Object& object, const XML_Char * element, const XML_Char ** attributes )
+    {
+	XML::throw_element_error( element, attributes );           	/* Should not get here. */
+    }
+
+    /*+ BUG_411
+     * For LDStation... (FESC).  We haven't implemented this type, but
+     * JMVA doesn't implement 'servers=' attribute (and it the number
+     * of service times has to equal the number of customers).  So,
+     * take only the first one, then ignore the others.  Count the
+     * unique items to determine the number of servers.  JMVA insists
+     * that n==1 for the "servers=<n>" attribute.
+     */
+
+    void
+    JMVA_Document::endServiceTimeList( Object& object, const XML_Char * element )
+    {
+	Object::MK& mk = object.getMK();	/* Station,class pair */
+	BCMP::Model::Station * m = const_cast<BCMP::Model::Station *>(mk.first);
+	BCMP::Model::Station::Class * k = const_cast<BCMP::Model::Station::Class *>(mk.second);
+
+	/* Tokeninze the input string on ';' */
+	std::string& values = _text;
+	const char delim = ';';
+	size_t start;
+	size_t finish = 0;
+	size_t count = 0;
+	std::string last_value = "";
+	while ( (start = values.find_first_not_of( delim, finish )) != std::string::npos ) {
+	    finish = values.find(delim, start);
+	    const std::string value = values.substr( start, finish - start  );
+	    if ( value != last_value ) {
+		last_value = value;
+		count += 1;
+	    }
+	    if ( count == 1 ) {
+		/* this is the service time at one customer, which we need */
+		LQX::SyntaxTreeNode * service_time = getVariable( element, value.c_str() );
+		k->setServiceTime( service_time );
+		if ( dynamic_cast<LQX::VariableExpression *>(service_time) ) _service_time_vars.emplace(k,dynamic_cast<LQX::VariableExpression *>(service_time)->getName());
+	    }
+	}
+	std::cerr << "Set LD Station servers to " << count << std::endl;
+	m->setCopies( BCMP::Model::max( m->copies(), new LQX::ConstantValueExpression( static_cast<double>(count) ) ) );
     }
 
     void
@@ -753,7 +814,7 @@ namespace QNIO {
 	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> station_results_table = {
 		Xstation
 	    };
-	    
+
 	    checkAttributes( element, attributes, station_results_table );
 	    const std::string name = XML::getStringAttribute(attributes,Xstation);
 	    Object mk_object(Object::MK(&model().stationAt(name),nullptr));
@@ -820,7 +881,7 @@ namespace QNIO {
     {
 	XML::throw_element_error( element, attributes );             /* Should not get here. */
     }
-    
+
 
     /*
      */
@@ -836,7 +897,7 @@ namespace QNIO {
      * Return either a constant or a variable by converting attribute.  If the attribute is NOT found
      * use the default (if present), or throw missing_attribute.
      */
-	
+
     LQX::SyntaxTreeNode *
     JMVA_Document::getVariableAttribute( const XML_Char **attributes, const XML_Char * attribute, double default_value )
     {
@@ -903,8 +964,14 @@ namespace QNIO {
 	const std::pair<BCMP::Model::Station::map_t::iterator,bool> result = model().insertStation( name, BCMP::Model::Station( type, scheduling, multiplicity ) );
 	if ( !result.second ) throw std::runtime_error( "Duplicate station" );
 	BCMP::Model::Station * station = &result.first->second;
-	if ( dynamic_cast<LQX::VariableExpression *>(multiplicity) ) _multiplicity_vars.emplace(station,dynamic_cast<LQX::VariableExpression *>(multiplicity)->getName());
-	return station;						
+
+	if ( type == BCMP::Model::Station::Type::MULTISERVER ) {
+	    if ( dynamic_cast<LQX::VariableExpression *>(multiplicity) ) _multiplicity_vars.emplace(station,dynamic_cast<LQX::VariableExpression *>(multiplicity)->getName());
+	} else if ( !BCMP::Model::isDefault( getVariableAttribute( attributes, Xservers, 1 ), 1.0 ) ) {
+	    /* Only multiservers can have servers != 1 */
+	    runtime_error( LQIO::ERR_INVALID_PARAMETER, Xservers, Xlistation, XML::getStringAttribute( attributes, Xname ), "Not equal to 1" );
+	}
+	return station;
     }
 
     /*
@@ -924,7 +991,7 @@ namespace QNIO {
      * type can be "Customer Numbers" or "Service Demands" (or
      * "Population Mix" - ratio between two classes)
      */
-	
+
     const std::map<const std::string,JMVA_Document::setIndependentVariable> JMVA_Document::independent_var_table = {
 	{ XArrival_Rates, 	&JMVA_Document::setArrivalRate },
 	{ XCustomer_Numbers, 	&JMVA_Document::setCustomers },
@@ -992,7 +1059,7 @@ namespace QNIO {
 	const std::map<const BCMP::Model::Chain *,std::string>::const_iterator var = _arrival_rate_vars.find( &k );		/* chain, var	*/
 	if ( var != _arrival_rate_vars.end() ) {
 	    name = var->second;
-	} else {	    
+	} else {
 	    name = "A" + std::to_string(_arrival_rate_vars.size() + 1);
 	    _arrival_rate_vars.emplace( &k, name );
 	    _input_variables.emplace( name );
@@ -1074,7 +1141,7 @@ namespace QNIO {
     {
  	if ( chains().size() != 2 ) throw std::runtime_error( "JMVA_Document::setPopulationMix" );
 	setPlotPopulationMix( true );
-	
+
 	const BCMP::Model::Chain::map_t::iterator i = chains().begin();
 	const BCMP::Model::Chain::map_t::iterator j = std::next(i);
 	const std::string beta = "Beta";					/* Local variable	*/
@@ -1087,7 +1154,7 @@ namespace QNIO {
 	 * class 2 customers.  Both need to be rounded to the next
 	 * highest integer.  Return the "beta" value to the caller.
 	 */
-	
+
 	const BCMP::Model::Chain::map_t::iterator k1 = i->first == className ? i : j;
 	const BCMP::Model::Chain::map_t::iterator k2 = i->first == className ? j : i;
 	const double k1_customers = k1->second.customers()->invoke(nullptr)->getDoubleValue();	/* Get original (constant) values	*/
@@ -1111,7 +1178,7 @@ namespace QNIO {
 
 	const std::string class2_population = "N_" + k2->first;
 	const std::string y_name = "_N_" + k2->first;
-	
+
 	_population_vars.emplace( &k2->second, class2_population );
 	_input_variables.emplace( class2_population );
 	k2->second.setCustomers( new LQX::VariableExpression( class2_population, is_external ) );	/* ... so swap constanst for variable in class.	*/
@@ -1133,17 +1200,17 @@ namespace QNIO {
      */
 
     void
-    JMVA_Document::setResultVariables( const std::string& s )
+    JMVA_Document::setResultVariables( const std::string& values )
     {
-	if ( s.empty() ) return;
+	if ( values.empty() ) return;
 
 	/* Tokeninze the input string on ';' */
 	const char delim = ';';
 	size_t start;
 	size_t finish = 0;
-	while ( (start = s.find_first_not_of( delim, finish )) != std::string::npos ) {
-	    finish = s.find(delim, start);
-	    const std::string name = s.substr( start, finish - start  );
+	while ( (start = values.find_first_not_of( delim, finish )) != std::string::npos ) {
+	    finish = values.find(delim, start);
+	    const std::string name = values.substr( start, finish - start  );
 	    appendResultVariable( name, new LQX::VariableExpression( name, false ) );
 	}
     }
@@ -1159,7 +1226,7 @@ namespace QNIO {
 	const BCMP::Model::Station& station = stations().at(m.first);		// Can't use m.second as m is a copy.
 	for ( std::map<const std::string,const BCMP::Model::Result::Type>::const_iterator r = JMVA_Document::__result_name_table.begin(); r != JMVA_Document::__result_name_table.end(); ++r ) {
 	    if ( r->second == BCMP::Model::Result::Type::RESPONSE_TIME ) continue;
-	    
+
 	    std::string station_result = r->first + "_" + m.first;
 	    std::replace( station_result.begin(), station_result.end(), ' ', '_' );		/* Remove spaces from names */
 
@@ -1209,7 +1276,7 @@ namespace QNIO {
 
 	/* Get the station object */
 	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( m->getTypeName(), new LQX::ConstantValueExpression( mi->first ), nullptr );
-	
+
 	if ( k == nullptr ) {
 	    /* No class, so return station function to extract result */
 	    const_cast<BCMP::Model::Station *>(m)->insertResultVariable( type, name );
@@ -1238,7 +1305,7 @@ namespace QNIO {
 	if ( k == model().chains().end() ) return nullptr;
 
 	const_cast<BCMP::Model::Chain&>(k->second).insertResultVariable(type, name );
-	
+
 	/* Get the model object */
 	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( "chain", new LQX::ConstantValueExpression(chain), nullptr );
 	appendResultVariable( name, new LQX::AssignmentStatementNode( new LQX::VariableExpression( name, false ),
@@ -1250,7 +1317,7 @@ namespace QNIO {
     /*
      * Save the index in the _result_variables where name's results start.
      */
-    
+
     void
     JMVA_Document::setResultIndex( const std::string& result_name, const std::string& station_name )
     {
@@ -1364,7 +1431,7 @@ namespace QNIO {
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key top left box" ) );
 
 	const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
-	
+
 	const BCMP::Model::Station& station = stations().at( name );
 	if ( station.classes().size() == 1 ) {
 	    plot << "\"$DATA\" using " << x << ":" << get_gnuplot_index(station.resultVariables().at(type)) << " with linespoints";
@@ -1372,7 +1439,7 @@ namespace QNIO {
 	    for ( BCMP::Model::Station::Class::map_t::const_iterator k = station.classes().begin(); k != station.classes().end(); ++k ) {
 		if ( k != station.classes().begin() ) plot << ", ";
 		plot << "\"$DATA\" using " << x << ":" << get_gnuplot_index(k->second.resultVariables().at(type)) << " with linespoints" << " title \"" << k->first << "\"";
-	
+
 	    }
 	}
 
@@ -1442,7 +1509,7 @@ namespace QNIO {
 	    default:
 		break;
 	    }
-		
+
 	    n_labels += 1;
 	    label1 << "set label " << n_labels << " \"" << *bound1 << "\" at " << 0.2 << "," << *bound1 << " * 1.02," << 0. << " left";
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( label1.str() ) );
@@ -1487,7 +1554,7 @@ namespace QNIO {
 //	std::ostringstream y_cust;
 //	x_cust << *x->second.customers();
 //	y_cust << *y->second.customers();
-	
+
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + x->first + " Throughput\"" ) );	// X axis
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \"" + y->first + " Throughput\"" ) );	// Y1 axis
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key bottom left" ) );
@@ -1532,9 +1599,9 @@ namespace QNIO {
 //	1/D_y1-t(D_x1/D_y1) = 1/Dy2-t(D_x2/D_y2)
 //	t((D_x2/D_y2)-(D_x1/D_y1)) = 1/D_y2 - 1/D_y1
 //	t = ((D_x2/D_y2)-(D_x1/D_y1))/D_y2 - ((D_x2/D_y2)-(D_x1/D_y1))/D_y1
-//	t = D_x2 - (D_x1 * D_y2)/D_y1 + D_x1 - (D_x2 * D_y1) / D_y2 
+//	t = D_x2 - (D_x1 * D_y2)/D_y1 + D_x1 - (D_x2 * D_y1) / D_y2
 //	t = D_x2 + D_x1 - (D_x1 * D_y2)( 1/D_y1 + 1/D_y2 )
-	
+
 	/* Set range (if possible), otherwise punt */
 	if ( !BCMP::Model::isDefault( x_max ) && !BCMP::Model::isDefault( y_max ) ) {
 	    LQX::SyntaxTreeNode * x_pos = BCMP::Model::reciprocal( x_max );
@@ -1568,7 +1635,7 @@ namespace QNIO {
     /*
      * Plot the utilization versus the population mix.
      */
-    
+
     std::ostream&
     JMVA_Document::plot_population_mix_vs_utilization( std::ostream& plot )
     {
@@ -1596,10 +1663,10 @@ namespace QNIO {
 
 
     /*
-     * Find the result in the data file for name.  
+     * Find the result in the data file for name.
      * The independent variables are printed first, followed by the results.
      */
-    
+
     size_t
     JMVA_Document::get_gnuplot_index( const std::string& name ) const
     {
@@ -1616,16 +1683,34 @@ namespace QNIO {
     std::ostream&
     JMVA_Document::print( std::ostream& output ) const
     {
+	XML::set_indent(0);
+	output << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl
+	       << "<!-- " << LQIO::DOM::Common_IO::svn_id() << " -->" << std::endl;
+	if ( LQIO::io_vars.lq_command_line.size() > 0 ) {
+	    output << "<!-- " << LQIO::io_vars.lq_command_line << " -->" << std::endl;
+	}
+
 	printModel( output );
 	printResults( output );
+	output << XML::end_element( Xmodel ) << std::endl;
 	return output;
     }
-    
+
     std::ostream&
     JMVA_Document::exportModel( std::ostream& output ) const
     {
+	XML::set_indent(0);
+	output << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl
+	       << "<!-- " << LQIO::DOM::Common_IO::svn_id() << " -->" << std::endl;
+	if ( LQIO::io_vars.lq_command_line.size() > 0 ) {
+	    output << "<!-- " << LQIO::io_vars.lq_command_line << " -->" << std::endl;
+	}
+
 	printModel( output );
-	printSPEX( output );
+	if ( !strictJMVA() ) {
+	    printSPEX( output );
+	}
+	output << XML::end_element( Xmodel ) << std::endl;
 	return output;
     }
 
@@ -1633,13 +1718,6 @@ namespace QNIO {
     JMVA_Document::printModel( std::ostream& output ) const
     {
 	std::for_each( stations().begin(), stations().end(), BCMP::Model::pad_demand( chains() ) );	/* JMVA want's zeros */
-	
-	XML::set_indent(0);
-	output << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl
-	       << "<!-- " << LQIO::DOM::Common_IO::svn_id() << " -->" << std::endl;
-	if ( LQIO::io_vars.lq_command_line.size() > 0 ) {
-	    output << "<!-- " << LQIO::io_vars.lq_command_line << " -->" << std::endl;
-	}
 
 	if ( hasPragmas() ) {
 	    const std::map<std::string,std::string>& pragmas = getPragmaList();
@@ -1654,7 +1732,7 @@ namespace QNIO {
 	       << XML::attribute( "xmlns:xsi", std::string("http://www.w3.org/2001/XMLSchema-instance") )
 	       << XML::attribute( "xsi:noNamespaceSchemaLocation", std::string("JMTmodel.xsd") )
 	       << ">" << std::endl;
-	
+
 	if ( !model().comment().empty() ) {
 	    output << XML::start_element( Xdescription ) << ">" << std::endl
 		   << XML::cdata( model().comment() ) << std::endl
@@ -1668,7 +1746,7 @@ namespace QNIO {
 	output << XML::end_element( Xclasses ) << std::endl;
 
 	output << XML::start_element( Xstations ) << XML::attribute( Xnumber, static_cast<unsigned int>(stations().size()) ) << ">" << std::endl;
-	std::for_each( stations().begin(), stations().end(), printStation( output ) );
+	std::for_each( stations().begin(), stations().end(), printStation( output, model(), strictJMVA() ) );
 	output << XML::end_element( Xstations ) << std::endl;
 
 	output << XML::start_element( XReferenceStation ) << XML::attribute( Xnumber, static_cast<unsigned int>(chains().size()) ) << ">" << std::endl;
@@ -1682,7 +1760,7 @@ namespace QNIO {
 	       << XML::end_element( XalgParams ) << std::endl;
 	return output;
     }
-    
+
     std::ostream&
     JMVA_Document::printResults( std::ostream& output ) const
     {
@@ -1704,7 +1782,7 @@ namespace QNIO {
 
 	/* SPEX */
 	/* Insert a results section, but only to output the variables */
-	
+
 	if ( !_result_variables.empty() ) {
 	    output << "   <!-- SPEX results -->" << std::endl;
 	    /* Store in a map<station,pair<string,map<class,string>>, then output by station and class. */
@@ -1731,7 +1809,6 @@ namespace QNIO {
 	    output << XML::end_element( Xalgorithm ) << std::endl;
 	    output << XML::end_element( Xsolutions ) << std::endl;
 	}
-	output << XML::end_element( Xmodel ) << std::endl;
 	return output;
     }
 
@@ -1740,7 +1817,7 @@ namespace QNIO {
      * Insert SPEX result variables.  The <measure> element is hijacked by putting the result variable
      * into the meanValue for the measure.
      */
-    
+
     void
     JMVA_Document::printMeasure::operator()( const BCMP::Model::Result::pair_t& r ) const
     {
@@ -1756,8 +1833,10 @@ namespace QNIO {
 		<< XML::end_element( Xmeasure, false ) << std::endl;
     }
 
-    /*
-     * Print out the special "reference" station.
+    /*+ BUG_411
+     * Print the station. servers=<n> is not implemented in JMVA (and
+     * causes issues in n !=1), but we use it for multiservers (and
+     * don't use the lists)
      */
 
     void
@@ -1772,16 +1851,29 @@ namespace QNIO {
 	const char * const element = type.at(station.type());
 
 	_output << XML::start_element( element ) << XML::attribute( Xname, m.first );
-	if ( station.copies() != nullptr ) _output << XML::attribute( Xservers, *station.copies() );
 	_output << ">" << std::endl;
 	_output << XML::start_element( Xservicetimes ) << ">" << std::endl;
-	std::for_each( station.classes().begin(), station.classes().end(), printService( _output ) );
+	if ( station.type() == BCMP::Model::Station::Type::MULTISERVER ) {
+	    if ( !strictJMVA() && station.copies() != nullptr ) _output << XML::attribute( Xservers, *station.copies() );	// BUG_411 strict JMVA! copies==1.
+	    std::for_each( station.classes().begin(), station.classes().end(),
+			   printServiceTimeList( _output, station.copies(),		// strict jmva -- need total customers.  Won't work for mixed networks.
+						 std::accumulate( std::next(chains().begin()), chains().end(), chains().begin()->second.customers(), add_customers ) ) );
+	} else {
+	    std::for_each( station.classes().begin(), station.classes().end(), printServiceTime( _output ) );
+	}
 	_output << XML::end_element( Xservicetimes ) << std::endl;
 	_output << XML::start_element( Xvisits ) << ">" << std::endl;
 	std::for_each( station.classes().begin(), station.classes().end(), printVisits( _output ) );
 	_output << XML::end_element( Xvisits ) << std::endl;
 	_output << XML::end_element( element ) << std::endl;
     }
+
+    LQX::SyntaxTreeNode *
+    JMVA_Document::printStation::add_customers( LQX::SyntaxTreeNode * addend, const BCMP::Model::Chain::pair_t& augend )
+    {
+	return BCMP::Model::add( addend, augend.second.customers() );
+    }
+    
 
     void
     JMVA_Document::printClass::operator()( const BCMP::Model::Chain::pair_t& k ) const
@@ -1815,7 +1907,7 @@ namespace QNIO {
 
 
     void
-    JMVA_Document::printService::operator()( const BCMP::Model::Station::Class::pair_t& d ) const
+    JMVA_Document::printServiceTime::operator()( const BCMP::Model::Station::Class::pair_t& d ) const
     {
 	std::ostringstream service_time;
 	if ( d.second.service_time() ) {
@@ -1824,6 +1916,43 @@ namespace QNIO {
 	    service_time << 0;
 	}
 	_output << XML::inline_element( Xservicetime, Xcustomerclass, d.first, service_time.str() ) << std::endl;
+    }
+
+    /*+
+     * BUG_411
+     * For LIStations (FESC).  We have a list of service times.  For
+     * us, it's a multiserver.  For JMVA, the number of elements ==
+     * the number of servers.  More likely, we need the total number
+     * of customers, and for multiclass that may be a problem.
+     */
+
+    void
+    JMVA_Document::printServiceTimeList::operator()( const BCMP::Model::Station::Class::pair_t& d ) const
+    {
+	_output << XML::start_element( Xservicetimes, false )
+		<< XML::attribute( Xcustomerclass, d.first )
+		<< ">";
+
+	/* if _copies is a constant, then output a list... */
+	const double copies = BCMP::Model::getDoubleValue( _copies );
+	const double customers = BCMP::Model::getDoubleValue( _customers );
+	const double service_time = BCMP::Model::getDoubleValue( d.second.service_time() );
+	const double count = std::max( customers, copies );
+	if ( count > 0 ) {
+	    for ( double i = 0.; i < count; ++i ) {
+		if ( i != 0. ) _output << ";";
+		if ( i < copies ) {
+		    _output << service_time * (copies - i) / copies;
+		} else { 
+		    _output << service_time / copies;		/* Pad with max service rate. */
+		}
+	    }
+	} else if ( d.second.service_time() != nullptr ) { // BUG_411 deprecate.
+	    _output << *d.second.service_time();
+	} else {
+	    _output << 0;
+	}
+	_output << "</" << Xservicetimes << ">" << std::endl;
     }
 
     void
@@ -1884,7 +2013,7 @@ namespace QNIO {
 	}
 
 	/* Print it out */
-	
+
 	std::ostringstream values;
 	std::deque<Comprehension>::const_iterator whatif = std::find_if( whatif_statements().begin(), whatif_statements().end(), Comprehension::find(var) );
 	if ( whatif != whatif_statements().end() ) {
@@ -1962,11 +2091,11 @@ namespace QNIO
     /*
      * Construct the LQX program if one wasn't present.
      */
-    
+
     LQX::Program *
     JMVA_Document::getLQXProgram()
     {
-	
+
 	if ( _lqx != nullptr ) return _lqx;
 
 	/* insert the actual program (the loops) */
@@ -1984,7 +2113,7 @@ namespace QNIO
 	    _program.push_back( LQIO::GnuPlot::print_node( "EOF" ) );
 	    _program.insert( _program.end(), _gnuplot.begin(), _gnuplot.end() );
 	}
-	
+
 	/* Convert and return */
 
 	_lqx = LQX::Program::loadRawProgram( &_program );
@@ -1992,7 +2121,7 @@ namespace QNIO
     }
 
     /* Creat a for-loop for each whatif */
-    
+
     LQX::SyntaxTreeNode *
     JMVA_Document::foreach_loop( std::deque<Comprehension>::const_iterator comprehension, std::deque<Comprehension>::const_iterator end ) const
     {
@@ -2006,14 +2135,14 @@ namespace QNIO
 	}
 	return nullptr;
     }
-    
+
 
     /*
      * Code which is run in the innermost iteration of the experiments, i.e., for () { for () { loop_body() } } ;
-     * The guts of the execution.  
+     * The guts of the execution.
      */
-	
-    std::vector<LQX::SyntaxTreeNode *>* 
+
+    std::vector<LQX::SyntaxTreeNode *>*
     JMVA_Document::loop_body() const
     {
 	std::vector<LQX::SyntaxTreeNode *>* loop_code = new std::vector<LQX::SyntaxTreeNode *>();
@@ -2031,9 +2160,9 @@ namespace QNIO
      * Code which is run provided that the solver ran successfully.  This simply prints out the results.
      * !!! I need to check for unassigned variables. !!!
      */
-	
+
     std::vector<LQX::SyntaxTreeNode *>* JMVA_Document::solve_success() const
-    {	
+    {
 	std::vector<LQX::SyntaxTreeNode *>* block = new std::vector<LQX::SyntaxTreeNode *>;
 
 	/* Insert all functions to extract results. */
@@ -2063,7 +2192,7 @@ namespace QNIO
 	} else {
 	    print_arguments.push_back( new std::vector<LQX::SyntaxTreeNode *> );
 	    print_arguments.back()->push_back( new LQX::ConstantValueExpression( ", " ) );				/* CSV. */
-	
+
 	    for ( std::vector<std::string>::const_iterator input = _independent_variables.begin(); input != _independent_variables.end(); ++input ) {
 		print_arguments.back()->push_back( new LQX::VariableExpression( *input, false ) );			/* Print out input variables */
 	    }
@@ -2086,7 +2215,7 @@ namespace QNIO
     /*
      * Sad panda.  The solver did not run successfully.
      */
-	
+
     std::vector<LQX::SyntaxTreeNode *>* JMVA_Document::solve_failure() const
     {
 	std::vector<LQX::SyntaxTreeNode *>* block = new std::vector<LQX::SyntaxTreeNode *>;
@@ -2096,7 +2225,7 @@ namespace QNIO
 
 
     /*
-     * Print out the header line for CSV output.  
+     * Print out the header line for CSV output.
      */
 
     LQX::SyntaxTreeNode * JMVA_Document::print_csv_header() const
@@ -2123,7 +2252,7 @@ namespace QNIO
     void
     JMVA_Document::csv_heading::operator()( const std::pair<const std::string,const BCMP::Model::Result::Type>& result )
     {
-	if ( result.second == BCMP::Model::Result::Type::RESPONSE_TIME ) return;	// ignore chain results as they are not output 
+	if ( result.second == BCMP::Model::Result::Type::RESPONSE_TIME ) return;	// ignore chain results as they are not output
 	if ( chains().size() > 1 ) {
 	    for ( BCMP::Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
 		_arguments->push_back( new LQX::ConstantValueExpression( result.first + "(" + k->first  + ")" ) );
