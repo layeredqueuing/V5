@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16285 2023-01-06 00:06:03Z greg $
+ * $Id: qnap2_document.cpp 16306 2023-01-09 16:14:32Z greg $
  *
  * Read in XML input files.
  *
@@ -897,10 +897,13 @@ namespace QNIO {
     QNAP2_Document::setStationType( const BCMP::Model::Station::Type type, int copies )
     {
 	BCMP::Model::Station& station = __station.second;
+	if ( copies < 1 ) throw std::invalid_argument( std::string( "invalid station multiplicity: " ) + std::to_string(copies) );
 	if ( station.type() != BCMP::Model::Station::Type::NOT_DEFINED && station.type() != type ) return false;
 	station.setType( type );
 	if ( type == BCMP::Model::Station::Type::DELAY ) {
 	    station.setScheduling( SCHEDULE_DELAY );
+	} else if ( type == BCMP::Model::Station::Type::MULTISERVER ) {
+	    station.setCopies( new LQX::ConstantValueExpression(static_cast<double>(copies)) );
 	}
 	return true;
     }

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16303 2023-01-09 01:52:04Z greg $
+ * $Id: jmva_document.cpp 16307 2023-01-09 17:08:51Z greg $
  *
  * Read in XML input files.
  *
@@ -704,7 +704,6 @@ namespace QNIO {
 		if ( dynamic_cast<LQX::VariableExpression *>(service_time) ) _service_time_vars.emplace(k,dynamic_cast<LQX::VariableExpression *>(service_time)->getName());
 	    }
 	}
-	std::cerr << "Set LD Station servers to " << count << std::endl;
 	m->setCopies( BCMP::Model::max( m->copies(), new LQX::ConstantValueExpression( static_cast<double>(count) ) ) );
     }
 
