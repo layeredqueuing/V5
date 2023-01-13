@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 16194 2022-12-23 03:22:28Z greg $
+ *  $Id: qnap2_document.h 16310 2023-01-10 02:44:08Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -59,7 +59,7 @@ extern "C" {
     void * qnap2_get_integer( long );					/* Returns LQX */
     void * qnap2_get_procedure( const char *, void * );			/* Returns LQX */
     void * qnap2_get_real( double );					/* Returns LQX */
-    void * qnap2_get_station_type_pair( int, int );
+    void * qnap2_get_station_type_pair( int, void * );
     void * qnap2_get_string( const char * );				/* Returns LQX */
     void * qnap2_get_variable( const char * );
 
@@ -232,7 +232,7 @@ namespace QNIO {
 	void setResult( bool value ) { _result = value; }
 	void setWarning( bool value ) {}
 	bool setStationScheduling( const std::string& );
-	bool setStationType( BCMP::Model::Station::Type, int );
+	bool setStationType( BCMP::Model::Station::Type, LQX::SyntaxTreeNode * );
 	bool setStationTransit( const std::string&, const std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>*>& );
 	void setEntry( LQX::SyntaxTreeNode * );
 	void setMain( LQX::SyntaxTreeNode * );

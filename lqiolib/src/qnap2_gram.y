@@ -128,11 +128,11 @@ class_list		: identifier						{ $$ = qnap2_append_string( NULL, qnap2_get_class_
 			;
 
 
-service			: QNAP_CST '(' factor ')'				{ $$ = qnap2_get_service_distribution( $1, $3, NULL ); }
-			| QNAP_COX '(' factor ')'				{ $$ = qnap2_get_service_distribution( $1, $3, NULL ); }
-			| QNAP_EXP '(' factor ')'				{ $$ = qnap2_get_service_distribution( $1, $3, NULL ); }
-			| QNAP_ERLANG '(' factor ',' factor ')'			{ $$ = qnap2_get_service_distribution( $1, $3, $5 ); }		/* $4 == c^2 */
-			| QNAP_HEXP '(' factor ',' factor ')'			{ $$ = qnap2_get_service_distribution( $1, $3, $5 ); }		/* $4 == k == 1/c^2 */
+service			: QNAP_CST '(' expression ')'				{ $$ = qnap2_get_service_distribution( $1, $3, NULL ); }
+			| QNAP_COX '(' expression ')'				{ $$ = qnap2_get_service_distribution( $1, $3, NULL ); }
+			| QNAP_EXP '(' expression ')'				{ $$ = qnap2_get_service_distribution( $1, $3, NULL ); }
+			| QNAP_ERLANG '(' expression ',' expression ')'		{ $$ = qnap2_get_service_distribution( $1, $3, $5 ); }		/* $4 == c^2 */
+			| QNAP_HEXP '(' expression ',' expression ')'		{ $$ = qnap2_get_service_distribution( $1, $3, $5 ); }		/* $4 == k == 1/c^2 */
 			;
 
 transit			: identifier						{ $$ = qnap2_append_pointer( NULL, qnap2_get_transit_pair( $1, NULL, NULL, NULL ) ); free( $1 ); }
@@ -144,15 +144,15 @@ transit_list		: transit_pair						{ $$ = qnap2_append_pointer( NULL, $1 ); }
 			;
 
 transit_pair		: identifier optional_list ','
-			  factor optional_list					{ $$ = qnap2_get_transit_pair( qnap2_get_station_name( $1 ), $2, $4, $5 ); free( $1 ); }
+			  expression optional_list				{ $$ = qnap2_get_transit_pair( qnap2_get_station_name( $1 ), $2, $4, $5 ); free( $1 ); }
 			;
 
 
-station_type		: simple_station_type					{ $$ = qnap2_get_station_type_pair( $1, 1 ); }
-			| QNAP_SOURCE						{ $$ = qnap2_get_station_type_pair( $1, 1 ); }
-			| QNAP_MULTIPLE '(' LONG ')'				{ $$ = qnap2_get_station_type_pair( $1, $3 ); }
-			| compound_station_type					{ $$ = qnap2_get_station_type_pair( $1, 1 ); }
-			| compound_station_type '(' LONG ')'			{ $$ = qnap2_get_station_type_pair( $1, $3 ); }
+station_type		: simple_station_type					{ $$ = qnap2_get_station_type_pair( $1, NULL ); }
+			| QNAP_SOURCE						{ $$ = qnap2_get_station_type_pair( $1, NULL ); }
+			| QNAP_MULTIPLE '(' expression ')'			{ $$ = qnap2_get_station_type_pair( $1, $3 ); }
+			| compound_station_type					{ $$ = qnap2_get_station_type_pair( $1, NULL ); }
+			| compound_station_type '(' expression ')'		{ $$ = qnap2_get_station_type_pair( $1, $3 ); }
 			;
 
 simple_station_type	: QNAP_INFINITE						{ $$ = $1; }

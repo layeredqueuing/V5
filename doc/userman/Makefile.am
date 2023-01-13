@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <rgfranks@alumni.uwaterloo.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16299 2023-01-07 17:01:32Z greg $
+# $Id: Makefile.am 16326 2023-01-12 23:07:03Z greg $
 # ------------------------------------------------------------------------
 
 if HAVE_LATEX
@@ -36,7 +36,6 @@ BIBS = 	$(DST).bib
 pkgdata_DATA = $(DST).pdf
 
 SUFFIXES = .pdf .ps .dvi .ind .bbl .aux .tex .eps .fig 
-
 EXTRA_DIST = $(BIBS) $(SRCS) $(TEXS) $(CLSS)
 
 .ps.pdf:

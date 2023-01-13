@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 16204 2022-12-27 15:42:27Z greg $
+ * $Id: runlqx.cc 16324 2023-01-12 17:44:44Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,7 +22,7 @@ extern bool debug_flag;
 namespace SolverInterface 
 {
 
-    unsigned int Solve::invocationCount = 0;
+    size_t Solve::invocationCount = 0;
     std::string Solve::customSuffix;
     bool Solve::solveCallViaLQX = false;	/* Flag when a solve() call was made */
     bool Solve::implicitSolve = false;
@@ -67,6 +67,6 @@ namespace SolverInterface
 	    }
 	    throw std::runtime_error( msg );
 	}
-	return LQX::Symbol::encodeBoolean( _model.compute() );
+	return LQX::Symbol::encodeBoolean( _model.compute( invocationCount ) );
     }
 }

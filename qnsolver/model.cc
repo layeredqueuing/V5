@@ -23,11 +23,11 @@
 #include <sstream>
 #include <string>
 #include <lqio/bcmp_bindings.h>
-#include <lqio/qnio_document.h>
 #include <lqio/dom_document.h>
+#include <lqio/glblerr.h>
+#include <lqio/jmva_document.h>
 #include <lqio/qnio_document.h>
 #include <lqio/srvn_spex.h>
-#include <lqio/glblerr.h>
 #include <lqx/Program.h>
 #include <lqx/SyntaxTree.h>
 #include <mva/fpgoop.h>
@@ -78,6 +78,21 @@ Model::~Model()
     if ( _bounds_model ) delete _bounds_model;
     if ( _closed_model ) delete _closed_model;
     if ( _open_model ) delete _open_model;
+}
+
+
+
+size_t
+Model::steps() const
+{
+    return closed_model() != nullptr ? closed_model()->solver()->iterations() : 0.0;
+}
+
+
+std::string
+Model::solver_name() const
+{
+    return closed_model() != nullptr ? closed_model()->solver()->getTypeName() : __solver_name.at(solver());
 }
 
 
@@ -145,7 +160,7 @@ Model::solve()
     LQX::Program * lqx = _input.getLQXProgram();
     if ( lqx != nullptr ) {
 	LQX::Environment * environment = lqx->getEnvironment();
-	_input.setEnvironment( environment );
+	_input.setLQXEnvironment( environment );
 	_input.registerExternalSymbolsWithProgram( lqx );
 	if ( print_program ) {
 	    lqx->print( std::cerr );
@@ -185,7 +200,7 @@ Model::solve()
 	    fclose( output );
 	}
 	
-    } else if ( !compute() ) {
+    } else if ( !compute( 1 ) ) {
 	ok = false;
     }
 
@@ -199,7 +214,7 @@ Model::solve()
  */
 
 bool
-Model::compute()
+Model::compute( size_t iteration )
 {
     bool ok = true;
     try {
@@ -211,7 +226,7 @@ Model::compute()
 	if ( !construct() || !instantiate() ) return false;
 	if ( no_execute ) return true;
 	
-	if ( verbose_flag ) std::cerr << "solve using " << __solver_name.at(solver()) << "... ";
+	if ( verbose_flag ) std::cerr << "solve using " << solver_name() << "... ";
 
 	if ( _bounds_model ) {
 	    _bounds_model->solve();
@@ -229,7 +244,7 @@ Model::compute()
 	    _open_model->solve( _closed_model );
 	    if ( debug_flag ) _open_model->print( std::cout );
 	}
-	saveResults();
+	saveResults( iteration );
 
 	if ( verbose_flag ) std::cerr << "post hook..." ;
 	_input.postSolve();
@@ -275,7 +290,7 @@ Model::print( std::ostream& output ) const
 }
 
 void
-Model::saveResults()
+Model::saveResults( size_t iteration )
 {
     if ( _bounds_model ) {
 	_bounds_model->saveResults();
@@ -285,6 +300,17 @@ Model::saveResults()
     }
     if ( _open_model ) {
 	_open_model->saveResults();
+    }
+    /* Now store them here for output */
+    // for each station, for each chain, get results, save results.  _input->saveResults( iteration, station, chain, ... );
+    if ( dynamic_cast<QNIO::JMVA_Document*>(&_input) ) {
+	for ( const auto& m : stations() ) {
+	    const BCMP::Model::Station::Class::map_t& classes = m.second.classes();
+	    for ( const auto& k : classes ) {
+		const std::map<BCMP::Model::Result::Type,double>& results = k.second.results();
+		dynamic_cast<QNIO::JMVA_Document&>(_input).saveResults( iteration, solver_name(), steps(), m.first, k.first, results );
+	    }
+	}
     }
 }
 

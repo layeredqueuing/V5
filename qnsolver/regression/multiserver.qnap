@@ -1,0 +1,50 @@
+& $Id: multiserver.qnap 16324 2023-01-12 17:44:44Z greg $
+/declare/
+   queue Delay,Queue1,Queue2;                                  & Station identifiers
+   class string name;                                          & Name (for output)
+   class integer n_users;                                      & Population.
+   class real think_t;                                         & Think time.
+   class real Queue1_t,Queue2_t;                               & Station service time
+   class Chain01,Chain02;                                      & Class names
+   integer i;
+&
+/station/ name=Delay;
+   type=infinite;
+   init=n_users;                                               & Population by class
+   service=exp(think_t);
+   transit(Chain01)=Queue1,1.;                                 & visits to servers
+   transit(Chain02)=Queue1,0.83333,Queue2,0.16667;             & visits to servers
+&
+/station/ name=Queue1;
+   sched=ps;
+   service=exp(Queue1_t);
+   transit(all class)=Delay;
+&
+/station/ name=Queue2;
+   sched=ps;
+   type=multiple(i);
+   service=exp(Queue2_t);
+   transit(all class)=Delay;
+&
+/control/
+   class=all queue;                                            & Compute for all classes
+&
+/exec/
+   begin
+&  -- Class variables --
+   Chain01.name:="Chain01";                                    & Class (client) name
+   Chain01.n_users:=4;
+   Chain01.think_t:=1./(1.);                                   & Slice time at client
+   Chain02.name:="Chain02";                                    & Class (client) name
+   Chain02.n_users:=3;
+   Chain02.think_t:=0.4/(0.83333+0.16667);                     & Slice time at client
+&  -- Station variables --
+   Chain01.Queue1_t:=1.3333;
+   Chain02.Queue1_t:=0.46;
+   Chain01.Queue2_t:=0.000001;                                 & QNAP does not like zero (0)
+   Chain02.Queue2_t:=2.;
+&  -- Let 'er rip! --
+   for i:=1 step 1 until 4 do
+     solve;
+   end;
+/end/

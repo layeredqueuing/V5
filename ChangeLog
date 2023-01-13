@@ -1,3 +1,9 @@
+2023-01-12  Greg Franks  <greg@merlin.sce.carleton.ca>
+
+	* qnsolver
+	- Improvements for JMVA compatibility (especially with Multiservers)
+	- Export JMVA output for WhatIf runs.
+
 2023-01-04  Gregory Franks  <greg@Gregs-Retina-iMac.local>
 
 	* lqn2csv, lqn2ps, srvndiff
@@ -565,4 +571,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 16270 2023-01-05 01:16:31Z greg $
+$Id: ChangeLog 16324 2023-01-12 17:44:44Z greg $

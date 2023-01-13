@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: xml_output.cpp 15957 2022-10-07 17:14:47Z greg $
+ * $Id: xml_output.cpp 16324 2023-01-12 17:44:44Z greg $
  *
  * Read in XML input files.
  *
@@ -179,7 +179,7 @@ namespace XML {
 
     static std::ostream& printCData( std::ostream& output, const std::string& s, const std::string& )
     {
-	output << "><![CDATA[" << s << "]]>";
+	output << "<![CDATA[" << s << "]]>";
 	return output;
     }
     

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="JMTmodel.xsd">
+   <description>
+       <![CDATA[Multiserver model.  Not strict JMVA.  GitHub V6 issue #4]]>
+   </description>
+   <parameters>
+      <classes number="2">
+         <closedclass name="Chain01" population="4"/>
+         <closedclass name="Chain02" population="3"/>
+      </classes>
+      <stations number="3">
+         <delaystation name="Delay">
+            <servicetimes>
+               <servicetime customerclass="Chain01">1</servicetime>
+               <servicetime customerclass="Chain02">0.4</servicetime>
+            </servicetimes>
+            <visits>
+               <visit customerclass="Chain01">1</visit>
+               <visit customerclass="Chain02">1</visit>
+            </visits>
+         </delaystation>
+         <listation name="Queue1" servers="1">
+            <servicetimes>
+               <servicetime customerclass="Chain01">1.3333</servicetime>
+               <servicetime customerclass="Chain02">0.46</servicetime>
+            </servicetimes>
+            <visits>
+               <visit customerclass="Chain01">1</visit>
+               <visit customerclass="Chain02">0.83333</visit>
+            </visits>
+         </listation>
+         <ldstation name="Queue2" servers="3">
+            <servicetimes>
+               <servicetimes customerclass="Chain01">0</servicetimes>
+               <servicetimes customerclass="Chain02">2</servicetimes>
+            </servicetimes>
+            <visits>
+               <visit customerclass="Chain01">0</visit>
+               <visit customerclass="Chain02">0.16667</visit>
+            </visits>
+         </ldstation>
+      </stations>
+      <ReferenceStation number="2">
+         <Class name="Chain1" refStation="Delay"/>
+         <Class name="Chain2" refStation="Delay"/>
+      </ReferenceStation>
+   </parameters>
+   <algParams>
+      <algType maxSamples="10000" name="MVA" tolerance="1.0E-7"/>
+      <compareAlgs value="false"/>
+   </algParams>
+   <whatIf stationName="Queue2" type="Number of Servers" values="1;2;3;4"/>
+</model>

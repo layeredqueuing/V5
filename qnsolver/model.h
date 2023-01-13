@@ -10,7 +10,7 @@
  *
  * December 2020
  *
- * $Id: model.h 16017 2022-10-21 10:51:04Z greg $
+ * $Id: model.h 16324 2023-01-12 17:44:44Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -55,11 +55,15 @@ public:
 
     explicit operator bool() const { return _result == true; }
     virtual std::ostream& debug( std::ostream& output ) const;
+    const ClosedModel * closed_model() const { return _closed_model; }
+    const OpenModel * open_model() const { return _open_model; }
+    Solver solver() const { return _solver; }
+    size_t steps() const;
+    std::string solver_name() const;
     bool construct();
     bool instantiate();
     virtual bool solve();
     void bounds();
-    Solver solver() const { return _solver; }
     std::ostream& print( std::ostream& output ) const;
     
 protected:
@@ -75,8 +79,8 @@ private:
     double getDoubleValue( LQX::SyntaxTreeNode * ) const;
     unsigned int getUnsignedValue( LQX::SyntaxTreeNode *, unsigned int default_value ) const;
     size_t indexAt(BCMP::Model::Chain::Type, const std::string& name) const;
-    bool compute();
-    void saveResults();
+    bool compute( size_t );
+    void saveResults( size_t );
 
 private:
     class CreateChainIndex {

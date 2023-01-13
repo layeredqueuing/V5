@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16306 2023-01-09 16:14:32Z greg $
+ * $Id: qnap2_document.cpp 16310 2023-01-10 02:44:08Z greg $
  *
  * Read in XML input files.
  *
@@ -374,9 +374,9 @@ void * qnap2_get_service_distribution( int code, void * mean, void * shape )
     return new QNIO::QNAP2_Document::ServiceDistribution( parser_to_distribution.at(code), static_cast<LQX::SyntaxTreeNode *>(mean), static_cast<LQX::SyntaxTreeNode *>(shape) );
 }
 
-void * qnap2_get_station_type_pair( int code, int copies )
+void * qnap2_get_station_type_pair( int code, void * copies )
 {
-    return new std::pair<int,int>(code,copies);
+    return new std::pair<int,LQX::SyntaxTreeNode *>( code, static_cast<LQX::SyntaxTreeNode *>(copies) );
 }
 
 void * qnap2_get_string( const char * string )
@@ -556,7 +556,7 @@ void qnap2_set_station_transit( const void * list, const void * arg2 )
 
 void qnap2_set_station_type( const void * arg )
 {
-    const std::pair<int,int>* type = static_cast<const std::pair<int,int>*>( arg );
+    const std::pair<int,LQX::SyntaxTreeNode *>* type = static_cast<const std::pair<int,LQX::SyntaxTreeNode *>*>( arg );
     QNIO::QNAP2_Document::__document->setStationType( QNIO::QNAP2_Document::__station_type.at(type->first), type->second );
 }
 
@@ -894,16 +894,16 @@ namespace QNIO {
 
 
     bool
-    QNAP2_Document::setStationType( const BCMP::Model::Station::Type type, int copies )
+    QNAP2_Document::setStationType( const BCMP::Model::Station::Type type, LQX::SyntaxTreeNode * copies )
     {
 	BCMP::Model::Station& station = __station.second;
-	if ( copies < 1 ) throw std::invalid_argument( std::string( "invalid station multiplicity: " ) + std::to_string(copies) );
 	if ( station.type() != BCMP::Model::Station::Type::NOT_DEFINED && station.type() != type ) return false;
 	station.setType( type );
 	if ( type == BCMP::Model::Station::Type::DELAY ) {
+	    if ( !BCMP::Model::isDefault( copies, 1 ) ) throw std::invalid_argument( std::string( "invalid station multiplicity: " ) + std::to_string(BCMP::Model::getDoubleValue(copies)) );
 	    station.setScheduling( SCHEDULE_DELAY );
 	} else if ( type == BCMP::Model::Station::Type::MULTISERVER ) {
-	    station.setCopies( new LQX::ConstantValueExpression(static_cast<double>(copies)) );
+	    station.setCopies( copies );
 	}
 	return true;
     }

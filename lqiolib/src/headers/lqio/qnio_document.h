@@ -9,7 +9,7 @@
  *
  * November 2022
  *
- * $Id: qnio_document.h 16300 2023-01-08 03:06:26Z greg $
+ * $Id: qnio_document.h 16324 2023-01-12 17:44:44Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -84,7 +84,8 @@ namespace QNIO {
 	const std::string& getInputFileName() const { return _input_file_name; }
 	const std::deque<Comprehension>& comprehensions() const { return _comprehensions; }		/* For loops from WhatIf */
 	
-	void setEnvironment( LQX::Environment * environment ) { _model.setEnvironment( environment ); }
+	void setLQXEnvironment( LQX::Environment * environment ) { _model.setEnvironment( environment ); }
+	LQX::Environment * getLQXEnvironment() const { return _model.environment(); }
 	virtual LQX::Program * getLQXProgram() = 0;
 	virtual bool preSolve() { return true; }
 	virtual bool postSolve() { return true; }

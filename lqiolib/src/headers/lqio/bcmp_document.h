@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 16090 2022-11-10 12:40:49Z greg $
+ *  $Id: bcmp_document.h 16324 2023-01-12 17:44:44Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -160,6 +160,7 @@ namespace BCMP {
 		LQX::SyntaxTreeNode * service_time() const { return _service_time; }
 		void setVisits( LQX::SyntaxTreeNode * visits ) { _visits = visits; }
 		void setServiceTime( LQX::SyntaxTreeNode * service_time ) { _service_time = service_time; }
+		const std::map<Result::Type,double>& results() const { return _results; }
 		Result::map_t& resultVariables()  { return _result_vars; }
 		const Result::map_t& resultVariables() const { return _result_vars; }
 

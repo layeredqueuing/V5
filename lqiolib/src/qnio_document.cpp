@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnio_document.cpp 16058 2022-11-03 17:02:56Z greg $
+ * $Id: qnio_document.cpp 16324 2023-01-12 17:44:44Z greg $
  *
  * Superclass for Queueing Network models.
  *
@@ -46,7 +46,7 @@ QNIO::Document::Comprehension::convert( const std::string& s, bool integer )
 	const std::string token = s.substr(start, finish - start);
 	char * endptr = nullptr;
 	values.push_back(::strtod( token.c_str(), &endptr ));
-	if ( *endptr != '\0') throw std::domain_error( "invalid double" );
+	if ( *endptr != '\0') throw std::domain_error( std::string("invalid double: ") + s );
     }
     if ( values.size() == 0 ) return;
 

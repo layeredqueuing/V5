@@ -1,11 +1,11 @@
 # LQNS RPM file.
 # ------------------------------------------------------------------------
-# $Id: lqns.spec 16291 2023-01-06 21:03:21Z greg $
+# $Id: lqns.spec 16324 2023-01-12 17:44:44Z greg $
 # ------------------------------------------------------------------------
 
 %define product_name lqns
 %define product_version VERSION
-%define rpm_release 4
+%define rpm_release 1
 %define product_nameversion %{product_name}-%{product_version}
 %define product_source_dir %{product_nameversion}
 %define product_tarball %{product_nameversion}.tar.gz
@@ -40,6 +40,8 @@ resources, and the modeling concepts include asynchronous messaging,
 and parallel execution.
 
 %changelog
+* Mon Sep 13 2021 Gregory Franks <greg@Gregs-Retina-iMac.local>
+- Initial version.
 
 %prep
 cd ${RPM_BUILD_DIR}
@@ -60,6 +62,7 @@ mkdir -p ${RPM_BUILD_ROOT}%{install_prefix}/%{share_dir}
 mkdir -p ${RPM_BUILD_ROOT}%{install_prefix}/%{share_dir}/examples
 mkdir -p ${RPM_BUILD_ROOT}%{install_prefix}/share/man
 mkdir -p ${RPM_BUILD_ROOT}%{install_prefix}/share/man/man%{product_man_section}
+mkdir -p ${RPM_BUILD_ROOT}%{install_prefix}/share/man/man3
 
 %post
 cd %{install_prefix}/bin
@@ -105,7 +108,6 @@ rm -f lqn2xml.%{product_man_section}
 %attr( 0755 , root , root ) %{install_prefix}/bin/lqx
 %attr( 0755 , root , root ) %{install_prefix}/bin/petrisrvn
 %attr( 0755 , root , root ) %{install_prefix}/bin/qnsolver
-%attr( 0755 , root , root ) %{install_prefix}/bin/rep2flat
 %attr( 0755 , root , root ) %{install_prefix}/bin/srvndiff
 %dir %attr( - , root , root ) %{install_prefix}/lib
 %attr( 0755 , root , root ) %{install_prefix}/lib/liblqio.a
@@ -120,8 +122,8 @@ rm -f lqn2xml.%{product_man_section}
 %attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/lqsim.%{product_man_section}*
 %attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/petrisrvn.%{product_man_section}*
 %attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/qnsolver.%{product_man_section}*
-%attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/rep2flat.%{product_man_section}*
 %attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/srvndiff.%{product_man_section}*
+%attr( 0444 , root , root ) %{install_prefix}/share/man/man3/wspn.3*
 %dir %attr( 0755 , root , root ) %{install_prefix}/%{share_dir}
 %attr( 0444 , root , root ) %{install_prefix}/%{share_dir}/lqn-core.xsd
 %attr( 0444 , root , root ) %{install_prefix}/%{share_dir}/lqn-sub.xsd
@@ -139,3 +141,19 @@ rm -f lqn2xml.%{product_man_section}
 %attr( 0444 , root , root ) %{install_prefix}/%{share_dir}/examples/test.lqn
 %doc %attr( 0444 , root , root ) %{install_prefix}/%{share_dir}/tutorial.pdf
 %doc %attr( 0444 , root , root ) %{install_prefix}/%{share_dir}/userman.pdf
+%exclude %{install_prefix}/bin/lqn2emf
+%exclude %{install_prefix}/bin/lqn2fig
+%exclude %{install_prefix}/bin/lqn2lqn
+%exclude %{install_prefix}/bin/lqn2lqx
+%exclude %{install_prefix}/bin/lqn2out
+%exclude %{install_prefix}/bin/lqn2svg
+%exclude %{install_prefix}/bin/lqn2xml
+%exclude %{install_prefix}/bin/rep2flat
+%exclude %{install_prefix}/share/man/man%{product_man_section}/lqn2emf.1
+%exclude %{install_prefix}/share/man/man%{product_man_section}/lqn2fig.1
+%exclude %{install_prefix}/share/man/man%{product_man_section}/lqn2lqn.1
+%exclude %{install_prefix}/share/man/man%{product_man_section}/lqn2lqx.1
+%exclude %{install_prefix}/share/man/man%{product_man_section}/lqn2out.1
+%exclude %{install_prefix}/share/man/man%{product_man_section}/lqn2svg.1
+%exclude %{install_prefix}/share/man/man%{product_man_section}/lqn2xml.1
+%exclude %{install_prefix}/share/man/man%{product_man_section}/rep2flat.1

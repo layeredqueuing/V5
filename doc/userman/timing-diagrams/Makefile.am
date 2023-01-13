@@ -1,7 +1,7 @@
 # Makefile for bookstore
 # Copyright (C) 2005 Greg Franks <rgfranks@alumni.uwaterloo.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16299 2023-01-07 17:01:32Z greg $
+# $Id: Makefile.am 16324 2023-01-12 17:44:44Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	join-time.fig \
@@ -11,7 +11,7 @@ OBJS = $(SRCS:.fig=.eps)
 
 SUFFIXES = .pdf .ps .dvi .bbl .eps .pstex .eps .fig .tex
 
-EXTRA_DIST = $(SRCS)
+EXTRA_DIST = $(SRCS) $(OBJS)
 noinst_DATA = $(OBJS)
 
 .fig.eps:

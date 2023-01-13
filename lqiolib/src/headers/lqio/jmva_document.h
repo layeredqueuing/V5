@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16303 2023-01-09 01:52:04Z greg $
+ *  $Id: jmva_document.h 16324 2023-01-12 17:44:44Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -136,6 +136,8 @@ namespace QNIO {
 
 	virtual bool disableDefaultOutputWithLQX() const { return true; }
 
+	void saveResults( size_t, const std::string&, size_t, const std::string&, const std::string&, const std::map<BCMP::Model::Result::Type,double>& );
+
 	std::ostream& print( std::ostream& ) const;
 	std::ostream& exportModel( std::ostream& ) const;
 	void plot( BCMP::Model::Result::Type, const std::string& );
@@ -186,6 +188,7 @@ namespace QNIO {
 
 	LQX::SyntaxTreeNode * getVariableAttribute( const XML_Char **attributes, const XML_Char * attribute, double default_value=-1.0 );
 	LQX::SyntaxTreeNode * getVariable( const XML_Char * attribute, const XML_Char * value );
+	double getDoubleValue( LQX::SyntaxTreeNode * ) const;
 
 	void createClosedChain( const XML_Char ** attributes );
 	void createOpenChain( const XML_Char ** attributes );
@@ -332,24 +335,31 @@ namespace QNIO {
 	BCMP::Model::Chain::map_t& chains() { return model().chains(); }
 	const BCMP::Model::Chain::map_t& chains() const { return model().chains(); }
 
-	struct printClass {
-	    printClass( std::ostream& output ) : _output(output) {}
-	    void operator()( const BCMP::Model::Chain::pair_t& k ) const;
-	private:
-	    std::ostream& _output;
-	};
-
-	struct printStation {
-	    printStation( std::ostream& output, const BCMP::Model& model, bool strict_jmva=true ) : _output(output), _model(model), _strict_jmva(strict_jmva) {}
-	    void operator()( const BCMP::Model::Station::pair_t& m ) const;
-	private:
-	    const BCMP::Model::Chain::map_t& chains() const { return _model.chains(); }
-	    static LQX::SyntaxTreeNode * add_customers( LQX::SyntaxTreeNode * addend, const BCMP::Model::Chain::pair_t& augend );
+	class printCommon {
+	public:
+	    printCommon( std::ostream& output, const BCMP::Model& model, bool strict_jmva ) : _output(output), _model(model), _strict_jmva(strict_jmva) {}
+	protected:
+	    const BCMP::Model::Chain::map_t& chains() { return _model.chains(); }
 	    bool strictJMVA() const { return _strict_jmva; }
-	private:
+	    double getDoubleValue( LQX::SyntaxTreeNode * value ) const;
+	    std::ostream& print_attribute( std::ostream&, const std::string& a, LQX::SyntaxTreeNode* v ) const;
+	    std::ostream& print_comment( std::ostream&, LQX::SyntaxTreeNode *v ) const;
+	protected:
 	    std::ostream& _output;
 	    const BCMP::Model& _model;
 	    const bool _strict_jmva;
+	};
+
+	class printClass : public printCommon {
+	public:
+	    printClass( std::ostream& output, const BCMP::Model& model, bool strict_jmva=true ) : printCommon( output, model, strict_jmva) {}
+	    void operator()( const BCMP::Model::Chain::pair_t& k ) const;
+	};
+
+	class printStation  : public printCommon {
+	public:
+	    printStation( std::ostream& output, const BCMP::Model& model, bool strict_jmva=true ) : printCommon( output, model, strict_jmva) {}
+	    void operator()( const BCMP::Model::Station::pair_t& m ) const;
 	};
 
 	struct printReference {
@@ -360,27 +370,26 @@ namespace QNIO {
 	    const BCMP::Model::Station::map_t& _stations;
 	};
 
-	struct printServiceTime {
-	    printServiceTime( std::ostream& output ) : _output(output) {}
+	class printServiceTime : private printCommon {
+	public:
+	    printServiceTime( std::ostream& output, const BCMP::Model& model, bool strict_jmva=true  ) : printCommon( output, model, strict_jmva) {}
 	    void operator()( const BCMP::Model::Station::Class::pair_t& d ) const;
-	private:
-	    std::ostream& _output;
 	};
 
-	struct printServiceTimeList {	/*+ BUG_411 */
-	    printServiceTimeList( std::ostream& output, LQX::SyntaxTreeNode * copies, LQX::SyntaxTreeNode * customers ) : _output(output), _copies(copies), _customers(customers) {}
+	class printServiceTimeList : private printCommon {	/*+ BUG_411 */
+	public:
+	    printServiceTimeList( std::ostream& output, const BCMP::Model& model, LQX::SyntaxTreeNode * customers );
 	    void operator()( const BCMP::Model::Station::Class::pair_t& d ) const;
 	private:
-	    std::ostream& _output;
+	    static LQX::SyntaxTreeNode * add_customers( LQX::SyntaxTreeNode * addend, const BCMP::Model::Chain::pair_t& augend ) { return BCMP::Model::add( addend, augend.second.customers() ); }
+
 	    LQX::SyntaxTreeNode * _copies;
 	    LQX::SyntaxTreeNode * _customers;
 	};
 
-	struct printVisits {
-	    printVisits( std::ostream& output ) : _output(output) {}
+	struct printVisits : private printCommon {
+	    printVisits( std::ostream& output, const BCMP::Model& model, bool strict_jmva=true  ) : printCommon( output, model, strict_jmva) {}
 	    void operator()( const BCMP::Model::Station::Class::pair_t& d ) const;
-	private:
-	    std::ostream& _output;
 	};
 
 	struct printMeasure {
@@ -417,6 +426,10 @@ namespace QNIO {
 	std::map<const BCMP::Model::Station *,std::string> _multiplicity_vars;		/* station, var	*/
 	std::map<const BCMP::Model::Station::Class *,std::string> _service_time_vars;	/* class, var	*/
 	std::map<const BCMP::Model::Station::Class *,std::string> _visit_vars;		/* class, var	*/
+
+	/* Results */
+	std::map<size_t,std::map<const std::string,std::map<const std::string,std::map<BCMP::Model::Result::Type,double>>>> _results;	/* iteration,station,class,results */
+	std::map<size_t,std::pair<const std::string,size_t>> _mva_info;
 
 	/* Plotting */
 	std::vector<LQX::SyntaxTreeNode*> _gnuplot;					/* GNUPlot program		*/
