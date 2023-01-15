@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 16324 2023-01-12 17:44:44Z greg $
+ * $Id: qnsolver.cc 16328 2023-01-13 15:44:41Z greg $
  */
 
 #include "config.h"
@@ -15,6 +15,7 @@
 #include <lqio/jmva_document.h>
 #endif
 #include <lqio/dom_document.h>
+#include <lqio/filename.h>
 #include <lqio/qnap2_document.h>
 #include "pragma.h"
 #include "model.h"
@@ -297,6 +298,12 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
 	output.open( output_file_name, std::ios::out );
 	if ( !output ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << output_file_name << "\" -- " << strerror( errno ) << std::endl;
+	}
+    } else if ( print_jmva ) {
+	LQIO::Filename::backup( input.getInputFileName() );
+	output.open( input.getInputFileName(), std::ios::out );
+	if ( !output ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << input.getInputFileName() << "\" -- " << strerror( errno ) << std::endl;
 	}
     }
     if ( print_qnap2 ) {
