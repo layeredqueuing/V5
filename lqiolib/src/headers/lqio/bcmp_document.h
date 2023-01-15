@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 16324 2023-01-12 17:44:44Z greg $
+ *  $Id: bcmp_document.h 16331 2023-01-15 22:58:45Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -49,8 +49,8 @@ namespace BCMP {
 
 	    virtual double mean_service() const = 0;
 	    virtual double queue_length() const = 0;
-	    virtual double residence_time() const = 0;		// Per visit
-	    virtual double response_time() const = 0;		// residence time * visits (derived)
+	    virtual double residence_time() const = 0;		// waiting time multiplied by visits
+	    virtual double response_time() const = 0;		// waiting time per visit.
 	    virtual double throughput() const = 0;
 	    virtual double utilization() const = 0;
 	};
@@ -153,7 +153,7 @@ namespace BCMP {
 		Class& operator=( const Class& );
 		void clear();
 
-		void setResults( double throughput, double queue_length, double response_time, double utilization );
+		void setResults( double throughput, double queue_length, double residence_time, double utilization );
 		virtual const char * getTypeName() const { return __typeName; }
 
 		LQX::SyntaxTreeNode * visits() const { return _visits; }
@@ -172,8 +172,8 @@ namespace BCMP {
 
 		virtual double mean_service() const { return throughput() > 0. ? utilization() / throughput() : 0.; }
 		virtual double queue_length() const { return _results.at(Result::Type::QUEUE_LENGTH); }
-		virtual double residence_time() const { return throughput() > 0. ? queue_length() / throughput() : 0.; }	// Per visit.
-		virtual double response_time() const { return _results.at(Result::Type::RESPONSE_TIME); }	// Over all visits.
+		virtual double response_time() const { return throughput() > 0. ? queue_length() / throughput() : 0.; }	// Per visit.
+		virtual double residence_time() const { return _results.at(Result::Type::RESIDENCE_TIME); }	// Over all visits.
 		virtual double throughput() const { return _results.at(Result::Type::THROUGHPUT); }
 		virtual double utilization() const { return _results.at(Result::Type::UTILIZATION); }
 		void insertResultVariable( Result::Type, const std::string& );
@@ -279,6 +279,7 @@ namespace BCMP {
 	    static double sum_throughput( double addend, const BCMP::Model::Station::Class::pair_t& augend );
 	    static double sum_utilization( double addend, const BCMP::Model::Station::Class::pair_t& augend );
 	    static double sum_response_time( double addend, const BCMP::Model::Station::Class::pair_t& augend );
+	    static double sum_residence_time( double addend, const BCMP::Model::Station::Class::pair_t& augend );
 	    static double sum_queue_length( double addend, const BCMP::Model::Station::Class::pair_t& augend );
 	    static void clear_all_result_variables( BCMP::Model::Station::pair_t& m );
 

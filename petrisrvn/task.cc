@@ -771,8 +771,9 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
     /* Create the entries */
     
     ix_e = 0;
-    for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
-	double next_pos = (*entry)->transmorgrify( base_x_pos, base_y_pos, ix_e, d_place, m, enabling );
+    for ( std::vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
+	if ( (*e)->n_phases() == 0 ) continue;	/* BUG 414 -- not defined */
+	double next_pos = (*e)->transmorgrify( base_x_pos, base_y_pos, ix_e, d_place, m, enabling );
 	if ( next_pos > max_pos ) {
 	    max_pos = next_pos;
 	}

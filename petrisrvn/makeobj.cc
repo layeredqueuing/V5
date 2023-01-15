@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: makeobj.cc 16121 2022-11-17 20:31:33Z greg $
+ * $Id: makeobj.cc 16333 2023-01-15 23:55:13Z greg $
  *
  * Make various model objects.
  */
@@ -361,8 +361,8 @@ create_arc_mult(LAYER layer, int type, const struct trans_object *transition, co
 {
     static struct arc_object *cur_arc;
 
-    assert( transition != 0 );
-    assert( place != 0);
+    assert( transition != nullptr );
+    assert( place != nullptr );
 	
     if ( netobj->arcs == nullptr ) {
 	netobj->arcs = (struct arc_object *) malloc( sizeof( struct arc_object ) );

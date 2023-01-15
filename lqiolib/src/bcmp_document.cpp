@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 16324 2023-01-12 17:44:44Z greg $
+ * $Id: bcmp_document.cpp 16331 2023-01-15 22:58:45Z greg $
  *
  * Read in XML input files.
  *
@@ -371,16 +371,16 @@ namespace BCMP {
 
     double Model::Station::residence_time() const
     {
+	return std::accumulate( classes().begin(), classes().end(), 0.0, &sum_residence_time );
+    }
+
+    double Model::Station::response_time() const
+    {
 	const double x = throughput();
 	if ( x > 0. ) return queue_length() / x;		/* Must be derived. */
 	else return 0.0;
     }
 
-    double Model::Station::response_time() const
-    {
-	return residence_time();				// Likely only the reference station, so visits = 1.
-    }
-    
     double Model::Station::utilization() const
     {
 	return std::accumulate( classes().begin(), classes().end(), 0.0, &sum_utilization );
@@ -401,6 +401,11 @@ namespace BCMP {
 	return augend + addend.second.response_time();
     }
 
+    double Model::Station::sum_residence_time( double augend, const BCMP::Model::Station::Class::pair_t& addend )
+    {
+	return augend + addend.second.residence_time();
+    }
+
     double Model::Station::sum_queue_length( double augend, const BCMP::Model::Station::Class::pair_t& addend )
     {
 	return augend + addend.second.queue_length();
@@ -417,7 +422,7 @@ namespace BCMP {
 	Class sum = augend;
 	sum._results[Result::Type::THROUGHPUT]     += addend.second._results.at(Result::Type::THROUGHPUT);
 	sum._results[Result::Type::QUEUE_LENGTH]   += addend.second._results.at(Result::Type::QUEUE_LENGTH);
-	sum._results[Result::Type::RESPONSE_TIME]  = 0.0;	/* Need to derive 	*/
+	sum._results[Result::Type::RESIDENCE_TIME] += addend.second._results.at(Result::Type::RESIDENCE_TIME);
 	sum._results[Result::Type::UTILIZATION]    += addend.second._results.at(Result::Type::UTILIZATION);
 	return sum;
     }
@@ -519,7 +524,7 @@ namespace BCMP {
     {
 	_results[Result::Type::THROUGHPUT] = 0.;
 	_results[Result::Type::QUEUE_LENGTH] = 0.;
-	_results[Result::Type::RESPONSE_TIME] = 0.;
+	_results[Result::Type::RESIDENCE_TIME] = 0.;
 	_results[Result::Type::UTILIZATION] = 0.;
     }
 
@@ -545,11 +550,11 @@ namespace BCMP {
     
 
     void
-    Model::Station::Class::setResults( double throughput, double queue_length, double response_time, double utilization )
+    Model::Station::Class::setResults( double throughput, double queue_length, double residence_time, double utilization )
     {
 	_results[Result::Type::THROUGHPUT] = throughput;
 	_results[Result::Type::QUEUE_LENGTH] = queue_length;
-	_results[Result::Type::RESPONSE_TIME] = response_time;
+	_results[Result::Type::RESIDENCE_TIME] = residence_time;
 	_results[Result::Type::UTILIZATION] = utilization;
     }
 
@@ -641,7 +646,7 @@ namespace BCMP {
     {
 	_results[Result::Type::THROUGHPUT]     += addend._results.at(Result::Type::THROUGHPUT);
 	_results[Result::Type::QUEUE_LENGTH]   += addend._results.at(Result::Type::QUEUE_LENGTH);
-	_results[Result::Type::RESPONSE_TIME]   = 0.0;	/* Need to derive 	*/
+	_results[Result::Type::RESIDENCE_TIME] += addend._results.at(Result::Type::RESIDENCE_TIME);
 	_results[Result::Type::UTILIZATION]    += addend._results.at(Result::Type::UTILIZATION);
 	return *this;
     }

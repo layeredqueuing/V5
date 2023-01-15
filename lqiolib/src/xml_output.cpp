@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: xml_output.cpp 16324 2023-01-12 17:44:44Z greg $
+ * $Id: xml_output.cpp 16330 2023-01-15 22:04:57Z greg $
  *
  * Read in XML input files.
  *
@@ -32,6 +32,8 @@ namespace XML {
 	return old_indent;
     }
 
+    const size_t spacing = 2;
+
 
     static std::ostream& doIndent( std::ostream& output, int indent )
     {
@@ -43,7 +45,7 @@ namespace XML {
 	    }
 	}
 	if ( current_indent != 0 ) {
-	    output << std::setw( current_indent * 3 ) << " ";
+	    output << std::setw( current_indent * spacing ) << " ";
 	}
 	if ( indent > 0 ) {
 	    current_indent += indent;
@@ -53,7 +55,7 @@ namespace XML {
 
     static std::ostream& doTempIndent( std::ostream& output, int indent )
     {
-	output << std::setw( (current_indent + indent) * 3 ) << " ";
+	output << std::setw( (current_indent + indent) * spacing ) << " ";
 	return output;
     }
 

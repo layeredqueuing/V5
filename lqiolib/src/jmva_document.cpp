@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16324 2023-01-12 17:44:44Z greg $
+ * $Id: jmva_document.cpp 16330 2023-01-15 22:04:57Z greg $
  *
  * Read in XML input files.
  *
@@ -1885,10 +1885,14 @@ namespace QNIO {
     }
 
 
+    /*
+     * Print out a comment if v is not a constant value expression.
+     */
+    
     std::ostream&
     JMVA_Document::printCommon::print_comment( std::ostream& output, LQX::SyntaxTreeNode* v ) const
     {
-	if ( strictJMVA() && v != nullptr ) {
+	if ( strictJMVA() && v != nullptr && dynamic_cast<LQX::ConstantValueExpression *>(v) == nullptr ) {
 	    output << "    " << "<!--" << *v << "-->";
 	}
 	return output;
@@ -1980,7 +1984,6 @@ namespace QNIO {
     JMVA_Document::printServiceTime::operator()( const BCMP::Model::Station::Class::pair_t& d ) const
     {
 	std::ostringstream service_time;
-	_output << std::endl;
 	if ( strictJMVA() || d.second.service_time() == nullptr ) {
 	    service_time << getDoubleValue( d.second.service_time() );
 	} else {

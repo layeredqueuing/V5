@@ -214,7 +214,7 @@ Entry::add_fwd_call( LQIO::DOM::Call * call )
 void
 Entry::initialize()
 {
-    _n_phases = 1;
+    _n_phases = 0;
     
     bool has_service_time = false;
     bool has_deterministic_phases = false;
@@ -242,11 +242,9 @@ Entry::initialize()
     } else if ( is_activity_entry() ) {
 	std::deque<Activity *> activity_stack;
 	std::deque<ActivityList *> fork_stack;
-	unsigned max_phase = 1;
-	double n_replies;
 	    
 	has_service_time = start_activity()->find_children( activity_stack, fork_stack, this );
-	n_replies = start_activity()->count_replies( activity_stack, this, 1.0, 1, max_phase );
+	double n_replies = start_activity()->count_replies( activity_stack, this, 1.0, 1, _n_phases );
 	    
 	if ( requests() == Requesting_Type::RENDEZVOUS ) {
 	    if ( n_replies == 0 ) {

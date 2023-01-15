@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16310 2023-01-10 02:44:08Z greg $
+ * $Id: qnap2_document.cpp 16331 2023-01-15 22:58:45Z greg $
  *
  * Read in XML input files.
  *
@@ -1717,6 +1717,11 @@ namespace QNIO {
     const std::streamsize QNAP2_Document::Output::__precision = 5;
     const std::string QNAP2_Document::Output::__separator = "*";
 
+    /*
+     * JMVA uses residence time (waiting * visits).
+     * QNAP want response times
+     */
+     
     std::ostream&
     QNAP2_Document::Output::print( std::ostream& output ) const
     {
@@ -1767,7 +1772,7 @@ namespace QNIO {
 	output << __separator << " " << std::setw(__width-1) << item.mean_service()
 	       << __separator << " " << std::setw(__width-1) << item.utilization()
 	       << __separator << " " << std::setw(__width-1) << item.queue_length()
-	       << __separator << " " << std::setw(__width-1) << item.residence_time()		// per visit.
+	       << __separator << " " << std::setw(__width-1) << item.response_time()		// per visit.
 	       << __separator << " " << std::setw(__width-1) << item.throughput();
 	return output;
     }

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 15955 2022-10-07 11:05:00Z greg $
+ * $Id: petrisrvn.cc 16332 2023-01-15 23:32:53Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -208,6 +208,8 @@ main(int argc, char *argv[])
     signal(SIGFPE, my_handler);
 
     pragmas.insert( getenv( "PETRISRVN_PRAGMAS" ) );
+
+    LQIO::DOM::DocumentObject::setSeverity(LQIO::ERR_NO_QUANTUM_SCHEDULING, LQIO::error_severity::WARNING );	// Don't care for petrisrvn.
 
     for ( ;; ) {
 #if HAVE_GETOPT_LONG
