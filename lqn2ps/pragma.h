@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pragma.h 15694 2022-06-22 23:27:00Z greg $
+ * $Id: pragma.h 16335 2023-01-16 19:53:44Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -43,7 +43,6 @@ private:
     static void set_pragma( const std::pair<std::string,std::string>& p );
     
 public:
-    static BCMP getBCMP();
     static bool forceInfinite( ForceInfinite );
     static Layering layering();
     static bool defaultProcessorScheduling() { assert( __cache != nullptr ); return __cache->_default_processor_scheduling; }

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 16212 2022-12-30 20:39:19Z greg $
+ *  $Id: dom_object.cpp 16337 2023-01-16 21:15:58Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -50,7 +50,7 @@ namespace LQIO {
 	 */
 	
 	std::map<unsigned, LQIO::error_message_type> DocumentObject::__error_messages = {
-	    { LQIO::ADV_MESSAGES_DROPPED,		{ LQIO::error_severity::ADVISORY, "dropped messages for open-class queues." } },
+	    { LQIO::ADV_MESSAGES_DROPPED,		{ LQIO::error_severity::ADVISORY, "dropped messages for open-class queues" } },
 	    { LQIO::ERR_ASYNC_REQUEST_TO_WAIT,		{ LQIO::error_severity::ERROR,    "(wait) cannot accept send-no-reply requests" } },
 	    { LQIO::ERR_BAD_PATH_TO_JOIN,		{ LQIO::error_severity::ERROR,    "activity %s is not reachable" } },
 	    { LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH,	{ LQIO::error_severity::ERROR, 	  "has a cycle in activity graph.  Backtrace is \"%s\"" } },
@@ -77,10 +77,10 @@ namespace LQIO {
 	    { LQIO::ERR_NOT_REACHABLE,			{ LQIO::error_severity::ERROR,    "is not reachable"} },
 	    { LQIO::ERR_NOT_RWLOCK_TASK,		{ LQIO::error_severity::ERROR,    "cannot have a %s for entry \"%s\"" } },
 	    { LQIO::ERR_NOT_SEMAPHORE_TASK,		{ LQIO::error_severity::ERROR,    "cannot have a %s for entry \"%s\"" } },
-	    { LQIO::ERR_NOT_SPECIFIED,			{ LQIO::error_severity::ERROR,    "is not specified" } },
+	    { LQIO::ERR_NOT_SPECIFIED,			{ LQIO::error_severity::ERROR,    "has neither service time nor any outgoing requests" } },
 	    { LQIO::ERR_NOT_SUPPORTED,			{ LQIO::error_severity::ERROR,    "does not support the %s feature" } },
 	    { LQIO::ERR_NO_GROUP_SPECIFIED,		{ LQIO::error_severity::ERROR,    "running on processor \"%s\" using fair share scheduling has no group specified" } },
-	    { LQIO::ERR_NO_QUANTUM_SCHEDULING,		{ LQIO::error_severity::ERROR,    "with \"%s\" scheduling has no quantum specified."} },
+	    { LQIO::ERR_NO_QUANTUM_SCHEDULING,		{ LQIO::error_severity::ERROR,    "with \"%s\" scheduling has no quantum specified"} },
 	    { LQIO::ERR_NO_SEMAPHORE,			{ LQIO::error_severity::ERROR,    "has neither a signal nor a wait entry specified" } },
 	    { LQIO::ERR_NO_START_ACTIVITIES,		{ LQIO::error_severity::ERROR,    "has activities but none are reachable" } },
 	    { LQIO::ERR_OPEN_AND_CLOSED_CLASSES,	{ LQIO::error_severity::ERROR,    "accepts both rendezvous and send-no-reply messages" } },
@@ -101,7 +101,7 @@ namespace LQIO {
 	    { LQIO::WRN_NOT_USED,			{ LQIO::error_severity::WARNING,  "is not used" } },
 	    { LQIO::WRN_PRIO_TASK_ON_FIFO_PROC,		{ LQIO::error_severity::WARNING,  "with priority is running on processor \"%s\" which does not have priority scheduling" } },
 	    { LQIO::WRN_PROCESSOR_HAS_NO_TASKS,		{ LQIO::error_severity::WARNING,  "has no tasks" } },
-	    { LQIO::WRN_QUANTUM_SCHEDULING,		{ LQIO::error_severity::WARNING,  "using \"%s\" scheduling has a non-zero quantum specified." } },
+	    { LQIO::WRN_QUANTUM_SCHEDULING,		{ LQIO::error_severity::WARNING,  "using \"%s\" scheduling has a non-zero quantum specified" } },
 	    { LQIO::WRN_SCHEDULING_NOT_SUPPORTED,	{ LQIO::error_severity::WARNING,  "with %s scheduling is not supported" } },
 	    { LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO,	{ LQIO::error_severity::WARNING,  "has %s time defined, but its value is zero" } },
 	};

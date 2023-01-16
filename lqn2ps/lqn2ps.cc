@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 16260 2023-01-04 19:18:19Z greg $
+ * $Id: lqn2ps.cc 16335 2023-01-16 19:53:44Z greg $
  *
  * Command line processing.
  *
@@ -216,7 +216,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2023-01-04 14:18:19 -0500 (Wed, 04 Jan 2023) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2023-01-16 14:53:44 -0500 (Mon, 16 Jan 2023) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -227,6 +227,7 @@ main(int argc, char *argv[])
 #endif
 
     LQIO::DOM::DocumentObject::setSeverity(LQIO::ERR_NO_QUANTUM_SCHEDULING, LQIO::error_severity::WARNING );	// Don't care for lqn2ps.
+    LQIO::DOM::DocumentObject::setSeverity(LQIO::ERR_NOT_SPECIFIED, LQIO::error_severity::WARNING );	// Don't care for lqn2ps.
 
     for ( ;; ) {
 	char * endptr = nullptr;
@@ -285,6 +286,7 @@ main(int argc, char *argv[])
 	    case 0x200+'B':
 	    case 0x300+'B':
 		pragmas.insert(LQIO::DOM::Pragma::_bcmp_,(enable ? LQIO::DOM::Pragma::_true_ : LQIO::DOM::Pragma::_false_));
+		pragmas.insert(LQIO::DOM::Pragma::_prune_,(enable ? LQIO::DOM::Pragma::_true_ : LQIO::DOM::Pragma::_false_));
 		break;
 
 	    case 'C':
