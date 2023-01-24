@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 16253 2023-01-03 19:37:15Z greg $
+ *  $Id: dom_document.h 16352 2023-01-22 20:29:15Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -54,8 +54,8 @@ namespace LQIO {
 	class Document {
 
 	public:
-	    enum class OutputFormat { DEFAULT, LQN, XML, JMVA, JSON, RTF, PARSEABLE, QNAP2 };
-	    enum class InputFormat  { AUTOMATIC, LQN, XML, JMVA, JSON, QNAP2 };
+	    enum class OutputFormat { DEFAULT, LQN, XML, JABA, JMVA, JSON, RTF, PARSEABLE, QNAP2 };
+	    enum class InputFormat  { AUTOMATIC, LQN, XML, JABA, JMVA, JSON, QNAP2 };
 
 	private:
 	    enum class cached { SET_FALSE, SET_TRUE, NOT_SET };

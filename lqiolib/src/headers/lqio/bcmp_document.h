@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 16331 2023-01-15 22:58:45Z greg $
+ *  $Id: bcmp_document.h 16354 2023-01-22 23:02:31Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -391,7 +391,6 @@ namespace BCMP {
 	std::pair<Station::map_t::iterator,bool> insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, LQX::SyntaxTreeNode * copies=nullptr ) { return insertStation( name, Station( type, scheduling, copies ) ); }
 
 	Station::Class::map_t computeCustomerDemand( const std::string& ) const;
-	void clearAllResultVariables();
 
 	double response_time( const std::string& ) const;
 	double throughput( const std::string& ) const;

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 15302 2021-12-31 14:19:34Z greg $
+ * $Id: model.h 16339 2023-01-17 11:40:48Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -99,7 +99,7 @@ protected:
     virtual unsigned assignSubmodel() = 0;
     static unsigned topologicalSort();
     virtual void addToSubmodel() = 0;
-    virtual void optimize() {}
+    virtual void partition() {}		// Partition disjoin chains.
     void initStations();
     void reinitStations();
 
@@ -197,7 +197,7 @@ protected:
 
     virtual unsigned assignSubmodel();
     virtual void addToSubmodel();
-    virtual void optimize();
+    virtual void partition();
     virtual double run();
 };
 

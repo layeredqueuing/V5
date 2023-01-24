@@ -9,7 +9,7 @@
  *
  * November 2022
  *
- * $Id: qnio_document.h 16324 2023-01-12 17:44:44Z greg $
+ * $Id: qnio_document.h 16355 2023-01-23 02:03:01Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -42,7 +42,7 @@ namespace QNIO {
 	public:
 	    friend std::ostream& operator<<( std::ostream& output, const QNIO::Document::Comprehension& comprehension ) { return comprehension.print( output ); }
 	    
-	    Comprehension( const std::string name, const std::string& s, bool integer ) : _name(name), _begin(0.), _step(0.), _size(0) { convert(s,integer); }
+	    Comprehension( const std::string& name, const std::string& s, bool integer ) : _name(name), _begin(0.), _step(0.), _size(0) { convert(s,integer); }
 	    Comprehension& operator=( const Comprehension& );
 
 	    LQX::VariableExpression * getVariable() const;

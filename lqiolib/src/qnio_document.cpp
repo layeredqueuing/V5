@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnio_document.cpp 16324 2023-01-12 17:44:44Z greg $
+ * $Id: qnio_document.cpp 16353 2023-01-22 21:49:58Z greg $
  *
  * Superclass for Queueing Network models.
  *
@@ -78,10 +78,19 @@ QNIO::Document::Comprehension::getVariable() const
 LQX::SyntaxTreeNode *
 QNIO::Document::Comprehension::collect( std::vector<LQX::SyntaxTreeNode *>* loop_body ) const
 {
+#if 0
     return new LQX::LoopStatementNode( new LQX::AssignmentStatementNode( getVariable(), new LQX::ConstantValueExpression( begin() ) ),
-				       new LQX::ComparisonExpression(LQX::ComparisonExpression::LESS_THAN, getVariable(), new LQX::ConstantValueExpression( end() ) ),
+				       new LQX::ComparisonExpression( LQX::ComparisonExpression::LESS_THAN, getVariable(), new LQX::ConstantValueExpression( end() ) ),
 				       new LQX::AssignmentStatementNode( getVariable(), new LQX::MathExpression( LQX::MathExpression::ADD, getVariable(), new LQX::ConstantValueExpression( step() ) ) ),
 				       new LQX::CompoundStatementNode( loop_body ) );
+#else
+    std::vector<LQX::SyntaxTreeNode *>* items = new std::vector<LQX::SyntaxTreeNode *>();
+    items->reserve( size() );
+    for ( size_t i = 0; i < size(); ++i ) {
+	items->push_back( new LQX::ConstantValueExpression( begin() + i * step() ) );
+    }
+    return new LQX::ForeachStatementNode( "", name(), false, false, new LQX::MethodInvocationExpression( "array_create", items ), new LQX::CompoundStatementNode( loop_body ) );
+#endif
 }
 
 

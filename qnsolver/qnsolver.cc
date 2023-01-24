@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 16328 2023-01-13 15:44:41Z greg $
+ * $Id: qnsolver.cc 16361 2023-01-23 21:11:57Z greg $
  */
 
 #include "config.h"
@@ -37,6 +37,8 @@ const struct option longopts[] =
     { LQIO::DOM::Pragma::_schweitzer_,		no_argument,		0, 's' },
     { LQIO::DOM::Pragma::_linearizer_,		no_argument,		0, 'l' },
     { LQIO::DOM::Pragma::_fast_,		no_argument,		0, 'f' },
+    { "multiserver",				required_argument,	0, 'm' },
+    { LQIO::DOM::Pragma::_force_multiserver_,	no_argument,		0, 'F' },
     { "no-execute",				no_argument,		0, 'n' },
     { "output",					required_argument,	0, 'o' },
     { "plot-queue-length",			required_argument,	0, 'q' },
@@ -44,11 +46,10 @@ const struct option longopts[] =
     { "plot-throughput",			optional_argument,	0, 't' },
     { "plot-utilization",			optional_argument,	0, 'u' },
     { "plot-waiting-time",			required_argument,	0, 'w' },
-    { "multiserver",				required_argument,	0, 'm' },
-    { LQIO::DOM::Pragma::_force_multiserver_,	no_argument,		0, 'F' },
+    { "colours",				required_argument,	0, 'C' },
     { "verbose",				no_argument,		0, 'v' },
     { "help",					no_argument,		0, 'h' },
-    { "export-qnap2",				no_argument,		0, 'Q' },
+    { "export-qnap",				no_argument,		0, 'Q' },
     { "export-jmva",				no_argument,		0, 'J' },
     { "debug-qnap2",				no_argument,		0, 'D' },
     { "debug-mva",				no_argument,		0, 'd' },
@@ -65,28 +66,29 @@ static std::string opts = "bdefhlo:rstvxDGJLQSX";
 
 const static std::map<const std::string,const std::string> opthelp  = {
     { "bounds",                                 "Use the bounds solver." },
-    { LQIO::DOM::Pragma::_exact_,               "Use Exact MVA." },
-    { LQIO::DOM::Pragma::_schweitzer_,          "Use Bard-Schweitzer approximate MVA." },
-    { LQIO::DOM::Pragma::_linearizer_,          "Use Linearizer." },
-    { LQIO::DOM::Pragma::_fast_,                "Use the Fast Linearizer solver." },
-    { "output",                                 "Send output to ARG." },
+    { "colours",				"Use the colours for plotting.  ARG is a list of colours." },
+    { "debug-lqx",                              "Debug the LQX program." },
+    { "debug-mva",                              "Enable debug code in the MVA solver." },
+    { "debug-qnap2",                            "Debug the QNAP2 input parser." },
+    { "debug-xml",                              "Debug XML input." },
+    { "export-jmva",				"Export a JMVA model after solution (results embedded)." },
+    { "export-qnap",                            "Export a QNAP2 model.  Do not solve." },
+    { "help",                                   "Show this." },
+    { "multiserver",                            "Use ARG for multiservers.  ARG={conway,reiser,rolia,zhou}." },
     { "no-execute",				"Load the model and run LQX, but do not solve the model." },
+    { "output",                                 "Send output to ARG." },
     { "plot-queue-length",                      "Output gnuplot to plot station queue-length.  ARG specifies a class or station." },
     { "plot-response-time",                     "Output gnuplot to plot system response-time (and bounds)." },
     { "plot-throughput",                        "Output gnuplot to plot system throughput (and bounds), or for a class or station with ARG." },
     { "plot-utilization",                       "Output gnuplot to plot utilization.  ARG specifies a class or station." },
     { "plot-waiting-time",                      "Output gnuplot to plot station waiting-times.  ARG specifies a class or station." },
-    { "multiserver",                            "Use ARG for multiservers.  ARG={conway,reiser,rolia,zhou}." },
-    { LQIO::DOM::Pragma::_force_multiserver_,   "Use the multiserver solution for load independent stations (copies=1)." },
-    { "verbose",                                "" },
-    { "help",                                   "Show this." },
-    { "export-qnap2",                           "Export a QNAP2 model.  Do not solve." },
-    { "export-jmva",				"Export a JMVA model after solution (results embedded)." },
-    { "debug-qnap2",                            "Debug the QNAP2 input parser." },
-    { "debug-lqx",                              "Debug the LQX program." },
-    { "debug-mva",                              "Enable debug code in the MVA solver." },
-    { "debug-xml",                              "Debug XML input." },
     { "print-lqx",                              "Print the LQX program used to solve the model." },
+    { "verbose",                                "" },
+    { LQIO::DOM::Pragma::_exact_,               "Use Exact MVA." },
+    { LQIO::DOM::Pragma::_fast_,                "Use the Fast Linearizer solver." },
+    { LQIO::DOM::Pragma::_force_multiserver_,   "Use the multiserver solution for load independent stations (copies=1)." },
+    { LQIO::DOM::Pragma::_linearizer_,          "Use Linearizer." },
+    { LQIO::DOM::Pragma::_schweitzer_,          "Use Bard-Schweitzer approximate MVA." },
 };
 
 /* Flags */
@@ -147,6 +149,10 @@ int main (int argc, char *argv[])
 	    MVA::debug_U = true;
 	    MVA::debug_W = true;
 #endif
+	    break;
+
+	case 'C':
+	    std::cerr << "Colours unsupported..." << std::endl;
 	    break;
 
 	case 'D':
@@ -306,13 +312,17 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << input.getInputFileName() << "\" -- " << strerror( errno ) << std::endl;
 	}
     }
+    input.mergePragmas( pragmas.getList() );
+    Pragma::set( input.getPragmaList() );		/* load pragmas here */
+
     if ( print_qnap2 ) {
 	QNIO::QNAP2_Document qnap_model( input.getInputFileName(), input.model() );
-	qnap_model.exportModel( std::cout );
+	if ( output ) {
+	    qnap_model.exportModel( output );
+	} else {
+	    qnap_model.exportModel( std::cout );
+	}
     } else {
-	input.mergePragmas( pragmas.getList() );
-	Pragma::set( input.getPragmaList() );		/* load pragmas here */
-
 	try {
 	    if ( print_gnuplot ) input.plot( plot_type, plot_arg );
 	}
@@ -322,7 +332,7 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
 	if ( print_jmva ) {
 	    Model model( input, Pragma::solver(), std::string() );
 	    model.solve();
-	    input.exportModel( output );
+	    input.exportModel( output );		/* Will save all results */
 	} else {
 	    Model model( input, Pragma::solver(), output_file_name );
 	    model.solve();

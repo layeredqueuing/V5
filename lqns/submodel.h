@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 15956 2022-10-07 13:54:20Z greg $
+ * $Id: submodel.h 16347 2023-01-18 02:20:18Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -81,7 +81,6 @@ public:
     const std::set<Task *>& getClients() const { return _clients; }			/* Table of clients 		*/
     virtual const char * const submodelType() const = 0;
     unsigned number() const { return _submodel_number; }
-    Submodel& setSubmodelNumber( const unsigned );
 
     virtual Vector<double> * getOverlapFactor() const { return nullptr; } 
     unsigned nChains() const { return _n_chains; }
@@ -92,7 +91,7 @@ public:
     virtual Submodel& initInterlock() { return *this; }
     virtual Submodel& build() { return *this; }
     virtual Submodel& rebuild() { return *this; }
-    virtual Submodel& optimize();
+    virtual Submodel& partition();
 
 
 #if PAN_REPLICATION

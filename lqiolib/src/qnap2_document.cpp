@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16331 2023-01-15 22:58:45Z greg $
+ * $Id: qnap2_document.cpp 16341 2023-01-17 21:45:03Z greg $
  *
  * Read in XML input files.
  *
@@ -2040,6 +2040,8 @@ namespace QNIO {
     std::string
     QNAP2_Document::getResultVariables::operator()( const std::string& s1, const BCMP::Model::Station::pair_t& m ) const
     {
+#if 0
+	/*!!! This gets them all... I think I only want to do those which I have defined. */
 	/* Get results per class */
 	const BCMP::Model::Station::Class::map_t& classes = m.second.classes();
 	std::string s = std::accumulate( classes.begin(), classes.end(), s1, getResultVariables( model(), _symbol_table ) );
@@ -2055,7 +2057,9 @@ namespace QNIO {
 	}
 
 	return s;
-
+#else
+	return s1;
+#endif
     }
 
 

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 15956 2022-10-07 13:54:20Z greg $
+ * $Id: phase.cc 16349 2023-01-19 02:06:56Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -1491,9 +1491,7 @@ Phase::expandCalls()
 Phase&
 Phase::initProcessor()
 {	
-    if ( getProcessor() != nullptr || getDOM() == nullptr ) return *this;
-    const Processor * processor = owner()->getProcessor();
-    if ( !processor ) return *this;
+    if ( getProcessor() != nullptr || getDOM() == nullptr || owner()->getProcessor() == nullptr ) return *this;
     
     /* 
      * If I don't have an entry on the processor, create one provided

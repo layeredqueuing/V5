@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16324 2023-01-12 17:44:44Z greg $
+ *  $Id: jmva_document.h 16360 2023-01-23 20:38:11Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -136,13 +136,13 @@ namespace QNIO {
 
 	virtual bool disableDefaultOutputWithLQX() const { return true; }
 
+	void defineDefaultResultVariables();
 	void saveResults( size_t, const std::string&, size_t, const std::string&, const std::string&, const std::map<BCMP::Model::Result::Type,double>& );
 
 	std::ostream& print( std::ostream& ) const;
 	std::ostream& exportModel( std::ostream& ) const;
 	void plot( BCMP::Model::Result::Type, const std::string& );
-	bool plotPopulationMix() const { return _plot_population_mix; }
-	void setPlotPopulationMix( bool plot_population_mix ) { _plot_population_mix = plot_population_mix; }
+	bool plotPopulationMix() const { return !_N1.empty() && !_N2.empty(); }
 	bool plotCustomers() const { return _plot_customers; }
 	void setPlotCustomers( bool plot_customers ) { _plot_customers = plot_customers; }
 
@@ -196,7 +196,6 @@ namespace QNIO {
 	void createWhatIf( const XML_Char ** attributes );
 	void createMeasure( Object& object, const XML_Char ** attributes );
 
-	void setResultVariables( const std::string& );
 	LQX::SyntaxTreeNode * createObservation( const std::string& name, BCMP::Model::Result::Type type, const BCMP::Model::Station *, const BCMP::Model::Station::Class * );
 	LQX::SyntaxTreeNode * createObservation( const std::string& name, BCMP::Model::Result::Type type, const std::string& clasx );
 	void setResultIndex( const std::string&, const std::string& );
@@ -205,8 +204,9 @@ namespace QNIO {
 	std::string setCustomers( const std::string&, const std::string& );
 	std::string setDemand( const std::string&, const std::string& );
 	std::string setMultiplicity( const std::string&, const std::string& );
-	std::string setPopulationMix( const std::string& stationName, const std::string& className );
+	std::string setPopulationMix( const std::string&, const std::string& );
 
+	void setPopulationMixN1N2( const std::string& className, const Comprehension& population );
 	void appendResultVariable( const std::string&, LQX::SyntaxTreeNode * );
 
 	/* LQX */
@@ -315,6 +315,23 @@ namespace QNIO {
 	    std::set<std::string> _variables;
 	};
 
+	struct Population {
+	    Population() : _name(), _population(0), _N() {}
+	    double operator[]( size_t i ) const { return _N.at(i); }
+	    bool empty() const { return _N.empty(); }
+	    size_t size() const { return _N.size(); }
+	    void setName( const std::string& name ) { _name = name; }
+	    const std::string& name() const { return _name; }
+	    void setPopulation( size_t population ) { _population = population; }
+	    size_t population() const { return _population; }
+	    void reserve( size_t size ) { _N.reserve( size ); }
+	    void push_back( double item ) { _N.push_back( item ); }
+	private:
+	    std::string _name;
+	    size_t _population;
+	    std::vector<double> _N;
+	};
+
 	bool convertToLQN( LQIO::DOM::Document& ) const;
 
 	std::ostream& printModel( std::ostream& ) const;
@@ -323,9 +340,10 @@ namespace QNIO {
 	std::ostream& plot_chain( std::ostream& plot, BCMP::Model::Result::Type type );
 	std::ostream& plot_class( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& );
 	std::ostream& plot_station( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& );
-	std::ostream& plot_population_mix_vs_throughput( std::ostream& plot );
-	std::ostream& plot_population_mix_vs_utilization( std::ostream& plot );
+	std::ostream& plot_throughput_vs_population_mix( std::ostream& plot );
+	std::ostream& plot_utilization_vs_population_mix( std::ostream& plot );
 	size_t get_gnuplot_index( const std::string& ) const;
+	void compute_itercepts() const;
 
 	/* -------------------------- Output -------------------------- */
 
@@ -410,7 +428,7 @@ namespace QNIO {
 	unsigned int _lqx_program_line_number;
 	LQX::Program * _lqx;
 
-	/* SPEX */
+	/* LQX */
 	std::vector<LQX::SyntaxTreeNode*> _program;
 	std::set<std::string> _input_variables;						/* Spex vars -- may move to QNAP/QNIO */
 	std::vector<LQX::SyntaxTreeNode*> _whatif_body;
@@ -433,8 +451,9 @@ namespace QNIO {
 
 	/* Plotting */
 	std::vector<LQX::SyntaxTreeNode*> _gnuplot;					/* GNUPlot program		*/
-	bool _plot_population_mix;
 	bool _plot_customers;
+	Population _N1;
+	Population _N2;
 
 	static const std::map<const std::string,JMVA_Document::setIndependentVariable> independent_var_table;
 

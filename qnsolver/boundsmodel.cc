@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: boundsmodel.cc 16204 2022-12-27 15:42:27Z greg $
+ * $Id: boundsmodel.cc 16357 2023-01-23 03:22:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -76,9 +76,9 @@ BoundsModel::solve()
 		_results.emplace(result_pair_t(mi->first,std::pair<const std::string,double>(chain,1.0)));	/* Insert chain for station */
 
 	    } else {
-		LQX::MathExpression demand( LQX::MathExpression::MULTIPLY, station.classAt(chain).service_time(), station.classAt(chain).visits() );
-		LQX::ConstantValueExpression demand_max( bound.D_max() );
-		utilization[chain] = LQX::MathExpression( LQX::MathExpression::DIVIDE, &demand, &demand_max ).invoke(nullptr)->getDoubleValue();
+		LQX::SyntaxTreeNode * demand = BCMP::Model::multiply( station.classAt(chain).service_time(), station.classAt(chain).visits() );
+		LQX::SyntaxTreeNode * demand_max = bound.D_max();
+		utilization[chain] = BCMP::Model::getDoubleValue( BCMP::Model::divide( demand, demand_max ) );
 	    }
 	}
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: bcmp_bindings.cpp 16331 2023-01-15 22:58:45Z greg $
+ *  $Id: bcmp_bindings.cpp 16341 2023-01-17 21:45:03Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -98,7 +98,7 @@ namespace BCMP {
 
     const std::map<const std::string,LQXObject::attribute_table_t> LQXObject::__attributeTable =
     {
-	{ __lqx_response_time,	attribute_table_t( &Model::Result::response_time ) },
+	{ __lqx_residence_time,	attribute_table_t( &Model::Result::residence_time ) },
 	{ __lqx_throughput,     attribute_table_t( &Model::Result::throughput ) },
 	{ __lqx_utilization,    attribute_table_t( &Model::Result::utilization ) },
 	{ __lqx_queue_length,   attribute_table_t( &Model::Result::queue_length ) }

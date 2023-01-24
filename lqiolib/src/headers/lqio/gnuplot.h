@@ -15,6 +15,7 @@
 #define __LQIO_GNUPLOT_H__
 
 #include <vector>
+#include <set>
 
 namespace LQX {
     class SyntaxTreeNode;
@@ -25,6 +26,8 @@ namespace LQIO {
 	void insert_header( std::vector<LQX::SyntaxTreeNode *>* program, const std::string& comment, const std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>>& variables );
 	LQX::SyntaxTreeNode * print_node( const std::string& );
 	LQX::SyntaxTreeNode * print_node( LQX::SyntaxTreeNode *, ... );
+
+	extern const std::set<std::string> colour_names;
     };
 }
 #endif /* __LQIO_GNUPLOT_H__ */
