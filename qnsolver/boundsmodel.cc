@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: boundsmodel.cc 16357 2023-01-23 03:22:16Z greg $
+ * $Id: boundsmodel.cc 16369 2023-01-26 19:21:33Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -64,52 +64,29 @@ BoundsModel::construct()
 bool
 BoundsModel::solve()
 {
-    for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
-	const BCMP::Model::Station& station = mi->second;
-	std::map<const std::string,double> utilization;
-	for ( BCMP::Model::Chain::map_t::const_iterator ki = chains().begin(); ki != chains().end(); ++ki ) {
-	    const std::string& chain = ki->first;
-	    const BCMP::Model::Bound& bound = bounds().at(chain);
-
-	    if ( BCMP::Model::Bound::D( station, *ki ) == bound.D_max() ) {
-		/* Hard bound */
-		_results.emplace(result_pair_t(mi->first,std::pair<const std::string,double>(chain,1.0)));	/* Insert chain for station */
-
-	    } else {
-		LQX::SyntaxTreeNode * demand = BCMP::Model::multiply( station.classAt(chain).service_time(), station.classAt(chain).visits() );
-		LQX::SyntaxTreeNode * demand_max = bound.D_max();
-		utilization[chain] = BCMP::Model::getDoubleValue( BCMP::Model::divide( demand, demand_max ) );
-	    }
-	}
-
-	const double sum = std::accumulate( utilization.begin(), utilization.end(), 0.0, &BoundsModel::plus );
-	if ( sum >= 1.0 ) {
-	    for ( BCMP::Model::Chain::map_t::const_iterator ki = chains().begin(); ki != chains().end(); ++ki ) {
-		const std::string& chain = ki->first;
-		_results.emplace( result_pair_t( mi->first, std::pair<const std::string,double>( chain, utilization.at(chain) / sum ) ) );
-	    }
-	}
-    }
     return true;
 }
 
 
+/*
+ * Save throughput/utilization at the bounds for every class
+ */
+
 void
 BoundsModel::saveResults()
 {
-    for ( result_map_t::const_iterator result = _results.begin(); result != _results.end(); ++result ) {
-	const std::string& station = result->first;
-	const std::string& chain = result->second.first;
-	const BCMP::Model::Bound& bound = bounds().at(chain);
-	const BCMP::Model::Station::Class& k = stations().at(station).classes().at(chain);
+    for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
+	const BCMP::Model::Station& station = m->second;
+	for ( BCMP::Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
+	    const std::string& chain = k->first;
+	    const BCMP::Model::Bound& bound = bounds().at( chain );
 
-	const double utilization = result->second.second;
-	const double throughput = 1.0 / bound.D_max()->invoke(nullptr)->getDoubleValue();
-	const double residence_time = utilization / throughput;
-
-	const_cast<BCMP::Model::Station::Class&>(k).setResults( throughput,
-								1.0,
-								residence_time,
-								utilization );
+	    const double Dmax_k = BCMP::Model::getDoubleValue( bound.D_max() );
+	    if ( Dmax_k == 0 ) continue;
+	    const double D_k = BCMP::Model::getDoubleValue( m->second.demand( station.classAt( chain ) ) );
+	    const double X_k = 1.0 / Dmax_k;
+	    const double U_k = D_k * X_k;
+	    const_cast<BCMP::Model::Station&>(m->second).classes()[chain].setResults( X_k, U_k, D_k, U_k );
+	}
     }
 }

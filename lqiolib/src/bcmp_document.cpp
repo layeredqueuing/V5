@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 16354 2023-01-22 23:02:31Z greg $
+ * $Id: bcmp_document.cpp 16369 2023-01-26 19:21:33Z greg $
  *
  * Read in XML input files.
  *
@@ -325,9 +325,9 @@ namespace BCMP {
     }
 
     std::pair<Model::Station::Class::map_t::iterator,bool>
-    Model::Station::insertClass( const std::string& class_name, const Class& clasx )
+    Model::Station::insertClass( const std::string& class_name, const Class& k )
     {
-	return _classes.emplace( class_name, clasx );
+	return _classes.emplace( class_name, k );
     }
 
     std::pair<Model::Station::Class::map_t::iterator,bool>
@@ -335,6 +335,14 @@ namespace BCMP {
     {
 	return _classes.emplace( class_name, Class( visits, service_time ) );
     }
+
+
+    LQX::SyntaxTreeNode *
+    Model::Station::demand( const Class& k ) const
+    {
+	return Model::multiply( k.visits(), k.service_time() );
+    }
+
 
     /*
      * Find the station in the map
@@ -734,14 +742,7 @@ namespace BCMP {
 	const Model::Station::Class& k = m.classAt( chain );
 	if ( isDefault( k.visits() ) || isDefault( k.service_time() ) ) return nullptr;
 
-	return divide( Bound::demand( k ), m.copies() );
-    }
-
-
-    LQX::SyntaxTreeNode *
-    Model::Bound::demand( const Model::Station::Class& k )
-    {
-	return Model::multiply( k.visits(), k.service_time() );
+	return divide( m.demand( k ), m.copies() );
     }
 
 
@@ -774,7 +775,7 @@ namespace BCMP {
 
 	const Model::Station::Class& k = m.classAt( _class );
 	if ( isDefault( k.visits() ) || isDefault( k.service_time() ) ) return a1;
-	else return Model::add( a1, Bound::demand( k ) );
+	else return Model::add( a1, m.demand( k ) );
     }
 
 
@@ -786,7 +787,7 @@ namespace BCMP {
 	if ( !m.reference() || !m.hasClass( _class ) ) return a1;
 	const Model::Station::Class& k = m.classAt( _class );
 	if ( isDefault( k.visits() ) || isDefault( k.service_time() ) ) return a1;
-	else return Model::add( a1, Bound::demand( k ) );
+	else return Model::add( a1, m.demand( k ) );
     }
 
 }

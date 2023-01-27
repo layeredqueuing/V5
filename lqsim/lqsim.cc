@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 15722 2022-06-27 20:37:32Z greg $
+ * $Id: lqsim.cc 16368 2023-01-25 20:53:42Z greg $
  */
 
 #define STACK_TESTING
@@ -321,7 +321,7 @@ main( int argc, char * argv[] )
     std::copy( local_error_messages.begin(), local_error_messages.end(), std::inserter( LQIO::error_messages, LQIO::error_messages.begin() ) );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2022-06-27 16:37:32 -0400 (Mon, 27 Jun 2022) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2023-01-25 15:53:42 -0500 (Wed, 25 Jan 2023) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Handy defaults.						*/
@@ -349,6 +349,8 @@ main( int argc, char * argv[] )
 
 	try { 
 	    char * token;
+	    value = nullptr;
+	    
 	    switch ( c ) {
 
 	    case 'a':
@@ -547,21 +549,22 @@ main( int argc, char * argv[] )
 
 	    case 't':
 		options = optarg;
-		while ( *options ) switch( getsubopt( &options, const_cast<char * const *>(trace_opts), &value ) ) {
+		while ( *options ) {
+		    switch( getsubopt( &options, const_cast<char * const *>(trace_opts), &value ) ) {
 		    case DRIVER:
 			trace_driver = 1;
 			break;
 
 		    case PROCESSOR:
-			processor_match_pattern = value;
+			processor_match_pattern = (value != nullptr) ? value : ".*";
 			break;
 				
 		    case TASK:
-			task_match_pattern = value;
+			task_match_pattern = (value != nullptr) ? value : ".*";
 			break;
 
 		    case EVENTS:
-			trace_event_list( std::regex( value ) );
+			trace_event_list( std::regex( (value != nullptr) ? value : ".*" ) );
 			break;
 
 		    case TIMELINE:
@@ -576,6 +579,7 @@ main( int argc, char * argv[] )
 			throw std::invalid_argument( optarg );
 			break;
 		    }
+		}
 		break;
 			
 	    case 'v':

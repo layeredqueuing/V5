@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 16354 2023-01-22 23:02:31Z greg $
+ *  $Id: bcmp_document.h 16369 2023-01-26 19:21:33Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -224,6 +224,8 @@ namespace BCMP {
 	    void setCopies( LQX::SyntaxTreeNode * copies ) { _copies = copies; }
 	    bool reference() const { return _reference; }
 	    void setReference( bool reference ) { _reference = reference; }
+	    LQX::SyntaxTreeNode * demand( const Class& ) const;
+	    
 	    Class::map_t& classes() { return _classes; }
 	    const Class::map_t& classes() const { return _classes; }
 	    Class& classAt( const std::string& name ) { return _classes.at(name); }
@@ -328,7 +330,6 @@ namespace BCMP {
 
 	    LQX::SyntaxTreeNode * Z() const;
 	    static LQX::SyntaxTreeNode * demand( const Station& m, const std::string& chain );
-	    static LQX::SyntaxTreeNode * demand( const Model::Station::Class& k );
 	    
 	    struct max_demand {
 		max_demand( const std::string& chain ) : _class(chain) {}

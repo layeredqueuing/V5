@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 16361 2023-01-23 21:11:57Z greg $
+ * $Id: qnsolver.cc 16369 2023-01-26 19:21:33Z greg $
  */
 
 #include "config.h"
@@ -51,6 +51,7 @@ const struct option longopts[] =
     { "help",					no_argument,		0, 'h' },
     { "export-qnap",				no_argument,		0, 'Q' },
     { "export-jmva",				no_argument,		0, 'J' },
+    { "export-jaba",				no_argument,		0, 'B' },
     { "debug-qnap2",				no_argument,		0, 'D' },
     { "debug-mva",				no_argument,		0, 'd' },
     { "debug-lqx",				no_argument,		0, 'L' },
@@ -72,6 +73,7 @@ const static std::map<const std::string,const std::string> opthelp  = {
     { "debug-qnap2",                            "Debug the QNAP2 input parser." },
     { "debug-xml",                              "Debug XML input." },
     { "export-jmva",				"Export a JMVA model after solution (results embedded)." },
+    { "export-jaba",				"Export a JABA model.  Results and reference stations are stripped out." },
     { "export-qnap",                            "Export a QNAP2 model.  Do not solve." },
     { "help",                                   "Show this." },
     { "multiserver",                            "Use ARG for multiservers.  ARG={conway,reiser,rolia,zhou}." },
@@ -140,6 +142,14 @@ int main (int argc, char *argv[])
 	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_bounds_);
 	    break;
 
+	case 'B':
+	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_bounds_);
+	    break;
+	    
+	case 'C':
+	    std::cerr << "Colours unsupported..." << std::endl;
+	    break;
+
 	case 'd':
 	    Model::debug_flag = true;
 #if DEBUG_MVA
@@ -149,10 +159,6 @@ int main (int argc, char *argv[])
 	    MVA::debug_U = true;
 	    MVA::debug_W = true;
 #endif
-	    break;
-
-	case 'C':
-	    std::cerr << "Colours unsupported..." << std::endl;
 	    break;
 
 	case 'D':
@@ -298,29 +304,32 @@ static void exec( const std::string& input_file_name, const std::string& output_
 static void exec( QNIO::Document& input, const std::string& output_file_name, const std::string& plot_arg )
 {
     if ( !input.load() ) return;
+    input.mergePragmas( pragmas.getList() );
+    Pragma::set( input.getPragmaList() );		/* load pragmas here */
 
     std::ofstream output;
+    const bool bounds = Pragma::solver() == Model::Solver::BOUNDS;
     if ( !output_file_name.empty() ) {
 	output.open( output_file_name, std::ios::out );
 	if ( !output ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << output_file_name << "\" -- " << strerror( errno ) << std::endl;
 	}
     } else if ( print_jmva ) {
-	LQIO::Filename::backup( input.getInputFileName() );
-	output.open( input.getInputFileName(), std::ios::out );
+	const std::string extension = bounds ? "jmva" : "jaba";
+	LQIO::Filename filename( input.getInputFileName(), extension );
+	LQIO::Filename::backup( filename() );
+	output.open( filename(), std::ios::out );
 	if ( !output ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << input.getInputFileName() << "\" -- " << strerror( errno ) << std::endl;
 	}
     }
-    input.mergePragmas( pragmas.getList() );
-    Pragma::set( input.getPragmaList() );		/* load pragmas here */
 
     if ( print_qnap2 ) {
 	QNIO::QNAP2_Document qnap_model( input.getInputFileName(), input.model() );
 	if ( output ) {
-	    qnap_model.exportModel( output );
+	    qnap_model.exportModel( output, false );
 	} else {
-	    qnap_model.exportModel( std::cout );
+	    qnap_model.exportModel( std::cout, false );
 	}
     } else {
 	try {
@@ -332,7 +341,7 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
 	if ( print_jmva ) {
 	    Model model( input, Pragma::solver(), std::string() );
 	    model.solve();
-	    input.exportModel( output );		/* Will save all results */
+	    input.exportModel( output, bounds );	/* Will save all results (if !bounds) */
 	} else {
 	    Model model( input, Pragma::solver(), output_file_name );
 	    model.solve();

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16362 2023-01-23 22:41:13Z greg $
+ * $Id: jmva_document.cpp 16369 2023-01-26 19:21:33Z greg $
  *
  * Read in XML input files.
  *
@@ -90,7 +90,7 @@ namespace QNIO {
 
     JMVA_Document::JMVA_Document( const std::string& input_file_name, const BCMP::Model& model ) :
 	Document( input_file_name, model ),
-	_parser(nullptr), _stack(),
+	_strict_jmva(true), _parser(nullptr), _stack(),
 	_lqx_program_text(), _lqx_program_line_number(0), _lqx(nullptr), _program(),
 	_input_variables(), _whatif_body(), _independent_variables(), _result_variables(), _station_index(),
 	_think_time_vars(), _population_vars(), _arrival_rate_vars(), _multiplicity_vars(), _service_time_vars(), _visit_vars(),
@@ -1664,20 +1664,15 @@ namespace QNIO {
 	const BCMP::Model::Result::Type type = BCMP::Model::Result::Type::UTILIZATION;
 
 	/* Generate tics for x axes */
-	std::ostringstream x1tics;
-	std::ostringstream x2tics;
+	std::ostringstream xtics;
 	for ( size_t i = 0; i < _N1.size(); i += 2 ) {
 	    if ( i != 0 ) {
-		x1tics << ", ";
-		x2tics << ", ";
+		xtics << ", ";
 	    }
-	    x1tics << "\"" <<  _N1[i+1] << "\" " << _N1[i];
-	    x2tics << "\"" <<  _N2[i+1] << "\" " << _N2[i];
+	    xtics << "\"(" <<  _N1[i] << "," << _N1[i+1] << ")\" " << _N1[i];
 	}
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xtics (" + x1tics.str() + ")" ) );			// X1 axis
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + _N1.name() + " Customers\"" ) );	// X1 axis
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set x2tics (" + x2tics.str() + ")" ) );			// X2 axis
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set x2label \"" + _N2.name() + " Customers\"" ) );	// X2 axis
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xtics (" + xtics.str() + ")" ) );
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \" Customers (" + _N1.name() + "," + _N2.name() + ")\"" ) );
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \""  + __y_label_table.at(type) + "\"" ) );	// Y1 axis
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key title \"Station\" box" ) );
 //	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key top left" ) );
@@ -1692,6 +1687,7 @@ namespace QNIO {
 	    ++count;
 	}
 
+	Intercepts( *this, _N1.name(), _N2.name() ).compute();
 	return plot;
     }
 
@@ -1709,11 +1705,10 @@ namespace QNIO {
 
 
     void
-    JMVA_Document::compute_itercepts() const
+    JMVA_Document::Intercepts::compute() const
     {
-	typedef std::pair<double,double> point;
-	const BCMP::Model::Chain::map_t::const_iterator x = chains().find( _N1.name() );	// User may have picked class 2 first...
-	const BCMP::Model::Chain::map_t::const_iterator y = chains().find( _N2.name() );
+	const BCMP::Model::Chain::map_t::const_iterator x = chains().find( _chain_1 );	// User may have picked class 2 first...
+	const BCMP::Model::Chain::map_t::const_iterator y = chains().find( _chain_2 );
 
 	/* Compute intercepts */
 
@@ -1730,12 +1725,56 @@ namespace QNIO {
 
 	    Dmax_x = std::max( D_x, Dmax_x );
 	    Dmax_y = std::max( D_y, Dmax_y );
-	    D_xy.emplace_back( point( D_x, D_y ) );
+	    D_xy.emplace_back( point( 1./std::max(D_x,1e-20), 1./std::max(D_y,1e-20) ) );		/* truncate at 1e20.		*/
 	}
+	std::vector<point> intercepts;
 	for ( std::vector<point>::const_iterator l1 = D_xy.begin(); l1 != D_xy.end(); ++l1 ) {
 	    for ( std::vector<point>::const_iterator l2 = std::next(l1); l2 != D_xy.end(); ++l2 ) {
+		intercepts.emplace_back( compute( point( 0, l1->y() ), point( l1->x(), 0 ), point( 0, l2->y() ), point( l2->x(), 0 ) ) );
 	    }
 	}
+
+	/* Compute utilization at all stations at all intercepts.  Reject all with utlization > 1.  Sort on x */
+
+	const double tput_x = 1 / Dmax_x;
+	const double tput_y = 1 / Dmax_y;
+	for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
+	    const BCMP::Model::Station& station = m->second;
+	    if ( station.type() != BCMP::Model::Station::Type::LOAD_INDEPENDENT && station.type() != BCMP::Model::Station::Type::MULTISERVER ) continue;
+
+	    std::cerr << m->first << "(0," << tput_y << ") = " << getDoubleValue( station.demand( station.classAt( y->first ) ) ) * tput_y << std::endl;
+	    for ( std::vector<point>::const_iterator i = intercepts.begin(); i != intercepts.end(); ++i ) {
+		if ( i->x() < 0 || tput_x < i->x() ) continue;
+		if ( i->y() < 0 || tput_x < i->y() ) continue;
+		const double U_x = getDoubleValue( station.demand( station.classAt( x->first ) ) ) * i->x();
+		const double U_y = getDoubleValue( station.demand( station.classAt( y->first ) ) ) * i->y();
+		if ( U_x + U_y  > 1.0 ) continue;
+		std::cerr << m->first << *i << " = " << U_x + U_y << std::endl;
+	    }
+	    std::cerr << m->first << "(" << tput_x << ",0) = " << getDoubleValue( station.demand( station.classAt( x->first ) ) ) * tput_x << std::endl;
+	}
+    }
+
+    JMVA_Document::Intercepts::point
+    JMVA_Document::Intercepts::compute( const point& p1, const point& p2, const point& p3, const point& p4 ) const
+    {
+	std::cerr << "compute( " << p1 << "," << p2 << "," << p3 << "," << p4 << ")" << std::endl;
+	    
+	const double denominator = (p1.x() - p2.x()) * (p3.y() - p4.y()) - (p1.y() - p2.y()) * (p3.x() - p4.x());
+	if ( denominator != 0 ) {
+	    const double numerator1 = p1.x() * p2.y() - p1.y() * p2.x();
+	    const double numerator2 = p3.x() * p4.y() - p3.y() * p4.x();
+	    return point( ((numerator1 * (p3.x() - p4.x())) - ((p1.x() - p2.x()) * numerator2)) / denominator,
+		          ((numerator1 * (p3.y() - p4.y())) - ((p1.y() - p2.y()) * numerator2)) / denominator );
+	} else {
+	    return point( 0., 0. );
+	}
+    }
+
+    std::ostream& JMVA_Document::Intercepts::point::print( std::ostream& output ) const 
+    {
+	output << "(" << x() << "," << y() << ")";
+	return output;
     }
 }
 
@@ -1762,7 +1801,7 @@ namespace QNIO {
     }
 
     std::ostream&
-    JMVA_Document::exportModel( std::ostream& output ) const
+    JMVA_Document::exportModel( std::ostream& output, bool bounds ) const
     {
 	XML::set_indent(0);
 	output << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl
@@ -1771,10 +1810,10 @@ namespace QNIO {
 	    output << "<!-- " << LQIO::io_vars.lq_command_line << " -->" << std::endl;
 	}
 
-	printModel( output );
+	printModel( output, bounds );
 	if ( !strictJMVA() ) {
 	    printSPEX( output );
-	} else {
+	} else if ( !bounds ) {
 	    printResults( output );
 	}
 	output << XML::end_element( Xmodel ) << std::endl;
@@ -1782,7 +1821,7 @@ namespace QNIO {
     }
 
     std::ostream&
-    JMVA_Document::printModel( std::ostream& output ) const
+    JMVA_Document::printModel( std::ostream& output, bool bounds ) const
     {
 	std::for_each( stations().begin(), stations().end(), BCMP::Model::pad_demand( chains() ) );	/* JMVA want's zeros */
 
@@ -1795,8 +1834,11 @@ namespace QNIO {
 		       << XML::end_element( Xpragma, false ) << std::endl;
 	    }
 	}
-	output << XML::start_element( Xmodel )
-	       << XML::attribute( "xmlns:xsi", std::string("http://www.w3.org/2001/XMLSchema-instance") )
+	output << XML::start_element( Xmodel );
+	if ( bounds ) {
+	    output << XML::attribute( Xjaba, Xtrue );
+	}
+	output << XML::attribute( "xmlns:xsi", std::string("http://www.w3.org/2001/XMLSchema-instance") )
 	       << XML::attribute( "xsi:noNamespaceSchemaLocation", std::string("JMTmodel.xsd") )
 	       << ">" << std::endl;
 
@@ -1816,24 +1858,25 @@ namespace QNIO {
 	std::for_each( stations().begin(), stations().end(), printStation( output, model(), strictJMVA() ) );
 	output << XML::end_element( Xstations ) << std::endl;
 
-	output << XML::start_element( XReferenceStation ) << XML::attribute( Xnumber, static_cast<unsigned int>(chains().size()) ) << ">" << std::endl;
-	std::for_each( chains().begin(), chains().end(), printReference( output, stations() ) );
-	output << XML::end_element( XReferenceStation ) << std::endl;
+	if ( !bounds ) {
+	    output << XML::start_element( XReferenceStation ) << XML::attribute( Xnumber, static_cast<unsigned int>(chains().size()) ) << ">" << std::endl;
+	    std::for_each( chains().begin(), chains().end(), printReference( output, stations() ) );
+	    output << XML::end_element( XReferenceStation ) << std::endl;
 
-	output << XML::end_element( Xparameters ) << std::endl;
-	output << XML::start_element( XalgParams ) << ">" << std::endl
-	       << XML::simple_element( XalgType ) << XML::attribute( "maxSamples", 10000U ) << XML::attribute( Xname, std::string("MVA") ) << XML::attribute( "tolerance", 1.0E-7 ) << XML::end_element( XalgType, false ) << std::endl
-	       << XML::simple_element( XcompareAlgs ) << XML::attribute( Xvalue, false ) << XML::end_element( XcompareAlgs, false )  << std::endl
-	       << XML::end_element( XalgParams ) << std::endl;
+	    output << XML::start_element( XalgParams ) << ">" << std::endl
+		   << XML::simple_element( XalgType ) << XML::attribute( "maxSamples", 10000U ) << XML::attribute( Xname, std::string("MVA") ) << XML::attribute( "tolerance", 1.0E-7 ) << XML::end_element( XalgType, false ) << std::endl
+		   << XML::simple_element( XcompareAlgs ) << XML::attribute( Xvalue, false ) << XML::end_element( XcompareAlgs, false )  << std::endl
+		   << XML::end_element( XalgParams ) << std::endl;
 
-	/* SPEX */
-	/* Insert WhatIf for statements for arrays and completions. */
-	/* 	<whatIf className="c1" stationName="p2" type="Service Demands" values="1.0;1.1;1.2;1.3;1.4;1.5;1.6;1.7;1.8;1.9;2.0"/> */
+	    /* SPEX */
+	    /* Insert WhatIf for statements for arrays and completions. */
+	    /* 	<whatIf className="c1" stationName="p2" type="Service Demands" values="1.0;1.1;1.2;1.3;1.4;1.5;1.6;1.7;1.8;1.9;2.0"/> */
 
-	if ( !_input_variables.empty() ) {
-	    output << "   <!-- SPEX input variables -->" << std::endl;
-	    What_If what_if( output, *this );
-	    std::for_each( _input_variables.begin(),  _input_variables.end(),  what_if );		/* Do arrays in order	*/
+	    if ( !_input_variables.empty() ) {
+		output << "   <!-- SPEX input variables -->" << std::endl;
+		What_If what_if( output, *this );
+		std::for_each( _input_variables.begin(),  _input_variables.end(),  what_if );		/* Do arrays in order	*/
+	    }
 	}
 
 	return output;
@@ -1859,7 +1902,7 @@ namespace QNIO {
 	    output << XML::start_element( Xsolutions )
 		   << XML::attribute( Xiteration, count )
 		   << XML::attribute( XiterationValue, static_cast<unsigned int>(i.first) )
-		   << XML::attribute( Xok, "true" )
+		   << XML::attribute( Xok, Xtrue )
 		   << ">" << std::endl;
 	    output << XML::start_element( Xalgorithm )
 		   << XML::attribute( Xname, _mva_info.at(i.first).first )		/* Alg. name */
@@ -2515,12 +2558,13 @@ namespace QNIO {
     const XML_Char * JMVA_Document::Xvalues		= "values";
 
     const XML_Char * JMVA_Document::XalgCount 		= "algCount";
-    const XML_Char * JMVA_Document::Xiteration		= "iteration";
-    const XML_Char * JMVA_Document::Xiterations		= "iterations";
-    const XML_Char * JMVA_Document::XiterationValue	= "iterationValue";
-    const XML_Char * JMVA_Document::Xok			= "ok";
     const XML_Char * JMVA_Document::Xfalse		= "false";
+    const XML_Char * JMVA_Document::Xiteration		= "iteration";
+    const XML_Char * JMVA_Document::XiterationValue	= "iterationValue";
+    const XML_Char * JMVA_Document::Xiterations		= "iterations";
+    const XML_Char * JMVA_Document::Xok			= "ok";
     const XML_Char * JMVA_Document::XsolutionMethod   	= "solutionMethod";
+    const XML_Char * JMVA_Document::Xtrue		= "true";
 
     const XML_Char * JMVA_Document::XArrival_Rates	= "Arrival Rates";
     const XML_Char * JMVA_Document::XCustomer_Numbers 	= "Customer Numbers";

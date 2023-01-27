@@ -9,7 +9,7 @@
  *
  * February 2022.
  *
- * $Id: boundsmodel.h 15918 2022-09-27 17:12:59Z greg $
+ * $Id: boundsmodel.h 16369 2023-01-26 19:21:33Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -49,6 +49,5 @@ private:
 private:
     Model& _parent;
     std::map<const std::string,BCMP::Model::Bound> _bounds;			/* Chain, Bounds */
-    result_map_t _results;	/* Station, classes */
 };
 #endif

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16360 2023-01-23 20:38:11Z greg $
+ *  $Id: jmva_document.h 16367 2023-01-24 20:29:25Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -140,7 +140,7 @@ namespace QNIO {
 	void saveResults( size_t, const std::string&, size_t, const std::string&, const std::string&, const std::map<BCMP::Model::Result::Type,double>& );
 
 	std::ostream& print( std::ostream& ) const;
-	std::ostream& exportModel( std::ostream& ) const;
+	std::ostream& exportModel( std::ostream&, bool ) const;
 	void plot( BCMP::Model::Result::Type, const std::string& );
 	bool plotPopulationMix() const { return !_N1.empty() && !_N2.empty(); }
 	bool plotCustomers() const { return _plot_customers; }
@@ -148,7 +148,7 @@ namespace QNIO {
 
     private:
 	void setStrictJMVA( bool value ) { _strict_jmva = value; }
-	bool strictJMVA() const { return  _strict_jmva; }
+	bool strictJMVA() const { return _strict_jmva; }
 	bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,JMVA_Document::attribute_table_t>& table ) const;
 
 	static void start( void *data, const XML_Char *el, const XML_Char **attr );
@@ -334,7 +334,7 @@ namespace QNIO {
 
 	bool convertToLQN( LQIO::DOM::Document& ) const;
 
-	std::ostream& printModel( std::ostream& ) const;
+	std::ostream& printModel( std::ostream&, bool=false ) const;
 	std::ostream& printSPEX(  std::ostream& ) const;
 	std::ostream& printResults( std::ostream& ) const;
 	std::ostream& plot_chain( std::ostream& plot, BCMP::Model::Result::Type type );
@@ -344,6 +344,39 @@ namespace QNIO {
 	std::ostream& plot_utilization_vs_population_mix( std::ostream& plot );
 	size_t get_gnuplot_index( const std::string& ) const;
 	void compute_itercepts() const;
+
+	class Intercepts {
+	public:
+	    struct point {
+		point( double x, double y ) : _x(x), _y(y) {}
+		double x() const { return _x; }
+		double y() const { return _y; }
+		std::ostream& print( std::ostream& ) const;
+	    private:
+		const double _x;
+		const double _y;
+	    };
+   
+	public:
+	    Intercepts( const JMVA_Document& self, const std::string& chain_1, const std::string& chain_2 ) : _self(self), _chain_1(chain_1), _chain_2(chain_2) {}
+
+	    void compute() const;
+
+	private:
+	    const BCMP::Model& model() const { return _self.model(); }
+	    const BCMP::Model::Chain::map_t& chains() const { return model().chains(); }
+	    const BCMP::Model::Station::map_t& stations() const { return model().stations(); }
+	    double getDoubleValue( LQX::SyntaxTreeNode * value ) const { return _self.getDoubleValue( value ); }
+	    
+	    point compute( const point&, const point&, const point&, const point& ) const;
+	    
+	private:
+	    const JMVA_Document& _self;
+	    const std::string& _chain_1;
+	    const std::string& _chain_2;
+	};
+
+	friend std::ostream& operator<<( std::ostream& output, const JMVA_Document::Intercepts::point& self );
 
 	/* -------------------------- Output -------------------------- */
 
@@ -529,6 +562,7 @@ namespace QNIO {
 	static const XML_Char * Xnormconst;
 	static const XML_Char * Xok;
 	static const XML_Char * XsolutionMethod;
+	static const XML_Char * Xtrue;
 
 	static const XML_Char * XArrival_Rates;
 	static const XML_Char * XCustomer_Numbers;
@@ -546,5 +580,6 @@ namespace QNIO {
     };
 
     inline std::ostream& operator<<( std::ostream& output, const JMVA_Document& doc ) { return doc.print(output); }
+    inline std::ostream& operator<<( std::ostream& output, const JMVA_Document::Intercepts::point& self ) { return self.print( output ); }
 }
 #endif
