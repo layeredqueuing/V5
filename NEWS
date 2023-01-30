@@ -1,3 +1,12 @@
+
+* Bugs fixes in 5.28
+418 	lqsim 		lqsim crashes running -t... 	
+356 	miscella 	rpm build issues.
+411 	lqiolib 	JMVA issues.
+412 	qnsolver 	Save JMVA WhatIf results.
+415 	petrisrv 	Signal SIGSEGV in LQIO::DOM::Phase::getServiceTime () at dom_phase.cpp:88 
+413 	Document 	Missing plainurl. 	
+
 * Bugs fixed in 5.27
 192 	libmva 	 	MVA::marginalProbabilities2 mis-dimensioned. 
 356 	miscella 	rpm build issues.

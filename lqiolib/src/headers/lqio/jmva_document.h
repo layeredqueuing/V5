@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16367 2023-01-24 20:29:25Z greg $
+ *  $Id: jmva_document.h 16378 2023-01-29 13:05:35Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -317,7 +317,7 @@ namespace QNIO {
 
 	struct Population {
 	    Population() : _name(), _population(0), _N() {}
-	    double operator[]( size_t i ) const { return _N.at(i); }
+	    const std::pair<double,double>& operator[]( size_t i ) const { return _N.at(i); }
 	    bool empty() const { return _N.empty(); }
 	    size_t size() const { return _N.size(); }
 	    void setName( const std::string& name ) { _name = name; }
@@ -325,11 +325,11 @@ namespace QNIO {
 	    void setPopulation( size_t population ) { _population = population; }
 	    size_t population() const { return _population; }
 	    void reserve( size_t size ) { _N.reserve( size ); }
-	    void push_back( double item ) { _N.push_back( item ); }
+	    void emplace_back( const std::pair<double,double>& item ) { _N.emplace_back( item ); }
 	private:
 	    std::string _name;
 	    size_t _population;
-	    std::vector<double> _N;
+	    std::vector<std::pair<double,double>> _N;
 	};
 
 	bool convertToLQN( LQIO::DOM::Document& ) const;
@@ -352,6 +352,7 @@ namespace QNIO {
 		double x() const { return _x; }
 		double y() const { return _y; }
 		std::ostream& print( std::ostream& ) const;
+		bool operator<( const point& right ) const { return x() < right.x() || ( x() == right.x() && y() < right.y() ); }
 	    private:
 		const double _x;
 		const double _y;
@@ -360,7 +361,8 @@ namespace QNIO {
 	public:
 	    Intercepts( const JMVA_Document& self, const std::string& chain_1, const std::string& chain_2 ) : _self(self), _chain_1(chain_1), _chain_2(chain_2) {}
 
-	    void compute() const;
+	    const Intercepts& compute( std::map<point,std::vector<double> >& ) const;
+	    std::ostream& print( std::ostream& ) const;
 
 	private:
 	    const BCMP::Model& model() const { return _self.model(); }
@@ -369,7 +371,7 @@ namespace QNIO {
 	    double getDoubleValue( LQX::SyntaxTreeNode * value ) const { return _self.getDoubleValue( value ); }
 	    
 	    point compute( const point&, const point&, const point&, const point& ) const;
-	    
+	    void add_result( std::map<point,std::vector<double> >& results, const point& point, size_t index, double utilization ) const;
 	private:
 	    const JMVA_Document& _self;
 	    const std::string& _chain_1;

@@ -1,4 +1,4 @@
-$Id: README-LOCAL 16267 2023-01-04 20:23:46Z greg $
+$Id: README-LOCAL 16374 2023-01-27 20:34:44Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -89,7 +89,12 @@ If using MinGW2
    None needed with the above.
 
 3) The user manuals are built using LaTeX and ghostview
-   Install miktex - http://www.miktex.org/
+   Install texlive
+  503  pacman -S mingw-w64-i686-texlive-recommended
+  504  pacman -S mingw-w64-i686-texlive-core
+  505  pacman -S mingw-w64-i686-texlive-latex-extra
+  510  pacman -S mingw-w64-i686-texlive-font-utils
+  522  pacman -S mingw-w64-i686-texlive-plain-generic
    Install ghostview - http://www.cs.wisc.edu/~ghost/
 
    Modify %PATH% to point to the bin directories of the above three packages. 
