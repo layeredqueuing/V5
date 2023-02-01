@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16378 2023-01-29 13:05:35Z greg $
+ *  $Id: jmva_document.h 16383 2023-02-01 02:10:52Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -17,6 +17,8 @@
 #endif
 #include "bcmp_document.h"
 #include "qnio_document.h"
+
+// undef UTILIZATION_BOUNDS
 
 namespace LQIO {
     namespace DOM {
@@ -345,6 +347,7 @@ namespace QNIO {
 	size_t get_gnuplot_index( const std::string& ) const;
 	void compute_itercepts() const;
 
+#if UTILIZATION_BOUNDS
 	class Intercepts {
 	public:
 	    struct point {
@@ -353,32 +356,37 @@ namespace QNIO {
 		double y() const { return _y; }
 		std::ostream& print( std::ostream& ) const;
 		bool operator<( const point& right ) const { return x() < right.x() || ( x() == right.x() && y() < right.y() ); }
+		point& min( const point& arg ) { _x = std::min( _x, arg.x() ); _y = std::min( _y, arg.y() ); return *this; }
 	    private:
-		const double _x;
-		const double _y;
+		double _x;
+		double _y;
 	    };
    
 	public:
-	    Intercepts( const JMVA_Document& self, const std::string& chain_1, const std::string& chain_2 ) : _self(self), _chain_1(chain_1), _chain_2(chain_2) {}
+	    Intercepts( const JMVA_Document& self, const std::string& chain_1, const std::string& chain_2 );
 
-	    const Intercepts& compute( std::map<point,std::vector<double> >& ) const;
-	    std::ostream& print( std::ostream& ) const;
+	    Intercepts& compute();
+	    std::set<point>::const_iterator begin() { return _intercepts.begin(); }
+	    std::set<point>::const_iterator end() { return _intercepts.end(); }
+	    const point& bound() const { return _bound; }
 
 	private:
 	    const BCMP::Model& model() const { return _self.model(); }
 	    const BCMP::Model::Chain::map_t& chains() const { return model().chains(); }
 	    const BCMP::Model::Station::map_t& stations() const { return model().stations(); }
 	    double getDoubleValue( LQX::SyntaxTreeNode * value ) const { return _self.getDoubleValue( value ); }
-	    
 	    point compute( const point&, const point&, const point&, const point& ) const;
-	    void add_result( std::map<point,std::vector<double> >& results, const point& point, size_t index, double utilization ) const;
+
 	private:
 	    const JMVA_Document& _self;
 	    const std::string& _chain_1;
 	    const std::string& _chain_2;
+	    point _bound;
+	    std::set<point> _intercepts;
 	};
 
 	friend std::ostream& operator<<( std::ostream& output, const JMVA_Document::Intercepts::point& self );
+#endif
 
 	/* -------------------------- Output -------------------------- */
 
@@ -582,6 +590,8 @@ namespace QNIO {
     };
 
     inline std::ostream& operator<<( std::ostream& output, const JMVA_Document& doc ) { return doc.print(output); }
+#if UTILIZATION_BOUNDS
     inline std::ostream& operator<<( std::ostream& output, const JMVA_Document::Intercepts::point& self ) { return self.print( output ); }
+#endif
 }
 #endif

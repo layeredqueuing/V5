@@ -1,4 +1,4 @@
-$Id: README-LOCAL 16374 2023-01-27 20:34:44Z greg $
+$Id: README-LOCAL 16379 2023-01-30 19:09:47Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -88,18 +88,13 @@ If using MinGW2
 2) Install other libraries for mingw.
    None needed with the above.
 
-3) The user manuals are built using LaTeX and ghostview
+3) The user manuals are built using LaTeX.
    Install texlive
   503  pacman -S mingw-w64-i686-texlive-recommended
   504  pacman -S mingw-w64-i686-texlive-core
   505  pacman -S mingw-w64-i686-texlive-latex-extra
   510  pacman -S mingw-w64-i686-texlive-font-utils
   522  pacman -S mingw-w64-i686-texlive-plain-generic
-   Install ghostview - http://www.cs.wisc.edu/~ghost/
-
-   Modify %PATH% to point to the bin directories of the above three packages. 
-   See: My Computer -> Change a setting -> Performance and Maintenance -> System ->
-   Advanced -> Environment Variables
 
    ** For msys64, you have to set the PATH in .bashrc
 
