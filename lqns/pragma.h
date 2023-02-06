@@ -10,7 +10,7 @@
  * November, 1994
  * December, 2020
  *
- * $Id: pragma.h 15819 2022-08-12 18:26:27Z greg $
+ * $Id: pragma.h 16351 2023-01-19 11:17:50Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -148,6 +148,14 @@ public:
 	    assert( __cache != nullptr );
 	    return __cache->_processor_scheduling;
 	}
+
+#if BUG_270
+    static bool prune()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_prune;
+	}
+#endif
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     static QuorumDistribution getQuorumDistribution()
@@ -292,6 +300,9 @@ private:
     void setMva(const std::string&);
     void setOvertaking(const std::string&);
     void setProcessorScheduling(const std::string&);
+#if BUG_270
+    void setPrune(const std::string&);
+#endif
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     void setQuorumDistribution(const std::string&);
     void setQuorumDelayedCalls(const std::string&);
@@ -332,6 +343,9 @@ private:
     MVA _mva;
     Overtaking _overtaking;
     scheduling_type _processor_scheduling;
+#if BUG_270
+    bool _prune;
+#endif
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     QuorumDistribution _quorum_distribution;
     QuorumDelayedCalls _quorum_delayed_calls;

@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 15915 2022-09-27 11:43:03Z greg $
+ * $Id: processor.cc 16349 2023-01-19 02:06:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -35,8 +35,6 @@
 #include "processor.h"
 #include "submodel.h"
 #include "task.h"
-
-bool Processor::__prune = false;
 
 /* ------------------------ Constructors etc. ------------------------- */
 
@@ -205,7 +203,7 @@ Processor::fanOut( const Entity * aServer ) const
 bool
 Processor::isInteresting() const
 {
-    if ( !__prune ) {
+    if ( !Pragma::prune() ) {
 	return true;
     } else if ( isInfinite() ) {
 	return false;

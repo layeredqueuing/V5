@@ -9,7 +9,7 @@
  *
  * November, 2021
  *
- * $Id: pragma.h 16027 2022-10-25 02:18:21Z greg $
+ * $Id: pragma.h 16385 2023-02-01 22:21:41Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -54,10 +54,10 @@ public:
 	    return __cache->_multiserver;
 	}
 
-    static Model::Solver solver()
+    static Model::Solver mva()
 	{
 	    assert( __cache != nullptr );
-	    return __cache->_solver;
+	    return __cache->_mva;
 	}
 
     static void noDefaultOutput( bool enable )
@@ -70,7 +70,7 @@ private:
     void setDefaultOutput(const std::string&);
     void setForceMultiserver(const std::string&);
     void setMultiserver(const std::string&);
-    void setSolver(const std::string&);
+    void setMVA(const std::string&);
 
 public:
     static void set( const std::map<std::string,std::string>& );
@@ -81,7 +81,7 @@ private:
     bool _default_output;			/* True to call Model::print() */
     bool _force_multiserver;			/* True to force all stations (except delay) to use the multisever algorithnm */
     Model::Multiserver _multiserver;		/* Multiserver algorithm */
-    Model::Solver _solver;			/* Solver algorithm */
+    Model::Solver _mva;				/* Solver algorithm */
 
     /* --- */
 

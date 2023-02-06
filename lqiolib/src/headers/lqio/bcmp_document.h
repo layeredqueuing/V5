@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 16331 2023-01-15 22:58:45Z greg $
+ *  $Id: bcmp_document.h 16369 2023-01-26 19:21:33Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -224,6 +224,8 @@ namespace BCMP {
 	    void setCopies( LQX::SyntaxTreeNode * copies ) { _copies = copies; }
 	    bool reference() const { return _reference; }
 	    void setReference( bool reference ) { _reference = reference; }
+	    LQX::SyntaxTreeNode * demand( const Class& ) const;
+	    
 	    Class::map_t& classes() { return _classes; }
 	    const Class::map_t& classes() const { return _classes; }
 	    Class& classAt( const std::string& name ) { return _classes.at(name); }
@@ -328,7 +330,6 @@ namespace BCMP {
 
 	    LQX::SyntaxTreeNode * Z() const;
 	    static LQX::SyntaxTreeNode * demand( const Station& m, const std::string& chain );
-	    static LQX::SyntaxTreeNode * demand( const Model::Station::Class& k );
 	    
 	    struct max_demand {
 		max_demand( const std::string& chain ) : _class(chain) {}
@@ -391,7 +392,6 @@ namespace BCMP {
 	std::pair<Station::map_t::iterator,bool> insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, LQX::SyntaxTreeNode * copies=nullptr ) { return insertStation( name, Station( type, scheduling, copies ) ); }
 
 	Station::Class::map_t computeCustomerDemand( const std::string& ) const;
-	void clearAllResultVariables();
 
 	double response_time( const std::string& ) const;
 	double throughput( const std::string& ) const;

@@ -9,7 +9,7 @@
  *
  * November 2022
  *
- * $Id: qnio_document.h 16324 2023-01-12 17:44:44Z greg $
+ * $Id: qnio_document.h 16395 2023-02-05 15:34:32Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -38,15 +38,20 @@ namespace QNIO {
     protected:
 	class Comprehension
 	{
+	public:
+	    enum class Type { ARRIVAL_RATES, CUSTOMERS, SERVERS, DEMANDS };
+
 	    /* Variable = begin(); variable < end(); variable += step() */
 	public:
 	    friend std::ostream& operator<<( std::ostream& output, const QNIO::Document::Comprehension& comprehension ) { return comprehension.print( output ); }
 	    
-	    Comprehension( const std::string name, const std::string& s, bool integer ) : _name(name), _begin(0.), _step(0.), _size(0) { convert(s,integer); }
+	    Comprehension( const std::string& name, Type type, const std::string& s, bool integer ) : _name(name), _type(type), _begin(0.), _step(0.), _size(0) { convert(s,integer); }
 	    Comprehension& operator=( const Comprehension& );
 
 	    LQX::VariableExpression * getVariable() const;
 	    const std::string& name() const { return _name; }
+	    const std::string& typeName() const { return __type_name.at(type()); }
+	    Type type() const { return _type; }
 	    size_t size() const { return _size; }
 	    double begin() const { return _begin; }				// Like an iterator
 	    double end() const { return begin() + size() * step(); }		// Like an iterator
@@ -63,17 +68,23 @@ namespace QNIO {
 	    private:
 		const std::string _name;
 	    };
-	    
+
 	private:
 	    void convert( const std::string&, bool );
 
 	    std::string _name;
+	    const Type _type;
 	    double _begin;
 	    double _step;
 	    size_t _size;
+
+	public:
+	    const static std::map<Type,const std::string> __type_name;
 	};
 
     public:
+	enum class InputFormat { JMVA, QNAP };
+	
 	Document( const std::string& input_file_name, const BCMP::Model& model );
 	virtual ~Document();
 
@@ -81,7 +92,10 @@ namespace QNIO {
 
 	const BCMP::Model& model() const { return _model; }
 	BCMP::Model& model() { return _model; }
+	bool boundsOnly() const { return _bounds_only; }
+	void setBoundsOnly( bool value ) { _bounds_only = value; }
 	const std::string& getInputFileName() const { return _input_file_name; }
+	virtual InputFormat getInputFormat() const = 0;
 	const std::deque<Comprehension>& comprehensions() const { return _comprehensions; }		/* For loops from WhatIf */
 	
 	void setLQXEnvironment( LQX::Environment * environment ) { _model.setEnvironment( environment ); }
@@ -90,7 +104,7 @@ namespace QNIO {
 	virtual bool preSolve() { return true; }
 	virtual bool postSolve() { return true; }
     protected:
-	void insertComprehension( const Comprehension& comprehension ) { _comprehensions.emplace_front( comprehension); }
+	void insertComprehension( const Comprehension& comprehension ) { _comprehensions.emplace_front( comprehension ); }
     public:
 	virtual void registerExternalSymbolsWithProgram( LQX::Program * ) {}	/* Might hoist */
 	virtual std::vector<std::string> getUndefinedExternalVariables() const { return std::vector<std::string>(); }
@@ -110,6 +124,7 @@ namespace QNIO {
     private:
 	const std::string _input_file_name;
 	LQIO::DOM::Pragma _pragmas;
+	bool _bounds_only;
 	BCMP::Model _model;
 	std::deque<Comprehension> _comprehensions; 			/* For loops from WhatIf */
     };

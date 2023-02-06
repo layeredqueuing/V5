@@ -11,7 +11,7 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 15895 2022-09-23 17:21:55Z greg $
+ * $Id: processor.h 16349 2023-01-19 02:06:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -102,9 +102,6 @@ private:
     SRVNManip print_processor_type() const { return SRVNManip( output_processor_type, *this ); }
     static std::ostream& output_processor_type( std::ostream& output, const Processor& aProcessor );
     
-public:
-    static bool __prune;
-
 private:
     std::set<Group *> _groups;		/* List of processor's Group	*/
 };

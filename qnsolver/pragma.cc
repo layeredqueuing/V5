@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 16027 2022-10-25 02:18:21Z greg $ *
+ * $Id: pragma.cc 16385 2023-02-01 22:21:41Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -22,7 +22,7 @@ const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
     { LQIO::DOM::Pragma::_default_output_,	&Pragma::setDefaultOutput },
     { LQIO::DOM::Pragma::_force_multiserver_,	&Pragma::setForceMultiserver },
     { LQIO::DOM::Pragma::_multiserver_,		&Pragma::setMultiserver },
-    { LQIO::DOM::Pragma::_mva_,			&Pragma::setSolver }
+    { LQIO::DOM::Pragma::_mva_,			&Pragma::setMVA }
 };
 
 /*
@@ -33,7 +33,7 @@ Pragma::Pragma() :
     _default_output(true),
     _force_multiserver(false),
     _multiserver(Model::Multiserver::DEFAULT),
-    _solver(Model::Solver::EXACT_MVA)
+    _mva(Model::Solver::EXACT_MVA)
 {
 }
 
@@ -90,7 +90,7 @@ void Pragma::setMultiserver(const std::string& value)
     }
 }
 
-void Pragma::setSolver(const std::string& value)
+void Pragma::setMVA(const std::string& value)
 {
     static const std::map<const std::string,const Model::Solver> __mva_pragma = {
 	{ LQIO::DOM::Pragma::_bounds_,		Model::Solver::BOUNDS },
@@ -102,7 +102,7 @@ void Pragma::setSolver(const std::string& value)
 
     const std::map<const std::string,const Model::Solver>::const_iterator pragma = __mva_pragma.find( value );
     if ( pragma != __mva_pragma.end() ) {
-	_solver = pragma->second;
+	_mva = pragma->second;
     } else {
 	throw std::domain_error( value );
     }

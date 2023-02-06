@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16324 2023-01-12 17:44:44Z greg $
+ *  $Id: jmva_document.h 16395 2023-02-05 15:34:32Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -17,6 +17,8 @@
 #endif
 #include "bcmp_document.h"
 #include "qnio_document.h"
+
+// undef UTILIZATION_BOUNDS
 
 namespace LQIO {
     namespace DOM {
@@ -118,6 +120,7 @@ namespace QNIO {
 
 	virtual bool load();
 	static bool load( LQIO::DOM::Document&, const std::string& );		// Factory.
+	virtual InputFormat getInputFormat() const { return InputFormat::JMVA; }
 
     private:
 	bool parse();
@@ -136,19 +139,17 @@ namespace QNIO {
 
 	virtual bool disableDefaultOutputWithLQX() const { return true; }
 
+	void defineDefaultResultVariables();
 	void saveResults( size_t, const std::string&, size_t, const std::string&, const std::string&, const std::map<BCMP::Model::Result::Type,double>& );
 
 	std::ostream& print( std::ostream& ) const;
 	std::ostream& exportModel( std::ostream& ) const;
 	void plot( BCMP::Model::Result::Type, const std::string& );
-	bool plotPopulationMix() const { return _plot_population_mix; }
-	void setPlotPopulationMix( bool plot_population_mix ) { _plot_population_mix = plot_population_mix; }
-	bool plotCustomers() const { return _plot_customers; }
-	void setPlotCustomers( bool plot_customers ) { _plot_customers = plot_customers; }
+	bool plotPopulationMix() const { return !_N1.empty() && !_N2.empty(); }
 
     private:
 	void setStrictJMVA( bool value ) { _strict_jmva = value; }
-	bool strictJMVA() const { return  _strict_jmva; }
+	bool strictJMVA() const { return _strict_jmva; }
 	bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,JMVA_Document::attribute_table_t>& table ) const;
 
 	static void start( void *data, const XML_Char *el, const XML_Char **attr );
@@ -196,7 +197,6 @@ namespace QNIO {
 	void createWhatIf( const XML_Char ** attributes );
 	void createMeasure( Object& object, const XML_Char ** attributes );
 
-	void setResultVariables( const std::string& );
 	LQX::SyntaxTreeNode * createObservation( const std::string& name, BCMP::Model::Result::Type type, const BCMP::Model::Station *, const BCMP::Model::Station::Class * );
 	LQX::SyntaxTreeNode * createObservation( const std::string& name, BCMP::Model::Result::Type type, const std::string& clasx );
 	void setResultIndex( const std::string&, const std::string& );
@@ -205,8 +205,9 @@ namespace QNIO {
 	std::string setCustomers( const std::string&, const std::string& );
 	std::string setDemand( const std::string&, const std::string& );
 	std::string setMultiplicity( const std::string&, const std::string& );
-	std::string setPopulationMix( const std::string& stationName, const std::string& className );
+	std::string setPopulationMix( const std::string&, const std::string& );
 
+	void setPopulationMixN1N2( const std::string& className, const Comprehension& population );
 	void appendResultVariable( const std::string&, LQX::SyntaxTreeNode * );
 
 	/* LQX */
@@ -271,7 +272,7 @@ namespace QNIO {
 
 	public:
 	    What_If( std::ostream& output, const JMVA_Document& document ) : _output(output), _document(document) {}
-	    void operator()( const std::string& ) const;
+	    void operator()( const std::string& ) const;	// For input variables. (obsolete)
 	    const BCMP::Model::Station::map_t& stations() const { return model().stations(); }
 	    const BCMP::Model::Chain::map_t& chains() const { return model().chains(); }
 	    const std::deque<Comprehension>& whatif_statements() const { return _document.comprehensions(); }
@@ -315,6 +316,23 @@ namespace QNIO {
 	    std::set<std::string> _variables;
 	};
 
+	struct Population {
+	    Population() : _name(), _population(0), _N() {}
+	    const std::pair<double,double>& operator[]( size_t i ) const { return _N.at(i); }
+	    bool empty() const { return _N.empty(); }
+	    size_t size() const { return _N.size(); }
+	    void setName( const std::string& name ) { _name = name; }
+	    const std::string& name() const { return _name; }
+	    void setPopulation( size_t population ) { _population = population; }
+	    size_t population() const { return _population; }
+	    void reserve( size_t size ) { _N.reserve( size ); }
+	    void emplace_back( const std::pair<double,double>& item ) { _N.emplace_back( item ); }
+	private:
+	    std::string _name;
+	    size_t _population;
+	    std::vector<std::pair<double,double>> _N;
+	};
+
 	bool convertToLQN( LQIO::DOM::Document& ) const;
 
 	std::ostream& printModel( std::ostream& ) const;
@@ -323,9 +341,54 @@ namespace QNIO {
 	std::ostream& plot_chain( std::ostream& plot, BCMP::Model::Result::Type type );
 	std::ostream& plot_class( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& );
 	std::ostream& plot_station( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& );
-	std::ostream& plot_population_mix_vs_throughput( std::ostream& plot );
-	std::ostream& plot_population_mix_vs_utilization( std::ostream& plot );
+	std::ostream& plot_throughput_vs_population_mix( std::ostream& plot );
+	std::ostream& plot_utilization_vs_population_mix( std::ostream& plot );
+	std::ostream& plot_bounds( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& );
+	std::ostream& plot_one_class_bounds( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& );
+	std::ostream& plot_two_class_bounds( std::ostream& plot, BCMP::Model::Result::Type type, const std::string&, const std::string& );
 	size_t get_gnuplot_index( const std::string& ) const;
+	void compute_itercepts() const;
+
+#if UTILIZATION_BOUNDS
+	class Intercepts {
+	public:
+	    struct point {
+		point( double x, double y ) : _x(x), _y(y) {}
+		double x() const { return _x; }
+		double y() const { return _y; }
+		std::ostream& print( std::ostream& ) const;
+		bool operator<( const point& right ) const { return x() < right.x() || ( x() == right.x() && y() < right.y() ); }
+		point& min( const point& arg ) { _x = std::min( _x, arg.x() ); _y = std::min( _y, arg.y() ); return *this; }
+	    private:
+		double _x;
+		double _y;
+	    };
+   
+	public:
+	    Intercepts( const JMVA_Document& self, const std::string& chain_1, const std::string& chain_2 );
+
+	    Intercepts& compute();
+	    std::set<point>::const_iterator begin() { return _intercepts.begin(); }
+	    std::set<point>::const_iterator end() { return _intercepts.end(); }
+	    const point& bound() const { return _bound; }
+
+	private:
+	    const BCMP::Model& model() const { return _self.model(); }
+	    const BCMP::Model::Chain::map_t& chains() const { return model().chains(); }
+	    const BCMP::Model::Station::map_t& stations() const { return model().stations(); }
+	    double getDoubleValue( LQX::SyntaxTreeNode * value ) const { return _self.getDoubleValue( value ); }
+	    point compute( const point&, const point&, const point&, const point& ) const;
+
+	private:
+	    const JMVA_Document& _self;
+	    const std::string& _chain_1;
+	    const std::string& _chain_2;
+	    point _bound;
+	    std::set<point> _intercepts;
+	};
+
+	friend std::ostream& operator<<( std::ostream& output, const JMVA_Document::Intercepts::point& self );
+#endif
 
 	/* -------------------------- Output -------------------------- */
 
@@ -410,7 +473,7 @@ namespace QNIO {
 	unsigned int _lqx_program_line_number;
 	LQX::Program * _lqx;
 
-	/* SPEX */
+	/* LQX */
 	std::vector<LQX::SyntaxTreeNode*> _program;
 	std::set<std::string> _input_variables;						/* Spex vars -- may move to QNAP/QNIO */
 	std::vector<LQX::SyntaxTreeNode*> _whatif_body;
@@ -433,10 +496,13 @@ namespace QNIO {
 
 	/* Plotting */
 	std::vector<LQX::SyntaxTreeNode*> _gnuplot;					/* GNUPlot program		*/
-	bool _plot_population_mix;
-	bool _plot_customers;
+	Population _N1;
+	Population _N2;
+	size_t _n_labels;
+	LQX::SyntaxTreeNode * _x_max;
+	LQX::SyntaxTreeNode * _y_max;
 
-	static const std::map<const std::string,JMVA_Document::setIndependentVariable> independent_var_table;
+	static const std::map<const std::string,std::pair<Document::Comprehension::Type,JMVA_Document::setIndependentVariable>> independent_var_table;
 
 	static const std::set<const XML_Char *,attribute_table_t> algParams_table;
 	static const std::set<const XML_Char *,attribute_table_t> compareAlgs_table;
@@ -510,6 +576,7 @@ namespace QNIO {
 	static const XML_Char * Xnormconst;
 	static const XML_Char * Xok;
 	static const XML_Char * XsolutionMethod;
+	static const XML_Char * Xtrue;
 
 	static const XML_Char * XArrival_Rates;
 	static const XML_Char * XCustomer_Numbers;
@@ -527,5 +594,8 @@ namespace QNIO {
     };
 
     inline std::ostream& operator<<( std::ostream& output, const JMVA_Document& doc ) { return doc.print(output); }
+#if UTILIZATION_BOUNDS
+    inline std::ostream& operator<<( std::ostream& output, const JMVA_Document::Intercepts::point& self ) { return self.print( output ); }
+#endif
 }
 #endif

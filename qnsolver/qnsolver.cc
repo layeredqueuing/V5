@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 16328 2023-01-13 15:44:41Z greg $
+ * $Id: qnsolver.cc 16395 2023-02-05 15:34:32Z greg $
  */
 
 #include "config.h"
@@ -37,19 +37,21 @@ const struct option longopts[] =
     { LQIO::DOM::Pragma::_schweitzer_,		no_argument,		0, 's' },
     { LQIO::DOM::Pragma::_linearizer_,		no_argument,		0, 'l' },
     { LQIO::DOM::Pragma::_fast_,		no_argument,		0, 'f' },
+    { "multiserver",				required_argument,	0, 'm' },
+    { LQIO::DOM::Pragma::_force_multiserver_,	no_argument,		0, 'F' },
     { "no-execute",				no_argument,		0, 'n' },
     { "output",					required_argument,	0, 'o' },
-    { "plot-queue-length",			required_argument,	0, 'q' },
+    { "plot-queue-length",			optional_argument,	0, 'q' },
     { "plot-response-time",			no_argument,		0, 'r' },
     { "plot-throughput",			optional_argument,	0, 't' },
     { "plot-utilization",			optional_argument,	0, 'u' },
-    { "plot-waiting-time",			required_argument,	0, 'w' },
-    { "multiserver",				required_argument,	0, 'm' },
-    { LQIO::DOM::Pragma::_force_multiserver_,	no_argument,		0, 'F' },
+    { "plot-waiting-time",			optional_argument,	0, 'w' },
+    { "colours",				required_argument,	0, 'C' },
     { "verbose",				no_argument,		0, 'v' },
     { "help",					no_argument,		0, 'h' },
-    { "export-qnap2",				no_argument,		0, 'Q' },
+    { "export-qnap",				no_argument,		0, 'Q' },
     { "export-jmva",				no_argument,		0, 'J' },
+    { "export-jaba",				no_argument,		0, 'B' },
     { "debug-qnap2",				no_argument,		0, 'D' },
     { "debug-mva",				no_argument,		0, 'd' },
     { "debug-lqx",				no_argument,		0, 'L' },
@@ -65,28 +67,30 @@ static std::string opts = "bdefhlo:rstvxDGJLQSX";
 
 const static std::map<const std::string,const std::string> opthelp  = {
     { "bounds",                                 "Use the bounds solver." },
-    { LQIO::DOM::Pragma::_exact_,               "Use Exact MVA." },
-    { LQIO::DOM::Pragma::_schweitzer_,          "Use Bard-Schweitzer approximate MVA." },
-    { LQIO::DOM::Pragma::_linearizer_,          "Use Linearizer." },
-    { LQIO::DOM::Pragma::_fast_,                "Use the Fast Linearizer solver." },
-    { "output",                                 "Send output to ARG." },
+    { "colours",				"Use the colours for plotting.  ARG is a list of colours." },
+    { "debug-lqx",                              "Debug the LQX program." },
+    { "debug-mva",                              "Enable debug code in the MVA solver." },
+    { "debug-qnap2",                            "Debug the QNAP2 input parser." },
+    { "debug-xml",                              "Debug XML input." },
+    { "export-jmva",				"Export a JMVA model after solution (results embedded)." },
+    { "export-jaba",				"Export a JABA model.  Results and reference stations are stripped out." },
+    { "export-qnap",                            "Export a QNAP2 model.  Do not solve." },
+    { "help",                                   "Show this." },
+    { "multiserver",                            "Use ARG for multiservers.  ARG={conway,reiser,rolia,zhou}." },
     { "no-execute",				"Load the model and run LQX, but do not solve the model." },
+    { "output",                                 "Send output to ARG." },
     { "plot-queue-length",                      "Output gnuplot to plot station queue-length.  ARG specifies a class or station." },
     { "plot-response-time",                     "Output gnuplot to plot system response-time (and bounds)." },
     { "plot-throughput",                        "Output gnuplot to plot system throughput (and bounds), or for a class or station with ARG." },
     { "plot-utilization",                       "Output gnuplot to plot utilization.  ARG specifies a class or station." },
     { "plot-waiting-time",                      "Output gnuplot to plot station waiting-times.  ARG specifies a class or station." },
-    { "multiserver",                            "Use ARG for multiservers.  ARG={conway,reiser,rolia,zhou}." },
-    { LQIO::DOM::Pragma::_force_multiserver_,   "Use the multiserver solution for load independent stations (copies=1)." },
-    { "verbose",                                "" },
-    { "help",                                   "Show this." },
-    { "export-qnap2",                           "Export a QNAP2 model.  Do not solve." },
-    { "export-jmva",				"Export a JMVA model after solution (results embedded)." },
-    { "debug-qnap2",                            "Debug the QNAP2 input parser." },
-    { "debug-lqx",                              "Debug the LQX program." },
-    { "debug-mva",                              "Enable debug code in the MVA solver." },
-    { "debug-xml",                              "Debug XML input." },
     { "print-lqx",                              "Print the LQX program used to solve the model." },
+    { "verbose",                                "" },
+    { LQIO::DOM::Pragma::_exact_,               "Use Exact MVA." },
+    { LQIO::DOM::Pragma::_fast_,                "Use the Fast Linearizer solver." },
+    { LQIO::DOM::Pragma::_force_multiserver_,   "Use the multiserver solution for load independent stations (copies=1)." },
+    { LQIO::DOM::Pragma::_linearizer_,          "Use Linearizer." },
+    { LQIO::DOM::Pragma::_schweitzer_,          "Use Bard-Schweitzer approximate MVA." },
 };
 
 /* Flags */
@@ -136,6 +140,14 @@ int main (int argc, char *argv[])
 	switch( c ) {
 	case 'b':
 	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_bounds_);
+	    break;
+
+	case 'B':
+	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_bounds_);
+	    break;
+	    
+	case 'C':
+	    std::cerr << "Colours unsupported..." << std::endl;
 	    break;
 
 	case 'd':
@@ -198,6 +210,7 @@ int main (int argc, char *argv[])
 	case 'r':
 	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
 	    plot_type = BCMP::Model::Result::Type::RESPONSE_TIME;
+	    if ( optarg != nullptr ) plot_arg = optarg;
 	    break;
 
 	case 's':
@@ -292,27 +305,39 @@ static void exec( const std::string& input_file_name, const std::string& output_
 static void exec( QNIO::Document& input, const std::string& output_file_name, const std::string& plot_arg )
 {
     if ( !input.load() ) return;
+    input.mergePragmas( pragmas.getList() );
+    Pragma::set( input.getPragmaList() );		/* load pragmas here */
 
+    const bool qnap_model = input.getInputFormat() == QNIO::Document::InputFormat::QNAP;
+    
+    if ( print_gnuplot && qnap_model ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": plotting not supported with QNAP input." << std::endl;
+    }
     std::ofstream output;
+    const bool bounds = Pragma::mva() == Model::Solver::BOUNDS || input.boundsOnly();
     if ( !output_file_name.empty() ) {
 	output.open( output_file_name, std::ios::out );
 	if ( !output ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << output_file_name << "\" -- " << strerror( errno ) << std::endl;
 	}
     } else if ( print_jmva ) {
-	LQIO::Filename::backup( input.getInputFileName() );
-	output.open( input.getInputFileName(), std::ios::out );
+	const std::string extension = bounds ? "jmva" : "jaba";
+	LQIO::Filename filename( input.getInputFileName(), extension );
+	LQIO::Filename::backup( filename() );
+	output.open( filename(), std::ios::out );
 	if ( !output ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << input.getInputFileName() << "\" -- " << strerror( errno ) << std::endl;
 	}
     }
+
     if ( print_qnap2 ) {
 	QNIO::QNAP2_Document qnap_model( input.getInputFileName(), input.model() );
-	qnap_model.exportModel( std::cout );
+	if ( output ) {
+	    qnap_model.exportModel( output );
+	} else {
+	    qnap_model.exportModel( std::cout );
+	}
     } else {
-	input.mergePragmas( pragmas.getList() );
-	Pragma::set( input.getPragmaList() );		/* load pragmas here */
-
 	try {
 	    if ( print_gnuplot ) input.plot( plot_type, plot_arg );
 	}
@@ -320,11 +345,15 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
 	}
 	if ( print_jmva ) {
-	    Model model( input, Pragma::solver(), std::string() );
+	    /* Since we might get QNAP in, rexport directly -- WhatIf?? */
+	    Model model( input, Pragma::mva(), std::string() );
 	    model.solve();
+//	    QNIO::JMVA_Document new_model( output_file_name, input.model() );
+//	    new_model.comprehensions() = input.comprehensions();
+//	    new_model.exportModel( output );	/* Will save all results (if !bounds) */
 	    input.exportModel( output );
 	} else {
-	    Model model( input, Pragma::solver(), output_file_name );
+	    Model model( input, Pragma::mva(), output_file_name );
 	    model.solve();
 	}
     }

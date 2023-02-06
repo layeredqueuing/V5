@@ -1,5 +1,6 @@
+
 /* -*- c++ -*-
- * $Id: bcmp_to_lqn.cpp 16123 2022-11-18 11:06:45Z greg $
+ * $Id: bcmp_to_lqn.cpp 16344 2023-01-17 22:30:38Z greg $
  *
  * Read in XML input files.
  *
@@ -24,7 +25,6 @@
 #include "dom_entry.h"
 #include "dom_call.h"
 #include "bcmp_to_lqn.h"
-#include "srvn_spex.h"
 
 using namespace LQIO;
 
@@ -34,7 +34,7 @@ DOM::BCMP_to_LQN::convert()
     _lqn.addPragma( LQIO::DOM::Pragma::_bcmp_, LQIO::DOM::Pragma::_true_ );
     _lqn.addPragma( LQIO::DOM::Pragma::_prune_, LQIO::DOM::Pragma::_true_ );
     _lqn.addPragma( LQIO::DOM::Pragma::_mva_, LQIO::DOM::Pragma::_exact_ );
-    _lqn.setExtraComment( "*** Manually change task-processors representing processors to processors. **" );
+    _lqn.setExtraComment( "** Processors are the stations in the queueing model.  Tasks are place holders for classes. **" );
     try {
 	std::for_each( chains().begin(), chains().end(), createLQNTaskProcessor( *this ) );
 	std::for_each( stations().begin(), stations().end(), createLQNTaskProcessor( *this ) );
@@ -96,8 +96,9 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
     
     /* Always a PS type processor */
     std::string name = m.first;
+    const BCMP::Model::Station& station = m.second;
     std::replace( name.begin(), name.end(), ' ', '_' );
-    DOM::Processor * processor = new DOM::Processor( &lqn(), name, SCHEDULE_PS );
+    DOM::Processor * processor = new DOM::Processor( &lqn(), name, station.scheduling() );	/* Match queueing model. */
     lqn().addProcessorEntity(processor);
     processor->setCopies(getExternalVariable(m.second.copies()));
 
@@ -121,9 +122,8 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
 	entries.push_back( entry );
     }
 
-    /* Create the task */
-    scheduling_type scheduling = m.second.type() == BCMP::Model::Station::Type::DELAY ? SCHEDULE_DELAY : SCHEDULE_FIFO;
-    DOM::Task * task = new DOM::Task( &lqn(), name, scheduling, entries, processor );
+    /* Create the task -- it's a placeholder, but needed for entries. */
+    DOM::Task * task = new DOM::Task( &lqn(), name, SCHEDULE_DELAY, entries, processor );
     task->setCopies(getExternalVariable(m.second.copies()));
     processor->addTask(task);
     lqn().addTaskEntity(task);

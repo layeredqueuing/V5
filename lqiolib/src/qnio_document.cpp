@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnio_document.cpp 16324 2023-01-12 17:44:44Z greg $
+ * $Id: qnio_document.cpp 16388 2023-02-02 19:34:48Z greg $
  *
  * Superclass for Queueing Network models.
  *
@@ -78,10 +78,19 @@ QNIO::Document::Comprehension::getVariable() const
 LQX::SyntaxTreeNode *
 QNIO::Document::Comprehension::collect( std::vector<LQX::SyntaxTreeNode *>* loop_body ) const
 {
+#if 0
     return new LQX::LoopStatementNode( new LQX::AssignmentStatementNode( getVariable(), new LQX::ConstantValueExpression( begin() ) ),
-				       new LQX::ComparisonExpression(LQX::ComparisonExpression::LESS_THAN, getVariable(), new LQX::ConstantValueExpression( end() ) ),
+				       new LQX::ComparisonExpression( LQX::ComparisonExpression::LESS_THAN, getVariable(), new LQX::ConstantValueExpression( end() ) ),
 				       new LQX::AssignmentStatementNode( getVariable(), new LQX::MathExpression( LQX::MathExpression::ADD, getVariable(), new LQX::ConstantValueExpression( step() ) ) ),
 				       new LQX::CompoundStatementNode( loop_body ) );
+#else
+    std::vector<LQX::SyntaxTreeNode *>* items = new std::vector<LQX::SyntaxTreeNode *>();
+    items->reserve( size() );
+    for ( size_t i = 0; i < size(); ++i ) {
+	items->push_back( new LQX::ConstantValueExpression( begin() + i * step() ) );
+    }
+    return new LQX::ForeachStatementNode( "", name(), false, false, new LQX::MethodInvocationExpression( "array_create", items ), new LQX::CompoundStatementNode( loop_body ) );
+#endif
 }
 
 
@@ -94,9 +103,18 @@ QNIO::Document::Comprehension::print( std::ostream& output ) const
     }
     return output;
 }
+
+const std::map<QNIO::Document::Comprehension::Type,const std::string> QNIO::Document::Comprehension::__type_name = {
+    { QNIO::Document::Comprehension::Type::ARRIVAL_RATES, "Arrival Rate" },
+    { QNIO::Document::Comprehension::Type::CUSTOMERS,     "Customers" },
+    { QNIO::Document::Comprehension::Type::DEMANDS,	  "Service Demands" },
+    { QNIO::Document::Comprehension::Type::SERVERS,       "Servers" }
+};
+	    
+
 
 QNIO::Document::Document( const std::string& input_file_name, const BCMP::Model& model )
-    : _input_file_name(input_file_name), _pragmas(), _model(model), _comprehensions()
+    : _input_file_name(input_file_name), _pragmas(), _bounds_only(false), _model(model), _comprehensions()
 {
     LQIO::DOM::Document::__input_file_name = input_file_name;
 }

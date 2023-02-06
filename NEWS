@@ -1,3 +1,14 @@
+* Bugs fixes in 5.28
+343 	qnsolver 	Improve compatibility with Java Modelling Tools 
+356 	miscella 	rpm build issues.
+411 	lqiolib 	JMVA issues.
+412 	qnsolver 	Save JMVA WhatIf results.
+413 	Document 	Missing plainurl. 	
+415 	petrisrv 	Signal SIGSEGV in LQIO::DOM::Phase::getServiceTime () at dom_phase.cpp:88 
+416 	lqiolib 	Fixes for plotting population mix WhatIf output. 
+417 	qnsolver 	Bounds solution issues. 
+418 	lqsim 		lqsim crashes running -t... 	
+
 * Bugs fixed in 5.27
 192 	libmva 	 	MVA::marginalProbabilities2 mis-dimensioned. 
 356 	miscella 	rpm build issues.

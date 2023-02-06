@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 16324 2023-01-12 17:44:44Z greg $
+ *  $Id: dom_document.cpp 16352 2023-01-22 20:29:15Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -73,11 +73,13 @@ namespace LQIO {
 #else
 	    { InputFormat::LQN,		OutputFormat::PARSEABLE },
 #endif
+	    { InputFormat::JABA,	OutputFormat::JABA },
 	    { InputFormat::JMVA,	OutputFormat::JMVA },
 	    { InputFormat::QNAP2,	OutputFormat::QNAP2 }
 	};
 	const std::map<const std::string,const LQIO::DOM::Document::InputFormat> Document::__extensions_input = {
 	    { "in",			InputFormat::LQN },
+	    { "jaba",			InputFormat::JABA },
 	    { "jmva",			InputFormat::JMVA },
 	    { "json",			InputFormat::JSON },
 	    { "lqj",			InputFormat::JSON },
@@ -805,12 +807,14 @@ namespace LQIO {
 		rc = Expat_Document::load( *document, input_filename, load_results );
 		break;
 
+	    case InputFormat::JABA:
 	    case InputFormat::JMVA:
 		rc = QNIO::JMVA_Document::load( *document, input_filename );
 		break;
 #else
-	    case InputFormat::XML:
+	    case InputFormat::JABA:
 	    case InputFormat::JMVA:
+	    case InputFormat::XML:
 		rc = false;
 		break;
 #endif
