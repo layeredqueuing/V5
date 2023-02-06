@@ -1,5 +1,5 @@
 /*
- *  $Id: bcmp_bindings.cpp 16341 2023-01-17 21:45:03Z greg $
+ *  $Id: bcmp_bindings.cpp 16389 2023-02-03 15:00:51Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -363,8 +363,8 @@ namespace BCMP
 	static const std::map<BCMP::Model::Result::Type,Result> getResult = {
 	    { BCMP::Model::Result::Type::MEAN_SERVICE,	{ "mservice",   &BCMP::Model::Station::mean_service,    &BCMP::Model::Station::Class::mean_service } },
 	    { BCMP::Model::Result::Type::QUEUE_LENGTH,	{ "mcustnb",    &BCMP::Model::Station::queue_length,    &BCMP::Model::Station::Class::queue_length } },
-	    { BCMP::Model::Result::Type::RESPONSE_TIME,	{ "mresponse",  &BCMP::Model::Station::response_time,  &BCMP::Model::Station::Class::response_time } },
-	    { BCMP::Model::Result::Type::THROUGHPUT,	{ "mthruput",   &BCMP::Model::Station::throughput,	    &BCMP::Model::Station::Class::throughput } },
+	    { BCMP::Model::Result::Type::RESPONSE_TIME,	{ "mresponse",  &BCMP::Model::Station::response_time,	&BCMP::Model::Station::Class::response_time } },
+	    { BCMP::Model::Result::Type::THROUGHPUT,	{ "mthruput",   &BCMP::Model::Station::throughput,	&BCMP::Model::Station::Class::throughput } },
 	    { BCMP::Model::Result::Type::UTILIZATION,	{ "mbusypct",   &BCMP::Model::Station::utilization,     &BCMP::Model::Station::Class::utilization } }
 	};
 

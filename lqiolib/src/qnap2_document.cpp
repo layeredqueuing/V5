@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16367 2023-01-24 20:29:25Z greg $
+ * $Id: qnap2_document.cpp 16385 2023-02-01 22:21:41Z greg $
  *
  * Read in XML input files.
  *
@@ -1816,7 +1816,7 @@ namespace QNIO {
      */
 
     std::ostream&
-    QNAP2_Document::exportModel( std::ostream& output, bool ) const
+    QNAP2_Document::exportModel( std::ostream& output ) const
     {
 	std::ios_base::fmtflags flags = output.setf( std::ios::left, std::ios::adjustfield );
 	output << "& " << LQIO::DOM::Common_IO::svn_id() << std::endl;

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16383 2023-02-01 02:10:52Z greg $
+ *  $Id: jmva_document.h 16395 2023-02-05 15:34:32Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -120,6 +120,7 @@ namespace QNIO {
 
 	virtual bool load();
 	static bool load( LQIO::DOM::Document&, const std::string& );		// Factory.
+	virtual InputFormat getInputFormat() const { return InputFormat::JMVA; }
 
     private:
 	bool parse();
@@ -142,11 +143,9 @@ namespace QNIO {
 	void saveResults( size_t, const std::string&, size_t, const std::string&, const std::string&, const std::map<BCMP::Model::Result::Type,double>& );
 
 	std::ostream& print( std::ostream& ) const;
-	std::ostream& exportModel( std::ostream&, bool ) const;
+	std::ostream& exportModel( std::ostream& ) const;
 	void plot( BCMP::Model::Result::Type, const std::string& );
 	bool plotPopulationMix() const { return !_N1.empty() && !_N2.empty(); }
-	bool plotCustomers() const { return _plot_customers; }
-	void setPlotCustomers( bool plot_customers ) { _plot_customers = plot_customers; }
 
     private:
 	void setStrictJMVA( bool value ) { _strict_jmva = value; }
@@ -273,7 +272,7 @@ namespace QNIO {
 
 	public:
 	    What_If( std::ostream& output, const JMVA_Document& document ) : _output(output), _document(document) {}
-	    void operator()( const std::string& ) const;
+	    void operator()( const std::string& ) const;	// For input variables. (obsolete)
 	    const BCMP::Model::Station::map_t& stations() const { return model().stations(); }
 	    const BCMP::Model::Chain::map_t& chains() const { return model().chains(); }
 	    const std::deque<Comprehension>& whatif_statements() const { return _document.comprehensions(); }
@@ -336,7 +335,7 @@ namespace QNIO {
 
 	bool convertToLQN( LQIO::DOM::Document& ) const;
 
-	std::ostream& printModel( std::ostream&, bool=false ) const;
+	std::ostream& printModel( std::ostream& ) const;
 	std::ostream& printSPEX(  std::ostream& ) const;
 	std::ostream& printResults( std::ostream& ) const;
 	std::ostream& plot_chain( std::ostream& plot, BCMP::Model::Result::Type type );
@@ -344,6 +343,9 @@ namespace QNIO {
 	std::ostream& plot_station( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& );
 	std::ostream& plot_throughput_vs_population_mix( std::ostream& plot );
 	std::ostream& plot_utilization_vs_population_mix( std::ostream& plot );
+	std::ostream& plot_bounds( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& );
+	std::ostream& plot_one_class_bounds( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& );
+	std::ostream& plot_two_class_bounds( std::ostream& plot, BCMP::Model::Result::Type type, const std::string&, const std::string& );
 	size_t get_gnuplot_index( const std::string& ) const;
 	void compute_itercepts() const;
 
@@ -494,11 +496,13 @@ namespace QNIO {
 
 	/* Plotting */
 	std::vector<LQX::SyntaxTreeNode*> _gnuplot;					/* GNUPlot program		*/
-	bool _plot_customers;
 	Population _N1;
 	Population _N2;
+	size_t _n_labels;
+	LQX::SyntaxTreeNode * _x_max;
+	LQX::SyntaxTreeNode * _y_max;
 
-	static const std::map<const std::string,JMVA_Document::setIndependentVariable> independent_var_table;
+	static const std::map<const std::string,std::pair<Document::Comprehension::Type,JMVA_Document::setIndependentVariable>> independent_var_table;
 
 	static const std::set<const XML_Char *,attribute_table_t> algParams_table;
 	static const std::set<const XML_Char *,attribute_table_t> compareAlgs_table;

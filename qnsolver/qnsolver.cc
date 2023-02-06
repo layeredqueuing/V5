@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 16369 2023-01-26 19:21:33Z greg $
+ * $Id: qnsolver.cc 16395 2023-02-05 15:34:32Z greg $
  */
 
 #include "config.h"
@@ -41,11 +41,11 @@ const struct option longopts[] =
     { LQIO::DOM::Pragma::_force_multiserver_,	no_argument,		0, 'F' },
     { "no-execute",				no_argument,		0, 'n' },
     { "output",					required_argument,	0, 'o' },
-    { "plot-queue-length",			required_argument,	0, 'q' },
+    { "plot-queue-length",			optional_argument,	0, 'q' },
     { "plot-response-time",			no_argument,		0, 'r' },
     { "plot-throughput",			optional_argument,	0, 't' },
     { "plot-utilization",			optional_argument,	0, 'u' },
-    { "plot-waiting-time",			required_argument,	0, 'w' },
+    { "plot-waiting-time",			optional_argument,	0, 'w' },
     { "colours",				required_argument,	0, 'C' },
     { "verbose",				no_argument,		0, 'v' },
     { "help",					no_argument,		0, 'h' },
@@ -210,6 +210,7 @@ int main (int argc, char *argv[])
 	case 'r':
 	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
 	    plot_type = BCMP::Model::Result::Type::RESPONSE_TIME;
+	    if ( optarg != nullptr ) plot_arg = optarg;
 	    break;
 
 	case 's':
@@ -307,8 +308,13 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
     input.mergePragmas( pragmas.getList() );
     Pragma::set( input.getPragmaList() );		/* load pragmas here */
 
+    const bool qnap_model = input.getInputFormat() == QNIO::Document::InputFormat::QNAP;
+    
+    if ( print_gnuplot && qnap_model ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": plotting not supported with QNAP input." << std::endl;
+    }
     std::ofstream output;
-    const bool bounds = Pragma::solver() == Model::Solver::BOUNDS;
+    const bool bounds = Pragma::mva() == Model::Solver::BOUNDS || input.boundsOnly();
     if ( !output_file_name.empty() ) {
 	output.open( output_file_name, std::ios::out );
 	if ( !output ) {
@@ -327,9 +333,9 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
     if ( print_qnap2 ) {
 	QNIO::QNAP2_Document qnap_model( input.getInputFileName(), input.model() );
 	if ( output ) {
-	    qnap_model.exportModel( output, false );
+	    qnap_model.exportModel( output );
 	} else {
-	    qnap_model.exportModel( std::cout, false );
+	    qnap_model.exportModel( std::cout );
 	}
     } else {
 	try {
@@ -339,11 +345,15 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
 	}
 	if ( print_jmva ) {
-	    Model model( input, Pragma::solver(), std::string() );
+	    /* Since we might get QNAP in, rexport directly -- WhatIf?? */
+	    Model model( input, Pragma::mva(), std::string() );
 	    model.solve();
-	    input.exportModel( output, bounds );	/* Will save all results (if !bounds) */
+//	    QNIO::JMVA_Document new_model( output_file_name, input.model() );
+//	    new_model.comprehensions() = input.comprehensions();
+//	    new_model.exportModel( output );	/* Will save all results (if !bounds) */
+	    input.exportModel( output );
 	} else {
-	    Model model( input, Pragma::solver(), output_file_name );
+	    Model model( input, Pragma::mva(), output_file_name );
 	    model.solve();
 	}
     }

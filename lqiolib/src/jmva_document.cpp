@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16383 2023-02-01 02:10:52Z greg $
+ * $Id: jmva_document.cpp 16396 2023-02-05 23:25:57Z greg $
  *
  * Read in XML input files.
  *
@@ -84,7 +84,7 @@ namespace QNIO {
 	_input_variables(), _whatif_body(), _independent_variables(), _result_variables(), _station_index(),
 	_think_time_vars(), _population_vars(), _arrival_rate_vars(), _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 	_results(),
-	_plot_customers(false), _N1(), _N2()
+	_N1(), _N2(), _n_labels(0), _x_max(nullptr), _y_max(nullptr)
     {
     }
 
@@ -95,7 +95,7 @@ namespace QNIO {
 	_input_variables(), _whatif_body(), _independent_variables(), _result_variables(), _station_index(),
 	_think_time_vars(), _population_vars(), _arrival_rate_vars(), _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 	_results(),
-	_plot_customers(false), _N1(), _N2()
+	_N1(), _N2(), _n_labels(0), _x_max(nullptr), _y_max(nullptr)
     {
     }
 
@@ -467,6 +467,7 @@ namespace QNIO {
 	if ( strcasecmp( element, Xmodel ) == 0 ) {
 	    checkAttributes( element, attributes, document_table );
 	    LQIO::DOM::Document::__debugXML = (LQIO::DOM::Document::__debugXML || XML::getBoolAttribute(attributes,Xxml_debug));
+	    setBoundsOnly( XML::getBoolAttribute(attributes,Xjaba) );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startModel,&JMVA_Document::endModel,object) );
 	} else {
 	    XML::throw_element_error( element, attributes );
@@ -509,14 +510,13 @@ namespace QNIO {
 
 
     /*
-     * If I have a Whatif, but no results, create them
+     * If I have a Whatif, but no results, create them.  Independent variables are result variables, so don't count those.
      */
 
     void
     JMVA_Document::endModel( Object& object, const XML_Char * element )
     {
-	if ( _result_variables.empty() ) defineDefaultResultVariables();
-
+	if ( _result_variables.empty() || _result_variables.size() <= _independent_variables.size() ) defineDefaultResultVariables();
     }
 
 
@@ -1012,12 +1012,12 @@ namespace QNIO {
      * "Population Mix" - ratio between two classes)
      */
 
-    const std::map<const std::string,JMVA_Document::setIndependentVariable> JMVA_Document::independent_var_table = {
-	{ XArrival_Rates, 	&JMVA_Document::setArrivalRate },
-	{ XCustomer_Numbers, 	&JMVA_Document::setCustomers },
-	{ XNumber_of_Servers, 	&JMVA_Document::setMultiplicity },
-	{ XPopulation_Mix,	&JMVA_Document::setPopulationMix },
-	{ XService_Demands, 	&JMVA_Document::setDemand }
+    const std::map<const std::string,std::pair<Document::Comprehension::Type,JMVA_Document::setIndependentVariable>> JMVA_Document::independent_var_table = {
+	{ XArrival_Rates, 	{ Document::Comprehension::Type::ARRIVAL_RATES,	&JMVA_Document::setArrivalRate } },
+	{ XCustomer_Numbers, 	{ Document::Comprehension::Type::CUSTOMERS,	&JMVA_Document::setCustomers } },
+	{ XNumber_of_Servers, 	{ Document::Comprehension::Type::SERVERS,	&JMVA_Document::setMultiplicity } },
+	{ XPopulation_Mix,	{ Document::Comprehension::Type::CUSTOMERS,	&JMVA_Document::setPopulationMix } },
+	{ XService_Demands, 	{ Document::Comprehension::Type::DEMANDS,	&JMVA_Document::setDemand } }
     };
 
     void
@@ -1027,18 +1027,20 @@ namespace QNIO {
 	const std::string stationName = XML::getStringAttribute( attributes, XstationName, "" );	/* className and/or stationName */
 
 	const std::string x_label = XML::getStringAttribute( attributes, Xtype );
-	std::map<const std::string,JMVA_Document::setIndependentVariable>::const_iterator f = independent_var_table.find( x_label );
-	if ( f == independent_var_table.end() ) throw std::runtime_error( "JMVA_Document::createWhatIf" );
+	std::map<const std::string,std::pair<Document::Comprehension::Type,JMVA_Document::setIndependentVariable>>::const_iterator independent_var = independent_var_table.find( x_label );
+	if ( independent_var == independent_var_table.end() ) throw std::runtime_error( "JMVA_Document::createWhatIf" );
 
-	const bool is_unsigned = (f->second == &JMVA_Document::setMultiplicity || f->second == &JMVA_Document::setCustomers);
-	const std::string x_var = (this->*(f->second))( stationName, className );
-	const Comprehension comprehension( x_var, XML::getStringAttribute( attributes, Xvalues ), is_unsigned );
+	JMVA_Document::setIndependentVariable f = independent_var->second.second;
+	const Document::Comprehension::Type independent_var_type = independent_var->second.first;
+	const bool is_unsigned = (f == &JMVA_Document::setMultiplicity || f == &JMVA_Document::setCustomers);
+	const std::string x_var = (this->*(f))( stationName, className );
+	const Comprehension comprehension( x_var, independent_var_type, XML::getStringAttribute( attributes, Xvalues ), is_unsigned );
 
 	_independent_variables.emplace_back( x_var );
 	appendResultVariable( x_var, new LQX::VariableExpression( x_var, false ) );
 
 	if ( comprehension.begin() != comprehension.end() ) {
-	    if ( f->second == &JMVA_Document::setPopulationMix ) {
+	    if ( f == &JMVA_Document::setPopulationMix ) {
 		setPopulationMixN1N2( className, comprehension );
 	    }
 	    insertComprehension( comprehension );
@@ -1096,8 +1098,6 @@ namespace QNIO {
     std::string
     JMVA_Document::setCustomers( const std::string& stationName, const std::string& className )
     {
-	setPlotCustomers( true );
-
 	BCMP::Model::Chain& k = chains().at(className);
 	std::string name;
 
@@ -1386,8 +1386,9 @@ namespace QNIO {
 	_result_variables.emplace_back( var_name_and_expr( name, expression ) );
 	_result_index.emplace( name, _result_variables.size() );
     }
-
-
+}
+
+namespace QNIO {
     /*
      * Plot throughput/response time for system (and bounds)
      */
@@ -1406,9 +1407,11 @@ namespace QNIO {
 	    plot_throughput_vs_population_mix( plot );
 	} else if ( type == BCMP::Model::Result::Type::UTILIZATION && plotPopulationMix() ) {
 	    plot_utilization_vs_population_mix( plot );
-	} else if ( arg.empty() ) {
-	    plot_chain( plot, type );
-	} else if ( chains().find( arg ) != chains().end() ) {
+	} else if ( boundsOnly() ) {
+	    plot_bounds( plot, type, arg );
+	} else if ( (arg.empty() && type == BCMP::Model::Result::Type::THROUGHPUT) || type == BCMP::Model::Result::Type::RESPONSE_TIME ) {
+	    plot_chain( plot, type );			/* All response times, or the chain throughput	*/
+	} else if ( arg.empty() || chains().find( arg ) != chains().end() ) {
 	    plot_class( plot, type, arg );		/* If arg is a class, plot all stations */
 	} else if ( stations().find( arg ) != stations().end() ) {
 	    plot_station( plot, type, arg );		/* If arg is a station, plot all classes */
@@ -1423,35 +1426,64 @@ namespace QNIO {
 
 
     /*
+     * Plot the bounds only.
+     * Utilization -- 2 class,  Througput 1 class, 2 class, or class name, response time 1 class or class name.
+     */
+    
+    std::ostream&
+    JMVA_Document::plot_bounds( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& name )
+    {
+	if ( chains().size() == 2 && name.empty() ) {
+	    /* Two class throughput or utilization bounds */
+	    const BCMP::Model::Chain::map_t::const_iterator x = chains().begin();
+	    const BCMP::Model::Chain::map_t::const_iterator y = std::next( chains().begin() );
+	    plot_two_class_bounds( plot, type, x->first, y->first );
+	} else if ( !name.empty() ) {
+	    plot_one_class_bounds( plot, type, name );
+	} else if ( chains().size() == 1 ) {
+	    plot_one_class_bounds( plot, type, chains().begin()->first );
+	} else {
+	    throw std::invalid_argument( "plotting bounds for " + __y_label_table.at(type) + " is not possible." );
+	}
+	return plot;
+    }
+    
+
+    /*
      * for all stations plot class arg.
      */
 
     std::ostream&
     JMVA_Document::plot_class( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& arg )
     {
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + _independent_variables.at(0) + "\"" ) );	// X axis
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \"" + __y_label_table.at(type) + "\"" ) );		// Y1 axis
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key title \"Class " + arg + "\"" ) );
+	std::deque<Comprehension>::const_iterator whatif = std::find_if( whatif_statements().begin(), whatif_statements().end(), Comprehension::find(_independent_variables.at(0)) );
+	if ( whatif == whatif_statements().end() || whatif->size() <= 1 ) throw std::invalid_argument( _independent_variables.at(0) + " is not a whatif" );
+
+	std::string y_label = "set ylabel \"";
+	if ( !arg.empty() ) y_label += "Class " + arg + " ";
+	y_label += __y_label_table.at(type) + "\"";
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + whatif->typeName() + "\"" ) );
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( y_label ) );
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key title \"Station\"" ) );
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key top left box" ) );
 
-	const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
 	size_t count = 0;
 	plot << "plot ";
 	for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
-	    if ( m->second.reference() || !m->second.hasClass(arg) ) continue;
+	    if ( m->second.reference() || (!arg.empty() && !m->second.hasClass(arg)) ) continue;
 	    const BCMP::Model::Station::Class::map_t& classes = m->second.classes();
-	    const BCMP::Model::Station::Class& k = classes.at(arg);
 
 	    std::string name;
 	    if ( classes.size() == 1 ) {
 		name = m->second.resultVariables().at(type);
 	    } else {
+		const BCMP::Model::Station::Class& k = classes.at(arg);
 		name = k.resultVariables().at(type);
 	    }
 
-	    /* Append plot command to plot */
+	    /* Append plot command to plot.  Independent variable is at 1. */
 	    if ( count > 0 ) plot << ", ";
-	    plot << "\"$DATA\" using " << x << ":" << get_gnuplot_index(name) << " with linespoints" << " title \"" << m->first << "\"";
+	    plot << "\"$DATA\" using 1:" << get_gnuplot_index(name) << " with linespoints" << " title \"" << m->first << "\"";
 
 	    ++count;
 	}
@@ -1466,21 +1498,24 @@ namespace QNIO {
     std::ostream&
     JMVA_Document::plot_station( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& name )
     {
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + _independent_variables.at(0) + "\"" ) );	// X axis
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \"" + __y_label_table.at(type) + "\"" ) );		// Y1 axis
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key title \"Station " + name + "\"" ) );
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key top left box" ) );
+	std::deque<Comprehension>::const_iterator whatif = std::find_if( whatif_statements().begin(), whatif_statements().end(), Comprehension::find(_independent_variables.at(0)) );
+	if ( whatif == whatif_statements().end() || whatif->size() <= 1 ) throw std::invalid_argument( _independent_variables.at(0) + " is not a whatif" );
 
-	const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + whatif->typeName() + "\"" ) );
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \"Station" + name + " " + __y_label_table.at(type) + "\"" ) );
 
 	const BCMP::Model::Station& station = stations().at( name );
+
 	plot << "plot ";
 	if ( station.classes().size() == 1 ) {
-	    plot << "\"$DATA\" using " << x << ":" << get_gnuplot_index(station.resultVariables().at(type)) << " with linespoints";
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set nokey" ) );
+	    plot << "\"$DATA\" using 1:" << get_gnuplot_index(station.resultVariables().at(type)) << " with linespoints";
 	} else {
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set key title \"Class\"" ) );
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set key top left box" ) );
 	    for ( BCMP::Model::Station::Class::map_t::const_iterator k = station.classes().begin(); k != station.classes().end(); ++k ) {
 		if ( k != station.classes().begin() ) plot << ", ";
-		plot << "\"$DATA\" using " << x << ":" << get_gnuplot_index(k->second.resultVariables().at(type)) << " with linespoints" << " title \"" << k->first << "\"";
+		plot << "\"$DATA\" using 1:" << get_gnuplot_index(k->second.resultVariables().at(type)) << " with linespoints" << " title \"" << k->first << "\"";
 
 	    }
 	}
@@ -1492,10 +1527,13 @@ namespace QNIO {
     std::ostream&
     JMVA_Document::plot_chain( std::ostream& plot, BCMP::Model::Result::Type type )
     {
-	if ( type != BCMP::Model::Result::Type::THROUGHPUT && type != BCMP::Model::Result::Type::RESPONSE_TIME ) return plot;		// makes no sense otherwise.
+	if ( type != BCMP::Model::Result::Type::THROUGHPUT && type != BCMP::Model::Result::Type::RESPONSE_TIME ) throw std::invalid_argument( "plotting " + __y_label_table.at(type) + " for a chain is not possible." );
 
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + _independent_variables.at(0) + "\"" ) );	// X axis
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \"" + __y_label_table.at(type) + "\"" ) );		// Y1 axis
+	std::deque<Comprehension>::const_iterator whatif = std::find_if( whatif_statements().begin(), whatif_statements().end(), Comprehension::find(_independent_variables.at(0)) );
+	if ( whatif == whatif_statements().end() || whatif->size() <= 1 ) throw std::invalid_argument( _independent_variables.at(0) + " is not a whatif" );
+
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + whatif->typeName() + "\"" ) );
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \"" + __y_label_table.at(type) + "\"" ) );
 	if ( type == BCMP::Model::Result::Type::THROUGHPUT ) {
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set key bottom right" ) );
 	} else {
@@ -1503,19 +1541,12 @@ namespace QNIO {
 	}
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key box" ) );
 
-	std::deque<Comprehension>::const_iterator whatif = std::find_if( this->whatif_statements().begin(), this->whatif_statements().end(), Comprehension::find(_independent_variables.at(0)) );
-	if ( whatif == whatif_statements().end() || whatif->size() <= 1 ) throw std::invalid_argument( _independent_variables.at(0) + " is not a whatif" );
-
-	LQX::ConstantValueExpression * x_max = new LQX::ConstantValueExpression( whatif->max() );
-
-	size_t n_labels = 0;
-	LQX::SyntaxTreeNode * y_max = nullptr;
-
-	const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
+	_x_max = new LQX::ConstantValueExpression( whatif->max() );
+	_y_max = nullptr;
+	_n_labels = 0;
 
 	plot << "plot ";
 	for ( BCMP::Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
-	    BCMP::Model::Bound bounds( *k, stations() );
 	    if ( k != chains().begin() ) plot << ", ";
 
 	    /* Append plot command to plot */
@@ -1524,59 +1555,24 @@ namespace QNIO {
 		title = k->first + " ";
 	    }
 	    title += "MVA";
-	    plot << "\"$DATA\" using " << x << ":" << get_gnuplot_index(k->second.resultVariables().at(type)) << " with linespoints" << " title \"" << title << "\"";
+	    plot << "\"$DATA\" using 1:" << get_gnuplot_index(k->second.resultVariables().at(type)) << " with linespoints" << " title \"" << title << "\"";
 
-	    /* Now plot the bounds. */
-	    std::ostringstream label1;
-	    std::ostringstream label2;
-	    std::string title1;
-	    std::string title2;
-	    LQX::SyntaxTreeNode * nStar = bounds.N_star();
-	    LQX::SyntaxTreeNode * bound1 = nullptr;
+	    plot_one_class_bounds( plot, type, k->first );
 
-	    if ( chains().size() > 1 ) {
-		title1 = k->first + " ";
-		title2 = k->first + " ";
-	    }
+	    BCMP::Model::Bound bounds( *k, stations() );
 	    switch ( type ) {
 	    case BCMP::Model::Result::Type::THROUGHPUT:
-		bound1 = BCMP::Model::reciprocal( bounds.D_max() );
-		title1 += "1/Dmax";
-		title2 += "1/(Dsum+Z)";
+		_y_max = BCMP::Model::max( _y_max, BCMP::Model::reciprocal( bounds.D_max() ) );
 		break;
 	    case BCMP::Model::Result::Type::RESPONSE_TIME:
-		bound1 = bounds.D_sum();
-		title1 += "Dsum";
-		title2 += "N*Dmax-Z";
-		break;
-	    default:
-		break;
-	    }
-
-	    n_labels += 1;
-	    label1 << "set label " << n_labels << " \"" << *bound1 << "\" at " << 0.2 << "," << *bound1 << " * 1.02," << 0. << " left";
-	    _gnuplot.push_back( LQIO::GnuPlot::print_node( label1.str() ) );
-
-	    n_labels += 1;
-	    label2 << "set label " << n_labels << " \"N*=" << *nStar << "\" at " << *nStar << "," << *bound1 << "* 1.02," << 0. << " right";
-	    _gnuplot.push_back( LQIO::GnuPlot::print_node( label2.str() ) );
-
-	    plot << ", " << *bound1 << " with lines title \"" << title1 << "\"";
-	    switch ( type ) {
-	    case BCMP::Model::Result::Type::THROUGHPUT:
-		plot << ", x/" << *BCMP::Model::add( bounds.D_sum(), bounds.Z_sum() ) << " with lines title \"" << title2 << "\"";
-		y_max = BCMP::Model::max( y_max, BCMP::Model::reciprocal( bounds.D_max() ) );
-		break;
-	    case BCMP::Model::Result::Type::RESPONSE_TIME:
-		plot << ", x*" << *bounds.D_max() <<  "-" << *bounds.Z_sum() << " with lines title \"" << title2 << "\"";
-		y_max = BCMP::Model::max( y_max, BCMP::Model::subtract( BCMP::Model::multiply( x_max, bounds.D_max() ), bounds.Z_sum() ) );
+		_y_max = BCMP::Model::max( _y_max, BCMP::Model::subtract( BCMP::Model::multiply( _x_max, bounds.D_max() ), bounds.Z_sum() ) );
 		break;
 	    default:
 		break;
 	    }
 	}
 	std::ostringstream yrange;
-	yrange << "set yrange [" << 0 << ":" << *y_max << " * 1.10]";
+	yrange << "set yrange [" << 0 << ":" << *_y_max << " * 1.10]";
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( yrange.str() ) );
 	return plot;
     }
@@ -1602,53 +1598,11 @@ namespace QNIO {
 
 	/* Compute bound for each station */
 
-	LQX::SyntaxTreeNode * x_max = nullptr;
-	LQX::SyntaxTreeNode * y_max = nullptr;
-	for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
-	    if ( m->second.type() != BCMP::Model::Station::Type::LOAD_INDEPENDENT && m->second.type() != BCMP::Model::Station::Type::MULTISERVER ) continue;
+	_x_max = nullptr;
+	_y_max = nullptr;
+	_n_labels = 0;
 
-	    LQX::SyntaxTreeNode * D_x = BCMP::Model::Bound::D( m->second, *x );		/* Adjusted for multiservers	*/
-	    LQX::SyntaxTreeNode * D_y = BCMP::Model::Bound::D( m->second, *y );
-	    if ( D_x == nullptr && D_y == nullptr ) continue;
-
-	    x_max = BCMP::Model::max( x_max, D_x );
-	    y_max = BCMP::Model::max( y_max, D_y );
-	    plot << ",\\" << std::endl << "     ";     	/* New line for each bound */
-	    if ( BCMP::Model::isDefault( D_y, 0. ) ) {
-		plot << "1/" << *D_x << ",t";
-	    } else {
-		plot << "t,(1-t*" << *D_x << ")/" << *D_y;
-	    }
-	    plot << " with lines";
-	    /* Line colour would go here */
-	    plot << " title \"" << m->first << " Bound\"";
-	}
-
-	/* Set range (if possible), otherwise punt */
-	if ( !BCMP::Model::isDefault( x_max ) && !BCMP::Model::isDefault( y_max ) ) {
-	    LQX::SyntaxTreeNode * x_pos = BCMP::Model::reciprocal( x_max );
-	    LQX::SyntaxTreeNode * y_pos = BCMP::Model::reciprocal( y_max );
-	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set parametric" ) );
-	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression( "set xrange [0:" ),
-							   BCMP::Model::multiply( x_pos, new LQX::ConstantValueExpression(1.05) ),
-							   new LQX::ConstantValueExpression( "]" ),
-							   nullptr ) );
-	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression( "set trange [0:" ),
-							   BCMP::Model::multiply( x_pos, new LQX::ConstantValueExpression(1.05) ),
-							   new LQX::ConstantValueExpression( "]" ),
-							   nullptr ) );
-	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression( "set yrange [0:" ),
-							   BCMP::Model::multiply( y_pos, new LQX::ConstantValueExpression(1.05) ),
-							   new LQX::ConstantValueExpression( "]" ),
-							   nullptr ) );
-
-	    std::ostringstream label_1, label_2;
-	    label_1 << ")\" at "   << getDoubleValue(x_pos) * 0.01 << "," << getDoubleValue(y_pos)         << " left";
-	    label_2 << ",0)\" at " << getDoubleValue(x_pos)        << "," << getDoubleValue(y_pos) * 0.03  << " right";
-
-	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression("set label \"(0,"), y_pos, new LQX::ConstantValueExpression(label_1.str()), nullptr ) );
-	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression("set label \"("),   x_pos, new LQX::ConstantValueExpression(label_2.str()), nullptr ) );
-	}
+	plot_two_class_bounds( plot, BCMP::Model::Result::Type::THROUGHPUT, x->first, y->first );
 
 	return plot;
     }
@@ -1714,6 +1668,155 @@ namespace QNIO {
     }
 
 
+    std::ostream&
+    JMVA_Document::plot_one_class_bounds( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& name )
+    {
+	const BCMP::Model::Chain::map_t::const_iterator k = chains().find( name );
+	const BCMP::Model::Bound bounds( *k, stations() );
+
+	/* Now plot the bounds. */
+	std::string title1 = name + " ";
+	std::string title2 = name + " ";
+	LQX::SyntaxTreeNode * nStar = bounds.N_star();
+	LQX::SyntaxTreeNode * bound1 = nullptr;
+	if ( dynamic_cast<LQX::ConstantValueExpression*>(nStar) == nullptr ) return plot;		/* Not resolved -- can't plot */
+
+	if ( boundsOnly() ) {
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + QNIO::Document::Comprehension::__type_name.at(QNIO::Document::Comprehension::Type::CUSTOMERS) + "\"" ) );
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \"" + __y_label_table.at(type) + "\"" ) );
+	    _x_max = BCMP::Model::multiply( nStar, new LQX::ConstantValueExpression( 2.0 ) );
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set key box" ) );
+	}
+
+	switch ( type ) {
+	case BCMP::Model::Result::Type::THROUGHPUT:
+	    bound1 = BCMP::Model::reciprocal( bounds.D_max() );
+	    title1 += "1/Dmax";
+	    title2 += "1/(Dsum+Z)";
+	    _y_max = BCMP::Model::max( _y_max, BCMP::Model::reciprocal( bounds.D_max() ) );
+	    if ( boundsOnly() ) {
+		_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key bottom right" ) );
+	    }
+	    break;
+	case BCMP::Model::Result::Type::RESPONSE_TIME:
+	    bound1 = bounds.D_sum();
+	    title1 += "Dsum";
+	    title2 += "N*Dmax-Z";
+	    _y_max = BCMP::Model::max( _y_max, BCMP::Model::subtract( BCMP::Model::multiply( _x_max, bounds.D_max() ), bounds.Z_sum() ) );
+	    if ( boundsOnly() ) {
+		_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key top left" ) );
+	    }
+	    break;
+	default:
+	    break;
+	}
+
+	std::ostringstream label1;
+	_n_labels += 1;
+	label1 << "set label " << _n_labels << " \"" << *bound1 << "\" at " << 0.2 << "," << *bound1 << " * 1.02," << 0. << " left";
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( label1.str() ) );
+
+	std::ostringstream label2;
+	_n_labels += 1;
+	label2 << "set label " << _n_labels << " \"N*=" << *nStar << "\" at " << *nStar << "," << *bound1 << "* 1.02," << 0. << " right";
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( label2.str() ) );
+
+	if ( boundsOnly() ) {
+	    std::ostringstream xrange;
+	    xrange << "set xrange [" << 0 << ":" << getDoubleValue( _x_max ) << " * 1.10]";
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( xrange.str() ) );
+	    std::ostringstream yrange;
+	    yrange << "set yrange [" << 0 << ":" << *_y_max << " * 1.10]";
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( yrange.str() ) );
+	}
+
+	if ( boundsOnly() ) {
+	    plot << "plot ";
+	} else {
+	    plot << ", ";
+	}
+	plot << *bound1 << " with lines title \"" << title1 << "\"";
+
+	switch ( type ) {
+	case BCMP::Model::Result::Type::THROUGHPUT:
+	    plot << ", x/" << *BCMP::Model::add( bounds.D_sum(), bounds.Z_sum() ) << " with lines title \"" << title2 << "\"";
+	case BCMP::Model::Result::Type::RESPONSE_TIME:
+	    plot << ", x*" << *bounds.D_max() <<  "-" << *bounds.Z_sum() << " with lines title \"" << title2 << "\"";
+	    break;
+	default:
+	    break;
+	}
+
+	return plot;
+    }
+    
+
+    std::ostream& 
+    JMVA_Document::plot_two_class_bounds( std::ostream& plot, BCMP::Model::Result::Type type, const std::string& x_name, const std::string& y_name  )
+    {
+	if ( type != BCMP::Model::Result::Type::THROUGHPUT ) throw std::invalid_argument( "cannot plot two class bounds for " + __y_label_table.at(type) + "." );
+	
+	const BCMP::Model::Chain::map_t::const_iterator x = chains().find( x_name );	// User may have picked class 2 first...
+	const BCMP::Model::Chain::map_t::const_iterator y = chains().find( y_name );
+
+	size_t ls = 0;		/* Line style	*/
+	for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
+	    if ( m->second.type() != BCMP::Model::Station::Type::LOAD_INDEPENDENT && m->second.type() != BCMP::Model::Station::Type::MULTISERVER ) continue;
+	    ls += 1;
+	    
+	    LQX::SyntaxTreeNode * D_x = BCMP::Model::Bound::D( m->second, *x );		/* Adjusted for multiservers	*/
+	    LQX::SyntaxTreeNode * D_y = BCMP::Model::Bound::D( m->second, *y );
+	    if ( D_x == nullptr && D_y == nullptr ) continue;
+
+	    _x_max = BCMP::Model::max( _x_max, D_x );
+	    _y_max = BCMP::Model::max( _y_max, D_y );
+	    if ( boundsOnly() && ls == 1 ) {
+		_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + x->first + " " + __y_label_table.at(type) + "\"" ) );
+		_gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \"" + y->first + " " + __y_label_table.at(type) + "\"" ) );
+		plot << "plot ";
+	    } else {
+		plot << ",\\" << std::endl << "     ";     	/* New line for each bound */
+	    }
+	    if ( BCMP::Model::isDefault( D_y, 0. ) ) {
+		plot << "1/" << *D_x << ",t";
+	    } else {
+		plot << "t,(1-t*" << *D_x << ")/" << *D_y;
+	    }
+	    plot << " with lines";
+	    /* Line colour would go here */
+	    plot << " title \"" << m->first << " Bound\"";
+	}
+
+	/* Set range (if possible), otherwise punt */
+	if ( !BCMP::Model::isDefault( _x_max ) && !BCMP::Model::isDefault( _y_max ) ) {
+	    LQX::SyntaxTreeNode * x_pos = BCMP::Model::reciprocal( _x_max );
+	    LQX::SyntaxTreeNode * y_pos = BCMP::Model::reciprocal( _y_max );
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set parametric" ) );
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression( "set xrange [0:" ),
+							   BCMP::Model::multiply( x_pos, new LQX::ConstantValueExpression(1.05) ),
+							   new LQX::ConstantValueExpression( "]" ),
+							   nullptr ) );
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression( "set trange [0:" ),
+							   BCMP::Model::multiply( x_pos, new LQX::ConstantValueExpression(1.05) ),
+							   new LQX::ConstantValueExpression( "]" ),
+							   nullptr ) );
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression( "set yrange [0:" ),
+							   BCMP::Model::multiply( y_pos, new LQX::ConstantValueExpression(1.05) ),
+							   new LQX::ConstantValueExpression( "]" ),
+							   nullptr ) );
+
+	    std::ostringstream label_1, label_2;
+	    label_1 << ")\" at "   << getDoubleValue(x_pos) * 0.01 << "," << getDoubleValue(y_pos)         << " left";
+	    label_2 << ",0)\" at " << getDoubleValue(x_pos)        << "," << getDoubleValue(y_pos) * 0.03  << " right";
+
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression("set label \"(0,"), y_pos, new LQX::ConstantValueExpression(label_1.str()), nullptr ) );
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( new LQX::ConstantValueExpression("set label \"("),   x_pos, new LQX::ConstantValueExpression(label_2.str()), nullptr ) );
+	}
+
+	return plot;
+    }
+
+
     /*
      * Find the result in the data file for name.
      * The independent variables are printed first, followed by the results.
@@ -1768,43 +1871,6 @@ namespace QNIO {
 	return *this;
     }
 
-#if 0
-    {
-	/* Compute utilization at all stations at all intercepts.  Reject all with utlization > 1.  Sort on x */
-
-	const double tput_x = 1 / Dmax_x;
-	const double tput_y = 1 / Dmax_y;
-	size_t index = 0;
-	for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m, ++index ) {
-	    const BCMP::Model::Station& station = m->second;
-	    if ( station.type() != BCMP::Model::Station::Type::LOAD_INDEPENDENT && station.type() != BCMP::Model::Station::Type::MULTISERVER ) continue;
-
-	    add_result( results, point( 0, tput_y ), index, getDoubleValue( station.demand( station.classAt( y->first ) ) ) * tput_y );
-	    for ( std::vector<point>::const_iterator i = intercepts.begin(); i != intercepts.end(); ++i ) {
-		if ( i->x() < 0 || tput_x < i->x() ) continue;	/* Infeasible, discard		*/
-		if ( i->y() < 0 || tput_x < i->y() ) continue;	/* Infeasible, discard		*/
-		const double U_x =  * i->x();
-		const double U_y = getDoubleValue( station.demand( station.classAt( y->first ) ) ) * i->y();
-		std::cerr << "(" << i->x() << "," << i->y() << ")" << " U_x = " << U_x << ", U_y = " << U_y << ", U = " << U_x + U_y << std::endl;
-	        add_result( results, *i, index, std::min( U_x + U_y, 1.0 ) );
-	    }
-	    add_result( results, point( tput_x, 0 ), index, getDoubleValue( station.demand( station.classAt( x->first ) ) ) * tput_x );
-	}
-    }
-	    void add_result( std::map<point,std::vector<double> >& results, const point& point, size_t index, double utilization ) const;
-
-    void
-    JMVA_Document::Intercepts::add_result( std::map<point,std::vector<double> >& results, const point& intercept, size_t index, double utilization ) const
-    {
-	const std::pair<std::map<point,std::vector<double> >::iterator,bool> result = results.emplace( intercept, std::vector<double>() );
-	std::vector<double>& value = result.first->second;
-	if ( result.second ) {
-	    value.resize(stations().size(),0.0);	// created a new item.  Allocate and clear storage.
-	}
-	value.at(index) = utilization;			// Plotting versus x.
-    }
-
-#endif
 
     /*
      * Compute the intercepts of the line defined by p1 and p2 with the line defined by p3 and p4.
@@ -1856,7 +1922,7 @@ namespace QNIO {
     }
 
     std::ostream&
-    JMVA_Document::exportModel( std::ostream& output, bool bounds ) const
+    JMVA_Document::exportModel( std::ostream& output ) const
     {
 	XML::set_indent(0);
 	output << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl
@@ -1865,10 +1931,10 @@ namespace QNIO {
 	    output << "<!-- " << LQIO::io_vars.lq_command_line << " -->" << std::endl;
 	}
 
-	printModel( output, bounds );
+	printModel( output );
 	if ( !strictJMVA() ) {
 	    printSPEX( output );
-	} else if ( !bounds ) {
+	} else if ( !boundsOnly() ) {
 	    printResults( output );
 	}
 	output << XML::end_element( Xmodel ) << std::endl;
@@ -1876,7 +1942,7 @@ namespace QNIO {
     }
 
     std::ostream&
-    JMVA_Document::printModel( std::ostream& output, bool bounds ) const
+    JMVA_Document::printModel( std::ostream& output ) const
     {
 	std::for_each( stations().begin(), stations().end(), BCMP::Model::pad_demand( chains() ) );	/* JMVA want's zeros */
 
@@ -1890,7 +1956,7 @@ namespace QNIO {
 	    }
 	}
 	output << XML::start_element( Xmodel );
-	if ( bounds ) {
+	if ( boundsOnly() ) {
 	    output << XML::attribute( Xjaba, Xtrue );
 	}
 	output << XML::attribute( "xmlns:xsi", std::string("http://www.w3.org/2001/XMLSchema-instance") )
@@ -1913,11 +1979,15 @@ namespace QNIO {
 	std::for_each( stations().begin(), stations().end(), printStation( output, model(), strictJMVA() ) );
 	output << XML::end_element( Xstations ) << std::endl;
 
-	if ( !bounds ) {
+	if ( !boundsOnly() ) {
 	    output << XML::start_element( XReferenceStation ) << XML::attribute( Xnumber, static_cast<unsigned int>(chains().size()) ) << ">" << std::endl;
 	    std::for_each( chains().begin(), chains().end(), printReference( output, stations() ) );
 	    output << XML::end_element( XReferenceStation ) << std::endl;
+	}
 
+	output << XML::end_element( Xparameters ) << std::endl;
+
+	if ( !boundsOnly() ) {
 	    output << XML::start_element( XalgParams ) << ">" << std::endl
 		   << XML::simple_element( XalgType ) << XML::attribute( "maxSamples", 10000U ) << XML::attribute( Xname, std::string("MVA") ) << XML::attribute( "tolerance", 1.0E-7 ) << XML::end_element( XalgType, false ) << std::endl
 		   << XML::simple_element( XcompareAlgs ) << XML::attribute( Xvalue, false ) << XML::end_element( XcompareAlgs, false )  << std::endl
@@ -1928,9 +1998,8 @@ namespace QNIO {
 	    /* 	<whatIf className="c1" stationName="p2" type="Service Demands" values="1.0;1.1;1.2;1.3;1.4;1.5;1.6;1.7;1.8;1.9;2.0"/> */
 
 	    if ( !_input_variables.empty() ) {
-		output << "   <!-- SPEX input variables -->" << std::endl;
 		What_If what_if( output, *this );
-		std::for_each( _input_variables.begin(),  _input_variables.end(),  what_if );		/* Do arrays in order	*/
+		std::for_each( _input_variables.begin(), _input_variables.end(),  what_if );		/* Do arrays in order	*/
 	    }
 	}
 
