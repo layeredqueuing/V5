@@ -34,3 +34,7 @@ $(distdir).dmg:
 	$(MAKE) install DESTDIR=/tmp/$(distdir)
 	hdiutil create $@ -ov -volname $(distdir) -fs HFS+ -srcfolder "/tmp/$(distdir)/usr/local" -format UDBZ
 	-rm -rf /tmp/$(distdir)
+
+zip:
+	zip -uj $(distdir).zip ./lqn2csv/lqn2csv.exe ./lqn2ps/lqn2ps.exe ./lqngen/lqngen.exe ./lqns/lqns.exe ./lqsim/lqsim.exe ./qnsolver/qnsolver.exe ./srvndiff/srvndiff.exe ./doc/tutorial/tutorial.pdf ./doc/userman/userman.pdf
+
