@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 16253 2023-01-03 19:37:15Z greg $
+ *  $Id: srvn_spex.cpp 16405 2023-02-07 21:59:02Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -575,7 +575,15 @@ namespace LQIO {
     {
 	expr_list * list = make_list( new LQX::ConstantValueExpression( ", " ), nullptr );
 	for ( std::vector<Spex::var_name_and_expr>::iterator var = __result_variables.begin(); var != __result_variables.end(); ++var ) {
-	    list->push_back( new LQX::ConstantValueExpression( var->first ) );	/* Variable name */
+	    if ( !var->first.empty() ) {
+		list->push_back( new LQX::ConstantValueExpression( var->first ) );	/* Variable name */
+	    } else if ( var->second != nullptr ) {
+		std::ostringstream ss;
+		ss << "\"" << *var->second << "\"";
+		list->push_back( new LQX::ConstantValueExpression( ss.str() ) );	/* expression */
+	    } else {
+		list->push_back( new LQX::ConstantValueExpression( std::string( "\"\"" ) ) );
+	    }
 	}
 	return new LQX::FilePrintStatementNode( list, true, true );		/* Println spaced, with first arg being ", " (or: output, ","). */
     }
@@ -1524,6 +1532,8 @@ void * spex_result_assignment_statement( const char * name, void * expr )
 	    var_name.insert( var_name.begin(), '$' );	/* Convert to external variable */
 	}
 	LQIO::Spex::__result_variables.push_back( LQIO::Spex::var_name_and_expr(var_name,nullptr) );		/* Save variable name for printing */
+    } else { 	// BUG 359
+	LQIO::Spex::__result_variables.push_back( LQIO::Spex::var_name_and_expr(std::string(""),static_cast<LQX::SyntaxTreeNode *>(expr)) );	/* Save variable name for printing */
     }
     return expr;
 }

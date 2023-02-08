@@ -37,6 +37,7 @@
 *.svg
 *.tmp
 *.toc
+*.zip
 *~
 .DS_Store
 .dirstamp

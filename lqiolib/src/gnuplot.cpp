@@ -12,6 +12,7 @@
 #endif
 #include <cstdarg>
 #include <vector>
+#include <sstream>
 #include <string>
 #include <lqx/SyntaxTree.h>
 #include "gnuplot.h"
@@ -30,7 +31,15 @@ void GnuPlot::insert_header( std::vector<LQX::SyntaxTreeNode *>* program, const 
     arguments->push_back( new LQX::ConstantValueExpression( "# " ) );
 	
     for ( std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>>::const_iterator var = variables.begin(); var != variables.end(); ++var ) {
-	arguments->push_back( new LQX::ConstantValueExpression( var->first ) );	/* Variable name */
+	if ( !var->first.empty() )  {
+	    arguments->push_back( new LQX::ConstantValueExpression( var->first ) );	/* Variable name */
+	} else if ( var->second != nullptr ) {
+	    std::ostringstream ss;
+	    ss << "\"" << *var->second << "\"";
+	    arguments->push_back( new LQX::ConstantValueExpression( ss.str() ) );	/* expression */
+	} else {
+	    arguments->push_back( new LQX::ConstantValueExpression( std::string( "\"\"" ) ) );
+	}
     }
     program->push_back( new LQX::FilePrintStatementNode( arguments, true, true ) );	/* Print out a comment with the values that will follow */
     program->push_back( print_node( "$DATA << EOF" ) );				/* Append newline.  Don't space */
