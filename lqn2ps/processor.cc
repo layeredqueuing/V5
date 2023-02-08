@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 15957 2022-10-07 17:14:47Z greg $
+ * $Id: processor.cc 16408 2023-02-08 02:24:54Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -114,7 +114,7 @@ Processor::hasRate() const
 { 
     const LQIO::DOM::ExternalVariable * rate = dynamic_cast<const LQIO::DOM::Processor *>(getDOM())->getRate();
     double v;
-    return !rate->wasSet() || !rate->getValue(v) || v != 1.0;
+    return rate != nullptr && (!rate->wasSet() || !rate->getValue(v) || v != 1.0);
 }
 
 const LQIO::DOM::ExternalVariable& 
@@ -217,14 +217,20 @@ Processor::isInteresting() const
 }
 
 
+/*
+ * Return true if there is any chance a queue will form at this processor.
+ */
+
 bool
 Processor::clientsCanQueue() const
 {
-    if ( isInfinite() ) return false;
-    else {
+    if ( isInfinite() ) {
+	return false;
+    } else {
 	const LQIO::DOM::ExternalVariable * m = dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->getCopies();
 	double value;
-	return m == NULL || !m->wasSet() || !m->getValue(value) || nClients() > value;
+	if ( m == nullptr || !m->wasSet() || !m->getValue(value) ) return nClients() > 1;
+	return nClients() > value;
     }
 }
 

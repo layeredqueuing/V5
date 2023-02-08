@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16003 2022-10-19 17:22:13Z greg $
+ * $Id: phase.cc 16407 2023-02-08 02:21:27Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -447,7 +447,7 @@ static struct {
     { &LQIO::DOM::DocumentObject::setResultVarianceServiceTime, &LQIO::DOM::DocumentObject::getResultVarianceServiceTime },
     { &LQIO::DOM::DocumentObject::setResultUtilization, &LQIO::DOM::DocumentObject::getResultUtilization },
     { &LQIO::DOM::DocumentObject::setResultProcessorWaiting, &LQIO::DOM::DocumentObject::getResultProcessorWaiting },
-    { NULL, NULL }
+    { nullptr, nullptr }
 };
 
 static struct {
@@ -459,7 +459,7 @@ static struct {
     { &LQIO::DOM::DocumentObject::setResultVarianceServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultVarianceServiceTimeVariance },
     { &LQIO::DOM::DocumentObject::setResultUtilizationVariance, &LQIO::DOM::DocumentObject::getResultUtilizationVariance },
     { &LQIO::DOM::DocumentObject::setResultProcessorWaitingVariance, &LQIO::DOM::DocumentObject::getResultProcessorWaitingVariance },
-    { NULL, NULL }
+    { nullptr, nullptr }
 };
 
 /*
@@ -475,12 +475,12 @@ Phase::replicatePhase( LQIO::DOM::Phase * root, unsigned int replica )
 	std::string& name = const_cast<std::string&>(getDOM()->getName());
 	if ( name.size() <= 2 ) return *this;
 	size_t pos = name.rfind( '_' );
-	char * end_ptr = NULL;
+	char * end_ptr = nullptr;
 	if ( pos != std::string::npos && (strtol( &name[pos+1], &end_ptr, 10 ) == 1 && *end_ptr == '\0') ) {
 	    name = name.substr( 0, pos );
 	}
     } else {
-	for ( unsigned int i = 0; phase_mean[i].first != NULL; ++i ) {
+	for ( unsigned int i = 0; phase_mean[i].first != nullptr; ++i ) {
 	    update_mean( root, phase_mean[i].first, getDOM(), phase_mean[i].second, replica );
 	    update_variance( root, phase_variance[i].first, getDOM(), phase_variance[i].second );
 	}
@@ -503,7 +503,7 @@ Phase::replicateCall()
     for ( std::vector<LQIO::DOM::Call *>::iterator call = old_calls.begin(); call != old_calls.end(); ++call ) {
 	const std::string& dst_name = (*call)->getDestinationEntry()->getName();
 	size_t pos = dst_name.rfind( '_' );
-	char * end_ptr = NULL;
+	char * end_ptr = nullptr;
 	if ( pos == std::string::npos || (strtol( &dst_name[pos+1], &end_ptr, 10 ) == 1 && *end_ptr == '\0') ) {
 	    calls.push_back( *call );
 	}

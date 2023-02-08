@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16335 2023-01-16 19:53:44Z greg $
+ * $Id: model.cc 16407 2023-02-08 02:21:27Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -467,7 +467,7 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 	    if ( program != nullptr && Flags::run_lqx() ) {
 		Flags::instantiate  = true;
 
-		if (program == NULL) {
+		if (program == nullptr) {
 		    LQIO::runtime_error( LQIO::ERR_LQX_COMPILATION, input_file_name.c_str() );
 		} else { 
 		    /* Attempt to run the program */

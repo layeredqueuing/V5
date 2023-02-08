@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16003 2022-10-19 17:22:13Z greg $
+ * $Id: task.cc 16407 2023-02-08 02:21:27Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -883,7 +883,7 @@ Task::findCall( const Entity * anEntity, const callPredicate aFunc ) const
 	     && (!aFunc || ((*call)->*aFunc)() ) ) return *call;
     }
 
-    return NULL;
+    return nullptr;
 }
 
 
@@ -2219,7 +2219,7 @@ static struct {
     { &LQIO::DOM::DocumentObject::setResultProcessorUtilization, &LQIO::DOM::DocumentObject::getResultProcessorUtilization },
     { &LQIO::DOM::DocumentObject::setResultThroughput, &LQIO::DOM::DocumentObject::getResultThroughput },
     { &LQIO::DOM::DocumentObject::setResultUtilization, &LQIO::DOM::DocumentObject::getResultUtilization },
-    { NULL, NULL }
+    { nullptr, nullptr }
 };
 
 static struct {
@@ -2230,7 +2230,7 @@ static struct {
     { &LQIO::DOM::DocumentObject::setResultProcessorUtilizationVariance, &LQIO::DOM::DocumentObject::getResultProcessorUtilizationVariance },
     { &LQIO::DOM::DocumentObject::setResultThroughputVariance, &LQIO::DOM::DocumentObject::getResultThroughputVariance },
     { &LQIO::DOM::DocumentObject::setResultUtilizationVariance, &LQIO::DOM::DocumentObject::getResultUtilizationVariance },
-    { NULL, NULL }
+    { nullptr, nullptr }
 };
 
 
@@ -2255,7 +2255,7 @@ Task::replicateTask( LQIO::DOM::DocumentObject ** root )
 	const_cast<LQIO::DOM::Document *>((*root)->getDocument())->addTaskEntity( task );	/* Reconnect all of the dom stuff. */
     } else if ( task->getReplicasValue() < replica ) {
 	task->setReplicasValue( replica );
-	for ( unsigned int i = 0; task_mean[i].first != NULL; ++i ) {
+	for ( unsigned int i = 0; task_mean[i].first != nullptr; ++i ) {
 	    update_mean( task, task_mean[i].first, getDOM(), task_mean[i].second, replica );
 	    update_variance( task, task_variance[i].first, getDOM(), task_variance[i].second );
 	}

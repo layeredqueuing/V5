@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16385 2023-02-01 22:21:41Z greg $
+ * $Id: layer.cc 16407 2023-02-08 02:21:27Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -545,7 +545,7 @@ Layer::aggregate()
 		if ( std::none_of( _clients.begin(), _clients.end(), EQ<Element>(client) ) ) {
 		    _clients.push_back( client );				/* add the client to my clients */
 		}
-		callPredicate predicate = NULL;
+		callPredicate predicate = nullptr;
 		if ( call->hasForwarding() ) {
 		    predicate = &GenericCall::hasForwarding;
 		} else if ( call->hasSendNoReply() ) {
@@ -553,7 +553,7 @@ Layer::aggregate()
 		}
 		EntityCall * new_call = client->findOrAddCall( server, predicate );	/* create a call... */
 		TaskCall * task_call = dynamic_cast<TaskCall * >(new_call);
-		if ( task_call == NULL ) continue;
+		if ( task_call == nullptr ) continue;
 
 		/* Set rate on call? By phase? */
 		if ( call->hasForwarding() ) {
