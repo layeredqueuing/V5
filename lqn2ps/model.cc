@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16407 2023-02-08 02:21:27Z greg $
+ * $Id: model.cc 16410 2023-02-10 13:01:28Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -1985,8 +1985,9 @@ Model::Remap::operator()( const Layer& layer )
 void
 Model::Remap::operator()( const Entity * entity )
 {
-    const unsigned int i = _entities.size() + 1;
-    _entities[i] = const_cast<LQIO::DOM::Entity *>(dynamic_cast<const LQIO::DOM::Entity *>(entity->getDOM()));	/* Our order, not the dom's */
+    if ( entity->isSelectedIndirectly() ) {
+	_entities[_entities.size() + 1] = const_cast<LQIO::DOM::Entity *>(dynamic_cast<const LQIO::DOM::Entity *>(entity->getDOM()));	/* Our order, not the dom's */
+    }
 }
 
 

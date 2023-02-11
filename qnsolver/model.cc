@@ -301,15 +301,13 @@ Model::saveResults( size_t iteration )
     if ( _open_model ) {
 	_open_model->saveResults();
     }
-    /* Now store them here for output */
-    // for each station, for each chain, get results, save results.  _input->saveResults( iteration, station, chain, ... );
-    if ( dynamic_cast<QNIO::JMVA_Document*>(&_input) ) {
-	for ( const auto& m : stations() ) {
-	    const BCMP::Model::Station::Class::map_t& classes = m.second.classes();
-	    for ( const auto& k : classes ) {
-		const std::map<BCMP::Model::Result::Type,double>& results = k.second.results();
-		dynamic_cast<QNIO::JMVA_Document&>(_input).saveResults( iteration, solver_name(), steps(), m.first, k.first, results );
-	    }
+
+    /* Now store them in the input model (JMVA only) for output */
+
+    for ( const auto& m : stations() ) {
+	const BCMP::Model::Station::Class::map_t& classes = m.second.classes();
+	for ( const auto& k : classes ) {
+	    _input.saveResults( iteration, solver_name(), steps(), m.first, k.first, k.second.results() );
 	}
     }
 }

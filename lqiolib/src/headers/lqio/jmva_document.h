@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16395 2023-02-05 15:34:32Z greg $
+ *  $Id: jmva_document.h 16409 2023-02-10 00:37:40Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -140,7 +140,7 @@ namespace QNIO {
 	virtual bool disableDefaultOutputWithLQX() const { return true; }
 
 	void defineDefaultResultVariables();
-	void saveResults( size_t, const std::string&, size_t, const std::string&, const std::string&, const std::map<BCMP::Model::Result::Type,double>& );
+	virtual void saveResults( size_t, const std::string&, size_t, const std::string&, const std::string&, const std::map<BCMP::Model::Result::Type,double>& );
 
 	std::ostream& print( std::ostream& ) const;
 	std::ostream& exportModel( std::ostream& ) const;

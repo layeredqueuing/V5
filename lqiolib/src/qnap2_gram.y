@@ -39,7 +39,7 @@ extern int qnap2lex();
 %token <aReal>		DOUBLE
 %token <aLong>		LONG
 
-%type <aPointer>	array_list class_list class_reference comprehension identifier_list list loop_list object_list optional_index optional_init option_list optional_list service station_type transit transit_list transit_pair variable variable_list
+%type <aPointer>	array_list class_list class_reference identifier_list list loop_list object_list optional_index optional_init option_list optional_list service station_type transit transit_list transit_pair variable variable_list
 %type <aPointer>	closed_statement compound_statement open_statement postfix_statement prefix_statement simple_statement statement
 %type <aPointer>	expression expression_list function_call factor power procedure_call relation term
 %type <aCode>		compound_station_type object_type simple_station_type variable_type
@@ -143,8 +143,9 @@ transit_list		: transit_pair						{ $$ = qnap2_append_pointer( NULL, $1 ); }
 			| transit_list ',' transit_pair				{ $$ = qnap2_append_pointer( $1, $3 ); }
 			;
 
-transit_pair		: identifier optional_list ','
-			  expression optional_list				{ $$ = qnap2_get_transit_pair( qnap2_get_station_name( $1 ), $2, $4, $5 ); free( $1 ); }
+transit_pair		: identifier ',' expression				{ $$ = qnap2_get_transit_pair( qnap2_get_station_name( $1 ), NULL, $3, NULL ); free( $1 ); }
+			| identifier '(' loop_list ')' ',' identifier '(' loop_list ')' 
+										{ $$ = qnap2_get_transit_pair( qnap2_get_station_name( $1 ), $3, qnap2_get_variable( $6 ), $8 ); free( $1 ); free( $6 ); }
 			;
 
 
@@ -282,14 +283,11 @@ factor			: identifier						{ $$ = qnap2_get_variable( $1 ); free( $1 ); }
 /* Lists return arrays */
 
 list			: array_list						{ $$ = $1; }				/* Array */
-			| comprehension						{ $$ = $1; }				/* Array */
+			| loop_list						{ $$ = qnap2_comprehension( $1 ); }	/* Array */
 			;
 
 array_list		: object_list						{ $$ = $1; }				/* Array */
 			| expression_list					{ $$ = qnap2_get_array( $1 ); }		/* !! not an Array */
-			;
-
-comprehension		: loop_list						{ $$ = qnap2_comprehension( $1 ); }	/* Array */
 			;
 
 expression_list		: expression						{ $$ = qnap2_append_pointer( NULL, $1 ); }

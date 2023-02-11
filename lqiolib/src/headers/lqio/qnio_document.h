@@ -9,7 +9,7 @@
  *
  * November 2022
  *
- * $Id: qnio_document.h 16395 2023-02-05 15:34:32Z greg $
+ * $Id: qnio_document.h 16409 2023-02-10 00:37:40Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -116,6 +116,7 @@ namespace QNIO {
 	void mergePragmas( const std::map<std::string,std::string>& list ) { _pragmas.merge( list ); }
 
 	virtual bool disableDefaultOutputWithLQX() const { return false; }
+	virtual void saveResults( size_t, const std::string&, size_t, const std::string&, const std::string&, const std::map<BCMP::Model::Result::Type,double>& ) {}
 	virtual void plot( BCMP::Model::Result::Type, const std::string& ) {}
 
 	virtual std::ostream& print( std::ostream& output ) const = 0;
