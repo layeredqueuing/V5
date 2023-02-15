@@ -76,10 +76,10 @@ extern int srvnlex();
 
 start			: SRVN_INPUT SRVN_input_file
 /*+ json */
-			| SPEX_PARAMETER parameter_list { spex_set_parameter_list( $2 ); }
-			| SPEX_RESULT r_decl_list 	{ spex_set_result_list( $2 ); }
-			| SPEX_CONVERGENCE c_decl_list	{ spex_set_convergence_list( $2 ); }
-			| SPEX_EXPRESSION expression  	{ spex_set_variable( spex_inline_expression( $2 ) ) ; }
+			| SPEX_PARAMETER parameter_list { constant_expression = true; spex_set_parameter_list( $2 ); }
+			| SPEX_RESULT r_decl_list 	{ constant_expression = true; spex_set_result_list( $2 ); }
+			| SPEX_CONVERGENCE c_decl_list	{ constant_expression = true; spex_set_convergence_list( $2 ); }
+			| SPEX_EXPRESSION expression  	{ constant_expression = true; spex_set_variable( spex_inline_expression( $2 ) ) ; }
 /*- json */
 			;
 
@@ -772,7 +772,7 @@ rvalue			: SYMBOL				{ $$ = $1; }
 %%
 
 /*
- * Convert an integer into a malloced string.
+ * Convert an integer into a malloced string
  */
 
 static char *

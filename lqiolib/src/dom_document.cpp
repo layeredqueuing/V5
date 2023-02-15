@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 16352 2023-01-22 20:29:15Z greg $
+ *  $Id: dom_document.cpp 16420 2023-02-14 02:17:32Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -150,7 +150,7 @@ namespace LQIO {
 	    /* BUG_277 Delete External Variables */
 
 	    for ( std::map<const std::string, SymbolExternalVariable*>::const_iterator var = _variables.begin(); var != _variables.end(); ++var ) {
-		delete var->second;
+		if ( _controlVariables.find( var->first ) != _controlVariables.end() ) delete var->second;	// Only if not a control variable too!
 	    }
 
 	    /* Now delete the control variables */
@@ -164,27 +164,15 @@ namespace LQIO {
 	    __input_file_name = "";
 	}
 
-	void Document::setModelParameters(const std::string& comment, LQIO::DOM::ExternalVariable* conv_val, LQIO::DOM::ExternalVariable* it_limit, LQIO::DOM::ExternalVariable* print_int, LQIO::DOM::ExternalVariable* underrelax_coeff, const void * element )
+	void Document::setModelParameters(const std::string& comment, LQIO::DOM::ExternalVariable* convergence_value, LQIO::DOM::ExternalVariable* iteration_limit, LQIO::DOM::ExternalVariable* print_interval, LQIO::DOM::ExternalVariable* underrelax_coeff, const void * element )
 	{
 	    /* Set up initial model parameters, but only if they were not set using SPEX variables */
 
 	    _modelComment = comment;
-	    const ExternalVariable * var = _controlVariables[XConvergence];
-	    if ( !var && conv_val ) {
-		_controlVariables[XConvergence] = conv_val;
-	    }
-	    var = _controlVariables[XIterationLimit];
-	    if ( !var && it_limit ) {
-		_controlVariables[XIterationLimit] = it_limit;
-	    }
-	    var = _controlVariables[XPrintInterval];
-	    if ( !var && print_int ) {
-		_controlVariables[XPrintInterval] = print_int;
-	    }
-	    var = _controlVariables[XUnderrelaxationCoefficient];
-	    if ( !var && underrelax_coeff ) {
-		_controlVariables[XUnderrelaxationCoefficient] = underrelax_coeff;
-	    }
+	    if ( convergence_value != nullptr ) _controlVariables.emplace( std::pair<const std::string,LQIO::DOM::ExternalVariable*>(XConvergence,convergence_value) );
+	    if ( iteration_limit != nullptr )   _controlVariables.emplace( std::pair<const std::string,LQIO::DOM::ExternalVariable*>(XIterationLimit,iteration_limit) );
+	    if ( print_interval != nullptr )    _controlVariables.emplace( std::pair<const std::string,LQIO::DOM::ExternalVariable*>(XPrintInterval,print_interval) );
+	    if ( underrelax_coeff != nullptr )  _controlVariables.emplace( std::pair<const std::string,LQIO::DOM::ExternalVariable*>(XUnderrelaxationCoefficient,underrelax_coeff) );
 	}
 
 	const std::string& Document::getModelComment() const

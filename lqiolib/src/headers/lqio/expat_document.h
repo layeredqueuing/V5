@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 15817 2022-08-12 17:20:52Z greg $
+ *  $Id: expat_document.h 16421 2023-02-14 02:45:49Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -486,6 +486,7 @@ namespace LQIO {
 	    static const XML_Char *Xsolver_parameters;
 	    static const XML_Char *Xsource;
 	    static const XML_Char *Xspeed_factor;
+	    static const XML_Char *Xspex_convergence;
 	    static const XML_Char *Xspex_parameters;
 	    static const XML_Char *Xspex_results;
 	    static const XML_Char *Xsquared_coeff_variation;

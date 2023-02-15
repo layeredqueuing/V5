@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 15813 2022-08-11 19:18:33Z greg $
+ * $Id: srvn_output.h 16424 2023-02-14 10:58:14Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -30,6 +30,10 @@
 #include "input.h"
 #include "common_io.h"
 #include "confidence_intervals.h"
+
+namespace LQX {
+    class SyntaxTreeNode;
+}
 
 namespace LQIO {
     namespace DOM {
@@ -360,6 +364,7 @@ namespace LQIO {
 	private:
 	    std::ostream& printHeader( std::ostream& output ) const;
 	    std::ostream& printGeneral( std::ostream& output ) const;
+	    std::ostream& printResultConvergenceVariables( std::ostream& output, const std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>>&, const std::string& ) const;
 	    static bool is_processor( const std::pair<unsigned, DOM::Entity *>& );
 	    static bool is_task( const std::pair<unsigned, DOM::Entity *>& );
 	    static std::ostream& doubleAndNotEqual( std::ostream& output, const std::string& s, const DOM::ExternalVariable * v, double d );

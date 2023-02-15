@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: json_document.h 15836 2022-08-15 21:18:20Z greg $
+ *  $Id: json_document.h 16425 2023-02-14 16:53:54Z greg $
  *
  *  Created by Greg Franks.
  */
@@ -739,6 +739,9 @@ namespace LQIO {
 		Model( std::ostream& output, const LQIO::ConfidenceIntervals& conf_95 ) : Export( output, conf_95 ) {}
 
 		void print( const Document& ) const;
+
+	    private:
+		void printResultOrConvergenceVariables( const std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>>& variables, const std::string& ) const;
 	    };
 
 	    class ExportPragma : public Export {
@@ -928,9 +931,9 @@ namespace LQIO {
 		void print( const Spex::ObservationInfo& obs ) const;
 	    };
 	
-	    class ExportResults : public Export {
+	    class ExportResultOrConvergenceVariable : public Export {
 	    public:
-		ExportResults( std::ostream& output, const LQIO::ConfidenceIntervals& conf_95, unsigned int count ) : Export( output, conf_95, count ) {}
+		ExportResultOrConvergenceVariable( std::ostream& output, const LQIO::ConfidenceIntervals& conf_95 ) : Export( output, conf_95 ) {}
 
 		void operator()( const Spex::var_name_and_expr& ) const;
 	    };

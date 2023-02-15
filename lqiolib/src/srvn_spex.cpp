@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 16411 2023-02-10 23:56:33Z greg $
+ *  $Id: srvn_spex.cpp 16424 2023-02-14 10:58:14Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -412,15 +412,15 @@ namespace LQIO {
 	expr_list * loop_code = new expr_list;
 
 	/* Make local 'old' variables for testing. */
-	for ( std::vector<std::string>::const_iterator var_p = __convergence_variables.begin(); var_p != __convergence_variables.end(); ++var_p ) {
-	    const std::string& name = *var_p;
+	for ( std::vector<var_name_and_expr>::const_iterator var = __convergence_variables.begin(); var != __convergence_variables.end(); ++var ) {
+	    const std::string& name = var->first;
 	    loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), new LQX::ConstantValueExpression( 1.e9 ) ) );
 	}
 
 	/* Convergence test over all assignment statements/variables */
 	LQX::SyntaxTreeNode * left_expr = 0;
-	for ( std::vector<std::string>::const_iterator var_p = __convergence_variables.begin(); var_p != __convergence_variables.end(); ++var_p ) {
-	    const std::string& name = *var_p;
+	for ( std::vector<var_name_and_expr>::const_iterator var = __convergence_variables.begin(); var != __convergence_variables.end(); ++var ) {
+	    const std::string& name = var->first;
 	    LQX::SyntaxTreeNode * right_expr = new LQX::ComparisonExpression( LQX::ComparisonExpression::LESS_THAN,
 									      new LQX::MethodInvocationExpression( "abs",
 														   new LQX::MathExpression(LQX::MathExpression::SUBTRACT,
@@ -428,7 +428,7 @@ namespace LQIO {
 																	   new LQX::VariableExpression( name, true ) ),
 														   NULL ),
 									      new LQX::VariableExpression( __convergence_limit_str, true ) );
-	    if ( var_p != __convergence_variables.begin() ) {
+	    if ( var != __convergence_variables.begin() ) {
 		left_expr = new LQX::LogicExpression( LQX::LogicExpression::AND, left_expr, right_expr );
 	    }  else {
 		left_expr = right_expr;
@@ -437,8 +437,8 @@ namespace LQIO {
 	convergence->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "__done__", false ), left_expr ) );
 
 	/* Copy new to old */
-	for ( std::vector<std::string>::const_iterator var_p = __convergence_variables.begin(); var_p != __convergence_variables.end(); ++var_p ) {
-	    const std::string& name = *var_p;
+	for ( std::vector<var_name_and_expr>::const_iterator var = __convergence_variables.begin(); var != __convergence_variables.end(); ++var ) {
+	    const std::string& name = var->first;
 	    convergence->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), new LQX::VariableExpression( name, true ) ) );
 	}
 	
@@ -909,7 +909,7 @@ namespace LQIO {
      */
     
     std::ostream&
-    Spex::printResultVariable( std::ostream& output, const Spex::var_name_and_expr& var )
+    Spex::printVarNameAndExpr( std::ostream& output, const Spex::var_name_and_expr& var )
     {
 	if ( !var.first.empty() ) {
 	    output << var.first;
@@ -931,7 +931,7 @@ namespace LQIO {
     std::vector<std::string> Spex::__array_variables;				/* Saves $<array_name> for generating nest for loops */
     std::set<std::string> Spex::__array_references;				/* Saves $<array_name> when used as an lvalue */
     std::vector<Spex::var_name_and_expr> Spex::__result_variables;		/* Saves $<name> for printing the header of variable names */
-    std::vector<std::string> Spex::__convergence_variables;			/* Saves $<name> for all variables used in convergence section */
+    std::vector<Spex::var_name_and_expr> Spex::__convergence_variables;		/* Saves $<name> for all variables used in convergence section */
     std::map<std::string,LQX::SyntaxTreeNode *> Spex::__observation_variables;	/* Saves all observations (name, and funky assignment) */
     std::map<std::string,Spex::ComprehensionInfo> Spex::__comprehensions;	/* Saves all comprehensions for $<name> */
     expr_list Spex::__deferred_assignment;
@@ -1071,12 +1071,12 @@ namespace LQIO {
 
 namespace LQIO {
 
-    void Spex::PrintResultVariable::operator()( const var_name_and_expr& var ) const
+    void Spex::PrintVarNameAndExpr::operator()( const var_name_and_expr& var ) const
     {
 	if ( _indent ) {
 	    _output << std::setw( _indent ) << " ";
 	}
-	_output << Spex::print_result_variable( var ) << std::endl;
+	_output << Spex::print_var_name_and_expr( var ) << std::endl;
     }
 
     Spex::ObservationInfo::ObservationInfo( int key, unsigned int phase, const char * variable_name, unsigned int conf_level, const char * conf_variable_name )
@@ -1525,7 +1525,7 @@ void * spex_activity_call_observation( const void * task, const void * activity,
 void * spex_result_assignment_statement( const char * name, void * expr )
 {
     if ( name != nullptr ) {
-	LQIO::Spex::__result_variables.push_back( LQIO::Spex::var_name_and_expr(name,static_cast<LQX::SyntaxTreeNode *>(expr)) );		/* Save variable name for printing */
+	LQIO::Spex::__result_variables.emplace_back( LQIO::Spex::var_name_and_expr(name,static_cast<LQX::SyntaxTreeNode *>(expr)) );		/* Save variable name for printing */
 	LQX::VariableExpression * variable = static_cast<LQX::VariableExpression * >(spex_get_symbol( name ));
 	if ( expr ) {
 	    return new LQX::AssignmentStatementNode( variable, static_cast<LQX::SyntaxTreeNode *>(expr) );
@@ -1540,9 +1540,9 @@ void * spex_result_assignment_statement( const char * name, void * expr )
 	} else if ( var_name[0] != '$' ) {
 	    var_name.insert( var_name.begin(), '$' );	/* Convert to external variable */
 	}
-	LQIO::Spex::__result_variables.push_back( LQIO::Spex::var_name_and_expr(var_name,nullptr) );		/* Save variable name for printing */
+	LQIO::Spex::__result_variables.emplace_back( LQIO::Spex::var_name_and_expr(var_name,nullptr) );		/* Save variable name for printing */
     } else { 	// BUG 359
-	LQIO::Spex::__result_variables.push_back( LQIO::Spex::var_name_and_expr(std::string(""),static_cast<LQX::SyntaxTreeNode *>(expr)) );	/* Save variable name for printing */
+	LQIO::Spex::__result_variables.emplace_back( LQIO::Spex::var_name_and_expr(std::string(""),static_cast<LQX::SyntaxTreeNode *>(expr)) );	/* Save variable name for printing */
     }
     return expr;
 }
@@ -1570,7 +1570,8 @@ void * spex_result_function( const char * s, void * arg )
 
 void * spex_convergence_assignment_statement( const char * name, void * expr )
 {
-    LQIO::Spex::__convergence_variables.push_back( std::string(name) );		/* Save variable name for looping */
+    assert( expr != nullptr );
+    LQIO::Spex::__convergence_variables.emplace_back( LQIO::Spex::var_name_and_expr(name,static_cast<LQX::SyntaxTreeNode *>(expr)) );		/* Save variable name for printing */
     return new LQX::AssignmentStatementNode( new LQX::VariableExpression( name, true ), static_cast<LQX::SyntaxTreeNode *>(expr) );
 }
 

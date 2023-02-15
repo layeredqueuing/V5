@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16403 2023-02-07 01:23:17Z greg $
+# $Id: Makefile.am 16425 2023-02-14 16:53:54Z greg $
 # ------------------------------------------------------------------------
 ACLOCAL_AMFLAGS=-I config
 SUBDIRS = lqx lqiolib libmva parasol lqns lqsim lqn2csv lqn2ps lqngen petrisrvn qnsolver srvndiff doc xml dist
@@ -35,6 +35,9 @@ $(distdir).dmg:
 	hdiutil create $@ -ov -volname $(distdir) -fs HFS+ -srcfolder "/tmp/$(distdir)/usr/local" -format UDBZ
 	-rm -rf /tmp/$(distdir)
 
+winnt-zip:
+	zip -uj $(distdir)-winnt.zip ./lqn2csv/lqn2csv.exe ./lqn2ps/lqn2ps.exe ./lqngen/lqngen.exe ./lqns/lqns.exe ./lqsim/lqsim.exe ./qnsolver/qnsolver.exe ./srvndiff/srvndiff.exe ./doc/tutorial/tutorial.pdf ./doc/userman/userman.pdf
+
 zip:
-	zip -uj $(distdir).zip ./lqn2csv/lqn2csv.exe ./lqn2ps/lqn2ps.exe ./lqngen/lqngen.exe ./lqns/lqns.exe ./lqsim/lqsim.exe ./qnsolver/qnsolver.exe ./srvndiff/srvndiff.exe ./doc/tutorial/tutorial.pdf ./doc/userman/userman.pdf
+	zip -uj $(distdir).zip ./lqn2csv/lqn2csv ./lqn2ps/lqn2ps ./lqngen/lqngen ./lqns/lqns ./lqsim/lqsim ./qnsolver/qnsolver ./srvndiff/srvndiff ./doc/tutorial/tutorial.pdf ./doc/userman/userman.pdf
 
