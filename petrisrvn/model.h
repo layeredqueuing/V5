@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.h 15843 2022-08-17 13:44:32Z greg $
+ * $Id: model.h 16443 2023-02-25 00:56:26Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -101,6 +101,8 @@ private:
 
 private:
     bool has_output_file_name() const { return _output_file_name.size() > 0 && _output_file_name != "-"; }
+
+    static void setModelParameters( const LQIO::DOM::Document * );
 
     void set_comment();
     Model& set_n_phases( const unsigned int );

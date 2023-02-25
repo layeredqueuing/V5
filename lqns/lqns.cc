@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 16196 2022-12-24 12:40:53Z greg $
+ * $Id: lqns.cc 16440 2023-02-23 21:03:40Z greg $
  *
  * Command line processing.
  *
@@ -97,6 +97,7 @@ const struct option longopts[] =
     { "reload-lqx",				no_argument,	   nullptr, 512+'r' },
     { "restart",				no_argument,	   nullptr, 512+'R' },
     { "no-header",				no_argument,	   nullptr, 512+'h' },
+    { LQIO::DOM::Pragma::_spex_convergence_,	required_argument, nullptr, 256+'C' },
     { "print-comment",				no_argument,	   nullptr, 512+'c' },
     { "print-interval",				optional_argument, nullptr, 512+'p' },
     { "reset-mva",				no_argument,	   nullptr, 256+'r' },
@@ -143,7 +144,7 @@ int main (int argc, char *argv[])
     
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2022-12-24 07:40:53 -0500 (Sat, 24 Dec 2022) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2023-02-23 16:03:40 -0500 (Thu, 23 Feb 2023) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = fp_exception_reporting::DEFERRED_ABORT;
 
@@ -180,6 +181,10 @@ int main (int argc, char *argv[])
 		pragmas.insert( LQIO::DOM::Pragma::_convergence_value_, optarg != nullptr ? optarg : std::string("") );
 		break;
 
+	    case 256+'C':
+		pragmas.insert( LQIO::DOM::Pragma::_spex_convergence_, optarg != nullptr ? optarg : std::string("") );
+		break;
+		
 	    case 512+'c':
 		/* Set immediately, as it can't be changed once the SPEX program is loaded */
 		LQIO::Spex::__print_comment = true;

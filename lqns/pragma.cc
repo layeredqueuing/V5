@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 16351 2023-01-19 11:17:50Z greg $ *
+ * $Id: pragma.cc 16441 2023-02-23 21:39:47Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -46,7 +46,10 @@ const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
     { LQIO::DOM::Pragma::_save_marginal_probabilities_, &Pragma::setSaveMarginalProbabilities },
     { LQIO::DOM::Pragma::_severity_level_,		&Pragma::setSeverityLevel },
     { LQIO::DOM::Pragma::_spex_comment_,		&Pragma::setSpexComment },
+    { LQIO::DOM::Pragma::_spex_convergence_,		&Pragma::setSpexConvergence },
     { LQIO::DOM::Pragma::_spex_header_,			&Pragma::setSpexHeader },
+    { LQIO::DOM::Pragma::_spex_iteration_limit_,	&Pragma::setSpexIterationLimit },
+    { LQIO::DOM::Pragma::_spex_underrelaxation_,	&Pragma::setSpexUnderrelaxation },
     { LQIO::DOM::Pragma::_stop_on_bogus_utilization_,	&Pragma::setStopOnBogusUtilization },
     { LQIO::DOM::Pragma::_stop_on_message_loss_,	&Pragma::setStopOnMessageLoss },
     { LQIO::DOM::Pragma::_task_scheduling_,		&Pragma::setTaskScheduling },
@@ -88,7 +91,10 @@ Pragma::Pragma() :
     _save_marginal_probabilities(false),
     _severity_level(LQIO::error_severity::ALL),
     _spex_comment(false),
+    _spex_convergence(0.0),
     _spex_header(true),
+    _spex_iteration_limit(0),
+    _spex_underrelaxation(1.0),
     _stop_on_bogus_utilization(0.),		/* Not a bool.	U > nn */
     _stop_on_message_loss(true),
     _task_scheduling(SCHEDULE_FIFO),
@@ -131,20 +137,20 @@ Pragma::set( const std::map<std::string,std::string>& list )
 
 
 
-void Pragma::setAllowCycles(const std::string& value)
+void Pragma::setAllowCycles(const std::string& value )
 {
-    _allow_cycles = LQIO::DOM::Pragma::isTrue(value);
+    _allow_cycles = LQIO::DOM::Pragma::isTrue(value );
 }
 
 
-void Pragma::setConvergenceValue(const std::string& value)
+void Pragma::setConvergenceValue(const std::string& value )
 {
     char * endptr = nullptr;
     _convergence_value = std::strtod( value.c_str(), &endptr );
-    if ( (_convergence_value <= 0 || 1 < _convergence_value) || *endptr != '\0' ) throw std::domain_error( value );
+    if ( (_convergence_value <= 0 || 1 < _convergence_value ) || *endptr != '\0' ) throw std::domain_error( value );
 }
 
-void Pragma::setForceInfinite(const std::string& value)
+void Pragma::setForceInfinite(const std::string& value )
 {
     static const std::map<const std::string,const ForceInfinite> __force_infinite_pragma = {
 	{ "",					ForceInfinite::ALL },
@@ -162,7 +168,7 @@ void Pragma::setForceInfinite(const std::string& value)
     }
 }
 
-void Pragma::setForceMultiserver(const std::string& value)
+void Pragma::setForceMultiserver(const std::string& value )
 {
     static const std::map<const std::string,const Pragma::ForceMultiserver> __force_multiserver = {
 	{ "",					ForceMultiserver::ALL },
@@ -181,17 +187,17 @@ void Pragma::setForceMultiserver(const std::string& value)
 }
 
 
-void Pragma::setInterlock(const std::string& value)
+void Pragma::setInterlock(const std::string& value )
 {
-    _interlock = LQIO::DOM::Pragma::isTrue(value);
+    _interlock = LQIO::DOM::Pragma::isTrue(value );
 }
 
 
-void Pragma::setIterationLimit(const std::string& value)
+void Pragma::setIterationLimit(const std::string& value )
 {
     char * endptr = nullptr;
     _iteration_limit = std::strtol( value.c_str(), &endptr, 10 );
-    if ( (_iteration_limit <= 0 || 1 < _iteration_limit) || *endptr != '\0' ) throw std::domain_error( value );
+    if ( _iteration_limit <= 0 || *endptr != '\0' ) throw std::domain_error( value );
 }
 
 /* static */
@@ -215,7 +221,7 @@ const std::string& Pragma::getLayeringStr()
     return __layering_pragma.begin()->first;	/* Not reached */
 }
 
-void Pragma::setLayering(const std::string& value)
+void Pragma::setLayering(const std::string& value )
 {
     const std::map<const std::string,const Pragma::Layering>::const_iterator pragma = __layering_pragma.find( value );
     if ( pragma != __layering_pragma.end() ) {
@@ -230,7 +236,7 @@ void Pragma::setLayering(const std::string& value)
 }
 
 
-void Pragma::setMOLUnderrelaxation(const std::string& value)
+void Pragma::setMOLUnderrelaxation(const std::string& value )
 {
     char * endptr = nullptr;
     _mol_underrelaxation = std::strtod( value.c_str(), &endptr );
@@ -250,7 +256,7 @@ const std::map<const std::string,const Pragma::Multiserver> Pragma::__multiserve
     { LQIO::DOM::Pragma::_zhou_,	    Pragma::Multiserver::ZHOU }
 };
 
-void Pragma::setMultiserver(const std::string& value)
+void Pragma::setMultiserver(const std::string& value )
 {
     const std::map<const std::string,const Pragma::Multiserver>::const_iterator pragma = __multiserver_pragma.find( value );
     if ( pragma != __multiserver_pragma.end() ) {
@@ -263,7 +269,7 @@ void Pragma::setMultiserver(const std::string& value)
 }
 
 
-void Pragma::setMva(const std::string& value)
+void Pragma::setMva(const std::string& value )
 {
     static const std::map<const std::string,const Pragma::MVA> __mva_pragma = {
 	{ LQIO::DOM::Pragma::_exact_,		    MVA::EXACT },
@@ -283,7 +289,7 @@ void Pragma::setMva(const std::string& value)
 }
 
 
-void Pragma::setOvertaking(const std::string& value)
+void Pragma::setOvertaking(const std::string& value )
 {
     static const std::map<const std::string,const Pragma::Overtaking> __overtaking_pragma = {
 	{ LQIO::DOM::Pragma::_markov_,	Overtaking::MARKOV },
@@ -302,7 +308,7 @@ void Pragma::setOvertaking(const std::string& value)
 }
 
 
-void Pragma::setProcessorScheduling(const std::string& value)
+void Pragma::setProcessorScheduling(const std::string& value )
 {
     static const std::map<const std::string,const scheduling_type> __processor_scheduling_pragma = {
 	{ LQIO::SCHEDULE::DELAY,  SCHEDULE_DELAY },
@@ -325,14 +331,14 @@ void Pragma::setProcessorScheduling(const std::string& value)
 }
 
 #if BUG_270
-void Pragma::setPrune(const std::string& value)
+void Pragma::setPrune(const std::string& value )
 {
     _prune = LQIO::DOM::Pragma::isTrue( value );
 }
 #endif
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-void Pragma::setQuorumDistribution(const std::string& value)
+void Pragma::setQuorumDistribution(const std::string& value )
 {
     static const std::map<const std::string,const Pragma::QuorumDistribution> __quorum_distribution_pragma = {
 	{ LQIO::DOM::Pragma::_threepoint_,	Pragma::QuorumDistribution::THREEPOINT },
@@ -351,7 +357,7 @@ void Pragma::setQuorumDistribution(const std::string& value)
 }
 
 
-void Pragma::setQuorumDelayedCalls(const std::string& value)
+void Pragma::setQuorumDelayedCalls(const std::string& value )
 {
     static const std::map<const std::string,const Pragma::QuorumDelayedCalls> __quorum_delayed_calls_pragma = {
 	{ LQIO::DOM::Pragma::_keep_all_,	Pragma::QuorumDelayedCalls::KEEP_ALL },
@@ -370,7 +376,7 @@ void Pragma::setQuorumDelayedCalls(const std::string& value)
 }
 
 
-void Pragma::setQuorumIdleTime(const std::string& value)
+void Pragma::setQuorumIdleTime(const std::string& value )
 {
     static const std::map<const std::string,const Pragma::QuorumIdleTime> __quorum_idle_time_pragma = {
 	{ LQIO::DOM::Pragma::_default_,		Pragma::QuorumIdleTime::DEFAULT },
@@ -387,7 +393,7 @@ void Pragma::setQuorumIdleTime(const std::string& value)
 #endif
 
 
-void Pragma::setReplication(const std::string& value)
+void Pragma::setReplication(const std::string& value )
 {
     static const std::map<const std::string,const Pragma::Replication> __replication_pragma = {
 	{ LQIO::DOM::Pragma::_expand_,		Pragma::Replication::EXPAND },
@@ -407,40 +413,62 @@ void Pragma::setReplication(const std::string& value)
 
 
 #if RESCHEDULE
-void Pragma::setRescheduleOnAsyncSend(const std::string& value)
+void Pragma::setRescheduleOnAsyncSend(const std::string& value )
 {
-    _reschedule_on_async_send = LQIO::DOM::Pragma::isTrue(value);
+    _reschedule_on_async_send = LQIO::DOM::Pragma::isTrue(value );
 }
 #endif
 
 
-void Pragma::setSaveMarginalProbabilities(const std::string& value)
+void Pragma::setSaveMarginalProbabilities(const std::string& value )
 {
     _save_marginal_probabilities = LQIO::DOM::Pragma::isTrue( value );
 }
 
 
-void Pragma::setSpexComment(const std::string& value)
+
+void Pragma::setSpexComment(const std::string& value )
 {
     _spex_comment = LQIO::DOM::Pragma::isTrue( value );
 }
 
 
+void Pragma::setSpexConvergence(const std::string& value )
+{
+    char * endptr = nullptr;
+    _spex_convergence = std::strtod( value.c_str(), &endptr );
+    if ( _spex_convergence <= 0  || *endptr != '\0' ) throw std::domain_error( value );
+}
 
-void Pragma::setSpexHeader(const std::string& value)
+void Pragma::setSpexHeader(const std::string& value )
 {
     _spex_header = LQIO::DOM::Pragma::isTrue( value );
 }
 
 
+void Pragma::setSpexIterationLimit(const std::string& value )
+{
+    char * endptr = nullptr;
+    _spex_iteration_limit = std::strtol( value.c_str(), &endptr, 10 );
+    if ( _spex_iteration_limit <= 0 || *endptr != '\0' ) throw std::domain_error( value );
+}
 
-void Pragma::setSeverityLevel(const std::string& value)
+
+void Pragma::setSpexUnderrelaxation(const std::string& value )
+{
+    char * endptr = nullptr;
+    _spex_underrelaxation = std::strtod( value.c_str(), &endptr );
+    if ( (_spex_underrelaxation <= 0 || 1 < _spex_underrelaxation ) || *endptr != '\0' ) throw std::domain_error( value );
+}
+
+
+void Pragma::setSeverityLevel(const std::string& value )
 {
     _severity_level = LQIO::DOM::Pragma::getSeverityLevel( value );
 }
 
 
-void Pragma::setStopOnBogusUtilization(const std::string& value)
+void Pragma::setStopOnBogusUtilization(const std::string& value )
 {
     char * endptr = nullptr;
     const double temp = std::strtod( value.c_str(), &endptr );
@@ -449,13 +477,13 @@ void Pragma::setStopOnBogusUtilization(const std::string& value)
 }
 
 
-void Pragma::setStopOnMessageLoss(const std::string& value)
+void Pragma::setStopOnMessageLoss(const std::string& value )
 {
-    _stop_on_message_loss = LQIO::DOM::Pragma::isTrue(value);
+    _stop_on_message_loss = LQIO::DOM::Pragma::isTrue(value );
 }
 
 
-void Pragma::setTaskScheduling(const std::string& value)
+void Pragma::setTaskScheduling(const std::string& value )
 {
     static const std::map<const std::string,const scheduling_type> __task_scheduling_pragma = {
 	{ LQIO::SCHEDULE::DELAY,    SCHEDULE_DELAY },
@@ -473,7 +501,7 @@ void Pragma::setTaskScheduling(const std::string& value)
     }
 }
 
-void Pragma::setTau(const std::string& value)
+void Pragma::setTau(const std::string& value )
 {
     char * endptr = nullptr;
     const unsigned int _tau = std::strtoul( value.c_str(), &endptr, 10 );
@@ -481,14 +509,14 @@ void Pragma::setTau(const std::string& value)
 }
 
 
-void Pragma::setUnderrelaxation(const std::string& value)
+void Pragma::setUnderrelaxation(const std::string& value )
 {
     char * endptr = nullptr;
     _underrelaxation = std::strtod( value.c_str(), &endptr );
     if ( (_underrelaxation <= 0 || 1 < _underrelaxation) || *endptr != '\0' ) throw std::domain_error( value );
 }
 
-void Pragma::setThreads(const std::string& value)
+void Pragma::setThreads(const std::string& value )
 {
     static const std::map<const std::string,const Pragma::Threads> __threads_pragma = {
 	{ LQIO::DOM::Pragma::_hyper_,	Threads::HYPER },
@@ -507,7 +535,7 @@ void Pragma::setThreads(const std::string& value)
 }
 
 
-void Pragma::setVariance(const std::string& value)
+void Pragma::setVariance(const std::string& value )
 {
     static const std::map<const std::string,const Pragma::Variance> __variance_pragma = {
 	{ LQIO::DOM::Pragma::_default_,		Variance::DEFAULT },
@@ -539,8 +567,11 @@ Pragma::usage( std::ostream& output )
 	{ LQIO::DOM::Pragma::_convergence_value_,	    "<n.n>" },
 	{ LQIO::DOM::Pragma::_iteration_limit_,		    "<n>" },
 	{ LQIO::DOM::Pragma::_mol_underrelaxation_,	    "<n.n>" },
+	{ LQIO::DOM::Pragma::_spex_convergence_,	    "<n.n>" },
+	{ LQIO::DOM::Pragma::_spex_iteration_limit_,	    "<n>" },
+	{ LQIO::DOM::Pragma::_spex_underrelaxation_,	    "<n.n>" },
 	{ LQIO::DOM::Pragma::_stop_on_bogus_utilization_,   "<n.n>" },
-	{ LQIO::DOM::Pragma::_tau_,			    "<n>" },
+	{ LQIO::DOM::Pragma::_tau_,			    "<n>" }
     };
     
     output << "Valid pragmas: " << std::endl;

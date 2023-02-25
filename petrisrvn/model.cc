@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 16253 2023-01-03 19:37:15Z greg $
+ * $Id: model.cc 16443 2023-02-25 00:56:26Z greg $
  *
  * Load the SRVN model.
  */
@@ -194,6 +194,7 @@ Model::solve( solve_using solver_function, const std::string& inputFileName, LQI
 	    LQIO::runtime_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, inputFileName.c_str() );
 	    status = FILEIO_ERROR;
 	} else {
+	    model.recalculateDynamicValues( document );
 	    try {
 		if ( !model.compute() ) {
 		    status = FILEIO_ERROR;		/* Simply invoke the solver for the current DOM state */
@@ -422,9 +423,7 @@ Model::construct()
 void
 Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
 {
-//    setModelParameters(document);
-//    for_each( ____processor.begin(), ____processor.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
-//    for_each( ____task.begin(), ____task.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
+    setModelParameters(document);
 
     /* Find the pseudo phases for open arrivals and set the service time */
        
@@ -441,6 +440,24 @@ Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
 	    entry->runtime_error( LQIO::ERR_INVALID_PARAMETER, "open arrival rate", "entry", e.what() );
 	    throw std::domain_error( std::string( "invalid parameter: " ) + e.what() ); 
 	}
+    }
+}
+
+
+/*
+ * Only used for SPEX stuff.
+ */
+
+void Model::setModelParameters( const LQIO::DOM::Document * document )
+{
+    if ( Pragma::__pragmas->spex_convergence() > 0 ) {
+	const_cast<LQIO::DOM::Document *>(document)->setSpexConvergence( new LQIO::DOM::ConstantExternalVariable( Pragma::__pragmas->spex_convergence() ) );
+    }
+    if ( Pragma::__pragmas->spex_iteration_limit() > 0 ) {
+	const_cast<LQIO::DOM::Document *>(document)->setSpexIterationLimit( new LQIO::DOM::ConstantExternalVariable( Pragma::__pragmas->spex_iteration_limit() ) );
+    }
+    if ( Pragma::__pragmas->spex_underrelaxation() > 0 ) {
+	const_cast<LQIO::DOM::Document *>(document)->setSpexUnderrelaxation( new LQIO::DOM::ConstantExternalVariable( Pragma::__pragmas->spex_underrelaxation() ) );
     }
 }
 

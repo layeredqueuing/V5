@@ -216,8 +216,26 @@ The default is all.
 \fBspex-comment\fR=\fI{true,false}\fR
 Output the model comment as a header row with SPEX output.  The default is \fIfalse\fP.
 .TP
+\fBspex-convergence\fR=\fIarg\fR
+Set the SPEX convergence value to \fIarg\fP.  
+\fIArg\fP must be a number greater than 0.
+SPEX convergence only applies if SPEX the convergence section is present in the input file.
+It should be set to a value with \fIless\fP precision than the convergence
+used by the analytic solver and far less than the expected confidence intervals expected by
+the simulator.
+.TP
 \fBspex-header\fR=\fI{true,false}\fR
 Output the header row (column names) with SPEX output.  The default is \fItrue\fP.
+.TP
+\fBspex-iteration-limit\fR=\fIarg\fR
+Set the SPEX Iteration Limit to \fIarg\fP.  
+\fIArg\fP must be a number greater than 0.
+The SPEX iteration limit only applies if SPEX the convergence section is present in the input file.
+.TP
+\fBspex-underrelaxation\fR=\fIarg\fR
+Set the SPEX underrelaxation value to \fIarg\fP.  
+\fIArg\fP must be a number between 0.0 and 1.0.
+The SPEX underrelaxation only applies if SPEX the convergence section is present in the input file.
 .TP
 \fBstop-on-message-loss\fR\fR=\fI{true,false}\fR
 This pragma is used to control the operation of the solver when the

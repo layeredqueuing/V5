@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 16212 2022-12-30 20:39:19Z greg $
+ * $Id: model.cc 16428 2023-02-15 14:30:27Z greg $
  */
 
 #include "lqsim.h"
@@ -129,7 +129,7 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
 
     if ( document == nullptr || LQIO::io_vars.anError() ) return INVALID_INPUT;
 
-    if ( LQIO::Spex::numberOfInputVariables() == 0 ) {
+    if ( LQIO::Spex::input_variables().empty() ) {
 	if ( LQIO::Spex::__no_header ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << input_file_name << "." << std::endl;
 	}

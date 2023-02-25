@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 16245 2023-01-02 17:32:52Z greg $
+ * $Id: pragma.cc 16442 2023-02-24 12:59:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -30,7 +30,10 @@ const std::map<const std::string,Pragma::fptr> Pragma::__set_pragma = {
     { LQIO::DOM::Pragma::_save_marginal_probabilities_, &Pragma::set_save_marginal_probabilities },
     { LQIO::DOM::Pragma::_severity_level_, 		&Pragma::set_severity_level },
     { LQIO::DOM::Pragma::_spex_comment_, 		&Pragma::set_spex_comment },
+    { LQIO::DOM::Pragma::_spex_convergence_, 		&Pragma::set_spex_convergence },
     { LQIO::DOM::Pragma::_spex_header_, 		&Pragma::set_spex_header },
+    { LQIO::DOM::Pragma::_spex_iteration_limit_,	&Pragma::set_spex_iteration_limit },
+    { LQIO::DOM::Pragma::_spex_underrelaxation_,	&Pragma::set_spex_underrelaxation },
     { LQIO::DOM::Pragma::_stop_on_message_loss_,	&Pragma::set_stop_on_message_loss },
     { LQIO::DOM::Pragma::_task_scheduling_,		&Pragma::set_task_scheduling }
 };
@@ -41,7 +44,10 @@ Pragma::Pragma() :
     _save_marginal_probabilities(false),
     _severity_level(LQIO::error_severity::ALL),
     _spex_comment(true),
+    _spex_convergence(0.0),
     _spex_header(true),
+    _spex_iteration_limit(0),
+    _spex_underrelaxation(1.0),
     _stop_on_message_loss(false),
     _task_scheduling(SCHEDULE_FIFO),
     _default_processor_scheduling(true),
@@ -132,6 +138,32 @@ Pragma::set_spex_header( const std::string& value )
 {
     _spex_header = LQIO::DOM::Pragma::isTrue( value );
 }
+
+void
+Pragma::set_spex_convergence( const std::string& value )
+{
+    char * endptr = nullptr;
+    _spex_convergence = std::strtod( value.c_str(), &endptr );
+    if ( _spex_convergence <= 0  || *endptr != '\0' ) throw std::domain_error( value );
+}
+
+void
+Pragma::set_spex_iteration_limit(  const std::string& value )
+{
+    char * endptr = nullptr;
+    _spex_iteration_limit = std::strtol( value.c_str(), &endptr, 10 );
+    if ( _spex_iteration_limit < 0 || *endptr != '\0' ) throw std::domain_error( value );
+}
+
+
+void
+Pragma::set_spex_underrelaxation( const std::string& value )
+{
+    char * endptr = nullptr;
+    _spex_underrelaxation = std::strtod( value.c_str(), &endptr );
+    if ( (_spex_underrelaxation <= 0 || 1 < _spex_underrelaxation ) || *endptr != '\0' ) throw std::domain_error( value );
+}
+
 
 void
 Pragma::set_stop_on_message_loss( const std::string& value )

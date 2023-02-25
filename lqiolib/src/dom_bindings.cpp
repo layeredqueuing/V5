@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 16253 2023-01-03 19:37:15Z greg $
+ *  $Id: dom_bindings.cpp 16438 2023-02-22 23:57:49Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -918,7 +918,7 @@ namespace LQIO {
 	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
 		/* All the valid properties of documents */
-		std::map<const std::string,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
+		std::map<const std::string,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name );
 		if ( attribute != __attributeTable.end() ) {
 		    return attribute->second( *_document );
 		}
@@ -946,8 +946,9 @@ namespace LQIO {
 	{ DOM::Document::XIterationLimit,	    	attribute_table_t( &DOM::Document::getModelIterationLimit ) },
 	{ DOM::Document::XUnderrelaxationCoefficient,	attribute_table_t( &DOM::Document::getModelUnderrelaxationCoefficient ) },
 	{ DOM::Document::XPrintInterval,		attribute_table_t( &DOM::Document::getModelPrintInterval ) },
-	{ DOM::Document::XSpexIterationLimit,		attribute_table_t( &DOM::Document::getSpexConvergenceIterationLimit ) },
-	{ DOM::Document::XSpexUnderrelaxation,		attribute_table_t( &DOM::Document::getSpexConvergenceUnderrelaxation ) }
+	{ DOM::Document::XSpexIterationLimit,		attribute_table_t( &DOM::Document::getSpexIterationLimit ) },
+	{ DOM::Document::XSpexConvergence,		attribute_table_t( &DOM::Document::getSpexConvergence ) },
+	{ DOM::Document::XSpexUnderrelaxation,		attribute_table_t( &DOM::Document::getSpexUnderrelaxation ) }
     };
 
     class LQXGetDocument : public LQX::Method {

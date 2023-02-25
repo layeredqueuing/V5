@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<!-- lqn2ps -Oxml -->
+<lqn-model name="bug-205-external-convergence" description="lqn2ps 5.28.1 solution for model from: bug-205-external-convergence.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+  <parameters>
+$S0 = 0
+$Z1 = 0
+$convergence_value = 1e-05
+  </parameters>
+  <!-- Variables: $S0, $Z1, $convergence_value -->
+  <solver-params comment="Simple three-tier client-server system solved using convergence variables" conv_val="$convergence_value" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
+  <processor name="c0" scheduling="inf">
+    <task name="c0" scheduling="ref">
+      <entry name="c0" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="c0_1" phase="1" host-demand-mean="1">
+            <synch-call dest="e0" calls-mean="1">
+            </synch-call>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="c1" scheduling="inf">
+    <task name="c1" scheduling="ref" think-time="$Z1">
+      <entry name="c1" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="c1_1" phase="1" host-demand-mean="1">
+            <result-observe service-time="$S1"/>
+            <synch-call dest="e1" calls-mean="1">
+            </synch-call>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="p0" scheduling="ps" quantum="0.1">
+    <result-observe utilization="$P0"/>
+    <task name="t0" scheduling="fcfs">
+      <result-observe utilization="$U0" throughput="$X0"/>
+      <entry name="e0" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="e0_1" phase="1" host-demand-mean="$S0">
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="p1" scheduling="ps" quantum="0.1">
+    <task name="t1" scheduling="fcfs">
+      <entry name="e1" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="e1_1" phase="1" host-demand-mean="1">
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <results-collection>
+$0
+$X0
+$S0
+$U0
+$P0
+$Z1
+  </results-collection>
+  <convergence-collection>
+$S0 = $S1
+$Z1 = ((1 - $U0) / $X0)
+  </convergence-collection>
+</lqn-model>

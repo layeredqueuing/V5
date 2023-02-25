@@ -4,7 +4,7 @@
 %%  Copyright (c) 2009 __MyCompanyName__. All rights reserved.
 %%
 %% ------------------------------------------------------------------------
-%%  $Id: lqx.tex 14789 2021-06-10 14:43:04Z greg $
+%%  $Id: lqx.tex 16440 2023-02-23 21:03:40Z greg $
 %% ------------------------------------------------------------------------
 \newcommand{\ModLang}{LQX }
 \newcommand{\lqns}{Layer Queueing Network Solver}
@@ -819,12 +819,21 @@ for the cross product of {\tt phase} and {\tt calls}.
   \hline
   \multicolumn{3}{|l|}{\textbf{Summary of Attributes}}\\
   \hline
-  double & {\tt iterations} & The number of solver iterations/simulation blocks\\
-  double & {\tt invocation} & The solution invocation number\\
-  double & {\tt system\_cpu\_time} & Total system time for this invocation\\
-  double & {\tt user\_cpu\_time} & Total user time for this invocation\\
-  double & {\tt elapsed\_time} & Total elapsed time for this invocation\\
-  boolean & {\tt valid} & True if the results are valid\\
+  double & {\tt iterations} & The number of solver iterations/simulation blocks.\\
+  double & {\tt invocation} & The solution invocation number.\\
+  double & {\tt system\_cpu\_time} & Total system time for this invocation.\\
+  double & {\tt user\_cpu\_time} & Total user time for this invocation.\\
+  double & {\tt elapsed\_time} & Total elapsed time for this invocation.\\
+  boolean & {\tt valid} & True if the results are valid.\\
+  double & {\tt waits} & The total number of times the MVA {\tt wait()} function was called.\\
+  double & {\tt steps} & The total number of times the MVA {\tt step()} function was called.\\
+  double & {\tt convergence} & Get the document's convergence value.  This attribute is assignable.\\
+  double & {\tt it\_limit} & Get the document's iteration limit.  This attribute is assignable.\\
+  double & {\tt underrelax\_coeff} & Get the document's underrelaxation coefficient.  This attribute is assignable.\\
+  double & {\tt print\_int} & Get the document's print interval.  This attribute is assignable.\\
+  double & {\tt spex\_it\_limit} & Get the SPEX convergence iteration limit.  This attribute is assignable.\\
+  double & {\tt print\_convergence} & Get the SPEX convergence value.  This attribute is assignable.\\
+  double & {\tt print\_underrelaxation} & Get the SPEX convergence underrelaxation.  This attribute is assignable.\\
   \hline
 \end{tabular}
 \\\\\ \\

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 16422 2023-02-14 03:04:18Z greg $
+ *  $Id: srvn_output.cpp 16428 2023-02-15 14:30:27Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -1020,7 +1020,7 @@ namespace LQIO {
     {
         printHeader( output );
 
-        if ( Spex::numberOfInputVariables() > 0 && !_document.instantiated() ) {
+        if ( !Spex::input_variables().empty() && !_document.instantiated() ) {
             output << std::endl;
 	    if ( _annotate ) {
  		output << "# SPEX Variable definition and initialization." << std::endl

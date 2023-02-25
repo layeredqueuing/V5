@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16003 2022-10-19 17:22:13Z greg $
+ * $Id: entity.cc 16431 2023-02-15 20:17:55Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -801,7 +801,7 @@ Entity::addLQXExpressions( LQX::SyntaxTreeNode * augend, LQX::SyntaxTreeNode * a
     } else if ( dynamic_cast<LQX::ConstantValueExpression *>(augend) && dynamic_cast<LQX::ConstantValueExpression *>(addend) ) {
 	return new LQX::ConstantValueExpression( to_double(augend) + to_double(addend) );
     } else {
-	LQX::SyntaxTreeNode * sum =  new LQX::MathExpression( LQX::MathExpression::ADD, augend, addend );
+	LQX::SyntaxTreeNode * sum =  new LQX::MathExpression( LQX::MathOperation::ADD, augend, addend );
 //	std::cout << "Entity::addLQXExpressions(" << *augend << "," << *addend << ") --> " << *(sum) << std::endl;
 	return sum;
     }
@@ -817,7 +817,7 @@ Entity::multiplyLQXExpressions( LQX::SyntaxTreeNode * multiplicand, LQX::SyntaxT
     } else if ( dynamic_cast<LQX::ConstantValueExpression *>(multiplicand) && dynamic_cast<LQX::ConstantValueExpression *>(multiplier) ) {
 	return new LQX::ConstantValueExpression( to_double(multiplicand) + to_double(multiplier) );
     } else {
-	LQX::SyntaxTreeNode * product = new LQX::MathExpression( LQX::MathExpression::MULTIPLY, multiplicand, multiplier );
+	LQX::SyntaxTreeNode * product = new LQX::MathExpression( LQX::MathOperation::MULTIPLY, multiplicand, multiplier );
 //	std::cout << "Entity::addLQXExpressions(" << *multiplicand << "," << *multiplier << ") --> " << *(product) << std::endl;
 	return product;
     }
@@ -833,7 +833,7 @@ Entity::divideLQXExpressions( LQX::SyntaxTreeNode * dividend, LQX::SyntaxTreeNod
     } else if ( dynamic_cast<LQX::ConstantValueExpression *>(dividend) && dynamic_cast<LQX::ConstantValueExpression *>(divisor) ) {
 	return new LQX::ConstantValueExpression( to_double(dividend) / to_double(divisor) );
     } else {
-	LQX::SyntaxTreeNode * quotient =  new LQX::MathExpression( LQX::MathExpression::DIVIDE, divisor, dividend );
+	LQX::SyntaxTreeNode * quotient =  new LQX::MathExpression( LQX::MathOperation::DIVIDE, divisor, dividend );
 //	std::cout << "Entity::addLQXExpressions(" << *dividend << "," << *divisor << ") --> " << *(quotient) << std::endl;
 	return quotient;
     }

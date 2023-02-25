@@ -20,9 +20,14 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 
 namespace LQX {
   
+  enum class LogicOperation { AND, OR, NOT };
+  enum class CompareMode { EQUALS, NOT_EQUALS, LESS_THAN, GREATER_THAN, LESS_OR_EQUAL, GREATER_OR_EQUAL };
+  enum class MathOperation { SHIFT_LEFT, SHIFT_RIGHT, ADD, SUBTRACT, MULTIPLY, DIVIDE, MODULUS, POWER, NEGATE };
+    
   class SyntaxTreeNode {
   public:
     
@@ -48,9 +53,6 @@ namespace LQX {
     
   protected:
     /* The names of the operations */
-    static const char* logicNames[];
-    static const char* compareNames[];
-    static const char* arithmeticNames[];
 
     static std::string variablePrefix;					// for printing.
   };
@@ -141,12 +143,6 @@ namespace LQX {
   class LogicExpression : public SyntaxTreeNode {
   public:
     
-    typedef enum LogicOperation {
-      AND = 0,
-      OR,
-      NOT
-    } LogicOperation;
-    
   public:
 
     /* Constructors and Destructors */
@@ -165,6 +161,7 @@ namespace LQX {
     SyntaxTreeNode* _left;
     SyntaxTreeNode* _right;
     
+    static const std::map<const LogicOperation,const std::string> logicNames;
   };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -173,17 +170,6 @@ namespace LQX {
 #pragma mark -
   
   class ComparisonExpression : public SyntaxTreeNode {
-  public:
-    
-    /* How to do the comparison */
-    typedef enum CompareMode {
-      EQUALS = 0,
-      NOT_EQUALS,
-      LESS_THAN,
-      GREATER_THAN,
-      LESS_OR_EQUAL,
-      GREATER_OR_EQUAL
-    } CompareMode;
     
   public:
 
@@ -203,6 +189,7 @@ namespace LQX {
     SyntaxTreeNode* _left;
     SyntaxTreeNode* _right;
     
+    static const std::map<const CompareMode,const std::string> compareNames;
   };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -211,20 +198,6 @@ namespace LQX {
 #pragma mark -
   
   class MathExpression : public SyntaxTreeNode {
-  public:
-    
-    /* The different operations supported */
-    typedef enum MathOperation {
-      SHIFT_LEFT = 0,
-      SHIFT_RIGHT,
-      ADD,
-      SUBTRACT,
-      MULTIPLY,
-      DIVIDE,
-      MODULUS,
-      POWER,
-      NEGATE,
-    } MathOperation;
     
   public:
 
@@ -244,6 +217,7 @@ namespace LQX {
     SyntaxTreeNode* _left;
     SyntaxTreeNode* _right;
     
+    static const std::map<const MathOperation,const std::string> arithmeticNames;
   };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */

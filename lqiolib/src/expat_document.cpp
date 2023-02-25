@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 16423 2023-02-14 03:07:01Z greg $
+ * $Id: expat_document.cpp 16428 2023-02-15 14:30:27Z greg $
  *
  * Read in XML input files.
  *
@@ -2236,7 +2236,7 @@ namespace LQIO {
                 const_cast<ConfidenceIntervals *>(&_conf_99)->set_blocks( _document.getResultNumberOfBlocks() );
             }
 	    /* Output SPEX if present, otherwise output LQX (also if present) */
-	    const_cast<Expat_Document *>(this)->_has_spex = Spex::numberOfInputVariables() > 0;
+	    const_cast<Expat_Document *>(this)->_has_spex = !Spex::input_variables().empty();
 	    
             exportHeader( output );
 	    if ( hasSPEX() && !_document.instantiated() ) {

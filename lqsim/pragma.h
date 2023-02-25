@@ -2,7 +2,7 @@
  * pragma.h	-- Greg Franks
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.h 15694 2022-06-22 23:27:00Z greg $
+ * $Id: pragma.h 16443 2023-02-25 00:56:26Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -33,6 +33,7 @@ public:
 
     bool abort_on_dropped_message() const { return _abort_on_dropped_message; }
     double block_period() const { return _block_period; }
+    double convergence_value() const { return _convergence_value; }
     ForceInfinite force_infinite() const { return _force_infinite; }
     double initial_delay() const { return _initial_delay; }
     unsigned int initial_loops() const { return _initial_loops; }
@@ -45,13 +46,17 @@ public:
     double seed_value() const { return _seed_value; }
     LQIO::error_severity severity_level() { return _severity_level; }
     bool spex_comment() const { return _spex_comment; }
+    double spex_convergence() const { return _spex_convergence; }
     bool spex_header() const { return _spex_header; }
+    unsigned int spex_iteration_limit() const { return _spex_iteration_limit; }
+    double spex_underrelaxation() const { return _spex_underrelaxation; }
 
     static void usage( std::ostream& output );
 
 private:
     void set_abort_on_dropped_message( const std::string& );
     void set_block_period( const std::string& );
+    void set_convergence_value( const std::string& );
     void set_force_infinite( const std::string& );
     void set_initial_delay( const std::string& );
     void set_initial_loops( const std::string& );
@@ -64,32 +69,41 @@ private:
     void set_scheduling_model( const std::string& );
     void set_seed_value( const std::string& );
     void set_severity_level(const std::string& );
+    void set_spex_comment( const std::string& );
+    void set_spex_convergence( const std::string& );
+    void set_spex_header( const std::string& );
+    void set_spex_iteration_limit(  const std::string& );
+    void set_spex_underrelaxation( const std::string& );
 
 private:
     bool _abort_on_dropped_message;
+    double _block_period;
+    double _convergence_value;		/* SPEX */
     ForceInfinite _force_infinite;
+    double _initial_delay;
+    unsigned int _initial_loops;
+    unsigned int _max_blocks;
     int _nice_value;
+    unsigned int _number_of_blocks;
+    double _precision;
     int _quorum_delayed_calls;
     bool _reschedule_on_async_send;
+    double _run_time;
     int _scheduling_model;
+    double _seed_value;
     LQIO::error_severity _severity_level;
     bool _spex_comment;
+    double _spex_convergence;
     bool _spex_header;
+    unsigned int _spex_iteration_limit;
+    double _spex_underrelaxation;
 
-    double _block_period;
-    unsigned int _number_of_blocks;
-    unsigned int _max_blocks;
-    double _precision;
-    double _run_time;
-    double _seed_value;
-    unsigned int _initial_loops;
-    double _initial_delay;
     
 
 public:
     static Pragma * __pragmas;
 
 private:
-    static const std::map<std::string,Pragma::fptr> __set_pragma;
+    static const std::map<const std::string,Pragma::fptr> __set_pragma;
 };
 #endif

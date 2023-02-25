@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16385 2023-02-01 22:21:41Z greg $
+ * $Id: qnap2_document.cpp 16431 2023-02-15 20:17:55Z greg $
  *
  * Read in XML input files.
  *
@@ -628,8 +628,8 @@ void * qnap2_for_statement( void * arg1, void * arg2, void * loop_body )
     LQX::SyntaxTreeNode * variable = static_cast<LQX::SyntaxTreeNode *>(arg1);
     const QNIO::QNAP2_Document::List * sublist = static_cast<QNIO::QNAP2_Document::List *>(arg2);
     return new LQX::LoopStatementNode( new LQX::AssignmentStatementNode( variable, sublist->initial_value() ),
-				       new LQX::ComparisonExpression( LQX::ComparisonExpression::LESS_OR_EQUAL, variable, sublist->until() ),
-				       new LQX::AssignmentStatementNode( variable, new LQX::MathExpression( LQX::MathExpression::ADD, variable, sublist->step() ) ),
+				       new LQX::ComparisonExpression( LQX::CompareMode::LESS_OR_EQUAL, variable, sublist->until() ),
+				       new LQX::AssignmentStatementNode( variable, new LQX::MathExpression( LQX::MathOperation::ADD, variable, sublist->step() ) ),
 				       static_cast<LQX::SyntaxTreeNode *>(loop_body) );
 }
 
@@ -660,10 +660,10 @@ void * qnap2_list( void * initial_value, void * step, void * until )
 
 void * qnap2_logic( int operation, void * arg1, void * arg2 )
 {
-    static const std::map<int,LQX::LogicExpression::LogicOperation> parser_to_logic = {
-	{ QNAP_AND,		LQX::LogicExpression::AND },
-	{ QNAP_OR,		LQX::LogicExpression::OR },
-	{ QNAP_NOT,		LQX::LogicExpression::NOT },
+    static const std::map<int,LQX::LogicOperation> parser_to_logic = {
+	{ QNAP_AND,		LQX::LogicOperation::AND },
+	{ QNAP_OR,		LQX::LogicOperation::OR },
+	{ QNAP_NOT,		LQX::LogicOperation::NOT },
     };
 
     return new LQX::LogicExpression( parser_to_logic.at(operation), static_cast<LQX::SyntaxTreeNode *>(arg1), static_cast<LQX::SyntaxTreeNode *>(arg2) );
@@ -672,17 +672,17 @@ void * qnap2_logic( int operation, void * arg1, void * arg2 )
 
 void * qnap2_math( int operation, void * arg1, void * arg2 )
 {
-    static const std::map<int,LQX::MathExpression::MathOperation> parser_to_math = {
-	{ QNAP_PLUS,		LQX::MathExpression::ADD },
-	{ QNAP_DIVIDE,		LQX::MathExpression::DIVIDE },
-	{ QNAP_MODULUS,		LQX::MathExpression::MODULUS },
-	{ QNAP_MULTIPLY,	LQX::MathExpression::MULTIPLY },
-	{ QNAP_POWER,		LQX::MathExpression::POWER },
-	{ QNAP_MINUS,		LQX::MathExpression::SUBTRACT },
+    static const std::map<int,LQX::MathOperation> parser_to_math = {
+	{ QNAP_PLUS,		LQX::MathOperation::ADD },
+	{ QNAP_DIVIDE,		LQX::MathOperation::DIVIDE },
+	{ QNAP_MODULUS,		LQX::MathOperation::MODULUS },
+	{ QNAP_MULTIPLY,	LQX::MathOperation::MULTIPLY },
+	{ QNAP_POWER,		LQX::MathOperation::POWER },
+	{ QNAP_MINUS,		LQX::MathOperation::SUBTRACT },
     };
 
     if ( operation == QNAP_MINUS && arg1 == nullptr ) {
-	return new LQX::MathExpression( LQX::MathExpression::NEGATE, static_cast<LQX::SyntaxTreeNode *>(arg2), nullptr );
+	return new LQX::MathExpression( LQX::MathOperation::NEGATE, static_cast<LQX::SyntaxTreeNode *>(arg2), nullptr );
     } else {
 	return new LQX::MathExpression( parser_to_math.at(operation), static_cast<LQX::SyntaxTreeNode *>(arg1), static_cast<LQX::SyntaxTreeNode *>(arg2) );
     }
@@ -694,13 +694,13 @@ void * qnap2_math( int operation, void * arg1, void * arg2 )
 
 void * qnap2_relation( int operation, void * arg1, void * arg2 )
 {
-    static const std::map<int,LQX::ComparisonExpression::CompareMode> parser_to_relation = {
-	{ QNAP_EQUAL,		LQX::ComparisonExpression::EQUALS },
-	{ QNAP_GREATER,		LQX::ComparisonExpression::GREATER_THAN },
-	{ QNAP_GREATER_EQUAL,	LQX::ComparisonExpression::GREATER_OR_EQUAL },
-	{ QNAP_LESS,		LQX::ComparisonExpression::LESS_THAN },
-	{ QNAP_NOT_EQUAL,	LQX::ComparisonExpression::NOT_EQUALS },
- 	{ QNAP_LESS_EQUAL,	LQX::ComparisonExpression::LESS_OR_EQUAL },
+    static const std::map<int,LQX::CompareMode> parser_to_relation = {
+	{ QNAP_EQUAL,		LQX::CompareMode::EQUALS },
+	{ QNAP_GREATER,		LQX::CompareMode::GREATER_THAN },
+	{ QNAP_GREATER_EQUAL,	LQX::CompareMode::GREATER_OR_EQUAL },
+	{ QNAP_LESS,		LQX::CompareMode::LESS_THAN },
+	{ QNAP_NOT_EQUAL,	LQX::CompareMode::NOT_EQUALS },
+ 	{ QNAP_LESS_EQUAL,	LQX::CompareMode::LESS_OR_EQUAL },
     };
 
     return new LQX::ComparisonExpression( parser_to_relation.at(operation), static_cast<LQX::SyntaxTreeNode *>(arg1), static_cast<LQX::SyntaxTreeNode *>(arg2) );

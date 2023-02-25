@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16396 2023-02-05 23:25:57Z greg $
+ * $Id: jmva_document.cpp 16431 2023-02-15 20:17:55Z greg $
  *
  * Read in XML input files.
  *
@@ -1197,7 +1197,7 @@ namespace QNIO {
 	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( x_name, false ),
 							      new LQX::ConstantValueExpression( k1_customers ) ) );
 	std::vector<LQX::SyntaxTreeNode *> * function_args = new std::vector<LQX::SyntaxTreeNode *>;
-	function_args->push_back( new LQX::MathExpression( LQX::MathExpression::MULTIPLY,
+	function_args->push_back( new LQX::MathExpression( LQX::MathOperation::MULTIPLY,
 							   new LQX::VariableExpression( beta, false ),
 							   new LQX::VariableExpression( x_name, false ) ) );
 	assignment_expr = new LQX::AssignmentStatementNode( new LQX::VariableExpression( class1_population, is_external ), new LQX::MethodInvocationExpression( "round", function_args ) );
@@ -1212,8 +1212,8 @@ namespace QNIO {
 	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( y_name, false ),
 							      new LQX::ConstantValueExpression( k2_customers ) ) );
 	function_args = new std::vector<LQX::SyntaxTreeNode *>;
-	function_args->push_back( new LQX::MathExpression( LQX::MathExpression::MULTIPLY,
-							   new LQX::MathExpression( LQX::MathExpression::SUBTRACT,  new LQX::ConstantValueExpression( 1. ), new LQX::VariableExpression( beta, false ) ),
+	function_args->push_back( new LQX::MathExpression( LQX::MathOperation::MULTIPLY,
+							   new LQX::MathExpression( LQX::MathOperation::SUBTRACT,  new LQX::ConstantValueExpression( 1. ), new LQX::VariableExpression( beta, false ) ),
 							   new LQX::VariableExpression( y_name, false ) ) );
 	assignment_expr = new LQX::AssignmentStatementNode( new LQX::VariableExpression( class2_population, is_external ), new LQX::MethodInvocationExpression( "round", function_args ) );
 	_whatif_body.push_back( assignment_expr );
@@ -2454,7 +2454,7 @@ namespace QNIO
     {
 	std::vector<LQX::SyntaxTreeNode *>* loop_code = new std::vector<LQX::SyntaxTreeNode *>();
 	loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "_0", false ),
-								new LQX::MathExpression(LQX::MathExpression::ADD, new LQX::VariableExpression( "_0", false ), new LQX::ConstantValueExpression( 1.0 ) ) ) );
+								new LQX::MathExpression(LQX::MathOperation::ADD, new LQX::VariableExpression( "_0", false ), new LQX::ConstantValueExpression( 1.0 ) ) ) );
 	loop_code->insert( loop_code->end(), _whatif_body.begin(), _whatif_body.end() );
 	loop_code->push_back( new LQX::ConditionalStatementNode( new LQX::MethodInvocationExpression("solve"),
 								 new LQX::CompoundStatementNode( solve_success() ),

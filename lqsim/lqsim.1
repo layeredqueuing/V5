@@ -1,5 +1,5 @@
 .TH LQSIM 1 "$Date::2013-01-30 $"
-.\" $Id: lqsim.1 15379 2022-01-23 03:19:37Z greg $
+.\" $Id: lqsim.1 16443 2023-02-25 00:56:26Z greg $
 .SH NAME
 lqsim \- simulate layered queueing networks. 
 .SH SYNOPSIS
@@ -251,6 +251,12 @@ argument was incorrect, 8 for file read/write problems and -1 for
 fatal errors. If multiple input files are being processed, the exit
 code is the bit-wise OR of the above conditions.
 .SH "PRAGMAS"
+.TP
+\fIreschedule-on-async-send = {on,off}\fP
+In models with asynchronous messages, the simulator does not
+reschedule the processor after an asynchronous message is sent (unlike
+the case with synchronous messages).  Setting this pragma to "on"
+causes a reschedule after each asynchronous message.
 .TP 10
 \fIscheduling\fP
 .RS
@@ -276,16 +282,34 @@ phase or activity.
 \fImessages = nn\fP
 Set the number of message buffers to \fInn\fP.  The default is 1000.
 .TP
+\fBspex-comment\fR=\fI{true,false}\fR
+Output the model comment as a header row with SPEX output.  The default is \fIfalse\fP.
+.TP
+\fBspex-convergence\fR=\fIarg\fR
+Set the SPEX convergence value to \fIarg\fP.  
+\fIArg\fP must be a number greater than 0.
+SPEX convergence only applies if SPEX the convergence section is present in the input file.
+It should be set to a value with \fIless\fP precision than the convergence
+used by the analytic solver and far less than the expected confidence intervals expected by
+the simulator.
+.TP
+\fBspex-header\fR=\fI{true,false}\fR
+Output the header row (column names) with SPEX output.  The default is \fItrue\fP.
+.TP
+\fBspex-iteration-limit\fR=\fIarg\fR
+Set the SPEX Iteration Limit to \fIarg\fP.  
+\fIArg\fP must be a number greater than 0.
+The SPEX iteration limit only applies if SPEX the convergence section is present in the input file.
+.TP
+\fBspex-underrelaxation\fR=\fIarg\fR
+Set the SPEX underrelaxation value to \fIarg\fP.  
+\fIArg\fP must be a number between 0.0 and 1.0.
+The SPEX underrelaxation only applies if SPEX the convergence section is present in the input file.
+.TP
 \fIstop-on-message-loss = {on,off}\fP
 In models with open queueing (open arrivals or asynchronous messages),
 arrival rates may exceed service rates.  The simulator can either
 discard the arrival, or it can halt.
-.TP
-\fIreschedule-on-async-send = {on,off}\fP
-In models with asynchronous messages, the simulator does not
-reschedule the processor after an asynchronous message is sent (unlike
-the case with synchronous messages).  Setting this pragma to "on"
-causes a reschedule after each asynchronous message.
 .SH "STOPPING CRITERIA"
 It is important that the length of the simulation be chosen properly.
 Results may be inaccurate if the simulation run is too short.

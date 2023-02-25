@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15849 2022-08-18 20:39:31Z greg $
+# $Id: Makefile 16429 2023-02-15 16:41:59Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqns
@@ -30,6 +30,7 @@ DSTS =	01-sanity.lqxo \
 	24-multiserver.lqxo \
 	31-overtaking.lqxo \
 	32-async-inf.lqxo \
+	33-spex-convergence.lqxo \
 	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \
@@ -66,7 +67,7 @@ QUORUM=	88-quorum.lqxo \
 SRCS = $(DSTS:.lqxo=.lqnx)
 
 .SUFFIXES:
-.SUFFIXES: .diff .lqxo .lqnx
+.SUFFIXES: .diff .out .lqxo .lqnx
 .PHONY:	.files
 
 .lqnx.lqxo:
@@ -77,6 +78,11 @@ SRCS = $(DSTS:.lqxo=.lqnx)
 	for i in $(DST); do echo $$i >> .files; done
 
 all:	$(DSTS) .files
+
+33-spex-convergence.lqxo:	33-spex-convergence.lqnx
+	$(SRVN) -o $*.out $<
+	mv $*.d/$*-002.lqxo $*.lqxo
+	rm $*.d
 
 90-A01-novar.lqxo:	90-A01.lqnx
 	$(SRVN) -Pvariance=none -x -o$@ $<

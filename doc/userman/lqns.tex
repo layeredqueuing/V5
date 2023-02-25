@@ -3,10 +3,10 @@
 %%
 %% $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/doc/userman/lqns.tex $
 %% Original Author:     Greg Franks <greg@sce.carleton.ca>
-%% Created:             15 August 2022
+%% Created:             23 February 2023
 %%
 %% ----------------------------------------------------------------------
-%% $Id: lqns.tex 15836 2022-08-15 21:18:20Z greg $
+%% $Id: lqns.tex 16441 2023-02-23 21:39:47Z greg $
 %% ----------------------------------------------------------------------
 
 \chapter{Invoking the Analytic Solver ``lqns''}
@@ -106,10 +106,14 @@ Set the under-relaxation factor to \emph{arg}\index{multiserver!MOL} for the MOL
 \emph{Arg} must be a number between 0.0 and 1.0.
 The default value is 0.5.
 \item[\flag{n}{}, \longopt{no-execute}]~\\
-Build the model, but do not solve.The input is checked for validity but no output is generated.
+Build the model, but do not solve.
+The input is checked for validity but no output is generated.
 \item[\flag{o}{}, \longopt{output}=\emph{arg}]~\\
 Direct analysis results to \emph{output}\index{output}.  A filename of `\texttt{-}\index{standard input}'
-directs output to standard output.  If \texttt{output} is a directory, all output is saved in \texttt{output/input.out}. If the input model contains a SPEX program with loops, the SPEX output is sent to \texttt{output}; the individual model output files are found in the directory \texttt{output.d}. If \textbf{lqns} is invoked with this
+directs output to standard output.  If \texttt{output} is a directory, all output is saved in
+\texttt{output/input.out}. If the input model contains a SPEX program with loops, the SPEX output is sent to
+\texttt{output}; the individual model output files are found in the directory
+\texttt{output.d}. If \textbf{lqns} is invoked with this
 option, only one input file can be specified.
 \item[\flag{p}{}, \longopt{parseable}]~\\
 Generate parseable output suitable as input to other programs such as
@@ -242,10 +246,15 @@ Ignorning variance will help with convergence problems with some models. \index{
 Re-run the LQX/SPEX\index{LQX} program without re-solving the models.  Results must exist from a previous solution run.
 This option is useful if LQX print statements or SPEX results are changed.
 \item[\longopt{restart}]~\\
-Re-run the LQX/SPEX\index{LQX} program without re-solving models which were solved successfully.  Models which were not solved because of early termination, or which were not solved successfully because of convergence problems, will be solved.
+Re-run the LQX/SPEX\index{LQX} program without re-solving models which were solved successfully.
+Models which were not solved because of early termination, or which were not solved successfully because of convergence problems, will be solved.
 This option is useful for running a second pass with a new convergnece value and/or iteration limit.
 \item[\longopt{no-header}]~\\
-Do not output the variable name header on SPEX results.This option can be also be set by using \textbf{pragma} \emph{spex-header}=\emph{no}\index{pragma!srvn-header}.This option has no effect if SPEX is not used.
+Do not output the variable name header on SPEX results.
+This option can be also be set by using \textbf{pragma} \emph{spex-header}=\emph{no}\index{pragma!srvn-header}.
+This option has no effect if SPEX is not used.
+\item[\longopt{spex-convergence}=\emph{arg}]~\\
+Set the SPEX convergence value to <n.n>.
 \item[\longopt{print-comment}]~\\
 Add the model comment as the first line of output when running with SPEX input.
 \item[\longopt{print-interval}=\emph{arg}]~\\
@@ -257,7 +266,8 @@ Output the inputs and results of each MVA submodel for every iteration of the so
 The optional argument is a bit set of the submodels to output.  Submodel 1 is 0x1, 
 submodel 2 is 0x2, submodel 3 is 0x4, etc.  By default all submodels are traced.
 \item[\longopt{debug-submodels}]~\\
-Print out submodels. <n> is a 64 bit number where the bit position is the submodel output.The output for each submodel consists of the number of customers for closed classes, closed class clients, 
+Print out submodels. <n> is a 64 bit number where the bit position is the submodel output.
+The output for each submodel consists of the number of customers for closed classes, closed class clients, 
 closed class servers, open class servers, and the calls from clients to servers in the submodel.
 Calls are shown from entries to entries, or from tasks to processors.
 Synchronous calls are shown using ->, 
@@ -268,14 +278,14 @@ Output JSON\index{JSON!debug} elements and attributes as they are being parsed. 
 this option can be used to localize the error.
 \item[\longopt{debug-lqx}]~\\
 Output debugging information as an LQX\index{LQX!debug} program is being parsed.
-\item[\longopt{debug-spex}]~\\
-Output LQX progam corresponding to SPEX input.
 \item[\longopt{debug-srvn}]~\\
 Output debugging information while parsing SRVN input.This is the output of the Bison LALR parser.
 \item[\longopt{debug-xml}]~\\
 Output XML\index{XML!debug} elements and attributes as they are being parsed.
 Since the XML parser usually stops when it encounters an error,
 this option can be used to localize the error.
+\item[\longopt{print-lqx}]~\\
+Output the LQX progam corresponding to SPEX input.
 \end{description}
 
 
@@ -480,6 +490,13 @@ Do not output a comment line (the output can then be fed into gnuplot easily).
 Output the model comment in the SPEX output.
 \end{description}
 The default is false.
+\item[\optarg{spex-convergence}{=\emph{arg}}]~\\
+Set the SPEX convergence value to \emph{arg}.  
+\emph{Arg} must be a number greater than 0.
+SPEX convergence only applies if SPEX the convergence section is present in the input file.
+It should be set to a value with \emph{less} precision than the convergence
+used by the analytic solver and far less than the expected confidence intervals expected by
+the simulator.
 \item[\optarg{spex-header}{=\emph{arg}}]~\\
 This pragma is used to enable or disable the header line of SPEX output.
 \emph{Arg} must be one of: 
@@ -490,6 +507,14 @@ Do not output a header line (the output can then be fed into gnuplot easily).
 Output a header line consisting of the names of all of the variables used in the Result section on the input file.
 \end{description}
 The default is false.
+\item[\optarg{spex-iteration-limit}{=\emph{arg}}]~\\
+Set the SPEX Iteration Limit to \emph{arg}.  
+\emph{Arg} must be a number greater than 0.
+The SPEX iteration limit only applies if SPEX the convergence section is present in the input file.
+\item[\optarg{spex-underrelaxation}{=\emph{arg}}]~\\
+Set the SPEX underrelaxation value to \emph{arg}.  
+\emph{Arg} must be a number between 0.0 and 1.0.
+The SPEX underrelaxation only applies if SPEX the convergence section is present in the input file.
 \item[\optarg{stop-on-message-loss}{=\emph{arg}}]~\\
 This pragma is used to control the operation of the solver when the
 arrival rate\index{arrival rate} exceeds the service rate of a server.

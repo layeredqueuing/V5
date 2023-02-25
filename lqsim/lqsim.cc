@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 16368 2023-01-25 20:53:42Z greg $
+ * $Id: lqsim.cc 16437 2023-02-17 12:47:38Z greg $
  */
 
 #define STACK_TESTING
@@ -21,8 +21,6 @@
 #include <errno.h>
 #include <libgen.h>
 #include <stdexcept>
-#if HAVE_SYS_RESOURCE_H
-#endif
 #if HAVE_FENV_H
 #include <fenv.h>
 #endif
@@ -153,12 +151,13 @@ static const struct option longopts[] =
 #else
 const struct option * = nullptr;
 #endif
-static const char opts[] = "aA:B:C:de:G:h:HI:jm:MnN:o:pP:rRsS:t:T:vVwx";
+static const char opts[] = "aA:B:c:C:de:G:h:HI:jm:MnN:o:pP:rRsS:t:T:vVwx";
 
 static const std::map<const std::string,const std::string> opthelp  = {
     { "no-advisories",	    "Do not output advisory messages." },
     { "automatic",	    "Set the block time to <t>, the precision to <p> and the initial skip period to <s>." },
     { "blocks",		    "Set the number of blocks to <b>, the block time to <t> and the initial skip period to <s>." },
+    { "convergence-value",  "Set the convergence value for SPEX convergence to <arg>." },
     { "confidence",	    "Set the precision to <p>, the number of initial loops to skip to <l> and the block time to <t>." },
     { "debug",		    "Enable debug code." },
     { "error",		    "Set the floating pint exeception mode." },
@@ -321,7 +320,7 @@ main( int argc, char * argv[] )
     std::copy( local_error_messages.begin(), local_error_messages.end(), std::inserter( LQIO::error_messages, LQIO::error_messages.begin() ) );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2023-01-25 15:53:42 -0500 (Wed, 25 Jan 2023) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2023-02-17 07:47:38 -0500 (Fri, 17 Feb 2023) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Handy defaults.						*/
@@ -390,6 +389,10 @@ main( int argc, char * argv[] )
 		pragmas.insert(LQIO::DOM::Pragma::_run_time_, token );
 		break;
 	    
+	    case 'c':
+		pragmas.insert( LQIO::DOM::Pragma::_convergence_value_, optarg != nullptr ? optarg : std::string("") );
+		break;
+		
 	    case 'c'+256:
 		LQIO::Spex::__print_comment = true;
 		pragmas.insert(LQIO::DOM::Pragma::_spex_comment_,"true");

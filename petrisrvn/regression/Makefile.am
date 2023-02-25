@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15850 2022-08-18 21:08:43Z greg $
+# $Id: Makefile.am 16432 2023-02-15 23:02:12Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -30,7 +30,8 @@ MULTI=	20-multiserver.lqxo \
 	21-multiserver.lqxo \
 	22-multiserver.lqxo \
 	23-multiserver.lqxo 
-OVER=	31-overtaking.lqxo
+OVER=	31-overtaking.lqxo \
+	33-spex-convergence.lqxo
 ACT=	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \
@@ -74,6 +75,7 @@ SUFFIXES = .diff .d .lqxo .lqnx
 .lqnx.lqxo:
 	$(SRVN) $(OPTS) $<
 	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
+
 .lqnx.d:
 	$(SRVN) $(OPTS) $<
 
@@ -122,28 +124,38 @@ other:	$(OTHER)
 09-sanity.lqxo:	09-sanity.lqnx
 	$(SRVN) $(OPTS) --random-queueing --queue-limit=5 $<
 
+33-spex-convergence.lqxo: 33-spex-convergence.lqnx
+	$(SRVN) -o $*.out $<
+	@mv $*.d/$*-002.lqxo $@
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
+	@rm -rf $*.d
+
 50-replication.lqxo:	50-replication.lqnx
 	rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	rm $*-flat.*
+	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
 
 52-replication.lqxo:	52-replication.lqnx
 	rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	rm $*-flat.*
+	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
 
 55-replication.lqxo:	55-replication.lqnx
 	rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	rm $*-flat.*
+	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
 
 56-replication.lqxo:	56-replication.lqnx
 	rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	rm $*-flat.*
+	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
 
 

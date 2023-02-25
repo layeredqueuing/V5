@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 16424 2023-02-14 10:58:14Z greg $
+ * $Id: srvn_spex.h 16438 2023-02-22 23:57:49Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -264,8 +264,6 @@ namespace LQIO {
 	static bool has_array_var( const std::string& );
 	static LQX::SyntaxTreeNode * get_input_var_expr( const std::string& );
 	static void clear_input_variables() { __input_variables.clear(); }
-	static unsigned int numberOfInputVariables() { return __input_variables.size(); }
-	static unsigned int numberOfResultVariables() { return __result_variables.size(); }
 
 	/* Used by srvn_output and qnap_document... */
 	static const std::vector<std::string>& scalar_variables() { return  __scalar_variables; }			/* Saves $<scalar_name> for output */
@@ -349,8 +347,6 @@ namespace LQIO {
 	static const std::map<const std::string,const attribute_table_t> __control_parameters;
 	static const std::map<const int,const std::pair<const std::string,const std::string> > __key_code_map;	/* Maps srvn_gram.h KEY_XXX to name */
 	static const std::map<const int,const std::string> __key_lqx_function_map;	/* Maps srvn_gram.h KEY_XXX to lqx function name */
-
-	static const char * __convergence_limit_str;
 
 	static void * __parameter_list;						/* JSON */
 	static void * __result_list;						/* JSON */

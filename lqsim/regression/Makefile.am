@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 15899 2022-09-23 19:57:25Z greg $
+# $Id: Makefile.am 16437 2023-02-17 12:47:38Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -36,7 +36,8 @@ ACT=	40-activities.lqxo \
 	45-activities.lqxo \
 	46-activities.lqxo 
 OVER=	31-overtaking.lqxo \
-	32-async-inf.lqxo 
+	32-async-inf.lqxo \
+	33-spex-convergence.lqxo
 REPL=	50-replication.lqxo \
 	51-replication.lqxo \
 	52-replication.lqxo \
@@ -148,33 +149,39 @@ quick:
 32-async-inf.lqxo: 32-async-inf.lqnx
 	$(SRVN) -C1.0,250000,1000000 -Pstop-on-message-loss=f -w -S1049217653 32-async-inf.lqnx
 
+33-spex-convergence.lqxo: 33-spex-convergence.lqnx
+	$(SRVN) -B5,100000 -o $*.out $<
+	@mv $*.d/$*-002.lqxo $@
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
+	@rm -rf $*.d
+
 50-replication.lqxo:	50-replication.lqnx
-	rep2flat -Oxml -o$*-flat.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
-	rm $*-flat.*
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 
 51-replication.lqxo:	51-replication.lqnx
-	rep2flat -Oxml -o$*-flat.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
-	rm $*-flat.*
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 
 52-replication.lqxo:	52-replication.lqnx
-	rep2flat -Oxml -o$*-flat.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
-	rm $*-flat.*
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 
 55-replication.lqxo:	55-replication.lqnx
-	rep2flat -Oxml -o$*-flat.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
-	rm $*-flat.*
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 
 56-replication.lqxo:	56-replication.lqnx
-	rep2flat -Oxml -o$*-flat.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
-	rm $*-flat.*
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 

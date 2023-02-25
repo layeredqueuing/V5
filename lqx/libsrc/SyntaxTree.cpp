@@ -39,9 +39,29 @@ namespace LQX {
   }
 
   /* The names of the operations */
-  const char* SyntaxTreeNode::logicNames[] = { "||", "&&", "!" };
-  const char* SyntaxTreeNode::compareNames[] = { "==", "!=", "<", ">", "<=", ">=" };
-  const char* SyntaxTreeNode::arithmeticNames[] = { "<<", ">>", "+", "-", "*", "/", "%", "**" };
+  const std::map<const LogicOperation,const std::string> LogicExpression::logicNames = {
+    { LogicOperation::AND, "&&" },
+    { LogicOperation::OR,  "||" },
+    { LogicOperation::NOT, "!" }
+  };
+  const std::map<const CompareMode,const std::string> ComparisonExpression::compareNames = { 
+    { CompareMode::EQUALS,           "==" },
+    { CompareMode::NOT_EQUALS,       "!=" },
+    { CompareMode::LESS_THAN,        "<"  },
+    { CompareMode::GREATER_THAN,     ">"  },
+    { CompareMode::LESS_OR_EQUAL,    "<=" },
+    { CompareMode::GREATER_OR_EQUAL, ">=" }
+  };
+  const std::map<const MathOperation,const std::string> MathExpression::arithmeticNames = {
+    { MathOperation::SHIFT_LEFT, "<<" },
+    { MathOperation::SHIFT_RIGHT, ">>" },
+    { MathOperation::ADD,         "+" },
+    { MathOperation::SUBTRACT,    "-" },
+    { MathOperation::MULTIPLY,    "*" },
+    { MathOperation::DIVIDE,      "/" },
+    { MathOperation::MODULUS,     "%" },
+    { MathOperation::POWER,       "**" }
+  };
   std::string SyntaxTreeNode::variablePrefix;
 
   class IntegerManip {
@@ -330,7 +350,7 @@ namespace LQX {
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
-    const char* thisName = logicNames[static_cast<uint32_t>(_operation)];
+    const std::string& thisName = logicNames.at(_operation);
     output << QUOTE(thisNode) << " [label=\"" << thisName << "\", shape=box];" << std::endl;
 
     /* Output the Left Node */
@@ -353,11 +373,11 @@ namespace LQX {
     if ( _left && _right ) { 
       output << "(";		 		// Always do this to ensure order of ops
       _left->print(output);
-      output << ' ' << logicNames[static_cast<uint32_t>(_operation)] << ' '; 
+      output << ' ' << logicNames.at(_operation) << ' '; 
       _right->print(output);
       output << ")";
     } else { 
-     output << logicNames[static_cast<uint32_t>(_operation)]; 
+     output << logicNames.at(_operation);
      _left->print(output);
     }
     return output;
@@ -371,7 +391,7 @@ namespace LQX {
     bool hasRight = false;
 
     /* Obtain the right side of the expression where applicable */
-    if (_operation == AND || _operation == OR) {
+    if (_operation == LogicOperation::AND || _operation == LogicOperation::OR) {
       right = _right->invoke(env);
       hasRight = true;
     }
@@ -390,13 +410,13 @@ namespace LQX {
 
     /* Do the actual work */
     switch (_operation) {
-      case AND:
+      case LogicOperation::AND:
         result = left->getBooleanValue() && right->getBooleanValue();
         break;
-      case OR:
+      case LogicOperation::OR:
         result = left->getBooleanValue() || right->getBooleanValue();
         break;
-      case NOT:
+      case LogicOperation::NOT:
 	result = !left->getBooleanValue();
       break;
     }
@@ -431,7 +451,7 @@ namespace LQX {
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
-    const char* thisName = compareNames[static_cast<uint32_t>(_mode)];
+    const std::string& thisName = compareNames.at(_mode);
     output << QUOTE(thisNode) << " [label=\"" << thisName << "\", shape=box];" << std::endl;
 
     /* Output the Left Node */
@@ -452,7 +472,7 @@ namespace LQX {
   std::ostream& ComparisonExpression::print( std::ostream& output, unsigned int ) const
   {
     if (_left) { _left->print(output); }
-    output << ' ' << compareNames[static_cast<uint32_t>(_mode)] << ' ';
+    output << ' ' << compareNames.at(_mode) << ' ';
     if (_right) { _right->print(output); }
     return output;
   }
@@ -477,15 +497,15 @@ namespace LQX {
     if (leftType == Symbol::SYM_NULL) {
       if (rightType == Symbol::SYM_NULL) {
 	switch (_mode) {
-          case EQUALS:     result = true;  break;
-          case NOT_EQUALS: result = false; break;
-          default:         throw RuntimeException("Objects/nulls can only be compared with == and !=");
+	  case CompareMode::EQUALS:     result = true;  break;
+          case CompareMode::NOT_EQUALS: result = false; break;
+          default: throw RuntimeException("Objects/nulls can only be compared with == and !=");
 	}
       } else if (rightType == Symbol::SYM_OBJECT) {
 	switch (_mode) {
-          case EQUALS:     result = false; break;
-          case NOT_EQUALS: result = true;  break;
-          default:         throw RuntimeException("Objects/nulls can only be compared with == and !=");
+          case CompareMode::EQUALS:     result = false; break;
+          case CompareMode::NOT_EQUALS: result = true;  break;
+          default: throw RuntimeException("Objects/nulls can only be compared with == and !=");
         }
       } else {
 	throw IncompatibleTypeException(_right, right->getTypeName(), Symbol::typeToString(Symbol::SYM_NULL));
@@ -493,17 +513,17 @@ namespace LQX {
     } else if (leftType == Symbol::SYM_OBJECT) {
       if (rightType == Symbol::SYM_NULL)  {
         switch (_mode) {
-          case EQUALS:     result = false; break;
-          case NOT_EQUALS: result = true;  break;
-          default:         throw RuntimeException("Objects/nulls can only be compared with == and !=");
+          case CompareMode::EQUALS:     result = false; break;
+          case CompareMode::NOT_EQUALS: result = true;  break;
+          default: throw RuntimeException("Objects/nulls can only be compared with == and !=");
         }
       } else if (rightType == Symbol::SYM_OBJECT) {
 	LanguageObject* leftObject = left->getObjectValue();
 	LanguageObject* rightObject = right->getObjectValue();
         switch (_mode) {
-	  case EQUALS:     result =  leftObject->isEqualTo(rightObject); break;
-          case NOT_EQUALS: result = !leftObject->isEqualTo(rightObject); break;
-          default:         throw RuntimeException("Objects/nulls can only be compared with == and !=");
+	  case CompareMode::EQUALS:     result =  leftObject->isEqualTo(rightObject); break;
+          case CompareMode::NOT_EQUALS: result = !leftObject->isEqualTo(rightObject); break;
+          default: throw RuntimeException("Objects/nulls can only be compared with == and !=");
 	}
       } else {
 	throw IncompatibleTypeException(_right, right->getTypeName(), Symbol::typeToString(Symbol::SYM_OBJECT));
@@ -516,13 +536,13 @@ namespace LQX {
       double d1 = left->getDoubleValue();
       double d2 = right->getDoubleValue();
       switch (_mode) {
-        case EQUALS:           result = (d1 == d2); break;
-        case NOT_EQUALS:       result = (d1 != d2); break;
-        case LESS_THAN:        result = (d1 <  d2); break;
-        case GREATER_THAN:     result = (d1 >  d2); break;
-        case LESS_OR_EQUAL:    result = (d1 <= d2); break;
-        case GREATER_OR_EQUAL: result = (d1 >= d2); break;
-        default:               throw InternalErrorException("Invalid operation specified.");
+        case CompareMode::EQUALS:           result = (d1 == d2); break;
+        case CompareMode::NOT_EQUALS:       result = (d1 != d2); break;
+        case CompareMode::LESS_THAN:        result = (d1 <  d2); break;
+        case CompareMode::GREATER_THAN:     result = (d1 >  d2); break;
+        case CompareMode::LESS_OR_EQUAL:    result = (d1 <= d2); break;
+        case CompareMode::GREATER_OR_EQUAL: result = (d1 >= d2); break;
+        default: throw InternalErrorException("Invalid operation specified.");
       }
     } else if (leftType == Symbol::SYM_BOOLEAN) {
       if (rightType != Symbol::SYM_BOOLEAN) {
@@ -531,9 +551,9 @@ namespace LQX {
       bool b1 = left->getBooleanValue();
       bool b2 = right->getBooleanValue();
       switch (_mode) {
-        case EQUALS:           result = (b1 == b2); break;
-        case NOT_EQUALS:       result = (b1 != b2); break;
-        default:               throw RuntimeException("Booleans can only be compared with == and !=");
+        case CompareMode::EQUALS:           result = (b1 == b2); break;
+        case CompareMode::NOT_EQUALS:       result = (b1 != b2); break;
+        default: throw RuntimeException("Booleans can only be compared with == and !=");
       }
     } else if (leftType == Symbol::SYM_STRING) {
       if (rightType != Symbol::SYM_STRING) {
@@ -541,13 +561,13 @@ namespace LQX {
       }
       const int diff = strcmp( left->getStringValue(), right->getStringValue() );
       switch (_mode) {
-        case EQUALS:           result = (diff == 0); break;
-        case NOT_EQUALS:       result = (diff != 0); break;
-        case LESS_THAN:        result = (diff <  0); break;
-        case GREATER_THAN:     result = (diff >  0); break;
-        case LESS_OR_EQUAL:    result = (diff <= 0); break;
-        case GREATER_OR_EQUAL: result = (diff >= 0); break;
-        default:               throw InternalErrorException("Invalid operation specified.");
+        case CompareMode::EQUALS:           result = (diff == 0); break;
+        case CompareMode::NOT_EQUALS:       result = (diff != 0); break;
+        case CompareMode::LESS_THAN:        result = (diff <  0); break;
+        case CompareMode::GREATER_THAN:     result = (diff >  0); break;
+        case CompareMode::LESS_OR_EQUAL:    result = (diff <= 0); break;
+        case CompareMode::GREATER_OR_EQUAL: result = (diff >= 0); break;
+        default: throw InternalErrorException("Invalid operation specified.");
       }
       
     } else {
@@ -583,7 +603,7 @@ namespace LQX {
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
-    const char* thisName = arithmeticNames[static_cast<uint32_t>(_operation)];
+    const std::string& thisName = arithmeticNames.at(_operation);
     output << QUOTE(thisNode) << " [label=\"" << thisName << "\", shape=box];" << std::endl;
 
     /* Output the Left Node */
@@ -606,7 +626,7 @@ namespace LQX {
     bool brackets = _left && _right;
     if ( brackets ) { output << "("; }		// Always do this to ensure order of ops
     if (_left) { _left->print(output); }
-    output << ' ' << arithmeticNames[static_cast<uint32_t>(_operation)] << ' ';
+    output << ' ' << arithmeticNames.at(_operation) << ' ';
     if (_right) { _right->print(output); }
     if ( brackets ) { output << ")"; }
     return output;
@@ -617,55 +637,55 @@ namespace LQX {
     /* Find out what we are operaing on */
     SymbolAutoRef left = _left->invoke(env);
     SymbolAutoRef right(NULL);
-    if ( _operation != NEGATE ) {
+    if ( _operation != MathOperation::NEGATE ) {
       right = _right->invoke(env);
     }
 
     /* Check if everything actually worked out right */
-    if (left == NULL || (_operation != NEGATE && right == NULL)) {
+    if (left == NULL || (_operation != MathOperation::NEGATE && right == NULL)) {
       throw InternalErrorException("Left or Right Side Didn't Evaluate to a Symbol.");
     } else if (left->getType() != Symbol::SYM_DOUBLE) {
       throw IncompatibleTypeException( _left, left->getTypeName(), "double" );
-    } else if (_operation != NEGATE && right->getType() != Symbol::SYM_DOUBLE) {
+    } else if (_operation != MathOperation::NEGATE && right->getType() != Symbol::SYM_DOUBLE) {
       throw IncompatibleTypeException( _right, right->getTypeName(), "double" );
     }
 
     /* Pull out the values */
     double leftNumber = left->getDoubleValue();
     double rightNumber = 0.0;
-    if ( _operation != NEGATE ) {
+    if ( _operation != MathOperation::NEGATE ) {
 	rightNumber = right->getDoubleValue();
     }
     double result = 0.0;
 
     /* Perform the operation itself */
     switch (_operation) {
-      case SHIFT_LEFT:
+      case MathOperation::SHIFT_LEFT:
         result = convertToNatural(leftNumber) << convertToNatural(rightNumber);
         break;
-      case SHIFT_RIGHT:
+      case MathOperation::SHIFT_RIGHT:
         result = convertToNatural(leftNumber) >> convertToNatural(rightNumber);
         break;
-      case MODULUS:
+      case MathOperation::MODULUS:
 	result = fmod( leftNumber, rightNumber );	/* More general than % */
         break;
-      case ADD:
+      case MathOperation::ADD:
         result = leftNumber + rightNumber;
         break;
-      case SUBTRACT:
+      case MathOperation::SUBTRACT:
         result = leftNumber - rightNumber;
         break;
-      case MULTIPLY:
+      case MathOperation::MULTIPLY:
         result = leftNumber * rightNumber;
         break;
-      case DIVIDE:
+      case MathOperation::DIVIDE:
 	if ( rightNumber == 0 ) throw InternalErrorException("Division by zero");
         result = leftNumber / rightNumber;
         break;
-      case POWER:
+      case MathOperation::POWER:
 	result = pow( leftNumber, rightNumber );
 	break;
-    case NEGATE:
+      case MathOperation::NEGATE:
 	result = -leftNumber;
 	break;
       default:

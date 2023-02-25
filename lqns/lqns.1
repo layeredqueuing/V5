@@ -1,6 +1,6 @@
 .\" t -*- nroff -*-
-.TH lqns 1 "21 September 2022" "5.27"
-.\" $Id: lqns.1 15881 2022-09-21 12:58:42Z greg $
+.TH lqns 1 "23 February 2023" "5.28.2"
+.\" $Id: lqns.1 16441 2023-02-23 21:39:47Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -136,7 +136,10 @@ The input is checked for validity but no output is generated.
 .TP
 \fB\-o\fP, \fB\-\-output\fR=\fIarg\fR
 Direct analysis results to \fIoutput\fP.  A filename of `\fI-\fR'
-directs output to standard output.  If \fIoutput\fR is a directory, all output is saved in \fIoutput/input.out\fR. If the input model contains a SPEX program with loops, the SPEX output is sent to \fIoutput\fR; the individual model output files are found in the directory \fIoutput.d\fR. If \fBlqns\fP is invoked with this
+directs output to standard output.  If \fIoutput\fR is a directory, all output is saved in
+\fIoutput/input.out\fR. If the input model contains a SPEX program with loops, the SPEX output is sent to
+\fIoutput\fR; the individual model output files are found in the directory
+\fIoutput.d\fR. If \fBlqns\fP is invoked with this
 option, only one input file can be specified.
 .TP
 \fB\-p\fP, \fB\-\-parseable\fR
@@ -315,13 +318,17 @@ Re-run the LQX/SPEX program without re-solving the models.  Results must exist f
 This option is useful if LQX print statements or SPEX results are changed.
 .TP
 \fB\-\-restart\fR
-Re-run the LQX/SPEX program without re-solving models which were solved successfully.  Models which were not solved because of early termination, or which were not solved successfully because of convergence problems, will be solved.
+Re-run the LQX/SPEX program without re-solving models which were solved successfully.
+Models which were not solved because of early termination, or which were not solved successfully because of convergence problems, will be solved.
 This option is useful for running a second pass with a new convergnece value and/or iteration limit.
 .TP
 \fB\-\-no-header\fR
 Do not output the variable name header on SPEX results.
 This option can be also be set by using \fBpragma\fP \fIspex-header\fP=\fIno\fP.
 This option has no effect if SPEX is not used.
+.TP
+\fB\-\-spex-convergence\fR=\fIarg\fR
+Set the SPEX convergence value to <n.n>.
 .TP
 \fB\-\-print-comment\fR
 Add the model comment as the first line of output when running with SPEX input.
@@ -353,9 +360,6 @@ this option can be used to localize the error.
 \fB\-\-debug-lqx\fR
 Output debugging information as an LQX program is being parsed.
 .TP
-\fB\-\-debug-spex\fR
-Output LQX progam corresponding to SPEX input.
-.TP
 \fB\-\-debug-srvn\fR
 Output debugging information while parsing SRVN input.This is the output of the Bison LALR parser.
 .TP
@@ -363,6 +367,9 @@ Output debugging information while parsing SRVN input.This is the output of the 
 Output XML elements and attributes as they are being parsed.
 Since the XML parser usually stops when it encounters an error,
 this option can be used to localize the error.
+.TP
+\fB\-\-print-lqx\fR
+Output the LQX progam corresponding to SPEX input.
 .PP
 \fBLqns\fP exits with 0 on success, 1 if the model failed to converge,
 2 if the input was invalid, 4 if a command line argument was
@@ -638,6 +645,14 @@ Output the model comment in the SPEX output.
 The default is false.
 .RE
 .TP
+\fBspex-convergence\fR=\fIarg\fR
+Set the SPEX convergence value to \fIarg\fP.  
+\fIArg\fP must be a number greater than 0.
+SPEX convergence only applies if SPEX the convergence section is present in the input file.
+It should be set to a value with \fIless\fP precision than the convergence
+used by the analytic solver and far less than the expected confidence intervals expected by
+the simulator.
+.TP
 \fBspex-header\fR=\fIarg\fR
 This pragma is used to enable or disable the header line of SPEX output.
 \fIArg\fP must be one of: 
@@ -651,6 +666,16 @@ Output a header line consisting of the names of all of the variables used in the
 .LP
 The default is false.
 .RE
+.TP
+\fBspex-iteration-limit\fR=\fIarg\fR
+Set the SPEX Iteration Limit to \fIarg\fP.  
+\fIArg\fP must be a number greater than 0.
+The SPEX iteration limit only applies if SPEX the convergence section is present in the input file.
+.TP
+\fBspex-underrelaxation\fR=\fIarg\fR
+Set the SPEX underrelaxation value to \fIarg\fP.  
+\fIArg\fP must be a number between 0.0 and 1.0.
+The SPEX underrelaxation only applies if SPEX the convergence section is present in the input file.
 .TP
 \fBstop-on-message-loss\fR=\fIarg\fR
 This pragma is used to control the operation of the solver when the

@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 15970 2022-10-13 23:15:17Z greg $
+ * $Id: help.cc 16441 2023-02-23 21:39:47Z greg $
  */
 
 #include "lqns.h"
@@ -72,6 +72,7 @@ static const std::map<const std::string,const std::string> opt_help = {
     { "reload-lqx",				"Run the LQX program, but re-use the results from a previous invocation." },
     { "restart",				"Reuse existing valid results.	Otherwise, run the solver." },
     { "no-header",				"Do not output the variable name header on SPEX results." },
+    { LQIO::DOM::Pragma::_spex_convergence_,	"Set the SPEX convergence value to <n.n>." },
     { "no-variance",				"Do not use variances in the waiting time calculations." },
     { "print-comment",				"Add the model comment as the first line of output when running with SPEX input." },
     { "print-interval",				"Output the intermediate solution of the model after <n> iterations." },
@@ -82,7 +83,7 @@ static const std::map<const std::string,const std::string> opt_help = {
     { "debug-lqx",				"Output debugging information while parsing LQX input." },
     { "debug-xml",				"Output debugging information while parsing XML input." },
     { "debug-srvn",				"Output debugging information while parsing SRVN input." },
-    { "print-lqx",				"Output LQX progam corresponding to SPEX input." }
+    { "print-lqx",				"Output the LQX progam corresponding to SPEX input." }
 };
 
 
@@ -112,6 +113,7 @@ const std::map<const int,const Help::help_fptr> Help::__option_table =
     { 'w',	&Help::flagWarning },
     { 'x',	&Help::flagXML },
     { 'z',	&Help::flagSpecial },
+    { 256+'C',  &Help::flagSPEXConvergence },
     { 256+'e',	&Help::flagExactMVA },
     { 256+'s',	&Help::flagSchweitzerMVA },
     { 256+'b',	&Help::flagBatch },
@@ -168,6 +170,9 @@ const Help::pragma_map_t Help::__pragmas =
     { LQIO::DOM::Pragma::_save_marginal_probabilities_,pragma_info( &Help::pragmaSaveMarginalProbabilities ) },
     { LQIO::DOM::Pragma::_severity_level_,	    pragma_info( &Help::pragmaSeverityLevel, &__warning_args ) },
     { LQIO::DOM::Pragma::_spex_comment_,	    pragma_info( &Help::pragmaSpexComment, &__spex_comment_args ) },
+    { LQIO::DOM::Pragma::_spex_convergence_,	    pragma_info( &Help::pragmaSpexConvergence ) },
+    { LQIO::DOM::Pragma::_spex_iteration_limit_,    pragma_info( &Help::pragmaSpexIterationLimit ) },
+    { LQIO::DOM::Pragma::_spex_underrelaxation_,    pragma_info( &Help::pragmaSpexUnderrelaxation ) },
     { LQIO::DOM::Pragma::_spex_header_,		    pragma_info( &Help::pragmaSpexHeader, &__spex_header_args ) },
     { LQIO::DOM::Pragma::_stop_on_message_loss_,    pragma_info( &Help::pragmaStopOnMessageLoss, &__stop_on_message_loss_args ) },
     { LQIO::DOM::Pragma::_tau_,			    pragma_info( &Help::pragmaTau ) },
@@ -350,6 +355,7 @@ usage ( const char * optarg )
 		case 'z': s += "=<special>"; break;
 
 		case 'i':
+		case (256+'C'):
 		case (256+'c'):
 		case (256+'i'):
 		case (256+'k'):
@@ -854,9 +860,9 @@ std::ostream&
 Help::flagOutput( std::ostream& output, bool verbose ) const
 {
     output << "Direct analysis results to " << emph( *this, "output" ) << ix( *this, "output" ) << ".  A filename of `" << filename( *this, "-" )  << ix( *this, "standard input" ) << "'" << std::endl
-	   << "directs output to standard output.  If " << filename( *this, "output" ) << " is a directory, all output is saved in "
-	   << filename( *this, "output/input.out" ) << ". If the input model contains a SPEX program with loops, the SPEX output is sent to "
-	   << filename( *this, "output" ) << "; the individual model output files are found in the directory "
+	   << "directs output to standard output.  If " << filename( *this, "output" ) << " is a directory, all output is saved in" << std::endl
+	   << filename( *this, "output/input.out" ) << ". If the input model contains a SPEX program with loops, the SPEX output is sent to" << std::endl
+	   << filename( *this, "output" ) << "; the individual model output files are found in the directory"  << std::endl
 	   << filename( *this, "output.d" ) << ". If " << bold( *this, "lqns" ) <<" is invoked with this" << std::endl
 	   << "option, only one input file can be specified." << std::endl;
     return output;
@@ -934,7 +940,8 @@ Help::flagResetMVA( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::flagRestartLQX( std::ostream& output, bool verbose ) const
 {
-    output << "Re-run the LQX/SPEX" << ix( *this, "LQX" ) <<  " program without re-solving models which were solved successfully.  Models which were not solved because of early termination, or which were not solved successfully because of convergence problems, will be solved." << std::endl
+    output << "Re-run the LQX/SPEX" << ix( *this, "LQX" ) <<  " program without re-solving models which were solved successfully."  << std::endl
+	   << "Models which were not solved because of early termination, or which were not solved successfully because of convergence problems, will be solved." << std::endl
 	   << "This option is useful for running a second pass with a new convergnece value and/or iteration limit." << std::endl;
     return output;
 }
@@ -973,6 +980,13 @@ Help::flagSpecial( std::ostream& output, bool verbose ) const
     return output;
 }
 
+
+std::ostream&
+Help::flagSPEXConvergence( std::ostream& output, bool verbose ) const
+{
+    output << opt_help.at( LQIO::DOM::Pragma::_spex_convergence_ ) << std::endl;
+    return output;
+}
 
 std::ostream&
 Help::flagSRVNLayering( std::ostream& output, bool verbose ) const
@@ -1928,6 +1942,45 @@ Help::pragmaSpexCommentTrue( std::ostream& output, bool verbose ) const
 /* -- */
 
 std::ostream&
+Help::pragmaSpexConvergence( std::ostream& output, bool verbose ) const
+{
+    output << "Set the SPEX convergence value to " << emph( *this, "arg" ) << ".  " << std::endl;
+    if ( verbose ) {
+	output << emph( *this, "Arg" ) << " must be a number greater than 0." << std::endl;
+    }
+    output << "SPEX convergence only applies if SPEX the convergence section is present in the input file." << std::endl
+	   << "It should be set to a value with " << emph( *this, "less" ) << " precision than the convergence" << std::endl
+	   << "used by the analytic solver and far less than the expected confidence intervals expected by" << std::endl
+	   << "the simulator." << std::endl;
+    return output;
+}
+
+
+std::ostream&
+Help::pragmaSpexIterationLimit( std::ostream& output, bool verbose ) const
+{
+    output << "Set the SPEX Iteration Limit to " << emph( *this, "arg" ) << ".  " << std::endl;
+    if ( verbose ) {
+	output << emph( *this, "Arg" ) << " must be a number greater than 0." << std::endl;
+    }
+    output << "The SPEX iteration limit only applies if SPEX the convergence section is present in the input file." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaSpexUnderrelaxation( std::ostream& output, bool verbose ) const
+{
+    output << "Set the SPEX underrelaxation value to " << emph( *this, "arg" ) << ".  " << std::endl;
+    if ( verbose ) {
+	output << emph( *this, "Arg" ) << " must be a number between 0.0 and 1.0." << std::endl;
+    }
+    output << "The SPEX underrelaxation only applies if SPEX the convergence section is present in the input file." << std::endl;
+    return output;
+}
+
+/* -- */
+
+std::ostream&
 Help::pragmaSpexHeader( std::ostream& output, bool verbose ) const
 {
     output << "This pragma is used to enable or disable the header line of SPEX output." << std::endl
@@ -2230,7 +2283,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 15970 2022-10-13 23:15:17Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 16441 2023-02-23 21:39:47Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2529,7 +2582,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 15970 2022-10-13 23:15:17Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 16441 2023-02-23 21:39:47Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

@@ -140,52 +140,52 @@ expr(X) ::= expr(A) COMMA assignment_stmt(B).                                 { 
 
 assignment_stmt(X) ::= logic_or_stmt(A).                                      { X = A; }
 assignment_stmt(X) ::= vpf_stmt(A) EQUALS logic_or_stmt(B).                   { X = new AssignmentStatementNode(A, B); }
-assignment_stmt(X) ::= vpf_stmt(A) EXP_EQUALS logic_or_stmt(B).               { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::POWER, A, B)); }
-assignment_stmt(X) ::= vpf_stmt(A) STAR_EQUALS logic_or_stmt(B).              { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::MULTIPLY, A, B)); }
-assignment_stmt(X) ::= vpf_stmt(A) SLASH_EQUALS logic_or_stmt(B).             { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::DIVIDE, A, B)); }
-assignment_stmt(X) ::= vpf_stmt(A) PLUS_EQUALS logic_or_stmt(B).              { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::ADD, A, B)); }
-assignment_stmt(X) ::= vpf_stmt(A) MINUS_EQUALS logic_or_stmt(B).             { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::SUBTRACT, A, B)); }
-assignment_stmt(X) ::= vpf_stmt(A) MOD_EQUALS logic_or_stmt(B).               { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::MODULUS, A, B)); }
-assignment_stmt(X) ::= vpf_stmt(A) LEFTSHIFT_EQUALS logic_or_stmt(B).         { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::SHIFT_LEFT, A, B)); }
-assignment_stmt(X) ::= vpf_stmt(A) RIGHTSHIFT_EQUALS logic_or_stmt(B).        { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::SHIFT_RIGHT, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) EXP_EQUALS logic_or_stmt(B).               { X = new AssignmentStatementNode(A, new MathExpression(MathOperation::POWER, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) STAR_EQUALS logic_or_stmt(B).              { X = new AssignmentStatementNode(A, new MathExpression(MathOperation::MULTIPLY, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) SLASH_EQUALS logic_or_stmt(B).             { X = new AssignmentStatementNode(A, new MathExpression(MathOperation::DIVIDE, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) PLUS_EQUALS logic_or_stmt(B).              { X = new AssignmentStatementNode(A, new MathExpression(MathOperation::ADD, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) MINUS_EQUALS logic_or_stmt(B).             { X = new AssignmentStatementNode(A, new MathExpression(MathOperation::SUBTRACT, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) MOD_EQUALS logic_or_stmt(B).               { X = new AssignmentStatementNode(A, new MathExpression(MathOperation::MODULUS, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) LEFTSHIFT_EQUALS logic_or_stmt(B).         { X = new AssignmentStatementNode(A, new MathExpression(MathOperation::SHIFT_LEFT, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) RIGHTSHIFT_EQUALS logic_or_stmt(B).        { X = new AssignmentStatementNode(A, new MathExpression(MathOperation::SHIFT_RIGHT, A, B)); }
      
 
 logic_or_stmt(X) ::= logic_and_stmt(A).                                       { X = A; }
-logic_or_stmt(X) ::= logic_or_stmt(A) LOGIC_OR logic_and_stmt(B).             { X = new LogicExpression(LogicExpression::OR, A, B); }
+logic_or_stmt(X) ::= logic_or_stmt(A) LOGIC_OR logic_and_stmt(B).             { X = new LogicExpression(LogicOperation::OR, A, B); }
 
 logic_and_stmt(X) ::= relation_stmt(A).                                       { X = A; }
-logic_and_stmt(X) ::= logic_and_stmt(A) LOGIC_AND relation_stmt(B).           { X = new LogicExpression(LogicExpression::AND, A, B); }
+logic_and_stmt(X) ::= logic_and_stmt(A) LOGIC_AND relation_stmt(B).           { X = new LogicExpression(LogicOperation::AND, A, B); }
 
 relation_stmt(X) ::= compare_stmt(A).                                         { X = A; }
-relation_stmt(X) ::= relation_stmt(A) EQUALS_EQUALS compare_stmt(B).          { X = new ComparisonExpression(ComparisonExpression::EQUALS, A, B); }
-relation_stmt(X) ::= relation_stmt(A) NOT_EQUALS compare_stmt(B).             { X = new ComparisonExpression(ComparisonExpression::NOT_EQUALS,  A, B); }
+relation_stmt(X) ::= relation_stmt(A) EQUALS_EQUALS compare_stmt(B).          { X = new ComparisonExpression(CompareMode::EQUALS, A, B); }
+relation_stmt(X) ::= relation_stmt(A) NOT_EQUALS compare_stmt(B).             { X = new ComparisonExpression(CompareMode::NOT_EQUALS,  A, B); }
 
 compare_stmt(X) ::= shift_stmt(A).                                            { X = A; }
-compare_stmt(X) ::= compare_stmt(A) LESS_THAN shift_stmt(B).                  { X = new ComparisonExpression(ComparisonExpression::LESS_THAN, A, B); }
-compare_stmt(X) ::= compare_stmt(A) LESS_EQUAL shift_stmt(B).                 { X = new ComparisonExpression(ComparisonExpression::LESS_OR_EQUAL, A, B); }
-compare_stmt(X) ::= compare_stmt(A) GREATER_THAN shift_stmt(B).               { X = new ComparisonExpression(ComparisonExpression::GREATER_THAN, A, B); }
-compare_stmt(X) ::= compare_stmt(A) GREATER_EQUAL shift_stmt(B).              { X = new ComparisonExpression(ComparisonExpression::GREATER_OR_EQUAL, A, B); }
+compare_stmt(X) ::= compare_stmt(A) LESS_THAN shift_stmt(B).                  { X = new ComparisonExpression(CompareMode::LESS_THAN, A, B); }
+compare_stmt(X) ::= compare_stmt(A) LESS_EQUAL shift_stmt(B).                 { X = new ComparisonExpression(CompareMode::LESS_OR_EQUAL, A, B); }
+compare_stmt(X) ::= compare_stmt(A) GREATER_THAN shift_stmt(B).               { X = new ComparisonExpression(CompareMode::GREATER_THAN, A, B); }
+compare_stmt(X) ::= compare_stmt(A) GREATER_EQUAL shift_stmt(B).              { X = new ComparisonExpression(CompareMode::GREATER_OR_EQUAL, A, B); }
 
 shift_stmt(X) ::= add_sub_stmt(A).                                            { X = A; }
-shift_stmt(X) ::= shift_stmt(A) LEFTSHIFT add_sub_stmt(B).                    { X = new MathExpression(MathExpression::SHIFT_LEFT, A, B); }
-shift_stmt(X) ::= shift_stmt(A) RIGHTSHIFT add_sub_stmt(B).                   { X = new MathExpression(MathExpression::SHIFT_RIGHT, A, B); }
+shift_stmt(X) ::= shift_stmt(A) LEFTSHIFT add_sub_stmt(B).                    { X = new MathExpression(MathOperation::SHIFT_LEFT, A, B); }
+shift_stmt(X) ::= shift_stmt(A) RIGHTSHIFT add_sub_stmt(B).                   { X = new MathExpression(MathOperation::SHIFT_RIGHT, A, B); }
 
 add_sub_stmt(X) ::= mul_div_stmt(A).                                          { X = A; }
-add_sub_stmt(X) ::= add_sub_stmt(A) PLUS mul_div_stmt(B).                     { X = new MathExpression(MathExpression::ADD, A, B); }  
-add_sub_stmt(X) ::= add_sub_stmt(A) MINUS mul_div_stmt(B).                    { X = new MathExpression(MathExpression::SUBTRACT, A, B); }
+add_sub_stmt(X) ::= add_sub_stmt(A) PLUS mul_div_stmt(B).                     { X = new MathExpression(MathOperation::ADD, A, B); }  
+add_sub_stmt(X) ::= add_sub_stmt(A) MINUS mul_div_stmt(B).                    { X = new MathExpression(MathOperation::SUBTRACT, A, B); }
 
 mul_div_stmt(X) ::= exp_stmt(A).                                              { X = A; }
-mul_div_stmt(X) ::= mul_div_stmt(A) STAR exp_stmt(B).                         { X = new MathExpression(MathExpression::MULTIPLY, A, B); }  
-mul_div_stmt(X) ::= mul_div_stmt(A) SLASH exp_stmt(B).                        { X = new MathExpression(MathExpression::DIVIDE, A, B); }  
-mul_div_stmt(X) ::= mul_div_stmt(A) MOD exp_stmt(B).                          { X = new MathExpression(MathExpression::MODULUS, A, B); }  
+mul_div_stmt(X) ::= mul_div_stmt(A) STAR exp_stmt(B).                         { X = new MathExpression(MathOperation::MULTIPLY, A, B); }  
+mul_div_stmt(X) ::= mul_div_stmt(A) SLASH exp_stmt(B).                        { X = new MathExpression(MathOperation::DIVIDE, A, B); }  
+mul_div_stmt(X) ::= mul_div_stmt(A) MOD exp_stmt(B).                          { X = new MathExpression(MathOperation::MODULUS, A, B); }  
 
 exp_stmt(X) ::= prefix_stmt(A).                                               { X = A; }
-exp_stmt(X) ::= prefix_stmt(A) EXP exp_stmt(B).                               { X = new MathExpression(MathExpression::POWER, A, B); }                
+exp_stmt(X) ::= prefix_stmt(A) EXP exp_stmt(B).                               { X = new MathExpression(MathOperation::POWER, A, B); }                
 
 prefix_stmt(X) ::= vpf_stmt(A).                                               { X = A; }
-prefix_stmt(X) ::= LOGIC_NOT vpf_stmt(A).                                     { X = new LogicExpression(LogicExpression::NOT, A, NULL); }
+prefix_stmt(X) ::= LOGIC_NOT vpf_stmt(A).                                     { X = new LogicExpression(LogicOperation::NOT, A, NULL); }
 prefix_stmt(X) ::= PLUS vpf_stmt(A).                                          { X = A; }
-prefix_stmt(X) ::= MINUS vpf_stmt(A).                                         { X = new MathExpression(MathExpression::NEGATE, A, NULL); }
+prefix_stmt(X) ::= MINUS vpf_stmt(A).                                         { X = new MathExpression(MathOperation::NEGATE, A, NULL); }
 
 vpf_stmt(X) ::= postfix_stmt(A).                                              { X = A; }
 vpf_stmt(X) ::= vpf_stmt(A) OSQUARE logic_or_stmt(B) CSQUARE.                 { X = new MethodInvocationExpression("array_get", A, B, NULL); }

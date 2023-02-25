@@ -10,7 +10,7 @@
  * November, 1994
  * December, 2020
  *
- * $Id: pragma.h 16351 2023-01-19 11:17:50Z greg $
+ * $Id: pragma.h 16441 2023-02-23 21:39:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -203,16 +203,34 @@ public:
 	    return __cache->_severity_level;
 	}
 
+    static bool spexComment()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_spex_comment;
+	}
+
+    static bool spexConvergence()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_spex_convergence;
+	}
+
     static bool spexHeader()
 	{
 	    assert( __cache != nullptr );
 	    return __cache->_spex_header;
 	}
 
-    static bool spexComment()
+    static unsigned int spexIterationLimit()
 	{
 	    assert( __cache != nullptr );
-	    return __cache->_spex_comment;
+	    return __cache->_spex_iteration_limit;
+	}
+    
+    static double spexUnderrelaxation()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_spex_underrelaxation;
 	}
 
     static bool stopOnMessageLoss()
@@ -315,7 +333,10 @@ private:
     void setSaveMarginalProbabilities(const std::string&);
     void setSeverityLevel(const std::string&);
     void setSpexComment(const std::string&);
+    void setSpexConvergence(const std::string&);
     void setSpexHeader(const std::string&);
+    void setSpexIterationLimit(const std::string&);
+    void setSpexUnderrelaxation(const std::string&);
     void setStopOnBogusUtilization(const std::string&);
     void setStopOnMessageLoss(const std::string&);
     void setTaskScheduling(const std::string&);
@@ -358,7 +379,10 @@ private:
     bool _save_marginal_probabilities;
     LQIO::error_severity _severity_level;
     bool _spex_comment;
+    double _spex_convergence;
     bool _spex_header;
+    unsigned int _spex_iteration_limit;
+    double _spex_underrelaxation;
     double _stop_on_bogus_utilization;
     bool _stop_on_message_loss;
     scheduling_type _task_scheduling;

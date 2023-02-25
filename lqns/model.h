@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 16339 2023-01-17 11:40:48Z greg $
+ * $Id: model.h 16439 2023-02-23 00:36:46Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -70,12 +70,12 @@ public:
 public:
     static LQIO::DOM::Document* load( const std::string& inputFileName, const std::string& outputFileName );
     static int solve( solve_using, const std::string&, const std::string&, LQIO::DOM::Document::OutputFormat );
-    static void recalculateDynamicValues( const LQIO::DOM::Document* document );
-    static void setModelParameters( const LQIO::DOM::Document* doc );
+    void recalculateDynamicValues();
 
 private:
     static bool prepare( const LQIO::DOM::Document* document );
     static Model * create( const LQIO::DOM::Document *, const std::string&, const std::string&, LQIO::DOM::Document::OutputFormat );
+    void setModelParameters();
 
 public:
     bool check();
@@ -96,6 +96,8 @@ public:
     std::ostream& printSubmodelWait( std::ostream& output = std::cout ) const;
 
 protected:
+    const LQIO::DOM::Document * getDOM() const { return _document; }
+
     virtual unsigned assignSubmodel() = 0;
     static unsigned topologicalSort();
     virtual void addToSubmodel() = 0;
@@ -103,7 +105,11 @@ protected:
     void initStations();
     void reinitStations();
 
-    double relaxation() const;
+    double convergenceValue() const { return _convergence_value; }	/* Cached */
+    unsigned iterationLimit() const { return _iteration_limit; }
+    double underrelaxation() const;					/* Cached */
+    unsigned printInterval() const { return __print_interval; }
+
     virtual void backPropogate() {}
 
     virtual double run() = 0;			/* Solve Model.		*/
@@ -120,26 +126,27 @@ private:
     std::ostream& printOvertaking( std::ostream& ) const;
 
 public:
-    static double __convergence_value;
-    static unsigned __iteration_limit;
-    static double __underrelaxation;
-    static unsigned __print_interval;
     static LQIO::DOM::Document::InputFormat __input_format;
     static std::set<Processor *,lt_replica<Processor>> __processor;
     static std::set<Group *,lt_replica<Group>> __group;
     static std::set<Task *,lt_replica<Task>> __task;
     static std::set<Entry *,lt_replica<Entry>> __entry;
     static Processor * __think_server;	/* Delay server for think times	*/
+    static unsigned __print_interval;	/* for option processing	*/
 
-protected:
-    static unsigned __sync_submodel;	/* Level of special sync model. */
-    
 protected:
     Vector<Submodel *> _submodels;
     bool _converged;			/* True if converged.		*/
     unsigned long _iterations;		/* Number of Model iterations.	*/
     Vector<MVACount> _MVAStats;		/* MVA statistics by level.	*/
 
+    double _convergence_value;		/* Cached */
+    unsigned _iteration_limit;		/* Cached */
+    double _underrelaxation;		/* Cached */
+    
+protected:
+    static unsigned __sync_submodel;	/* Level of special sync model. */
+    
 private:
     unsigned long _step_count;		/* Number of solveLayers	*/
     bool _model_initialized;
@@ -147,6 +154,8 @@ private:
     const std::string _input_file_name;
     const std::string _output_file_name;
     const LQIO::DOM::Document::OutputFormat _output_format;
+
+private:
     static const std::map<const LQIO::DOM::Document::OutputFormat,const std::string> __parseable_output;
 };
 

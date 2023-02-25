@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 16425 2023-02-14 16:53:54Z greg $
+ * $Id: json_document.cpp 16428 2023-02-15 14:30:27Z greg $
  *
  * Read in JSON input files.
  *
@@ -2723,7 +2723,7 @@ namespace LQIO {
 	    _output << indent() << "\"" << Common_IO::svn_id() << "\"";
 	    _output << end_array() << ",";
 
-	    if ( !document.instantiated() && Spex::numberOfInputVariables() > 0 ) {
+	    if ( !document.instantiated() && !Spex::input_variables().empty() ) {
 		_output << begin_array( Xparameters );
 		const std::map<std::string,LQX::SyntaxTreeNode *>& vars = Spex::input_variables();
 		std::for_each( vars.begin(), vars.end(), ExportParameters( _output, _conf_95 ) );

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: xml_input.cpp 15868 2022-09-20 08:57:33Z greg $
+ * $Id: xml_input.cpp 16436 2023-02-17 02:04:49Z greg $
  *
  * Read in XML input files.
  *
@@ -37,9 +37,9 @@ namespace XML
 
     double get_double( const char * attr, const char * val )
     {
-	char * end_ptr = 0;
+	char * end_ptr = nullptr;
 	const double value = strtod( val, &end_ptr );
-	if ( errno == ERANGE || value < 0 || ( end_ptr && *end_ptr != '\0' ) ) {
+	if ( (!std::isnan(value) && value < 0.) || ( end_ptr && *end_ptr != '\0' ) ) {
 	    invalid_argument( attr, val );
 	}
 	return value;
@@ -47,8 +47,8 @@ namespace XML
 
     long get_long( const char * attr, const char * val )
     {
-	char * end_ptr = 0;
-	const double value = strtol( val, &end_ptr, 10 );
+	char * end_ptr = nullptr;
+	const long value = strtol( val, &end_ptr, 10 );
 	if ( errno == ERANGE || value < 0 || ( end_ptr && *end_ptr != '\0' ) ) {
 	    invalid_argument( attr, val );
 	}

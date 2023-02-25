@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 15968 2022-10-13 19:23:03Z greg $
+ * $Id: help.h 16441 2023-02-23 21:39:47Z greg $
  */
 
 #ifndef _HELP_H
@@ -169,6 +169,7 @@ private:
     std::ostream& flagSRVNLayering( std::ostream& output, bool verbose ) const;
     std::ostream& flagSchweitzerMVA( std::ostream& output, bool verbose ) const;
     std::ostream& flagSpecial( std::ostream& output, bool verbose ) const;
+    std::ostream& flagSPEXConvergence( std::ostream& output, bool verbose ) const;
     std::ostream& flagSquashedLayering( std::ostream& output, bool verbose ) const;
     std::ostream& flagStopOnMessageLoss( std::ostream& output, bool verbose ) const;
     std::ostream& flagTrace( std::ostream& output, bool verbose ) const;
@@ -252,7 +253,10 @@ public:
     std::ostream& pragmaSaveMarginalProbabilities( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaSeverityLevel( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaSpexComment( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaSpexConvergence( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaSpexHeader( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaSpexIterationLimit( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaSpexUnderrelaxation( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaTau( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaThreads( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaUnderrelaxation( std::ostream & output, bool verbose ) const;

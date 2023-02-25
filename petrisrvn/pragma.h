@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 15955 2022-10-07 11:05:00Z greg $
+ * $Id: pragma.h 16442 2023-02-24 12:59:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -31,7 +31,10 @@ public:
     bool save_marginal_probabilities() const { return _save_marginal_probabilities; }
     LQIO::error_severity severity_level() { return _severity_level; }
     bool spex_comment() const { return _spex_comment; }
+    double spex_convergence() const { return _spex_convergence; }
     bool spex_header() const { return _spex_header; }
+    unsigned int spex_iteration_limit() const { return _spex_iteration_limit; }
+    double spex_underrelaxation() const { return _spex_underrelaxation; }
     bool stop_on_message_loss() const { return _stop_on_message_loss; }
     scheduling_type task_scheduling() const { return _task_scheduling; }
 
@@ -48,7 +51,10 @@ private:
     void set_save_marginal_probabilities( const std::string& );
     void set_severity_level( const std::string& );
     void set_spex_comment( const std::string& );
+    void set_spex_convergence( const std::string& );
     void set_spex_header( const std::string& );
+    void set_spex_iteration_limit(  const std::string& );
+    void set_spex_underrelaxation( const std::string& );
     void set_stop_on_message_loss( const std::string& );
     void set_task_scheduling( const std::string& );
 
@@ -60,7 +66,10 @@ private:
     bool _save_marginal_probabilities;
     LQIO::error_severity _severity_level;
     bool _spex_comment;
+    double _spex_convergence;
     bool _spex_header;
+    unsigned int _spex_iteration_limit;
+    double _spex_underrelaxation;
     bool _stop_on_message_loss;
     scheduling_type _task_scheduling;
     bool _default_processor_scheduling;

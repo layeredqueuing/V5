@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16199 2022-12-26 15:04:39Z greg $
+# $Id: Makefile.am 16429 2023-02-15 16:41:59Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -32,7 +32,8 @@ MULTI=	20-multiserver.lqxo \
 	23-multiserver.lqxo \
 	24-multiserver.lqxo
 OVER=	31-overtaking.lqxo \
-	32-async-inf.lqxo
+	32-async-inf.lqxo \
+	33-spex-convergence.lqxo
 ACT=	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \
@@ -144,6 +145,13 @@ clean:
 
 distclean:	clean 
 	@-rm -f Makefile
+
+33-spex-convergence.lqxo: 33-spex-convergence.lqnx
+	$(SRVN) -o $*.out $<
+	@mv $*.d/$*-002.lqxo $@
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
+	@rm -rf $*.d
+
 
 # 48-activities.lqxo: 48-activities.lqnx
 # 	$(SRVN) $(OPTS) -a $<

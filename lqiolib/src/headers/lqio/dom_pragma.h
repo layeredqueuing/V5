@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 16114 2022-11-17 17:29:07Z greg $
+ * $Id: dom_pragma.h 16441 2023-02-23 21:39:47Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -162,7 +162,10 @@ namespace LQIO {
 	    static const char * _simple_;
 	    static const char * _special_;
 	    static const char * _spex_comment_;
+	    static const char * _spex_convergence_;
 	    static const char * _spex_header_;
+	    static const char * _spex_iteration_limit_;
+	    static const char * _spex_underrelaxation_;
 	    static const char * _squashed_;
 	    static const char * _srvn_;
 	    static const char * _stochastic_;

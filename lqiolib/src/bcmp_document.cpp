@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 16369 2023-01-26 19:21:33Z greg $
+ * $Id: bcmp_document.cpp 16431 2023-02-15 20:17:55Z greg $
  *
  * Read in XML input files.
  *
@@ -181,7 +181,7 @@ namespace BCMP {
 	if ( a1 == nullptr ) return a2;
 	else if ( a2 == nullptr ) return a1;
 	if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) + Model::getDoubleValue(a2) );
-	else return new LQX::MathExpression( LQX::MathExpression::ADD, a1, a2 );
+	else return new LQX::MathExpression( LQX::MathOperation::ADD, a1, a2 );
     }
 
     LQX::SyntaxTreeNode *
@@ -190,7 +190,7 @@ namespace BCMP {
 	if ( a2 == nullptr ) return a1;
 	else if ( a1 == nullptr ) return subtract( new LQX::ConstantValueExpression( 0. ), a2 );
 	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) - Model::getDoubleValue(a2) );
-	else return new LQX::MathExpression( LQX::MathExpression::SUBTRACT, a1, a2 );
+	else return new LQX::MathExpression( LQX::MathOperation::SUBTRACT, a1, a2 );
     }
 
     LQX::SyntaxTreeNode *
@@ -199,7 +199,7 @@ namespace BCMP {
 	if ( isDefault( a1 ) ) return new LQX::ConstantValueExpression( 0. );
 	else if ( isDefault( a2, 1.0 ) ) return a1;
 	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) / Model::getDoubleValue(a2) );
-	else return new LQX::MathExpression( LQX::MathExpression::DIVIDE, a1, a2 );
+	else return new LQX::MathExpression( LQX::MathOperation::DIVIDE, a1, a2 );
     }
 
     LQX::SyntaxTreeNode *
@@ -209,7 +209,7 @@ namespace BCMP {
 	else if ( isDefault( a1, 1.0 ) ) return a2;
 	else if ( isDefault( a2, 1.0 ) ) return a1;
 	else if ( dynamic_cast<LQX::ConstantValueExpression *>(a1) && dynamic_cast<LQX::ConstantValueExpression *>(a2) ) return new LQX::ConstantValueExpression( Model::getDoubleValue(a1) * Model::getDoubleValue(a2) );
-	else return new LQX::MathExpression( LQX::MathExpression::MULTIPLY, a1, a2 );
+	else return new LQX::MathExpression( LQX::MathOperation::MULTIPLY, a1, a2 );
     }
 
     LQX::SyntaxTreeNode *
@@ -226,7 +226,7 @@ namespace BCMP {
     {
 	if ( divisor == nullptr ) return nullptr;
 	else if ( dynamic_cast<LQX::ConstantValueExpression *>(divisor) ) return new LQX::ConstantValueExpression( 1. / Model::getDoubleValue(divisor) );
-	return new LQX::MathExpression( LQX::MathExpression::DIVIDE, new LQX::ConstantValueExpression( 1. ), divisor );
+	return new LQX::MathExpression( LQX::MathOperation::DIVIDE, new LQX::ConstantValueExpression( 1. ), divisor );
     }
 
     
@@ -590,13 +590,13 @@ namespace BCMP {
     {
 	LQX::SyntaxTreeNode * visits = this->visits();
 	if ( !isDefault(visits) && !isDefault(addend.visits()) ) {
-	    visits       = new LQX::MathExpression( LQX::MathExpression::ADD, visits, addend.visits() );
+	    visits       = new LQX::MathExpression( LQX::MathOperation::ADD, visits, addend.visits() );
 	} else if ( isDefault(visits) ) {
 	    visits       = addend.visits();
 	} /* No operation */
 	LQX::SyntaxTreeNode * service_time = this->service_time();
 	if ( !isDefault(service_time) && !isDefault(addend.service_time()) ) {
-	    service_time  = new LQX::MathExpression( LQX::MathExpression::ADD, service_time, addend.service_time() );
+	    service_time  = new LQX::MathExpression( LQX::MathOperation::ADD, service_time, addend.service_time() );
 	} else if ( isDefault(service_time) ) {
 	    service_time = addend.service_time();
 	}
@@ -624,12 +624,12 @@ namespace BCMP {
     Model::Station::Class::accumulate( const Class& addend )
     {
 	if ( !isDefault(visits()) && !isDefault(addend.visits()) ) {
-	    _visits       = new LQX::MathExpression( LQX::MathExpression::ADD, _visits, addend.visits() );
+	    _visits       = new LQX::MathExpression( LQX::MathOperation::ADD, _visits, addend.visits() );
 	} else if ( isDefault(visits()) ) {
 	    _visits       = addend.visits();
 	} /* No operation */
 	if ( !isDefault(service_time()) && !isDefault(addend.service_time()) ) {
-	    _service_time  = new LQX::MathExpression( LQX::MathExpression::ADD, _service_time, addend.service_time() );
+	    _service_time  = new LQX::MathExpression( LQX::MathOperation::ADD, _service_time, addend.service_time() );
 	} else if ( isDefault(service_time()) ) {
 	    _service_time = addend.service_time();
 	}

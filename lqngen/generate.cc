@@ -7,7 +7,7 @@
  * However, to eliminate code here, the spex construction functions will have to save the
  * LQX expressions and then construct the program.
  * ------------------------------------------------------------------------
- * $Id: generate.cc 15724 2022-06-28 15:05:23Z greg $
+ * $Id: generate.cc 16431 2023-02-15 20:17:55Z greg $
  */
 
 #include "lqngen.h"
@@ -1109,7 +1109,7 @@ Generate::ModelVariable::spex_random( const LQIO::DOM::ExternalVariable& var, co
 		    args->push_back( new LQX::ConstantValueExpression( clone->getArg(i) ) );
 		}
 		/* Need to add 1.. */
-		expr = new LQX::MathExpression(LQX::MathExpression::ADD, new LQX::MethodInvocationExpression( clone->name(), args ), new LQX::ConstantValueExpression(1.0) );
+		expr = new LQX::MathExpression(LQX::MathOperation::ADD, new LQX::MethodInvocationExpression( clone->name(), args ), new LQX::ConstantValueExpression(1.0) );
 		delete clone;
 	    } else {
 		std::vector<LQX::SyntaxTreeNode *> * args = new std::vector<LQX::SyntaxTreeNode*>();
