@@ -236,7 +236,7 @@ Entry::initialize()
 		curr_phase->get_dom()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
 	    }
 	    if ( ( calls > 0 || curr_phase->s() > 0.0 ) && p > n_phases() ) {
-		_n_phases = p;
+		set_n_phases( p );
 	    }
 	}
     } else if ( is_activity_entry() ) {
@@ -255,7 +255,7 @@ Entry::initialize()
 	}
     } else {
 	get_dom()->runtime_error( LQIO::ERR_NOT_SPECIFIED, name() );
-	_n_phases = 1;
+	set_n_phases( 1 );
     }
 
     if ( !has_service_time ) {

@@ -176,7 +176,7 @@ Activity::count_replies( std::deque<Activity *>& activity_stack, const Entry * e
 
 	/* tag phase */
     
-	if ( _entry == 0 ) {
+	if ( _entry == nullptr ) {
 	    _entry = e;
 	}
     
@@ -190,14 +190,16 @@ Activity::count_replies( std::deque<Activity *>& activity_stack, const Entry * e
 	    } else if ( e->requests() == Requesting_Type::SEND_NO_REPLY ) {
 		get_dom()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, e->name() );
 	    } else {
-		next_phase = 2;
+		if ( _output != nullptr ) {
+		    next_phase = 2;
+		}
 		sum = rate;
 	    }
 	} else if ( curr_phase > 1 ) {
 	    const_cast<Entry *>(e)->set_n_phases( curr_phase );
 	}
 
-	if ( _output ) {
+	if ( _output != nullptr ) {
 	    activity_stack.push_back( this );
 	    sum += _output->join_count_replies( activity_stack, e, rate, next_phase, next_phase );
 	    activity_stack.pop_back();

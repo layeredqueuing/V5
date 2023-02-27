@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16432 2023-02-15 23:02:12Z greg $
+# $Id: Makefile.am 16445 2023-02-27 02:40:57Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -80,7 +80,7 @@ SUFFIXES = .diff .d .lqxo .lqnx
 	$(SRVN) $(OPTS) $<
 
 .lqxo.diff:
-	-srvndiff ../../models/regression/{petri,sim}-results/$< $< > $@
+	-srvndiff -I ../../models/regression/{petri,sim}-results/$< $< > $@
 
 check:	$(OBJS)
 	echo $(OBJS) | tr -s " " "\n" | srvndiff -QI -S$(EPSILON) -@- . ../../models/regression/petri-results/
@@ -127,35 +127,35 @@ other:	$(OTHER)
 33-spex-convergence.lqxo: 33-spex-convergence.lqnx
 	$(SRVN) -o $*.out $<
 	@mv $*.d/$*-002.lqxo $@
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
+	@srvndiff -Q $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 	@rm -rf $*.d
 
 50-replication.lqxo:	50-replication.lqnx
-	rep2flat -Oxml -o$*-flat.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
-	rm $*-flat.*
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
 
 52-replication.lqxo:	52-replication.lqnx
-	rep2flat -Oxml -o$*-flat.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
-	rm $*-flat.*
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
 
 55-replication.lqxo:	55-replication.lqnx
-	rep2flat -Oxml -o$*-flat.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
-	rm $*-flat.*
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
 
 56-replication.lqxo:	56-replication.lqnx
-	rep2flat -Oxml -o$*-flat.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
-	rm $*-flat.*
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
 
 
