@@ -91,7 +91,7 @@ void Task::clear()
 {
     for ( unsigned int m = 0; m < MAX_MULT; ++m ) {
 	TX[m] = 0;			/* Task place.			*/
-#if defined(BUG_163)
+#if BUG_163
 	SyX[m] = 0;			/* Sync wait place.		*/
 #endif
 	GdX[m] = 0;			/* Guard Place			*/
@@ -105,7 +105,7 @@ void Task::clear()
     ZZ = 0;				/* For open requests.		*/
 #endif
     _queue_made = false;		/* true if queue made for __task	*/
-    _max_queue_length = 0;	
+    _max_queue_length = 0;
     _max_k = 0;				/* input queues. 		*/
 }
 
@@ -115,7 +115,7 @@ void Task::clear()
  * Clean out old transitions after run because we check recursively for 0 on construction.
  */
 
-void 
+void
 Task::remove_netobj()
 {
     for ( vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
@@ -123,7 +123,7 @@ Task::remove_netobj()
     }
     for ( unsigned int m = 0; m < MAX_MULT; ++m ) {
         TX[m] = 0;		/* Task place.			*/
-#if defined(BUG_163)
+#if BUG_163
 	SyX[m] = 0;		/* Sync wait place.		*/
 #endif
 	GdX[m] = 0;		/* Guard Place			*/
@@ -131,7 +131,7 @@ Task::remove_netobj()
 	LX[m] = 0;		/* Lock Place	(BUG_164)	*/
 #if !defined(BUFFER_BY_ENTRY)
 #endif
-        
+
     }
     ZZ = 0;			/* For open requests.		*/
 
@@ -141,7 +141,7 @@ Task::remove_netobj()
 }
 
 
-Task * 
+Task *
 Task::create( const LQIO::DOM::Task * dom )
 {
     const string& task_name = dom->getName();
@@ -194,7 +194,7 @@ Task::create( const LQIO::DOM::Task * dom )
 	}
         task = new Task( dom, Task::Type::SERVER, processor );
 	break;
-	
+
     case SCHEDULE_DELAY:
 	if ( dom->hasThinkTime() ) {
 	    dom->runtime_error( LQIO::ERR_NON_REF_THINK_TIME );
@@ -204,7 +204,7 @@ Task::create( const LQIO::DOM::Task * dom )
 	}
 	if ( dom->isMultiserver() ) {
 	    dom->runtime_error( LQIO::WRN_INFINITE_MULTI_SERVER, dom->getCopiesValue() );
-	}	
+	}
 	task = new Task( dom, Task::Type::SERVER, processor );
 	break;
 
@@ -237,7 +237,7 @@ Task::create( const LQIO::DOM::Task * dom )
 
 
 void
-Task::initialize() 
+Task::initialize()
 {
     if ( !entries.size() ) {
 	get_dom()->runtime_error( LQIO::ERR_TASK_HAS_NO_ENTRIES );
@@ -298,11 +298,11 @@ Task::initialize()
     }
 
     /* Can't have in-service probabilites on single phase task! */
-	
+
     if ( n_phases() < 2 ) {
 	_inservice_flag = false;
     }
-	
+
     for ( vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
 	double ysum = 0.0;
 	double zsum = 0.0;
@@ -419,11 +419,11 @@ unsigned Task::n_customers() const
     }
 }
 
-/* 
- * Create a new activity assigned to a given task and set the information DOM entry for it 
+/*
+ * Create a new activity assigned to a given task and set the information DOM entry for it
  */
 
-Activity * 
+Activity *
 Task::add_activity( LQIO::DOM::Activity * dom )
 {
     Activity * activity = find_activity( dom->getName() );
@@ -460,7 +460,7 @@ void Task::set_start_activity( LQIO::DOM::Entry* dom )
 {
     Activity* activity = find_activity( dom->getStartActivity()->getName() );
     Entry* realEntry = Entry::find( dom->getName() );
-	
+
     realEntry->set_start_activity(activity);
 }
 
@@ -478,7 +478,7 @@ unsigned int Task::set_queue_length()
 #if !defined(BUFFER_BY_ENTRY)
     bool open_model = false;
 #endif
-	
+
     if ( is_client() ) return 0;  				/* Skip reference tasks. 	*/
 
     /*
@@ -489,10 +489,10 @@ unsigned int Task::set_queue_length()
 	set<const Task *> visit;
 
 	/* Count rendezvous from other tasks 'i' */
-	    
+
 	for ( vector<Task *>::const_iterator i = ::__task.begin(); i != ::__task.end(); ++i ) {
 	    if ( (*i) == this || (*i)->type() == Task::Type::OPEN_SRC ) continue;
-	    
+
 	    for ( vector<Entry *>::const_iterator d = (*i)->entries.begin(); d != (*i)->entries.end(); ++d ) {
 		if ( (*d)->prob_fwd(*e) == 0.0 ) continue;
 
@@ -508,7 +508,7 @@ unsigned int Task::set_queue_length()
 
 	    for ( vector<Entry *>::const_iterator d = (*i)->entries.begin(); d != (*i)->entries.end(); ++d ) {
 		if ( !(*d)->is_regular_entry() ) continue;
-		    
+
 		for ( unsigned p = 1; p <= (*d)->n_phases(); p++) {
 		    if ( (*d)->phase[p].y(*e) == 0.0 && (*d)->phase[p].z(*e) == 0.0 ) continue;
 		    if ( visit.find( *i ) == visit.end() ) {
@@ -565,7 +565,7 @@ void
 Task::build_forwarding_lists()
 {
 //    if ( type() != Task::Type::REF_TASK ) return;
-		
+
     for ( vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
 	for ( unsigned p = 1; p <= (*e)->n_phases(); ++p ) {
 	    (*e)->phase[p].build_forwarding_list();
@@ -587,21 +587,21 @@ void
 Task::make_queue_places()
 {
     const double x_pos = get_x_pos() - 0.5;
-    const double y_pos = get_y_pos();	    
-    const unsigned ne  = n_entries();  
-		
+    const double y_pos = get_y_pos();
+    const unsigned ne  = n_entries();
+
     if ( _queue_made ) return;
     _queue_made = true;
 
     /*
      * Create places for queueing at entry.
      */
-		
+
     for ( unsigned k = 1; k <= max_queue_length(); ++k ) {
         (void) move_place_tag( create_place( X_OFFSET(1,0.0), y_pos + __queue_y_offset + (double)k, FIFO_LAYER, 1, "Sh%s%d", name(), k ), PLACE_X_OFFSET, PLACE_Y_OFFSET );
     }
 }
-		
+
 
 
 /*
@@ -638,10 +638,10 @@ Task::transmorgrify()
 
     if ( is_single_place_task()
 	 || type() == Task::Type::OPEN_SRC
-	 || (is_infinite() && this->n_threads() == 1) ) {
-		
+	 || (is_infinite() && n_threads() == 1) ) {
+
 	next_x = create_instance( x_pos, y_pos, 0, INFINITE_SERVER );
-		
+
     } else if ( is_infinite() ) {
 	for ( unsigned int m = 0; m < max_queue_length(); ++m ) {
 	    next_x = create_instance( x_pos+m*0.25, y_pos+m*0.25, m, 1 );
@@ -653,7 +653,7 @@ Task::transmorgrify()
 	    t_place = create_place( x_pos, y_pos, make_layer_mask( MEASUREMENT_LAYER ), multiplicity(), "T%s", name() );
 	}
 #endif
-	for ( unsigned int m = 0; m < this->multiplicity(); ++m ) {
+	for ( unsigned int m = 0; m < multiplicity(); ++m ) {
 	    next_x = create_instance( x_pos+m*0.25, y_pos+m*0.25, m, 1, t_place );
 	}
 #if defined(BUG_393)
@@ -662,7 +662,7 @@ Task::transmorgrify()
 	}
 #endif
     }
-		
+
     if ( is_client() ) {
 	__client_x_offset = next_x;
     } else {
@@ -693,49 +693,49 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
     if ( is_infinite() ) {
 	customers = open_model_tokens;
     } else if ( is_single_place_task() || type() == Task::Type::OPEN_SRC ) {
-	customers = this->multiplicity();
+	customers = multiplicity();
     } else {
 	customers = 1;
     }
 
     if ( n_activities() > 1 ) {
 	temp_x = X_OFFSET(1,n_entries()*0.5);
-    } else if ( this->n_phases() == 1 ) {
+    } else if ( n_phases() == 1 ) {
 	temp_x = X_OFFSET(1,0.5);
     } else {
-	temp_x = X_OFFSET(this->n_phases()*3,0);
+	temp_x = X_OFFSET(n_phases()*3,0);
     }
 
-    d_place = create_place( temp_x, Y_OFFSET(0.0), make_layer_mask( m ), customers, "T%s%d", this->name(), m );
-    this->TX[m] = d_place;
+    d_place = create_place( temp_x, Y_OFFSET(0.0), make_layer_mask( m ), customers, "T%s%d", name(), m );
+    TX[m] = d_place;
 
     if ( type() == Task::Type::SEMAPHORE ) {	/* BUG_164 */
-	this->LX[m] = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "LX%s%d", this->name(), m );
-    } else if ( this->_sync_server ) { 
-	d_place = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "Gd%s%d", this->name(), m );
-	this->GdX[m] = d_place;
-	this->gdX[m] = create_trans( temp_x+0.5, Y_OFFSET(0.0)-0.5, make_layer_mask( m ),  1.0, 1, IMMEDIATE, "gd%s%d", this->name(), m );
-	create_arc( make_layer_mask( m ), TO_TRANS, this->gdX[m], d_place );
-	create_arc( make_layer_mask( m ), TO_PLACE, this->gdX[m], this->TX[m] );
+	LX[m] = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "LX%s%d", name(), m );
+    } else if ( _sync_server ) {
+	d_place = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "Gd%s%d", name(), m );
+	GdX[m] = d_place;
+	gdX[m] = create_trans( temp_x+0.5, Y_OFFSET(0.0)-0.5, make_layer_mask( m ),  1.0, 1, IMMEDIATE, "gd%s%d", name(), m );
+	create_arc( make_layer_mask( m ), TO_TRANS, gdX[m], d_place );
+	create_arc( make_layer_mask( m ), TO_PLACE, gdX[m], TX[m] );
 #if defined(BUG_393)
 	if ( T_place != nullptr ) {
-	    create_arc( make_layer_mask( MEASUREMENT_LAYER ), TO_PLACE, this->gdX[m], T_place );	/* Instrumentation */
+	    create_arc( make_layer_mask( MEASUREMENT_LAYER ), TO_PLACE, gdX[m], T_place );	/* Instrumentation */
 	}
 #endif
-#if defined(BUG_163)
-	this->SyX[m] = create_place( temp_x+1.0, Y_OFFSET(0.0), make_layer_mask( m ), 0, "SYNC%s%d" , this->name(), m );
+#if BUG_163
+	SyX[m] = create_place( temp_x+1.0, Y_OFFSET(0.0), make_layer_mask( m ), 0, "SYNC%s%d" , name(), m );
 #endif
-    } else if ( this->_needs_flush ) {
-	struct trans_object * d_trans = create_trans( temp_x+0.5, Y_OFFSET(0.0)-0.5, make_layer_mask( m ), 1.0, 1, IMMEDIATE, "gd%s%d", this->name(), m );
-	this->gdX[m] = d_trans;
-	create_arc( make_layer_mask( m ), TO_PLACE, d_trans, this->TX[m] );
+    } else if ( _needs_flush ) {
+	struct trans_object * d_trans = create_trans( temp_x+0.5, Y_OFFSET(0.0)-0.5, make_layer_mask( m ), 1.0, 1, IMMEDIATE, "gd%s%d", name(), m );
+	gdX[m] = d_trans;
+	create_arc( make_layer_mask( m ), TO_PLACE, d_trans, TX[m] );
 #if defined(BUG_393)
 	if ( T_place != nullptr ) {
 	    create_arc( make_layer_mask( MEASUREMENT_LAYER ), TO_PLACE, d_trans, T_place );
 	}
 #endif
-	d_place = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "Gd%s%d", this->name(), m ); 	/* We don't allow multiple copies */
-	this->GdX[m] = d_place;
+	d_place = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "Gd%s%d", name(), m ); 	/* We don't allow multiple copies */
+	GdX[m] = d_place;
 	create_arc( make_layer_mask( m ), TO_TRANS, d_trans, d_place );
     }
 
@@ -753,7 +753,6 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
 	    x_pos = base_x_pos + ix_e * 0.5;
 	    (*e)->DX[m] = move_place_tag( create_place( X_OFFSET(3,0), Y_OFFSET(0.0), layer_mask, 0, "D%s%d", (*e)->name(), m ), PLACE_X_OFFSET, -0.25 );
 	}
-#if defined(BUG_622)
 	if ( !(*e)->is_regular_entry() ) {
 	    unsigned p;
 	    double task_y_offset = Y_OFFSET(1.0);
@@ -764,12 +763,11 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
 		(*e)->phase[p].XX[m] = create_place( X_OFFSET(p,1.0), task_y_offset-1.0, MEASUREMENT_LAYER, 0, "X%s%d%d", (*e)->name(), p, m );
 	    }
 	}
-#endif
 	++ix_e;
     }
 
     /* Create the entries */
-    
+
     ix_e = 0;
     for ( std::vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
 	if ( (*e)->n_phases() == 0 ) continue;	/* BUG 414 -- not defined */
@@ -782,9 +780,9 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
 
     return max_pos;
 }
-	
 
-    
+
+
 /*
  * Create an entry mask for this task
  */
@@ -793,7 +791,7 @@ LAYER
 Task::make_layer_mask( const unsigned m )
 {
     LAYER mask = (m == 0 ? PRIMARY_LAYER : 0);
-	
+
     for ( std::vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
 	mask |= ENTRY_LAYER((*e)->entry_id());
     }
@@ -828,16 +826,16 @@ Task::get_results( unsigned m )
     } else {
 	_utilization[m] = open_model_tokens - get_pmmean( "T%s%d", name(), m );
     }
-    this->task_tokens[m] = 0.0;
+    task_tokens[m] = 0.0;
 
     if ( type() == Task::Type::SEMAPHORE ) {
-	this->lock_tokens[m] = get_pmmean( "LX%s%d", name(), m );
+	lock_tokens[m] = get_pmmean( "LX%s%d", name(), m );
     } else {
-	this->lock_tokens[m] = 0.0;
+	lock_tokens[m] = 0.0;
     }
 
     /* for each entry of i	    */
-	
+
     for ( std::vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
 	if ( (*e)->is_regular_entry() ) {
 
@@ -847,8 +845,8 @@ Task::get_results( unsigned m )
 		(*e)->_throughput[m] = get_throughput( (*e), &phase, m );
 
 		/* Task utilization (includes queue) */
-		
-		this->task_tokens[m] += phase.get_utilization( m );
+
+		task_tokens[m] += phase.get_utilization( m );
 
 		/* Procesor utilization (ignores queue) */
 
@@ -856,11 +854,11 @@ Task::get_results( unsigned m )
 		    processor()->proc_tokens[m] += phase.get_processor_utilization( m );
 		}
 	    }
-	    
+
 	} else {
 
 	    /* Task utilization */
-	    
+
 	    double tokens[DIMPH+1];
 	    (*e)->_throughput[m] = get_throughput( *e, (*e)->start_activity(), m );
 
@@ -869,20 +867,11 @@ Task::get_results( unsigned m )
 	    }
 	    (*e)->start_activity()->follow_activity_for_tokens( (*e), 1, m, FOLLOW_BRANCH, 1.0, &Phase::get_utilization, tokens );
 
-#if defined(BUG_622)
 	    /* Use tokens found from instrumentation */
 	    for ( unsigned int p = 1; p <= (*e)->n_phases(); ++p ) {
 		(*e)->phase[p].task_tokens[m] = get_pmmean( "X%s%d%d", (*e)->name(), p, m );	/* Phase service time.	*/
-		this->task_tokens[m]    += (*e)->phase[p].task_tokens[m];
+		task_tokens[m] += (*e)->phase[p].task_tokens[m];
 	    }
-#else
-	    /* Use tokens found by traversing graph */
-	    
-	    for ( p = 1; p <= (*e)->n_phases; ++p ) {
-		(*e)->phase[p].task_tokens[m] = tokens[p];
-		this->task_tokens[m]         += tokens[p];
-	    }
-#endif
 
 	    /* Procesor utilization */
 
@@ -906,12 +895,12 @@ Task::get_results( unsigned m )
 /*
  * Find entry throughput.
  */
-				
+
 double
 Task::get_throughput( const Entry * d, const Phase * phase_d, unsigned m  )
 {
     double throughput = 0.0;
-	
+
     if ( !inservice_flag() || !is_server() || d == 0 ) {
       //	throughput = get_tput( IMMEDIATE, "done%s%d", phase_d->name(), m );	/* done_P transition  */
         throughput = phase_d->doneX[m]->f_time;		/* Access directly */
@@ -920,18 +909,18 @@ Task::get_throughput( const Entry * d, const Phase * phase_d, unsigned m  )
 	for ( vector<Entry *>::const_iterator e = ::__entry.begin(); e != ::__entry.end(); ++e ) {
 	    unsigned max_m = n_customers();
 	    unsigned p_e;
-			
+
 	    for ( p_e = 1; p_e <= (*e)->n_phases(); ++p_e ) {
 		const Phase * phase_e = &(*e)->phase[p_e];
 		if ( phase_e->y(d) + phase_e->z(d) == 0.0 ) continue;
-				
+
 		for ( unsigned int n = 0; n < max_m; ++n ) {
 		    throughput += get_tput( IMMEDIATE,"ph%d%s%d%s%d", p_d, phase_e->name(), n, d->name(), m  );
 		}
 	    }
 	}
     }
-	
+
     if ( debug_flag && d ) {
 	(void) fprintf( stddbg, "%-20.20s tput=%15.10g ", d->name(), throughput );
     }
@@ -952,7 +941,7 @@ Task::get_total_throughput( Task * dst, double tot_tput[] )
     for ( p = 0; p <= n_phases(); ++p ) {
 	tot_tput[p] = 0.0;
     }
-	
+
     for ( vector<Entry *>::const_iterator d = entries.begin(); d != entries.end(); ++d ) {
 	for ( vector<Entry *>::const_iterator e = dst->entries.begin(); e != dst->entries.end(); ++e ) {
 	    for ( p = 1; p <= (*d)->n_phases(); ++p ) {
@@ -1019,7 +1008,7 @@ Task::insert_DOM_results() const
     const unsigned int m = multiplicity();
     if ( Pragma::__pragmas->save_marginal_probabilities() && !is_client() && m > 1 ) {
 	dom->setResultMarginalQueueProbabilitiesSize( m + 1 );
-	
+
 	/* Can we get it from the processor? Only if it's a single place with enough tokens */
 	if ( processor()->n_tasks() == 1 && (processor()->is_infinite() || processor()->multiplicity() >= m )) {
 	    for ( unsigned int i = 0; i <= m; ++i ) {

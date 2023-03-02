@@ -34,7 +34,7 @@ enum class Requesting_Type {
 };
 
 struct Forwarding {
-    Forwarding(const Phase * root, unsigned int slice, unsigned int m, double y ) 
+    Forwarding(const Phase * root, unsigned int slice, unsigned int m, double y )
 	: _root(root), _slice_no(slice), _m(m), _y(y), f_trans(0), f_place(0)
 	{}
 
@@ -94,12 +94,12 @@ public:
     void clear();
     void initialize();
     void remove_netobj();
-    double transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struct place_object * d_place, 
+    double transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struct place_object * d_place,
 			  unsigned m, short enabling );
     void create_forwarding_gspn();
 
     void insert_DOM_results() const;
-    
+
     double task_utilization( unsigned p ) const;
     double queueing_time( const Entry * entry ) const;
     bool check_open_result();
@@ -138,7 +138,7 @@ public:
  * Compare a processor name to a string.  Used by the find_if (and other algorithm type things.
  */
 
-struct eqEntryStr 
+struct eqEntryStr
 {
     eqEntryStr( const std::string& s ) : _s(s) {}
     bool operator()(const Entry * e ) const { return _s == e->name(); }

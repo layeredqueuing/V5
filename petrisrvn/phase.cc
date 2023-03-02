@@ -102,7 +102,7 @@ unsigned int Phase::entry_id() const
 
 double Phase::s() const
 {
-    double service_time = 0.0;	
+    double service_time = 0.0;
     if ( get_dom()->hasServiceTime() ) {
 	try {
 	    service_time = get_dom()->getServiceTimeValue();
@@ -280,8 +280,8 @@ Phase::check()
     double ysum = 0;
     double zsum = 0;
     const Processor * curr_proc = task()->processor();
-    if ( this->s() > 0.0 && this->coeff_of_var() != 1.0 && curr_proc->get_scheduling() == SCHEDULE_PPR ) {
-	LQIO::runtime_error( WRN_PREEMPTIVE_SCHEDULING, curr_proc->name(), this->name() );
+    if ( s() > 0.0 && coeff_of_var() != 1.0 && curr_proc->get_scheduling() == SCHEDULE_PPR ) {
+	LQIO::runtime_error( WRN_PREEMPTIVE_SCHEDULING, curr_proc->name(), name() );
 //	curr_proc->scheduling = SCHEDULE_FIFO;
     }
 
@@ -293,10 +293,10 @@ Phase::check()
 	    zsum += call.value( this );
 	}
     }
-    if ( this->has_stochastic_calls() ) {
-	this->_n_slices = 1;
+    if ( has_stochastic_calls() ) {
+	_n_slices = 1;
     } else {
-	this->_n_slices = static_cast<unsigned int>(round(ysum + zsum)) + 1;
+	_n_slices = static_cast<unsigned int>(round(ysum + zsum)) + 1;
 	if ( n_slices() >= DIMSLICE ) {
 	    input_error2( LQIO::ERR_TOO_MANY_X, "slices ", DIMSLICE );
 	}
@@ -327,18 +327,18 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 {
     const unsigned ne    = task()->n_entries();
     struct trans_object * c_trans;
-    assert( this->n_slices() >= 1 );
+    assert( n_slices() >= 1 );
 
-    for ( unsigned int s = 0; s < this->n_slices(); ++s ) {
-	slice_info_t * curr_slice = &this->_slice[s];
+    for ( unsigned int s = 0; s < n_slices(); ++s ) {
+	slice_info_t * curr_slice = &_slice[s];
 	const double s_pos = p_pos+s*3;
-	unsigned int n = this->n_stages();
+	unsigned int n = n_stages();
 
-	curr_slice->SX[m][1] = move_place_tag( create_place( X_OFFSET(s_pos+1,0.25), y_pos, layer_mask, 0, "S%s%d%d", this->name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	curr_slice->SX[m][1] = move_place_tag( create_place( X_OFFSET(s_pos+1,0.25), y_pos, layer_mask, 0, "S%s%d%d", name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	curr_slice->WX_xpos[m] = X_OFFSET(1+s,0.25);
 	curr_slice->WX_ypos[m] = y_pos;
 	if ( !simplify_phase() ) {
-	    curr_slice->WX[m] = move_place_tag( create_place( X_OFFSET(s_pos,  0.25), y_pos, layer_mask, 0, "W%s%d%d", this->name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	    curr_slice->WX[m] = move_place_tag( create_place( X_OFFSET(s_pos,  0.25), y_pos, layer_mask, 0, "W%s%d%d", name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	} else {
 	    curr_slice->WX[m] = curr_slice->SX[m][1];
 	}
@@ -346,39 +346,39 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 	/* Make places for erland/hyperexponential distributions */
 
 	for ( unsigned int i = 2; i <= n; ++i ) {
-	    curr_slice->SX[m][i] = move_place_tag( create_place( X_OFFSET(s_pos+1,0.25), y_pos+(i-1), layer_mask, 0, "S%d%s%d%d", i, this->name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	    curr_slice->SX[m][i] = move_place_tag( create_place( X_OFFSET(s_pos+1,0.25), y_pos+(i-1), layer_mask, 0, "S%d%s%d%d", i, name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	}
 	if ( !simplify_phase() || has_calls() ) {
-	    curr_slice->ChX[m] = move_place_tag( create_place( X_OFFSET(s_pos+2,0.25), y_pos, layer_mask, 0, "Ch%s%d%d", this->name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	    curr_slice->ChX[m] = move_place_tag( create_place( X_OFFSET(s_pos+2,0.25), y_pos, layer_mask, 0, "Ch%s%d%d", name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	} else {
 	    curr_slice->ChX[m] = curr_slice->SX[m][1];
 	}
     }
 
-    if ( this->think_time() > 0.0 ) {
-	this->ZX[m] = create_place( X_OFFSET(p_pos,0.25), y_pos+1.0, layer_mask, 0, "Z%s%d",  this->name(),m );
-	c_trans = create_trans( X_OFFSET(p_pos,0.25), y_pos+0.5, layer_mask, 1.0/this->think_time(), INFINITE_SERVER, EXPONENTIAL, "z%s%d",  this->name(),m );
-	create_arc( layer_mask, TO_TRANS, c_trans, this->ZX[m] );
-	create_arc( layer_mask, TO_PLACE, c_trans, this->_slice[0].WX[m] );
+    if ( think_time() > 0.0 ) {
+	ZX[m] = create_place( X_OFFSET(p_pos,0.25), y_pos+1.0, layer_mask, 0, "Z%s%d",  name(),m );
+	c_trans = create_trans( X_OFFSET(p_pos,0.25), y_pos+0.5, layer_mask, 1.0/think_time(), INFINITE_SERVER, EXPONENTIAL, "z%s%d",  name(),m );
+	create_arc( layer_mask, TO_TRANS, c_trans, ZX[m] );
+	create_arc( layer_mask, TO_PLACE, c_trans, _slice[0].WX[m] );
     } else {
-	this->ZX[m] = this->_slice[0].WX[m];
+	ZX[m] = _slice[0].WX[m];
     }
 
-    this->done_xpos[m] = X_OFFSET(p_pos+this->n_slices()*3,0);
-    this->done_ypos[m] = y_pos-0.5;
+    done_xpos[m] = X_OFFSET(p_pos+n_slices()*3,0);
+    done_ypos[m] = y_pos-0.5;
     if ( (!simplify_phase() && !task()->inservice_flag()) || task()->is_client() ) {
-	c_trans = create_trans( this->done_xpos[m], this->done_ypos[m], layer_mask, 1.0, 1, IMMEDIATE, "done%s%d", this->name(), m );
-	create_arc( layer_mask, TO_TRANS, c_trans, this->_slice[this->n_slices()-1].ChX[m] );
-	this->doneX[m] = c_trans;
+	c_trans = create_trans( done_xpos[m], done_ypos[m], layer_mask, 1.0, 1, IMMEDIATE, "done%s%d", name(), m );
+	create_arc( layer_mask, TO_TRANS, c_trans, _slice[n_slices()-1].ChX[m] );
+	doneX[m] = c_trans;
     }
 
-    for ( unsigned int s = 0; s < this->n_slices(); ++s ) {
-	slice_info_t * curr_slice = &this->_slice[s];
+    for ( unsigned int s = 0; s < n_slices(); ++s ) {
+	slice_info_t * curr_slice = &_slice[s];
 	const double s_pos = p_pos+s*3;
 
 	if ( !simplify_phase() ) {
 	    c_trans = create_trans( X_OFFSET(s_pos+1,0), y_pos - 0.5, layer_mask,
-				    this->_prob_a, 1, IMMEDIATE, "w%s%d%d", this->name(), m, s );
+				    _prob_a, 1, IMMEDIATE, "w%s%d%d", name(), m, s );
 	    if ( this->s() > 0.0 ) {
 	        if ( task()->type() == Task::Type::OPEN_SRC ) {
 		    create_arc( layer_mask, INHIBITOR, c_trans, curr_slice->SX[m][1] );
@@ -390,20 +390,20 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 	    create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->SX[m][1] );
 	}
 
-	if ( this->is_hyperexponential() )  {
-	    c_trans = create_trans( X_OFFSET(s_pos+1,0), y_pos + 0.5, layer_mask, 1.0 - this->_prob_a, 1, IMMEDIATE, "w2%s%d%d", this->name(), m, s );
+	if ( is_hyperexponential() )  {
+	    c_trans = create_trans( X_OFFSET(s_pos+1,0), y_pos + 0.5, layer_mask, 1.0 - _prob_a, 1, IMMEDIATE, "w2%s%d%d", name(), m, s );
 	    request_processor( c_trans, m, s );
 	    create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->WX[m] );
 	    create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->SX[m][2] );
 	}
 	if ( this->s() == 0 ) {
-	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask,  1.0, 1, IMMEDIATE, "s%s%d%d", this->name(), m, s );
-	} else if ( this->has_deterministic_service() ) {
-	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -this->_rpar_s[0], 1, DETERMINISTIC, "s%s%d%d", this->name(), m, s );
+	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask,  1.0, 1, IMMEDIATE, "s%s%d%d", name(), m, s );
+	} else if ( has_deterministic_service() ) {
+	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -_rpar_s[0], 1, DETERMINISTIC, "s%s%d%d", name(), m, s );
 	} else if ( task()->type() != Task::Type::OPEN_SRC ) {	/* Infinite server! */
-	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -this->_rpar_s[0], enabling, EXPONENTIAL, "s%s%d%d", this->name(), m, s );
+	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -_rpar_s[0], enabling, EXPONENTIAL, "s%s%d%d", name(), m, s );
 	} else {
-	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -this->_rpar_s[0], 1, EXPONENTIAL, "s%s%d%d", this->name(), m, s );
+	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -_rpar_s[0], 1, EXPONENTIAL, "s%s%d%d", name(), m, s );
 	}
 	if ( this->s() > 0.0 && task()->type() != Task::Type::OPEN_SRC ) {
 	    processor_acquired( c_trans, m, s );
@@ -412,31 +412,31 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 	/* Create transitions for Erlang/Exponential */
 
 	create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->SX[m][1] );
-	if ( !this->is_hyperexponential() ) {
-	    unsigned int n = this->n_stages();
+	if ( !is_hyperexponential() ) {
+	    unsigned int n = n_stages();
 	    for ( unsigned i = 2; i <= n; ++i ) {
 		create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->SX[m][i] );
-		c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos + 0.5 + (i-2), layer_mask, -this->_rpar_s[0], enabling, EXPONENTIAL, "s%d%s%d%d", i, this->name(), m, s );
+		c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos + 0.5 + (i-2), layer_mask, -_rpar_s[0], enabling, EXPONENTIAL, "s%d%s%d%d", i, name(), m, s );
 		create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->SX[m][i] );
 	    }
 	}
 	if ( !simplify_phase() || has_calls() ) {
 	    create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->ChX[m] );
 	} else {
-	    this->doneX[m] = c_trans;
+	    doneX[m] = c_trans;
 	}
 	if ( this->s() > 0.0 && task()->type() != Task::Type::OPEN_SRC ) {
 	    release_processor( c_trans, m, s );
 	}
-	if ( this->is_hyperexponential() ) {
-	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos + 0.5, layer_mask, -this->_rpar_s[1], enabling, EXPONENTIAL, "s2%s%d%d", this->name(), m, s );
+	if ( is_hyperexponential() ) {
+	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos + 0.5, layer_mask, -_rpar_s[1], enabling, EXPONENTIAL, "s2%s%d%d", name(), m, s );
 	    create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->SX[m][2] );
 	    create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->ChX[m] );
 	    release_processor( c_trans, m, s );
 	}
     }
 
-    return p_pos + this->n_slices() * 3;
+    return p_pos + n_slices() * 3;
 }
 
 
@@ -458,7 +458,7 @@ Phase::request_processor( struct trans_object * c_trans, const unsigned m, const
 	    create_arc( PROC_LAYER, TO_TRANS, c_trans, processor()->PX );
 	}
     } else {
-	create_arc( PROC_LAYER, TO_PLACE, c_trans, no_place( "Preq%s%s%d%d", processor()->name(), this->name(), m, s ) );
+	create_arc( PROC_LAYER, TO_PLACE, c_trans, no_place( "Preq%s%s%d%d", processor()->name(), name(), m, s ) );
     }
 }
 
@@ -468,7 +468,7 @@ Phase::processor_acquired( struct trans_object * c_trans, const unsigned m, cons
     if ( processor()->is_single_place_processor() ) return;	/* NOP */
 
     c_trans->layer |= PROC_LAYER;
-    create_arc( PROC_LAYER, TO_TRANS, c_trans, this->_slice[s].PgX[m] );
+    create_arc( PROC_LAYER, TO_TRANS, c_trans, _slice[s].PgX[m] );
 }
 
 
@@ -481,15 +481,15 @@ Phase::release_processor( struct trans_object * c_trans, const unsigned m, const
 {
     c_trans->layer |= PROC_LAYER;
     if ( !processor()->PX ) return;
-    
+
     create_arc( PROC_LAYER, TO_PLACE, c_trans, processor()->PX );
     if ( !processor()->is_single_place_processor() ) {
 #if defined(BUG_111)
 	if ( n_slices() == 1 ) {
 	} else {
-	    create_arc( PROC_LAYER, TO_PLACE, c_trans, this->slice[s].PgX[m] );
-	    create_arc( PROC_LAYER, TO_TRANS, this->doneX[m], this->slice[s].PgX[m] );
-	    create_arc( PROC_LAYER, TO_PLACE, this->doneX[m], processor()->PX );
+	    create_arc( PROC_LAYER, TO_PLACE, c_trans, slice[s].PgX[m] );
+	    create_arc( PROC_LAYER, TO_TRANS, doneX[m], slice[s].PgX[m] );
+	    create_arc( PROC_LAYER, TO_PLACE, doneX[m], processor()->PX );
 	}
 #endif
 	if ( processor()->has_priority_scheduling() ) {
@@ -556,14 +556,14 @@ Phase::create_spar()
 
     const double mu = service_rate();
     if ( is_hyperexponential() ) {
-	this->_prob_a = (1.0 + sqrt( (coeff_of_var() - 1.0) / (coeff_of_var() + 1.0) )) / 2.0;
-	this->_rpar_s[0] = create_rpar( __parameter_x, __parameter_y, SERVICE_RATE_LAYER, mu * (2.0 * this->_prob_a), "mu1%s", name() );
+	_prob_a = (1.0 + sqrt( (coeff_of_var() - 1.0) / (coeff_of_var() + 1.0) )) / 2.0;
+	_rpar_s[0] = create_rpar( __parameter_x, __parameter_y, SERVICE_RATE_LAYER, mu * (2.0 * _prob_a), "mu1%s", name() );
 	inc_par_offsets();
-	this->_rpar_s[1] = create_rpar( __parameter_x, __parameter_y, SERVICE_RATE_LAYER, mu * (2.0 * (1.0 - this->_prob_a)), "mu2%s", name() );
+	_rpar_s[1] = create_rpar( __parameter_x, __parameter_y, SERVICE_RATE_LAYER, mu * (2.0 * (1.0 - _prob_a)), "mu2%s", name() );
     } else {
-	this->_prob_a = 1.0;
-	this->_rpar_s[0] = create_rpar( __parameter_x, __parameter_y, SERVICE_RATE_LAYER, mu * n_stages(), "mu%s", name() );
-	this->_rpar_s[1] = 0;
+	_prob_a = 1.0;
+	_rpar_s[0] = create_rpar( __parameter_x, __parameter_y, SERVICE_RATE_LAYER, mu * n_stages(), "mu%s", name() );
+	_rpar_s[1] = 0;
     }
     inc_par_offsets();
 }
@@ -602,11 +602,11 @@ Phase::inc_par_offsets(void)
 
 
 
-void 
+void
 Phase::remove_netobj()
 {
     for ( unsigned int m = 0; m < MAX_MULT; ++m ) {
-        XX[m] = 0;		/* Service Time result (BUG_622)*/
+        XX[m] = 0;		/* Service Time result		*/
 	ZX[m] = 0;		/* Think Time.			*/
 	doneX[m] = 0;		/* Phase is done.		*/
     }
@@ -649,22 +649,22 @@ Phase::get_utilization( unsigned m  )
 {
     double mean_tokens = 0.0;
     unsigned int s;
-    const unsigned int n = this->n_stages( );
+    const unsigned int n = n_stages( );
 
-    assert( 0 < this->n_slices() && this->n_slices() < DIMSLICE );
+    assert( 0 < n_slices() && n_slices() < DIMSLICE );
 
-    for ( s = 0; s < this->n_slices(); ++s ) {
+    for ( s = 0; s < n_slices(); ++s ) {
         if ( !simplify_phase() ) {
-	    mean_tokens += get_pmmean( "W%s%d%d", this->name(), m, s );	/* Processor wait.	*/
+	    mean_tokens += get_pmmean( "W%s%d%d", name(), m, s );	/* Processor wait.	*/
 	}
-	mean_tokens += get_pmmean( "S%s%d%d", this->name(), m, s );	/* Entry service.	*/
+	mean_tokens += get_pmmean( "S%s%d%d", name(), m, s );	/* Entry service.	*/
 	for ( unsigned int i = 2; i <= n; ++i ) {
-	    mean_tokens += get_pmmean( "S%d%s%d%d", i, this->name(), m, s );	/* Entry service.	*/
+	    mean_tokens += get_pmmean( "S%d%s%d%d", i, name(), m, s );	/* Entry service.	*/
 	}
     }
 
-    if ( this->think_time() > 0.0 ) {
-	mean_tokens += get_pmmean( "Z%s%d", this->name(), m );	/* Entry sleep.	*/
+    if ( think_time() > 0.0 ) {
+	mean_tokens += get_pmmean( "Z%s%d", name(), m );	/* Entry sleep.	*/
     }
 
     /* find avg # of tokens in "I%s%s%s" places. */
@@ -684,10 +684,10 @@ Phase::get_utilization( unsigned m  )
     }
 
     if ( debug_flag ) {
-	(void) fprintf( stddbg, "toks[%s]=%9.6g\n", this->name(), mean_tokens );
+	(void) fprintf( stddbg, "toks[%s]=%9.6g\n", name(), mean_tokens );
     }
 
-    this->task_tokens[m] = mean_tokens;
+    task_tokens[m] = mean_tokens;
     return mean_tokens;
 }
 
@@ -717,22 +717,22 @@ Phase::get_processor_utilization ( unsigned m )
 
     if ( !h ) return 0.0;			/* No processor */
 
-    assert( 0 < this->n_slices() && this->n_slices() < DIMSLICE );
+    assert( 0 < n_slices() && n_slices() < DIMSLICE );
 
-    for ( unsigned int s = 0; s < this->n_slices(); ++s ) {
+    for ( unsigned int s = 0; s < n_slices(); ++s ) {
 	if ( this->s() == 0.0 ) continue;
 
 	if ( h->is_single_place_processor() ) {
-	    mean_tokens += get_pmmean( "S%s%d%d", this->name(), m, s );			/* Entry service.	*/
+	    mean_tokens += get_pmmean( "S%s%d%d", name(), m, s );			/* Entry service.	*/
 	    for ( unsigned int i = 2; i <= n; ++i ) {
-		mean_tokens += get_pmmean( "S%d%s%d%d", i, this->name(), m, s );	/* Entry service.	*/
+		mean_tokens += get_pmmean( "S%d%s%d%d", i, name(), m, s );	/* Entry service.	*/
 	    }
 	} else {
-	    mean_tokens += get_pmmean( "Pgrt%s%s%d%d", h->name(), this->name(), m, s );
+	    mean_tokens += get_pmmean( "Pgrt%s%s%d%d", h->name(), name(), m, s );
 	}
     }
 
-    this->proc_tokens[m] = mean_tokens;
+    proc_tokens[m] = mean_tokens;
     return mean_tokens;
 }
 
@@ -753,10 +753,10 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
     double mean_tokens  = 0.0;
     double queue_tokens = 0.0;	/* Queue_Tokens.		*/
 
-    if ( this->has_stochastic_calls() ) {	/*+ BUG 47 */
+    if ( has_stochastic_calls() ) {	/*+ BUG 47 */
 	n_s = 1;
     } else {
-	n_s = static_cast<unsigned int>(this->y(b) + this->z(b));
+	n_s = static_cast<unsigned int>(y(b) + z(b));
 	off = compute_offset( b );
     }						/*- BUG 47 */
 
@@ -767,19 +767,19 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
     call._bin.resize(j->max_queue_length()+1,0);
     for ( unsigned int s = 0; s < n_s; ++s ) {
 	if ( b->random_queueing() ) {
-	    const double tokens = get_pmmean( "I%s%d%s%s%d", this->name(), s+off, b->name(), src_phase->name(), m );
+	    const double tokens = get_pmmean( "I%s%d%s%s%d", name(), s+off, b->name(), src_phase->name(), m );
 	    queue_tokens += tokens;
 	    call._bin[1] += tokens;
 	} else {
 	    const unsigned max_k = j->max_queue_length();
 	    for ( unsigned k = 1; k <= max_k; ++k ) {
-		const double tokens = get_pmmean( "I%s%d%s%s%d%d", this->name(), s+off, b->name(), src_phase->name(), m, k );
+		const double tokens = get_pmmean( "I%s%d%s%s%d%d", name(), s+off, b->name(), src_phase->name(), m, k );
 		queue_tokens += tokens;
 		call._bin[max_k-k+1] += tokens;
 	    }
 	}
 	for ( unsigned n = 0; n < b_n; ++n ) {
-	    const double tokens = get_pmmean( "R%s%d%s%d%s%d", this->name(), s+off, b->name(), n, src_phase->name(), m );
+	    const double tokens = get_pmmean( "R%s%d%s%d%s%d", name(), s+off, b->name(), n, src_phase->name(), m );
 	    mean_tokens += tokens;
 	    call._bin[0] += tokens;
 	}
@@ -791,8 +791,8 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
      */
 
     if ( comm_delay_flag && comm_delay[t_des[i].pid][j->pid] > 0.0 ) {
-	queue_tokens += get_pmmean( "DLYB%s%s", this->name(), b->name() );
-	queue_tokens += get_pmmean( "DLYE%s%s", this->name(), b->name() );
+	queue_tokens += get_pmmean( "DLYB%s%s", name(), b->name() );
+	queue_tokens += get_pmmean( "DLYE%s%s", name(), b->name() );
     }
 #endif
 
@@ -824,11 +824,11 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
 	    }
 	}
     }
-	
+
     if ( debug_flag ) {
 	(void) fprintf( stddbg, "Pr{I%s->%s*}=%g,\ttput{req%s->%s}=%g\n",
-			this->name(), b->name(), queue_tokens,
-			this->name(), b->name(), tput );
+			name(), b->name(), queue_tokens,
+			name(), b->name(), tput );
     }
 
     /*
@@ -885,19 +885,19 @@ double
 Phase::lambda( unsigned m, const Entry * b, const Phase * src_phase ) const
 {
     double sum = 0.0;
-    double calls = this->y(b) + this->z(b);
+    double calls = y(b) + z(b);
     if ( calls > 0.0 ) {
-	if ( this->has_stochastic_calls() ) {
-	    sum = get_tput( IMMEDIATE, "req%s0%s%s%d", this->name(), b->name(), src_phase->name(), m );
+	if ( has_stochastic_calls() ) {
+	    sum = get_tput( IMMEDIATE, "req%s0%s%s%d", name(), b->name(), src_phase->name(), m );
 	} else {
 	    unsigned s;				/*+ BUG 47 */
 	    unsigned off = compute_offset( b );
 	    for ( s = 0; s < calls; ++s ) {
-		sum += get_tput( IMMEDIATE, "req%s%d%s%s%d", this->name(), s+off, b->name(), src_phase->name(), m );
+		sum += get_tput( IMMEDIATE, "req%s%d%s%s%d", name(), s+off, b->name(), src_phase->name(), m );
 	    }					/*- BUG 47 */
 	}
     } else if ( entry()->prob_fwd(b) > 0.0 ) {
-	sum = get_tput( IMMEDIATE, "req%s0%s%s%d", this->name(), b->name(), src_phase->name(), m );	/* BUG 64 */
+	sum = get_tput( IMMEDIATE, "req%s0%s%s%d", name(), b->name(), src_phase->name(), m );	/* BUG 64 */
     }
     return sum;
 }
@@ -907,8 +907,8 @@ Phase::lambda( unsigned m, const Entry * b, const Phase * src_phase ) const
 double
 Phase::drop_lambda( unsigned m, const Entry * b, const Phase * src_phase ) const
 {
-    if ( this->z(b) > 0.0 ) {
-        return get_tput( IMMEDIATE, "drop%s0%s%s%d", this->name(), b->name(), src_phase->name(), m );
+    if ( z(b) > 0.0 ) {
+        return get_tput( IMMEDIATE, "drop%s0%s%s%d", name(), b->name(), src_phase->name(), m );
     } else {
 	return 0.0;
     }
@@ -916,8 +916,8 @@ Phase::drop_lambda( unsigned m, const Entry * b, const Phase * src_phase ) const
 
 
 bool
-Phase::simplify_phase() const 
-{ 
+Phase::simplify_phase() const
+{
     return simplify_network && (!processor() || (processor()->PX == 0 && !is_hyperexponential() && !task()->inservice_flag()));
 }
 

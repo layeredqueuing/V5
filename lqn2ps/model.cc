@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16410 2023-02-10 13:01:28Z greg $
+ * $Id: model.cc 16454 2023-02-28 22:19:26Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -888,7 +888,7 @@ Model::store()
 	std::string suffix = "";
 	std::string directory_name = LQIO::Filename::createDirectory( hasOutputFileName() ? _outputFileName : _inputFileName, _document->getResultInvocationNumber() > 0 );
 	LQIO::Filename filename;
-	std::string extension = getExtension();
+	const std::string extension = getExtension();
 	if ( !hasOutputFileName() || !directory_name.empty() ) {
 	    filename.generate( _inputFileName, extension, directory_name, suffix );
 	} else {
@@ -1026,7 +1026,7 @@ Model::getExtension()
 	{ File_Format::EEPIC,	    "tex" },
 	{ File_Format::PSTEX,       "fig" },
 	{ File_Format::PARSEABLE,   "p" },
-	{ File_Format::LQX, 	    "lqnx" },
+	{ File_Format::LQX, 	    "lqx" },
 	{ File_Format::XML, 	    "lqnx" }
     };
 

@@ -1,8 +1,7 @@
 /* runlqx.h	-- Greg Franks
  *
- * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 16253 2023-01-03 19:37:15Z greg $
+ * $Id: runlqx.cc 16448 2023-02-27 13:04:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -17,7 +16,7 @@
 #include "runlqx.h"
 #include "model.h"
 
-namespace SolverInterface 
+namespace SolverInterface
 {
     unsigned int Solve::invocationCount = 0;
     std::string Solve::customSuffix;
@@ -30,7 +29,7 @@ namespace SolverInterface
 	if ( !implicitSolve ) {
 	    invocationCount += 1;
 	}
-			
+
 	/* See if we were given a suffix */
 	if (args.size() > 0) {
 	    assert(args.size() == 1);
@@ -47,16 +46,16 @@ namespace SolverInterface
 	    ss << "-" << std::setfill( '0' ) << std::setw(3) << invocationCount;
 	    customSuffix = ss.str();
 	}
-			
+
 #if defined(DEBUG_MESSAGES)
 	env->cleanInvokeGlobalMethod("print_symbol_table", NULL);
 #endif
-			
+
 	/* Tell the world the iteration number */
 	if ( verbose_flag ) {
 	    std::cerr << "Solving iteration #" << invocationCount << std::endl;
 	}
-			
+
 	try {
 	/* Make sure all external variables are accounted for */
 	    const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
@@ -67,11 +66,11 @@ namespace SolverInterface
 		    msg += *var;
 		}
 		throw std::runtime_error( msg );
-	    } 
-			
+	    }
+
 	    /* Recalculate dynamic values */
 	    Model::recalculateDynamicValues( _document );
-			
+
 	    /* Run the solver and return its success as a boolean value */
 	    assert (_aModel );
 
@@ -91,4 +90,4 @@ namespace SolverInterface
 	return LQX::Symbol::encodeBoolean(false);
     }
 }
-		
+

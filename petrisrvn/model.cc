@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 16443 2023-02-25 00:56:26Z greg $
+ * $Id: model.cc 16448 2023-02-27 13:04:14Z greg $
  *
  * Load the SRVN model.
  */
@@ -309,17 +309,17 @@ Model::construct()
     LQIO::Spex::__no_header = !Pragma::__pragmas->spex_header();
     LQIO::Spex::__print_comment = Pragma::__pragmas->spex_comment();
     LQIO::io_vars.severity_level = Pragma::__pragmas->severity_level();
-	
+
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
-	
+
     const std::map<std::string,LQIO::DOM::Processor*>& procList = _document->getProcessors();
     for_each( procList.begin(), procList.end(), Processor::create );
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 2: Add Tasks/Entries] */
-	
+
     /* In the DOM, tasks have entries, but here entries need to go first */
     const std::map<std::string,LQIO::DOM::Task*>& taskList = _document->getTasks();
-	
+
     /* Add all of the tasks we will be needing */
     for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator t = taskList.begin(); t != taskList.end(); ++t ) {
 	const LQIO::DOM::Task* task = t->second;
@@ -327,7 +327,7 @@ Model::construct()
 	Task* newTask = Task::create(task);
 
 	std::vector<LQIO::DOM::Entry*> activityEntries;
-		
+
 	/* Add the entries so we can reverse them */
 	for ( std::vector<LQIO::DOM::Entry*>::const_iterator entry = task->getEntryList().begin(); entry != task->getEntryList().end(); ++entry ) {
 	    newTask->entries.push_back( Entry::create( *entry, newTask ) );
@@ -335,19 +335,19 @@ Model::construct()
 		activityEntries.push_back(*entry);
 	    }
 	}
-		
+
 	/* Add activities for the task (all of them) */
 	const std::map<std::string,LQIO::DOM::Activity*>& activities = task->getActivities();
 	for (std::map<std::string,LQIO::DOM::Activity*>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity) {
 	    newTask->add_activity(activity->second);
 	}
-		
+
 	/* Set all the start activities */
 	for (std::vector<LQIO::DOM::Entry*>::iterator entry = activityEntries.begin(); entry != activityEntries.end(); ++entry) {
 	    newTask->set_start_activity(*entry);
 	}
     }
-	
+
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 3: Add Calls/Phase Parameters] */
 
     /* Add all of the calls for all phases to the system */
@@ -399,7 +399,7 @@ Model::construct()
     }
 
     /* Add open arrivals. */
-    
+
     build_open_arrivals();
 
     /* Use the generated connections list to finish up */
@@ -426,19 +426,19 @@ Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
     setModelParameters(document);
 
     /* Find the pseudo phases for open arrivals and set the service time */
-       
+
     const unsigned n_entries = document->getNumberOfEntries();
     for ( unsigned int e = 0; e < n_entries; ++e  ) {
 	LQIO::DOM::Phase * phase = __entry[e]->open_arrival_phase();
 	if ( phase == nullptr ) continue;
 	const LQIO::DOM::Entry * entry = __entry[e]->get_dom();
-	
+
 	try {
 	    phase->setServiceTimeValue( 1.0 / entry->getOpenArrivalRateValue() );
 	}
 	catch ( const std::domain_error& e ) {
 	    entry->runtime_error( LQIO::ERR_INVALID_PARAMETER, "open arrival rate", "entry", e.what() );
-	    throw std::domain_error( std::string( "invalid parameter: " ) + e.what() ); 
+	    throw std::domain_error( std::string( "invalid parameter: " ) + e.what() );
 	}
     }
 }
@@ -562,7 +562,7 @@ Model::transform()
     if ( max_width > 1 ) {
 	Task::__server_y_offset += max_width - 1;
     }
-		
+
     /* Create rate and result parameters */
 
     trans_rpar();
@@ -766,7 +766,7 @@ void
 Model::make_queues()
 {
     /* Make queues */
-	
+
     for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 	if ( (*t)->is_client() ) continue;  	/* Skip reference tasks. */
 
@@ -780,7 +780,7 @@ Model::make_queues()
 	std::vector<Model::inst_arrival> ph2_place;
 
 	/* Override if dest is a join function. */
-		
+
 	if ( sync_server ) {
 	    idle_x = x_pos + 1.0 + 0.5;
 	    queue_func = &Model::random_queue;
@@ -788,7 +788,7 @@ Model::make_queues()
 	    idle_x = x_pos + static_cast<double>((*t)->max_queue_length() + 0.5);
 	    queue_func = &Model::fifo_queue;
 	}
-			
+
 	/* Create and connect all queues for task 'j'. */
 
 	for ( std::vector<Entry *>::const_iterator e = (*t)->entries.begin(); e != (*t)->entries.end(); ++e ) {
@@ -820,7 +820,7 @@ Model::make_queues()
 		    k += 1;
 		}
 	    } /* a */
-			
+
 	} /* lj */
 
 	(*t)->set_max_k(k);
@@ -837,7 +837,7 @@ Model::make_queues()
 		double m_delta = (double)m / 4.0;
 		(*t)->TX[m]->center.x  = IN_TO_PIX( idle_x + m_delta );
 		(*t)->TX[m]->center.y += IN_TO_PIX( m_delta );
-#if defined(BUG_163)
+#if BUG_163
 		if ( (*t)->is_sync_server() ) {
 		    (*t)->SyX[m]->center.x  = IN_TO_PIX( idle_x + 0.5 + m_delta );
 		    (*t)->SyX[m]->center.y += IN_TO_PIX( m_delta );
@@ -881,10 +881,10 @@ Model::make_queue( double x_pos,		/* x coordinate.		*/
 {
     const double calls = a->y(b) + a->z(b);
     if ( calls == 0.0) return k;	/* No operation. */
-	
+
     for ( unsigned m = 0; m < max_m; ++m ) {
 	bool async_call = a->z(b) > 0 || a->task()->type() == Task::Type::OPEN_SRC;
-		
+
 	if ( a->has_stochastic_calls() ) {
 	    k += 1;
 	    (this->*queue_func)( X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
@@ -902,7 +902,7 @@ Model::make_queue( double x_pos,		/* x coordinate.		*/
     }
     return k;
 }
-				
+
 
 
 
@@ -933,7 +933,7 @@ Model::fifo_queue( double x_pos,		/* x coordinate.		*/
     const Task * j	= b->task();
     unsigned b_m;			/* Mult index of dst.		*/
     const LAYER layer_mask = ENTRY_LAYER(b->entry_id())|(m == 0 ? PRIMARY_LAYER : 0);
-	
+
     const char * task_name = j->name();
 
     b->set_random_queueing(false);
@@ -988,14 +988,12 @@ Model::fifo_queue( double x_pos,		/* x coordinate.		*/
 	if ( b->is_regular_entry() ) {
 	    create_arc( layer_mask, TO_PLACE, q_trans, b->phase[1].ZX[b_m] );
 	} else {
-#if defined(BUG_622)
 	    create_arc( MEASUREMENT_LAYER, TO_PLACE, q_trans, b->phase[1].XX[b_m] );	/* start phase 1 */
-#endif
 	    create_arc( layer_mask, TO_PLACE, q_trans, b->start_activity()->ZX[b_m] );
 	}
 
 	struct trans_object * s_trans = 0;
-#if defined(BUG_163)
+#if BUG_163
 	if ( j->is_sync_server() ) {
 	    /* Create the second "i" transition to handle the SYNC wait. */
 	    s_trans = create_trans( x_pos + n_delta + 0.5, y_pos + Task::__queue_y_offset + (double)l + 0.5 + n_delta,
@@ -1007,9 +1005,7 @@ Model::fifo_queue( double x_pos,		/* x coordinate.		*/
 	    if ( b->is_regular_entry() ) {
 		create_arc( layer_mask, TO_PLACE, s_trans, b->phase[1].ZX[b_m] );
 	    } else {
-#if defined(BUG_622)
 		create_arc( MEASUREMENT_LAYER, TO_PLACE, s_trans, b->phase[1].XX[b_m] );	/* start phase 1 */
-#endif
 		create_arc( layer_mask, TO_PLACE, s_trans, b->start_activity()->ZX[b_m] );
 	    }
 	}
@@ -1055,7 +1051,7 @@ Model::random_queue( double x_pos,		/* x coordinate.		*/
     double n_delta;
     double temp_y	= y_pos + Task::__queue_y_offset + 0.5;
     const LAYER layer_mask = ENTRY_LAYER(b->entry_id())|(b_m == 0 ? PRIMARY_LAYER : 0);
-	
+
     b->set_random_queueing(true);
     c_trans = queue_prologue( x_pos, temp_y - 0.5, a, s_a, b, j->multiplicity(),
 			      e, s_e, m, prob_fwd, async_call, &r_trans );
@@ -1067,7 +1063,7 @@ Model::random_queue( double x_pos,		/* x coordinate.		*/
     for ( b_m = 0; b_m < j->multiplicity(); ++b_m ) {
 
 	n_delta = (double)b_m / 4.0;
-		
+
 	q_trans = create_trans( x_pos + n_delta, temp_y + 1.0 + n_delta,
 				layer_mask,
 				1.0, 1, IMMEDIATE,
@@ -1084,12 +1080,10 @@ Model::random_queue( double x_pos,		/* x coordinate.		*/
 	if ( b->is_regular_entry() ) {
 	    create_arc( layer_mask, TO_PLACE, q_trans, b->phase[1].ZX[b_m] );
 	} else {
-#if defined(BUG_622)
 	    create_arc( MEASUREMENT_LAYER, TO_PLACE, q_trans, b->phase[1].XX[b_m] );	/* start phase 1 */
-#endif
 	    create_arc( layer_mask, TO_PLACE, q_trans, b->start_activity()->ZX[b_m] );
 	}
-#if defined(BUG_163)
+#if BUG_163
 	if ( j->is_sync_server() ) {
 	    /* Create the second "i" transition to handle the SYNC wait. */
 	    s_trans = create_trans( x_pos + n_delta + 0.5, temp_y + 1.0 + n_delta,
@@ -1101,9 +1095,7 @@ Model::random_queue( double x_pos,		/* x coordinate.		*/
 	    if ( b->is_regular_entry() ) {
 		create_arc( layer_mask, TO_PLACE, s_trans, b->phase[1].ZX[b_m] );
 	    } else {
-#if defined(BUG_622)
 		create_arc( MEASUREMENT_LAYER, TO_PLACE, s_trans, b->phase[1].XX[b_m] );	/* start phase 1 */
-#endif
 		create_arc( layer_mask, TO_PLACE, s_trans, b->start_activity()->ZX[b_m] );
 	    }
 	}
@@ -1156,18 +1148,18 @@ Model::queue_prologue( double x_pos,		/* X coordinate.		*/
 	y_pos += 0.5;
     }
 #endif
-	
+
     if ( prob_fwd > 0.0 ) {
 
 	/* Forwarding! */
-		
+
 	c_trans = create_trans( x_pos, y_pos, layer_mask_a|layer_mask_b,
 				prob_fwd, 1, IMMEDIATE, "req%s%d%s%s%d",
 				a->name(), s_a, b->name(), e->name(), m );
 
 	c_place = no_place( "FWD%s%d%s%d", e->name(), s_e, a->name(), m );
 	create_arc( layer_mask_a, TO_TRANS, c_trans, c_place );
-		
+
 	*r_trans = c_trans;
 
     } else {
@@ -1176,9 +1168,9 @@ Model::queue_prologue( double x_pos,		/* X coordinate.		*/
 				-a->rpar_y(b), 1, IMMEDIATE,
 				"req%s%d%s%s%d", a->name(), s_a, b->name(), e->name(), m );
 	create_arc( layer_mask_a|layer_mask_b, TO_TRANS, c_trans, a->_slice[s_a].ChX[m] );
-	
+
 	*r_trans = c_trans;
-	
+
 	if ( async_call ) {
 	    struct trans_object * d_trans;
 #if !defined(BUFFER_BY_ENTRY)
@@ -1205,7 +1197,7 @@ Model::queue_prologue( double x_pos,		/* X coordinate.		*/
 	    create_arc( layer_mask_b, TO_TRANS, c_trans, c_place );	/* req also needs token from ZZ */
 
 	    /* Loop for dropping requests. */
-	
+
 	    d_trans = create_trans( x_pos, y_pos - 1.0, layer_mask_a,
 				    -a->rpar_y(b), 1, IMMEDIATE,
 				    "drop%s%d%s%s%d", a->name(), s_a, b->name(), e->name(), m );
@@ -1257,7 +1249,7 @@ Model::queue_epilogue( double x_pos, double y_pos,
     const Task * cur_task	= b->task();
     const LAYER layer_mask_a 	= ENTRY_LAYER(b->entry_id())|(m == 0 ? PRIMARY_LAYER : 0);
     const LAYER layer_mask_b 	= ENTRY_LAYER(b->entry_id())|(b_m == 0 ? PRIMARY_LAYER : 0);
-	
+
     /* Guard place for external joins */
 
     if ( cur_task->is_sync_server() ) {
@@ -1273,18 +1265,18 @@ Model::queue_epilogue( double x_pos, double y_pos,
 	    g_place = b->GdX[b_m];
 	}
 	create_arc( layer_mask_b, TO_TRANS, q_trans, g_place );
-#if defined(BUG_163)
+#if BUG_163
 	if ( s_trans ) {
 	    create_arc( layer_mask_b, TO_TRANS, s_trans, g_place );
 	}
 #endif
     }
-		
+
     c_place = create_place( x_pos, y_pos - 1.0, layer_mask_a, 0,
 			    "R%s%d%s%d%s%d", a->name(), s_a, b->name(), b_m, e->name(), m );
 
     create_arc( layer_mask_a, TO_PLACE, q_trans, c_place );
-#if defined(BUG_163)
+#if BUG_163
     if ( s_trans ) {
 	create_arc( layer_mask_a, TO_PLACE, s_trans, c_place );
     }
@@ -1299,8 +1291,8 @@ Model::queue_epilogue( double x_pos, double y_pos,
     if ( b->requests() == Requesting_Type::RENDEZVOUS ) {		/* BUG_629 */
 	create_arc( layer_mask_a, TO_TRANS, c_trans, b->DX[b_m] );
     }
-	
-    if ( async_call ) {	
+
+    if ( async_call ) {
 #if defined(BUFFER_BY_ENTRY)
 	c_place = entry[b->entry]->ZZ;	/* Reply to token pool */
 #else
@@ -1314,7 +1306,7 @@ Model::queue_epilogue( double x_pos, double y_pos,
     c_place->layer |= ENTRY_LAYER(b->entry_id());
     create_arc( ENTRY_LAYER(b->entry_id())|(m == 0 ? PRIMARY_LAYER : 0), TO_PLACE, c_trans, c_place );
 
-#if defined(BUG_263)
+#if BUG_263
     /*
      * We have to find all of the 'sink' places and put inhibitor arcs
      * to disallow requests until all threads terminate.
@@ -1347,7 +1339,7 @@ Model::create_phase_instr_net( double idle_x, double y_pos,
     for ( q = 1; q <= b->n_phases(); ++q ) {
 	temp_x = INS_OFFSET(k,(double)(q-1)/2.0) + n_delta;
 	temp_y = y_pos + n_delta - 2;
-		
+
 	c_place = create_place( temp_x, temp_y, MEASUREMENT_LAYER, 0,
 						 "PH%d%s%d%s%d", q,
 						 a->name(), m,
@@ -1360,13 +1352,13 @@ Model::create_phase_instr_net( double idle_x, double y_pos,
 	    create_arc( MEASUREMENT_LAYER, TO_PLACE, s_trans, c_place );
 	    s_trans = 0;
 	}
-		
+
 	c_trans = create_trans( b->phase[q].done_xpos[m], b->phase[q].done_ypos[m],
 				MEASUREMENT_LAYER|ENTRY_LAYER(b->entry_id()),
 				1.0, 1, IMMEDIATE, "ph%d%s%d%s%d", q,
 				a->name(), m,
 				b->name(), n );
-		
+
 	if ( q == 1 && b->requests() == Requesting_Type::RENDEZVOUS ) {	/* BUG_629 */
 	    create_arc( MEASUREMENT_LAYER|ENTRY_LAYER(b->entry_id()), TO_PLACE, c_trans, b->DX[n] );
 	}
@@ -1379,19 +1371,19 @@ Model::create_phase_instr_net( double idle_x, double y_pos,
 	create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, c_place );
 	create_arc( MEASUREMENT_LAYER|ENTRY_LAYER(b->entry_id()), TO_TRANS, c_trans, b->phase[q]._slice[0].ChX[n] );
     }
-	
+
     /* Arrival at queue k, phase 1 */
 
     temp_x = INS_OFFSET(k,0.0) + n_delta;
     temp_y = y_pos + Task::__queue_y_offset + 1.0 + n_delta;
-	
+
     c_place = create_place( temp_x, temp_y, MEASUREMENT_LAYER, 0,
 			    "Arr%s%d%s%d", a->name(), m, b->name(), n );
-	
+
     c_trans = create_trans( temp_x, temp_y + 0.5, MEASUREMENT_LAYER,
 			    1.0, 1, IMMEDIATE+1,
 			    "ArI%s%d%s%d", a->name(), m, b->name(), n );
-	
+
     create_arc( MEASUREMENT_LAYER, TO_PLACE, r_trans, c_place );
     create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, c_place );
     create_arc( MEASUREMENT_LAYER, TO_TRANS, c_trans, j->TX[n] );
@@ -1496,11 +1488,11 @@ Model::trans_rpar()
 	    }
 	    Phase::inc_par_offsets();
 	}
-		
+
 	for ( std::vector<Activity *>::const_iterator a = (*t)->activities.begin(); a != (*t)->activities.end(); ++a ) {
 	    (*a)->create_spar();
 	}
-		
+
 	Phase::inc_par_offsets();
     }
 
@@ -1542,7 +1534,7 @@ Model::trans_res ()
 
     for ( std::vector<Task *>::const_iterator t = ::__task.begin(); t != ::__task.end(); ++t ) {
 	if ( (*t)->type() != Task::Type::REF_TASK ) continue;
-			
+
 	for ( std::vector<Entry *>::const_iterator e = (*t)->entries.begin(); e != (*t)->entries.end(); ++e ) {
 
 	    if ( (*e)->is_regular_entry() ) {
@@ -1569,7 +1561,7 @@ Model::trans_res ()
 	Phase::inc_par_offsets();
     }
 }
-	
+
 /*----------------------------------------------------------------------*/
 /* Output processing.							*/
 /*----------------------------------------------------------------------*/
@@ -1633,7 +1625,7 @@ Model::print_inservice_probability( std::ostream& output ) const
 	output << "Mean";
     }
     output << std::endl;
-	
+
     for ( std::vector<Task *>::const_iterator t_i = ::__task.begin(); t_i != ::__task.end(); ++t_i ) {
 	for ( std::vector<Task *>::const_iterator t_j = ::__task.begin(); t_j != ::__task.end(); ++t_j ) {
 	    if ( !(*t_j)->inservice_flag() ) continue;	/* Only do ones we have! */
@@ -1647,11 +1639,11 @@ Model::print_inservice_probability( std::ostream& output ) const
 	    }
 
 	    /* Over all entries of task i and j... */
-			
+
 	    if ( uncondition_flag ) {
 		(*t_i)->get_total_throughput( *t_j, tot_tput );
 	    }
-			
+
 	    for ( std::vector<Entry *>::const_iterator e_i = (*t_i)->entries.begin(); e_i != (*t_i)->entries.end(); ++e_i ) {
 		Entry * a = *e_i;
 
@@ -1668,14 +1660,14 @@ Model::print_inservice_probability( std::ostream& output ) const
 			    tot_tput[0] += tot_tput[p];
 			}
 		    }
-					
+
 		    count += print_inservice_cd( output, a, b, *t_j, tot_tput, col_sum );
 		} /* b */
 	    } /* a */
 
 	    if ( count > 1 && uncondition_flag ) {
 		double row_sum	= 0.0;
-				
+
 		output << std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen) << "Task total"
 		       << std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << (*t_i)->name() << " "
 		       << std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << (*t_j)->name() << " "
@@ -1709,13 +1701,13 @@ Model::print_inservice_cd( std::ostream& output, const Entry * a, const Entry * 
 {
     unsigned count    = 0;	/* Count of all c,d		*/
     double col_sum_cd[DIMPH+1];	/* sum over all c,d for a,b	*/
-	
+
     for ( unsigned int p = 0; p <= DIMPH; ++p ) {
 	col_sum_cd[p] = 0.0;
     }
-	
+
     /* Now find prob of token following c->d path instead of a->b OT or idle */
-	
+
     for ( std::vector<Task *>::const_iterator t_i = ::__task.begin(); t_i != ::__task.end(); ++t_i ) {
 	if ( *t_i == j ) continue;
 
@@ -1723,7 +1715,7 @@ Model::print_inservice_cd( std::ostream& output, const Entry * a, const Entry * 
 	    Entry * c = *e_i;
 
 	    const bool overtaking = a->task() == c->task();
-			
+
 	    for ( std::vector<Entry *>::const_iterator e_j = j->entries.begin(); e_j != j->entries.end(); ++e_j ) {
 		Entry * d = (*e_j);		/* Called entry index.		*/
 		unsigned count_Pd = 0;		/* Count of phases.		*/
@@ -1731,17 +1723,17 @@ Model::print_inservice_cd( std::ostream& output, const Entry * a, const Entry * 
 		double tput[DIMPH+1];
 
 		if ( c->yy(d) == 0.0 ) continue;
-				
+
 		for ( unsigned int p = 0; p <= DIMPH; ++p ) {
 		    col_sum_Pd[p] = 0.0;
 		}
-				
+
 		for ( unsigned int pd = (overtaking ? 2 : 1); pd <= d->n_phases(); pd++ ) {
 		    for ( unsigned int pa = 1; pa <= DIMPH; ++pa ) {
 			tput[pa] = 0.0;
 		    }
 		    count_Pd += 1;
-					
+
 		    if ( count_Pd == 1 ) {
 			output << std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << a->name() << " "
 			       << std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << b->name() << " "
@@ -1786,7 +1778,7 @@ Model::print_inservice_cd( std::ostream& output, const Entry * a, const Entry * 
 			col_sum_Pd[pa] += prob;
 			col_sum_cd[pa] += prob;
 		    }
-					
+
 		    prob = tot_tput[0] > 0.0 ? tput[0] / tot_tput[0] : 0.0;
 		    if ( overtaking ) {
 			output << std::setw(LQIO::SRVN::ObjectOutput::__maxDblLen-1) << prob << " OT" << std::endl;
@@ -1806,7 +1798,7 @@ Model::print_inservice_cd( std::ostream& output, const Entry * a, const Entry * 
 		    output << std::setw(LQIO::SRVN::ObjectOutput::__maxDblLen-1) << col_sum_Pd[0] << (overtaking ? " OT" : "") << std::endl;
 		}
 		count += 1;
-				
+
 	    } /* d */
 	} /* c */
     } /* i */
@@ -1822,6 +1814,6 @@ Model::print_inservice_cd( std::ostream& output, const Entry * a, const Entry * 
 	}
 	output << std::setw(LQIO::SRVN::ObjectOutput::__maxDblLen-1) << col_sum_cd[0] << std::endl << std::endl;
     }
-	
+
     return count;
 }

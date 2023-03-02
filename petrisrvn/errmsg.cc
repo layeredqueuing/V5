@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: errmsg.cc 15955 2022-10-07 11:05:00Z greg $
+ * $Id: errmsg.cc 16448 2023-02-27 13:04:14Z greg $
  */
 
 #include "petrisrvn.h"
@@ -31,7 +31,7 @@ std::vector< std::pair<unsigned, LQIO::error_message_type> > local_error_message
     { WRN_PREEMPTIVE_SCHEDULING,        { LQIO::error_severity::WARNING,    "Premptive scheduling for processor \"%s\" cannot be used with non-unity coefficient of variation at entry \"%s\"."} },
     { ADV_MESSAGES_LOST,                { LQIO::error_severity::ADVISORY,   "Open-class messages are dropped at task \"%s\" with probability %g."} },
     { ADV_OPEN_ARRIVALS_DONT_MATCH,     { LQIO::error_severity::ADVISORY,   "Throughput %g does not match open arrival rate %g at Entry \"%s\"."} },
-    { ADV_ERLANG_N,                     { LQIO::error_severity::ADVISORY,   "Using Erlang %d distribution for Entry \"%s\"."} }                               
+    { ADV_ERLANG_N,                     { LQIO::error_severity::ADVISORY,   "Using Erlang %d distribution for Entry \"%s\"."} }
 };
 
 /*

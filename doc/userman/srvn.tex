@@ -7,7 +7,7 @@
 %% Created:             27 April 2011
 %%
 %% ------------------------------------------------------------------------
-%%  $Id: srvn.tex 14584 2021-03-25 13:22:14Z greg $
+%%  $Id: srvn.tex 16456 2023-03-01 22:27:40Z greg $
 %% ------------------------------------------------------------------------
 %%
 \lstdefinelanguage{LQN}{
@@ -579,7 +579,7 @@ control variables that are no longer recognized.
   \ctrlparam{\$model\_comment}  	    & \nonterminal{string}  & ""      &       \\
   \ctrlparam{\$solver}		            & \nonterminal{string}  & \multicolumn{2}{c|}{\emph{deprecated}} \\
   \hline
-  \ctrlparam{\$convergence\_limit}	    & \nonterminal{real}    & 0.00001 & lqns  \\
+  \ctrlparam{\$convergence\_value}	    & \nonterminal{real}    & 0.00001 & lqns  \\
   \ctrlparam{\$iteration\_limit}	    & \nonterminal{int}	    & 100     & lqns  \\
   \ctrlparam{\$print\_interval}		    & \nonterminal{int}	    & 1       & lqns  \\
   \ctrlparam{\$underrelaxation}             & \nonterminal{real}    & 0.9     & lqns  \\
@@ -590,8 +590,9 @@ control variables that are no longer recognized.
   \ctrlparam{\$seed\_value}                 & \nonterminal{int}     & --      & lqsim \\
   \ctrlparam{\$warm\_up\_loops}             & \nonterminal{int}     & --      & lqsim \\
   \hline
-  \ctrlparam{\$convergence\_iters}          & \nonterminal{int}     & --      & spex \\
-  \ctrlparam{\$convergence\_under\_relax}   & \nonterminal{real}    & --      & spex \\
+  \ctrlparam{\$spex\_convergence}           & \nonterminal{real}    & 0.001   & spex \\
+  \ctrlparam{\$spex\_iteration\_limit}      & \nonterminal{int}     & 50      & spex \\
+  \ctrlparam{\$spex\_underrelaxation}       & \nonterminal{real}    & 1.0     & spex \\
   \hline
   \end{tabular}
   \caption{Spex Control Variables}

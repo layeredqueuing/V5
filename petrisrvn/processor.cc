@@ -54,7 +54,7 @@ Processor::Processor( LQIO::DOM::Entity * dom )
 }
 
 
-void Processor::clear() 
+void Processor::clear()
 {
     PX = 0;
     for ( unsigned e = 0; e <= DIME; ++e ) {
@@ -82,7 +82,7 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
     if ( dom->getSchedulingType() != SCHEDULE_DELAY && !Pragma::__pragmas->default_processor_scheduling() ) {
 	dom->setSchedulingType( Pragma::__pragmas->processor_scheduling() );
     }
-	
+
     Processor * processor = new Processor( dom );
     scheduling_type scheduling = dom->getSchedulingType();
     processor->set_scheduling( scheduling );
@@ -101,7 +101,7 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
  */
 
 void
-Processor::initialize() 
+Processor::initialize()
 {
     if ( get_scheduling() == SCHEDULE_PS ) {
 	if ( n_tasks() > 1 || _tasks[0]->multiplicity() > 1 || _tasks[0]->n_threads() > 1 ) {
@@ -113,7 +113,7 @@ Processor::initialize()
 
 
 /*
- * Find the processor and return it.  
+ * Find the processor and return it.
  */
 
 Processor *
@@ -130,7 +130,7 @@ Processor::find( const std::string& name  )
 
 
 
-double Processor::rate() const 
+double Processor::rate() const
 {
     if ( dynamic_cast<const LQIO::DOM::Processor *>(get_dom())->hasRate() ) {
 	try {
@@ -175,7 +175,7 @@ bool Processor::scheduling_is_ok() const
 Processor::set_queue_length( void )
 {
     unsigned max_count = 0;
-	
+
     for ( vector<Processor *>::const_iterator h = ::__processor.begin(); h != ::__processor.end(); ++h ) {
 	Processor * curr_proc = *h;
 	unsigned j;
@@ -184,10 +184,10 @@ Processor::set_queue_length( void )
 	if ( curr_proc->is_single_place_processor() ) continue;
 
 	/* Make fifo queues to NON infinite processors with multiple callers. */
-	
+
 	for ( vector<Task *>::const_iterator t = curr_proc->_tasks.begin(); t != curr_proc->_tasks.end(); ++t ) {
 	    Task * curr_task = *t;
-	    
+
 	    for ( j = 0; j < n_tasks; ++j ) {
 		if ( curr_proc->_history[j].task->priority() > curr_task->priority() ) break;
 	    }
@@ -203,11 +203,11 @@ Processor::set_queue_length( void )
 	}
 
 	/* Find largest count (cosmetic really) */
-				
+
 	for ( unsigned int i = 0; i < n_tasks; i = j ) {
 	    int start_prio = curr_proc->_history[i].task->priority();
 	    unsigned count = 0;
-			
+
 	    for ( j = i; j < n_tasks && curr_proc->_history[j].task->priority() == start_prio; ++j ) {
 		count += curr_proc->_history[j].task->multiplicity();
 	    }
@@ -241,12 +241,12 @@ Processor::transmorgrify( unsigned max_count )
     const unsigned int copies = multiplicity();		/* Check for validity before is_single_place... */
 
     if ( is_single_place_processor() ) {
-		
+
         if ( !simplify_network || is_infinite() ) {
-	    if ( this->ref_count() ) {
-		this->PX = create_place( x_pos, y_pos, PROC_LAYER, ref_count(), "P%s", name() );
+	    if ( ref_count() ) {
+		PX = create_place( x_pos, y_pos, PROC_LAYER, ref_count(), "P%s", name() );
 	    } else {
-		this->PX = create_place( x_pos, y_pos, PROC_LAYER, open_model_tokens, "P%s", name() );
+		PX = create_place( x_pos, y_pos, PROC_LAYER, open_model_tokens, "P%s", name() );
 	    }
 	}
 
@@ -257,20 +257,20 @@ Processor::transmorgrify( unsigned max_count )
 	unsigned prio_count = 0;	/* */
 
 	/* Regular server. */
-		
+
 	if ( copies > MAX_MULT ) {
 	    LQIO::input_error2( LQIO::ERR_TOO_MANY_X, "cpus ", MAX_MULT );
 	}
 
-	this->PX = create_place( x_pos, y_pos, PROC_LAYER, copies, "P%s", name() );
+	PX = create_place( x_pos, y_pos, PROC_LAYER, copies, "P%s", name() );
 
 	/* Create Queue state places for each priority (allow for instances of tasks) */
 
-	for ( i = 0; i < this->n_tasks(); i = j ) {
-	    int start_prio = this->_history[i].task->priority();
+	for ( i = 0; i < n_tasks(); i = j ) {
+	    int start_prio = _history[i].task->priority();
 	    unsigned count = 0;
 	    struct place_object * prio_place = 0;
-			
+
 	    /* Create Priority places */
 
 	    if ( has_priority_scheduling() ) {
@@ -278,11 +278,11 @@ Processor::transmorgrify( unsigned max_count )
 					   PROC_LAYER, 1,
 					   "Prio%d%s", start_prio, name() );
 	    }
-						   
+
 	    /* Now create the request and queue places. */
 
-	    for ( j = i; j < n_tasks() && this->_history[j].task->priority() == start_prio; ++j ) {
-		count += this->_history[j].task->multiplicity() * this->_history[j].task->n_threads();
+	    for ( j = i; j < n_tasks() && _history[j].task->priority() == start_prio; ++j ) {
+		count += _history[j].task->multiplicity() * _history[j].task->n_threads();
 	    }
 
 	    for ( k = 1; k < count; ++k ) {
@@ -291,15 +291,15 @@ Processor::transmorgrify( unsigned max_count )
 	    }
 
 	    x_pos += 0.5;
-			
+
 	    for ( k = i; k < j; ++k ) {
 		unsigned m;	/* multiplicity index.	*/
-		unsigned max_m = this->_history[k].task->n_customers();
+		unsigned max_m = _history[k].task->n_customers();
 
 		for ( m = 0; m < max_m; ++m ) {
 		    x_pos = make_queue( x_pos, y_pos, start_prio,
 					prio_place, IMMEDIATE + prio_count,
-					this->_history, count, max_count,
+					_history, count, max_count,
 					i, k, m );
 		}
 	    }
@@ -307,7 +307,7 @@ Processor::transmorgrify( unsigned max_count )
 	    prio_count += 1;
 	}
 
-	this->PX->center.y = IN_TO_PIX( y_pos + max_count );
+	PX->center.y = IN_TO_PIX( y_pos + max_count );
     }
 
     __x_offset = x_pos + 1.0;
@@ -321,20 +321,20 @@ Processor::transmorgrify( unsigned max_count )
 double
 Processor::make_queue( double x_pos, double y_pos, const int priority,
 		       struct place_object * prio_place,
-		       const short trans_prio, history_t history[], 
+		       const short trans_prio, history_t history[],
 		       const unsigned count, unsigned depth,
 		       const unsigned low, const unsigned curr, const unsigned m )
 {
     Task * cur_task	= history[curr].task;
     unsigned p;
 
-		
+
     cur_task->set_proc_queue_count( count );	/* for get pmmean */
     for ( vector<Entry *>::const_iterator e = cur_task->entries.begin(); e != cur_task->entries.end(); ++e ) {
 	Entry * cur_entry = *e;
 	for ( p = 1; p <= cur_entry->n_phases(); ++p ) {
 	    x_pos = make_fifo_queue( x_pos, y_pos, priority, prio_place,
-				     trans_prio, history, 
+				     trans_prio, history,
 				     count, depth, low, curr, m,
 				     &cur_entry->phase[p] );
 	}
@@ -343,11 +343,11 @@ Processor::make_queue( double x_pos, double y_pos, const int priority,
 
     for ( vector<Activity *>::const_iterator a = cur_task->activities.begin(); a != cur_task->activities.end(); ++a ) {
 	x_pos = make_fifo_queue( x_pos, y_pos, priority, prio_place,
-				 trans_prio, history, 
+				 trans_prio, history,
 				 count, depth, low, curr, m,
 				 (*a) );
     }
-	
+
     return x_pos;
 }
 
@@ -360,7 +360,7 @@ Processor::make_queue( double x_pos, double y_pos, const int priority,
 double
 Processor::make_fifo_queue( double x_pos, double y_pos, const int priority,
 			    struct place_object * prio_place,
-			    const short trans_prio, history_t history[], 
+			    const short trans_prio, history_t history[],
 			    const unsigned count, unsigned depth,
 			    const unsigned low, const unsigned curr, const unsigned m,
 			    Phase * curr_phase )
@@ -370,20 +370,20 @@ Processor::make_fifo_queue( double x_pos, double y_pos, const int priority,
 
     unsigned k; 	/* Queue Counter 	*/
     struct place_object * p_place = 0;
-		
+
     if ( curr_phase->s() == 0.0 ) return x_pos;
 
     for ( unsigned int s = 0; s < curr_phase->n_slices(); ++s ) {
 	c_place = create_place( x_pos, y_pos, PROC_LAYER, 0, "Preq%s%s%d%d", name(), curr_phase->name(), m, s );
 	c_trans = create_trans( x_pos, y_pos + 0.5, PROC_LAYER, 1.0, 1, trans_prio, "preq%s%s%d%d", name(), curr_phase->name(), m, s );
 	create_arc( PROC_LAYER, TO_TRANS, c_trans, c_place );
-			
+
 	for ( k = 1; k < count; k++ ) {
 	    create_arc( FIFO_LAYER, TO_TRANS, c_trans, no_place( "P%dSh%s%d", priority, name(), k ) );
 	    c_place = create_place( x_pos, y_pos + k, PROC_LAYER, 0, "PI%s%s%d%d%d", name(), curr_phase->name(), m, s, k );
-				
+
 	    create_arc( PROC_LAYER, TO_PLACE, c_trans, c_place );
-				
+
 	    c_trans = create_trans( x_pos, y_pos + (double)k + 0.5, PROC_LAYER, 1.0, 1, trans_prio, "pi%s%s%d%d%d", name(), curr_phase->name(), m, s, k );
 	    create_arc( FIFO_LAYER, TO_PLACE, c_trans, no_place( "P%dSh%s%d", priority, name(), k ) );
 	    create_arc( PROC_LAYER, TO_TRANS, c_trans, c_place );
@@ -401,7 +401,7 @@ Processor::make_fifo_queue( double x_pos, double y_pos, const int priority,
 	    history[curr].request_place = p_place;
 
 	    /* HOL queueing */
-				
+
 	    for ( unsigned int i = 0; i < low; ++i ) {
 		create_arc( PROC_LAYER, TO_PLACE, history[i].grant_trans, prio_place );
 		create_arc( PROC_LAYER, TO_TRANS, history[i].grant_trans, prio_place );
@@ -409,15 +409,15 @@ Processor::make_fifo_queue( double x_pos, double y_pos, const int priority,
 
 	    depth += 2;
 	}
-			
-	create_arc( PROC_LAYER, TO_TRANS, c_trans, this->PX );
-			
+
+	create_arc( PROC_LAYER, TO_TRANS, c_trans, PX );
+
 	/* This place is connected to the sX transition */
-			
+
 	c_place = create_place( x_pos, y_pos + (double)depth, PROC_LAYER, 0, "Pgrt%s%s%d%d", name(), curr_phase->name(), m, s );
 	create_arc( PROC_LAYER, TO_PLACE, c_trans, c_place );
 	curr_phase->_slice[s].PgX[m] = c_place;
-			
+
 	history[curr].grant_trans = c_trans;
 	history[curr].grant_place = c_place;
 
@@ -425,7 +425,7 @@ Processor::make_fifo_queue( double x_pos, double y_pos, const int priority,
 	    unsigned i;
 
 	    /* Steal processor from other PR places here */
-				
+
 	    for ( i = 0; i < low; ++i ) {
 		c_trans = create_trans( x_pos-0.25*(i+1), y_pos+(double)depth-1.5+0.25*(i+1), PROC_LAYER, 1.0, 1, trans_prio, "prmpt%s%s%d%d%d", name(), curr_phase->name(), m, s, i );
 		create_arc( PROC_LAYER, TO_TRANS, c_trans, p_place );
@@ -510,7 +510,7 @@ Processor::get_waiting( const Phase& phase ) const
     }
 
     if ( is_single_place_processor() ) {
-        if ( !simplify_network ) { 
+        if ( !simplify_network ) {
 	    tokens = get_pmmean( "W%s00", phase.name() );
 	    tput   = get_tput( IMMEDIATE, "w%s00", phase.name() );
 	}

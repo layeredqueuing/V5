@@ -35,7 +35,7 @@ using namespace std;
 std::vector<Entry *> __entry;
 unsigned int Entry::__next_entry_id = 1;
 
-Entry::Entry( LQIO::DOM::Entry * dom, Task * task ) 
+Entry::Entry( LQIO::DOM::Entry * dom, Task * task )
     : forwards(),
 #if defined(BUFFER_BY_ENTRY)
       ZZ(0),
@@ -60,7 +60,7 @@ Entry::Entry( LQIO::DOM::Entry * dom, Task * task )
 }
 
 
-void 
+void
 Entry::clear()
 {
     for ( unsigned m = 0; m < MAX_MULT; ++m ) {
@@ -89,7 +89,7 @@ Entry::create( LQIO::DOM::Entry * dom, Task * task )
  * Perform entry checks.
  */
 
-const char * Entry::name() const 
+const char * Entry::name() const
 {
     return get_dom()->getName().c_str();
 }
@@ -97,16 +97,16 @@ const char * Entry::name() const
 
 Entry&  Entry::set_start_activity( Activity * activity )
 {
-    _start_activity = activity; 
-    return *this; 
+    _start_activity = activity;
+    return *this;
 }
 
 double Entry::prob_fwd( const Entry * entry ) const
-{	
+{
     std::map<const Entry *,Call>::const_iterator e = _fwd.find(entry);
     if ( e != _fwd.end() ) {
 	const LQIO::DOM::Call * call = e->second._dom;
-	try { 
+	try {
 	    const double value = call->getCallMeanValue();
 	    if ( value > 1.0 ) {
 		std::stringstream ss;
@@ -117,7 +117,7 @@ double Entry::prob_fwd( const Entry * entry ) const
 	}
 	catch ( const std::domain_error& e ) {
 	    call->runtime_error( LQIO::ERR_INVALID_PARAMETER, "forwarding probability", e.what() );
-	    throw std::domain_error( std::string( "invalid parameter: " ) + e.what() ); 
+	    throw std::domain_error( std::string( "invalid parameter: " ) + e.what() );
 	}
     }
     return 0.0;
@@ -129,7 +129,7 @@ double Entry::yy(const Entry* entry) const
     double ysum = 0;
     for ( unsigned int p = 1; p <= DIMPH; ++p ) {
 	ysum += phase[p].y(entry);
-    }  
+    }
     return ysum;
 }
 
@@ -138,7 +138,7 @@ double Entry::zz(const Entry* entry) const
     double zsum = 0;
     for ( unsigned int p = 1; p <= DIMPH; ++p ) {
 	zsum += phase[p].z(entry);
-    }  
+    }
     return zsum;
 }
 
@@ -153,7 +153,7 @@ Entry::test_and_set( LQIO::DOM::Entry::Type type )
 }
 
 bool
-Entry::test_and_set_recv( Requesting_Type recv ) 
+Entry::test_and_set_recv( Requesting_Type recv )
 {
     if ( task()->is_client() ) {
 	task()->get_dom()->runtime_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, name() );
@@ -168,22 +168,22 @@ Entry::test_and_set_recv( Requesting_Type recv )
 }
 
 
-void 
+void
 Entry::add_call( const unsigned int p, LQIO::DOM::Call * call )
 {
     /* Make sure this is one of the supported call types */
-    if (call->getCallType() != LQIO::DOM::Call::Type::SEND_NO_REPLY && 
+    if (call->getCallType() != LQIO::DOM::Call::Type::SEND_NO_REPLY &&
 	call->getCallType() != LQIO::DOM::Call::Type::RENDEZVOUS ) {
 	abort();
     }
-	
+
     if ( !test_and_set( LQIO::DOM::Entry::Type::STANDARD ) ) return;
     phase[p].add_call( call );
 }
 
 
 /* static */ void
-Entry::add_fwd_call( LQIO::DOM::Call * call ) 
+Entry::add_fwd_call( LQIO::DOM::Call * call )
 {
     /* Make sure this is one of the supported call types */
     if (call->getCallType() != LQIO::DOM::Call::Type::FORWARD) {
@@ -193,7 +193,7 @@ Entry::add_fwd_call( LQIO::DOM::Call * call )
     /* Internal Entry references */
     Entry * from_entry;
     Entry * to_entry;
-	
+
     if ( Entry::find( call->getSourceObject()->getName(), from_entry, call->getDestinationEntry()->getName(), to_entry ) && to_entry->test_and_set_recv( Requesting_Type::RENDEZVOUS ) ) {
 	const Task * from_task = from_entry->task();
 	if ( from_task->type() == Task::Type::REF_TASK ) {
@@ -210,18 +210,18 @@ Entry::add_fwd_call( LQIO::DOM::Call * call )
  * the release probability.  The latter is only important when
  * we are forwarding.
  */
-	 
+
 void
 Entry::initialize()
 {
     _n_phases = 0;
-    
+
     bool has_service_time = false;
     bool has_deterministic_phases = false;
-	
+
     if ( is_regular_entry() ) {
 	for ( unsigned int p = 1; p <= DIMPH; ++p ) {
-	    Phase * curr_phase = &this->phase[p];
+	    Phase * curr_phase = &phase[p];
 	    if ( !curr_phase->get_dom() ) continue;
 
 	    double calls = curr_phase->check();
@@ -242,10 +242,10 @@ Entry::initialize()
     } else if ( is_activity_entry() ) {
 	std::deque<Activity *> activity_stack;
 	std::deque<ActivityList *> fork_stack;
-	    
+
 	has_service_time = start_activity()->find_children( activity_stack, fork_stack, this );
 	double n_replies = start_activity()->count_replies( activity_stack, this, 1.0, 1, _n_phases );
-	    
+
 	if ( requests() == Requesting_Type::RENDEZVOUS ) {
 	    if ( n_replies == 0 ) {
 		get_dom()->runtime_error( LQIO::ERR_REPLY_NOT_GENERATED );
@@ -273,7 +273,7 @@ Entry::initialize()
     }
 
     /* Deal with forwarding. */
-	
+
     _rel_prob = 1.0;		/* Set entry "release" probability */
 
     for ( vector<Entry *>::const_iterator d = ::__entry.begin(); d != ::__entry.end(); ++d ) {
@@ -296,7 +296,7 @@ Entry::initialize()
  */
 
 double
-Entry::transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struct place_object * d_place, 
+Entry::transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struct place_object * d_place,
 		      unsigned m, short enabling )
 {
     unsigned ne = task()->n_entries();
@@ -317,13 +317,13 @@ Entry::transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struc
 
 	unsigned p;
 	double p_pos = 0.0;
-			
+
 	for ( p = 1; p <= n_phases(); ++p ) {
 	    p_pos = phase[p].transmorgrify( x_pos, task_y_offset, m, layer_mask, p_pos, enabling );
 	}
 
 	/* Connect phases together */
-			
+
 	if ( !task()->inservice_flag() || task()->is_client() ) {
 	    for ( p = 1; p < n_phases(); ++p ) {
 		create_arc( layer_mask, TO_PLACE, phase[p].doneX[m], phase[p+1].ZX[m] );
@@ -366,27 +366,23 @@ Entry::transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struc
 	create_arc( layer_mask, TO_TRANS, c_trans, task()->TX[m] );
 	create_arc( layer_mask, TO_PLACE, c_trans, start_place );
 	/* c_trans acquire processor */
-#if defined(BUG_622)
 	if ( !is_regular_entry() ) {
 	    create_arc( MEASUREMENT_LAYER, TO_PLACE, c_trans, phase[1].XX[m] );	/* start phase 1 */
 	}
-#endif	
-			
+
     } else if ( is_regular_entry() && !task()->inservice_flag()
 		&& requests() == Requesting_Type::RENDEZVOUS ) {
 
 	create_arc( layer_mask, TO_PLACE, phase[1].doneX[m], DX[m] );
 
-    } 
+    }
 
-#if defined(BUG_622)
     if ( !is_regular_entry() ) {
 	if ( task()->gdX[m] ) {
 	    /* activities need flush, so link to flush transition */
 	    create_arc( MEASUREMENT_LAYER, TO_TRANS, task()->gdX[m], phase[n_phases()].XX[m] );	/* End phase n */
 	}
     }
-#endif
     return next_pos;
 }
 
@@ -406,12 +402,12 @@ Entry::create_forwarding_gspn()
 	double y_pos = root->_slice[0].WX_ypos[(*f)->_m];
 	unsigned ne  = task()->n_entries();
 	const LAYER layer_mask = ENTRY_LAYER(entry_id())|((*f)->_m == 0 ? PRIMARY_LAYER : 0);
-	
+
 	(*f)->f_place = create_place( X_OFFSET(1,1.0), y_pos + 1.0, layer_mask, 0,
 				      "FWD%s%d%s%d", root->name(), (*f)->_slice_no, phase[1].name(), (*f)->_m );
-	if ( this->release_prob() > 0.0 ) {
+	if ( release_prob() > 0.0 ) {
 	    (*f)->f_trans = create_trans( X_OFFSET(1,1.0), y_pos + 0.5, layer_mask,
-					  this->release_prob(), 1, IMMEDIATE,
+					  release_prob(), 1, IMMEDIATE,
 					  "fwd%s%d%s%d", root->name(), (*f)->_slice_no, phase[1].name(), (*f)->_m );
 	    create_arc( layer_mask, TO_TRANS, (*f)->f_trans, (*f)->f_place );
 	    create_arc( layer_mask, TO_PLACE, (*f)->f_trans, root->_slice[0].WX[(*f)->_m] );
@@ -420,7 +416,7 @@ Entry::create_forwarding_gspn()
 }
 
 
-void 
+void
 Entry::remove_netobj()
 {
     for ( unsigned int p = 1; p <= n_phases(); ++p ) {
@@ -470,7 +466,7 @@ Entry::check_open_result()
     if ( Pragma::__pragmas->stop_on_message_loss() ) {
 	LQIO::error_messages.at(ADV_MESSAGES_LOST).severity = LQIO::error_severity::ERROR;
     }
-    
+
     Model::__open_class_error = false;
 #if defined(BUFFER_BY_ENTRY)
     if ( openArrivalRate() > 0.0 && fabs ( openArrivalRate() - throughput[1] ) / openArrivalRate() > 0.05 ) {
@@ -493,7 +489,7 @@ Entry::check_open_result()
     return !Model::__open_class_error;
 }
 
-void 
+void
 Entry::insert_DOM_results() const
 {
     double totalPhaseUtil = 0.0;
@@ -508,7 +504,7 @@ Entry::insert_DOM_results() const
 	tput += _throughput[m];
     }
     _dom->setResultThroughput(tput);
-	
+
     for ( unsigned p = 1; p <= n_phases(); ++p ) {
 	const double util = task_utilization( p );
 	totalPhaseUtil   += util;
@@ -516,16 +512,16 @@ Entry::insert_DOM_results() const
 	for ( unsigned m = 0; m < max_m; ++m ) {
 	    proc_tokens  += phase[p].proc_tokens[0];
 	}
-    }		
-	
+    }
+
     /* Store the utilization and squared coeff of variation */
     _dom->setResultUtilization(totalPhaseUtil)
 	.setResultProcessorUtilization(proc_tokens);
 
-	
+
     /* Store activity phase data */
     for ( unsigned p = 1; p <= n_phases(); ++p ) {
-	if (is_activity_entry()) {	
+	if (is_activity_entry()) {
 	    _dom->setResultPhasePServiceTime(p,phase[p].residence_time())
 		.setResultPhasePUtilization(p,phase_utils[p-1]);
 //		.setResultPhasePProcessorWaiting(p,queueingTime(p));
@@ -550,7 +546,7 @@ double Entry::queueing_time( const Entry * entry ) const
 }
 
 /*
- * Find the entry and return it.  
+ * Find the entry and return it.
  */
 
 /* static */ Entry * Entry::find( const std::string& name)
@@ -587,3 +583,4 @@ Entry::find( const std::string& from_entry_name, Entry * & from_entry, const std
     }
     return rc;
 }
+

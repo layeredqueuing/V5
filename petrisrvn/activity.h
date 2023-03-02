@@ -33,7 +33,7 @@ namespace LQIO {
 class Activity : public Phase {
     friend void ActivityList::insert_DOM_results() const;
 
-public:    
+public:
     Activity( LQIO::DOM::Activity *, Task * );
     virtual ~Activity() {}
 
@@ -95,7 +95,7 @@ public:
     static std::map<LQIO::DOM::ActivityList*, ActivityList *> domToNative;
 };
 
-struct eqActivityStr 
+struct eqActivityStr
 {
     eqActivityStr( const std::string& s ) : _s(s) {}
     bool operator()(const Activity * p1 ) const { return _s == p1->name(); }
@@ -103,5 +103,4 @@ struct eqActivityStr
 private:
     const std::string& _s;
 };
-
 #endif

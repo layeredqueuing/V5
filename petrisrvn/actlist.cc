@@ -37,13 +37,13 @@ ActivityList::ActivityList( Type type, LQIO::DOM::ActivityList * dom )
 	list[b] = 0;
 	for ( unsigned int m = 0; m < MAX_MULT; ++m ) {
 	    FjT[b][m] = 0;
-	} 
+	}
 	entry[b] = 0;
     }
     for ( unsigned int m = 0; m < MAX_MULT; ++m ) {
 	FjF[m] = 0;
 	FjP[m] = 0;
-    } 
+    }
 
     switch ( type ) {
     case Type::FORK:
@@ -56,7 +56,7 @@ ActivityList::ActivityList( Type type, LQIO::DOM::ActivityList * dom )
 	    u.fork.reachable[i] = false;
 	}
 	break;
-	    
+
     case Type::LOOP:
 	u.loop.prev    = 0;
 	for ( unsigned int i = 0; i < MAX_BRANCH; ++i ) {
@@ -74,7 +74,7 @@ ActivityList::ActivityList( Type type, LQIO::DOM::ActivityList * dom )
     case Type::OR_JOIN:
 	u.join.next    = 0;
 	u.join.type    = JoinType::UNDEFINED;
-#if defined(BUG_263)
+#if BUG_263
 	u.join.quorumCount = 0;
 #endif
 	for ( unsigned int i = 0; i < MAX_BRANCH; ++i ) {
@@ -90,7 +90,7 @@ ActivityList::ActivityList( Type type, LQIO::DOM::ActivityList * dom )
     default: abort();
     }
 }
-	
+
 void
 ActivityList::remove_netobj()
 {
@@ -119,17 +119,17 @@ ActivityList::remove_netobj()
  */
 
 bool
-ActivityList::join_find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * e ) 
+ActivityList::join_find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * e )
 {
     const Activity * curr_activity = activity_stack.back();
     unsigned int j;
-    
-    /* Find join. -- we need its tokens too! */
-		
-    for ( j = 0; j < this->n_acts() && this->list[j] != curr_activity; ++j );
-    if ( j == this->n_acts() ) abort();
 
-    switch ( this->type() ) {
+    /* Find join. -- we need its tokens too! */
+
+    for ( j = 0; j < n_acts() && list[j] != curr_activity; ++j );
+    if ( j == n_acts() ) abort();
+
+    switch ( type() ) {
 
     case Type::JOIN:
     case Type::AND_JOIN:
@@ -137,15 +137,15 @@ ActivityList::join_find_children( std::deque<Activity *>& activity_stack, std::d
 	find_fork_list( e->task(), activity_stack, activity_stack.size(), fork_stack );
 	/* Fall through */
     case Type::LOOP:
-	this->entry[j] = e;
+	entry[j] = e;
 	break;
-		
+
     default:
 	abort();
     }
 
-    if ( this->u.join.next ) {
-	return this->u.join.next->fork_find_children( activity_stack, fork_stack, e );
+    if ( u.join.next ) {
+	return u.join.next->fork_find_children( activity_stack, fork_stack, e );
     } else {
 	return false;
     }
@@ -159,13 +159,13 @@ ActivityList::fork_join_name() const
 {
     char * aBuf = static_cast<char *>(malloc( BUFSIZ ));
     char * p = aBuf;
-    for ( unsigned int i = 0; i < this->n_acts(); ++i ) {
+    for ( unsigned int i = 0; i < n_acts(); ++i ) {
 	const char * q;
 	if ( (p - aBuf) + strlen( list[i]->name() ) + 3 >= BUFSIZ ) {
 	    break;
 	} else if ( i > 0 ) {
 	    *p++ = ' ';
-	    switch ( this->type() ) {
+	    switch ( type() ) {
 	    case Type::OR_FORK:
 	    case Type::OR_JOIN:
 		*p++ = '+';
@@ -198,13 +198,13 @@ bool ActivityList::check_external_joins() const
 {
     unsigned e1;
     unsigned e2;
-	
-    if ( this->type() != Type::AND_JOIN || this->u.join.type != JoinType::SYNCHRONIZATION ) return false;
-    
-    for ( e1 = 0; e1 + 1 < this->n_acts(); ++e1 ) {
-	for ( e2 = e1 + 1; e2 < this->n_acts(); ++e2 ) {
-	    if ( this->entry[e1] == this->entry[e2] ) {
-		LQIO::runtime_error( ERR_COMMON_ENTRY_EXTERNAL_SYNC, this->entry[e1]->task()->name(), this->entry[e1]->name() );
+
+    if ( type() != Type::AND_JOIN || u.join.type != JoinType::SYNCHRONIZATION ) return false;
+
+    for ( e1 = 0; e1 + 1 < n_acts(); ++e1 ) {
+	for ( e2 = e1 + 1; e2 < n_acts(); ++e2 ) {
+	    if ( entry[e1] == entry[e2] ) {
+		LQIO::runtime_error( ERR_COMMON_ENTRY_EXTERNAL_SYNC, entry[e1]->task()->name(), entry[e1]->name() );
 		return false;
 	    }
 	}
@@ -214,9 +214,9 @@ bool ActivityList::check_external_joins() const
 
 bool ActivityList::check_fork_no_join() const
 {
-    if ( this->type() == Type::AND_FORK ) {
-	for ( unsigned int i = 0; i < this->n_acts(); ++i ) {
-	    if ( !this->u.fork.reachable[i] ) return true;
+    if ( type() == Type::AND_FORK ) {
+	for ( unsigned int i = 0; i < n_acts(); ++i ) {
+	    if ( !u.fork.reachable[i] ) return true;
 	}
     }
 
@@ -225,9 +225,9 @@ bool ActivityList::check_fork_no_join() const
 
 
 
-bool ActivityList::check_quorum_join() const 
+bool ActivityList::check_quorum_join() const
 {
-#if defined(BUG_263)
+#if BUG_263
     return type() == Type::AND_JOIN && u.join.quorumCount > 0;
 #else
     return false;
@@ -238,7 +238,7 @@ bool ActivityList::check_quorum_join() const
  * Check for forks without joins
  */
 
-bool ActivityList::check_fork_has_join() const 
+bool ActivityList::check_fork_has_join() const
 {
     if ( type() == Type::AND_FORK ) {
 	for ( unsigned i = 0; i < n_acts(); ++i ) {
@@ -253,38 +253,38 @@ void ActivityList::find_fork_list( const Task * curr_task, std::deque<Activity *
 {
     Activity * curr_activity = activity_stack.back();
 
-    for ( unsigned int i = 0; i < this->n_acts(); ++i ) {
-	if ( this->list[i] != curr_activity ) {
+    for ( unsigned int i = 0; i < n_acts(); ++i ) {
+	if ( list[i] != curr_activity ) {
 	    if ( setjmp( loop_env ) != 0 ) {
 		curr_activity->activity_cycle_error( activity_stack );
 	    } else {
-		int j = backtrack( this->list[i], fork_stack, this->list[i] );
+		int j = backtrack( list[i], fork_stack, list[i] );
 		if ( j >= 0 ) {
-		    if ( !this->set_join_type( JoinType::INTERNAL_FORK_JOIN ) ) {
-			get_dom()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, this->list[i]->name() );
-		    } else if ( !this->u.join.fork[i] || std::find( fork_stack.begin(), fork_stack.end(), this->u.join.fork[i] ) != fork_stack.end() ) {
+		    if ( !set_join_type( JoinType::INTERNAL_FORK_JOIN ) ) {
+			get_dom()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, list[i]->name() );
+		    } else if ( !u.join.fork[i] || std::find( fork_stack.begin(), fork_stack.end(), u.join.fork[i] ) != fork_stack.end() ) {
 			ActivityList * fork_list = fork_stack[j];
-			if ( (   fork_list->type() == Type::AND_FORK && this->type() == Type::AND_JOIN)
-			     || (fork_list->type() == Type::OR_FORK && this->type() == Type::OR_JOIN) ) {
+			if ( (   fork_list->type() == Type::AND_FORK && type() == Type::AND_JOIN)
+			     || (fork_list->type() == Type::OR_FORK && type() == Type::OR_JOIN) ) {
 			    /* Fork and join match. */
-			    this->u.join.fork[i] = fork_list;
+			    u.join.fork[i] = fork_list;
 			    fork_list->u.fork.join = this;
-			} else if ( fork_list->type() == Type::OR_FORK && this->type() == Type::AND_JOIN ) {
+			} else if ( fork_list->type() == Type::OR_FORK && type() == Type::AND_JOIN ) {
 			    /* Or fork connected to AND join? */
 			    const LQIO::DOM::ActivityList * dom = fork_list->get_dom();
 			    get_dom()->runtime_error( LQIO::ERR_FORK_JOIN_MISMATCH, dom->getListTypeName().c_str(), dom->getListName().c_str(), dom->getLineNumber() );
 			} else {
 			    /* This one is o.k., but is causing grief.. */
-			    get_dom()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, this->list[i]->name() );
+			    get_dom()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, list[i]->name() );
 			}
 		    }
 
 		    if ( debug_flag ) {
 			int k;
 			fprintf( stddbg, "%sJoin: %*s %s: %s ",
-				 this->type() == Type::AND_JOIN ? "AND" : "OR",
+				 type() == Type::AND_JOIN ? "AND" : "OR",
 				 depth, " ",
-				 curr_activity->name(), this->list[i]->name() );
+				 curr_activity->name(), list[i]->name() );
 			for ( k = fork_stack.size()-1; k >= 0; --k ) {
 			    ActivityList * lp = fork_stack[k];
 			    if ( j == k ) {
@@ -296,7 +296,7 @@ void ActivityList::find_fork_list( const Task * curr_task, std::deque<Activity *
 			fprintf( stddbg, "\n" );
 		    }
 		} else {
-		    if ( !this->set_join_type( JoinType::SYNCHRONIZATION ) ) {
+		    if ( !set_join_type( JoinType::SYNCHRONIZATION ) ) {
 			get_dom()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, curr_activity->name() );
 		    } else if ( !add_to_join_list( j, activity_stack[0] ) ) {
 			get_dom()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, curr_activity->name() );
@@ -319,11 +319,11 @@ ActivityList::fork_find_children( std::deque<Activity *>& activity_stack, std::d
 {
     bool has_service_time = false;
     unsigned k;
-    switch ( this->type() ) {
+    switch ( type() ) {
 
     case Type::FORK:
-	for ( k = 0; k < this->n_acts(); ++k ) {
-	    if ( this->list[k]->find_children( activity_stack, fork_stack, e ) ) {
+	for ( k = 0; k < n_acts(); ++k ) {
+	    if ( list[k]->find_children( activity_stack, fork_stack, e ) ) {
 		has_service_time = true;
 	    }
 	}
@@ -332,31 +332,31 @@ ActivityList::fork_find_children( std::deque<Activity *>& activity_stack, std::d
     case Type::OR_FORK:
     case Type::AND_FORK:
 	fork_stack.push_back( this );
-	for ( k = 0; k < this->n_acts(); ++k ) {
+	for ( k = 0; k < n_acts(); ++k ) {
 	    if ( debug_flag ) {
 		Activity * ap = activity_stack.back();
 		fprintf( stddbg, "%sFork: %*s %s -> %s\n",
-			 this->type() == Type::AND_FORK ? "AND" : "OR",
+			 type() == Type::AND_FORK ? "AND" : "OR",
 			 static_cast<int>(activity_stack.size()), " ",
-			 ap->name(), this->list[k]->name() );
+			 ap->name(), list[k]->name() );
 	    }
-	    if ( this->list[k]->find_children( activity_stack, fork_stack, e ) ) {
+	    if ( list[k]->find_children( activity_stack, fork_stack, e ) ) {
 		has_service_time = true;
 	    }
 	}
 	fork_stack.pop_back();
 	break;
 
-			
+
     case Type::LOOP:
-	if ( this->u.loop.endlist ) {
-	    if ( this->u.loop.endlist->find_children( activity_stack, fork_stack, e ) ) {
+	if ( u.loop.endlist ) {
+	    if ( u.loop.endlist->find_children( activity_stack, fork_stack, e ) ) {
 		has_service_time = true;
 	    }
 	}
-	for ( k = 0; k < this->n_acts(); ++k ) {
+	for ( k = 0; k < n_acts(); ++k ) {
 	    std::deque<ActivityList *> branch_fork_stack;
-	    this->list[k]->find_children( activity_stack, branch_fork_stack, e );
+	    list[k]->find_children( activity_stack, branch_fork_stack, e );
 	}
 	break;
 
@@ -375,12 +375,12 @@ ActivityList::backtrack( Activity * activity, std::deque<ActivityList *>& fork_s
     std::deque<ActivityList *>::const_iterator j;
     ActivityList * fork_list = activity->input();
     ActivityList * join_list = 0;
-    
+
     if ( !fork_list ) {
 	return -1;
 
     } else switch ( fork_list->type() ) {
-	
+
     case Type::OR_FORK:
     case Type::AND_FORK:
 	for ( unsigned int i = 0; i < fork_list->n_acts(); ++i ) {
@@ -409,7 +409,7 @@ ActivityList::backtrack( Activity * activity, std::deque<ActivityList *>& fork_s
 	return -1;
 
     } else switch ( join_list->type() ) {
-	
+
     case Type::JOIN:
     case Type::OR_JOIN:
     case Type::AND_JOIN:
@@ -441,15 +441,15 @@ bool
 ActivityList::add_to_join_list( unsigned int i, Activity * an_activity )
 {
     for ( unsigned int j = 0; j < MAX_BRANCH; ++j ) {
-	if ( j != i && this->u.join.source[j] == an_activity ) {
+	if ( j != i && u.join.source[j] == an_activity ) {
 	    return false;
 	} else if ( j == i ) {
-	    if ( this->u.join.source[j] != 0 && this->u.join.source[j] != an_activity ) {
+	    if ( u.join.source[j] != 0 && u.join.source[j] != an_activity ) {
 		return false;
 	    } else {
-		this->u.join.source[i] = an_activity;
+		u.join.source[i] = an_activity;
 	    }
-	} 
+	}
     }
     return true;
 }
@@ -466,18 +466,21 @@ double
 ActivityList::join_count_replies( std::deque<Activity *>& activity_stack, const Entry * e,
 				  const double rate, const unsigned curr_phase, unsigned& next_phase )
 {
+#if BUG_423
+    std::cerr << "  join_count_replies( " << activity_stack.size() << ", " << e->name() << ", " << rate << ", " << curr_phase << ", " << next_phase << ")" << std::endl;
+#endif
     double sum = 0.0;
-    
-    switch ( this->type() ) {
+
+    switch ( type() ) {
 
     case Type::AND_JOIN:
 	/* If it is a sync point... */
-	if ( this->u.join.type == JoinType::SYNCHRONIZATION && this->u.join.next ) {
-	    sum = this->u.join.next->fork_count_replies( activity_stack, e, rate, curr_phase, next_phase );
+	if ( u.join.type == JoinType::SYNCHRONIZATION && u.join.next ) {
+	    sum = u.join.next->fork_count_replies( activity_stack, e, rate, curr_phase, next_phase );
 	} else if ( curr_phase > next_phase ) {		/* BUG 151 */
 	    next_phase = curr_phase;
-#if defined(BUG_263)
-	} else if ( this->u.join.quorumCount > 0 && e->n_phases() < 2 && e->task()->is_server() ) {
+#if BUG_263
+	} else if ( u.join.quorumCount > 0 && e->n_phases() < 2 && e->task()->is_server() ) {
 	    const_cast<Entry *>(e)->set_n_phases(2);			/* Force two phases for this entry. */
 #endif
 	}
@@ -485,11 +488,11 @@ ActivityList::join_count_replies( std::deque<Activity *>& activity_stack, const 
 
     case Type::JOIN:
     case Type::OR_JOIN:
-	if ( this->u.join.next ) {
-	    sum = this->u.join.next->fork_count_replies( activity_stack, e, rate, curr_phase, next_phase );
+	if ( u.join.next ) {
+	    sum = u.join.next->fork_count_replies( activity_stack, e, rate, curr_phase, next_phase );
 	}
 	break;
-		
+
     default:
 	abort();
     }
@@ -508,26 +511,29 @@ double
 ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const Entry * e,
 				  const double rate, unsigned curr_phase, unsigned& next_phase  )
 {
+#if BUG_423
+    std::cerr << "  fork_count_replies( " << activity_stack.size() << ", " << e->name() << ", " << rate << ", " << curr_phase << ", " << next_phase << ")" << std::endl;
+#endif
     double sum = 0.0;
     unsigned i;
     ActivityList * join_list;
-    
+
     next_phase = curr_phase;
 
-    switch ( this->type() ) {
+    switch ( type() ) {
 
     case Type::AND_FORK:
-	join_list = this->u.fork.join;
-	for ( i = 0; i < this->n_acts(); ++i ) {
+	join_list = u.fork.join;
+	for ( i = 0; i < n_acts(); ++i ) {
 	    unsigned branch_phase = curr_phase;
-#if defined(BUG_263)
+#if BUG_263
 	    if ( join_list && join_list->u.join.quorumCount != 0 ) {
 		/* Don't allow replies on quorum branch */
-		sum += this->list[i]->count_replies( activity_stack, e, 0, curr_phase, branch_phase );
+		sum += list[i]->count_replies( activity_stack, e, 0, curr_phase, branch_phase );
 	    } else {
 #endif
-		sum += this->list[i]->count_replies( activity_stack, e, rate, curr_phase, branch_phase );
-#if defined(BUG_263)
+		sum += list[i]->count_replies( activity_stack, e, rate, curr_phase, branch_phase );
+#if BUG_263
 	    }
 #endif
 	    if ( branch_phase > next_phase ) {
@@ -536,6 +542,9 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 	}
 
 	/* Now follow the activities after the join */
+#if BUG_423
+    std::cerr << "**fork_count_replies( " << activity_stack.size() << ", " << e->name() << ", " << rate << ", " << curr_phase << ", " << next_phase << ") post join." << std::endl;
+#endif
 
 	if ( join_list && join_list->u.join.next ) {
 	    curr_phase = next_phase;
@@ -547,7 +556,7 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 		    next_phase = branch_phase;
 		}
 	    }
-#if defined(BUG_263)
+#if BUG_263
 	    /* If we are a quorum join, always force a second phase */
 	    if ( join_list->u.join.quorumCount > 0 && next_phase == 1 ) {
 		next_phase = 2;
@@ -560,9 +569,9 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 	break;
 
     case Type::FORK:
-	for ( i = 0; i < this->n_acts(); ++i ) {
+	for ( i = 0; i < n_acts(); ++i ) {
 	    unsigned branch_phase = curr_phase;
-	    sum += this->list[i]->count_replies( activity_stack, e, rate, curr_phase, branch_phase ); 
+	    sum += list[i]->count_replies( activity_stack, e, rate, curr_phase, branch_phase ); 
 	    if ( branch_phase > next_phase ) {
 		next_phase = branch_phase;
 	    }
@@ -570,14 +579,14 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 	break;
 
     case Type::OR_FORK:
-	for ( i = 0; i < this->n_acts(); ++i ) {
+	for ( i = 0; i < n_acts(); ++i ) {
 	    unsigned branch_phase = curr_phase;
-	    const double prob = LQIO::DOM::to_double(*this->u.fork.prob[i]);
+	    const double prob = LQIO::DOM::to_double(*u.fork.prob[i]);
 	    if ( prob < 0. || 1.0 < prob ) {
 		get_dom()->runtime_error( LQIO::ERR_INVALID_OR_BRANCH_PROBABILITY, list[i]->get_dom()->getName().c_str(), prob );
 		break;
 	    } 
-	    sum += this->list[i]->count_replies( activity_stack, e, rate * prob, curr_phase, branch_phase );
+	    sum += list[i]->count_replies( activity_stack, e, rate * prob, curr_phase, branch_phase );
 	    if ( branch_phase > next_phase ) {
 		next_phase = branch_phase;
 	    }
@@ -589,17 +598,17 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 
 			
     case Type::LOOP:
-	if ( this->u.loop.endlist ) {
+	if ( u.loop.endlist ) {
 	    unsigned branch_phase = curr_phase;
-	    sum += this->u.loop.endlist->count_replies( activity_stack, e, rate, curr_phase, branch_phase );
+	    sum += u.loop.endlist->count_replies( activity_stack, e, rate, curr_phase, branch_phase );
 	    if ( branch_phase > next_phase ) {
 		next_phase = branch_phase;
 	    }
 	}
-	for ( i = 0; i < this->n_acts(); ++i ) {
+	for ( i = 0; i < n_acts(); ++i ) {
 	    /* ignore phase change */
 	    unsigned branch_phase = curr_phase;
-	    this->list[i]->count_replies( activity_stack, e, 0.0, curr_phase, branch_phase );
+	    list[i]->count_replies( activity_stack, e, 0.0, curr_phase, branch_phase );
 	}
 	break;
 
@@ -616,11 +625,11 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 bool
 ActivityList::set_join_type( JoinType a_type )
 {
-    if ( this->u.join.type == JoinType::UNDEFINED ) {
-	this->u.join.type = a_type;
+    if ( u.join.type == JoinType::UNDEFINED ) {
+	u.join.type = a_type;
 	return true;
     } else {
-	return this->u.join.type == a_type;
+	return u.join.type == a_type;
     }
 }
 
@@ -673,16 +682,16 @@ ActivityList::follow_join_for_tokens( const Entry * e, unsigned p, const unsigne
 				      Activity * curr_activity, const bool sum_forks, double scale,
 				      Phase::util_fnptr util_func, double mean_tokens[] )
 {
-    switch ( this->type() ) {
+    switch ( type() ) {
     case Type::AND_JOIN:
 
 	if ( util_func == &Phase::get_utilization ) {
-	    if ( this->list[0] == curr_activity ) {
-		this->u.join.tokens[m] += scale * get_pmmean( "AJ%s%d", this->list[0]->name(), m );
+	    if ( list[0] == curr_activity ) {
+		u.join.tokens[m] += scale * get_pmmean( "AJ%s%d", list[0]->name(), m );
 	    }
 	}
 
-	if ( this->u.join.type != JoinType::SYNCHRONIZATION ) {
+	if ( u.join.type != JoinType::SYNCHRONIZATION ) {
 	    return;	/* Handled on fork side. */
 	}
 	break;
@@ -690,7 +699,7 @@ ActivityList::follow_join_for_tokens( const Entry * e, unsigned p, const unsigne
     case Type::OR_JOIN:
 	/* This handles both internal and external or-joins */
 	/* I should probably scale by the ratio of throughtputs to the entry if its external */
-	scale /= static_cast<double>(this->n_acts());
+	scale /= static_cast<double>(n_acts());
 	break;
 	
     case Type::JOIN:
@@ -700,7 +709,7 @@ ActivityList::follow_join_for_tokens( const Entry * e, unsigned p, const unsigne
 	abort();
     }
 		
-    ActivityList * fork_list = this->u.join.next;
+    ActivityList * fork_list = u.join.next;
     if ( fork_list ) {
 	fork_list->follow_fork_for_tokens( e, p, m, sum_forks, scale, util_func, mean_tokens );
     }
@@ -714,12 +723,12 @@ ActivityList::follow_fork_for_tokens( const Entry * e, unsigned p, const unsigne
     ActivityList * join_list;
     unsigned j;
 
-    switch ( this->type() ) {
+    switch ( type() ) {
 
     case Type::AND_FORK:
 	if ( sum_forks ) {
-	    for ( j = 0; j < this->n_acts(); ++j ) {
-		this->list[j]->follow_activity_for_tokens( e, p, m, sum_forks, scale, util_func, mean_tokens );
+	    for ( j = 0; j < n_acts(); ++j ) {
+		list[j]->follow_activity_for_tokens( e, p, m, sum_forks, scale, util_func, mean_tokens );
 	    }
 	} else {
 	    unsigned q;
@@ -729,8 +738,8 @@ ActivityList::follow_fork_for_tokens( const Entry * e, unsigned p, const unsigne
 		tokens[q] = 0;
 		max_tokens[q] = 0;
 	    }
-	    for ( j = 0; j < this->n_acts(); ++j ) {
-		this->list[j]->follow_activity_for_tokens( e, p, m, sum_forks, scale, util_func, tokens );
+	    for ( j = 0; j < n_acts(); ++j ) {
+		list[j]->follow_activity_for_tokens( e, p, m, sum_forks, scale, util_func, tokens );
 		for ( q = 1; q <= DIMPH; ++q ) {
 		    if ( tokens[q] > max_tokens[q] ) {
 			max_tokens[q] = tokens[q];
@@ -742,10 +751,10 @@ ActivityList::follow_fork_for_tokens( const Entry * e, unsigned p, const unsigne
 		mean_tokens[q] += max_tokens[q];
 	    }
 	}
-	join_list = this->u.fork.join;
+	join_list = u.fork.join;
 	if ( join_list ) {
 	    if ( distinguish_join_customers || m == 0 ) {
-		join_list->u.join.tokens[m] = get_pmmean( "JJ%s%d", this->u.fork.prev->list[0]->name(), m );
+		join_list->u.join.tokens[m] = get_pmmean( "JJ%s%d", u.fork.prev->list[0]->name(), m );
 	    }
 	    if ( join_list->u.join.next ) {
 		join_list->u.join.next->follow_fork_for_tokens(e, p, m, sum_forks, scale, util_func, mean_tokens );
@@ -755,17 +764,17 @@ ActivityList::follow_fork_for_tokens( const Entry * e, unsigned p, const unsigne
 			
     case Type::OR_FORK:
     case Type::FORK:
-	for ( j = 0; j < this->n_acts(); ++j ) {
-	    this->list[j]->follow_activity_for_tokens(e, p, m, sum_forks, scale, util_func, mean_tokens );
+	for ( j = 0; j < n_acts(); ++j ) {
+	    list[j]->follow_activity_for_tokens(e, p, m, sum_forks, scale, util_func, mean_tokens );
 	}
 	break;
 
     case Type::LOOP:
-	if ( this->u.loop.endlist ) {
-	    this->u.loop.endlist->follow_activity_for_tokens( e, p, m, sum_forks, scale, util_func, mean_tokens );
+	if ( u.loop.endlist ) {
+	    u.loop.endlist->follow_activity_for_tokens( e, p, m, sum_forks, scale, util_func, mean_tokens );
 	}
-	for ( j = 0; j < this->n_acts(); ++j ) {
-	    this->list[j]->follow_activity_for_tokens( e, p, m, sum_forks, scale, util_func, mean_tokens );
+	for ( j = 0; j < n_acts(); ++j ) {
+	    list[j]->follow_activity_for_tokens( e, p, m, sum_forks, scale, util_func, mean_tokens );
 	}
 	break;
 

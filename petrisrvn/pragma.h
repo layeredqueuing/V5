@@ -1,8 +1,7 @@
 /* pragma.h	-- Greg Franks
  *
- * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 16442 2023-02-24 12:59:05Z greg $
+ * $Id: pragma.h 16448 2023-02-27 13:04:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -16,16 +15,16 @@
 class Pragma
 {
     friend int main( int, char ** );
-	
+
 private:
     Pragma();
     Pragma( const Pragma& );		/* No copy constructor */
-    
+
 public:
     typedef void (Pragma::*fptr)( const std::string& );
 
     static void set( const std::map<std::string,std::string>& );
-    
+
     scheduling_type processor_scheduling() const { return _processor_scheduling; }
     bool reschedule_on_async_send() const { return _reschedule_on_async_send; }
     bool save_marginal_probabilities() const { return _save_marginal_probabilities; }
@@ -40,7 +39,7 @@ public:
 
     bool default_processor_scheduling() const { return _default_processor_scheduling; }
     bool default_task_scheduling() const { return _default_task_scheduling; }
-    
+
     static void usage( std::ostream& output );
 
 private:

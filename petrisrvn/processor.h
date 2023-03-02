@@ -28,7 +28,7 @@ namespace LQIO {
 class Phase;
 
 class Processor : public Place {
-    
+
 private:
     struct history_t {
 	Task * task;				/* Task for this queue item.	*/
@@ -50,7 +50,7 @@ public:
     unsigned int ref_count() const;
 
     bool is_single_place_processor() const;
-    
+
     void remove_netobj() { PX = nullptr; }
     void initialize();
     void transmorgrify( unsigned max_count );
@@ -66,12 +66,12 @@ protected:
 private:
     double make_queue( double x_pos, double y_pos, const int priority,
 		       struct place_object * prio_place,
-		       const short trans_prio, history_t history[], 
+		       const short trans_prio, history_t history[],
 		       const unsigned count, unsigned depth,
 		       const unsigned low, const unsigned curr, const unsigned m );
     double make_fifo_queue( double x_pos, double y_pos, const int priority,
 			    struct place_object * prio_place,
-			    const short trans_prio, history_t history[], 
+			    const short trans_prio, history_t history[],
 			    const unsigned count, unsigned depth,
 			    const unsigned low, const unsigned curr, const unsigned m,
 			    Phase * curr_phase );
@@ -93,7 +93,7 @@ private:
  * Compare a processor name to a string.  Used by the find_if (and other algorithm type things.
  */
 
-struct eqProcStr 
+struct eqProcStr
 {
     eqProcStr( const std::string& s ) : _s(s) {}
     bool operator()(const Processor * p1 ) const { return _s == p1->name(); }

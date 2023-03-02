@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: makeobj.cc 16333 2023-01-15 23:55:13Z greg $
+ * $Id: makeobj.cc 16448 2023-02-27 13:04:14Z greg $
  *
  * Make various model objects.
  */
@@ -248,7 +248,7 @@ create_trans( double x_pos, double y_pos, LAYER layer, double rate, short enable
 	cur_trans->next  = netobj->trans;
 	netobj->trans    = cur_trans;
 	break;
-		
+
     default:
 	last_trans->next = cur_trans;
 	last_trans = cur_trans;
@@ -349,21 +349,21 @@ no_trans( const char * format, ... )
  *   place.
  */
 
-void 
+void
 create_arc (LAYER layer, int type, const struct trans_object *transition, const struct place_object *place)
 {
     create_arc_mult( layer, type, transition, place, 1 );
 }
 
 
-void 
+void
 create_arc_mult(LAYER layer, int type, const struct trans_object *transition, const struct place_object *place, short mult )
 {
     static struct arc_object *cur_arc;
 
     assert( transition != nullptr );
     assert( place != nullptr );
-	
+
     if ( netobj->arcs == nullptr ) {
 	netobj->arcs = (struct arc_object *) malloc( sizeof( struct arc_object ) );
 	cur_arc = netobj->arcs;
@@ -415,7 +415,7 @@ create_arc_mult(LAYER layer, int type, const struct trans_object *transition, co
  * Create a result object in the net.
  */
 
-struct res_object * 
+struct res_object *
 create_res ( double curr_x, double curr_y, const char *format_name, const char *format_result, ... )
 {
     va_list args;
@@ -470,9 +470,9 @@ groupize (void)
     struct trans_object ** last_trans;
     short max_group = 0;
     int i;
-	
+
     /* Count up transition types... */
-	
+
     for ( cur_trans = netobj->trans, last_trans = &netobj->trans; cur_trans; cur_trans = cur_trans->next ) {
 	switch ( cur_trans->kind ) {
 	case DETERMINISTIC:
@@ -516,7 +516,7 @@ groupize (void)
 
 	default:
 	    i = cur_trans->kind - IMMEDIATE;
-			
+
 	    *group[i].trans = cur_trans;
 	    *last_trans     = cur_trans->next;
 	    group[i].trans  = &cur_trans->next;
@@ -557,7 +557,7 @@ shift_rpars( double offset_x, double offset_y )
 {
     struct rpar_object *cur_rpar;
     struct res_object *cur_res;
-	
+
     for ( cur_rpar = netobj->rpars; cur_rpar; cur_rpar = cur_rpar->next ) {
 	cur_rpar->center.x += IN_TO_PIX( offset_x );
     }
@@ -579,7 +579,7 @@ shift_rpars( double offset_x, double offset_y )
  * GreatSPN is sooo picky...
  */
 
-const std::string& 
+const std::string&
 insert_netobj_name( const std::string& name )
 {
     std::map<std::string,std::string>::const_iterator i = netobj_name_table.find( name );

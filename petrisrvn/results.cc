@@ -9,7 +9,7 @@
 /************************************************************************/
 
 /*
- * $Id: results.cc 15955 2022-10-07 11:05:00Z greg $
+ * $Id: results.cc 16448 2023-02-27 13:04:14Z greg $
  *
  * Store the results.
  */
@@ -149,5 +149,4 @@ std::ostream& solution_stats_t::print( std::ostream& output ) const
 	   << "    Precision: " << precision << endl;
     return output;
 }
-
 

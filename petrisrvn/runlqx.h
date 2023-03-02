@@ -1,8 +1,6 @@
 /* -*- C++ -*- 
- * $HeadURL$
- *
  * ------------------------------------------------------------------------
- * $Id: runlqx.h 15302 2021-12-31 14:19:34Z greg $
+ * $Id: runlqx.h 16448 2023-02-27 13:04:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -17,26 +15,26 @@
 class Model;
 
 namespace SolverInterface {
-	
+
     class Solve : public LQX::Method {
-    public: 
+    public:
 	typedef bool (Model::*solve_using)();
-		
+
 	/* Parameters necessary to call runSolverOnCurrentDOM() */
 	Solve(LQIO::DOM::Document* document, solve_using solve, Model* aModel) :
 	    _aModel(aModel), _solve(solve), _document(document) {}
 	virtual ~Solve() {}
-		
+
 	/* All of the glue code to make sure LQX can call solve() */
-	virtual std::string getName() const { return "solve"; } 
-	virtual const char* getParameterInfo() const { return "1"; } 
-	virtual std::string getHelp() const { return "Solves the model."; } 
+	virtual std::string getName() const { return "solve"; }
+	virtual const char* getParameterInfo() const { return "1"; }
+	virtual std::string getHelp() const { return "Solves the model."; }
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args);
-		
+
 	static bool solveCallViaLQX;
 	static bool implicitSolve;
 	static std::string customSuffix;
-	
+
     private:
 	Model * _aModel;
 	solve_using _solve;

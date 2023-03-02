@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 16442 2023-02-24 12:59:05Z greg $
+ *  $Id: srvn_spex.cpp 16456 2023-03-01 22:27:40Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -205,7 +205,7 @@ namespace LQIO {
 	LQX::SyntaxTreeNode * destination;
 	std::map<const std::string,const Spex::attribute_table_t>::const_iterator i = Spex::__control_parameters.find( name );
 	if ( i != Spex::__control_parameters.end() ) {
-	    destination = i->second( i->first );
+	    destination = i->second( name );		// Name should be ignored.
 	} else {
 	    destination = new LQX::VariableExpression(name,true);
 	}
@@ -229,11 +229,11 @@ namespace LQIO {
 	switch ( obs.getKey() ) {
 	case KEY_WAITING:	node = new LQX::ObjectPropertyReadNode( object, "waits" ); break;	/* Waits */
 	case KEY_SERVICE_TIME:	node = new LQX::ObjectPropertyReadNode( object, "steps" ); break;	/* Steps */
-	case KEY_ITERATIONS:	node = new LQX::ObjectPropertyReadNode( object, "iterations" ); break;
-	case KEY_ELAPSED_TIME:	node = new LQX::ObjectPropertyReadNode( object,	 __lqx_elapsed_time ); break;
-	case KEY_USER_TIME:	node = new LQX::ObjectPropertyReadNode( object, "user_cpu_time" ); break;
-	case KEY_SYSTEM_TIME:	node = new LQX::ObjectPropertyReadNode( object, "system_cpu_time" ); break;
-	default:	abort();
+	case KEY_ITERATIONS:	node = new LQX::ObjectPropertyReadNode( object, __lqx_iterations ); break;
+	case KEY_ELAPSED_TIME:	node = new LQX::ObjectPropertyReadNode( object,	__lqx_elapsed_time ); break;
+	case KEY_USER_TIME:	node = new LQX::ObjectPropertyReadNode( object, __lqx_user_time ); break;
+	case KEY_SYSTEM_TIME:	node = new LQX::ObjectPropertyReadNode( object, __lqx_system_time ); break;
+	default: abort();
 	}
 
 	const std::string& name = obs.getVariableName();
@@ -411,9 +411,10 @@ namespace LQIO {
 	    const std::string& name = var->first;
 	    loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), new LQX::ConstantValueExpression( DEFAULT_STALE_VALUE ) ) );
 	}
+	loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "__limit__", false), new LQX::ObjectPropertyReadNode( new LQX::MethodInvocationExpression( "document" ), DOM::Document::XSpexIterationLimit ) ) );
 
 	/* Convergence test over all assignment statements/variables */
-	LQX::SyntaxTreeNode * left_expr = 0;
+	LQX::SyntaxTreeNode * and_expr = nullptr;
 	for ( std::vector<var_name_and_expr>::const_iterator var = __convergence_variables.begin(); var != __convergence_variables.end(); ++var ) {
 	    const std::string& name = var->first;
 	    LQX::SyntaxTreeNode * right_expr = new LQX::ComparisonExpression( LQX::CompareMode::LESS_THAN,
@@ -422,14 +423,21 @@ namespace LQIO {
 																	   new LQX::VariableExpression( &name[1], false ),
 																	   new LQX::VariableExpression( name, true ) ),
 														   NULL ),
-									      new LQX::ObjectPropertyReadNode( new LQX::MethodInvocationExpression( "document" ), "spex_convergence" ) );	// BUG 422
-	    if ( var != __convergence_variables.begin() ) {
-		left_expr = new LQX::LogicExpression( LQX::LogicOperation::AND, left_expr, right_expr );
+									      new LQX::ObjectPropertyReadNode( new LQX::MethodInvocationExpression( "document" ), DOM::Document::XSpexConvergence ) );	// BUG 422
+	    if ( var == __convergence_variables.begin() ) {
+		and_expr = right_expr;
 	    }  else {
-		left_expr = right_expr;
+		and_expr = new LQX::LogicExpression( LQX::LogicOperation::AND, and_expr, right_expr );
 	    }
 	}
-	convergence->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "__done__", false ), left_expr ) );
+
+	/* Test for iteration limit */	// BUG 205
+	LQX::SyntaxTreeNode * or_expr = new LQX::LogicExpression( LQX::LogicOperation::AND,
+								  new LQX::ComparisonExpression( LQX::CompareMode::NOT_EQUALS, new LQX::VariableExpression( "__limit__", false), new LQX::ConstantValueExpression( 0. ) ),
+								  new LQX::ComparisonExpression( LQX::CompareMode::GREATER_THAN, new LQX::VariableExpression( "_0", false ), new LQX::VariableExpression( "__limit__", false) ) );
+
+	/* Done is true if iteration limit met or convergence is met */
+	convergence->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "__done__", false ), new LQX::LogicExpression( LQX::LogicOperation::OR, or_expr, and_expr ) ) );
 
 	/* Copy new to old */
 	for ( std::vector<var_name_and_expr>::const_iterator var = __convergence_variables.begin(); var != __convergence_variables.end(); ++var ) {
@@ -437,10 +445,11 @@ namespace LQIO {
 	    convergence->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), new LQX::VariableExpression( name, true ) ) );
 	}
 	
-	/* Convergence loop */
 	/* Stick convergence stuff at end of loop body */
 	expr_list * body = loop_body( result );
 	body->insert( body->end(), convergence->begin(), convergence->end() );
+
+	/* Convergence loop */
 	loop_code->push_back( new LQX::LoopStatementNode( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "__done__", false ), new LQX::ConstantValueExpression( false ) ),
 							  new LQX::LogicExpression(LQX::LogicOperation::NOT, new LQX::VariableExpression( "__done__", false ), nullptr),
 							  nullptr,
@@ -1043,7 +1052,7 @@ namespace LQIO {
 	switch ( _t ) {
 	case attribute::IS_EXTVAR:
 	    (DOM::__document->*_f.a_extvar)( DOM::__document->db_build_parameter_variable( name, nullptr ) );
-	    return new LQX::VariableExpression(name.c_str(),true);
+	    return new LQX::VariableExpression(name,true);
 
 	case attribute::IS_PROPERTY:
 	    return new LQX::ObjectPropertyReadNode( new LQX::MethodInvocationExpression( "document" ), _f.a_string );
@@ -1221,11 +1230,14 @@ void * spex_assignment_statement( const char * name, void * expr, const bool con
 
     LQIO::Spex::__input_variables[std::string(name)] = static_cast<LQX::SyntaxTreeNode *>(expr);		/* Save variable for printing */
 
-    LQX::VariableExpression * var = 0;
+    LQX::SyntaxTreeNode * var = nullptr;
     /* check expr for array_create (fugly!) */
     std::ostringstream ss;
     static_cast<LQX::SyntaxTreeNode *>(expr)->print(ss,0);
-    if ( strncmp( "array_create", ss.str().c_str(), 12 ) == 0 ) {
+    std::map<const std::string,const LQIO::Spex::attribute_table_t>::const_iterator i = LQIO::Spex::__control_parameters.find( name );
+    if ( i != LQIO::Spex::__control_parameters.end() ) {
+	var = i->second( i->first );		// arg should be ignored.
+    } else if ( strncmp( "array_create", ss.str().c_str(), 12 ) == 0 ) {
 	LQIO::Spex::__array_variables.emplace_back( std::string(name) );		/* Save variable name for looping */
 	std::string local = name;
 	local[0] = '_';

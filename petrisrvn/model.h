@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.h 16443 2023-02-25 00:56:26Z greg $
+ * $Id: model.h 16448 2023-02-27 13:04:14Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -55,7 +55,7 @@ private:
 	const unsigned int n;
 	const struct place_object * ab_place;
     };
-    
+
 public:
     typedef bool (Model::*solve_using)();
     typedef void (Model::*queue_fnptr)( double x_pos,		/* x coordinate.		*/
@@ -82,7 +82,7 @@ public:
     bool operator!() const { return _document == 0; }
 
     unsigned int n_phases() const { return _n_phases; }
-    
+
     static int solve( solve_using, const std::string&, LQIO::DOM::Document::InputFormat, const std::string&, LQIO::DOM::Document::OutputFormat, const LQIO::DOM::Pragma& );
     static void recalculateDynamicValues( const LQIO::DOM::Document* );
 
@@ -162,19 +162,19 @@ private:
 					  double prob_fwd,
 					  bool async_call,	/* True if z type call.		*/
 					  struct trans_object **r_trans );
-    void queue_epilogue( double x_pos, 
+    void queue_epilogue( double x_pos,
 			 double y_pos,
-			 Phase * a, 
+			 Phase * a,
 			 unsigned s_a,		/* Source Phase 	*/
-			 Entry * b, 
+			 Entry * b,
 			 unsigned b_m,		/* Destination Entry 	*/
-			 const Phase * e, 
+			 const Phase * e,
 			 unsigned s_e,
 			 unsigned m,		/* Source multiplicity 	*/
 			 bool async_call,	/* True if z type call.	*/
-			 struct trans_object * q_trans, 
+			 struct trans_object * q_trans,
 			 struct trans_object * s_trans );
-    void create_phase_instr_net( double idle_x, double y_pos, 
+    void create_phase_instr_net( double idle_x, double y_pos,
 				 Phase * a, unsigned m,
 				 Entry * b, unsigned n, unsigned k,
 				 struct trans_object * r_trans, struct trans_object * q_trans, struct trans_object * s_trans,

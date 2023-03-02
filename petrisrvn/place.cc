@@ -34,9 +34,9 @@ const char * Place::name() const
     return _dom->getName().c_str();
 }
 
-scheduling_type Place::get_scheduling() const 
-{ 
-    return _dom->getSchedulingType(); 
+scheduling_type Place::get_scheduling() const
+{
+    return _dom->getSchedulingType();
 }
 
 
@@ -48,7 +48,7 @@ unsigned int Place::multiplicity() const
 {
     if ( get_scheduling() == SCHEDULE_DELAY ) return 1;	/* Ignore for infinite servers. */
 
-    const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies(); 
+    const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies();
     if ( copies == nullptr ) return 1;
     double value = 1.;
     assert(copies->getValue(value) == true);
@@ -71,7 +71,7 @@ bool Place::is_infinite() const
 	return true;
     } else {
 	double value = 0.0;
-	const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies(); 
+	const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies();
 	return  copies && (copies->wasSet() && copies->getValue(value) == true && isinf( value ));
     }
 }

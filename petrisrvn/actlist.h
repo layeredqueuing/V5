@@ -53,11 +53,11 @@ public:
 	INTERNAL_FORK_JOIN,
 	SYNCHRONIZATION
     };
-    
+
 private:
     ActivityList& operator=( const ActivityList& );
     ActivityList( const ActivityList& );
-    
+
 public:
     ActivityList( Type, LQIO::DOM::ActivityList * );
     virtual ~ActivityList() {}
@@ -66,7 +66,7 @@ public:
     Type type() const { return _type; }
     unsigned int n_acts() const { return _n_acts; }
     char * fork_join_name() const;
-    
+
     bool is_join_list() const;
     bool is_fork_list() const;
     bool is_loop_list() const;
@@ -94,7 +94,7 @@ private:
     bool set_join_type( JoinType a_type );
     int backtrack( Activity * activity, std::deque<ActivityList *>& fork_stack, Activity * start_activity );
 
-    void follow_fork_for_tokens( const Entry * e, unsigned p, const unsigned m, 
+    void follow_fork_for_tokens( const Entry * e, unsigned p, const unsigned m,
 				 const bool sum_forks, const double scale, Phase::util_fnptr util_func, double mean_tokens[] );
 
 
@@ -115,7 +115,7 @@ private:
 	    struct place_object * FjM[MAX_MULT];/* Measuring place.		*/
 	    double tokens[MAX_MULT];		/* Join-delay Result.		*/
 	    JoinType type;			/* join type.			*/
-#if defined(BUG_263)
+#if BUG_263
 	    int quorumCount; 			/* BUG_263			*/
 #endif
 	} join;
@@ -134,5 +134,4 @@ private:
     struct place_object * FjP[MAX_MULT];	/* And Join Place		*/
     const Entry * entry[MAX_BRANCH];		/* Calling entry.		*/
 };
-
 #endif

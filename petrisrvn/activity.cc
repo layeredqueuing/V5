@@ -45,7 +45,7 @@ Activity::Activity( LQIO::DOM::Activity * dom, Task * task )
     }
 }
 
-double Activity::check() 
+double Activity::check()
 {
     if ( !is_specified() ) {
 	get_dom()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
@@ -71,43 +71,39 @@ Activity::transmorgrify( const double x_pos, const double y_pos, const unsigned 
 {
     bool done 		= true;		/* flag indicating end of path. */
     const LAYER layer_mask = ENTRY_LAYER(e->entry_id())|(m == 0 ? PRIMARY_LAYER : 0);
-	
+
     double next_pos = Phase::transmorgrify( x_pos, y_pos, m, layer_mask, p_pos, enabling );
 
     /* Attach reply. */
-	
-    if ( task()->is_server() && !task()->inservice_flag() && this->_replies.size() && can_reply ) {
-	for ( std::set<Entry *>::const_iterator r = this->_replies.begin(); r != this->_replies.end(); ++r ) {
+
+    if ( task()->is_server() && !task()->inservice_flag() && _replies.size() && can_reply ) {
+	for ( std::set<Entry *>::const_iterator r = _replies.begin(); r != _replies.end(); ++r ) {
 	    Entry * an_entry = *r;
 	    if ( an_entry->requests() != Requesting_Type::RENDEZVOUS ) continue;
-	    create_arc( ENTRY_LAYER(an_entry->entry_id())|(m == 0 ? PRIMARY_LAYER : 0), TO_PLACE, this->doneX[m], an_entry->DX[m] );
-#if defined(BUG_622)
+	    create_arc( ENTRY_LAYER(an_entry->entry_id())|(m == 0 ? PRIMARY_LAYER : 0), TO_PLACE, doneX[m], an_entry->DX[m] );
 	    if ( an_entry->n_phases() > 1 ) {
-		create_arc( MEASUREMENT_LAYER, TO_TRANS, this->doneX[m], an_entry->phase[1].XX[m] );
-		create_arc( MEASUREMENT_LAYER, TO_PLACE, this->doneX[m], an_entry->phase[2].XX[m] );
+		create_arc( MEASUREMENT_LAYER, TO_TRANS, doneX[m], an_entry->phase[1].XX[m] );
+		create_arc( MEASUREMENT_LAYER, TO_PLACE, doneX[m], an_entry->phase[2].XX[m] );
 	    }
-#endif
 	}
     }
-	
+
     /* go down list creating more phases. */
 
-    if ( this->_output ) {
+    if ( _output ) {
 	done = link_activity( x_pos, y_pos, e, m, next_pos, enabling, end_place, can_reply );
     }
 
     if ( done && (!task()->inservice_flag() || task()->is_client() ) ) {
-	create_arc( layer_mask, TO_PLACE, this->doneX[m], end_place );
+	create_arc( layer_mask, TO_PLACE, doneX[m], end_place );
 	/* BUG_164 ? */
-#if defined(BUG_622)
 	if ( !task()->gdX[m] && can_reply ) {
 	    /* activities end normally, so link to done */
-	    create_arc( MEASUREMENT_LAYER, TO_TRANS, this->doneX[m], e->phase[e->n_phases()].XX[m] );	/* End phase n */
+	    create_arc( MEASUREMENT_LAYER, TO_TRANS, doneX[m], e->phase[e->n_phases()].XX[m] );	/* End phase n */
 	}
-#endif
 	if ( task()->is_sync_server() ) {
-	    move_place( task()->GdX[m], this->done_xpos[m], this->done_ypos[m]-0.5 );
-	    move_trans( task()->gdX[m], this->done_xpos[m], this->done_ypos[m]-1.0 );
+	    move_place( task()->GdX[m], done_xpos[m], done_ypos[m]-0.5 );
+	    move_trans( task()->gdX[m], done_xpos[m], done_ypos[m]-1.0 );
 	}
     }
 
@@ -132,11 +128,11 @@ Activity::find_children( std::deque<Activity *>& activity_stack, std::deque<Acti
     }
 
     /* tag phase */
-    
+
     if ( _entry == 0 ) {
 	_entry = e;
     }
-    
+
     if ( _output ) {
 	activity_stack.push_back( this );
 	if ( _output->join_find_children( activity_stack, fork_stack, e ) ) {
@@ -144,9 +140,9 @@ Activity::find_children( std::deque<Activity *>& activity_stack, std::deque<Acti
 	}
 	activity_stack.pop_back();
     }
-	  
+
     return has_service_time;
-}	
+}
 
 
 
@@ -169,19 +165,22 @@ double
 Activity::count_replies( std::deque<Activity *>& activity_stack, const Entry * e,
 			 const double rate, const unsigned curr_phase, unsigned& next_phase )
 {
+#if BUG_423
+    std::cerr << name() << ": count_replies( " << activity_stack.size() << ", " << e->name() << ", " << rate << ", " << curr_phase << ", " << next_phase << ")" << std::endl;
+#endif
     double sum = 0.0;
     next_phase = curr_phase;
-    
+
     if ( std::find( activity_stack.begin(), activity_stack.end(), this ) == activity_stack.end() ) {
 
 	/* tag phase */
-    
+
 	if ( _entry == nullptr ) {
 	    _entry = e;
 	}
-    
+
 	/* Look for reply.  Flag as necessary */
-	
+
 	if ( replies_to( e ) ) {
 	    if ( task()->is_client() ) {
 		get_dom()->runtime_error( LQIO::ERR_REFERENCE_TASK_REPLIES, e->name() );
@@ -207,7 +206,7 @@ Activity::count_replies( std::deque<Activity *>& activity_stack, const Entry * e
 
     }
     return sum;
-}	
+}
 
 
 
@@ -220,13 +219,13 @@ Activity::add_reply_list()
     if (reply_list.size() == 0) {
 	return * this;
     }
-	
+
     /* Walk over the list and do the equivalent of calling act_add_reply n times */
     std::vector<LQIO::DOM::Entry*>::const_iterator iter;
     for (iter = reply_list.begin(); iter != reply_list.end(); ++iter) {
 	const LQIO::DOM::Entry* entry = *iter;
 	Entry * ep = Entry::find( entry->getName() );
-	
+
 	if ( !ep ) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, entry->getName().c_str() );
 	} else if ( ep->task() != task() ) {
@@ -246,7 +245,7 @@ Activity& Activity::add_activity_lists()
     /* Obtain the Task and Activity information DOM records */
     LQIO::DOM::Activity* dom = dynamic_cast<LQIO::DOM::Activity*>(get_dom());
     if (dom == NULL) { return *this; }
-	
+
     /* May as well start with the outputToList, this is done with various methods */
     LQIO::DOM::ActivityList* joinList = dom->getOutputToList();
     ActivityList * localActivityList = NULL;
@@ -259,7 +258,7 @@ Activity& Activity::add_activity_lists()
 		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, dom->getName().c_str() );
 		continue;
 	    }
-			
+
 	    /* Add the activity to the appropriate list based on what kind of list we have */
 	    switch ( joinList->getListType() ) {
 	    case LQIO::DOM::ActivityList::Type::JOIN:
@@ -275,14 +274,14 @@ Activity& Activity::add_activity_lists()
 		abort();
 	    }
 	}
-		
+
 	/* Create the association for the activity list */
 	domToNative[joinList] = localActivityList;
 	if (joinList->getNext() != NULL) {
 	    actConnections[joinList] = joinList->getNext();
 	}
     }
-	
+
     /* Now we move onto the inputList, or the fork list */
     LQIO::DOM::ActivityList* forkList = dom->getInputFromList();
     localActivityList = NULL;
@@ -295,10 +294,10 @@ Activity& Activity::add_activity_lists()
 		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, dom->getName().c_str() );
 		continue;
 	    }
-			
+
 	    /* Add the activity to the appropriate list based on what kind of list we have */
 	    switch ( forkList->getListType() ) {
-	    case LQIO::DOM::ActivityList::Type::FORK:	
+	    case LQIO::DOM::ActivityList::Type::FORK:
 		localActivityList = nextActivity->act_fork_item( forkList );
 		break;
 	    case LQIO::DOM::ActivityList::Type::AND_FORK:
@@ -314,7 +313,7 @@ Activity& Activity::add_activity_lists()
 		abort();
 	    }
 	}
-		
+
 	/* Create the association for the activity list */
 	domToNative[forkList] = localActivityList;
 	if (forkList->getNext() != NULL) {
@@ -351,22 +350,22 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 		     struct place_object * end_place, const bool can_reply )
 {
     const unsigned ne = task()->n_entries();	/* For offset macro. */
-    ActivityList * join_list = this->_output;
+    ActivityList * join_list = _output;
     ActivityList * fork_list = join_list->u.join.next;
     Activity * next_act;
-    struct trans_object * join_trans = this->doneX[m];
+    struct trans_object * join_trans = doneX[m];
     unsigned i;
     double curr_pos = 0;
     double next_pos = 0;
     double sum;
     const LAYER layer_mask = ENTRY_LAYER(e->entry_id())|(m == 0 ? PRIMARY_LAYER : 0);
-    
+
     /* Find activity in the join_list */
-	
+
     for ( i = 0; i < join_list->n_acts() && join_list->list[i] != this; ++i );
 
     if ( i == join_list->n_acts() ) abort();
-	
+
     switch ( join_list->type() ) {
     case ActivityList::Type::AND_JOIN:
 
@@ -378,10 +377,10 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	}
 
 	create_arc( layer_mask, TO_PLACE, join_trans, join_list->FjP[m] );
-	    
+
 
 	if ( join_list->u.join.type == ActivityList::JoinType::SYNCHRONIZATION ) {
-#if defined(BUG_163)
+#if BUG_163
 	    create_arc( layer_mask, TO_PLACE, join_trans, task()->SyX[m] );	/* Release task */
 #else
 	    create_arc( layer_mask, TO_PLACE, join_trans, task()->TX[m] );	/* Release task */
@@ -392,15 +391,15 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 
 	    /* Create join transition and arc. */
 
-	    join_trans = move_trans_tag( create_trans( X_OFFSET(p_pos+1,0.0), y_pos+0.5, layer_mask, 1.0, 1, IMMEDIATE + 1, "aj%s%d", this->name(), m ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	    join_trans = move_trans_tag( create_trans( X_OFFSET(p_pos+1,0.0), y_pos+0.5, layer_mask, 1.0, 1, IMMEDIATE + 1, "aj%s%d", name(), m ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	    join_list->FjT[0][m] = join_trans;
-#if defined(BUG_263)
+#if BUG_263
 	    if ( join_list->u.join.quorumCount == 0 ) {
 #endif
 		create_arc_mult( layer_mask, TO_TRANS, join_trans, join_list->FjP[m], join_list->n_acts() );
-#if defined(BUG_263)
+#if BUG_263
 	    } else {
-		struct trans_object * sink_trans = move_trans_tag( create_trans( X_OFFSET(p_pos+1,0.0), y_pos-0.5, layer_mask, 1.0, 1, IMMEDIATE + 1, "qs%s%d", this->name(), m ),
+		struct trans_object * sink_trans = move_trans_tag( create_trans( X_OFFSET(p_pos+1,0.0), y_pos-0.5, layer_mask, 1.0, 1, IMMEDIATE + 1, "qs%s%d", name(), m ),
 								   Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 		struct place_object * sink_place = move_place_tag( create_place( X_OFFSET(p_pos+0.0,0.25), y_pos-1.0, layer_mask, 0, "QS%s%d", join_list->list[0]->name(), m ),
 								   Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
@@ -418,14 +417,14 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 #endif
 
 	    if ( join_list->u.join.type == ActivityList::JoinType::SYNCHRONIZATION ) {
-#if defined(BUG_163)
+#if BUG_163
 		create_arc( layer_mask, TO_TRANS, join_trans, task()->SyX[m] );	/* Acquire task */
 #else
 		create_arc( layer_mask, TO_TRANS, join_trans, task()->TX[m] );	/* Acquire task */
 #endif
 	    }
 
-	    
+
 	    if ( !join_list->u.join.FjM[m]
 		 && join_list->u.join.fork[0]
 		 && join_list->u.join.fork[0]->u.fork.prev->FjF[m] ) {
@@ -445,19 +444,19 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	} else {
 
 	    /* Outgoing arc already exists. */
-			
+
 	    return false;
 
 	}
 	x_pos += 0.5 * ne;
 	break;
-		
+
     case ActivityList::Type::OR_JOIN:
 	if ( !join_list->FjP[m] ) {
 	    /* Create place and link join trans */
-	    join_list->FjP[m] = move_place_tag( create_place( X_OFFSET(p_pos,0.25), y_pos, layer_mask, 0, "OJ%s%d", this->name(), m ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	    join_list->FjP[m] = move_place_tag( create_place( X_OFFSET(p_pos,0.25), y_pos, layer_mask, 0, "OJ%s%d", name(), m ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	    create_arc( layer_mask, TO_PLACE, join_trans, join_list->FjP[m] );
-	    join_trans = move_trans_tag( create_trans( X_OFFSET(p_pos+1,0.0), y_pos+0.5, layer_mask, 1.0, 1, IMMEDIATE + 1, "oj%s%d", this->name(), m ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	    join_trans = move_trans_tag( create_trans( X_OFFSET(p_pos+1,0.0), y_pos+0.5, layer_mask, 1.0, 1, IMMEDIATE + 1, "oj%s%d", name(), m ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	    create_arc( layer_mask, TO_TRANS, join_trans, join_list->FjP[m] );
 	    join_list->FjT[0][m] = join_trans;
 	} else {
@@ -467,7 +466,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	}
 	x_pos += 0.5 * ne;
 	break;
-	
+
     case ActivityList::Type::JOIN:
 	if ( !join_list->FjT[0][m] ) {
 	    join_list->FjT[0][m] = join_trans;
@@ -550,13 +549,13 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 
     case ActivityList::Type::OR_FORK:
 	/* Create place */
-		
-	fork_list->FjP[m] = move_place_tag( create_place( X_OFFSET(p_pos,0.25), y_pos, layer_mask, 0, "OF%s%d", this->name(), m ),
+
+	fork_list->FjP[m] = move_place_tag( create_place( X_OFFSET(p_pos,0.25), y_pos, layer_mask, 0, "OF%s%d", name(), m ),
 					       Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	create_arc( layer_mask, TO_PLACE, join_trans, fork_list->FjP[m] );
 
 	/* Now create OR-branches. */
-		
+
 	sum = 0.0;
 	for ( i = 0; i < fork_list->n_acts(); ++i ) {
 	    next_act = fork_list->list[i];
@@ -585,7 +584,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	    sum += LQIO::DOM::to_double( *fork_list->u.loop.count[i] );
 	}
 
-	fork_list->u.loop.LoopP[m] = move_place_tag( create_place( X_OFFSET(p_pos,0.25), y_pos, layer_mask, 0, "LOOP%s%d", this->name(), m ),
+	fork_list->u.loop.LoopP[m] = move_place_tag( create_place( X_OFFSET(p_pos,0.25), y_pos, layer_mask, 0, "LOOP%s%d", name(), m ),
 						     Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	create_arc( layer_mask, TO_PLACE, join_trans, fork_list->u.loop.LoopP[m] );
 
@@ -594,7 +593,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	next_act = fork_list->u.loop.endlist;
 	fork_list->u.loop.LoopT[m] = create_trans( X_OFFSET(p_pos+1,0.0), y_pos-0.5, layer_mask,
 						   1.0/sum, 1, IMMEDIATE,
-						   "lend%s%d", this->name(), m );
+						   "lend%s%d", name(), m );
 	join_trans = fork_list->u.loop.LoopT[m];
 	create_arc( layer_mask, TO_TRANS, join_trans, fork_list->u.loop.LoopP[m] );
 
@@ -605,12 +604,10 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	    }
 	} else {
 	    create_arc( layer_mask, TO_PLACE, join_trans, end_place );
-#if defined(BUG_622)
 	    if ( !task()->gdX[m] && can_reply ) {
 		/* activities end normally, so link to done */
 		create_arc( MEASUREMENT_LAYER, TO_TRANS, join_trans, e->phase[e->n_phases()].XX[m] );	/* End phase n */
 	    }
-#endif
 	}
 
 	/* Sub-branch of loop */
@@ -631,7 +628,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	}
 
 	break;
-		
+
     default:
 	abort();
     }
@@ -643,7 +640,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
     return false;
 }
 
-void 
+void
 Activity::insert_DOM_results() const
 {
     Phase::insert_DOM_results();
@@ -682,7 +679,7 @@ Activity::follow_activity_for_tokens( const Entry * e, unsigned p, const unsigne
 
 double Activity::residence_time() const
 {
-    if ( _throughput[0] ) { 
+    if ( _throughput[0] ) {
 	return task_tokens[0] / _throughput[0];
     } else {
 	return 0.;
@@ -692,7 +689,7 @@ double Activity::residence_time() const
 /* ------------------------------------------------------------------------ */
 
 /*
- * Add activity to the sequence list.  
+ * Add activity to the sequence list.
  */
 
 ActivityList *
@@ -723,7 +720,7 @@ Activity::act_and_join_list ( ActivityList* input_list, LQIO::DOM::ActivityList 
     if ( _output ) {
 	get_dom()->input_error( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, _output->get_dom()->getLineNumber() );
 	return input_list;
-    } 
+    }
 
     ActivityList * list = realloc_list( ActivityList::Type::AND_JOIN, input_list, dom_activitylist );
     list->list[list->_n_acts++] = this;
@@ -836,7 +833,7 @@ ActivityList *
 Activity::act_loop_list ( ActivityList * input_list, LQIO::DOM::ActivityList * dom_activitylist )
 {
     ActivityList * list = input_list;
-	  
+
     if ( _is_start_activity ) {
 	get_dom()->input_error( LQIO::ERR_IS_START_ACTIVITY );
     } else if ( _input ) {
@@ -861,11 +858,11 @@ Activity::act_loop_list ( ActivityList * input_list, LQIO::DOM::ActivityList * d
  * Allocate a list and storage for items in it.  The list will grow if necessary.
  */
 
-ActivityList * 	
+ActivityList *
 Activity::realloc_list ( const ActivityList::Type type, const ActivityList * input_list, LQIO::DOM::ActivityList * dom_activity_list )
 {
     ActivityList * list;
-	
+
     if ( input_list ) {
 	list = const_cast<ActivityList *>(input_list);
     } else if ( task()->n_act_lists() >= MAX_ACT*2 ) {
@@ -914,5 +911,4 @@ Activity::realloc_list ( const ActivityList::Type type, const ActivityList * inp
 	}
     }
 }
-
 
