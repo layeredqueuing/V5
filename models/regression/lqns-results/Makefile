@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 16429 2023-02-15 16:41:59Z greg $
+# $Id: Makefile 16474 2023-03-05 18:37:10Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqns
@@ -31,6 +31,7 @@ DSTS =	01-sanity.lqxo \
 	31-overtaking.lqxo \
 	32-async-inf.lqxo \
 	33-spex-convergence.lqxo \
+	34-priority.lqxo \
 	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \
@@ -45,7 +46,6 @@ DSTS =	01-sanity.lqxo \
 	52-replication.lqxo \
 	55-replication.lqxo \
 	56-replication.lqxo \
-	70-priority.lqxo \
 	75-distributions.lqxo \
 	76-distributions.lqxo \
 	85-fork.lqxo \

@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16460 2023-03-05 00:05:02Z greg $
+# $Id: Makefile.am 16476 2023-03-05 18:42:30Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -23,6 +23,7 @@ INTER=	10-interlock.lqxo \
 	11-interlock.lqxo \
 	12-interlock.lqxo \
 	13-interlock.lqxo \
+	14-interlock.lqxo \
 	15-split-interlock.lqxo \
 	16-split-interlock.lqxo \
 	18-interlock.lqxo
@@ -31,7 +32,8 @@ MULTI=	20-multiserver.lqxo \
 	22-multiserver.lqxo \
 	23-multiserver.lqxo 
 OVER=	31-overtaking.lqxo \
-	33-spex-convergence.lqxo
+	33-spex-convergence.lqxo \
+	34-priority.lqxo 
 ACT=	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \
@@ -46,13 +48,13 @@ REPL=	50-replication.lqxo \
 SEMA =  60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo \
-	63-sync.lqxo \
+	63-semaphore.lqxo \
 	65-buffer.lqxo 
-SIM=	70-priority.lqxo 
 SYNC=	80-sync.lqxo \
 	81-sync.lqxo \
 	82-sync.lqxo \
-	83-sync.lqxo 
+	83-sync.lqxo \
+	84-sync.lqxo
 FORK=	85-fork.lqxo \
 	86-fork.lqxo \
 	87-fork.lqxo \
@@ -64,7 +66,7 @@ OTHER=	90-A01.lqxo \
 	92-open.lqxo \
 	93-simple-ucm.lqxo
 
-OBJS=	$(SANITY) $(INTER) $(MULTI) $(OVER) $(ACT) $(REPL) $(SEMA) $(SIM) $(SYNC) $(FORK) $(OTHER)
+OBJS=	$(SANITY) $(INTER) $(MULTI) $(OVER) $(ACT) $(REPL) $(SEMA) $(SYNC) $(FORK) $(OTHER)
 
 SRCS=	$(OBJS:.lqxo=.lqnx)
 
@@ -108,9 +110,6 @@ act:	$(ACT)
 
 fork:	$(FORK)
 	echo $(FORK) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/petri-results
-
-sim:	$(SIM)
-	echo $(SIM) | tr -s " " "\n" | srvndiff $(DIFFOPTS) -Q  . ../../models/regression/petri-results
 
 sema:	$(SEMA)
 	echo $(SEMA) | tr -s " " "\n" | srvndiff $(DIFFOPTS) -Q  . ../../models/regression/petri-results

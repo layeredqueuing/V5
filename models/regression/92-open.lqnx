@@ -1,8 +1,5 @@
 <?xml version="1.0"?>
-<!-- Invoked as: lqn2xml -o92-open.lqnx 92-open.in -->
-<!-- Fri May 29 10:46:32 2009 -->
-
-<lqn-model name="92-open" description="$Id: 92-open.lqnx 14886 2021-07-07 18:31:56Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="92-open" description="$Id: 92-open.lqnx 16464 2023-03-05 13:14:59Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="" conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9">
       <pragma param="stop-on-message-loss" value="false"/>
    </solver-params>

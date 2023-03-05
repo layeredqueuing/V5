@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16437 2023-02-17 12:47:38Z greg $
+# $Id: Makefile.am 16477 2023-03-05 18:46:41Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -37,7 +37,8 @@ ACT=	40-activities.lqxo \
 	46-activities.lqxo 
 OVER=	31-overtaking.lqxo \
 	32-async-inf.lqxo \
-	33-spex-convergence.lqxo
+	33-spex-convergence.lqxo \
+	34-priority.lqxo \
 REPL=	50-replication.lqxo \
 	51-replication.lqxo \
 	52-replication.lqxo \
@@ -46,21 +47,21 @@ REPL=	50-replication.lqxo \
 SEMA =  60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo \
+	63-semaphore.lqxo \
 	65-buffer.lqxo \
 	66-rwlock.lqxo \
 	67-rwlock.lqxo \
 	68-rwlock.lqxo \
 	69-rwlock.lqxo
-#	63-semaphore.lqxo 
-SIM=	70-priority.lqxo \
-	71-fair.lqxo \
+SIM=	71-fair.lqxo \
 	72-fair.lqxo \
 	75-distributions.lqxo \
 	76-distributions.lqxo 
 SYNC=	80-sync.lqxo \
 	81-sync.lqxo \
 	82-sync.lqxo \
-	83-sync.lqxo 
+	83-sync.lqxo \
+	84-sync.lqxo
 FORK=	85-fork.lqxo \
 	86-fork.lqxo \
 	87-fork.lqxo \

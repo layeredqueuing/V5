@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16429 2023-02-15 16:41:59Z greg $
+# $Id: Makefile.am 16475 2023-03-05 18:38:31Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -33,7 +33,8 @@ MULTI=	20-multiserver.lqxo \
 	24-multiserver.lqxo
 OVER=	31-overtaking.lqxo \
 	32-async-inf.lqxo \
-	33-spex-convergence.lqxo
+	33-spex-convergence.lqxo \
+	34-priority.lqxo 
 ACT=	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \
@@ -99,8 +100,8 @@ SUFFIXES = .diff .d .lqxo .lqnx
 
 .lqxo.diff:
 	-if test -f ../../models/regression/petri-results/$<; \
-	then srvndiff --print-comment -IC -o $@ ../../models/regression/{petri,sim,lqns}-results/$< $<; \
-	else srvndiff --print-comment -IC -o $@ ../../models/regression/{sim,lqns}-results/$< $<; \
+	then srvndiff --comment -IC -o $@ ../../models/regression/{petri,sim,lqns}-results/$< $<; \
+	else srvndiff --comment -IC -o $@ ../../models/regression/{sim,lqns}-results/$< $<; \
 	fi
 
 all:

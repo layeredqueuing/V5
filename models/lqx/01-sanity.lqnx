@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<lqn-model name="01-sanity" description="$Id: 01-sanity.lqnx 16470 2023-03-05 14:48:54Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simplest model." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
+   <processor name="client" scheduling="inf">
+      <task name="client" scheduling="ref">
+         <entry name="client" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="client_ph1" phase="1" host-demand-mean="$c">
+                  <synch-call dest="server" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" scheduling="fcfs">
+      <task name="server" scheduling="fcfs">
+         <entry name="server" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="server_ph1" phase="1" host-demand-mean="$s"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <lqx><![CDATA[
+   println_spaced( ",", "$c", "$s", "$u" );
+   for ( i = 0.2; i < 2.0; i = i + 0.2 ) {
+     $c = i;
+     $s = 3.0 - i;
+     solve();
+     println_spaced( ",", $c, $s, task("server").utilization );
+   }
+]]>
+   </lqx>
+</lqn-model>

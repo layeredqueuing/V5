@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15828 2022-08-15 12:45:53Z greg $
+# $Id: Makefile 16465 2023-03-05 13:28:05Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	petrisrvn
@@ -43,14 +43,14 @@ DST=	$(SANITY) \
 	60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo \
-	63-sync.lqxo \
+	63-semaphore.lqxo \
 	65-buffer.lqxo \
 	70-priority.lqxo \
-	77-semaphore.lqxo \
 	80-sync.lqxo \
 	81-sync.lqxo \
 	82-sync.lqxo \
 	83-sync.lqxo \
+	84-sync.lqxo \
 	85-fork.lqxo \
 	86-fork.lqxo \
 	87-fork.lqxo \

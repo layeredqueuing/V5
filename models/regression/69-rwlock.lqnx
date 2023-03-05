@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<lqn-model name="./rwlock_testing/104-rwlock" description=" " xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="RWLock Test" description="$Id: 69-rwlock.lqnx 16464 2023-03-05 13:14:59Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="rwlock called from forwarding chain." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
    <processor name="customer" scheduling="inf">
       <task name="customer" scheduling="ref" multiplicity="3">

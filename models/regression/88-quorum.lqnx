@@ -1,8 +1,5 @@
 <?xml version="1.0"?>
-<!-- Invoked as: lqn2xml -o60-quorum.lqnx 60-quorum.in -->
-<!-- Thu May 28 09:03:26 2009 -->
-
-<lqn-model name="60-quorum" description="$Id: 88-quorum.lqnx 14886 2021-07-07 18:31:56Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="60-quorum" description="$Id: 88-quorum.lqnx 16464 2023-03-05 13:14:59Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="quorum model (meets assumptions)" conv_val="0.0001" it_limit="50" print_int="5" underrelax_coeff="0.9"/>
    <processor name="p1" scheduling="fcfs">
       <task name="t1" scheduling="ref">

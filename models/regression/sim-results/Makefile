@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15850 2022-08-18 21:08:43Z greg $
+# $Id: Makefile 16474 2023-03-05 18:37:10Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
@@ -34,6 +34,7 @@ DST =	$(SANITY) \
 	24-multiserver.lqxo \
 	31-overtaking.lqxo \
 	32-async-inf.lqxo \
+	34-priority.lqxo \
 	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \
@@ -51,23 +52,21 @@ DST =	$(SANITY) \
 	60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo \
-	63-sync.lqxo \
+	63-semaphore.lqxo \
 	65-buffer.lqxo \
 	66-rwlock.lqxo \
 	66W-rwlock.lqxo \
 	67-rwlock.lqxo \
 	68-rwlock.lqxo \
 	69-rwlock.lqxo \
-	70-priority.lqxo \
-	71-fair.lqxo \
 	72-fair.lqxo \
 	75-distributions.lqxo \
 	76-distributions.lqxo \
-	77-semaphore.lqxo \
 	80-sync.lqxo \
 	81-sync.lqxo \
 	82-sync.lqxo \
 	83-sync.lqxo \
+	84-sync.lqxo \
 	85-fork.lqxo \
 	86-fork.lqxo \
 	87-fork.lqxo \

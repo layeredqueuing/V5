@@ -9,7 +9,7 @@
 <!--   number =       1, -->
 <!--   pages =        "73-82", -->
 <!--   month =        jan, -->
-<lqn-model name="/home/greg/usr/src/models/regression/45-activities" description="$Id: 45-activities.lqnx 14886 2021-07-07 18:31:56Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="Activities Regression Test 5" description="$Id: 45-activities.lqnx 16464 2023-03-05 13:14:59Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Table 1, Set 1" conv_val="1e-06" it_limit="50" print_int="5" underrelax_coeff="0.9"/>
    <processor name="p1" scheduling="fcfs">
       <task name="t1" scheduling="ref">

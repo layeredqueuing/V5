@@ -1,8 +1,5 @@
 <?xml version="1.0"?>
-<!-- Invoked as: lqn2xml -o23-multiserver.lqnx 23-multiserver.in -->
-<!-- Wed May  6 10:59:18 2009 -->
-
-<lqn-model name="23-multiserver" description="$Id: 23-multiserver.lqnx 14886 2021-07-07 18:31:56Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="23-multiserver" description="$Id: 23-multiserver.lqnx 16464 2023-03-05 13:14:59Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Use an infinite server for server." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
    <processor name="client" multiplicity="1" scheduling="inf">
       <task name="client" multiplicity="3" scheduling="ref">
