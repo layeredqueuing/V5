@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
-<!-- lqns -?xml -->
-<lqn-model name="95-async-inf" description="lqns 5.7 solution for model from: bug-693.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="95-async-inf" description="$Id: 95-async-inf.lqnx 16461 2023-03-05 00:10:40Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Open arrival to infinite server making sync call to infinite server" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
       <result-general valid="YES" conv-val="7.03048e-06" iterations="2" platform-info="Gregs-iMac.local Darwin 12.3.0" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00">
          <mva-info submodels="4" core="4" step="40" step-squared="444" wait="3582" wait-squared="5.32024e+06" faults="0"/>

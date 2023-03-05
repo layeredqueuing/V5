@@ -165,6 +165,7 @@ private:
     double _utilization[MAX_MULT];		/* Result for finding util.	*/
 
 public:
+    static unsigned int __open_model_tokens;	/* Default global open queue max size	*/
     static double __server_x_offset;		/* Starting offset for next server.	*/
     static double __client_x_offset;		/* Starting offset for next client.	*/
     static double __server_y_offset;

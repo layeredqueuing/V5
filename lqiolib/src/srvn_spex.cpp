@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 16456 2023-03-01 22:27:40Z greg $
+ *  $Id: srvn_spex.cpp 16463 2023-03-05 12:10:03Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -411,19 +411,34 @@ namespace LQIO {
 	    const std::string& name = var->first;
 	    loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), new LQX::ConstantValueExpression( DEFAULT_STALE_VALUE ) ) );
 	}
-	loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "__limit__", false), new LQX::ObjectPropertyReadNode( new LQX::MethodInvocationExpression( "document" ), DOM::Document::XSpexIterationLimit ) ) );
-
-	/* Convergence test over all assignment statements/variables */
+	loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( DOM::Document::XSpexConvergence, false ), new LQX::ObjectPropertyReadNode( new LQX::MethodInvocationExpression( "document" ), DOM::Document::XSpexConvergence ) ) );
+	loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( DOM::Document::XSpexIterationLimit, false ), new LQX::ObjectPropertyReadNode( new LQX::MethodInvocationExpression( "document" ), DOM::Document::XSpexIterationLimit ) ) );
+	loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( DOM::Document::XSpexUnderrelaxation, false ), new LQX::ObjectPropertyReadNode( new LQX::MethodInvocationExpression( "document" ), DOM::Document::XSpexUnderrelaxation ) ) );
+	
+	/* Over all convergence assignment statements/variables */
 	LQX::SyntaxTreeNode * and_expr = nullptr;
 	for ( std::vector<var_name_and_expr>::const_iterator var = __convergence_variables.begin(); var != __convergence_variables.end(); ++var ) {
 	    const std::string& name = var->first;
+
+	    /* Underrelaxation */
+	    convergence->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( name, true ),
+								      new LQX::MathExpression(LQX::MathOperation::ADD,
+											      new LQX::MathExpression(LQX::MathOperation::MULTIPLY, 
+														      new LQX::VariableExpression( DOM::Document::XSpexUnderrelaxation, false ),
+														      new LQX::VariableExpression( name, true ) ),
+											      new LQX::MathExpression(LQX::MathOperation::MULTIPLY,
+														      new LQX::MathExpression( LQX::MathOperation::SUBTRACT,
+																	       new LQX::ConstantValueExpression( 1.0 ),
+																	       new LQX::VariableExpression( DOM::Document::XSpexUnderrelaxation, false ) ),
+														      new LQX::VariableExpression( &name[1], false ) ) ) ) );
+	    /* Convergence test */
 	    LQX::SyntaxTreeNode * right_expr = new LQX::ComparisonExpression( LQX::CompareMode::LESS_THAN,
 									      new LQX::MethodInvocationExpression( "abs",
 														   new LQX::MathExpression(LQX::MathOperation::SUBTRACT,
 																	   new LQX::VariableExpression( &name[1], false ),
 																	   new LQX::VariableExpression( name, true ) ),
 														   NULL ),
-									      new LQX::ObjectPropertyReadNode( new LQX::MethodInvocationExpression( "document" ), DOM::Document::XSpexConvergence ) );	// BUG 422
+									      new LQX::VariableExpression( DOM::Document::XSpexConvergence, false ) );	// BUG 422
 	    if ( var == __convergence_variables.begin() ) {
 		and_expr = right_expr;
 	    }  else {
@@ -433,8 +448,8 @@ namespace LQIO {
 
 	/* Test for iteration limit */	// BUG 205
 	LQX::SyntaxTreeNode * or_expr = new LQX::LogicExpression( LQX::LogicOperation::AND,
-								  new LQX::ComparisonExpression( LQX::CompareMode::NOT_EQUALS, new LQX::VariableExpression( "__limit__", false), new LQX::ConstantValueExpression( 0. ) ),
-								  new LQX::ComparisonExpression( LQX::CompareMode::GREATER_THAN, new LQX::VariableExpression( "_0", false ), new LQX::VariableExpression( "__limit__", false) ) );
+								  new LQX::ComparisonExpression( LQX::CompareMode::NOT_EQUALS, new LQX::VariableExpression( DOM::Document::XSpexIterationLimit, false), new LQX::ConstantValueExpression( 0. ) ),
+								  new LQX::ComparisonExpression( LQX::CompareMode::GREATER_THAN, new LQX::VariableExpression( "_0", false ), new LQX::VariableExpression( DOM::Document::XSpexIterationLimit, false) ) );
 
 	/* Done is true if iteration limit met or convergence is met */
 	convergence->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "__done__", false ), new LQX::LogicExpression( LQX::LogicOperation::OR, or_expr, and_expr ) ) );

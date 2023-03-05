@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16451 2023-02-27 16:52:43Z greg $
+# $Id: Makefile.am 16460 2023-03-05 00:05:02Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -123,6 +123,7 @@ other:	$(OTHER)
 
 09-sanity.lqxo:	09-sanity.lqnx
 	$(SRVN) $(OPTS) --random-queueing --queue-limit=5 $<
+	@srvndiff -q $(DIFFOPTS) $@ ../../models/regression/petri-results/$@
 
 33-spex-convergence.lqxo: 33-spex-convergence.lqnx
 	$(SRVN) -w -o $*.out $<
@@ -135,17 +136,11 @@ other:	$(OTHER)
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	@rm $*-flat.*
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/petri-results/$@
-	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
-	@rm $*-flat.*
 	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
 
 52-replication.lqxo:	52-replication.lqnx
 	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
-	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
-	@rm $*-flat.*
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/petri-results/$@
 	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	@rm $*-flat.*
 	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
@@ -163,5 +158,10 @@ other:	$(OTHER)
 	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	@rm $*-flat.*
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/petri-results/$@
+
+90-B07.lqxo: 90-B07.lqnx
+	$(SRVN) $(OPTS) $<
+	@srvndiff -q $(DIFFOPTS) $@ ../../models/regression/petri-results/$@
+
 
 

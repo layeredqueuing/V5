@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 16448 2023-02-27 13:04:14Z greg $
+ * $Id: model.cc 16459 2023-03-04 23:26:51Z greg $
  *
  * Load the SRVN model.
  */
@@ -1184,7 +1184,7 @@ Model::queue_prologue( double x_pos,		/* X coordinate.		*/
 #if defined(BUFFER_BY_ENTRY)
 	    if ( !b->ZZ ) {
 		b->ZZ = create_place( x_pos, y_pos - 0.5, layer_mask_a|layer_mask_b,
-				      open_model_tokens, "ZZ%s", b->name()  );
+				      Task::__open_model_tokens, "ZZ%s", b->name()  );
 	    }
 	    c_place = b->ZZ;
 #else

@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 16442 2023-02-24 12:59:05Z greg $
+ * $Id: pragma.cc 16459 2023-03-04 23:26:51Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,6 +20,7 @@
 #include <lqio/labels.h>
 #include <lqio/input.h>
 #include <lqio/glblerr.h>
+#include "task.h"
 
 Pragma * Pragma::__pragmas = nullptr;
 const std::map<const std::string,Pragma::fptr> Pragma::__set_pragma = {
@@ -102,8 +103,8 @@ void
 Pragma::set_queue_size( const std::string& value )
 {
     char * endptr = nullptr;
-    open_model_tokens = std::strtol( value.c_str(), &endptr, 10 );
-    if ( open_model_tokens < 1 || OPEN_MODEL_TOKENS*2 < open_model_tokens || *endptr != '\0' ) {
+    Task::__open_model_tokens = std::strtol( value.c_str(), &endptr, 10 );
+    if ( Task::__open_model_tokens < 1 || OPEN_MODEL_TOKENS*2 < Task::__open_model_tokens || *endptr != '\0' ) {
 	throw std::domain_error( value );
     }
 }

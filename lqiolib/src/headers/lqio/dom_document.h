@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 16438 2023-02-22 23:57:49Z greg $
+ *  $Id: dom_document.h 16459 2023-03-04 23:26:51Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -280,7 +280,7 @@ namespace LQIO {
 	    /* We need to make sure all variables named the same point the same */
 	    std::map<const std::string, SymbolExternalVariable*> _variables;
 	    std::map<const std::string, const ExternalVariable*> _controlVariables;
-	    static std::map<const std::string, double> __initialValues;
+	    static std::map<const std::string, const double> __initialValues;
 
 	    unsigned _nextEntityId;                           	/* for sorting, see _entities 	*/
 	    const InputFormat _format;				/* input format 		*/

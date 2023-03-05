@@ -13,7 +13,7 @@
 #define _PETRISRVN_H
 
 /*
- * $Id: petrisrvn.h 16448 2023-02-27 13:04:14Z greg $
+ * $Id: petrisrvn.h 16459 2023-03-04 23:26:51Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -35,7 +35,7 @@
 /*  #define OLD_JOIN */
 #define BUG_163	1		/* Measure sync delay.			*/
 #define BUG_263	1		/* Quroum delay				*/
-#define BUG_423	1		/* Trace count_replies.			*/
+// define BUG_423	0	/* Trace count_replies.			*/
 
 extern struct lqio_params_stats io_vars;
 
@@ -99,8 +99,6 @@ extern bool distinguish_join_customers;	/* Cust at join multi-server are unique	
 extern bool simplify_network;		/* Delete single place processors	*/
 
 extern double x_scaling;		/* Auto-squish if val == 0.		*/
-
-extern unsigned open_model_tokens;	/* Default global open queue max size	*/
 
 extern FILE * stddbg;			/* debugging output goes here.		*/
 

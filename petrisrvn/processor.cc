@@ -246,7 +246,7 @@ Processor::transmorgrify( unsigned max_count )
 	    if ( ref_count() ) {
 		PX = create_place( x_pos, y_pos, PROC_LAYER, ref_count(), "P%s", name() );
 	    } else {
-		PX = create_place( x_pos, y_pos, PROC_LAYER, open_model_tokens, "P%s", name() );
+		PX = create_place( x_pos, y_pos, PROC_LAYER, Task::__open_model_tokens, "P%s", name() );
 	    }
 	}
 

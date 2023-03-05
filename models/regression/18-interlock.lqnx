@@ -1,7 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id: 18-interlock.lqnx 14886 2021-07-07 18:31:56Z greg $ -->
-<!-- lqn2xml -o. -->
-<lqn-model name="../../models/regression/18-interlock" description="lqn2xml 6.2 solution for model from: ../../models/regression/18-interlock.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="../../models/regression/18-interlock" description="$Id: 18-interlock.lqnx 16461 2023-03-05 00:10:40Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Interlock - forwarded" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
    <processor name="c0" scheduling="inf">
       <task name="c0" scheduling="ref">

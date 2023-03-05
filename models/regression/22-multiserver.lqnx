@@ -1,7 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id: 22-multiserver.lqnx 15837 2022-08-15 23:04:45Z greg $ -->
-<!-- lqn2xml -->
-<lqn-model name="22-multiserver" description="lqn2xml 5.27 solution for model from: 22-multiserver.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="22-multiserver" description="$Id: 22-multiserver.lqnx 16461 2023-03-05 00:10:40Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Product form model (simplest)." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
       <pragma param="save-marginal-probabilities" value="true"/>
       <pragma param="mva" value="exact-mva"/>

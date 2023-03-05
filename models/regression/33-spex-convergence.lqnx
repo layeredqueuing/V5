@@ -1,14 +1,12 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
-<!-- lqn2ps -Oxml -->
-<lqn-model name="bug-205-external-convergence" description="lqn2ps 5.28.1 solution for model from: bug-205-external-convergence.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="bug-205-external-convergence" description="$Id: 33-spex-convergence.lqnx 16461 2023-03-05 00:10:40Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
   <parameters>
 $S0 = 0
 $Z1 = 0
-$convergence_value = 1e-05
+$spex_convergence = 0.001
   </parameters>
   <!-- Variables: $S0, $Z1, $convergence_value -->
-  <solver-params comment="Simple three-tier client-server system solved using convergence variables" conv_val="$convergence_value" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
+  <solver-params comment="Simple three-tier client-server system solved using convergence variables" conv_val="0.00001" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
   <processor name="c0" scheduling="inf">
     <task name="c0" scheduling="ref">
       <entry name="c0" type="PH1PH2">

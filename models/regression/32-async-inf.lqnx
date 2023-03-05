@@ -1,7 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
-<!-- lqn2xml -oregression-xml/32-async-inf.lqnx -->
-<lqn-model name="regression/32-async-inf" description="lqn2xml 5.27 solution for model from: regression/32-async-inf.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="32-async-inf" description="$Id: 32-async-inf.lqnx 16461 2023-03-05 00:10:40Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Open arrivals to an infinite server (from Giuliano Casale)" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
    <processor name="P1" scheduling="fcfs">
       <task name="T1" scheduling="ref" think-time="4">

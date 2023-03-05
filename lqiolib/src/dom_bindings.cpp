@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 16438 2023-02-22 23:57:49Z greg $
+ *  $Id: dom_bindings.cpp 16459 2023-03-04 23:26:51Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -858,9 +858,9 @@ namespace LQIO {
 			 * Otherwise, it is read-only */
 			const DOM::ExternalVariable * var = (document.*fptr.r_extvar)();
 			const DOM::SymbolExternalVariable * sym = dynamic_cast<const DOM::SymbolExternalVariable *>(var);
-			if ( sym ) {
+			if ( sym != nullptr ) {
 			    return sym->_externalSymbol;
-			} else if ( var && var->wasSet() ) {
+			} else if ( var != nullptr && var->wasSet() ) {
 			    switch ( var->getType() ) {
 			    case DOM::ExternalVariable::Type::DOUBLE: return LQX::Symbol::encodeDouble(to_double(*var));
 			    case DOM::ExternalVariable::Type::STRING: return LQX::Symbol::encodeString(to_string(*var));

@@ -44,6 +44,8 @@ using namespace std;
 #define FOLLOW_RNVS   true
 #define IGNORE_RNVS   false
 
+unsigned int Task::__open_model_tokens	= OPEN_MODEL_TOKENS;	/* Default val.	*/
+
 std::vector<Task *> __task;
 double Task::__server_x_offset;		/* Starting offset for next server.	*/
 double Task::__client_x_offset;		/* Starting offset for next client.	*/
@@ -72,7 +74,7 @@ Task::Task( const LQIO::DOM::Task* dom, Task::Type type, Processor * processor )
       _max_queue_length(0),
       _max_k(0),				/* input queues. 		*/
 #if !defined(BUFFER_BY_ENTRY)
-      _open_tokens(open_model_tokens),
+      _open_tokens(Task::__open_model_tokens),
 #endif
       _proc_queue_count(0),
       _requestor_no(0)
@@ -534,7 +536,7 @@ unsigned int Task::set_queue_length()
 
 	if ( (*e)->requests() == Requesting_Type::SEND_NO_REPLY && !is_infinite() ) {
 #if defined(BUFFER_BY_ENTRY)
-	    length += open_model_tokens;
+	    length += Task::__open_model_tokens;
 #else
 	    if ( !open_model ) {
 		open_model = true;
@@ -691,7 +693,7 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
     unsigned customers;
 
     if ( is_infinite() ) {
-	customers = open_model_tokens;
+	customers = Task::__open_model_tokens;
     } else if ( is_single_place_task() || type() == Task::Type::OPEN_SRC ) {
 	customers = multiplicity();
     } else {
@@ -824,7 +826,7 @@ Task::get_results( unsigned m )
     } else if ( !is_infinite() ) {
 	_utilization[m] = 1.0 - get_pmmean( "T%s%d", name(), m );
     } else {
-	_utilization[m] = open_model_tokens - get_pmmean( "T%s%d", name(), m );
+	_utilization[m] = Task::__open_model_tokens - get_pmmean( "T%s%d", name(), m );
     }
     task_tokens[m] = 0.0;
 

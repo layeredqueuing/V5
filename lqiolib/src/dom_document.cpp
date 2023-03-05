@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 16438 2023-02-22 23:57:49Z greg $
+ *  $Id: dom_document.cpp 16459 2023-03-04 23:26:51Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -50,7 +50,6 @@ namespace LQIO {
 	Document* __document = nullptr;
 	bool Document::__debugXML = false;
 	bool Document::__debugJSON = false;
-	std::map<const std::string, double> Document::__initialValues;
 	std::string Document::__input_file_name = "";
 	const char * Document::XConvergence = "conv_val";			/* Matches schema. 	*/
 	const char * Document::XIterationLimit = "it_limit";			/* Matched schema.	*/
@@ -60,6 +59,16 @@ namespace LQIO {
 	const char * Document::XSpexConvergence = "spex_convergence";
 	const char * Document::XSpexUnderrelaxation = "spex_underrelax_coeff";
 
+	std::map<const std::string, const double> Document::__initialValues = {
+	    { XConvergence,          	    0.00001 },
+	    { XIterationLimit,              50. },
+	    { XPrintInterval,               10. },
+	    { XUnderrelaxationCoefficient,  0.9 },
+	    { XSpexIterationLimit,          50. },
+	    { XSpexUnderrelaxation,         1.0 },
+	    { XSpexConvergence,             0.001 }
+	};
+	
 	const std::map<const LQIO::DOM::Document::OutputFormat,const std::string> Document::__output_extensions = {
 	    { OutputFormat::XML,	"lqxo" },
 	    { OutputFormat::JSON,	"lqjo" },
@@ -119,14 +128,6 @@ namespace LQIO {
 	      _resultMaxRSS(0)
 	{
 	    __document = this;
-
-	    __initialValues[XConvergence] =                 0.00001;
-	    __initialValues[XIterationLimit] =              50.;
-	    __initialValues[XPrintInterval] =               10.;
-	    __initialValues[XUnderrelaxationCoefficient] =  0.9;
-	    __initialValues[XSpexIterationLimit] =          50.;
-	    __initialValues[XSpexUnderrelaxation] =         0.9;
-	    __initialValues[XSpexConvergence] =             0.001;
 	}
 
 
@@ -259,12 +260,13 @@ namespace LQIO {
 	{
 	    const std::map<const std::string, const ExternalVariable *>::const_iterator iter = _controlVariables.find(index);
 	    if ( iter != _controlVariables.end() ) {
-		const ExternalVariable * var = iter->second;
-		if ( var ) {
+		if ( iter->second != nullptr ) {
 		    return iter->second;
 		}
 	    }
-	    return new ConstantExternalVariable( __initialValues[index] );
+	    SymbolExternalVariable * var = new SymbolExternalVariable( index );
+	    var->set( __initialValues.at( index ) );
+	    return var;
 	}
 
 	unsigned Document::getNextEntityId()
