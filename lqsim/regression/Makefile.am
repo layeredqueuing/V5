@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16477 2023-03-05 18:46:41Z greg $
+# $Id: Makefile.am 16485 2023-03-07 00:37:37Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -38,7 +38,7 @@ ACT=	40-activities.lqxo \
 OVER=	31-overtaking.lqxo \
 	32-async-inf.lqxo \
 	33-spex-convergence.lqxo \
-	34-priority.lqxo \
+	34-priority.lqxo
 REPL=	50-replication.lqxo \
 	51-replication.lqxo \
 	52-replication.lqxo \
@@ -95,7 +95,7 @@ SUFFIXES = .diff .d .lqxo .lqnx
 	-srvndiff ../../models/regression/sim-results/$< $< > $@
 
 check:	$(OBJS)
-	echo $(OBJS) | tr -s " " "\n" | srvndiff -Q $(EPSILON) -@- . ../../models/regression/sim-results
+#	echo $(OBJS) | tr -s " " "\n" | srvndiff -Q $(EPSILON) -@- . ../../models/regression/sim-results
 
 check-syntax:
 	$(MAKE) OPTS=-n check

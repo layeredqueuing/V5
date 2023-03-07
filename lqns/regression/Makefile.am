@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16475 2023-03-05 18:38:31Z greg $
+# $Id: Makefile.am 16480 2023-03-06 12:59:58Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -70,6 +70,10 @@ OTHER=	90-A01.lqxo \
 	93-simple-ucm.lqxo \
 	94-5101-a2-q2b1.lqxo
 
+LQX=	01-sanity-l.csv
+
+SPEX=	01-sanity-s.csv
+
 VAR=	90-A01-novar.lqxo \
 	90-A01-stoch.lqxo
 
@@ -77,23 +81,32 @@ DISTTEST=disttest
 
 
 # Can't do: $(SYNC)  Should omit $(SIM) to, as the results aren't meaningful.
-OBJS=	$(SANITY) $(INTER) $(MULTI) $(OVER) $(ACT) $(REPL) $(FORK) $(OTHER)
+OBJS=	$(SANITY) $(INTER) $(MULTI) $(OVER) $(ACT) $(REPL) $(FORK) $(OTHER) 
 if QUORUM
 #OBJS +=	$(QUORUM)
 endif
-OBJS2=	01L-sanity.d 20L-multiserver.d
 
-SRCS=	$(OBJS:.lqxo=.lqnx)
-SRCS2=	$(OBJS2:.d=.lqnx)
+SRCS1=	$(OBJS:.lqxo=.lqnx)
+SRCS2=	$(OBJS:.csv=.lqx)
+SRCS3=	$(OBJS:.csv=.xlqn)
 
-EXTRA_DIST = $(SRCS) $(SRCS2)
+EXTRA_DIST = $(SRCS1) $(SRCS2)
 
-SUFFIXES = .diff .d .lqxo .lqnx 
+SUFFIXES = .diff .csv .d .lqxo .lqnx .xlqn
 
 .lqnx.lqxo:
 	$(SRVN) $(OPTS) $<
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
+.lqx.csv:
+	$(SRVN) $(OPTS) -o$@ $<
+	@j=`echo $@ | sed -e 's/-l\.csv/.csv/'`; diff $@ ../../models/lqx/lqns-results/$$j
+	@rm -rf $*.d
+
+.xlqn.csv:
+	$(SRVN) $(OPTS) -o$@ $<
+	@j=`echo $@ | sed -e 's/-s\.csv/.csv/'`; diff $@ ../../models/spex/lqns-results/$$j
+	@rm -rf $*.d
 
 .lqnx.d:
 	$(SRVN) $(OPTS) $<
@@ -106,7 +119,7 @@ SUFFIXES = .diff .d .lqxo .lqnx
 
 all:
 
-check:	$(OBJS) $(VAR)
+check:	$(OBJS) $(VAR) $(LQX) $(SPEX)
 	echo $(OBJS) $(VAR) | tr -s " " "\n" | srvndiff $(DIFFOPTS) -@- . ../../models/regression/lqns-results
 
 recheck:
@@ -141,8 +154,7 @@ disttest.o:	disttest.cc
 	$(CXX) -I.. -I../../libmva/src/headers -c -o disttest.o disttest.cc
 
 clean:
-	@-rm -f *.lqxo *.out *.diff .files
-	@-rm -rf $(OBJS2)
+	@-rm -rf *.lqxo *.csv *.out *.diff .files *.d
 
 distclean:	clean 
 	@-rm -f Makefile

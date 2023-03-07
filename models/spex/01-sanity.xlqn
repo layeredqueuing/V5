@@ -1,0 +1,33 @@
+# SRVN Model Description File, for file: ../regression/01-sanity.lqnx
+# Sun Mar  5 18:32:15 2023
+# $Id$
+# ------------------------------------------------------------------------
+
+$c = [0.2 : 2.0, 0.2]
+$s = 3 - $c
+
+G "Simplest model." 1e-05 50 10 0.9 -1
+
+P 2
+  p client i
+  p server f
+-1
+
+T 2
+  t client r client -1 client
+  t server f server -1 server %u $u
+-1
+
+E 2
+# ---------- client ----------
+  s client $c -1
+  y client server 1 -1
+# ---------- server ----------
+  s server $s -1
+-1
+
+R 3
+  $c
+  $s
+  $u
+-1

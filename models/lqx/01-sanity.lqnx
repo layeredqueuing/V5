@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<lqn-model name="01-sanity" description="$Id: 01-sanity.lqnx 16470 2023-03-05 14:48:54Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="01-sanity" description="$Id: 01-sanity.lqnx 16479 2023-03-05 23:45:20Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Simplest model." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
    <processor name="client" scheduling="inf">
       <task name="client" scheduling="ref">
@@ -22,12 +22,12 @@
       </task>
    </processor>
    <lqx><![CDATA[
-   println_spaced( ",", "$c", "$s", "$u" );
+   println_spaced( ", ", "$c", "$s", "$u" );
    for ( i = 0.2; i < 2.0; i = i + 0.2 ) {
      $c = i;
      $s = 3.0 - i;
      solve();
-     println_spaced( ",", $c, $s, task("server").utilization );
+     println_spaced( ", ", $c, $s, task("server").utilization );
    }
 ]]>
    </lqx>

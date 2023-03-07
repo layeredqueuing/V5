@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 16428 2023-02-15 14:30:27Z greg $
+ * $Id: expat_document.cpp 16487 2023-03-07 02:00:22Z greg $
  *
  * Read in XML input files.
  *
@@ -2266,16 +2266,20 @@ namespace LQIO {
         {
             Filename base_name( _input_file_name );
 
-            output << "<?xml version=\"1.0\"?>" << std::endl
-		   << "<!-- " << Common_IO::svn_id() << " -->" << std::endl;
+            output << "<?xml version=\"1.0\"?>" << std::endl;
 
-	    if ( LQIO::io_vars.lq_command_line.size() > 0 ) {
+	    if ( !LQIO::io_vars.lq_command_line.empty() ) {
 		output << XML::comment( LQIO::io_vars.lq_command_line );
 	    }
             output << XML::start_element( Xlqn_model ) << XML::attribute( Xname, base_name() )
-                   << " description=\"" << LQIO::io_vars.lq_toolname << " " << io_vars.lq_version << " solution for model from: " << _input_file_name << ".\""
-                   << " xmlns:xsi=\"" << XMLSchema_instance << "\" xsi:noNamespaceSchemaLocation=\"";
-
+		   << " description=\"";
+	    if ( hasResults() ) {
+		output << LQIO::io_vars.lq_toolname << " " << io_vars.lq_version << " solution for model from: " << _input_file_name << ".";
+	    } else {
+		output << Common_IO::svn_id();
+	    }
+	    output << "\" xmlns:xsi=\"" << XMLSchema_instance << "\" xsi:noNamespaceSchemaLocation=\"";
+	
             const char * p = getenv( "LQN_SCHEMA_DIR" );
 	    std::string schema_path;
             if ( p != 0 ) {
@@ -2451,9 +2455,9 @@ namespace LQIO {
 			    if ( p != marginals.begin() ) output << ", ";
 			    output << *p;
 			}
-			output << std::endl << XML::end_element( Xmarginal_queue_probabilities );
+			output << std::endl << XML::end_element( Xmarginal_queue_probabilities ) << std::endl;
 		    }
-                    output << std::endl << XML::end_element( Xresult_processor ) << std::endl;
+                    output << XML::end_element( Xresult_processor ) << std::endl;
                 } else {
                     output << XML::simple_element( Xresult_processor ) << XML::attribute( Xutilization, processor.getResultUtilization() ) << "/>" << std::endl;
                 }
