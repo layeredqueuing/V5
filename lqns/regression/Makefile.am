@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16480 2023-03-06 12:59:58Z greg $
+# $Id: Makefile.am 16491 2023-03-07 11:59:07Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -70,9 +70,8 @@ OTHER=	90-A01.lqxo \
 	93-simple-ucm.lqxo \
 	94-5101-a2-q2b1.lqxo
 
-LQX=	01-sanity-l.csv
-
-SPEX=	01-sanity-s.csv
+SPEX=	01-sanity-l.csv \
+	01-sanity-s.csv
 
 VAR=	90-A01-novar.lqxo \
 	90-A01-stoch.lqxo
@@ -100,12 +99,12 @@ SUFFIXES = .diff .csv .d .lqxo .lqnx .xlqn
 
 .lqx.csv:
 	$(SRVN) $(OPTS) -o$@ $<
-	@j=`echo $@ | sed -e 's/-l\.csv/.csv/'`; diff $@ ../../models/lqx/lqns-results/$$j
+	@j=`echo $@ | sed -e 's/-l\.csv/.csv/'`; diff $@ ../../models/spex/lqx/lqns-results/$$j
 	@rm -rf $*.d
 
 .xlqn.csv:
 	$(SRVN) $(OPTS) -o$@ $<
-	@j=`echo $@ | sed -e 's/-s\.csv/.csv/'`; diff $@ ../../models/spex/lqns-results/$$j
+	@j=`echo $@ | sed -e 's/-s\.csv/.csv/'`; diff $@ ../../models/spex/xlqn/lqns-results/$$j
 	@rm -rf $*.d
 
 .lqnx.d:
@@ -119,7 +118,7 @@ SUFFIXES = .diff .csv .d .lqxo .lqnx .xlqn
 
 all:
 
-check:	$(OBJS) $(VAR) $(LQX) $(SPEX)
+check:	$(OBJS) $(VAR) $(SPEX)
 	echo $(OBJS) $(VAR) | tr -s " " "\n" | srvndiff $(DIFFOPTS) -@- . ../../models/regression/lqns-results
 
 recheck:
@@ -202,3 +201,5 @@ other:	$(OTHER)
 
 repl:	$(REPL)
 	echo $(REPL) | tr -s " " "\n" | srvndiff -Q -@- -S0.02 . ../../models/regression/lqns-results
+
+spex:	$(SPEX)

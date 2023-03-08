@@ -186,13 +186,13 @@ Task::create( const LQIO::DOM::Task * dom )
 
     default:
 	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(scheduling).str.c_str() );
-	if ( !Pragma::__pragmas->default_task_scheduling() ) {
-	    scheduling = Pragma::__pragmas->task_scheduling();
-	}
 	/* Fall Through */
     case SCHEDULE_FIFO:
 	if ( dom->hasThinkTime() ) {
 	    dom->runtime_error( LQIO::ERR_NON_REF_THINK_TIME );
+	}
+	if ( !Pragma::__pragmas->default_task_scheduling() ) {
+	    scheduling = Pragma::__pragmas->task_scheduling();
 	}
         task = new Task( dom, Task::Type::SERVER, processor );
 	break;

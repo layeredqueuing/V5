@@ -64,8 +64,8 @@ void
 Entry::clear()
 {
     for ( unsigned m = 0; m < MAX_MULT; ++m ) {
-	DX[m] = 0;
-	GdX[m] = 0;
+	DX[m] = nullptr;
+	GdX[m] = nullptr;
 	_throughput[m] = 0;
     }
 }
@@ -218,6 +218,8 @@ Entry::initialize()
 
     bool has_service_time = false;
     bool has_deterministic_phases = false;
+    for ( auto& fwd : forwards ) delete fwd;		// BUG 424
+    forwards.clear();					// BUG 424
 
     if ( is_regular_entry() ) {
 	for ( unsigned int p = 1; p <= DIMPH; ++p ) {

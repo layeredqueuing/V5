@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 16459 2023-03-04 23:26:51Z greg $
+ * $Id: model.cc 16494 2023-03-07 17:51:55Z greg $
  *
  * Load the SRVN model.
  */
@@ -776,12 +776,12 @@ Model::make_queues()
 	double idle_x;
 	unsigned k 	= 0;			/* Queue Kounter	*/
 	queue_fnptr queue_func;			/* Local version.	*/
-	bool sync_server = (*t)->is_sync_server() || (*t)->has_random_queueing() || (*t)->type() == Task::Type::SEMAPHORE || (*t)->is_infinite();
+	bool random_queueing = (*t)->is_sync_server() || (*t)->has_random_queueing() || (*t)->type() == Task::Type::SEMAPHORE || (*t)->is_infinite();
 	std::vector<Model::inst_arrival> ph2_place;
 
 	/* Override if dest is a join function. */
 
-	if ( sync_server ) {
+	if ( random_queueing ) {
 	    idle_x = x_pos + 1.0 + 0.5;
 	    queue_func = &Model::random_queue;
 	} else {
@@ -816,7 +816,7 @@ Model::make_queues()
 		for ( std::vector<Activity *>::const_iterator a = (*i)->activities.begin(); a != (*i)->activities.end(); ++a ) {
 		    k = make_queue( x_pos, y_pos, idle_x, (*a), *e, ne, max_m, k, queue_func, ph2_place );
 		}
-		if ( sync_server ) {
+		if ( random_queueing ) {
 		    k += 1;
 		}
 	    } /* a */

@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<!-- lqn2ps -Olqx -o09-sanity.lqx -->
+<lqn-model name="../xlqn/09-sanity" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+  <!-- Variables: $M, $S, $Y, $_000_ -->
+  <solver-params comment="Most Common features." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+    <pragma param="multiserver" value="conway"/>
+    <pragma param="queue-size" value="5"/>
+  </solver-params>
+  <processor name="client" scheduling="inf">
+    <task name="client" scheduling="ref" multiplicity="3">
+      <entry name="client" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="client_1" phase="1" host-demand-mean="1">
+            <synch-call dest="entry1" calls-mean="1"/>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="server" scheduling="fcfs" multiplicity="2">
+    <task name="server1" scheduling="fcfs" multiplicity="$M">
+      <entry name="entry1" type="PH1PH2">
+        <forwarding dest="entry2" prob="0.5"/>
+        <entry-phase-activities>
+          <activity name="entry1_1" phase="1" host-demand-mean="$S">
+            <synch-call dest="entry2" calls-mean="$Y"/>
+          </activity>
+          <activity name="entry1_2" phase="2" host-demand-mean="$_000_">
+            <asynch-call dest="entry3" calls-mean="0.3"/>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+    <task name="server2" scheduling="fcfs">
+      <entry name="entry2" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="entry2_1" phase="1" host-demand-mean="0.2"/>
+        </entry-phase-activities>
+      </entry>
+      <entry name="entry3" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="entry3_1" phase="1" host-demand-mean="0.3"/>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <lqx><![CDATA[_M = array_create(1, 2);
+_S = array_create(0.4, 0.6);
+_Y = array_create(0.1, 0.2);
+_0 = 0;
+Q = 0;
+R = 0;
+T = 0;
+U = 0;
+X = 0;
+println_spaced(", ", "$M", "$S", "$Y", "$X", "$U", "$T", ""(R - Q)"");
+foreach( M in _M )foreach( S in _S )foreach( Y in _Y ) ) { 
+  $M = M;
+  $S = S;
+  $Y = Y;
+  $_000_ = (1 - $S);
+  _0 = (_0 + 1);
+  if (solve()) {
+    Q = call(phase(entry("client"), 1), "entry1").waiting;
+    R = phase(entry("client"), 1).service_time;
+    T = task("server1").utilization;
+    U = processor("server").utilization;
+    X = task("client").throughput;
+    println_spaced(", ", $M, $S, $Y, X, U, T, (R - Q));
+  } else {
+    println("solver failed: $0=", _0);
+  }
+}]]>
+  </lqx>
+</lqn-model>

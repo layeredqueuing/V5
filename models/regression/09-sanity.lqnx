@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
-<lqn-model name="09-sanity" description="$Id: 09-sanity.lqnx 16464 2023-03-05 13:14:59Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="Most Common features." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
+<lqn-model name="09-sanity" description="$Id: 09-sanity.lqnx 16496 2023-03-07 22:37:02Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Most Common features." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9">
+    <pragma param="queue-size" value="6"/>
+  </solver-params>
    <processor name="client" scheduling="inf">
       <task name="client" scheduling="ref" multiplicity="3">
          <entry name="client" type="PH1PH2">

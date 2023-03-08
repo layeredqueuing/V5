@@ -3,10 +3,11 @@
 # For: greg
 # Mon Mar  6 13:42:27 2023
 # Invoked as: lqn2lqn -o09-sanity.xlqn ../regression/09-sanity.lqnx
-# $Id$
+# $Id: 09-sanity.xlqn 16496 2023-03-07 22:37:02Z greg $
 # ------------------------------------------------------------------------
 
 #pragma multiserver=conway
+#pragma queue-size=5
 
 $M = [1,2]
 $S = [0.4, 0.6]

@@ -39,6 +39,11 @@ scheduling_type Place::get_scheduling() const
     return _dom->getSchedulingType();
 }
 
+void Place::set_scheduling( scheduling_type scheduling )
+{
+    const_cast<LQIO::DOM::Entity*>(_dom)->setSchedulingType( scheduling );
+}
+
 
 /*
  * We need a way to fake out infinity... so if copies is infinite, then we change to an infinite server.

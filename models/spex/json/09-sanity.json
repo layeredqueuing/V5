@@ -1,0 +1,144 @@
+{
+    "comment": [
+        "Tue Mar 06:56:42 2023",
+        "$Id: 09-sanity.json 16496 2023-03-07 22:37:02Z greg $"
+    ],
+    "parameters": [
+        "$M = array_create(1, 2)",
+        "$S = array_create(0.4, 0.6)",
+        "$Y = array_create(0.1, 0.2)"
+    ],
+    "general": {
+        "comment": "Most Common features.",
+        "conv-val": 1e-05,
+        "it-limit": 50,
+        "underrelax-coeff": 0.9,
+        "print-int": 10,
+        "pragma": [
+            { "multiserver": "conway" }
+        ]
+    },
+    "processor": [
+        {
+            "name": "client",
+            "scheduling": "inf",
+            "task": [
+                {
+                    "name": "client",
+                    "scheduling": "ref",
+                    "multiplicity": 3,
+                    "observe": {
+                        "throughput": "$X"
+                    },
+                    "entry": [
+                        {
+                            "name": "client",
+                            "phase": [
+                                {
+                                    "phase": 1,
+                                    "service-time": 1,
+                                    "synch-call": [
+                                        {
+                                            "destination": "entry1",
+                                            "mean-calls": 1,
+                                            "observe": {
+                                                "waiting": "$Q"
+                                            }
+                                        }
+                                    ],
+                                    "observe": {
+                                        "service-time": "$R"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "server",
+            "scheduling": "fcfs",
+            "multiplicity": 2,
+            "observe": {
+                "utilization": "$U"
+            },
+            "task": [
+                {
+                    "name": "server1",
+                    "scheduling": "fcfs",
+                    "multiplicity": "$M",
+                    "observe": {
+                        "utilization": "$T"
+                    },
+                    "entry": [
+                        {
+                            "name": "entry1",
+                            "forwarding": [
+                                {
+                                    "destination": "entry2",
+                                    "mean-calls": 0.5
+                                }
+                            ],
+                            "phase": [
+                                {
+                                    "phase": 1,
+                                    "service-time": "$S",
+                                    "synch-call": [
+                                        {
+                                            "destination": "entry2",
+                                            "mean-calls": "$Y"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "phase": 2,
+                                    "service-time": "(1 - $S)",
+                                    "asynch-call": [
+                                        {
+                                            "destination": "entry3",
+                                            "mean-calls": 0.3
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "server2",
+                    "scheduling": "fcfs",
+                    "entry": [
+                        {
+                            "name": "entry2",
+                            "phase": [
+                                {
+                                    "phase": 1,
+                                    "service-time": 0.2
+                                }
+                            ]
+                        },
+                        {
+                            "name": "entry3",
+                            "phase": [
+                                {
+                                    "phase": 1,
+                                    "service-time": 0.3
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "results": [
+        "$M",
+        "$S",
+        "$Y",
+        "$X",
+        "$U",
+        "$T",
+        "($R - $Q)"
+    ]
+}

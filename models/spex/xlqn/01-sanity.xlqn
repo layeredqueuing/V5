@@ -1,6 +1,6 @@
 # SRVN Model Description File, for file: ../regression/01-sanity.lqnx
 # Sun Mar  5 18:32:15 2023
-# $Id$
+# $Id: 01-sanity.xlqn 16496 2023-03-07 22:37:02Z greg $
 # ------------------------------------------------------------------------
 
 $c = [0.2 : 2.0, 0.2]

@@ -1,0 +1,75 @@
+{
+    "comment": [
+        "Tue Mar 06:51:55 2023",
+        "$Id: 01-sanity.json 16496 2023-03-07 22:37:02Z greg $"
+    ],
+    "parameters": [
+        "$c = [0.2:2,0.2]",
+        "$s = (3 - $c)"
+    ],
+    "general": {
+        "comment": "Simplest model.",
+        "conv-val": 1e-05,
+        "it-limit": 50,
+        "underrelax-coeff": 0.9,
+        "print-int": 10
+    },
+    "processor": [
+        {
+            "name": "client",
+            "scheduling": "inf",
+            "task": [
+                {
+                    "name": "client",
+                    "scheduling": "ref",
+                    "entry": [
+                        {
+                            "name": "client",
+                            "phase": [
+                                {
+                                    "phase": 1,
+                                    "service-time": "$c",
+                                    "synch-call": [
+                                        {
+                                            "destination": "server",
+                                            "mean-calls": 1
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "server",
+            "scheduling": "fcfs",
+            "task": [
+                {
+                    "name": "server",
+                    "scheduling": "fcfs",
+                    "observe": {
+                        "utilization": "$u"
+                    },
+                    "entry": [
+                        {
+                            "name": "server",
+                            "phase": [
+                                {
+                                    "phase": 1,
+                                    "service-time": "$s"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "results": [
+        "$c",
+        "$s",
+        "$u"
+    ]
+}

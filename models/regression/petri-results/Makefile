@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 16465 2023-03-05 13:28:05Z greg $
+# $Id: Makefile 16495 2023-03-07 22:02:54Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	petrisrvn
@@ -13,7 +13,8 @@ SANITY=	01-sanity.lqxo \
 	05-sanity.lqxo \
 	06-sanity.lqxo \
 	07-sanity.lqxo \
-	08-sanity.lqxo 
+	08-sanity.lqxo \
+	09-sanity.lqxo 
 DST=	$(SANITY) \
 	10-interlock.lqxo \
 	11-interlock.lqxo \
