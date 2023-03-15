@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16485 2023-03-07 00:37:37Z greg $
+# $Id: Makefile.am 16529 2023-03-15 00:48:16Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -75,7 +75,6 @@ OTHER=	32-async-inf.lqxo \
 	93-simple-ucm.lqxo
 
 OBJS=	$(SANITY) $(INTER) $(MULTI) $(OVER) $(ACT) $(REPL) $(SEMA) $(SIM) $(SYNC) $(FORK) $(OTHER)
-OBJS2=  01L-sanity.d 20L-multiserver.d 71L-fair.d
 
 SRCS=	$(OBJS:.lqxo=.lqnx)
 SRCS2=	$(OBJS2:.d=.lqnx)
