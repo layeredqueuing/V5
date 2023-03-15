@@ -1,5 +1,5 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 15636 2022-06-03 13:52:08Z greg $
+ * $Id: entrythread.cc 16515 2023-03-14 17:56:28Z greg $
  *
  */
 
@@ -131,7 +131,7 @@ Thread::waitExceptChain( const unsigned submodel, const unsigned k, const unsign
 Thread&
 Thread::setIdleTime( const double relax )
 {
-    if ( !std::isfinite(owner()->population()) ) {
+    if ( owner()->population() == std::numeric_limits<unsigned int>::max() ) {
 	_think_time = 0.0;
     } else if ( utilization() >= owner()->population() ) {
 	_think_time = 0.0;

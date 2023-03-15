@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 15956 2022-10-07 13:54:20Z greg $
+ * $Id: actlist.cc 16516 2023-03-14 18:54:17Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -729,7 +729,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
     const unsigned int submodel = data.submodel();
     Entry * currEntry = entryStack.back();
     unsigned phase = data.phase();
-    Activity::Function f = data.collect();
+    Activity::Collect::Function f = data.collect();
 
     /* Now search down lists */
 
@@ -1049,7 +1049,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
     const unsigned n = activityList().size();
     Entry * currEntry = entryStack.back();
     unsigned phase = data.phase();
-    Activity::Function f = data.collect();
+    Activity::Collect::Function f = data.collect();
 
     if (flags.trace_quorum) {
         std::cout <<"\nAndForkActivityList::collect()...the start --------------- : submodel = " << submodel <<  std::endl;
@@ -2076,7 +2076,7 @@ RepeatActivityList::collect( std::deque<const Activity *>& activityStack, std::d
     const unsigned int submodel = data.submodel();
     const unsigned int n = activityList().size();
     Entry * currEntry = entryStack.back();
-    Activity::Function f = data.collect();
+    Activity::Collect::Function f = data.collect();
 
     for ( unsigned i = 0; i < n; ++i ) {
 	const Activity * anActivity = activityList().at(i);

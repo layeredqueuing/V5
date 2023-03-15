@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16496 2023-03-07 22:37:02Z greg $
+# $Id: Makefile.am 16499 2023-03-08 22:36:41Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -57,8 +57,8 @@ SYNC=	80-sync.lqxo \
 	84-sync.lqxo
 FORK=	85-fork.lqxo \
 	86-fork.lqxo \
-	87-fork.lqxo \
-	88-quorum.lqxo \
+	87-fork.lqxo 
+QUORUM=	88-quorum.lqxo \
 	89-quorum.lqxo 
 OTHER=	90-A01.lqxo \
 	90-B07.lqxo \
@@ -157,6 +157,3 @@ other:	$(OTHER)
 90-B07.lqxo: 90-B07.lqnx
 	$(SRVN) $(OPTS) $<
 	@srvndiff -q $(DIFFOPTS) $@ ../../models/regression/petri-results/$@
-
-
-

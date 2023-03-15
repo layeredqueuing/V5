@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<lqn-model name="09-sanity" description="$Id: 09-sanity.lqnx 16496 2023-03-07 22:37:02Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="09-sanity" description="$Id: 09-sanity.lqnx 16498 2023-03-08 21:40:07Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Most Common features." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9">
-    <pragma param="queue-size" value="6"/>
+    <pragma param="queue-size" value="5"/>
   </solver-params>
    <processor name="client" scheduling="inf">
       <task name="client" scheduling="ref" multiplicity="3">

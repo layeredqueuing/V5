@@ -194,10 +194,7 @@ Activity::count_replies( std::deque<Activity *>& activity_stack, const Entry * e
 		}
 		sum = rate;
 	    }
-	} else if ( curr_phase > 1 ) {
-	    const_cast<Entry *>(e)->set_n_phases( curr_phase );
 	}
-
 	if ( _output != nullptr ) {
 	    activity_stack.push_back( this );
 	    sum += _output->join_count_replies( activity_stack, e, rate, next_phase, next_phase );
@@ -393,11 +390,11 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 
 	    join_trans = move_trans_tag( create_trans( X_OFFSET(p_pos+1,0.0), y_pos+0.5, layer_mask, 1.0, 1, IMMEDIATE + 1, "aj%s%d", name(), m ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	    join_list->FjT[0][m] = join_trans;
-#if BUG_263
+#if BUG_423
 	    if ( join_list->u.join.quorumCount == 0 ) {
 #endif
 		create_arc_mult( layer_mask, TO_TRANS, join_trans, join_list->FjP[m], join_list->n_acts() );
-#if BUG_263
+#if BUG_423
 	    } else {
 		struct trans_object * sink_trans = move_trans_tag( create_trans( X_OFFSET(p_pos+1,0.0), y_pos-0.5, layer_mask, 1.0, 1, IMMEDIATE + 1, "qs%s%d", name(), m ),
 								   Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
@@ -701,7 +698,9 @@ Activity::act_join_item( LQIO::DOM::ActivityList * dom_activitylist )
 	get_dom()->input_error( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, _output->get_dom()->getLineNumber() );
     } else {
 	list = realloc_list( ActivityList::Type::JOIN, 0, dom_activitylist );
+#if BUG_423
 	list->u.join.quorumCount = 0;
+#endif
 	list->list[list->_n_acts++] = this;
 	_output = list;
     }
@@ -727,11 +726,15 @@ Activity::act_and_join_list ( ActivityList* input_list, LQIO::DOM::ActivityList 
     _output = list;
 
     if ( dynamic_cast<LQIO::DOM::AndJoinActivityList*>(dom_activitylist)->hasQuorumCount() ) {
+#if BUG_423
 	list->u.join.quorumCount = dynamic_cast<LQIO::DOM::AndJoinActivityList*>(dom_activitylist)->getQuorumCountValue();
 	Task * a_task = const_cast<Task *>(task());
 	a_task->set_n_phases( 2 );
     } else {
 	list->u.join.quorumCount = 0;
+#else
+	dom_activitylist->runtime_error( LQIO::ERR_NOT_SUPPORTED, "quorum" );
+#endif
     }
     return list;
 }

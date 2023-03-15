@@ -1,46 +1,52 @@
 * Bugs fixes in 5.28
-297 	lqiolib 	Gnuplot and result enhancements
-343 	qnsolver 	Improve compatibility with Java Modelling Tools 
-356 	miscella 	rpm build issues.
-359 	lqiolib 	Expressions are not output by Spex::print_header().
-366 	lqn2xxx 	EXC_BAD_ACCESS Layer::transmorgrify() at layer.cc:571:17 [opt] 
-411 	lqiolib 	JMVA issues.
-412 	qnsolver 	Save JMVA WhatIf results.
 413 	Document 	Missing plainurl. 	
-415 	petrisrv 	Signal SIGSEGV in LQIO::DOM::Phase::getServiceTime () at dom_phase.cpp:88 
+205 	lqiolib 	SPEX Convergence variables in XML (Json) files. 
+297 	lqiolib 	Gnuplot and result enhancements
+359 	lqiolib 	Expressions are not output by Spex::print_header().
+411 	lqiolib 	JMVA issues.
 416 	lqiolib 	Fixes for plotting population mix WhatIf output. 
-417 	qnsolver 	Bounds solution issues. 
+422 	lqiolib 	Refactor handling of control variables. 
+366 	lqn2xxx 	EXC_BAD_ACCESS Layer::transmorgrify() at layer.cc:571:17 [opt] 
+425 	lqns	 	Refactor initPopulation. 
 418 	lqsim 		lqsim crashes running -t... 	
+356 	miscella 	rpm build issues.
+415 	petrisrv 	Signal SIGSEGV in LQIO::DOM::Phase::getServiceTime () at dom_phase.cpp:88 
+421 	petrisrv 	SPEX Convergence with PetriSRVN 
+423 	petrisrv 	Petrisrvn quorum borked. 
+424 	petrisrv 	09-sanity.xlqn 
+343 	qnsolver 	Improve compatibility with Java Modelling Tools 
+412 	qnsolver 	Save JMVA WhatIf results.
+417 	qnsolver 	Bounds solution issues. 
 419 	qnsolver 	model.cc:(.text+0x18ff): undefined reference to `typeinfo for QNIO::JMVA_Document'
 
 * Bugs fixed in 5.27
 192 	libmva 	 	MVA::marginalProbabilities2 mis-dimensioned. 
-356 	miscella 	rpm build issues.
-373 	lqns 	 	Processor waiting times at Rolia multiserver make no sense. 
-380 	lqns 	 	lqns hangs with Conway multiserver. 
-382 	lqn2xxx 	lqn2ps -Oout doesn't print processors. 
+401 	libmva 		libc++abi: terminating with uncaught exception of type std::invalid_argument: default-output
+403 	libmva 	 	43-activities.lqnx: Floating point exception: mva.cc 541: Inexact result, Invalid operation
+406 	libmva 	 	Refactor fpgoop.
 383 	lqiolib 	<pre> precedences can accept more than one activity in XML (JSON?) input. 
-385 	petrisrv 	V5 petrisrvn: faulty models causing aborts.
-386 	lqn2csv 	getopt_long headaches. 
-387 	srvndiff 	File glob not working. 
-389 	srvndiff 	C:\msys64\mingw32\bin\srvndiff.exe: model-001.lqxo:12: error: unclosed token 
-390 	lqn2xxx 	lqn2xxx: command not found. 
-391 	lqsim 		lqsim/regression/Makefile.am, 5*-replication. 
-392 	petrisrv 	Calls are not being constructed
 393 	lqiolib 	Save (and print) marginal queue probabilities.
-395 	petrisrv 	V5 petrisrvn: faulty models causing aborts or failing.
 397 	lqiolib 	Add qnap2 parser for BCMP models.
 398 	lqiolib 	Refactor LQX math handing from ExternalVariables to LQX Expressions.
 399 	lqiolib 	WhatIf construction is bogus.
-400 	lqn2xxx 	Converting from json to lqn fails on Windows.
-401 	libmva 		libc++abi: terminating with uncaught exception of type std::invalid_argument: default-output
-402 	miscella 	Mac M1 issues.
-403 	libmva 	 	43-activities.lqnx: Floating point exception: mva.cc 541: Inexact result, Invalid operation
-405 	lqns 	 	Optimizer bug: option.h
-406 	libmva 	 	Refactor fpgoop.
-407 	lqns 	 	--srvn-layering crashes in V6 interlocking code
-409 	petrisrv 	Petrisrvn fails when SPEX/LQX is used to alter the arrival rate to an entry. 
 411 	lqiolib 	JMVA issues. 
+386 	lqn2csv 	getopt_long headaches. 
+382 	lqn2xxx 	lqn2ps -Oout doesn't print processors. 
+390 	lqn2xxx 	lqn2xxx: command not found. 
+400 	lqn2xxx 	Converting from json to lqn fails on Windows.
+373 	lqns 	 	Processor waiting times at Rolia multiserver make no sense. 
+380 	lqns 	 	lqns hangs with Conway multiserver. 
+405 	lqns 	 	Optimizer bug: option.h
+407 	lqns 	 	--srvn-layering crashes in V6 interlocking code
+391 	lqsim 		lqsim/regression/Makefile.am, 5*-replication. 
+356 	miscella 	rpm build issues.
+402 	miscella 	Mac M1 issues.
+385 	petrisrv 	V5 petrisrvn: faulty models causing aborts.
+392 	petrisrv 	Calls are not being constructed
+395 	petrisrv 	V5 petrisrvn: faulty models causing aborts or failing.
+409 	petrisrv 	Petrisrvn fails when SPEX/LQX is used to alter the arrival rate to an entry. 
+387 	srvndiff 	File glob not working. 
+389 	srvndiff 	C:\msys64\mingw32\bin\srvndiff.exe: model-001.lqxo:12: error: unclosed token 
 
 * Bugs fixed in 5.26
 365 	lqns	 	The warning for zero service time should be suppressed for reference tasks with think time. 

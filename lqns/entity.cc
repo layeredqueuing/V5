@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16114 2022-11-17 17:29:07Z greg $
+ * $Id: entity.cc 16522 2023-03-14 21:01:37Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -75,10 +75,10 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
     : _dom(dom),
       _entries(entries),
       _tasks(),
-      _population(1.0),
       _variance(0.0),
       _thinkTime(0.0),
       _station(nullptr),		/* Reference tasks don't have server stations. */
+      _attributes(),
       _interlock( *this ),
       _submodel(0),
       _maxPhase(1),
@@ -87,15 +87,8 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
 #if defined(BUG_393)
       _marginalQueueProbabilities(),
 #endif
-      _replica_number(1),		/* This object is not a replica	*/
-      _pruned(false)
+      _replica_number(1)		/* This object is not a replica	*/
 {
-    _attributes[Attributes::initialized]	= false;	/* entity was initialized.		*/
-    _attributes[Attributes::closed_server]   	= false;	/* Stn in server in closed model.     	*/
-    _attributes[Attributes::closed_client]   	= false;	/* Stn in client in closed model.     	*/
-    _attributes[Attributes::open_server]	= false;	/* Stn is server in open model.		*/
-    _attributes[Attributes::deterministic]  	= false;	/* an entry has det. phase[		*/
-    _attributes[Attributes::variance]		= false;	/* */
 }
 
 
@@ -107,7 +100,6 @@ Entity::Entity( const Entity& src, unsigned int replica )
     : _dom(src._dom),
       _entries(),
       _tasks(),
-      _population(src._population),
       _variance(src._variance),
       _thinkTime(src._thinkTime),
       _station(nullptr),		/* Reference tasks don't have server stations. */
@@ -120,9 +112,9 @@ Entity::Entity( const Entity& src, unsigned int replica )
 #if defined(BUG_393)
       _marginalQueueProbabilities(),	/* Result, don't care.		*/
 #endif
-      _replica_number(replica),		/* This object is a replica	*/
-      _pruned(false)
+      _replica_number(replica)		/* This object is a replica	*/
 {
+    setPruned(false);
 }
 
 
@@ -146,10 +138,10 @@ Entity&
 Entity::configure( const unsigned nSubmodels )
 {
     std::for_each( entries().begin(), entries().end(), Exec1<Entry,unsigned>( &Entry::configure, nSubmodels ) );
-    if ( std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasDeterministicPhases ) ) ) _attributes.at(Attributes::deterministic) = true;
+    if ( std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasDeterministicPhases ) ) ) setDeterministicPhases( true );
     if ( !Pragma::variance(Pragma::Variance::NONE)
 	 && ((nEntries() > 1 && Pragma::entry_variance())
-	     || std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasVariance ) )) ) _attributes.at(Attributes::variance) = true;
+	     || std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasVariance ) )) ) setVarianceAttribute( true );
     _maxPhase = (*std::max_element( entries().begin(), entries().end(), Entry::max_phase ))->maxPhase();
     return *this;
 }
@@ -165,21 +157,23 @@ Entity::check() const
     return true;
 }
 
+
 /*
  * Recursively find all children and grand children from `father'.  As
  * we descend down, we bump the depth.  If our path's cross, we have a
- * loop and abort.
+ * loop and abort.  Implemented by subclasses.  The superclass
+ * performs common operations (setting the depth and population).   
  */
 
 unsigned
 Entity::findChildren( Call::stack& callStack, const bool ) const
 {
     unsigned max_depth = std::max( submodel(), callStack.depth() );
-
+    Entity * entity = const_cast<Entity *>(this);		// findChildren is normally const...
 #if 0
     std::cerr << "Entity::findChildren: " << print_name() << "->setSubmodel(" << max_depth << ")" << std::endl;
 #endif
-    const_cast<Entity *>(this)->setSubmodel( max_depth );
+    entity->setSubmodel( max_depth );
     return max_depth;
 }
 
@@ -217,9 +211,8 @@ Entity::initServer( const Vector<Submodel *>& submodels )
     updateAllWaits( submodels );
     computeVariance();
     initThroughputBound();
-    initPopulation();
     initThreads();
-    initialized(true);
+    setInitialized(true);
     return *this;
 }
 
@@ -234,7 +227,6 @@ Entity::reinitServer( const Vector<Submodel *>& submodels )
     updateAllWaits( submodels );
     computeVariance();
     initThroughputBound();
-    initPopulation();
     return *this;
 }
 
@@ -316,7 +308,7 @@ Entity::addEntry( Entry * anEntry )
 double
 Entity::throughput() const
 {
-    return std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::throughput ) );
+    return std::accumulate( entries().begin(), entries().end(), 0., add_using<double,Entry>( &Entry::throughput ) );
 }
 
 
@@ -368,14 +360,6 @@ Entity::getClients( std::set<Task *>& clients ) const
 }
 
 
-double
-Entity::nCustomers() const
-{
-    std::set<Task *> clients;
-    getClients( clients );
-    return std::accumulate( clients.begin(), clients.end(), 0., add_using<Task>( &Task::population ) );
-}
-
 /*
  * Return true if phased server are used.
  */
@@ -405,7 +389,7 @@ Entity::updateAllWaits( const Vector<Submodel *>& submodels )
 double
 Entity::computeUtilization( const MVASubmodel& submodel )
 {
-    return std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::utilization ) );
+    return std::accumulate( entries().begin(), entries().end(), 0., add_using<double,Entry>( &Entry::utilization ) );
 }
 
 
@@ -470,7 +454,7 @@ Entity::deltaUtilization() const
 void
 Entity::setIdleTime( const double relax )
 {
-    if ( !std::isfinite( population() ) ) {
+    if ( population() == std::numeric_limits<unsigned int>::max() ) {
 	_thinkTime = 0.0;
     } else if ( utilization() >= population() ) {
 	_thinkTime = 0.0;
@@ -480,7 +464,7 @@ Entity::setIdleTime( const double relax )
 	_thinkTime = std::numeric_limits<double>::infinity();
     }
     if ( flags.trace_idle_time ) {
-	std::cout << "\nEntity::setIdleTime():" << name() << "   Idle Time:  " << _thinkTime << std::endl;
+	std::cout << "Entity(" << name() << ")::setIdleTime()   thinkTime=" << _thinkTime << std::endl;
     }
 }
 

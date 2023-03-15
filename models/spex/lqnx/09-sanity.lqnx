@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<!-- lqn2xml -o09-sanity.lqnx -->
+<lqn-model name="../xlqn/09-sanity" description="lqn2xml 5.28.2 solution for model from: ../xlqn/09-sanity.xlqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+  <parameters>
+$M = array_create(1, 2)
+$S = array_create(0.4, 0.6)
+$Y = array_create(0.1, 0.2)
+  </parameters>
+  <!-- Variables: $M, $S, $Y, $_000_ -->
+  <solver-params comment="Most Common features." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+    <pragma param="multiserver" value="conway"/>
+    <pragma param="queue-size" value="5"/>
+  </solver-params>
+  <processor name="client" scheduling="inf">
+    <task name="client" scheduling="ref" multiplicity="3">
+      <result-observe throughput="$X"/>
+      <entry name="client" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="client_1" phase="1" host-demand-mean="1">
+            <result-observe service-time="$R"/>
+            <synch-call dest="entry1" calls-mean="1">
+              <result-observe waiting="$Q"/>
+            </synch-call>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="server" scheduling="fcfs" multiplicity="2">
+    <result-observe utilization="$U"/>
+    <task name="server1" scheduling="fcfs" multiplicity="$M">
+      <result-observe utilization="$T"/>
+      <entry name="entry1" type="PH1PH2">
+        <forwarding dest="entry2" prob="0.5">
+        </forwarding>
+        <entry-phase-activities>
+          <activity name="entry1_1" phase="1" host-demand-mean="$S">
+            <synch-call dest="entry2" calls-mean="$Y">
+            </synch-call>
+          </activity>
+          <activity name="entry1_2" phase="2" host-demand-mean="$_000_">
+            <asynch-call dest="entry3" calls-mean="0.3">
+            </asynch-call>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+    <task name="server2" scheduling="fcfs">
+      <entry name="entry2" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="entry2_1" phase="1" host-demand-mean="0.2">
+          </activity>
+        </entry-phase-activities>
+      </entry>
+      <entry name="entry3" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="entry3_1" phase="1" host-demand-mean="0.3">
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <results-collection>
+$M
+$S
+$Y
+$X
+$U
+$T
+($R - $Q)
+  </results-collection>
+</lqn-model>

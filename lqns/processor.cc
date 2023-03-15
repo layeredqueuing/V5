@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 16349 2023-01-19 02:06:56Z greg $
+ * $Id: processor.cc 16515 2023-03-14 17:56:28Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -127,32 +127,6 @@ Processor::configure( const unsigned nSubmodels )
     return *this;
 }
 
-
-
-/*
- * Initialize population levels.  Since processors are servers, it
- * doesn't really matter.  However, we do have to figure out whether
- * we're in an open or a closed model (or both).
- */
-
-Processor&
-Processor::initPopulation()
-{
-    _population = static_cast<double>(copies());	/* Doesn't matter... */
-
-    for ( std::set<const Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
-	std::set<Task *> sources;		/* Cltn of tasks already visited. */
-	const double callers = (*task)->countCallers( sources );
-	if ( std::isfinite( callers ) && callers  > 0. ) {
-	    setClosedModelServer( true );
-	    const_cast<Task *>(*task)->setClosedModelClient( true );
-	}
-	if ( (*task)->isInfinite() && (*task)->isOpenModelServer() ) {
-	    setOpenModelServer( true );
-	}
-    }
-    return *this;
-}
 
 
 double
@@ -491,7 +465,7 @@ Processor::insertDOMResults(void) const
 	    }
 	}
 	const std::vector<Activity *>& activities = (*task)->activities();
-	sumOfProcUtil += std::accumulate( activities.begin(), activities.end(), 0., add_using<Activity>( &Activity::processorUtilization ) );
+	sumOfProcUtil += std::accumulate( activities.begin(), activities.end(), 0., add_using<double,Activity>( &Activity::processorUtilization ) );
     }
 
     if ( getDOM() ) {

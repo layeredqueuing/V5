@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 15531 2022-04-12 15:16:55Z greg $
+ * $Id: interlock.cc 16515 2023-03-14 17:56:28Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -502,19 +502,17 @@ Interlock::countSources( const std::set<const Entity *>& interlockedTasks )
     }
 
     /*
-     * Now count up all the copies of sourcing tasks.  Note that we
-     * have to use the special population() call to account
-     * properly for infinite servers.
+     * Now count up all the copies of sourcing tasks. 
      */
 
-    unsigned n = std::accumulate( _allSourceTasks.begin(), _allSourceTasks.end(), 0., add_using<const Entity>( &Entity::population ) );
+    unsigned n = std::accumulate( _allSourceTasks.begin(), _allSourceTasks.end(), 0, Task::add_customers() );
 
     /*
-     * Add in phase 2 sources of tasks that are on the interlock
-     * path.  These tasks count as additional sources because phase
-     * 2+ flow is (quasi) independent of phase 1 flow.  Ignore all
-     * tasks that are immediate parents of the interlockee (mva
-     * interlock attends to this case).
+     * Add in phase 2 sources of tasks that are on the interlock path.
+     * These tasks count as additional sources because phase 2+ flow
+     * is (quasi) independent of phase 1 flow.  Ignore all tasks that
+     * are immediate parents of the interlockee (mva interlock attends
+     * to this case).
      */
 
     const std::vector<Entry *>& dst_entries = _server.entries();

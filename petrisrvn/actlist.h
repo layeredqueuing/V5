@@ -115,8 +115,8 @@ private:
 	    struct place_object * FjM[MAX_MULT];/* Measuring place.		*/
 	    double tokens[MAX_MULT];		/* Join-delay Result.		*/
 	    JoinType type;			/* join type.			*/
-#if BUG_263
-	    int quorumCount; 			/* BUG_263			*/
+#if BUG_423
+	    int quorumCount; 			/* BUG_423			*/
 #endif
 	} join;
 	struct {

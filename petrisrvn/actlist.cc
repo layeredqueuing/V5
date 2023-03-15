@@ -74,7 +74,7 @@ ActivityList::ActivityList( Type type, LQIO::DOM::ActivityList * dom )
     case Type::OR_JOIN:
 	u.join.next    = 0;
 	u.join.type    = JoinType::UNDEFINED;
-#if BUG_263
+#if BUG_423
 	u.join.quorumCount = 0;
 #endif
 	for ( unsigned int i = 0; i < MAX_BRANCH; ++i ) {
@@ -227,7 +227,7 @@ bool ActivityList::check_fork_no_join() const
 
 bool ActivityList::check_quorum_join() const
 {
-#if BUG_263
+#if BUG_423
     return type() == Type::AND_JOIN && u.join.quorumCount > 0;
 #else
     return false;
@@ -479,7 +479,7 @@ ActivityList::join_count_replies( std::deque<Activity *>& activity_stack, const 
 	    sum = u.join.next->fork_count_replies( activity_stack, e, rate, curr_phase, next_phase );
 	} else if ( curr_phase > next_phase ) {		/* BUG 151 */
 	    next_phase = curr_phase;
-#if BUG_263
+#if BUG_423
 	} else if ( u.join.quorumCount > 0 && e->n_phases() < 2 && e->task()->is_server() ) {
 	    const_cast<Entry *>(e)->set_n_phases(2);			/* Force two phases for this entry. */
 #endif
@@ -526,14 +526,14 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 	join_list = u.fork.join;
 	for ( i = 0; i < n_acts(); ++i ) {
 	    unsigned branch_phase = curr_phase;
-#if BUG_263
+#if BUG_423
 	    if ( join_list && join_list->u.join.quorumCount != 0 ) {
 		/* Don't allow replies on quorum branch */
 		sum += list[i]->count_replies( activity_stack, e, 0, curr_phase, branch_phase );
 	    } else {
 #endif
 		sum += list[i]->count_replies( activity_stack, e, rate, curr_phase, branch_phase );
-#if BUG_263
+#if BUG_423
 	    }
 #endif
 	    if ( branch_phase > next_phase ) {
@@ -547,16 +547,9 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 #endif
 
 	if ( join_list && join_list->u.join.next ) {
-	    curr_phase = next_phase;
 	    ActivityList * fork_list = join_list->u.join.next;
-	    for ( i = 0; i < fork_list->n_acts(); ++i ) {
-		unsigned branch_phase = curr_phase;
-		sum += fork_list->list[i]->count_replies( activity_stack, e, rate, curr_phase, branch_phase );
-		if ( branch_phase > next_phase  ) {
-		    next_phase = branch_phase;
-		}
-	    }
-#if BUG_263
+	    sum += fork_list->fork_count_replies( activity_stack, e, rate, next_phase, next_phase );
+#if BUG_423
 	    /* If we are a quorum join, always force a second phase */
 	    if ( join_list->u.join.quorumCount > 0 && next_phase == 1 ) {
 		next_phase = 2;

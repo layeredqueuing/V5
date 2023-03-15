@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 15956 2022-10-07 13:54:20Z greg $
+ * $Id: activity.cc 16516 2023-03-14 18:54:17Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -325,7 +325,7 @@ Activity::collect( std::deque<const Activity *>& activityStack, std::deque<Entry
     if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
 	return data;
     }
-    Function f = data.collect();
+    Collect::Function f = data.collect();
     (this->*f)( entryStack.back(), data );
 
     if ( repliesTo( entryStack.front() ) ) {
@@ -915,6 +915,15 @@ Activity::collectServiceTime( Entry * entry, const Activity::Collect& data ) con
 {
     entry->addServiceTime( data.phase(), serviceTime() );
 }
+
+
+/*+ BUG_425 */
+void
+Activity::collectCustomers( Entry * entry, const Activity::Collect& data ) const
+{
+    const_cast<Activity *>(this)->initCustomers( const_cast<Activity::Collect&>(data).taskStack(), data.customers() );
+}
+/*- BUG_425 */
 
 
 /*

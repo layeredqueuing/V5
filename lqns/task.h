@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 15950 2022-10-06 13:46:48Z greg $
+ * $Id: task.h 16515 2023-03-14 17:56:28Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -37,6 +37,7 @@ class Task : public Entity {
 
 public:
     enum class root_level_t { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS };
+    friend class Interlock;		// BUG_425 deprecate
 
 private:
     struct find_max_depth {
@@ -48,6 +49,12 @@ private:
 	const Entry * _dstEntry;
     };
     
+    struct add_customers {
+	unsigned int operator()( unsigned int addend, const std::pair<const Task *,unsigned int>& augend ) const;
+	unsigned int operator()( unsigned int addend, const Entity * augend ) const;	// BUG_425 deprecate
+    };
+
+
     class SRVNManip {
     public:
 	SRVNManip( std::ostream& (*f)(std::ostream&, const Task & ), const Task & task ) : _f(f), _task(task) {}
@@ -93,14 +100,15 @@ public:
     virtual Task& configure( const unsigned );
     virtual unsigned findChildren( Call::stack&, const bool ) const;
     Task& initProcessor();
+    virtual Task& initClient( const Vector<Submodel *>& );
+    virtual Task& reinitClient( const Vector<Submodel *>& );
+    Task& initCustomers( std::deque<const Task *>& stack, unsigned int customers );
     virtual Task& initWait();
-    virtual Task& initPopulation();
     virtual Task& initThroughputBound();
     Task& createInterlock();
     virtual Task& initThreads();
 
     void findParents();
-    virtual double countCallers( std::set<Task *>& reject ) const;
 
     /* Instance Variable Access */
 
@@ -110,6 +118,7 @@ public:
     const Processor * getProcessor() const { return _processor; }
     bool hasProcessor() const { return _processor != nullptr; }
     const Group * getGroup() const { return _group; }
+    virtual unsigned int population() const;
 
     Activity * findActivity( const std::string& name ) const;
     Activity * findOrAddActivity( const std::string& name );
@@ -244,9 +253,11 @@ private:
     unsigned _maxThreads;		/* Max concurrent threads.	*/
     double _overlapFactor;		/* Aggregate input o.f.		*/
 
+    
     /* MVA interface */
 
     Vector<Thread *> _threads;	 	/* My Threads.			*/
+    std::map<const Task *,unsigned int> _customers;
     Vector<ChainVector> _clientChains;	/* Client chains by submodel	*/
     Vector<Server *> _clientStation;	/* Clients by submodel.		*/
 
@@ -284,7 +295,6 @@ public:
     virtual bool check() const;
     virtual ReferenceTask& recalculateDynamicValues();
     virtual unsigned findChildren( Call::stack&, const bool ) const;
-    virtual double countCallers( std::set<Task *>& reject ) const;
 
     virtual bool isReferenceTask() const { return true; }
     virtual bool hasVariance() const { return false; }

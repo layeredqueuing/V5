@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16349 2023-01-19 02:06:56Z greg $
+ * $Id: phase.cc 16515 2023-03-14 17:56:28Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -343,6 +343,20 @@ Phase::addForwardingRendezvous( Call::stack& callStack ) const
     }
     return *this;
 }
+
+
+/*+ BUG_425 */
+/*
+ * Set the number of customers by chain (reference task/open arrival).
+ */
+
+Phase&
+Phase::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
+{
+    std::for_each( callList().begin(), callList().end(), Exec2<Call,std::deque<const Task *>&,unsigned int>( &Call::initCustomers, stack, customers ) );
+    return *this;
+}
+/*- BUG_425 */
 
 
 #if PAN_REPLICATION
@@ -977,7 +991,7 @@ Phase::getReplicationProcWait( unsigned int submodel, const double relax )
 double
 Phase::getReplicationTaskWait( unsigned int submodel, const double relax ) 
 {
-    return std::accumulate( callList().begin(), callList().end(), 0., add_using<Call>( &Call::wait ) );
+    return std::accumulate( callList().begin(), callList().end(), 0., add_using<double,Call>( &Call::wait ) );
 }
 #endif
 

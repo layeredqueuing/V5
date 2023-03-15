@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 15956 2022-10-07 13:54:20Z greg $
+ * $Id: call.h 16514 2023-03-14 12:50:12Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -154,6 +154,8 @@ public:
     int operator!=( const Call& item ) const;
 
     virtual Call& initWait() = 0;
+    Call& initCustomers( std::deque<const Task *>& stack, unsigned int customers );
+    
     virtual bool check() const;
 
     /* Instance variable access */

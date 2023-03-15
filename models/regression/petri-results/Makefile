@@ -28,6 +28,8 @@ DST=	$(SANITY) \
 	22-multiserver.lqxo \
 	23-multiserver.lqxo \
 	31-overtaking.lqxo \
+	33-spex-convergence.lqxo \
+	34-priority.lqxo \
 	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \
@@ -46,7 +48,6 @@ DST=	$(SANITY) \
 	62-semaphore.lqxo \
 	63-semaphore.lqxo \
 	65-buffer.lqxo \
-	70-priority.lqxo \
 	80-sync.lqxo \
 	81-sync.lqxo \
 	82-sync.lqxo \
@@ -83,19 +84,32 @@ diff:
 	@-rm .files
 	for i in $(DST); do echo $$i >> .files; done
 
+33-spex-convergence.lqxo:	33-spex-convergence.lqnx
+	$(SRVN) -o $*.out $<
+	@mv $*.d/$*-002.lqxo $*.lqxo
+	@rm $*.d
+
 50-replication.lqxo:	50-replication.lqnx
-	rep2flat -Oxml -o$*-flag.lqnx $<
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rep2flat -Oxml -o$*-flag.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 
 52-replication.lqxo:	52-replication.lqnx
-	rep2flat -Oxml -o$*-flag.lqnx $<
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rep2flat -Oxml -o$*-flag.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 
 55-replication.lqxo:	55-replication.lqnx
-	rep2flat -Oxml -o$*-flag.lqnx $<
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rep2flat -Oxml -o$*-flag.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 
 56-replication.lqxo:	56-replication.lqnx
-	rep2flat -Oxml -o$*-flag.lqnx $<
-	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rep2flat -Oxml -o$*-flag.lqnx $<
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.*
 

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 15956 2022-10-07 13:54:20Z greg $
+ * $Id: entry.h 16512 2023-03-14 11:34:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -188,6 +188,7 @@ public:
     Entry& expand();
     Entry& expandCalls();
     unsigned findChildren( Call::stack&, const bool ) const;
+    Entry& initCustomers( std::deque<const Task *>& stack, unsigned int customers );
     virtual Entry& initProcessor() = 0;
     virtual Entry& initWait() = 0;
     Entry& initThroughputBound();

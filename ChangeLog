@@ -1,3 +1,11 @@
+2023-03-14  Greg Franks  <greg@merlin.sce.carleton.ca>
+
+	* lqiolib
+	- SPEX convergence fixes.
+	- Refactor control variable handling.
+	* petrisrvn
+	- bugfixes.
+
 2023-01-27  Greg Franks  <greg@merlin.sce.carleton.ca>
 
 	* qnsolver
@@ -578,4 +586,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 16370 2023-01-27 15:42:41Z greg $
+$Id: ChangeLog 16523 2023-03-14 21:23:53Z greg $

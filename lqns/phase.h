@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 15956 2022-10-07 13:54:20Z greg $
+ * $Id: phase.h 16513 2023-03-14 11:37:18Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -229,6 +229,7 @@ public:
     Phase& initReplication( const unsigned );
     Phase& resetReplication();
 #endif
+    Phase& initCustomers( std::deque<const Task *>& stack, unsigned int customers );
     Phase& initWait();
     Phase& initVariance();
     

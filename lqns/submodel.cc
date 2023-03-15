@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 16439 2023-02-23 00:36:46Z greg $
+ * $Id: submodel.cc 16522 2023-03-14 21:01:37Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -382,8 +382,8 @@ MVASubmodel::rebuild()
 	    for ( unsigned i = 1; i <= threads; ++i ) {
 		k += 1;				// Add one chain.
 
-		if ( std::isfinite( (*client)->population() ) ) {
-		    _customers[k] = static_cast<unsigned>((*client)->population());
+		if ( (*client)->population() != std::numeric_limits<unsigned int>::max() ) {
+		    _customers[k] = (*client)->population();
 		} else {
 		    _customers[k] = 0;
 		}
@@ -408,8 +408,8 @@ MVASubmodel::rebuild()
 		for ( unsigned i = 1; i <= threads; ++i ) {
 		    k += 1;
 
-		    if ( std::isfinite( (*client)->population() ) ) {
-			_customers[k] = static_cast<unsigned>((*client)->population()) * (*server)->fanIn(*client);
+		    if ( (*client)->population() != std::numeric_limits<unsigned int>::max() ) {
+			_customers[k] = (*client)->population() * (*server)->fanIn(*client);
 		    } else {
 			_customers[k] = 0;
 		    }
@@ -610,8 +610,8 @@ MVASubmodel::makeChains()
 		k += 1;				// Add one chain.
 
 		(*client)->addClientChain( number(), k );	// Set my chain number.
-		if ( std::isfinite( (*client)->population() ) ) {
-		    _customers[k] = static_cast<unsigned>((*client)->population());
+		if ( (*client)->population() != std::numeric_limits<unsigned int>::max() ) {
+		    _customers[k] = (*client)->population();
 		} else {
 		    _customers[k] = 0;
 		}
@@ -650,8 +650,8 @@ MVASubmodel::makeChains()
 		    (*client)->addClientChain( number(), k );
 		    (*server)->addServerChain( k );
 		    _priority[k]  = (*client)->priority();
-		    if ( std::isfinite( (*client)->population() ) ) {
-			_customers[k] = static_cast<unsigned>((*client)->population()) * (*server)->fanIn((*client));
+		    if ( (*client)->population() != std::numeric_limits<unsigned int>::max() ) {
+			_customers[k] = (*client)->population() * (*server)->fanIn((*client));
 		    } else {
 			_customers[k] = 0;
 		    }

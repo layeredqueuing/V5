@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 15731 2022-06-29 18:22:10Z greg $
+ * $Id: activity.h 16516 2023-03-14 18:54:17Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -66,7 +66,6 @@ public:
     class Collect;
     
     typedef bool (Activity::*Predicate)( Count_If& ) const;
-    typedef void (Activity::*Function)( Entry *, const Collect& ) const;
     
     class Backtrack
     {
@@ -122,8 +121,11 @@ public:
 
     class Collect {
     public:
-	Collect() : _f(nullptr), _submodel(0), _p(0), _rate(1) {}
-	Collect( unsigned int submodel, Function f ) : _f(f), _submodel(submodel), _p(1), _rate(1) {}
+	typedef void (Activity::*Function)( Entry *, const Collect& ) const;
+	
+	Collect() : _f(nullptr), _submodel(0), _p(0), _rate(1), _taskStack(nullptr), _customers(0) {}
+	Collect( Function f, unsigned int submodel=0 ) : _f(f), _submodel(submodel), _p(1), _rate(1), _taskStack(nullptr), _customers(0) {}
+	Collect( Function f, std::deque<const Task *>& stack, unsigned int customers ) : _f(f), _submodel(0), _p(0), _rate(1), _taskStack(&stack), _customers(customers) {}
 	Collect( const Collect& ) = default;
 
     private:
@@ -136,12 +138,16 @@ public:
 	double rate() const { return _rate; }
 	void setRate( double rate ) { _rate = rate; }
 	void setPhase( unsigned int p ) { _p = p; }
+	std::deque<const Task *>& taskStack() { return *_taskStack; }
+	unsigned int customers() const { return _customers; }
 	
     private:
 	Function _f;
 	unsigned int _submodel;
 	unsigned int _p;
 	double _rate;
+	std::deque<const Task *>* _taskStack;	/* BUG_425 */
+	unsigned int _customers;		/* BUG_425 */
     };
 
     class Children {
@@ -247,6 +253,7 @@ public:
     void collectReplication( Entry *, const Activity::Collect& ) const;
 #endif
     void collectServiceTime( Entry *, const Activity::Collect& ) const;
+    void collectCustomers( Entry *, const Activity::Collect& ) const;
     void setThroughput( Entry *, const Activity::Collect& ) const;
 
 

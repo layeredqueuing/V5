@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 16494 2023-03-07 17:51:55Z greg $
+ * $Id: model.cc 16499 2023-03-08 22:36:41Z greg $
  *
  * Load the SRVN model.
  */
@@ -1306,7 +1306,7 @@ Model::queue_epilogue( double x_pos, double y_pos,
     c_place->layer |= ENTRY_LAYER(b->entry_id());
     create_arc( ENTRY_LAYER(b->entry_id())|(m == 0 ? PRIMARY_LAYER : 0), TO_PLACE, c_trans, c_place );
 
-#if BUG_263
+#if BUG_423
     /*
      * We have to find all of the 'sink' places and put inhibitor arcs
      * to disallow requests until all threads terminate.

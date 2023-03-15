@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 15769 2022-07-27 15:22:43Z greg $
+ * $Id: call.cc 16522 2023-03-14 21:01:37Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -138,6 +138,34 @@ Call::operator!=( const Call& item ) const
 {
     return (dstEntry() != item.dstEntry());
 }
+
+
+/*+ BUG_425 */
+/*
+ * Set the number of customers by chain (reference task/open arrival).
+ * Note! DO NOT follow forwarding calls as the transformation process
+ * maps these to regular rendezvous from the proper source task.
+ * Forwarding is effectively an infinite server, so we need the
+ * source.
+ */
+
+Call&
+Call::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
+{
+    Task * task = const_cast<Task *>(dynamic_cast<const Task *>(dstTask()));
+    if ( task == nullptr ) return *this;	/* Don't care about processors */
+
+    if ( hasRendezvous() ) {
+	task->initCustomers( stack, customers );
+    } else if ( hasSendNoReply() ) {
+	/* Asynchronous send, so this is effectively an open arrival */
+	std::deque<const Task *> stack2;
+	task->initCustomers( stack2, std::numeric_limits<unsigned int>::max() );
+    } // Ignore hasForwarding().
+    return *this;
+}
+/*- BUG_425 */
+
 
 
 /*

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 15695 2022-06-23 00:28:19Z greg $
+ * $Id: lqns.h 16515 2023-03-14 17:56:28Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -248,12 +248,12 @@ private:
     Type2 _arg;
 };
 
-template <class Type1> struct add_using
+template <class Type1, class Type2> struct add_using
 {
-    typedef double (Type1::*funcPtr)() const;
-    add_using<Type1>( funcPtr f ) : _f(f) {}
-    double operator()( double l, const Type1 * r ) const { return l + (r->*_f)(); }
-    double operator()( double l, const Type1& r ) const { return l + (r.*_f)(); }
+    typedef Type1 (Type2::*funcPtr)() const;
+    add_using<Type2>( funcPtr f ) : _f(f) {}
+    Type1 operator()( Type1 l, const Type2 * r ) const { return l + (r->*_f)(); }
+    Type1 operator()( Type1 l, const Type2& r ) const { return l + (r.*_f)(); }
 private:
     const funcPtr _f;
 };

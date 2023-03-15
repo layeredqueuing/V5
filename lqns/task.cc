@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 15968 2022-10-13 19:23:03Z greg $
+ * $Id: task.cc 16520 2023-03-14 19:49:41Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -62,6 +62,7 @@ Task::Task( LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup,
       _maxThreads(1),
       _overlapFactor(1.0),
       _threads(1),
+      _customers(),
       _clientChains(),
       _clientStation(),
       _has_forks(false),
@@ -88,6 +89,7 @@ Task::Task( const Task& src, unsigned int replica )
       _maxThreads(src._maxThreads),
       _overlapFactor(src._overlapFactor),
       _threads(src._threads),
+      _customers(src._customers),
       _clientChains(),
       _clientStation(),
       _has_forks(src._has_forks),
@@ -328,6 +330,83 @@ Task::linkForkToJoin()
 }
 
 
+/*
+ * Calculate population levels.  Punt and use the biggest unsigned int for open streams.
+ */
+
+Task& Task::initClient( const Vector<Submodel *>& )
+{
+    unsigned int customers = 0;
+    if ( isReferenceTask() ) {
+	customers = copies();
+    } else if ( hasOpenArrivals() ) {
+	customers = std::numeric_limits<unsigned int>::max();
+    } else {
+	return *this;
+    }
+    if ( customers != 0 ) {
+	std::deque<const Task *> stack;
+	initCustomers( stack, customers );
+    }
+    return *this;
+}
+
+
+Task& Task::reinitClient( const Vector<Submodel *>& )
+{
+    unsigned int customers = 0;
+    if ( isReferenceTask() ) {
+	customers = copies();
+    } else if ( hasOpenArrivals() ) {
+	customers = std::numeric_limits<unsigned int>::max();
+    } else {
+	return *this;
+    }
+    if ( customers != 0 ) {
+	std::deque<const Task *> stack;
+	initCustomers( stack, customers );
+    }
+    return *this;
+}
+
+/*+ BUG_425 */
+/*
+ * Set the number of customers by chain (reference task/open arrival)
+ * when this task is used as a client in a submodel.
+ */
+
+Task&
+Task::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
+{
+#undef BUG_425
+#if BUG_425
+    std::cerr << name() << "->Task::initCustomers(stack," << customers << ")" << std::endl;
+#endif
+    if ( std::find( stack.begin(), stack.end(), this ) != stack.end() || customers == 0 ) return *this;	// Cycle found.
+    stack.push_back( this );
+    if ( customers == std::numeric_limits<unsigned int>::max() ) {
+	setOpenModelServer( true );
+	/* An infinite server with open arrivals is an open arrival to the processor */
+	if ( isInfinite() ) {
+	    const_cast<Processor *>(getProcessor())->setOpenModelServer( true );
+	} else {
+	    setClosedModelClient( true );
+	    const_cast<Processor *>(getProcessor())->setClosedModelServer( true );
+	}
+    } else {
+	setClosedModelClient( true );
+	if ( !isReferenceTask() ) setClosedModelServer( true );
+	const_cast<Processor *>(getProcessor())->setClosedModelServer( true );	// Always.
+    }
+    /* When I am a client, the number of customers is limited */
+    if ( !isInfinite() ) {
+	customers = std::min( customers, copies() );
+    }
+    _customers[stack.front()] = customers;
+    std::for_each( entries().begin(), entries().end(), Exec2<Entry,std::deque<const Task *>&,unsigned int>( &Entry::initCustomers, stack, customers ) );
+    return *this;
+}
+/*- BUG_425 */
 
 /*
  * Initialize the processor for all entries and activities.
@@ -354,24 +433,6 @@ Task::initWait()
 {
     std::for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::initWait ) );
     Entity::initWait();
-    return *this;
-}
-
-
-
-/*
- * Derive population based on who calls me.
- */
-
-Task&
-Task::initPopulation()
-{
-    std::set<Task *> sources;		/* Cltn of tasks already visited. */
-    _population = countCallers( sources );
-
-    if ( isClosedModelClient() && ( _population == 0 || !std::isfinite( _population ) ) ) {
-	LQIO::runtime_error( ERR_BOGUS_COPIES, _population, name().c_str() );
-    }
     return *this;
 }
 
@@ -439,6 +500,52 @@ Task::initThreads()
     return *this;
 }
 
+
+
+/*+ BUG_425 */
+/*
+ * Return the number of customers at this entity.  If it's an infinite
+ * server, it's the sum from all reference tasks (or open arrivals,
+ * where it is then infinite.)
+ */
+
+unsigned int
+Task::population() const
+{
+    double customers = std::accumulate( _customers.begin(), _customers.end(), static_cast<double>(0.0), Task::add_customers() );
+    if ( isInfinite() ) {
+	return customers;
+    } else {
+	return std::min( static_cast<double>(copies()), customers );
+    }
+}
+
+
+/*
+ * For accumulate.  The second argument is a pair, so the default doesn't work. 
+ */
+
+unsigned int
+Task::add_customers::operator()( unsigned int augend, const std::pair<const Task *,unsigned int>& addend ) const
+{
+    if ( addend.second == std::numeric_limits<unsigned int>::max() ) {
+	return addend.second;
+    } else {
+	return augend + addend.second;
+    }	
+};
+
+unsigned int // BUG_425 deprecate
+Task::add_customers::operator()( unsigned int augend, const Entity * entity ) const
+{
+    const unsigned int addend = entity->population();
+    if ( addend == std::numeric_limits<unsigned int>::max() ) {
+	return addend;
+    } else {
+	return augend + addend;
+    }	
+}
+/*- BUG_425 */
 
 
 int
@@ -658,87 +765,13 @@ Task::getServers( const std::set<Entity *>& includeOnly ) const
 
 
 /*
- * This function locates all unique calling tasks to the receiver.
- * Tasks that are located are added to the collection `reject' so
- * that they are only counted once.  If we hit a multi-server or an
- * infinite server, we locate their sourcing tasks in order to
- * determine the proper population levels.  Multi-servers are treated
- * a little specially in that they limit the number of customers that
- * can be seen.  Note that we need to know replication information
- * in order to get the customer levels right for multiservers.
- *
- * Use doubles to propogate infinity.  We'll abort on the cast to int
- * if we hit infinity.
- */
-
-double
-Task::countCallers( std::set<Task *>& reject ) const
-{
-    double sum = 0;
-
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	if ( hasOpenArrivals() ) {
-	    const_cast<Task *>(this)->setOpenModelServer( true );
-	    if ( isInfinite() ) {
-		sum = std::numeric_limits<double>::infinity();
-	    }
-	}
-
-	const std::set<Call *>& callerList = (*entry)->callerList();
-	for ( std::set<Call *>::const_iterator call = callerList.begin(); call != callerList.end(); ++call ) {
-	    Task * client = const_cast<Task *>((*call)->srcTask());
-
-	    if ( (*call)->hasRendezvous() ) {
-
-		if ( reject.insert(client).second == false ) continue;		/* exits already */
-
-		double delta = 0.0;
-		if ( client->isInfinite() ) {
-		    delta = client->countCallers( reject );
-		    if ( client->isOpenModelServer() ) {
-			const_cast<Task *>(this)->setOpenModelServer( true );	/* Inherit from caller */
-		    }
-		    if ( client->isClosedModelClient() ) {
-			const_cast<Task *>(this)->setClosedModelServer( true  );	/* Inherit from caller */
-		    }
-		} else if ( client->isMultiServer() ) {
-		    client->setClosedModelClient( true );
-		    delta = client->countCallers( reject );
-		    const_cast<Task *>(this)->setClosedModelServer( true );
-		} else {
-		    client->setClosedModelClient( true );
-		    delta = static_cast<double>(client->copies());
-		    const_cast<Task *>(this)->setClosedModelServer( true );
-		}
-		if ( std::isfinite( sum ) ) {
-		    sum += delta * static_cast<double>(fanIn( client ));
-		}
-
-	    } else if ( (*call)->hasSendNoReply() ) {
-
-		const_cast<Task *>(this)->setOpenModelServer( true );
-
-	    }
-	}
-    }
-
-    if ( !isInfinite() && (sum > copies() || isOpenModelServer() || !std::isfinite( sum ) || hasSecondPhase() ) ) {
-	sum = static_cast<double>(copies());
-    } else if ( isInfinite() && hasSecondPhase() && sum > 0.0 ) {
-	sum = std::numeric_limits<double>::infinity();
-    }
-    return sum;
-}
-
-
-/*
  * Used by groups.
  */
 
 double
 Task::processorUtilization() const
 {
-    return std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::processorUtilization ) );
+    return std::accumulate( entries().begin(), entries().end(), 0., add_using<double,Entry>( &Entry::processorUtilization ) );
 }
 
 
@@ -1625,17 +1658,18 @@ ReferenceTask::copies() const
 
 /*
  * Go through and initialize all the reference tasks as they are not
- * caught the first time round.
+ * caught the first time round via the submodel intialization.
+ * Initialize populations.
  */
 
 ReferenceTask&
 ReferenceTask::initClient( const Vector<Submodel *>& submodels )
 {
+    Task::initClient( submodels );
     initWait();
     updateAllWaits( submodels );
     computeVariance();
     initThroughputBound();
-    initPopulation();
     initThreads();
     return *this;
 }
@@ -1650,10 +1684,10 @@ ReferenceTask::initClient( const Vector<Submodel *>& submodels )
 ReferenceTask&
 ReferenceTask::reinitClient( const Vector<Submodel *>& submodels )
 {
+    Task::reinitClient( submodels );
     updateAllWaits( submodels );
     computeVariance();
     initThroughputBound();
-    initPopulation();
     return *this;
 }
 
@@ -1704,16 +1738,6 @@ ReferenceTask::check() const
 
 
 /*
- * Set population.
- */
-
-double
-ReferenceTask::countCallers( std::set<Task *>& ) const
-{
-    return static_cast<double>(copies());
-}
-
-/*
  * Reference tasks are always "direct paths" for the purposes of forwarding.
  */
 
@@ -1722,6 +1746,7 @@ ReferenceTask::findChildren( Call::stack& callStack, const bool ) const
 {
     return std::accumulate( entries().begin(), entries().end(), Entity::findChildren( callStack, true ), find_max_depth( callStack ) );
 }
+
 
 unsigned int
 ReferenceTask::find_max_depth::operator()( unsigned int depth, const Entry * entry )
@@ -1806,7 +1831,7 @@ ServerTask::check() const
 bool
 ServerTask::hasInfinitePopulation() const
 {
-    return isInfinite() && !std::isfinite(population());
+    return isInfinite() && population() == std::numeric_limits<unsigned int>::max();
 }
 
 
@@ -1818,7 +1843,7 @@ ServerTask::hasInfinitePopulation() const
 bool
 ServerTask::hasVariance() const
 {
-    return  !isInfinite() && !isMultiServer() && Entity::hasVariance();
+    return !isInfinite() && !isMultiServer() && Entity::hasVariance();
 }
 
 

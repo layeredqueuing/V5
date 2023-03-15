@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 16441 2023-02-23 21:39:47Z greg $
+ * $Id: model.cc 16515 2023-03-14 17:56:28Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -604,8 +604,9 @@ Model::extend()
 	if ( (*task)->hasThinkTime() ) {
 	    if ( !__think_server ) {
 		__think_server = new DelayServer();
+		__think_server->setClosedModelServer( true );
 	    }
-	    __think_server->addTask( (*task) );	/* link the task in */
+	    __think_server->addTask( *task );	/* link the task in */
 	}
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
@@ -732,7 +733,7 @@ Model::initStations()
 
     /* Initialize waiting times and populations for the reference tasks. */
 
-    std::for_each( __task.begin(), __task.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::initClient, getSubmodels() ) );
+    std::for_each( __task.begin(), __task.end(), Exec1<Task,const Vector<Submodel *>&>( &Task::initClient, getSubmodels() ) );
 
     /* Initialize Interlocking */
 
@@ -784,7 +785,7 @@ Model::reinitStations()
 
     /* Initialize waiting times and populations for the reference tasks. */
 
-    std::for_each( __task.begin(), __task.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::reinitClient, getSubmodels() ) );
+    std::for_each( __task.begin(), __task.end(), Exec1<Task,const Vector<Submodel *>&>( &Task::reinitClient, getSubmodels() ) );
 
     /* Reinitialize Interlocking */
 
