@@ -3,9 +3,10 @@
 <!-- lqn2xml -o09-sanity.lqnx -->
 <lqn-model name="../xlqn/09-sanity" description="lqn2xml 5.28.2 solution for model from: ../xlqn/09-sanity.xlqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
   <parameters>
-$M = array_create(1, 2)
-$S = array_create(0.4, 0.6)
-$Y = array_create(0.1, 0.2)
+$M = [1, 2]
+$S = [0.4, 0.6]
+$Y = [0.1, 0.2]
+$S2 = 1 - $S
   </parameters>
   <!-- Variables: $M, $S, $Y, $_000_ -->
   <solver-params comment="Most Common features." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
@@ -39,7 +40,7 @@ $Y = array_create(0.1, 0.2)
             <synch-call dest="entry2" calls-mean="$Y">
             </synch-call>
           </activity>
-          <activity name="entry1_2" phase="2" host-demand-mean="$_000_">
+          <activity name="entry1_2" phase="2" host-demand-mean="$S2">
             <asynch-call dest="entry3" calls-mean="0.3">
             </asynch-call>
           </activity>

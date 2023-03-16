@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 16522 2023-03-14 21:01:37Z greg $
+ * $Id: call.cc 16532 2023-03-15 16:49:52Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -15,6 +15,7 @@
 
 #include "lqns.h"
 #include <cmath>
+#include <limits>
 #include <sstream>
 #include <mva/server.h>
 #include "activity.h"

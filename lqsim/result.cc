@@ -1,7 +1,7 @@
 /* result.cc	-- Greg Franks Fri Jun  5 2009
  *
  * ------------------------------------------------------------------------
- * $Id: result.cc 15456 2022-03-09 15:06:35Z greg $
+ * $Id: result.cc 16541 2023-03-16 23:48:04Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -81,7 +81,7 @@ result_t::init( int type, const char * format, ... )
     _type = type;
 
     va_start( args, format );
-    (void) vsprintf( buf, format, args );
+    (void) vsnprintf( buf, 128, format, args );
     va_end( args );
 
     raw = ps_open_stat( buf, _type );

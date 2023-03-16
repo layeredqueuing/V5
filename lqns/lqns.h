@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 16515 2023-03-14 17:56:28Z greg $
+ * $Id: lqns.h 16532 2023-03-15 16:49:52Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -251,7 +251,7 @@ private:
 template <class Type1, class Type2> struct add_using
 {
     typedef Type1 (Type2::*funcPtr)() const;
-    add_using<Type2>( funcPtr f ) : _f(f) {}
+    add_using<Type1,Type2>( funcPtr f ) : _f(f) {}
     Type1 operator()( Type1 l, const Type2 * r ) const { return l + (r->*_f)(); }
     Type1 operator()( Type1 l, const Type2& r ) const { return l + (r.*_f)(); }
 private:
