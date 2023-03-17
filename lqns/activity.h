@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 16516 2023-03-14 18:54:17Z greg $
+ * $Id: activity.h 16543 2023-03-17 16:05:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -88,9 +88,9 @@ public:
 
     class Count_If {
     public:
-	Count_If() : _e(nullptr), _f(nullptr), _p(0), _replyAllowed(false), _rate(0.0), _sum(0.0) {}
+	Count_If() : _e(nullptr), _f(nullptr), _p(0), _replyAllowed(true), _rate(0.0), _sum(0.0) {}
 	Count_If( const Entry* e, const Predicate f ) : _e(e), _f(f), _p(1), _replyAllowed(true), _rate(1.0), _sum(0.0) {}
-	Count_If( const Count_If& src, double rate ) : _e(src._e), _f(src._f), _p(src._p), _replyAllowed(false), _rate(src._rate*rate), _sum(src._sum) {}
+	Count_If( const Count_If& src, double rate ) : _e(src._e), _f(src._f), _p(src._p), _replyAllowed(true), _rate(src._rate*rate), _sum(src._sum) {}
 
     private:
 	Count_If( const Count_If& ) = delete;

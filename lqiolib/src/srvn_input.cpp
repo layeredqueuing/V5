@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 16212 2022-12-30 20:39:19Z greg $
+ *  $Id: srvn_input.cpp 16543 2023-03-17 16:05:29Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -179,7 +179,7 @@ srvn_add_task (const char * task_name, const scheduling_type scheduling, const v
 	task->input_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	return nullptr;
     } else if ( entries == nullptr ) {
-	LQIO::input_error2( LQIO::ERR_TASK_HAS_NO_ENTRIES, task_name );
+	task->input_error( LQIO::ERR_TASK_HAS_NO_ENTRIES );
 	return nullptr;
     } else if ( scheduling == SCHEDULE_SEMAPHORE ) {
 	task = new LQIO::DOM::SemaphoreTask( LQIO::DOM::__document, task_name, *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor );

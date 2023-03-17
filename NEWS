@@ -7,8 +7,11 @@
 416 	lqiolib 	Fixes for plotting population mix WhatIf output. 
 422 	lqiolib 	Refactor handling of control variables. 
 366 	lqn2xxx 	EXC_BAD_ACCESS Layer::transmorgrify() at layer.cc:571:17 [opt] 
+428 	lqn2xxx 	lqn2fig: EXC_BAD_ACCESS libsystem_platform.dylib`_platform_strlen + 4
 425 	lqns	 	Refactor initPopulation. 
+430 	lqns 		activity-templ.lqn:75: error: Task "Server", and-join "parB & parA" does not match and-fork "parA & parB" at line 74.
 418 	lqsim 		lqsim crashes running -t... 	
+429 	lqsim 		result.cc:308:12: warning: 'vsprintf' is deprecated: 
 356 	miscella 	rpm build issues.
 415 	petrisrv 	Signal SIGSEGV in LQIO::DOM::Phase::getServiceTime () at dom_phase.cpp:88 
 421 	petrisrv 	SPEX Convergence with PetriSRVN 

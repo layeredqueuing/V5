@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 16516 2023-03-14 18:54:17Z greg $
+ * $Id: actlist.cc 16543 2023-03-17 16:05:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -641,7 +641,6 @@ AndOrForkActivityList::find_children::operator()( unsigned arg1, const Activity 
     }
     Activity::Children path( _path );
     if ( dynamic_cast<const OrForkActivityList *>(&_self) != nullptr ) {
-	path.setReplyAllowed(false);
 	try {
 	    path.setRate(dynamic_cast<const OrForkActivityList *>(&_self)->prBranch( arg2 ) );
 	}
@@ -2129,6 +2128,7 @@ RepeatActivityList::count_if( std::deque<const Activity *>& stack, Activity::Cou
 {
     for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	Activity::Count_If branch( data, rateBranch(*activity) );
+	branch.setReplyAllowed( false );
 	branch = (*activity)->count_if( stack, branch );
 	data += branch.sum() - data.sum();				/* only accumulate difference */
     }
@@ -2178,6 +2178,7 @@ RepeatActivityList::find_children::operator()( unsigned arg1, const Activity * a
 {
     std::deque<const AndOrForkActivityList *> forkStack;    // For matching forks/joins.
     Activity::Children path( _path, forkStack, _self.rateBranch( arg2 ) );
+    path.setReplyAllowed(false);		// Bug 427
     return std::max( arg1, arg2->findChildren(path) );
 }
 

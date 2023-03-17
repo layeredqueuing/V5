@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 16516 2023-03-14 18:54:17Z greg $
+ * $Id: activity.cc 16543 2023-03-17 16:05:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -841,7 +841,7 @@ Activity::checkReplies( Activity::Count_If& data ) const
     if ( repliesTo( entry ) ) {
 	if (  entry->isCalledUsing( Entry::RequestType::SEND_NO_REPLY ) || entry->isCalledUsing( Entry::RequestType::OPEN_ARRIVAL ) ) {
 	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, entry->name().c_str() );
-	} else if ( !data.canReply() || data.rate() != 1 ) {
+	} else if ( !data.canReply() ) {
 	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FROM_BRANCH, entry->name().c_str() );
 	} else if ( data.phase() > 1 ) {
 	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_DUPLICATE, entry->name().c_str() );
@@ -992,7 +992,7 @@ Activity::act_and_join_list ( ActivityList * activityList, LQIO::DOM::ActivityLi
     nextJoin( activityList );
     activityList->add( this );
 
-#if !defined(HAVE_GSL_GSL_MATH_H)       // QUORUM
+#if !HAVE_GSL_GSL_MATH_H       // QUORUM
     if ( dynamic_cast<LQIO::DOM::AndJoinActivityList*>(dom_activitylist) && dynamic_cast<LQIO::DOM::AndJoinActivityList*>(dom_activitylist)->hasQuorumCount() ) {
 	LQIO::input_error2( LQIO::ERR_NOT_SUPPORTED, "quorum" );
     }
