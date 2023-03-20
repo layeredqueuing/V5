@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 16532 2023-03-15 16:49:52Z greg $
+ * $Id: submodel.cc 16551 2023-03-19 14:55:57Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -48,6 +48,7 @@
 #include "lqns.h"
 #include <cstdlib>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <mva/fpgoop.h>
 #include <mva/mva.h>
@@ -236,7 +237,7 @@ MVASubmodel::reinitServers( const Model& model )
 MVASubmodel&
 MVASubmodel::initInterlock()
 {
-    std::for_each( _servers.begin(), _servers.end(), Exec<Entity>( &Entity::initInterlock ) );
+    std::for_each( _servers.begin(), _servers.end(), std::mem_fn( &Entity::initInterlock ) );
     return *this;
 }
 
@@ -280,17 +281,17 @@ MVASubmodel::build()
 
     /* -------------- Initialize instance variables. ------------------ */
 
-    _hasThreads  = std::any_of( _clients.begin(), _clients.end(), Predicate<Task>( &Task::hasThreads ) );
-    _hasSynchs   = std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::hasSynchs ) );
-    _hasReplicas = std::any_of( _clients.begin(), _clients.end(), Predicate<Task>( &Task::isReplicated ) )
-                || std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isReplicated ) );
+    _hasThreads  = std::any_of( _clients.begin(), _clients.end(), std::mem_fn( &Task::hasThreads ) );
+    _hasSynchs   = std::any_of( _servers.begin(), _servers.end(), std::mem_fn( &Entity::hasSynchs ) );
+    _hasReplicas = std::any_of( _clients.begin(), _clients.end(), std::mem_fn( &Task::isReplicated ) )
+                || std::any_of( _servers.begin(), _servers.end(), std::mem_fn( &Entity::isReplicated ) );
     
     /* --------------------- Count the stations. ---------------------- */
 
     const unsigned n_stations  = _clients.size() + _servers.size();
-    _closedStation.resize( std::count_if( _clients.begin(), _clients.end(), Predicate<Entity>( &Entity::isClosedModelClient ) )
-			  + std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isClosedModelServer ) ) );
-    _openStation.resize( std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isOpenModelServer ) ) );
+    _closedStation.resize( std::count_if( _clients.begin(), _clients.end(), std::mem_fn( &Entity::isClosedModelClient ) )
+			 + std::count_if( _servers.begin(), _servers.end(), std::mem_fn( &Entity::isClosedModelServer ) ) );
+    _openStation.resize( std::count_if( _servers.begin(), _servers.end(), std::mem_fn( &Entity::isOpenModelServer ) ) );
 
     /* ----------------------- Create Chains.  ------------------------ */
 
@@ -717,7 +718,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
     /* ----------------- initialize the stations ------------------ */
 
-    std::for_each( _servers.begin(), _servers.end(), Exec<Entity>( &Entity::clear ) );	/* Clear visit ratios and what have you */
+    std::for_each( _servers.begin(), _servers.end(), std::mem_fn( &Entity::clear ) );	/* Clear visit ratios and what have you */
     std::for_each( _clients.begin(), _clients.end(), Exec1<Task,Submodel&>( &Task::initClientStation, *this ) );
     std::for_each( _servers.begin(), _servers.end(), Exec1<Entity,Submodel&>( &Entity::initServerStation, *this ) );
 
@@ -768,7 +769,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		}
 		catch ( const std::range_error& error ) {
 		    MVAStats.faults += 1;
-		    if ( Pragma::stopOnMessageLoss() && std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::openModelInfinity ) ) ) {
+		    if ( Pragma::stopOnMessageLoss() && std::any_of( _servers.begin(), _servers.end(), std::mem_fn( &Entity::openModelInfinity ) ) ) {
 			throw;
 		    }
 		}
@@ -802,7 +803,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		}
 	    } 
 	    catch ( const std::range_error& error ) {
-		if ( Pragma::stopOnMessageLoss() && std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::openModelInfinity ) ) ) {
+		if ( Pragma::stopOnMessageLoss() && std::any_of( _servers.begin(), _servers.end(), std::mem_fn( &Entity::openModelInfinity ) ) ) {
 		    throw;
 		}
 	    }
@@ -938,11 +939,11 @@ MVASubmodel::print( std::ostream& output ) const
 	output << std::setw(2) << "  " << **client << std::endl;
     }
 
-    if ( std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isClosedModelServer ) ) ) {
+    if ( std::any_of( _servers.begin(), _servers.end(), std::mem_fn( &Entity::isClosedModelServer ) ) ) {
 	output << std::endl << "Closed Model Servers: " << std::endl;
 	std::for_each( _servers.begin(), _servers.end(), print_server( output, &Entity::isClosedModelServer ) );
     }
-    if ( std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isOpenModelServer ) ) ) {
+    if ( std::any_of( _servers.begin(), _servers.end(), std::mem_fn( &Entity::isOpenModelServer ) ) ) {
 	output << std::endl << "Open Model Servers: " << std::endl;
 	std::for_each( _servers.begin(), _servers.end(), print_server( output, &Entity::isOpenModelServer ) );
     }

@@ -9,17 +9,17 @@
  *
  * November, 1994
  *
- * $Id: entry.h 16512 2023-03-14 11:34:47Z greg $
+ * $Id: entry.h 16556 2023-03-19 21:51:42Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(ENTRY_H)
-#define ENTRY_H
+#ifndef LQNS_ENTRY_H
+#define LQNS_ENTRY_H
 
-#include <lqio/dom_entry.h>
 #include <set>
 #include <vector>
+#include <lqio/dom_entry.h>
 #include <mva/prob.h>
 #include <mva/vector.h>
 #include "call.h"
@@ -138,6 +138,17 @@ protected:
 
 
 private:
+    struct add_calls
+    {
+	typedef double (Phase::*funcPtr)( const Entry* ) const;
+	add_calls( funcPtr f, const Entry* arg ) : _f(f), _arg(arg) {}
+	double operator()( double l, const Phase * r ) const { return l + (r->*_f)(_arg); }
+	double operator()( double l, const Phase& r ) const { return l + (r.*_f)(_arg); }
+    private:
+	const funcPtr _f;
+	const Entry * _arg;
+    };
+
     class SRVNManip {
     public:
 	SRVNManip( std::ostream& (*f)( std::ostream&, const Entry& ), const Entry& entry ) : _f(f), _entry(entry) {}
@@ -212,7 +223,9 @@ public:
     double computeCV_sqr() const;
     int priority() const;
     bool setIsCalledBy( const RequestType callType );
-    bool isCalledUsing( const RequestType callType ) const { return callType == _calledBy; }
+    bool isCalledUsingRendezvous() const { return _calledBy == RequestType::RENDEZVOUS; }
+    bool isCalledUsingSendNoReply() const { return _calledBy == RequestType::SEND_NO_REPLY; }
+    bool isCalledUsingOpenArrival() const { return _calledBy == RequestType::OPEN_ARRIVAL; }
     bool isCalled() const { return _calledBy != RequestType::NOT_CALLED; }
     Entry& setEntryInformation( LQIO::DOM::Entry * entryInfo );
     virtual Entry& setDOM( unsigned phase, LQIO::DOM::Phase* phaseInfo );

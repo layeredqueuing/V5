@@ -1,18 +1,19 @@
 /*
- *  $Id: dom_phase.cpp 14955 2021-09-07 16:52:38Z greg $
+ *  $Id: dom_phase.cpp 16548 2023-03-19 12:28:28Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
 
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <functional>
 #include "dom_document.h"
 #include "dom_call.h"
 #include "dom_extvar.h"
 #include "dom_histogram.h"
-#include <cassert>
-#include <algorithm>
-#include <cmath>
 
 namespace LQIO {
     namespace DOM {
@@ -288,22 +289,22 @@ namespace LQIO {
 
 	bool Phase::hasRendezvous() const
 	{
-	    return std::any_of( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasRendezvous ) );
+	    return std::any_of( _calls.begin(), _calls.end(), std::mem_fn( &Call::hasRendezvous ) );
 	}
 
 	bool Phase::hasSendNoReply() const
 	{
-	    return std::any_of( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasSendNoReply ) );
+	    return std::any_of( _calls.begin(), _calls.end(), std::mem_fn( &Call::hasSendNoReply ) );
 	}
 
 	bool Phase::hasResultVarianceWaitingTime() const
 	{
-	    return std::any_of( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasResultVarianceWaitingTime ) );
+	    return std::any_of( _calls.begin(), _calls.end(), std::mem_fn( &Call::hasResultVarianceWaitingTime ) );
 	}
 
 	bool Phase::hasResultDropProbability() const
 	{
-	    return std::any_of( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasResultDropProbability ) );
+	    return std::any_of( _calls.begin(), _calls.end(), std::mem_fn( &Call::hasResultDropProbability ) );
 	}
 
 

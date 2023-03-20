@@ -11,12 +11,12 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 16506 2023-03-11 23:31:54Z greg $
+ * $Id: processor.h 16546 2023-03-18 22:32:16Z greg $
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(PROCESSOR_H)
-#define PROCESSOR_H
+#ifndef LQNS_PROCESSOR_H
+#define LQNS_PROCESSOR_H
 
 #include <lqio/dom_processor.h>
 #include <set>

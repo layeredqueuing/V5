@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16407 2023-02-08 02:21:27Z greg $
+ * $Id: phase.cc 16551 2023-03-19 14:55:57Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -262,7 +262,7 @@ Phase::queueingTime() const
 bool 
 Phase::check() const
 {
-    bool rc = for_each( calls().begin(), calls().end(), AndPredicate<Call>( &Call::check ) ).result();
+    bool rc = std::for_each( calls().begin(), calls().end(), AndPredicate<Call>( &Call::check ) ).result();
 
     if ( phaseTypeFlag() == LQIO::DOM::Phase::Type::STOCHASTIC && hasCV_sqr() ) {
 	if ( dynamic_cast<const Activity *>(this) ) {			/* c, phase_flag are incompatible  */
@@ -285,7 +285,7 @@ Phase::check() const
 const Phase&
 Phase::setChain( const unsigned k, const Entity * aServer, callPredicate aFunc ) const
 {
-    for_each ( calls().begin(), calls().end(), Phase::SetChain( k, aServer, aFunc ) );
+    std::for_each ( calls().begin(), calls().end(), Phase::SetChain( k, aServer, aFunc ) );
     return *this;
 }
 
@@ -427,7 +427,8 @@ Phase::serviceTimeForSRVNInput() const
 
 	/* Add in processor queueing if it isn't selected */
 
-	if ( std::any_of( owner()->processors().begin(), owner()->processors().end(), Predicate<Processor>( &Processor::isSelected ) ) ) {
+	const std::set<const Processor *>& processors = owner()->processors();
+	if ( std::any_of( processors.begin(), processors.end(), Predicate<Processor>( &Processor::isSelected ) ) ) {
 	    time += queueingTime();		/* queueing time is already multiplied my nRendezvous.  See lqns/parasrvn. */
 	}
     }

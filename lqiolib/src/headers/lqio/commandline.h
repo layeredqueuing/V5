@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: commandline.h 15329 2022-01-02 20:46:57Z greg $
+ * $Id: commandline.h 16546 2023-03-18 22:32:16Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -12,7 +12,7 @@
  * ------------------------------------------------------------------------
  */
 
-#if !defined(LQIO_COMMANDLINE_H)
+#ifndef LQIO_COMMANDLINE_H
 #define	LQIO_COMMANDLINE_H
 
 #if HAVE_CONFIG_H

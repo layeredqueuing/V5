@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_phase.h 15788 2022-08-03 16:10:55Z greg $
+ *  $Id: dom_phase.h 16548 2023-03-19 12:28:28Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -78,7 +78,7 @@ namespace LQIO {
 	    void setMaxServiceTimeValue(double value);
 	    virtual double getMaxServiceTime() const;
 	    virtual bool hasMaxServiceTimeExceeded() const;
-	    virtual bool hasHistogram() const;
+	    bool hasHistogram() const;
 	    virtual const Histogram* getHistogram() const { return _histogram; }
 	    virtual void setHistogram(Histogram* histogram);
       

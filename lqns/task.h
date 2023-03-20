@@ -10,12 +10,12 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 16515 2023-03-14 17:56:28Z greg $
+ * $Id: task.h 16546 2023-03-18 22:32:16Z greg $
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(TASK_H)
-#define TASK_H
+#ifndef LQNS_TASK_H
+#define LQNS_TASK_H
 
 #include <lqio/dom_task.h>
 #include "entity.h"

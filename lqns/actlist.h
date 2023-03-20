@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 15730 2022-06-29 16:35:46Z greg $
+ * $Id: actlist.h 16556 2023-03-19 21:51:42Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -357,6 +357,18 @@ protected:
 
 class AndForkActivityList : public AndOrForkActivityList
 {
+private:
+    struct add_threads
+    {
+	typedef unsigned (Activity::*funcPtr)( unsigned int ) const;
+	add_threads( funcPtr f, unsigned int arg ) : _f(f), _arg(arg) {}
+	unsigned operator()( unsigned l, const Activity * r ) const { return l + (r->*_f)(_arg); }
+	unsigned operator()( unsigned l, const Activity& r ) const { return l + (r.*_f)(_arg); }
+    private:
+	const funcPtr _f;
+	const unsigned int _arg;
+    };
+
 public:
     AndForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
     virtual ActivityList * clone( const Task* task, unsigned int replica ) const { return new AndForkActivityList( *this, task, replica ); }

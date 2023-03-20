@@ -10,13 +10,13 @@
  * November, 1994
  * December, 2020
  *
- * $Id: pragma.h 16441 2023-02-23 21:39:47Z greg $
+ * $Id: pragma.h 16546 2023-03-18 22:32:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(PRAGMA_H)
-#define	PRAGMA_H
+#ifndef LQNS_PRAGMA_H
+#define	LQNS_PRAGMA_H
 
 #include <map>
 #include <lqio/input.h>

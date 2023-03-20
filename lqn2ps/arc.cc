@@ -1,6 +1,6 @@
 /* arc.cc	-- Greg Franks Thu Jan 30 2003
  *
- * $Id: arc.cc 15614 2022-06-01 12:17:43Z greg $
+ * $Id: arc.cc 16551 2023-03-19 14:55:57Z greg $
  */
 
 #include "lqn2ps.h"
@@ -77,7 +77,7 @@ Arc::arrowScaling() const
 Arc& 
 Arc::moveBy( const double dx, const double dy )
 {
-    for_each( begin(), end(), ExecXY<Point>( &Point::moveBy, dx, dy ) );
+    std::for_each( begin(), end(), ExecXY<Point>( &Point::moveBy, dx, dy ) );
     return *this;
 }
 
@@ -164,7 +164,7 @@ Arc::movePenultimate( const Point& dst )
 Arc& 
 Arc::scaleBy( const double sx, const double sy ) 
 {
-    for_each( begin(), end(), ExecXY<Point>( &Point::scaleBy, sx, sy ) );
+    std::for_each( begin(), end(), ExecXY<Point>( &Point::scaleBy, sx, sy ) );
     return *this;
 }
 
@@ -173,7 +173,7 @@ Arc::scaleBy( const double sx, const double sy )
 Arc& 
 Arc::translateY( const double dy ) 
 {
-    for_each( begin(), end(), Exec1<Point,double>( &Point::translateY, dy ) );
+    std::for_each( begin(), end(), Exec1<Point,double>( &Point::translateY, dy ) );
     return *this;
 }
 

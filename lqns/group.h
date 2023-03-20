@@ -9,13 +9,13 @@
  *
  * November, 2008
  *
- * $Id: group.h 14817 2021-06-15 16:51:27Z greg $
+ * $Id: group.h 16546 2023-03-18 22:32:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(GROUP_H)
-#define GROUP_H
+#ifndef LQNS_GROUP_H
+#define LQNS_GROUP_H
 
 #include <set>
 #include <lqio/dom_group.h>

@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 15958 2022-10-07 20:27:02Z greg $
+ * $Id: activity.cc 16551 2023-03-19 14:55:57Z greg $
  */
 
 #include "activity.h"
@@ -8,6 +8,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <vector>
 #include <algorithm>
@@ -762,13 +763,13 @@ Activity::findOrAddFwdCall( Entry * anEntry )
 bool
 Activity::hasRendezvous() const
 {
-    return std::any_of( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::hasRendezvous ) );
+    return std::any_of( calls().begin(), calls().end(), std::mem_fn( &GenericCall::hasRendezvous ) );
 }
 
 bool
 Activity::hasSendNoReply() const
 {
-    return std::any_of( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::hasSendNoReply ) );
+    return std::any_of( calls().begin(), calls().end(), std::mem_fn( &GenericCall::hasSendNoReply ) );
 }
 
 
@@ -801,7 +802,8 @@ Activity::serviceTimeForSRVNInput() const
 
     /* Add in processor queueing is it isn't selected */
 
-    if ( std::any_of( owner()->processors().begin(), owner()->processors().end(), Predicate<Processor>( &Processor::isSelected ) ) ) {
+    const std::set<const Processor *>& processors = owner()->processors();
+    if ( std::any_of( processors.begin(), processors.end(), Predicate<Processor>( &Processor::isSelected ) ) ) {
 	time += queueingTime();		/* queueing time is already multiplied my nRendezvous.  See lqns/parasrvn. */
     }
 
@@ -835,7 +837,7 @@ Activity::isSelectedIndirectly() const
     } else if ( owner()->isSelected() ) {
 	return true;
     }
-    return std::any_of( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::isSelected ) );
+    return std::any_of( calls().begin(), calls().end(), std::mem_fn( &GenericCall::isSelected ) );
 }
 
 
@@ -957,8 +959,8 @@ Activity&
 Activity::scaleBy( const double sx, const double sy )
 {
     Element::scaleBy( sx, sy );
-    for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
-    for_each( replyArcs().begin(), replyArcs().end(), ExecReplyXY( &GenericCall::scaleBy, sx, sy ) );
+    std::for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
+    std::for_each( replyArcs().begin(), replyArcs().end(), ExecReplyXY( &GenericCall::scaleBy, sx, sy ) );
     return *this;
 }
 
@@ -968,8 +970,8 @@ Activity&
 Activity::translateY( const double dy )
 {
     Element::translateY( dy );
-    for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
-    for_each( replyArcs().begin(), replyArcs().end(), ExecX<GenericCall,std::pair<Entry *,Reply *>,double>( &GenericCall::translateY, dy ) );
+    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
+    std::for_each( replyArcs().begin(), replyArcs().end(), ExecX<GenericCall,std::pair<Entry *,Reply *>,double>( &GenericCall::translateY, dy ) );
     return *this;
 }
 
@@ -979,8 +981,8 @@ Activity&
 Activity::depth( const unsigned depth  )
 {
     Element::depth( depth-3 );
-    for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth-2 ) );
-    for_each( replyArcs().begin(), replyArcs().end(), ExecX<GenericCall,std::pair<Entry *,Reply *>,unsigned>( &GenericCall::depth, depth-1 ) );
+    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth-2 ) );
+    std::for_each( replyArcs().begin(), replyArcs().end(), ExecX<GenericCall,std::pair<Entry *,Reply *>,unsigned>( &GenericCall::depth, depth-1 ) );
     return *this;
 }
 
@@ -1021,7 +1023,7 @@ Activity::label()
 
     /* Now do calls. */
 
-    for_each ( calls().begin(), calls().end(), Exec<GenericCall>( &GenericCall::label ) );
+    std::for_each ( calls().begin(), calls().end(), std::mem_fn( &GenericCall::label ) );
 
     return *this;
 }
@@ -1136,7 +1138,7 @@ Activity::replicateCall()
     Phase::replicateCall();		/* Reset DOM calls */
     
     Call * root = nullptr;
-    for_each( old_calls.begin(), old_calls.end(), Exec2<Call, std::vector<Call *>&, Call **>( &Call::replicateCall, _calls, &root ) );
+    std::for_each( old_calls.begin(), old_calls.end(), Exec2<Call, std::vector<Call *>&, Call **>( &Call::replicateCall, _calls, &root ) );
     return *this;
 }
 
@@ -1160,7 +1162,7 @@ Activity::draw( std::ostream & output ) const
     _node->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
     _node->rectangle( output );
 
-    for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,std::ostream&>( &GenericCall::draw, output ) );
+    std::for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,std::ostream&>( &GenericCall::draw, output ) );
 
     _label->backgroundColour( colour() );
     output << *_label;

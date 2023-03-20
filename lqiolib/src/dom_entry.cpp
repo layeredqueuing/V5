@@ -1,21 +1,21 @@
 /*
- *  $Id: dom_entry.cpp 15836 2022-08-15 21:18:20Z greg $
+ *  $Id: dom_entry.cpp 16548 2023-03-19 12:28:28Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
 
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
 #include "dom_activity.h"
 #include "dom_document.h"
 #include "dom_entry.h"
 #include "dom_histogram.h"
 #include "glblerr.h"
-#include <cassert>
-#include <cmath>
-#include <stdexcept>
-#include <iostream>
-#include <algorithm>
 
 namespace LQIO {
     namespace DOM {
@@ -318,8 +318,8 @@ namespace LQIO {
     
 	bool Entry::hasHistogram() const 
 	{
-	    return std::any_of( _phases.begin(), _phases.end(), Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasHistogram ) )
-		|| std::any_of( _histograms.begin(),  _histograms.end(), Predicate<LQIO::DOM::Histogram>( &LQIO::DOM::Histogram::isHistogram ) );
+	    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &LQIO::DOM::Phase::hasHistogram ) )
+		|| std::any_of( _histograms.begin(),  _histograms.end(), Predicate<Histogram>( &LQIO::DOM::Histogram::isHistogram ) );
 	}
 
 	bool Entry::hasHistogramForPhase( unsigned p) const
@@ -359,8 +359,8 @@ namespace LQIO {
 
 	bool Entry::hasMaxServiceTimeExceeded() const 
  	{
-	    return std::any_of( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasMaxServiceTimeExceeded ) )
-		|| std::any_of( _histograms.begin(),  _histograms.end(), Predicate<LQIO::DOM::Histogram>( &LQIO::DOM::Histogram::isTimeExceeded ) );
+	    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &LQIO::DOM::Phase::hasMaxServiceTimeExceeded ) )
+		|| std::any_of( _histograms.begin(),  _histograms.end(), Predicate<Histogram>( &LQIO::DOM::Histogram::isTimeExceeded ) );
  	}
 
 
@@ -431,17 +431,17 @@ namespace LQIO {
     
 	const bool Entry::hasThinkTime() const
 	{
- 	    return std::any_of( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasThinkTime ) );
+ 	    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &LQIO::DOM::Phase::hasThinkTime ) );
 	}
 
 	const bool Entry::hasDeterministicPhases() const
 	{
-	    return std::any_of( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasDeterministicCalls ) );
+	    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &LQIO::DOM::Phase::hasDeterministicCalls ) );
 	}
 	    
 	const bool Entry::hasNonExponentialPhases() const
 	{
-	    return std::any_of( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::isNonExponential ) );
+	    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &LQIO::DOM::Phase::isNonExponential ) );
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -904,7 +904,7 @@ namespace LQIO {
 	bool Entry::any_of::operator()( const LQIO::DOM::Entry * e ) const
 	{
 	    const std::map<unsigned, Phase*>& phases = e->getPhaseList();
-	    return std::any_of( phases.begin(), phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( _f ) );
+	    return std::any_of( phases.begin(), phases.end(), Predicate<Phase>( _f ) );
 	}
     }
 }

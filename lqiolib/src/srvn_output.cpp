@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 16428 2023-02-15 14:30:27Z greg $
+ *  $Id: srvn_output.cpp 16548 2023-03-19 12:28:28Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -10,12 +10,13 @@
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif
-#include <iostream>
-#include <iomanip>
-#include <sstream>
 #include <algorithm>
 #include <cmath>
+#include <functional>
+#include <iomanip>
+#include <iostream>
 #include <limits>
+#include <sstream>
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -908,7 +909,7 @@ namespace LQIO {
 	/* Open Arrivals */
 
         if ( getDOM().entryHasOpenWait() ) {
-	    unsigned int count = count_if( _entities.begin(), _entities.end(), Predicate( &DOM::Entry::hasOpenArrivalRate ) );
+	    unsigned int count = std::count_if( _entities.begin(), _entities.end(), Predicate( &DOM::Entry::hasOpenArrivalRate ) );
             output << "R " << count << std::endl;
             std::for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printOpenQueueWait ) );
             output << "-1"  << std::endl << std::endl;
@@ -1042,7 +1043,7 @@ namespace LQIO {
 
         printGeneral( output );
 
-        const unsigned int n_proc = count_if( _entities.begin(), _entities.end(), is_processor );
+        const unsigned int n_proc = std::count_if( _entities.begin(), _entities.end(), is_processor );
         output << std::endl << "P " << n_proc << std::endl;
         if ( _annotate ) {
             output << "# SYNTAX: p ProcessorName SchedDiscipline [flags]" << std::endl
@@ -1070,7 +1071,7 @@ namespace LQIO {
             output << -1 << std::endl;
         }
 
-        const unsigned int n_task = count_if( _entities.begin(), _entities.end(), is_task );
+        const unsigned int n_task = std::count_if( _entities.begin(), _entities.end(), is_task );
         output << std::endl << "T " << n_task << std::endl;
         if ( _annotate ) {
             output << "# SYNTAX: t TaskName TaskType EntryList -1 ProcessorName [flags]" << std::endl
@@ -3324,7 +3325,7 @@ namespace LQIO {
 
 	const std::vector<DOM::Entry *> & entries = task->getEntryList();
 
-	return std::count_if( entries.begin(), entries.end(), DOM::DocumentObject::Predicate<DOM::Entry>( _f ) );
+	return std::count_if( entries.begin(), entries.end(), std::mem_fn( _f ) );
     }
 
 }

@@ -9,13 +9,13 @@
  *
  * November, 1994
  *
- * $Id: interlock.h 14817 2021-06-15 16:51:27Z greg $
+ * $Id: interlock.h 16546 2023-03-18 22:32:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(INTERLOCK_H)
-#define	INTERLOCK_H
+#ifndef LQNS_INTERLOCK_H
+#define	LQNS_INTERLOCK_H
 
 #include <deque>
 #include <set>

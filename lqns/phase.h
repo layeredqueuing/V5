@@ -9,13 +9,13 @@
  *
  * November, 1994
  *
- * $Id: phase.h 16513 2023-03-14 11:37:18Z greg $
+ * $Id: phase.h 16546 2023-03-18 22:32:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(PHASE_H)
-#define PHASE_H
+#ifndef LQNS_PHASE_H
+#define LQNS_PHASE_H
 
 #include <set>
 #include <mva/vector.h>

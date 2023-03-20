@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16407 2023-02-08 02:21:27Z greg $
+ * $Id: task.cc 16551 2023-03-19 14:55:57Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,6 +20,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <limits>
 #include <string>
 #include <vector>
@@ -92,7 +93,7 @@ Task::Task( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * a
       _key_table(),			/* Squish name - activities 	*/
       _symbol_table()			/* Squish name - activities 	*/
 {
-    for_each( _entries.begin(), _entries.end(), Exec1<Entry,const Task *>( &Entry::owner, this ) );
+    std::for_each( _entries.begin(), _entries.end(), Exec1<Entry,const Task *>( &Entry::owner, this ) );
 
     if ( aProc ) {
 	_processors.insert(aProc);
@@ -209,7 +210,7 @@ Task::rename()
     std::ostringstream new_name;
     new_name << "t" << elementId();
     const_cast<LQIO::DOM::DocumentObject *>(getDOM())->setName( new_name.str() );
-    for_each( activities().begin(), activities().end(), Exec<Element>( &Element::rename ) );
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Element::rename ) );
 
     renameFanInOut( old_name, name() );
     return *this;
@@ -221,7 +222,7 @@ Task::squish( std::map<std::string,unsigned>& key_table, std::map<std::string,st
 {
     const std::string old_name = name();
     Element::squish( key_table, symbol_table );
-    for_each( activities().begin(), activities().end(), Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, _key_table, _symbol_table ) );
+    std::for_each( activities().begin(), activities().end(), Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, _key_table, _symbol_table ) );
 
     renameFanInOut( old_name, name() );
     return *this;
@@ -269,7 +270,7 @@ Task::renameFanInOut( std::map<const std::string,const LQIO::DOM::ExternalVariab
 Task&
 Task::aggregate()
 {
-    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::aggregate ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::aggregate ) );
 
     switch ( Flags::aggregation() ) {
     case Aggregate::ENTRIES:
@@ -290,7 +291,7 @@ Task::aggregate()
 
     default:
 	/* Recompute levels. */
-	for_each( activities().begin(), activities().end(), Exec<Activity>( &Activity::resetLevel ) );
+	std::for_each( activities().begin(), activities().end(), std::mem_fn( &Activity::resetLevel ) );
 	generate();
 	break;
     }
@@ -596,7 +597,7 @@ Task::forwardsTo( const Task * aTask ) const
 bool
 Task::hasForwardingLevel() const
 {
-    return std::any_of( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::hasForwardingLevel ) );
+    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasForwardingLevel ) );
 }
 
 
@@ -607,7 +608,7 @@ Task::hasForwardingLevel() const
 bool
 Task::isForwardingTarget() const
 {
-    return std::any_of( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::isForwardingTarget ) );
+    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::isForwardingTarget ) );
 }
 
 
@@ -674,7 +675,7 @@ Task::hasOpenArrivals() const
 bool
 Task::hasQueueingTime() const
 {
-    return std::any_of( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::hasQueueingTime ) )
+    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasQueueingTime ) )
 	|| std::any_of( activities().begin(), activities().end(), ::Predicate<Activity>( &Activity::hasQueueingTime ) );
     return false;
 }
@@ -689,7 +690,7 @@ bool
 Task::isSelectedIndirectly() const
 {
     return Entity::isSelectedIndirectly() || std::any_of( processors().begin(), processors().end(), Predicate<Processor>( &Processor::isSelected ) )
-	|| std::any_of( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::isSelectedIndirectly ) )
+	|| std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::isSelectedIndirectly ) )
 	|| std::any_of( activities().begin(), activities().end(), ::Predicate<Activity>( &Activity::isSelectedIndirectly ) );
 }
 
@@ -831,7 +832,7 @@ Task::check() const
 	_maxPhase = std::max( _maxPhase, (*entry)->maxPhase() );
     }
 
-    rc = for_each( activities().begin(), activities().end(), AndPredicate<Activity>( &Activity::check ) ).result() && rc;
+    rc = std::for_each( activities().begin(), activities().end(), AndPredicate<Activity>( &Activity::check ) ).result() && rc;
     return rc;
 }
 
@@ -1562,9 +1563,9 @@ Task::moveBy( const double dx, const double dy )
 {
     _node->moveBy( dx, dy );
     _label->moveBy( dx, dy );
-    for_each( entries().begin(), entries().end(), ExecXY<Element>( &Entry::moveBy, dx, dy ) );    		/* Move entries */
-    for_each( _layers.begin(), _layers.end(), ExecXY<ActivityLayer>( &ActivityLayer::moveBy, dx, dy ) );	/* Move activities */
-    for_each( _layers.rbegin(), _layers.rend(), ExecXY<ActivityLayer>( &ActivityLayer::moveBy, 0, 0 ) );	/* clean up.*/
+    std::for_each( entries().begin(), entries().end(), ExecXY<Element>( &Entry::moveBy, dx, dy ) );    		/* Move entries */
+    std::for_each( _layers.begin(), _layers.end(), ExecXY<ActivityLayer>( &ActivityLayer::moveBy, dx, dy ) );	/* Move activities */
+    std::for_each( _layers.rbegin(), _layers.rend(), ExecXY<ActivityLayer>( &ActivityLayer::moveBy, 0, 0 ) );	/* clean up.*/
 
     sort();			/* Reorder arcs */
     moveDst();			/* Move arcs calling me.	      */
@@ -1726,7 +1727,7 @@ Task::moveDst()
 Task&
 Task::moveSrcBy( const double dx, const double dy )
 {
-    for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::moveSrcBy, dx, dy ) );
+    std::for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::moveSrcBy, dx, dy ) );
     return *this;
 }
 
@@ -1815,11 +1816,11 @@ Task::label()
 	}
     }
 
-    for_each( entries().begin(), entries().end(), Exec<Element>( &Element::label ) );       	/* Now label entries. */
-    for_each( activities().begin(), activities().end(), Exec<Activity>( &Activity::label ) );	/* And activities... */
-    for_each( calls().begin(), calls().end(), Exec<GenericCall>( &GenericCall::label ) );   	/* And the outgoing arcs, if any */
-    for_each( precedences().begin(), precedences().end(), Exec<ActivityList>( &ActivityList::label ) );
-    for_each( _layers.rbegin(), _layers.rend(), Exec<ActivityLayer>( &ActivityLayer::label ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Element::label ) );       	/* Now label entries. */
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Activity::label ) );	/* And activities... */
+    std::for_each( calls().begin(), calls().end(), std::mem_fn( &GenericCall::label ) );   	/* And the outgoing arcs, if any */
+    std::for_each( precedences().begin(), precedences().end(), std::mem_fn( &ActivityList::label ) );
+    std::for_each( _layers.rbegin(), _layers.rend(), std::mem_fn( &ActivityLayer::label ) );
     return *this;
 }
 
@@ -1855,7 +1856,7 @@ Task::labelBCMPModel( const BCMP::Model::Station::Class::map_t& demand, const st
 Task&
 Task::labelQueueingNetwork( entryLabelFunc aFunc )
 {
-    for_each( _entries.begin(), _entries.end(), Exec1<Entry,Label&>( aFunc, *_label ) );
+    std::for_each( _entries.begin(), _entries.end(), Exec1<Entry,Label&>( aFunc, *_label ) );
     return *this;
 }
 
@@ -1869,10 +1870,10 @@ Task&
 Task::scaleBy( const double sx, const double sy )
 {
     Entity::scaleBy( sx, sy );
-    for_each( entries().begin(), entries().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
-    for_each( activities().begin(), activities().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
-    for_each( precedences().begin(), precedences().end(), ExecXY<ActivityList>( &ActivityList::scaleBy, sx, sy ) ) ;
-    for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
+    std::for_each( entries().begin(), entries().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
+    std::for_each( activities().begin(), activities().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
+    std::for_each( precedences().begin(), precedences().end(), ExecXY<ActivityList>( &ActivityList::scaleBy, sx, sy ) ) ;
+    std::for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
     return *this;
 }
 
@@ -1886,10 +1887,10 @@ Task&
 Task::depth( const unsigned depth )
 {
     Entity::depth( depth );
-    for_each( entries().begin(), entries().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
-    for_each( activities().begin(), activities().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
-    for_each( precedences().begin(), precedences().end(), Exec1<ActivityList,unsigned int>( &ActivityList::depth, depth ) );
-    for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth ) );
+    std::for_each( entries().begin(), entries().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
+    std::for_each( activities().begin(), activities().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
+    std::for_each( precedences().begin(), precedences().end(), Exec1<ActivityList,unsigned int>( &ActivityList::depth, depth ) );
+    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth ) );
     return *this;
 }
 
@@ -1903,10 +1904,10 @@ Task&
 Task::translateY( const double dy )
 {
     Entity::translateY( dy );
-    for_each( entries().begin(), entries().end(), Exec1<Element,double>( &Element::translateY, dy ) );
-    for_each( activities().begin(), activities().end(), Exec1<Element,double>( &Element::translateY, dy ) );
-    for_each( precedences().begin(), precedences().end(), Exec1<ActivityList,double>( &ActivityList::translateY, dy ) );
-    for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
+    std::for_each( entries().begin(), entries().end(), Exec1<Element,double>( &Element::translateY, dy ) );
+    std::for_each( activities().begin(), activities().end(), Exec1<Element,double>( &Element::translateY, dy ) );
+    std::for_each( precedences().begin(), precedences().end(), Exec1<ActivityList,double>( &ActivityList::translateY, dy ) );
+    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
     return *this;
 }
 
@@ -1919,8 +1920,8 @@ Task&
 Task::relink()
 {
     if ( !canPrune() ) return *this;
-    for_each( entries().begin(), entries().end(), Exec1<Entry,const std::vector<EntityCall *>&>( &Entry::linkToClients, calls() ) );
-    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::unlinkFromServers ) );
+    std::for_each( entries().begin(), entries().end(), Exec1<Entry,const std::vector<EntityCall *>&>( &Entry::linkToClients, calls() ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::unlinkFromServers ) );
     unlinkFromProcessor();
     Model::__zombies.push_back( this );
     /* Observation variables ??? */
@@ -2285,7 +2286,7 @@ Task::replicateCall()
     unsigned int replica = 0;
     std::string root_name = baseReplicaName( replica );
     if ( replica == 1 ) {
-	for_each( activities().begin(), activities().end(), Exec<Activity>( &Activity::replicateCall ) );
+	std::for_each( activities().begin(), activities().end(), std::mem_fn( &Activity::replicateCall ) );
     }
     return *this;
 }
@@ -2300,9 +2301,9 @@ Task::updateFanInOut()
     for ( std::set<Task *>::const_iterator src = __tasks.begin(); src != __tasks.end(); ++src ) {
 	const LQIO::DOM::Task * src_dom = dynamic_cast<const LQIO::DOM::Task *>((*src)->getDOM());
 	const std::vector<Entry *>& entries = (*src)->entries();
-	for_each( entries.begin(), entries.end(), UpdateFanInOut( *const_cast<LQIO::DOM::Task *>(src_dom)) );
+	std::for_each( entries.begin(), entries.end(), UpdateFanInOut( *const_cast<LQIO::DOM::Task *>(src_dom)) );
 	const std::vector<Activity *>& activities = (*src)->activities();
-	for_each( activities.begin(), activities.end(), UpdateFanInOut( *const_cast<LQIO::DOM::Task *>(src_dom)) );
+	std::for_each( activities.begin(), activities.end(), UpdateFanInOut( *const_cast<LQIO::DOM::Task *>(src_dom)) );
     }
 }
 
@@ -2393,7 +2394,7 @@ Task::draw( std::ostream& output ) const
     if ( isMultiServer() || isInfinite() || isReplicated() ) {
 	std::vector<Point> copies = points;
 	const double delta = -2.0 * Model::scaling() * _node->direction();
-	for_each( copies.begin(), copies.end(), ExecXY<Point>( &Point::moveBy, 2.0 * Model::scaling(), delta ) );
+	std::for_each( copies.begin(), copies.end(), ExecXY<Point>( &Point::moveBy, 2.0 * Model::scaling(), delta ) );
 	const int aDepth = _node->depth();
 	_node->depth( aDepth + 1 );
 	_node->polygon( output, copies );
@@ -2413,12 +2414,12 @@ Task::draw( std::ostream& output ) const
     output << *_label;
 
     if ( Flags::aggregation() != Aggregate::ENTRIES ) {
-	for_each( entries().begin(), entries().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
-	for_each( activities().begin(), activities().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
-	for_each( precedences().begin(), precedences().end(), ConstExec1<ActivityList,std::ostream&>( &ActivityList::draw, output ) );
+	std::for_each( entries().begin(), entries().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
+	std::for_each( activities().begin(), activities().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
+	std::for_each( precedences().begin(), precedences().end(), ConstExec1<ActivityList,std::ostream&>( &ActivityList::draw, output ) );
     }
 
-    for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,std::ostream&>( &GenericCall::draw, output ) );
+    std::for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,std::ostream&>( &GenericCall::draw, output ) );
 
     return *this;
 }

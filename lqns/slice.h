@@ -10,13 +10,13 @@
  *
  * November, 1994
  *
- * $Id: slice.h 14817 2021-06-15 16:51:27Z greg $
+ * $Id: slice.h 16546 2023-03-18 22:32:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(SLICE_H)
-#define	SLICE_H
+#ifndef LQNS_SLICE_H
+#define	LQNS_SLICE_H
 
 #include <set>
 #include <mva/prob.h>

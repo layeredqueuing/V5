@@ -12,13 +12,14 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16516 2023-03-14 18:54:17Z greg $
+ * $Id: entry.cc 16556 2023-03-19 21:51:42Z greg $
  * ------------------------------------------------------------------------
  */
 
 
 #include "lqns.h"
 #include <cmath>
+#include <functional>
 #include <numeric>
 #include <iostream>
 #include <iomanip>
@@ -184,7 +185,7 @@ Entry::check() const
     }
 
     if ( isStandardEntry() ) {
-	std::for_each( _phase.begin(), _phase.end(), Predicate<Phase>( &Phase::check ) );
+	std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::check ) );
     } else if ( isActivityEntry() ) {
 	if ( !isVirtualEntry() ) {
 	    Activity::Count_If data( this, &Activity::checkReplies );
@@ -195,7 +196,7 @@ Entry::check() const
 	    //tomari: disable to allow a quorum use the default reply which is after all threads completes exection.
 	    //(replies == 1 || (replies == 0 && owner->hasQuorum()))
 	    //Only tasks have activity entries.
-	    if ( isCalledUsing( RequestType::RENDEZVOUS ) && replies != 1.0 && (replies != 0.0 || !dynamic_cast<const Task *>(owner())->hasQuorum()) ) {
+	    if ( isCalledUsingRendezvous() && replies != 1.0 && (replies != 0.0 || !dynamic_cast<const Task *>(owner())->hasQuorum()) ) {
 		if ( replies == 0 ) {
 		    getDOM()->runtime_error( LQIO::ERR_REPLY_NOT_GENERATED );		/* redundant, but more explicit. */
 		} else {
@@ -282,7 +283,7 @@ Entry::expand()
 Entry&
 Entry::expandCalls()
 {
-    std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::expandCalls ) );
+    std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::expandCalls ) );
     return *this;
 }
 
@@ -403,7 +404,7 @@ Entry::initReplication( const unsigned n_chains )
 Entry&
 Entry::resetInterlock()
 {
-    std::for_each( _interlock.begin(), _interlock.end(), Exec<InterlockInfo>( &InterlockInfo::reset ) );
+    std::for_each( _interlock.begin(), _interlock.end(), std::mem_fn( &InterlockInfo::reset ) );
     return *this;
 }
 
@@ -546,7 +547,7 @@ bool
 Entry::hasVariance() const
 {
     if ( isStandardEntry() ) {
-	return std::any_of( _phase.begin(), _phase.end(), Predicate<Phase>( &Phase::hasVariance ) );
+	return std::any_of( _phase.begin(), _phase.end(), std::mem_fn( &Phase::hasVariance ) );
     } else {
 	return true;
     }
@@ -685,7 +686,7 @@ Entry::rendezvous( Entry * toEntry, const unsigned p, const LQIO::DOM::Call* cal
 double
 Entry::rendezvous( const Entry * entry ) const
 {
-    return std::accumulate( _phase.begin(), _phase.end(), 0., add_using_arg<Phase,const Entry *>( &Phase::rendezvous, entry ) );
+    return std::accumulate( _phase.begin(), _phase.end(), 0., add_calls( &Phase::rendezvous, entry ) );
 }
 
 
@@ -731,7 +732,7 @@ Entry::sendNoReply( Entry * toEntry, const unsigned p, const LQIO::DOM::Call* ca
 double
 Entry::sendNoReply( const Entry * entry ) const
 {
-    return std::accumulate( _phase.begin(), _phase.end(), 0., add_using_arg<Phase,const Entry *>( &Phase::sendNoReply, entry ) );
+    return std::accumulate( _phase.begin(), _phase.end(), 0., add_calls( &Phase::sendNoReply, entry ) );
 }
 
 
@@ -800,7 +801,7 @@ Entry::processorCalls() const
 Entry&
 Entry::resetReplication()
 {
-    std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::resetReplication ) );
+    std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::resetReplication ) );
     return *this;
 }
 #endif
@@ -1169,7 +1170,7 @@ Entry::output_name( std::ostream& output, const Entry& entry )
 Entry&
 Entry::recalculateDynamicValues()
 {
-    std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::recalculateDynamicValues ) );
+    std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::recalculateDynamicValues ) );
     _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::serviceTime ) ) );
     return *this;
 }
@@ -1206,7 +1207,7 @@ TaskEntry&
 TaskEntry::initProcessor()
 {
     if ( isStandardEntry() ) {
-	std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::initProcessor ) );
+	std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::initProcessor ) );
     }
     return *this;
 }
@@ -1220,7 +1221,7 @@ TaskEntry::initProcessor()
 TaskEntry&
 TaskEntry::initWait()
 {
-    std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::initWait ) );
+    std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::initWait ) );
     return *this;
 }
 
@@ -1291,7 +1292,7 @@ TaskEntry::computeVariance()
 	entryStack.pop_back();
 	_total.addVariance( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::variance ) ) );
     } else {
-	std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::updateVariance ) );
+	std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::updateVariance ) );
 	_total.addVariance( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::variance ) ) );
     }
     if ( flags.trace_variance != 0 && (dynamic_cast<TaskEntry *>(this) != nullptr) ) {
@@ -1436,7 +1437,7 @@ TaskEntry::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta 
 {
     double delta = 0.0;
     if ( isActivityEntry() ) {
-	std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::resetReplication ) );
+	std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::resetReplication ) );
 
 	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack;
@@ -1506,7 +1507,7 @@ DeviceEntry::DeviceEntry( LQIO::DOM::Entry* dom, Processor * processor )
     : Entry( dom, processor->nEntries() ), _processor(processor)
 {
     entryTypeOk( LQIO::DOM::Entry::Type::STANDARD );
-    isCalledUsing( RequestType::RENDEZVOUS );
+    setIsCalledBy( RequestType::RENDEZVOUS );
     processor->addEntry( this );
 }
 

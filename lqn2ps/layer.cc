@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16407 2023-02-08 02:21:27Z greg $
+ * $Id: layer.cc 16557 2023-03-20 10:21:04Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -11,6 +11,7 @@
 #include "lqn2ps.h"
 #include <cstdlib>
 #include <algorithm>
+#include <functional>
 #include <lqio/error.h>
 #include <lqio/srvn_output.h>
 #include <lqio/dom_document.h>
@@ -140,7 +141,7 @@ Layer::number( const unsigned n )
 bool
 Layer::check() const
 {
-    return for_each( entities().begin(), entities().end(), AndPredicate<Entity>( &Entity::check ) ).result();
+    return std::for_each( entities().begin(), entities().end(), AndPredicate<Entity>( &Entity::check ) ).result();
 }
 
 
@@ -213,7 +214,7 @@ Layer::format( const double y )
 {
     if ( Flags::debug ) std::cerr << "Layer::format layer " << number() << std::endl;
     _origin.moveTo( 0.0, y );
-    Position bounds = for_each( entities().begin(), entities().end(), Position( &Task::format, y ) );
+    Position bounds = std::for_each( entities().begin(), entities().end(), Position( &Task::format, y ) );
     _extent.moveTo( bounds.x(), bounds.height() );
     return *this;
 }
@@ -223,7 +224,7 @@ Layer&
 Layer::reformat()
 {
     if ( Flags::debug ) std::cerr << "Layer::reformat layer " << number() << std::endl;
-    Position bounds = for_each( entities().begin(), entities().end(), Position( &Task::reformat ) );
+    Position bounds = std::for_each( entities().begin(), entities().end(), Position( &Task::reformat ) );
     _origin.moveTo( 0.0, bounds.y() );
     _extent.moveTo( bounds.x(), bounds.height() );
     return *this;
@@ -234,7 +235,7 @@ Layer&
 Layer::moveBy( const double dx, const double dy )
 {
     _origin.moveBy( dx, dy );
-    for_each( entities().begin(), entities().end(), ExecXY<Element>( &Element::moveBy, dx, dy ) );
+    std::for_each( entities().begin(), entities().end(), ExecXY<Element>( &Element::moveBy, dx, dy ) );
     _label->moveBy( dx, dy );
     return *this;
 }
@@ -261,7 +262,7 @@ Layer::moveLabelTo( const double xx, const double yy )
 Layer&
 Layer::scaleBy( const double sx, const double sy )
 {
-    for_each( entities().begin(), entities().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
+    std::for_each( entities().begin(), entities().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
     _origin.scaleBy( sx, sy );
     _extent.scaleBy( sx, sy );
     _label->scaleBy( sx, sy );
@@ -273,7 +274,7 @@ Layer::scaleBy( const double sx, const double sy )
 Layer&
 Layer::translateY( const double dy )
 {
-    for_each( entities().begin(), entities().end(), Exec1<Element,double>( &Element::translateY, dy ) );
+    std::for_each( entities().begin(), entities().end(), Exec1<Element,double>( &Element::translateY, dy ) );
     _origin.y( dy - _origin.y() );
     _label->translateY( dy );
     return *this;
@@ -284,7 +285,7 @@ Layer::translateY( const double dy )
 Layer&
 Layer::depth( const unsigned depth )
 {
-    for_each( entities().begin(), entities().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
+    std::for_each( entities().begin(), entities().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
     return *this;
 }
 
@@ -292,7 +293,7 @@ Layer::depth( const unsigned depth )
 Layer&
 Layer::fill( const double maxWidthPts )
 {
-    const double width = for_each( entities().begin(), entities().end(), Sum<Element,double>( &Element::width ) ).sum();
+    const double width = std::accumulate( entities().begin(), entities().end(), 0.0, sum( &Element::width ) );
     const double fill = std::max( 0.0, (maxWidthPts - width) / static_cast<double>(entities().size() + 1) );
     if ( fill < Flags::x_spacing() ) return *this;		/* Don't bother... */
 
@@ -434,7 +435,7 @@ Layer&
 Layer::label()
 {
     if ( !Flags::bcmp_model ) {
-	std::for_each( entities().begin(), entities().end(), ::Exec<Element>( &Element::label ) );
+	std::for_each( entities().begin(), entities().end(), std::mem_fn( &Element::label ) );
     } else if ( !_bcmp_model.empty() ) {
 	std::for_each( clients().begin(), clients().end(), Entity::label_BCMP_client( _bcmp_model ) );
 	std::for_each( entities().begin(), entities().end(), Entity::label_BCMP_server( _bcmp_model ) );
@@ -484,7 +485,7 @@ Layer::selectSubmodel()
 Layer&
 Layer::deselectSubmodel()
 {
-    for_each( entities().begin(), entities().end(), Exec1<Entity,bool>( &Entity::isSelected, false ) );
+    std::for_each( entities().begin(), entities().end(), Exec1<Entity,bool>( &Entity::isSelected, false ) );
     return *this;
 }
 
@@ -599,11 +600,11 @@ Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_pro
 
 	    const LQIO::DOM::Entry * dom_entry = dynamic_cast<const LQIO::DOM::Entry *>((*entry)->getDOM());
 	    const std::map<unsigned, LQIO::DOM::Phase*>& phases = dom_entry->getPhaseList();
-	    for_each( phases.begin(), phases.end(), ResetServerPhaseParameters( document->hasResults() ) );
+	    std::for_each( phases.begin(), phases.end(), ResetServerPhaseParameters( document->hasResults() ) );
 	}
 
 	const std::vector<Activity *>& activities = task->activities();
-	for_each ( activities.begin(), activities.end(), ResetServerPhaseParameters( document->hasResults() ) );
+	std::for_each ( activities.begin(), activities.end(), ResetServerPhaseParameters( document->hasResults() ) );
     }
 
     /* ---------- Clients ---------- */
@@ -616,7 +617,8 @@ Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_pro
 
 	/* Create a fake processor if necessary */
 
-	if ( std::any_of( task->processors().begin(), task->processors().end(), Predicate<Entity>( &Entity::isSelected ) ) ) {
+	const std::set<const Processor *>& processors = task->processors();
+	if ( std::any_of( processors.begin(), processors.end(), Predicate<const Processor>( &Entity::isSelected ) ) ) {
 	    findOrAddSurrogateProcessor( document, surrogate_processor, task, number() );
 	}
 
@@ -756,7 +758,7 @@ Layer::findOrAddSurrogateEntry( LQIO::DOM::Document* document, Task* task, Entry
 
     dom_entry->setEntryType( LQIO::DOM::Entry::Type::STANDARD );	/* Force type to standard */
     const std::map<unsigned, LQIO::DOM::Phase*>& phases = dom_entry->getPhaseList();
-    for_each( phases.begin(), phases.end(), ResetServerPhaseParameters( document->hasResults() ) );
+    std::for_each( phases.begin(), phases.end(), ResetServerPhaseParameters( document->hasResults() ) );
     return entry;
 }
 /*- BUG_626 */
@@ -852,8 +854,8 @@ Layer::printSubmodelSummary( std::ostream& output ) const
 {
     unsigned int n_clients  = clients().size();
     unsigned int n_servers  = entities().size();
-    unsigned int n_multi    = count_if( entities().begin(), entities().end(), Predicate<Entity>( &Entity::isMultiServer ) );
-    unsigned int n_infinite = count_if( entities().begin(), entities().end(), Predicate<Entity>( &Entity::isInfinite ) );
+    unsigned int n_multi    = count_if( entities().begin(), entities().end(), std::mem_fn( &Entity::isMultiServer ) );
+    unsigned int n_infinite = count_if( entities().begin(), entities().end(), std::mem_fn( &Entity::isInfinite ) );
     unsigned int n_fixed    = n_servers - (n_multi + n_infinite);
     if ( n_clients ) output << n_clients << " " << plural( "Client", n_clients ) << (n_servers ? "; " : "");
     if ( n_servers ) output << n_servers << " " << plural( "Server", n_servers ) << " ("

@@ -10,12 +10,13 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 16515 2023-03-14 17:56:28Z greg $
+ * $Id: processor.cc 16548 2023-03-19 12:28:28Z greg $
  * ------------------------------------------------------------------------
  */
 
 #include "lqns.h"
 #include <cmath>
+#include <functional>
 #include <numeric>
 #include <sstream>
 #include <lqio/input.h>
@@ -209,7 +210,7 @@ Processor::hasVariance() const
 	 || isInfinite() ) {
 	return false;
     } else {
-	return std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasVariance ) );
+	return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasVariance ) );
     }
 }
 

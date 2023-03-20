@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 15863 2022-09-13 23:06:14Z greg $
+ * $Id: errmsg.h 16546 2023-03-18 22:32:16Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -16,8 +16,8 @@
  *----------------------------------------------------------------------
  */
 
-#if	!defined(ERRMSG_H)
-#define	ERRMSG_H
+#ifndef LQNS_ERRMSG_H
+#define	LQNS_ERRMSG_H
 
 #include <lqio/glblerr.h>
 #include <vector>

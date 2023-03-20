@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 15958 2022-10-07 20:27:02Z greg $
+ * $Id: entry.h 16557 2023-03-20 10:21:04Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -50,6 +50,46 @@ class Entry : public Element {
     friend LabelEntryManip queueing_time_of( const Entry& entry );
     typedef SRVNEntryManip (* print_func_ptr)( const Entry& );
 
+private:
+    struct Exec
+    {
+	typedef Phase& (Phase::*funcPtr)();
+	Exec( funcPtr f ) : _f(f) {};
+	void operator()( const std::pair<unsigned,Phase>& phase ) const { (const_cast<Phase&>(phase.second).*_f)(); }
+    private:
+	funcPtr _f;
+    };
+    
+    struct sum {
+	typedef double (Phase::*funcPtr)() const;
+	sum( funcPtr f ) : _f(f) {}
+	double operator()( double addend, const std::pair<unsigned int, Phase>& phase ) { return addend + (phase.second.*_f)(); }
+    private:
+	funcPtr _f;
+    };
+	
+
+    struct sum_extvar
+    {
+	typedef const LQIO::DOM::ExternalVariable& (Call::*funcPtr)() const;
+	sum_extvar( funcPtr f ) : _f(f) {}
+	double operator()( double addend, const Call* call ) { return addend + LQIO::DOM::to_double((call->*_f)()); }
+	double operator()( double addend, const Call& call ) { return addend + LQIO::DOM::to_double((call.*_f)()); }
+    private:
+	funcPtr _f;
+    };
+	
+    struct sum_phase
+    {
+	typedef const LQIO::DOM::ExternalVariable& (Call::*funcPtr)( unsigned int ) const;
+	sum_phase( funcPtr f, unsigned int p ) : _f(f), _p(p) {}
+	double operator()( double addend, const Call* call ) { return addend + LQIO::DOM::to_double((call->*_f)( _p )); }
+	double operator()( double addend, const Call& call ) { return addend + LQIO::DOM::to_double((call.*_f)( _p )); }
+    private:
+	funcPtr _f;
+	unsigned int _p;
+    };
+	
 public:
     struct count_callers {
 	count_callers( const callPredicate predicate ) : _predicate(predicate) {}
@@ -58,6 +98,7 @@ public:
     private:
 	const callPredicate _predicate;
     };
+
     static std::set<const Task *> collect_callers( const std::set<const Task *>&, const Entry * );
 	
 public:

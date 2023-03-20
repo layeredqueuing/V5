@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.h 15863 2022-09-13 23:06:14Z greg $
+ * $Id: glblerr.h 16546 2023-03-18 22:32:16Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -12,7 +12,7 @@
  *----------------------------------------------------------------------
  */
 
-#if     !defined(LQIO_GLBLERR_H)
+#ifndef LQIO_GLBLERR_H
 #define LQIO_GLBLERR_H
 
 #include "error.h"

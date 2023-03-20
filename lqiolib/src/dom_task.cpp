@@ -1,16 +1,16 @@
 /*
- *  $Id: dom_task.cpp 15304 2021-12-31 15:51:38Z greg $
+ *  $Id: dom_task.cpp 16548 2023-03-19 12:28:28Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
 
-#include <cassert>
 #include <algorithm>
-#include <numeric>
-#include <iostream>
+#include <cassert>
 #include <cmath>
+#include <iostream>
+#include <numeric>
 #include "dom_activity.h"
 #include "dom_actlist.h"
 #include "dom_document.h"
@@ -580,7 +580,7 @@ namespace LQIO {
 	    const std::vector<Entry*>& entries = t.second->getEntryList();
 	    const std::map<std::string,Activity*>&  activities = t.second->getActivities();
 	    return std::any_of( entries.begin(), entries.end(), LQIO::DOM::Entry::any_of( _f ) )
-		|| std::any_of( activities.begin(), activities.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Activity>( _f ) );
+		|| std::any_of( activities.begin(), activities.end(), Predicate<LQIO::DOM::Activity>(_f) );
 	}
 
 	/* ------------------------------------------------------------------------ */

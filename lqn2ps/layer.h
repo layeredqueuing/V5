@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 15569 2022-04-19 20:22:57Z greg $
+ * $Id: layer.h 16557 2023-03-20 10:21:04Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -21,6 +21,16 @@ class Processor;
 class Layer
 {
 private:
+    struct sum
+    {
+	typedef double (Entity::*funcPtr)() const;
+	sum( funcPtr f ) : _f(f) {}
+	double operator()( double addend, const Entity* layer ) { return addend + (layer->*_f)(); }
+	double operator()( double addend, const Entity& layer ) { return addend + (layer.*_f)(); }
+    private:
+	funcPtr _f;
+    };
+	
     typedef Task& (Task::*taskFPtr)();
 
     /*

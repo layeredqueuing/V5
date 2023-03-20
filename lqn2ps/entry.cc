@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 15958 2022-10-07 20:27:02Z greg $
+ * $Id: entry.cc 16557 2023-03-20 10:21:04Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,6 +20,7 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <limits>
 #include <lqio/error.h>
 #include <lqio/dom_extvar.h>
@@ -42,15 +43,6 @@ std::map<std::string,std::string> Entry::__symbol_table;	/* For rename		*/
 unsigned Entry::max_phases		= 0;
 
 const char * Entry::phaseTypeFlagStr [] = { "Stochastic", "Determin" };
-
-template <> struct Exec<Phase>
-{
-    typedef Phase& (Phase::*funcPtr)();
-    Exec<Phase>( funcPtr f ) : _f(f) {};
-    void operator()( const std::pair<unsigned,Phase>& phase ) const { (const_cast<Phase&>(phase.second).*_f)(); }
-private:
-    funcPtr _f;
-};
 
 /* ------------------------ Constructors etc. ------------------------- */
 
@@ -678,7 +670,7 @@ Entry::executionTime( const unsigned p ) const
 double
 Entry::executionTime() const
 {
-    return for_each( _phases.begin(), _phases.end(), Sum<Phase,double>( &Phase::executionTime ) ).sum();
+    return std::accumulate( _phases.begin(), _phases.end(), 0.0, sum( &Phase::executionTime ) );
 }
 
 
@@ -692,7 +684,7 @@ Entry::variance( const unsigned p ) const
 double
 Entry::variance() const
 {
-    return for_each( _phases.begin(), _phases.end(), Sum<Phase,double>( &Phase::variance ) ).sum();
+    return std::accumulate( _phases.begin(), _phases.end(), 0.0, sum( &Phase::variance ) );
 }
 
 
@@ -706,7 +698,7 @@ Entry::serviceExceeded( const unsigned p ) const
 double
 Entry::serviceExceeded() const
 {
-    return for_each( _phases.begin(), _phases.end(), Sum<Phase,double>( &Phase::serviceExceeded ) ).sum();
+    return std::accumulate( _phases.begin(), _phases.end(), 0.0, sum( &Phase::serviceExceeded ) );
 }
 
 /*
@@ -756,7 +748,7 @@ Entry::isSelectedIndirectly() const
 	return true;
     }
 
-    return std::any_of( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::isSelected ) );
+    return std::any_of( calls().begin(), calls().end(), std::mem_fn( &GenericCall::isSelected ) );
 }
 
 
@@ -863,7 +855,7 @@ double
 Entry::numberSlices( const unsigned p ) const
 {
     if ( !hasServiceTime(p) ) return 0.0;
-    return for_each( calls().begin(), calls().end(), SumP<Call>( &Call::rendezvous, p ) ).sum() + 1;
+    return std::accumulate( calls().begin(), calls().end(), 1.0, sum_phase( &Call::rendezvous, p ) );
 }
 
 
@@ -919,7 +911,7 @@ Entry::hasHistogram() const
 bool
 Entry::hasRendezvous() const
 {
-    return std::any_of( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::hasRendezvous ) );
+    return std::any_of( calls().begin(), calls().end(), std::mem_fn( &GenericCall::hasRendezvous ) );
 }
 
 
@@ -931,7 +923,7 @@ Entry::hasRendezvous() const
 bool
 Entry::hasSendNoReply() const
 {
-    return std::any_of( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::hasSendNoReply ) );
+    return std::any_of( calls().begin(), calls().end(), std::mem_fn( &GenericCall::hasSendNoReply ) );
 }
 
 
@@ -943,7 +935,7 @@ Entry::hasSendNoReply() const
 bool
 Entry::hasForwarding() const
 {
-    return std::any_of( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::hasForwarding ) );
+    return std::any_of( calls().begin(), calls().end(), std::mem_fn( &GenericCall::hasForwarding ) );
 }
 
 
@@ -967,7 +959,7 @@ Entry::hasOpenArrivalRate() const
 bool
 Entry::hasForwardingLevel() const
 {
-    return std::any_of( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::hasForwardingLevel ) );
+    return std::any_of( calls().begin(), calls().end(), std::mem_fn( &GenericCall::hasForwardingLevel ) );
 }
 
 
@@ -975,7 +967,7 @@ Entry::hasForwardingLevel() const
 bool
 Entry::isForwardingTarget() const
 {
-    return std::any_of( callers().begin(), callers().end(), ::Predicate<GenericCall>( &GenericCall::hasForwardingLevel ) );
+    return std::any_of( callers().begin(), callers().end(), std::mem_fn( &GenericCall::hasForwardingLevel ) );
 }
 
 
@@ -987,7 +979,7 @@ Entry::isForwardingTarget() const
 bool
 Entry::hasCalls( const callPredicate predicate ) const
 {
-    return std::any_of( calls().begin(), calls().end(), ::Predicate<GenericCall>( predicate ) );
+    return std::any_of( calls().begin(), calls().end(), std::mem_fn( predicate ) );
 }
 
 
@@ -1296,7 +1288,7 @@ Entry::aggregatePhases()
 
     /* Merge all calls to phase 1 */
     
-    for_each( calls().begin(), calls().end(), Exec1<Call,LQIO::DOM::Phase&>( &Call::aggregatePhases, *phase_1 ) );
+    std::for_each( calls().begin(), calls().end(), Exec1<Call,LQIO::DOM::Phase&>( &Call::aggregatePhases, *phase_1 ) );
 
     /* Delete old stuff */
 
@@ -1418,7 +1410,7 @@ Entry::check() const
     
     /* Forwarding probabilities o.k.? */
 
-    const double sum = for_each( calls().begin(), calls().end(), Sum<Call,LQIO::DOM::ExternalVariable>( &Call::forward ) ).sum();
+    const double sum = std::accumulate( calls().begin(), calls().end(), 0.0, sum_extvar( &Call::forward ) );
     if ( sum < 0.0 || 1.0 < sum ) {
 	getDOM()->runtime_error(LQIO::ERR_INVALID_FORWARDING_PROBABILITY, sum );
 	rc = false;
@@ -1856,7 +1848,7 @@ Entry&
 Entry::scaleBy( const double sx, const double sy )
 {
     Element::scaleBy( sx, sy );
-    for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
+    std::for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
     if ( _activityCall ) {
 	_activityCall->scaleBy( sx, sy );
     }
@@ -1869,7 +1861,7 @@ Entry&
 Entry::translateY( const double dy )
 {
     Element::translateY( dy );
-    for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
+    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
     if ( _activityCall ) {
 	_activityCall->translateY( dy );
     }
@@ -1882,7 +1874,7 @@ Entry&
 Entry::depth( const unsigned depth  )
 {
     Element::depth( depth-1 );
-    for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth-2 ) );
+    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth-2 ) );
     if ( _activityCall ) {
 	_activityCall->depth( depth-2 );
     }
@@ -1931,7 +1923,7 @@ Entry::label()
 
     /* Now do calls. */
 
-    for_each( calls().begin(), calls().end(), Exec<GenericCall>( &GenericCall::label ) );
+    std::for_each( calls().begin(), calls().end(), std::mem_fn( &GenericCall::label ) );
     return *this;
 }
 
@@ -1991,7 +1983,7 @@ Entry::labelQueueingNetworkService( Label& aLabel )
 double
 Entry::serviceTimeForSRVNInput() const
 {
-    return for_each( _phases.begin(), _phases.end(), Sum<Phase,double>( &Phase::serviceTimeForSRVNInput ) ).sum();
+    return std::accumulate( _phases.begin(), _phases.end(), 0.0, sum( &Phase::serviceTimeForSRVNInput ) );
 }
 
 
@@ -2250,10 +2242,10 @@ Entry::replicateCall()
 	 * drawing calls are associated with entries
 	 */
 	
-	for_each( _phases.begin(), _phases.end(), Exec<Phase>( &Phase::replicateCall ) );
+	std::for_each( _phases.begin(), _phases.end(), Exec( &Phase::replicateCall ) );
 
 	Call * root = nullptr;
-	for_each( old_calls.begin(), old_calls.end(), Exec2<Call, std::vector<Call *>&, Call **>( &Call::replicateCall, _calls, &root ) );
+	std::for_each( old_calls.begin(), old_calls.end(), Exec2<Call, std::vector<Call *>&, Call **>( &Call::replicateCall, _calls, &root ) );
     }
     return *this;
 }
@@ -2353,7 +2345,7 @@ Entry::draw( std::ostream& output ) const
 
     /* Draw reply arcs here for PostScript layering */
 
-    for_each( _activityCallers.begin(), _activityCallers.end(), ConstExec1<GenericCall,std::ostream&>(&GenericCall::draw, output) );
+    std::for_each( _activityCallers.begin(), _activityCallers.end(), ConstExec1<GenericCall,std::ostream&>(&GenericCall::draw, output) );
     return *this;
 }
 

@@ -7,10 +7,10 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_results.h 15220 2021-12-15 15:18:47Z greg $
+ * $Id: srvn_results.h 16546 2023-03-18 22:32:16Z greg $
  */
 
-#if	!defined(SRVN_RESULTS_H)
+#ifndef SRVN_RESULTS_H
 #define	SRVN_RESULTS_H
 
 #if	defined(__cplusplus)

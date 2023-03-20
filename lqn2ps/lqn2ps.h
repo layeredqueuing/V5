@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 15957 2022-10-07 17:14:47Z greg $
+ * $Id: lqn2ps.h 16557 2023-03-20 10:21:04Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -478,26 +478,6 @@ StringPlural plural( const std::string& s, const unsigned i );	/* See main.cc */
 #endif
 
 
-template <class Type> struct Exec
-{
-    typedef Type& (Type::*funcPtr)();
-    Exec<Type>( funcPtr f ) : _f(f) {};
-    void operator()( Type * object ) const { (object->*_f)(); }
-    void operator()( Type& object ) const { (object.*_f)(); }
-private:
-    funcPtr _f;
-};
-
-template <class Type> struct ConstExec
-{
-    typedef const Type& (Type::*funcPtr)() const;
-    ConstExec<Type>( const funcPtr f ) : _f(f) {};
-    void operator()( const Type * object ) const { (object->*_f)(); }
-    void operator()( const Type& object ) const { (object.*_f)(); }
-private:
-    const funcPtr _f;
-};
-
 template <class Type1, class Type2> struct Exec1
 {
     typedef Type1& (Type1::*funcPtr)( Type2 x );
@@ -661,43 +641,6 @@ private:
 
 inline std::string fold( const std::string& s1, const std::string& s2 ) { return s1 + "," + s2; }
 
-template <class Type1, class Type2> struct Sum
-{
-    typedef Type2 (Type1::*funcPtr)() const;
-    Sum<Type1,Type2>( funcPtr f ) : _f(f), _sum(0) {}
-    void operator()( const Type1 * object ) { _sum += (object->*_f)(); }
-    void operator()( const Type1& object ) { _sum += (object.*_f)(); }
-    Type2 sum() const { return _sum; }
-private:
-    funcPtr _f;
-    Type2 _sum;
-};
-	
-template <class Type1> struct Sum<Type1,LQIO::DOM::ExternalVariable>
-{
-    typedef const LQIO::DOM::ExternalVariable& (Type1::*funcPtr)() const;
-    Sum<Type1,LQIO::DOM::ExternalVariable>( funcPtr f ) : _f(f), _sum(0) {}
-    void operator()( const Type1 * object ) { _sum += LQIO::DOM::to_double((object->*_f)()); }
-    void operator()( const Type1& object ) { _sum += LQIO::DOM::to_double((object.*_f)()); }
-    double sum() const { return _sum; }
-private:
-    funcPtr _f;
-    double _sum;
-};
-	
-template <class Type1> struct SumP
-{
-    typedef const LQIO::DOM::ExternalVariable& (Type1::*funcPtr)( unsigned int ) const;
-    SumP<Type1>( funcPtr f, unsigned int p ) : _f(f), _p(p), _sum(0) {}
-    void operator()( const Type1 * object ) { _sum += LQIO::DOM::to_double((object->*_f)(_p)); }
-    void operator()( const Type1& object ) { _sum += LQIO::DOM::to_double((object.*_f)(_p)); }
-    double sum() const { return _sum; }
-private:
-    funcPtr _f;
-    unsigned int _p;
-    double _sum;
-};
-	
 template <class Type> struct EQ
 {
     EQ<Type>( const Type * const a ) : _a(a) {}

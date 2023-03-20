@@ -9,37 +9,39 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 16532 2023-03-15 16:49:52Z greg $
+ * $Id: lqns.h 16556 2023-03-19 21:51:42Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(LQNS_LQNS_H)
+#ifndef	LQNS_LQNS_H
 #define LQNS_LQNS_H
 
-#if defined(HAVE_CONFIG_H)
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
 
-#include <cassert>
 #include <algorithm>
+#include <cassert>
+#include <cstring>
 #include <stdexcept>
 #include <string>
-#include <cstring>
 
-#define	BUG_270		1
 
 #define MAX_CLASSES     200                     /* Max classes (clients)        */
 #define MAX_PHASES      3                       /* Number of Phases.            */
 #define N_SEMAPHORE_ENTRIES     2               /* Number of semaphore entries  */
+
+#define	BUG_270		1			/* Enable prune pragma		*/
 #define PAN_REPLICATION	1			/* Use Amy Pan's replication	*/
 #define BUG_299_PRUNE	1			/* Enable replica prune code	*/
+
+const double EPSILON = 0.000001;		/* For testing against 1 or 0 */
 
 /*
  * Return square.  C++ doesn't even have an exponentiation operator, let
  * alone a smart one.
  */
-const double EPSILON = 0.000001;		/* For testing against 1 or 0 */
 
 template <typename Type> inline Type square( Type a ) { return a * a; }
 template <typename Type> inline void Delete( Type x ) { delete x; }
@@ -50,21 +52,6 @@ template <typename Type> inline void Delete( Type x ) { delete x; }
  */
 
 double under_relax( const double old_value, const double new_value, const double relax );
-
-struct lt_str
-{
-    bool operator()(const char* s1, const char* s2) const { return strcmp(s1, s2) < 0; }
-};
-
-template <class Type> struct Exec
-{
-    typedef Type& (Type::*funcPtr)();
-    Exec<Type>( funcPtr f ) : _f(f) {};
-    void operator()( Type * object ) const { (object->*_f)(); }
-    void operator()( Type& object ) const { (object.*_f)(); }
-private:
-    funcPtr _f;
-};
 
 template <class Type1, class Type2> struct Exec1
 {
@@ -102,40 +89,6 @@ private:
     Type4 _z;
 };
 
-template <class Type> struct ConstExec
-{
-    typedef const Type& (Type::*funcPtr)() const;
-    ConstExec<Type>( const funcPtr f ) : _f(f) {}
-    void operator()( const Type * object ) const { (object->*_f)(); }
-    void operator()( const Type& object ) const { (object.*_f)(); }
-private:
-    const funcPtr _f;
-};
-    
-template <class Type1, class Type2 > struct ExecSum
-{
-    typedef Type2 (Type1::*funcPtr)();
-    ExecSum<Type1,Type2>( funcPtr f ) : _f(f), _sum(0.) {}
-    void operator()( Type1 * object ) { _sum += (object->*_f)(); }
-    void operator()( Type1& object ) { _sum += (object.*_f)(); }
-    Type2 sum() const { return _sum; }
-private:
-    const funcPtr _f;
-    Type2 _sum;
-};
-    
-template <class Type1, class Type2 > struct ExecSumSquare
-{
-    typedef Type2 (Type1::*funcPtr)() const;
-    ExecSumSquare<Type1,Type2>( funcPtr f ) : _f(f), _sum(0.) {}
-    void operator()( Type1 * object ) { _sum += square( (object->*_f)() ); }
-    void operator()( Type1& object ) { _sum += square( (object.*_f)() ); }
-    Type2 sum() const { return _sum; }
-private:
-    const funcPtr _f;
-    Type2 _sum;
-};
-    
 template <class Type1, class Type2, class Type3 > struct ExecSum1
 {
     typedef Type2 (Type1::*funcPtr)( Type3 );
@@ -227,16 +180,6 @@ private:
     const unsigned int _replica;
 };
 
-template <class Type> struct Predicate
-{
-    typedef bool (Type::*predicate)() const;
-    Predicate<Type>( const predicate p ) : _p(p) {};
-    bool operator()( const Type * object ) const { return (object->*_p)(); }
-    bool operator()( const Type& object ) const { return (object.*_p)(); }
-private:
-    const predicate _p;
-};
-
 template <class Type1, class Type2> struct Predicate1
 {
     typedef bool (Type1::*predicate)( Type2 ) const;
@@ -256,17 +199,6 @@ template <class Type1, class Type2> struct add_using
     Type1 operator()( Type1 l, const Type2& r ) const { return l + (r.*_f)(); }
 private:
     const funcPtr _f;
-};
-
-template <class Type1, class Type2> struct add_using_arg
-{
-    typedef double (Type1::*funcPtr)( Type2 ) const;
-    add_using_arg<Type1,Type2>( funcPtr f, Type2 arg ) : _f(f), _arg(arg) {}
-    double operator()( double l, const Type1 * r ) const { return l + (r->*_f)(_arg); }
-    double operator()( double l, const Type1& r ) const { return l + (r.*_f)(_arg); }
-private:
-    const funcPtr _f;
-    Type2 _arg;
 };
 
 template <class Type1, class Type2, class Type3> struct add_two_args
@@ -312,16 +244,5 @@ private:
     const funcPtr _f;
     Type2 _arg1;
     Type3 _arg2;
-};
-
-template <class Type1, class Type2> struct unsigned_add_using_arg
-{
-    typedef unsigned (Type1::*funcPtr)( Type2 ) const;
-    unsigned_add_using_arg<Type1,Type2>( funcPtr f, Type2 arg ) : _f(f), _arg(arg) {}
-    unsigned operator()( unsigned l, const Type1 * r ) const { return l + (r->*_f)(_arg); }
-    unsigned operator()( unsigned l, const Type1& r ) const { return l + (r.*_f)(_arg); }
-private:
-    const funcPtr _f;
-    Type2 _arg;
 };
 #endif

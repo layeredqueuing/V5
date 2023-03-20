@@ -9,12 +9,12 @@
  *
  * November, 2012
  *
- * $Id: gamma.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: gamma.h 16546 2023-03-18 22:32:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if !defined(LQNS_GAMMA_H)
+#ifndef LQNS_GAMMA_H
 #define LQNS_GAMMA_H
 
 class Gamma_Distribution

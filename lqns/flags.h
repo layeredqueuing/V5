@@ -9,12 +9,12 @@
  *
  * November, 1994
  *
- * $Id: flags.h 15618 2022-06-01 19:53:56Z greg $
+ * $Id: flags.h 16546 2023-03-18 22:32:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if !defined(LQNS_FLAGS_H)
+#ifndef LQNS_FLAGS_H
 #define LQNS_FLAGS_H
 
 extern char * generate_file_name;

@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16520 2023-03-14 19:49:41Z greg $
+ * $Id: task.cc 16551 2023-03-19 14:55:57Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -18,6 +18,7 @@
 #include "lqns.h"
 #include <cmath>
 #include <cstdlib>
+#include <functional>
 #include <limits>
 #include <numeric>
 #include <ostream>
@@ -178,8 +179,8 @@ Task::cloneActivities( const Task& src, unsigned int replica )
 bool
 Task::hasThinkTime() const
 {
-    return std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasThinkTime ) )
-	|| std::any_of( activities().begin(), activities().end(), Predicate<Activity>( &Activity::hasThinkTime ) );
+    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasThinkTime ) )
+	|| std::any_of( activities().begin(), activities().end(), std::mem_fn( &Activity::hasThinkTime ) );
 }
 
 
@@ -226,17 +227,17 @@ Task::check() const
 	rc = false;
     }
 
-    rc = std::all_of( entries().begin(),entries().end(), Predicate<Entry>( &Entry::check ) ) && rc;
-    if ( hasActivities() && std::none_of( entries().begin(),entries().end(), Predicate<Entry>( &Entry::isActivityEntry ) ) ) {
+    rc = std::all_of( entries().begin(),entries().end(), std::mem_fn( &Entry::check ) ) && rc;
+    if ( hasActivities() && std::none_of( entries().begin(),entries().end(), std::mem_fn( &Entry::isActivityEntry ) ) ) {
 	getDOM()->runtime_error( LQIO::ERR_NO_START_ACTIVITIES );
     } else {
-	rc = std::all_of( activities().begin(), activities().end(), Predicate<Phase>( &Phase::check ) ) && rc;
-	rc = std::all_of( precedences().begin(), precedences().end(), Predicate<ActivityList>( &ActivityList::check ) ) && rc;
+	rc = std::all_of( activities().begin(), activities().end(), std::mem_fn( &Phase::check ) ) && rc;
+	rc = std::all_of( precedences().begin(), precedences().end(), std::mem_fn( &ActivityList::check ) ) && rc;
     }
 
     /* Check reachability */
     
-    rc = std::none_of( activities().begin(), activities().end(), Predicate<Activity>( &Activity::isNotReachable ) ) && rc;
+    rc = std::none_of( activities().begin(), activities().end(), std::mem_fn( &Activity::isNotReachable ) ) && rc;
 
     return rc;
 }
@@ -308,9 +309,9 @@ Task::find_max_depth::operator()( unsigned int depth, const Entry * entry )
 Task&
 Task::linkForkToJoin()
 {
-    _has_forks = std::any_of( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::isFork) );
-    _has_syncs = std::any_of( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::isSync) );
-    _has_quorum = std::any_of( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::hasQuorum) );
+    _has_forks = std::any_of( _precedences.begin(), _precedences.end(), std::mem_fn(&ActivityList::isFork) );
+    _has_syncs = std::any_of( _precedences.begin(), _precedences.end(), std::mem_fn(&ActivityList::isSync) );
+    _has_quorum = std::any_of( _precedences.begin(), _precedences.end(), std::mem_fn(&ActivityList::hasQuorum) );
 
     Call::stack callStack;
     Activity::Children path( callStack, true, false );
@@ -415,8 +416,8 @@ Task::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
 Task&
 Task::initProcessor()
 {
-    std::for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initProcessor ) );
-    std::for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::initProcessor ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::initProcessor ) );
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::initProcessor ) );
     return *this;
 }
 
@@ -431,7 +432,7 @@ Task::initProcessor()
 Task&
 Task::initWait()
 {
-    std::for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::initWait ) );
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::initWait ) );
     Entity::initWait();
     return *this;
 }
@@ -445,7 +446,7 @@ Task::initWait()
 Task&
 Task::initThroughputBound()
 {
-    std::for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initThroughputBound ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::initThroughputBound ) );
     return *this;
 }
 
@@ -479,7 +480,7 @@ Task&
 Task::createInterlock()
 {
     if ( !Pragma::interlock() ) return *this;
-    std::for_each ( entries().begin(), entries().end(), Exec<Entry>( &Entry::createInterlock ) );
+    std::for_each ( entries().begin(), entries().end(), std::mem_fn( &Entry::createInterlock ) );
     return *this;
 }
 
@@ -656,8 +657,8 @@ Task::addPrecedence( ActivityList * precedence )
 void
 Task::resetReplication()
 {
-    std::for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::resetReplication ) );
-    std::for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::resetReplication ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::resetReplication ) );
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::resetReplication ) );
 }
 #endif
 
@@ -670,7 +671,7 @@ Task::resetReplication()
 bool
 Task::isCalled() const
 {
-    return std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::isCalled ) );
+    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::isCalled ) );
 }
 
 
@@ -685,9 +686,9 @@ Task::rootLevel() const
 {
     root_level_t level = root_level_t::IS_NON_REFERENCE;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	if ( (*entry)->isCalledUsing( Entry::RequestType::RENDEZVOUS ) || (*entry)->isCalledUsing( Entry::RequestType::SEND_NO_REPLY ) ) {
+	if ( (*entry)->isCalledUsingRendezvous() || (*entry)->isCalledUsingSendNoReply() ) {
 	    return root_level_t::IS_NON_REFERENCE;	/* Non root task */
-	} else if ( (*entry)->isCalledUsing( Entry::RequestType::OPEN_ARRIVAL ) ) {
+	} else if ( (*entry)->isCalledUsingOpenArrival() ) {
 	    level = root_level_t::HAS_OPEN_ARRIVALS;	/* Root task, but move to lower level */
 	}
     }
@@ -725,7 +726,7 @@ Task::expand()
 Task&
 Task::expandCalls()
 {
-    std::for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::expandCalls ) );
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::expandCalls ) );
     return *this;
 }
 
@@ -978,7 +979,7 @@ Task::sanityCheck() const
 {
     Entity::sanityCheck();
 
-    if ( !std::all_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::checkDroppedCalls ) ) ) {
+    if ( !std::all_of( entries().begin(), entries().end(), std::mem_fn( &Entry::checkDroppedCalls ) ) ) {
 	getDOM()->runtime_error( LQIO::ADV_MESSAGES_DROPPED );
     }
     return *this;
@@ -1048,7 +1049,7 @@ Task::thinkTime( const unsigned submodel, const unsigned k ) const
 Task&
 Task::computeVariance()
 {
-    std::for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::updateVariance ) );
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::updateVariance ) );
     Entity::computeVariance();
     return *this;
 }
@@ -1124,7 +1125,7 @@ Task::updateWaitReplication( const Submodel& submodel, unsigned & n_delta )
 Task&
 Task::recalculateDynamicValues()
 {
-    std::for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::recalculateDynamicValues ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::recalculateDynamicValues ) );
     return *this;
 }
 
@@ -1511,8 +1512,8 @@ Task::insertDOMResults(void) const
     }
 
     if (hasActivities()) {
-	std::for_each( activities().begin(), activities().end(), ConstExec<Phase>( &Phase::insertDOMResults ) );
-	std::for_each( precedences().begin(), precedences().end(), ConstExec<ActivityList>( &ActivityList::insertDOMResults ) );
+	std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::insertDOMResults ) );
+	std::for_each( precedences().begin(), precedences().end(), std::mem_fn( &ActivityList::insertDOMResults ) );
     }
 
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
@@ -1813,10 +1814,8 @@ ServerTask::check() const
 	getDOM()->setCopiesValue(1);
     }
 
-    /* */
-
-    if ( isInfinite() && (std::any_of( entries().begin(), entries().end(), Predicate1<Entry,Entry::RequestType>( &Entry::isCalledUsing, Entry::RequestType::SEND_NO_REPLY ) )
-			  || std::any_of( entries().begin(), entries().end(), Predicate1<Entry,Entry::RequestType>( &Entry::isCalledUsing, Entry::RequestType::OPEN_ARRIVAL ) ) ) ) {
+    if ( isInfinite() && (std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::isCalledUsingSendNoReply ) )
+			  || std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::isCalledUsingOpenArrival ) ) ) ) {
 	getDOM()->runtime_error( LQIO::WRN_INFINITE_SERVER_OPEN_ARRIVALS );
     }
 

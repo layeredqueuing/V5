@@ -1,6 +1,6 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 15613 2022-06-01 10:24:28Z greg $
+ * $Id: open.cc 16551 2023-03-19 14:55:57Z greg $
  */
 
 #include "lqn2ps.h"
@@ -92,7 +92,7 @@ OpenArrivalSource::isInOpenModel( const std::vector<Entity *>& servers ) const
 unsigned 
 OpenArrivalSource::setChain( unsigned k, const callPredicate aFunc )
 {
-    for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::setChain, k ) );
+    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::setChain, k ) );
     return k;
 }
 
@@ -137,7 +137,7 @@ OpenArrivalSource::moveTo( const double x, const double y )
 OpenArrivalSource&
 OpenArrivalSource::moveSrc( const Point& aPoint )
 {
-    for_each( calls().begin(), calls().end(), Exec1<GenericCall,const Point &>( &GenericCall::moveSrc, aPoint ) );
+    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,const Point &>( &GenericCall::moveSrc, aPoint ) );
     return *this;
 }
 
@@ -150,7 +150,7 @@ OpenArrivalSource&
 OpenArrivalSource::scaleBy( const double sx, const double sy )
 {
     Element::scaleBy( sx, sy );
-    for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
+    std::for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
     return *this;
 }
 
@@ -164,7 +164,7 @@ OpenArrivalSource&
 OpenArrivalSource::depth( const unsigned depth )
 {
     Element::depth( depth );
-    for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth ) );
+    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth ) );
     return *this;
 }
 
@@ -178,7 +178,7 @@ OpenArrivalSource&
 OpenArrivalSource::translateY( const double dy )
 {
     Element::translateY( dy );
-    for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
+    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
     return *this;
 }
 

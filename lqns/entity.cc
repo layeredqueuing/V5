@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16522 2023-03-14 21:01:37Z greg $
+ * $Id: entity.cc 16556 2023-03-19 21:51:42Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -16,6 +16,7 @@
 
 #include "lqns.h"
 #include <cmath>
+#include <functional>
 #include <numeric>
 #include <sstream>
 #include <limits>
@@ -138,10 +139,10 @@ Entity&
 Entity::configure( const unsigned nSubmodels )
 {
     std::for_each( entries().begin(), entries().end(), Exec1<Entry,unsigned>( &Entry::configure, nSubmodels ) );
-    if ( std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasDeterministicPhases ) ) ) setDeterministicPhases( true );
+    if ( std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasDeterministicPhases ) ) ) setDeterministicPhases( true );
     if ( !Pragma::variance(Pragma::Variance::NONE)
 	 && ((nEntries() > 1 && Pragma::entry_variance())
-	     || std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasVariance ) )) ) setVarianceAttribute( true );
+	     || std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasVariance ) )) ) setVarianceAttribute( true );
     _maxPhase = (*std::max_element( entries().begin(), entries().end(), Entry::max_phase ))->maxPhase();
     return *this;
 }
@@ -186,7 +187,7 @@ Entity::findChildren( Call::stack& callStack, const bool ) const
 Entity&
 Entity::initWait()
 {
-    std::for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initWait ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::initWait ) );
     return *this;
 }
 
@@ -307,8 +308,7 @@ Entity::addEntry( Entry * anEntry )
 
 double
 Entity::throughput() const
-{
-    return std::accumulate( entries().begin(), entries().end(), 0., add_using<double,Entry>( &Entry::throughput ) );
+{    return std::accumulate( entries().begin(), entries().end(), 0., add_using<double,Entry>( &Entry::throughput ) );
 }
 
 
@@ -344,7 +344,7 @@ Entity::hasServerChain( const unsigned k ) const
 bool
 Entity::hasOpenArrivals() const
 {
-    return std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasOpenArrivals ) );
+    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasOpenArrivals ) );
 }
 
 
@@ -400,7 +400,7 @@ Entity::computeUtilization( const MVASubmodel& submodel )
 Entity&
 Entity::computeVariance()
 {
-    std::for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::computeVariance ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::computeVariance ) );
     return *this;
 }
 

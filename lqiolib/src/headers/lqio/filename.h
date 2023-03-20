@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: filename.h 15337 2022-01-03 13:59:54Z greg $
+ * $Id: filename.h 16546 2023-03-18 22:32:16Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -12,10 +12,10 @@
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(SRVNIOLIB_FILENAME_H)
-#define	SRVNIOLIB_FILENAME_H
+#ifndef LQIOLIB_FILENAME_H
+#define	LQIOLIB_FILENAME_H
 
-#if defined(HAVE_CONFIG_H)
+#if HAVE_CONFIG_H
 #include <config.h>
 #endif
 

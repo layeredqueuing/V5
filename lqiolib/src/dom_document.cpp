@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 16459 2023-03-04 23:26:51Z greg $
+ *  $Id: dom_document.cpp 16550 2023-03-19 14:03:33Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -11,6 +11,7 @@
 #endif
 #include "dom_document.h"
 #include <fstream>
+#include <functional>
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
@@ -69,13 +70,13 @@ namespace LQIO {
 	    { XSpexConvergence,             0.001 }
 	};
 	
-	const std::map<const LQIO::DOM::Document::OutputFormat,const std::string> Document::__output_extensions = {
+	const std::map<const Document::OutputFormat,const std::string> Document::__output_extensions = {
 	    { OutputFormat::XML,	"lqxo" },
 	    { OutputFormat::JSON,	"lqjo" },
 	    { OutputFormat::PARSEABLE,	"p" },
 	    { OutputFormat::QNAP2,	"qnap" }
 	};
-	const std::map<const LQIO::DOM::Document::InputFormat,const LQIO::DOM::Document::OutputFormat> Document::__input_to_output_format = {
+	const std::map<const Document::InputFormat,const Document::OutputFormat> Document::__input_to_output_format = {
 	    { InputFormat::XML,		OutputFormat::XML },
 	    { InputFormat::JSON,	OutputFormat::JSON },
 #if HAVE_LIBEXPAT
@@ -87,7 +88,7 @@ namespace LQIO {
 	    { InputFormat::JMVA,	OutputFormat::JMVA },
 	    { InputFormat::QNAP2,	OutputFormat::QNAP2 }
 	};
-	const std::map<const std::string,const LQIO::DOM::Document::InputFormat> Document::__extensions_input = {
+	const std::map<const std::string,const Document::InputFormat> Document::__extensions_input = {
 	    { "in",			InputFormat::LQN },
 	    { "jaba",			InputFormat::JABA },
 	    { "jmva",			InputFormat::JMVA },
@@ -167,15 +168,15 @@ namespace LQIO {
 	    __input_file_name = "";
 	}
 
-	void Document::setModelParameters(const std::string& comment, LQIO::DOM::ExternalVariable* convergence_value, LQIO::DOM::ExternalVariable* iteration_limit, LQIO::DOM::ExternalVariable* print_interval, LQIO::DOM::ExternalVariable* underrelax_coeff, const void * element )
+	void Document::setModelParameters(const std::string& comment, ExternalVariable* convergence_value, ExternalVariable* iteration_limit, ExternalVariable* print_interval, ExternalVariable* underrelax_coeff, const void * element )
 	{
 	    /* Set up initial model parameters, but only if they were not set using SPEX variables */
 
 	    _modelComment = comment;
-	    if ( convergence_value != nullptr ) _controlVariables.emplace( std::pair<const std::string,LQIO::DOM::ExternalVariable*>(XConvergence,convergence_value) );
-	    if ( iteration_limit != nullptr )   _controlVariables.emplace( std::pair<const std::string,LQIO::DOM::ExternalVariable*>(XIterationLimit,iteration_limit) );
-	    if ( print_interval != nullptr )    _controlVariables.emplace( std::pair<const std::string,LQIO::DOM::ExternalVariable*>(XPrintInterval,print_interval) );
-	    if ( underrelax_coeff != nullptr )  _controlVariables.emplace( std::pair<const std::string,LQIO::DOM::ExternalVariable*>(XUnderrelaxationCoefficient,underrelax_coeff) );
+	    if ( convergence_value != nullptr ) _controlVariables.emplace( std::pair<const std::string,ExternalVariable*>(XConvergence,convergence_value) );
+	    if ( iteration_limit != nullptr )   _controlVariables.emplace( std::pair<const std::string,ExternalVariable*>(XIterationLimit,iteration_limit) );
+	    if ( print_interval != nullptr )    _controlVariables.emplace( std::pair<const std::string,ExternalVariable*>(XPrintInterval,print_interval) );
+	    if ( underrelax_coeff != nullptr )  _controlVariables.emplace( std::pair<const std::string,ExternalVariable*>(XUnderrelaxationCoefficient,underrelax_coeff) );
 	}
 
 	const std::string& Document::getModelComment() const
@@ -620,7 +621,7 @@ namespace LQIO {
 	{
 	    /* This is a property of phases and activities, so count_if can't be used here */
 	    if ( _hasRendezvous == cached::NOT_SET ) {
-		_hasRendezvous = std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasRendezvous ) ) ? cached::SET_TRUE : cached::SET_FALSE;
+		_hasRendezvous = std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasRendezvous ) ) ? cached::SET_TRUE : cached::SET_FALSE;
 	    }
 	    return _hasRendezvous == cached::SET_TRUE;
 	}
@@ -628,60 +629,61 @@ namespace LQIO {
 	bool Document::hasSendNoReply() const
 	{
 	    if ( _hasSendNoReply == cached::NOT_SET ) {
-		_hasSendNoReply = std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasSendNoReply ) ) ? cached::SET_TRUE : cached::SET_FALSE;
+		_hasSendNoReply = std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasSendNoReply ) ) ? cached::SET_TRUE : cached::SET_FALSE;
 	    }
 	    return _hasSendNoReply == cached::SET_TRUE;
 	}
 
 	bool Document::hasForwarding() const
 	{
-	    return std::any_of( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasForwarding ) );
+	    return std::any_of( _entries.begin(), _entries.end(), Entry::Predicate<Entry>( &Entry::hasForwarding ) );
+//	    return std::any_of( _entries.begin(), _entries.end(), std::mem_fn( &Entry::hasForwarding ) );	/* Can't use mem_fn because entries is a map */
 	}
 
 	bool Document::hasNonExponentialPhase() const
 	{
-	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::isNonExponential ) );
+	    return std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::isNonExponential ) );
 	}
 
 	bool Document::hasDeterministicPhase() const
 	{
-	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasDeterministicCalls ) );
+	    return std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasDeterministicCalls ) );
 	}
 
 	bool Document::hasMaxServiceTimeExceeded() const
 	{
-	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasMaxServiceTimeExceeded ) );
+	    return std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasMaxServiceTimeExceeded ) );
 	}
 
 	bool Document::hasHistogram() const
 	{
-	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasHistogram ) );
+	    return std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasHistogram ) );
 	}
 
 	bool Document::entryHasWaitingTimeVariance() const
 	{
-	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasResultVarianceWaitingTime ) );
+	    return std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasResultVarianceWaitingTime ) );
 	}
 
 	bool Document::entryHasDropProbability() const
 	{
-	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasResultDropProbability ) );
+	    return std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasResultDropProbability ) );
 	}
 
 	bool Document::entryHasServiceTimeVariance() const
 	{
-	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasResultServiceTimeVariance ) );
+	    return std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasResultServiceTimeVariance ) );
 	}
 
 	bool Document::processorHasRate() const
 	{
-	    return std::any_of( _processors.begin(), _processors.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Processor>( &LQIO::DOM::Processor::hasRate ) );
+	    return std::any_of( _processors.begin(), _processors.end(), Entity::Predicate<Processor>( &Processor::hasRate ) );
 	}
 
 	bool Document::taskHasAndJoin() const
 	{
 	    if ( _taskHasAndJoin == cached::NOT_SET ) {
-		_taskHasAndJoin = std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Task>( &LQIO::DOM::Task::hasAndJoinActivityList ) ) ? cached::SET_TRUE : cached::SET_FALSE;
+		_taskHasAndJoin = std::any_of( _tasks.begin(), _tasks.end(), Entity::Predicate<Task>( &Task::hasAndJoinActivityList ) ) ? cached::SET_TRUE : cached::SET_FALSE;
 	    }
 	    return _taskHasAndJoin == cached::SET_TRUE;
 	}
@@ -689,37 +691,37 @@ namespace LQIO {
 	bool Document::taskHasThinkTime() const
 	{
 	    /* This is a property of tasks only */
-	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Task>( &LQIO::DOM::Task::hasThinkTime ) );
+	    return std::any_of( _tasks.begin(), _tasks.end(), Entity::Predicate<Task>( &Task::hasThinkTime ) );
 	}
 
 	bool Document::hasSemaphoreWait() const
 	{
-	    return std::any_of( _tasks.begin(), _tasks.end(), &LQIO::DOM::Task::isSemaphoreTask );
+	    return std::any_of( _tasks.begin(), _tasks.end(), &Task::isSemaphoreTask );
 	}
 
 	bool Document::hasRWLockWait() const
 	{
-	    return std::any_of( _tasks.begin(), _tasks.end(), &LQIO::DOM::Task::isRWLockTask );
+	    return std::any_of( _tasks.begin(), _tasks.end(), &Task::isRWLockTask );
 	}
 
 	bool Document::hasThinkTime() const
 	{
-	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasThinkTime ) );
+	    return std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasThinkTime ) );
 	}
 
 	bool Document::hasOpenArrivals() const
 	{
-	    return std::any_of( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasOpenArrivalRate ) );
+	    return std::any_of( _entries.begin(), _entries.end(), Entry::Predicate<Entry>( &Entry::hasOpenArrivalRate ) );
 	}
 
 	bool Document::entryHasThroughputBound() const
 	{
-	    return std::any_of( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasResultsForThroughputBound ) );
+	    return std::any_of( _entries.begin(), _entries.end(), Entry::Predicate<Entry>( &Entry::hasResultsForThroughputBound ) );
 	}
 
 	bool Document::entryHasOpenWait() const
 	{
-	    return std::any_of( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasResultsForOpenWait ) );
+	    return std::any_of( _entries.begin(), _entries.end(), Entry::Predicate<Entry>( &Entry::hasResultsForOpenWait ) );
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Dom builder ] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -883,7 +885,7 @@ namespace LQIO {
 	    
 	    std::string suffix = filename.substr( pos+1 );
 	    std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
-	    const std::map<const std::string,const LQIO::DOM::Document::InputFormat>::const_iterator ext = __extensions_input.find( suffix );
+	    const std::map<const std::string,const Document::InputFormat>::const_iterator ext = __extensions_input.find( suffix );
 	    if ( ext != __extensions_input.end() ) {
 		return ext->second;
 	    } else {
@@ -923,7 +925,7 @@ namespace LQIO {
 
 		/* Parseable output. {.p, .lqxo, .lqjo} */
 
-		const std::map<const LQIO::DOM::Document::OutputFormat,const std::string>::const_iterator extension =  __output_extensions.find( output_format );
+		const std::map<const Document::OutputFormat,const std::string>::const_iterator extension =  __output_extensions.find( output_format );
 		if ( extension != __output_extensions.end() ) {
 		    LQIO::Filename filename( __input_file_name, extension->second, directory_name, suffix );
 		    filename.backup();
@@ -938,14 +940,14 @@ namespace LQIO {
 
 		/* Regular output */
 
-		if ( !LQIO::DOM::__document->hasPragma( LQIO::DOM::Pragma::_default_output_ ) || LQIO::DOM::Pragma::isTrue(LQIO::DOM::__document->getPragma( LQIO::DOM::Pragma::_default_output_ )) ) {
+		if ( !__document->hasPragma( Pragma::_default_output_ ) || Pragma::isTrue(__document->getPragma( Pragma::_default_output_ )) ) {
 		    LQIO::Filename filename( __input_file_name, rtf_output ? "rtf" : "out", directory_name, suffix );
 
 		    output.open( filename(), std::ios::out );
 		    if ( !output ) {
 			runtime_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 		    } else if ( rtf_output ) {
-			print( output, LQIO::DOM::Document::OutputFormat::RTF );
+			print( output, Document::OutputFormat::RTF );
 		    } else {
 			print( output );
 		    }
@@ -965,7 +967,7 @@ namespace LQIO {
 		} else if ( __output_extensions.find( output_format ) != __output_extensions.end() ) {
 		    print( output, output_format );
 		} else if ( rtf_output ) {
-		    print( output, LQIO::DOM::Document::OutputFormat::RTF );
+		    print( output, Document::OutputFormat::RTF );
 		} else {
 		    print( output );
 		}
@@ -975,11 +977,11 @@ namespace LQIO {
 
 		/* case for pipeines: ... | lqns ... */
 
-		const std::map<const LQIO::DOM::Document::OutputFormat,const std::string>::const_iterator extension =  __output_extensions.find( output_format );
+		const std::map<const Document::OutputFormat,const std::string>::const_iterator extension =  __output_extensions.find( output_format );
 		if ( extension != __output_extensions.end() ) {
 		    print( std::cout, extension->first );
 		} else if ( rtf_output ) {
-		    print( std::cout, LQIO::DOM::Document::OutputFormat::RTF );
+		    print( std::cout, Document::OutputFormat::RTF );
 		} else {
 		    print( std::cout );
 		}
@@ -998,7 +1000,7 @@ namespace LQIO {
 	{
 	    const bool lqx_output = getResultInvocationNumber() > 0;
 	    const std::string directory_name = LQIO::Filename::createDirectory( Filename::isFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
-	    const std::map<const LQIO::DOM::Document::OutputFormat,const std::string>::const_iterator format_iterator = __output_extensions.find( output_format );
+	    const std::map<const Document::OutputFormat,const std::string>::const_iterator format_iterator = __output_extensions.find( output_format );
 
 	    LQIO::Filename filename;
 	    if ( Filename::isFileName( output_file_name ) && directory_name.empty() ) {
@@ -1030,10 +1032,10 @@ namespace LQIO {
 
 	    if ( !output ) return;			/* Ignore errors */
 
-	    if ( format_iterator != LQIO::DOM::Document::__output_extensions.end() ) {
+	    if ( format_iterator != Document::__output_extensions.end() ) {
 		print( output, format_iterator->first );
 	    } else if ( rtf_output ) {
-		print( output, LQIO::DOM::Document::OutputFormat::RTF );
+		print( output, Document::OutputFormat::RTF );
 	    } else {
 		print( output );
 	    }

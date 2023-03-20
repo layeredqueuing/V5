@@ -10,12 +10,12 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 16514 2023-03-14 12:50:12Z greg $
+ * $Id: call.h 16546 2023-03-18 22:32:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(LQNS_CALL_H)
+#ifndef	LQNS_CALL_H
 #define LQNS_CALL_H
 
 #include <cmath>

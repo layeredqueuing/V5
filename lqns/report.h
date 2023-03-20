@@ -9,13 +9,13 @@
  *
  * November, 1994
  *
- * $Id: report.h 14817 2021-06-15 16:51:27Z greg $
+ * $Id: report.h 16546 2023-03-18 22:32:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(SOLVERREPORT_H)
-#define	SOLVERREPORT_H
+#ifndef LQNS_SOLVERREPORT_H
+#define	LQNS_SOLVERREPORT_H
 
 #include <lqio/common_io.h>
 #include <mva/vector.h>

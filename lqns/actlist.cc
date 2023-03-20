@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 16543 2023-03-17 16:05:29Z greg $
+ * $Id: actlist.cc 16556 2023-03-19 21:51:42Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1541,7 +1541,7 @@ AndForkActivityList::callsPerform( const Phase::CallExec& exec ) const
 unsigned
 AndForkActivityList::concurrentThreads( unsigned n ) const
 {
-    const unsigned m = std::accumulate( activityList().begin(), activityList().end(), 0, unsigned_add_using_arg<Activity,unsigned>( &Activity::concurrentThreads, 1 ) );
+    const unsigned m = std::accumulate( activityList().begin(), activityList().end(), 0, add_threads( &Activity::concurrentThreads, 1 ) );
     n = std::max( n, m - 1 );
 
     return hasNextFork() ? getNextFork()->concurrentThreads( n ) : n;

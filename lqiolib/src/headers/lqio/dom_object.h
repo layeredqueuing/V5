@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 15968 2022-10-13 19:23:03Z greg $
+ *  $Id: dom_object.h 16548 2023-03-19 12:28:28Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -19,7 +19,6 @@ namespace LQIO {
 	class ExternalVariable;
 
 	class DocumentObject {
-	    friend class Document;		/* To access DocumentObject::Predicate */
 
 	public:
 	    template <class Type> class Predicate {
@@ -29,12 +28,12 @@ namespace LQIO {
 		Predicate<Type>( const test_fn f ) : _f(f) {}
 		bool operator()( const Type* object ) const { return (object->*_f)(); }
 		bool operator()( const std::pair<std::string, Type *>& object ) const { return (object.second->*_f)(); }
-		bool operator()( const std::pair<unsigned, Type *>& object ) const { return (object.second->*_f)(); }
+		bool operator()( const std::pair<unsigned int, Type *>& object ) const { return (object.second->*_f)(); }
 	    
 	    private:
 		const test_fn _f;
 	    };
-
+		
 	protected:
 	    DocumentObject();
 	    DocumentObject(const Document * document, const std::string& name );

@@ -9,13 +9,13 @@
  *
  * November, 1994
  *
- * $Id: variance.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: variance.h 16546 2023-03-18 22:32:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(VARIANCE_H)
-#define	VARIANCE_H
+#ifndef LQNS_VARIANCE_H
+#define	LQNS_VARIANCE_H
 
 class Probability;
 class Entity;

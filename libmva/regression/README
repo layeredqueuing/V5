@@ -12,16 +12,27 @@ Args to test* programs.
 -z <arg>: special.
 
 
-test1 -	Chandy and Neuse, Linearizer, CACM, Feb 1982, 25(2) pp 126-134
+test1 - Chandy and Neuse, Linearizer, CACM, Feb 1982, 25(2) pp 126-134
+  test1hv:  high variance stations.
+  test1hvp: high variance with phases.
+  test1p:   phases.
+  test1ps:  Processor sharing.
 test2 - FCFS 
 test3 - Pg 264, Lazowska, FCFS
-test4 - Pg 264, Lazowska, HVFCFS
+test4 - Pg 267, Lazowska, HVFCFS
 test5 - Pg 264, Lazowska test. FCFS
 test6 - 
 test7 - Markov Phased Server
 test8 - Multi Servers (Conway, Resiser, Rolia, Zhou).  1 class, 1 entry, 1 phase.
+test9 - Multiserver.
+  test9c:   Conway solver and model.  Long.
+  test9d:   Conway solver.
+  test9i:   vary the number of servers.  Test all one phase server types.
 test10 - Phased Multi Servers
 test11 - Priority MVA
+  test11a:  PR version
+  test11b:  HOL version
+  test11f:  ??
 test12 - Conway (deSouza...) Multi Server
 test13 - Suri Multi Server
 testcust - test the MVA solver for zero customers over three classes

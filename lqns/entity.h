@@ -9,13 +9,13 @@
  *
  * November, 1994
  *
- * $Id: entity.h 16515 2023-03-14 17:56:28Z greg $
+ * $Id: entity.h 16553 2023-03-19 15:53:51Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(ENTITY_H)
-#define ENTITY_H
+#ifndef LQNS_ENTITY_H
+#define LQNS_ENTITY_H
 
 #include <vector>
 #include <set>
@@ -74,6 +74,15 @@ protected:
     };
 
 public:
+    struct sum_square {
+	typedef double (Entity::*funcPtr)() const;
+	sum_square( funcPtr f ) : _f(f) {}
+	double operator()( double addend, const Entity* object ) { return addend + square( (object->*_f)() ); }
+	double operator()( double addend, const Entity& object ) { return addend + square( (object.*_f)() ); }
+    private:
+	const funcPtr _f;
+    };
+
     /*
      * Compare two entities by their name, but not replica number
      * except that entity must be a replica.

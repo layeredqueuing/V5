@@ -8,10 +8,10 @@
 /************************************************************************/
 
 /*
- * $Id: error.h 15741 2022-07-01 11:57:03Z greg $
+ * $Id: error.h 16546 2023-03-18 22:32:16Z greg $
  */
 
-#if	!defined(LQIOLIB_ERROR_H)
+#ifndef LQIOLIB_ERROR_H
 #define	LQIOLIB_ERROR_H
 
 /*

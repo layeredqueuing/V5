@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 16543 2023-03-17 16:05:29Z greg $
+ * $Id: activity.cc 16548 2023-03-19 12:28:28Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -839,7 +839,7 @@ Activity::checkReplies( Activity::Count_If& data ) const
 {
     const Entry * entry = data.entry();
     if ( repliesTo( entry ) ) {
-	if (  entry->isCalledUsing( Entry::RequestType::SEND_NO_REPLY ) || entry->isCalledUsing( Entry::RequestType::OPEN_ARRIVAL ) ) {
+	if (  entry->isCalledUsingSendNoReply() || entry->isCalledUsingOpenArrival() ) {
 	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, entry->name().c_str() );
 	} else if ( !data.canReply() ) {
 	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FROM_BRANCH, entry->name().c_str() );

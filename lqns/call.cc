@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 16532 2023-03-15 16:49:52Z greg $
+ * $Id: call.cc 16551 2023-03-19 14:55:57Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -16,6 +16,7 @@
 #include "lqns.h"
 #include <cmath>
 #include <limits>
+#include <functional>
 #include <sstream>
 #include <mva/server.h>
 #include "activity.h"
@@ -858,5 +859,5 @@ Call::Find::operator()( const Call * call ) const
 unsigned
 Call::stack::depth() const	
 {
-    return std::count_if( begin(), end(), Predicate<Call>( &Call::hasNoForwarding ) );
+    return std::count_if( begin(), end(), std::mem_fn( &Call::hasNoForwarding ) );
 }

@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: label.cc 15957 2022-10-07 17:14:47Z greg $
+ * $Id: label.cc 16551 2023-03-19 14:55:57Z greg $
  */
 
 #include "lqn2ps.h"
@@ -172,7 +172,7 @@ Label::colour( const Colour colour )
 double
 Label::width() const
 {
-    return for_each( _lines.begin(), _lines.end(), Width( 0 ) ).width() * normalized_font_size() / 2.0;		// A guess.
+    return std::for_each( _lines.begin(), _lines.end(), Width( 0 ) ).width() * normalized_font_size() / 2.0;		// A guess.
 }
 
 
@@ -384,7 +384,7 @@ Label::boundingBox( Point& boxOrigin, Point& boxExtent, const double scaling ) c
 double
 LabelEMF::width() const
 {
-    return for_each( _lines.begin(), _lines.end(), Width( 0 ) ).width() * normalized_font_size() / 4.5;		// A guess.
+    return std::for_each( _lines.begin(), _lines.end(), Width( 0 ) ).width() * normalized_font_size() / 4.5;		// A guess.
 }
 
 
@@ -592,7 +592,7 @@ LabelEMF::draw( std::ostream& output ) const
     if ( boxExtent.x() == 0 || boxExtent.y() == 0 ) return *this;
 
     /* Now put out stuff */
-    for_each( _lines.begin(), _lines.end(), DrawText<LabelEMF>( output, *this, &LabelEMF::text, initialPoint(), justification() ) );
+    std::for_each( _lines.begin(), _lines.end(), DrawText<LabelEMF>( output, *this, &LabelEMF::text, initialPoint(), justification() ) );
     return *this;
 }
 
@@ -683,7 +683,7 @@ LabelFig::draw( std::ostream& output ) const
     }
 
     /* Now put out stuff */
-    for_each( _lines.begin(), _lines.end(), DrawText<LabelFig>( output, *this, &LabelFig::text, initialPoint(), justification(), Fig::POSTSCRIPT ) );
+    std::for_each( _lines.begin(), _lines.end(), DrawText<LabelFig>( output, *this, &LabelFig::text, initialPoint(), justification(), Fig::POSTSCRIPT ) );
 
     endCompound( output );
     return *this;
@@ -717,7 +717,7 @@ LabelFig::initialPoint() const
 double
 LabelGD::width() const
 {
-    return for_each( _lines.begin(), _lines.end(), Width( 0 ) ).width();		// A guess.
+    return std::for_each( _lines.begin(), _lines.end(), Width( 0 ) ).width();		// A guess.
 }
 
 
@@ -825,7 +825,7 @@ LabelGD::appendPC( const char * s )
 const LabelGD&
 LabelGD::draw( std::ostream& output ) const
 {
-    for_each( _lines.rbegin(), _lines.rend(), DrawText<LabelGD>( output, *this, &LabelGD::text, initialPoint(), justification() ) );
+    std::for_each( _lines.rbegin(), _lines.rend(), DrawText<LabelGD>( output, *this, &LabelGD::text, initialPoint(), justification() ) );
     return *this;
 }
 
@@ -899,7 +899,7 @@ LabelPostScript::times()
 const LabelPostScript&
 LabelPostScript::draw( std::ostream& output ) const
 {
-    for_each( _lines.begin(), _lines.end(), DrawText<LabelPostScript>( output, *this, &LabelPostScript::text, initialPoint(), justification() ) );
+    std::for_each( _lines.begin(), _lines.end(), DrawText<LabelPostScript>( output, *this, &LabelPostScript::text, initialPoint(), justification() ) );
     return *this;
 }
 
@@ -997,7 +997,7 @@ LabelSVG::appendPC( const char * s )
 const LabelSVG&
 LabelSVG::draw( std::ostream& output ) const
 {
-    for_each( _lines.rbegin(), _lines.rend(), DrawText<LabelSVG>( output, *this, &LabelSVG::text, initialPoint(), justification() ) );
+    std::for_each( _lines.rbegin(), _lines.rend(), DrawText<LabelSVG>( output, *this, &LabelSVG::text, initialPoint(), justification() ) );
     return *this;
 }
 
@@ -1103,7 +1103,7 @@ LabelSXD::draw( std::ostream& output ) const
 
     /* Now put out stuff */
     SXD::begin_paragraph( output, boxOrigin, boxExtent, justification() );
-    for_each( _lines.begin(), _lines.end(), DrawText<LabelSXD>( output, *this, &LabelSXD::text, initialPoint(), justification() ) );
+    std::for_each( _lines.begin(), _lines.end(), DrawText<LabelSXD>( output, *this, &LabelSXD::text, initialPoint(), justification() ) );
     end_paragraph( output );
 
     return *this;
@@ -1241,7 +1241,7 @@ LabelTeX::times()
 const LabelTeX&
 LabelTeX::draw( std::ostream& output ) const
 {
-    for_each( _lines.begin(), _lines.end(), DrawText<LabelTeX>( output, *this, &LabelTeX::text, initialPoint(), justification() ) );
+    std::for_each( _lines.begin(), _lines.end(), DrawText<LabelTeX>( output, *this, &LabelTeX::text, initialPoint(), justification() ) );
     return *this;
 }
 
@@ -1337,7 +1337,7 @@ LabelPsTeX::draw( std::ostream& output ) const
 
     /* Now put out stuff */
 
-    for_each( _lines.begin(), _lines.end(), DrawText<LabelPsTeX>( output, *this, &LabelPsTeX::text, initialPoint(), justification(), Fig::SPECIAL ) );
+    std::for_each( _lines.begin(), _lines.end(), DrawText<LabelPsTeX>( output, *this, &LabelPsTeX::text, initialPoint(), justification(), Fig::SPECIAL ) );
 
     endCompound( output );
     return *this;

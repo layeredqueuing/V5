@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16454 2023-02-28 22:19:26Z greg $
+ * $Id: model.cc 16551 2023-03-19 14:55:57Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -13,6 +13,7 @@
 #include <cstring>
 #include <errno.h>
 #include <fstream>
+#include <functional>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
@@ -215,14 +216,14 @@ Model::~Model()
 Model&
 Model::operator*=( const double s )
 {
-    for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::scaleBy, s, s ) );
+    std::for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::scaleBy, s, s ) );
     if ( _key ) {
 	_key->scaleBy( s, s );
     }
     if ( _label ) {
 	_label->scaleBy( s, s );
     }
-    for_each( Group::__groups.begin(), Group::__groups.end(), ::ExecXY<Group>( &Group::scaleBy, s, s ) );
+    std::for_each( Group::__groups.begin(), Group::__groups.end(), ::ExecXY<Group>( &Group::scaleBy, s, s ) );
 
     _origin  *= s;
     _extent  *= s;
@@ -235,14 +236,14 @@ Model::operator*=( const double s )
 Model&
 Model::translateScale( const double s ) 
 {
-    for_each( _layers.begin(), _layers.end(), Exec1<Layer,double>( &Layer::translateY, top() ) );
+    std::for_each( _layers.begin(), _layers.end(), Exec1<Layer,double>( &Layer::translateY, top() ) );
     if ( _key ) {
 	_key->translateY( top() );
     }
     if ( _label ) {
 	_label->translateY( top() );
     }
-    for_each( Group::__groups.begin(), Group::__groups.end(), Exec1<Group,double>( &Group::translateY, top() ) );
+    std::for_each( Group::__groups.begin(), Group::__groups.end(), Exec1<Group,double>( &Group::translateY, top() ) );
     *this *= s;
 
     return *this;
@@ -252,14 +253,14 @@ Model::translateScale( const double s )
 Model&
 Model::moveBy( const double dx, const double dy ) 
 {
-    for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::moveBy, dx, dy ) );
+    std::for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::moveBy, dx, dy ) );
     if ( _key ) {
 	_key->moveBy( dx, dy );
     }
     if ( _label ) {
 	_label->moveBy( dx, dy );
     }
-    for_each( Group::__groups.begin(), Group::__groups.end(), ::ExecXY<Group>( &Group::moveBy, dx, dy ) );
+    std::for_each( Group::__groups.begin(), Group::__groups.end(), ::ExecXY<Group>( &Group::moveBy, dx, dy ) );
     _origin.moveBy( dx, dy );
 
     return *this;
@@ -559,12 +560,12 @@ Model::prepare( const LQIO::DOM::Document * document )
 
     /* We need to add all of the processors */
     const std::map<std::string,LQIO::DOM::Processor*>& processors = document->getProcessors();
-    for_each( processors.begin(), processors.end(), Processor::create );
+    std::for_each( processors.begin(), processors.end(), Processor::create );
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1.5: Add Groups] */
 
     const std::map<std::string,LQIO::DOM::Group*>& groups = document->getGroups();
-    for_each( groups.begin(), groups.end(), Share::create );
+    std::for_each( groups.begin(), groups.end(), Share::create );
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 2: Add Tasks/Entries] */
 
@@ -698,7 +699,7 @@ Model::process()
     /* Simplify model if requested. */
 
     if ( Flags::aggregation() != Aggregate::NONE ) {
-	for_each( Task::__tasks.begin(), Task::__tasks.end(), ::Exec<Entity>( &Entity::aggregate ) );
+	std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Entity::aggregate ) );
     }
 
     /* Assign all tasks to layers. */
@@ -711,7 +712,7 @@ Model::process()
     /* Simplify to tasks (for queueing models) */
 
     if ( Flags::aggregation() == Aggregate::ENTRIES ) {
-	for_each( _layers.begin(), _layers.end(), ::Exec<Layer>( &Layer::aggregate ) );
+	std::for_each( _layers.begin(), _layers.end(), std::mem_fn( &Layer::aggregate ) );
     }
 
     if ( Flags::print[SUMMARY].opts.value.b || Flags::print_submodels ) {
@@ -1067,8 +1068,8 @@ Model::getExtension()
 Model::prune()
 {
     try {
-	std::for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::mergeCalls ) );
-	std::for_each ( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::relink ) );
+	std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::mergeCalls ) );
+	std::for_each ( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::relink ) );
     }
     catch ( const std::domain_error& e ) {
 	LQIO::runtime_error( ERR_UNASSIGNED_VARIABLES );
@@ -1171,10 +1172,10 @@ Model::relayerize( const unsigned new_level )
 bool
 Model::check() const
 {
-    for_each( Processor::__processors.begin(), Processor::__processors.end(), Predicate<Entity>( &Entity::check ) );
-    for_each( Task::__tasks.begin(), Task::__tasks.end(), Predicate<Entity>( &Entity::check ) );
-    if ( std::none_of( Task::__tasks.begin(), Task::__tasks.end(), Predicate<Task>( &Task::isReferenceTask ) ) && 
-	 std::none_of( Task::__tasks.begin(), Task::__tasks.end(), Predicate<Task>( &Task::hasOpenArrivals ) ) ) {
+    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), std::mem_fn( &Entity::check ) );
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Entity::check ) );
+    if ( std::none_of( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::isReferenceTask ) ) && 
+	 std::none_of( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::hasOpenArrivals ) ) ) {
 	LQIO::runtime_error( LQIO::ERR_NO_REFERENCE_TASKS );
     }
     return !LQIO::io_vars.anError();
@@ -1191,7 +1192,7 @@ Model::totalize()
 {
     _total = 0;
     for ( std::vector<Layer>::const_iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
-	_total += for_each( layer->entities().begin(), layer->entities().end(), Count() );
+	_total += std::for_each( layer->entities().begin(), layer->entities().end(), Count() );
     }
     return _total.tasks() + _total.processors();
 }
@@ -1221,10 +1222,10 @@ Model::sort( compare_func_ptr compare )
 Model&
 Model::rename()
 {
-    for_each( Processor::__processors.begin(), Processor::__processors.end(), ::Exec<Element>( &Element::rename ) );
-//    for_each( Group::__groups.begin(), Group::__groups.end(), ::Exec<Element>( &Element::rename ) );
-    for_each( Task::__tasks.begin(), Task::__tasks.end(), ::Exec<Element>( &Element::rename ) );
-    for_each( Entry::__entries.begin(), Entry::__entries.end(), ::Exec<Element>( &Element::rename ) );
+    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), std::mem_fn( &Element::rename ) );
+//    std::for_each( Group::__groups.begin(), Group::__groups.end(), std::mem_fn( &Element::rename ) );
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Element::rename ) );
+    std::for_each( Entry::__entries.begin(), Entry::__entries.end(), std::mem_fn( &Element::rename ) );
     return *this;
 }
 
@@ -1237,9 +1238,9 @@ Model::rename()
 Model&
 Model::squish()
 {
-    for_each( Processor::__processors.begin(), Processor::__processors.end(), ::Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, Processor::__key_table, Processor::__symbol_table ) );
-    for_each( Task::__tasks.begin(), Task::__tasks.end(), ::Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, Task::__key_table, Task::__symbol_table ) );
-    for_each( Entry::__entries.begin(), Entry::__entries.end(), ::Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, Entry::__key_table, Entry::__symbol_table ) );
+    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), ::Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, Processor::__key_table, Processor::__symbol_table ) );
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), ::Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, Task::__key_table, Task::__symbol_table ) );
+    std::for_each( Entry::__entries.begin(), Entry::__entries.end(), ::Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, Entry::__key_table, Entry::__symbol_table ) );
     return *this;
 }
 
@@ -1323,7 +1324,7 @@ Model::format( Layer& serverLayer )
 Model&
 Model::justify()
 {
-    for_each( _layers.begin(), _layers.end(), Exec1<Layer,double>( &Layer::justify, right() ) );
+    std::for_each( _layers.begin(), _layers.end(), Exec1<Layer,double>( &Layer::justify, right() ) );
     return *this;
 }
 
@@ -1336,7 +1337,7 @@ Model::justify()
 Model&
 Model::align()
 {
-    for_each( _layers.begin(), _layers.end(), ::Exec<Layer>( &Layer::align ) );
+    std::for_each( _layers.begin(), _layers.end(), std::mem_fn( &Layer::align ) );
     return *this;
 }
 
@@ -1388,14 +1389,14 @@ Model::finalScaleTranslate()
     const double x_offset = offset - left();
     const double y_offset = offset - bottom();		/* Shift to origin */
     _origin.moveTo( 0, 0 );
-    for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::moveBy, x_offset, y_offset ) );
+    std::for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::moveBy, x_offset, y_offset ) );
     if ( _key ) {
 	_key->moveBy( x_offset, y_offset );
     }
     if ( _label ) {
 	_label->moveBy( x_offset, y_offset );
     }
-    for_each( Group::__groups.begin(), Group::__groups.end(), ::ExecXY<Group>( &Group::moveBy, x_offset, y_offset ) );
+    std::for_each( Group::__groups.begin(), Group::__groups.end(), ::ExecXY<Group>( &Group::moveBy, x_offset, y_offset ) );
     _extent.moveBy( 2.0 * offset, 2.0 * offset );
 
     /* Rescale for output format. */
@@ -1461,7 +1462,7 @@ Model&
 Model::label()
 {
     Flags::have_results = Flags::print_results() && ( _document->getResultIterations() > 0 || _document->getResultConvergenceValue() > 0 );
-    for_each( _layers.rbegin(), _layers.rend(), Exec<Layer>( &Layer::label ) );
+    std::for_each( _layers.rbegin(), _layers.rend(), std::mem_fn( &Layer::label ) );
     return *this;
 }
 
@@ -1469,7 +1470,7 @@ Model::label()
 unsigned
 Model::count( const taskPredicate aFunc ) const
 {
-    return for_each( _layers.begin(), _layers.end(), ::Count<Layer,taskPredicate>( &Layer::count, aFunc ) ).count();
+    return std::for_each( _layers.begin(), _layers.end(), ::Count<Layer,taskPredicate>( &Layer::count, aFunc ) ).count();
 }
 
 
@@ -1477,7 +1478,7 @@ Model::count( const taskPredicate aFunc ) const
 unsigned
 Model::count( const callPredicate aFunc ) const
 {
-    return for_each( _layers.begin(), _layers.end(), ::Count<Layer,callPredicate>( &Layer::count, aFunc ) ).count();
+    return std::for_each( _layers.begin(), _layers.end(), ::Count<Layer,callPredicate>( &Layer::count, aFunc ) ).count();
 }
 
 
@@ -1520,7 +1521,7 @@ Model::accumulateTaskStats( const std::string& filename ) const
 
     for ( std::vector<Layer>::const_iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
 	if ( !*layer ) continue;
-	unsigned nTasks = count_if( layer->entities().begin(), layer->entities().end(), Predicate<Entity>( &Entity::isServerTask ) );
+	unsigned nTasks = count_if( layer->entities().begin(), layer->entities().end(), std::mem_fn( &Entity::isServerTask ) );
 	if ( nTasks ) {
 	    stats[TASKS_PER_LAYER].accumulate( nTasks, filename );
 	}
@@ -1685,10 +1686,10 @@ Model::expand()
     /* Expand Processors and entries */
 
     try {
-	for_each( old_processor.begin(), old_processor.end(), Exec<Processor>( &Processor::expand ) );
-	for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::expand ) );
-	for_each( old_task.begin(), old_task.end(), Exec<Task>( &Task::expand ) );
-	for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::expandCalls ) );
+	std::for_each( old_processor.begin(), old_processor.end(), std::mem_fn( &Processor::expand ) );
+	std::for_each( old_entry.begin(), old_entry.end(), std::mem_fn( &Entry::expand ) );
+	std::for_each( old_task.begin(), old_task.end(), std::mem_fn( &Task::expand ) );
+	std::for_each( old_entry.begin(), old_entry.end(), std::mem_fn( &Entry::expandCalls ) );
     }
     catch ( const std::domain_error& e ) {
 	LQIO::runtime_error( ERR_REPLICATION_NOT_SET, e.what() );
@@ -1709,8 +1710,8 @@ Model::expand()
 Model&
 Model::removeReplication()
 {
-    for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Entity>( &Entity::removeReplication ) );
-    for_each( Processor::__processors.begin(), Processor::__processors.end(), Exec<Entity>( &Entity::removeReplication ) );
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Entity::removeReplication ) );
+    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), std::mem_fn( &Entity::removeReplication ) );
     return *this;
 }
 
@@ -1737,11 +1738,11 @@ Model::returnReplication()
     _document->clearAllMaps();
 
     LQIO::DOM::DocumentObject * root = nullptr;
-    for_each( old_processor.begin(), old_processor.end(), Exec1<Processor,LQIO::DOM::DocumentObject **>( &Processor::replicateProcessor, &root ) );
-    for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::replicateCall ) );	/* do before entry */
-    for_each( old_task.begin(), old_task.end(), Exec<Task>( &Task::replicateCall ) );		/* do before task */
-    for_each( old_entry.begin(), old_entry.end(), Exec1<Entry,LQIO::DOM::DocumentObject **>( &Entry::replicateEntry, &root ) );
-    for_each( old_task.begin(), old_task.end(), Exec1<Task,LQIO::DOM::DocumentObject **>( &Task::replicateTask, &root ) );
+    std::for_each( old_processor.begin(), old_processor.end(), Exec1<Processor,LQIO::DOM::DocumentObject **>( &Processor::replicateProcessor, &root ) );
+    std::for_each( old_entry.begin(), old_entry.end(), std::mem_fn( &Entry::replicateCall ) );	/* do before entry */
+    std::for_each( old_task.begin(), old_task.end(), std::mem_fn( &Task::replicateCall ) );		/* do before task */
+    std::for_each( old_entry.begin(), old_entry.end(), Exec1<Entry,LQIO::DOM::DocumentObject **>( &Entry::replicateEntry, &root ) );
+    std::for_each( old_task.begin(), old_task.end(), Exec1<Task,LQIO::DOM::DocumentObject **>( &Task::replicateTask, &root ) );
     Task::updateFanInOut();
     return *this;
 }
@@ -1972,14 +1973,14 @@ Model::remapEntities() const
 {
     std::map<unsigned, LQIO::DOM::Entity *>& entities = const_cast<std::map<unsigned, LQIO::DOM::Entity *>&>(getDOM()->getEntities());
     entities.clear();
-    for_each( _layers.begin(), _layers.end(), Remap( entities ) );
+    std::for_each( _layers.begin(), _layers.end(), Remap( entities ) );
     return entities;
 }
 
 void
 Model::Remap::operator()( const Layer& layer )
 {
-    for_each( layer.entities().begin(), layer.entities().end(), Remap( _entities ) );
+    std::for_each( layer.entities().begin(), layer.entities().end(), Remap( _entities ) );
 }
 
 void
@@ -2748,7 +2749,7 @@ Group_Model::justify()
     _origin.x( 0.0 );
 
     /* Now sort by groups */
-    _extent.x( for_each( Group::__groups.begin(), Group::__groups.end(), Justify( _layers.size() ) ).extent() );
+    _extent.x( std::for_each( Group::__groups.begin(), Group::__groups.end(), Justify( _layers.size() ) ).extent() );
 
     for ( std::vector<Layer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
 	layer->moveLabelTo( right(), layer->height() / 2.0 ).sort( (compare_func_ptr)(&Entity::compareCoord) );
@@ -2952,7 +2953,7 @@ Model&
 Squashed_Model::justify()
 {
     Model::justify();
-    for_each( Group::__groups.begin(), Group::__groups.end(), Justify() );
+    std::for_each( Group::__groups.begin(), Group::__groups.end(), Justify() );
     return *this;
 }
 

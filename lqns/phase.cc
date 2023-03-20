@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16515 2023-03-14 17:56:28Z greg $
+ * $Id: phase.cc 16551 2023-03-19 14:55:57Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -16,6 +16,7 @@
 #include "lqns.h"
 #include <cmath>
 #include <cctype>
+#include <functional>
 #include <numeric>
 #include <cstdlib>
 #include <sstream>
@@ -382,7 +383,7 @@ Phase::initReplication( const unsigned maxSize )
 Phase&
 Phase::initWait()
 {
-    std::for_each( callList().begin(), callList().end(), Exec<Call>( &Call::initWait ) );
+    std::for_each( callList().begin(), callList().end(), std::mem_fn( &Call::initWait ) );
     std::for_each( devices().begin(), devices().end(), &DeviceInfo::initWait );
     return *this;
 }
@@ -445,7 +446,7 @@ Phase::check() const
 	getDOM()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "think" );
     }
 
-    std::for_each( callList().begin(), callList().end(), Predicate<Call>( &Call::check ) );
+    std::for_each( callList().begin(), callList().end(), std::mem_fn( &Call::check ) );
 
     if ( phaseTypeFlag() == LQIO::DOM::Phase::STOCHASTIC && CV_sqr() != 1.0 ) {
 	LQIO::runtime_error( WRN_COEFFICIENT_OF_VARIATION, parent_type.c_str(), parent->getName().c_str(), getDOM()->getTypeName(), name().c_str() );
@@ -1245,7 +1246,7 @@ Phase::insertDOMResults() const
 Phase&
 Phase::recalculateDynamicValues()
 {	
-    std::for_each( devices().begin(), devices().end(), Exec<Phase::DeviceInfo>( &Phase::DeviceInfo::recalculateDynamicValues ) );
+    std::for_each( devices().begin(), devices().end(), std::mem_fn( &Phase::DeviceInfo::recalculateDynamicValues ) );
     return *this;
 }
 
@@ -1486,7 +1487,7 @@ Phase::random_phase() const
 Phase&
 Phase::expandCalls()
 {
-//    std::for_each( callList().begin(), callList().end(), Exec<Call>( &Call::expand ) );
+//    std::for_each( callList().begin(), callList().end(), std::mem_fn( &Call::expand ) );
     const std::set<Call *> calls = callList();	/* Create a copy as the list is changed */
     for ( auto& call : calls ) {
 	call->expand();

@@ -9,12 +9,12 @@
  *
  * November, 1994
  *
- * $Id: model.h 16439 2023-02-23 00:36:46Z greg $
+ * $Id: model.h 16546 2023-03-18 22:32:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(LQNS_MODEL_H)
+#ifndef LQNS_MODEL_H
 #define	LQNS_MODEL_H
 
 #include <set>
