@@ -120,8 +120,9 @@ private:
     void create_forwarding_gspn( unsigned e );
     LAYER make_layer_mask( const unsigned m );
 
+protected:
+    virtual void get_results_for( unsigned int m );
 private:
-    virtual void get_results( unsigned int m );
     double get_throughput( const Entry * d, const Phase * curr_phase, unsigned m  );
 
 public:
@@ -187,8 +188,10 @@ public:
     virtual bool inservice_flag() const { return false; }
     virtual bool has_main_thread() const { return false; }
 
-    virtual void get_results( unsigned int m );
     virtual void insert_DOM_results() const;
+
+protected:
+    virtual void get_results_for( unsigned int m );
 
 private:
     LQIO::DOM::Document * _document;

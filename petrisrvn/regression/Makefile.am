@@ -2,13 +2,13 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16499 2023-03-08 22:36:41Z greg $
+# $Id: Makefile.am 16567 2023-03-21 23:18:28Z greg $
 # ------------------------------------------------------------------------
 
 
 SRVN=	../petrisrvn
 OPTS=	-w
-DIFFOPTS= -Q -S0.1 
+DIFFOPTS= -Q -S0.1
 
 SANITY=	01-sanity.lqxo \
 	02-sanity.lqxo \
@@ -85,10 +85,10 @@ SUFFIXES = .diff .d .lqxo .lqnx
 	-srvndiff -I ../../models/regression/{petri,sim}-results/$< $< > $@
 
 check:	$(OBJS)
-	echo $(OBJS) | tr -s " " "\n" | srvndiff -QI -S$(EPSILON) -@- . ../../models/regression/petri-results/
+	echo $(OBJS) | tr -s " " "\n" | srvndiff -QI $(DIFFOPTS) -@- . ../../models/regression/petri-results/
 
 check-verbose:
-	FILES=`echo $(OBJS) | tr -s " " "\n" | srvndiff -QI -S$(EPSILON) -@- . ../../models/regression/petri-results`; \
+	FILES=`echo $(OBJS) | tr -s " " "\n" | srvndiff -QI $(DIFFOPTS) -@- . ../../models/regression/petri-results`; \
 	for i in $$FILES; do srvndiff ../../models/regression-xml/petri-results/$$i $$i; done
 
 all:
@@ -97,7 +97,7 @@ clean-am:
 	@-rm -rf $(OBJS) *.out nets empty
 
 sanity:	$(SANITY)
-	echo $(SANITY) | tr -s " " "\n" | srvndiff -S$(EPSILON) -Q -@- . ../../models/regression/petri-results
+	echo $(SANITY) | tr -s " " "\n" | srvndiff $(DIFFOPTS) -Q -@- . ../../models/regression/petri-results
 
 inter:	$(INTER)
 	echo $(INTER) | tr -s " " "\n" | srvndiff $(DIFFOPTS) -@- . ../../models/regression/petri-results
@@ -123,7 +123,7 @@ other:	$(OTHER)
 33-spex-convergence.lqxo: 33-spex-convergence.lqnx
 	$(SRVN) -w -o $*.out $<
 	@mv $*.d/$*-002.lqxo $@
-	@srvndiff -Q $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 	@rm -rf $*.d
 
 50-replication.lqxo:	50-replication.lqnx
@@ -131,14 +131,14 @@ other:	$(OTHER)
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	@rm $*-flat.*
-	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/petri-results/$@
 
 52-replication.lqxo:	52-replication.lqnx
 	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	@rm $*-flat.*
-	@srvndiff -Q -S$(EPSILON) $@ ../../models/regression/petri-results/$@
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/petri-results/$@
 
 55-replication.lqxo:	55-replication.lqnx
 	@rep2flat -Oxml -o$*-flat.lqnx $<

@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16556 2023-03-19 21:51:42Z greg $
+ * $Id: entry.cc 16564 2023-03-21 21:16:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1473,12 +1473,12 @@ Entry::aggregateReplication( const Vector< VectorMath<double> >& addend )
 
 
 /*
- * For all calls to aServer perform aFunc over the chains in nextChain.
+ * For all calls to aServer perform f over the chains in nextChain.
  * See Call::setVisits and Call::saveWait
  */
 
 const Entry&
-Entry::callsPerform( callFunc aFunc, const unsigned submodel, const unsigned k ) const
+Entry::callsPerform( callFunc f, const unsigned submodel, const unsigned k ) const
 {
     const double rate = prVisit();
 
@@ -1488,10 +1488,10 @@ Entry::callsPerform( callFunc aFunc, const unsigned submodel, const unsigned k )
 	 * is used to calculation entry throughput not the throughput of its owner task.
 	 * the visit of a call equals rate * rendenzvous() normally;
 	 * therefore, rate has to be set to 1.*/
-	getStartActivity()->callsPerform( Phase::CallExec( this, submodel, k, 1, aFunc, rate ) );
+	getStartActivity()->callsPerform( Phase::CallsPerform( this, submodel, k, 1, f, rate ) );
     } else {
 	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    _phase[p].callsPerform( Phase::CallExec( this, submodel, k, p, aFunc, rate ) );
+	    _phase[p].callsPerform( Phase::CallsPerform( this, submodel, k, p, f, rate ) );
 	}
     }
     return *this;

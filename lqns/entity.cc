@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16556 2023-03-19 21:51:42Z greg $
+ * $Id: entity.cc 16562 2023-03-21 16:48:12Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -513,104 +513,6 @@ Entity::clear()
     return *this;
 }
 
-
-/*
- * Initialize the service and visit parameters for a server.  Also set myChains to
- * all chains that visit this server.
- */
-
-Entity&
-Entity::initServerStation( Submodel& submodel )
-{
-    Server * station = serverStation();
-    if ( !station ) return *this;
-
-    if ( !Pragma::init_variance_only() ) {
-	computeVariance();
-    }
-
-    /* If this entity has been pruned, remap to the base replica */
-#if BUG_299_PRUNE
-    const Entity * entity = nullptr;
-    if ( !isPruned() ) {
-	entity = this;
-    } else if ( isProcessor() ) {
-	entity = Processor::find( name() );
-    } else {
-	entity = Task::find( name() );
-    }
-    const std::vector<Entry *>& entries = entity->entries();
-#else
-    const std::vector<Entry *>& entries = this->entries();
-#endif
-
-    const ChainVector& chains = serverChains();
-    for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
-	const unsigned e = (*entry)->index();
-	const double openArrivalRate = (*entry)->openArrivalRate();
-
-	if ( openArrivalRate > 0.0 ) {
-	    station->setVisits( e, 0, 1, openArrivalRate );	// Chain 0 reserved for open class.
-	}
-
-	/* -- Set service time for entries with visits only. -- */
-	if ( isClosedModelServer() ) {
-	    for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
-		setServiceTime( (*entry), *k );
-	    }
-	}
-
-	/*
-	 * Open arrivals and other open models use chain zero which are special
-	 * and won't work in the above loop anyway)
-	 */
-
-	if ( isOpenModelServer() ) {
-	    setServiceTime( (*entry), 0 );
-	}
-
-    }
-
-    /* Overtaking -- compute for MARKOV overtaking only. */
-
-    if ( markovOvertaking() ) {
-	const std::set<Task *>& clients = submodel.getClients();
-	std::for_each( clients.begin(), clients.end(), Exec1<Task,Entity*>( &Task::computeOvertaking, this ) );
-    }
-
-    /* Set interlock */
-
-    if ( isClosedModelServer() && Pragma::interlock() ) {
-	setInterlock( submodel );
-    }
-
-    if ( hasSynchs() && !Pragma::threads(Pragma::Threads::NONE) ) {
-	joinOverlapFactor( submodel );
-    }
-
-    return *this;
-}
-
-
-/*
- * Set the service time for my station.
- */
-
-void
-Entity::setServiceTime( const Entry * entry, unsigned k ) const
-{
-    Server * station = serverStation();
-    const unsigned e = entry->index();
-
-    if ( station->V( e, k ) == 0 ) return;
-
-    for ( unsigned p = 1; p <= entry->maxPhase(); ++p ) {
-	station->setService( e, k, p, entry->elapsedTimeForPhase(p) );
-	if ( hasVariance() ) {
-	    station->setVariance( e, k, p, entry->varianceForPhase(p) );
-	}
-    }
-}
 
 void
 Entity::setInterlock( Submodel& submodel ) const

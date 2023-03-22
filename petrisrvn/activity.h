@@ -16,9 +16,9 @@
  * Solve LQN using petrinets.
  */
 
-#include "phase.h"
 #include <set>
 #include "actlist.h"
+#include "phase.h"
 
 class Task;
 class Entry;

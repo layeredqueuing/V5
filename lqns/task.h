@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 16546 2023-03-18 22:32:16Z greg $
+ * $Id: task.h 16564 2023-03-21 21:16:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -168,10 +168,6 @@ public:
     Task& expandCalls();
 
     Server * makeClient( const unsigned, const unsigned  );
-    Task& initClientStation( Submodel& );
-#if PAN_REPLICATION
-    Task& modifyClientServiceTime( const MVASubmodel& );
-#endif
     Task& saveClientResults( const MVASubmodel& );
     const Task& callsPerform( callFunc, const unsigned submodel ) const;
     const Task& openCallsPerform( callFunc, const unsigned submodel ) const;
@@ -185,7 +181,6 @@ public:
 #if PAN_REPLICATION
     virtual double updateWaitReplication( const Submodel&, unsigned& );
 #endif
-    Task& computeOvertaking( Entity * );
 
     /* Threads */
 

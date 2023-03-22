@@ -13,7 +13,7 @@
 #define _PETRISRVN_H
 
 /*
- * $Id: petrisrvn.h 16499 2023-03-08 22:36:41Z greg $
+ * $Id: petrisrvn.h 16567 2023-03-21 23:18:28Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -102,34 +102,4 @@ extern double x_scaling;		/* Auto-squish if val == 0.		*/
 extern FILE * stddbg;			/* debugging output goes here.		*/
 
 static inline bool bit_test( unsigned flag, unsigned bits ) { return ((1 << flag) & bits ) != 0; }
-
-template <class Type> struct Exec
-{
-    typedef void (Type::*funcPtr)();
-    Exec<Type>( funcPtr f ) : _f(f) {};
-    void operator()( Type * object ) const { (object->*_f)(); }
-    void operator()( Type& object ) const { (object.*_f)(); }
-private:
-    funcPtr _f;
-};
-
-template <class Type> struct ConstExec
-{
-    typedef void (Type::*funcPtr)() const;
-    ConstExec<Type>( const funcPtr f ) : _f(f) {}
-    void operator()( const Type * object ) const { (object->*_f)(); }
-    void operator()( const Type& object ) const { (object.*_f)(); }
-private:
-    const funcPtr _f;
-};
-
-template <class Type> struct Predicate
-{
-    typedef bool (Type::*predicate)() const;
-    Predicate<Type>( const predicate p ) : _p(p) {};
-    bool operator()( const Type * object ) const { return (object->*_p)(); }
-    bool operator()( const Type& object ) const { return (object.*_p)(); }
-private:
-    const predicate _p;
-};
 #endif /* _PETRISRVN_H */

@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16551 2023-03-19 14:55:57Z greg $
+ * $Id: model.cc 16560 2023-03-21 11:30:00Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -1892,20 +1892,12 @@ std::ostream&
 Model::printSVG( std::ostream& output ) const
 {
     output << "<?xml version=\"1.0\" standalone=\"no\"?>" << std::endl
-	   << "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20000303 Stylable//EN\"" << std::endl
-	   << "\"http://www.w3.org/TR/2000/03/WD-SVG-20000303/DTD/svg-20000303-stylable.dtd\">" << std::endl;
+	   << "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20000303 Stylable//EN\""
+	   << " \"http://www.w3.org/TR/2000/03/WD-SVG-20000303/DTD/svg-20000303-stylable.dtd\">" << std::endl;
     output << "<!-- Title: " << _inputFileName << " -->" << std::endl;
     output << "<!-- Creator: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << " -->" << std::endl;
-#if defined(HAVE_CTIME)
-    output << "<!-- ";
-    time_t clock = time( (time_t *)0 );
-    for ( char * s = ctime( &clock ); *s && *s != '\n'; ++s ) {
-	output << *s;
-    }
-    output << " -->" << std::endl;
-#endif
-    output << "<!-- For: " << _login << " -->" << std::endl;
     output << "<!-- Invoked as: " << command_line << ' ' << _inputFileName << " -->" << std::endl;
+    output << "<!-- " << LQIO::DOM::Common_IO::svn_id() << " -->" << std::endl;
     output << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\""
 	   << right() / (SVG_SCALING * 72.0) << "in\" height=\""
 	   << top() / (SVG_SCALING * 72.0) << "in\" viewBox=\""
@@ -2190,13 +2182,8 @@ Model::printPostScriptPrologue( std::ostream& output, const std::string& title,
     output << "%!PS-Adobe-2.0" << std::endl;
     output << "%%Title: " << title << std::endl;
     output << "%%Creator: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << std::endl;
-#if defined(HAVE_CTIME)
-    time_t tloc;
-    time( &tloc );
-    output << "%%CreationDate: " << ctime( &tloc );
-#endif
-    output << "%%For: " << _login << std::endl;
     output << "%%Invoked as: " << command_line << ' ' << title << std::endl;
+    output << "%%Version: " << LQIO::DOM::Common_IO::svn_id() << std::endl;
     output << "%%Orientation: Portrait" << std::endl;
     output << "%%Pages: " << maxModelNumber << std::endl;
     output << "%%BoundingBox: " << left << ' ' << top << ' ' << right << ' ' << bottom << std::endl;

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 15975 2022-10-14 12:50:14Z greg $
+ * $Id: generate.cc 16566 2023-03-21 21:45:14Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -260,8 +260,8 @@ Generate::makefile( const unsigned nSubmodels )
  * Constructor
  */
 
-Generate::Generate( const MVASubmodel& submodell )
-    : _submodel( submodell ),  K(submodell.nChains())
+Generate::Generate( const MVASubmodel& submodel )
+    : _submodel( submodel ),  K(submodel.nChains())
 {
 }
 
@@ -342,12 +342,12 @@ Generate::print( std::ostream& output ) const
 	   << "    MVA::MOL_multiserver_underrelaxation = 0.5;	/* For MOL Multiservers */" << std::endl;
 
 
-    if ( _submodel.n_openStns() ) {
-	output << "    const unsigned n_open_stations\t= " << _submodel.n_openStns() << ";" << std::endl;
+    if ( _submodel.nOpenStns() ) {
+	output << "    const unsigned n_open_stations\t= " << _submodel.nOpenStns() << ";" << std::endl;
 	output << "    Vector<Server *> open_station(n_open_stations);" << std::endl;
     }
-    if ( _submodel.n_closedStns() ) {
-	output << "    const unsigned n_stations\t= " << _submodel.n_closedStns() << ";" << std::endl;
+    if ( _submodel.nClosedStns() ) {
+	output << "    const unsigned n_stations\t= " << _submodel.nClosedStns() << ";" << std::endl;
 
 	output << "    const unsigned n_chains\t= " << K << ";" << std::endl;
 	output << "    Vector<Server *> station( n_stations);" << std::endl;

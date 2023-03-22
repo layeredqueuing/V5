@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 16556 2023-03-19 21:51:42Z greg $
+ * $Id: entry.h 16564 2023-03-21 21:16:35Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -61,9 +61,9 @@ public:
     enum class RequestType { NOT_CALLED, RENDEZVOUS, SEND_NO_REPLY, OPEN_ARRIVAL };
 
     
-    class CallExec {
+    class CallsPerform {
     public:
-	CallExec( callFunc f, unsigned submodel, unsigned k=0 ) : _f(f), _submodel(submodel), _k(k)  {}
+	CallsPerform( callFunc f, unsigned submodel, unsigned k=0 ) : _f(f), _submodel(submodel), _k(k)  {}
 	void operator()( Entry * object ) const { object->callsPerform( _f, _submodel, _k ); }
 	
 	const callFunc f() const { return _f; }
@@ -81,9 +81,9 @@ public:
      * Used to run f over all entries (and threads).  Each thread has it's own chain.
      */
     
-    class CallExecWithChain {
+    class CallsPerformWithChain {
     public:
-	CallExecWithChain( callFunc f, unsigned submodel, const ChainVector& chains, unsigned int i ) : _f(f), _submodel(submodel), _chains(chains), _i(i)  {}
+	CallsPerformWithChain( callFunc f, unsigned submodel, const ChainVector& chains, unsigned int i ) : _f(f), _submodel(submodel), _chains(chains), _i(i)  {}
 	void operator()( Entry * object ) const { object->callsPerform( _f, _submodel, _chains[_i] ); _i += 1; }
 	
 	const callFunc f() const { return _f; }

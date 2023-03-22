@@ -17,8 +17,8 @@
  */
 
 #include <vector>
-#include "activity.h"
 #include <lqio/dom_entry.h>
+#include "activity.h"
 
 class Task;
 class Phase;

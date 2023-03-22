@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 16543 2023-03-17 16:05:29Z greg $
+ * $Id: activity.h 16564 2023-03-21 21:16:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -302,7 +302,7 @@ public:
     Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Collect& ) const;
     Count_If& count_if( std::deque<const Activity *>&, Count_If& ) const;
     CallInfo::Item::collect_calls& collect_calls( std::deque<const Activity *>&, CallInfo::Item::collect_calls& ) const;
-    virtual void callsPerform( const CallExec& ) const;
+    virtual void callsPerform( const CallsPerform& ) const;
     virtual bool getInterlockedTasks( Interlock::CollectTasks& path ) const;
     unsigned concurrentThreads( unsigned ) const;
 

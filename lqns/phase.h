@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 16546 2023-03-18 22:32:16Z greg $
+ * $Id: phase.h 16564 2023-03-21 21:16:35Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -195,11 +195,11 @@ private:
     };
 
 public:
-    class CallExec {
+    class CallsPerform {
     public:
-	CallExec( const Entry * e, unsigned submodel, unsigned k, unsigned p, callFunc f, double rate ) : _e(e), _submodel(submodel), _k(k), _p(p), _f(f), _rate(rate) {}
-	CallExec( const CallExec& src, double rate, unsigned p ) : _e(src._e), _submodel(src._submodel), _k(src._k), _p(p), _f(src._f), _rate(rate) {}		// Set rate and phase.
-	CallExec( const CallExec& src, double scale ) : _e(src._e), _submodel(src._submodel), _k(src._k), _p(src._p), _f(src._f), _rate(src._rate * scale) {}	// Set rate.
+	CallsPerform( const Entry * e, unsigned submodel, unsigned k, unsigned p, callFunc f, double rate ) : _e(e), _submodel(submodel), _k(k), _p(p), _f(f), _rate(rate) {}
+	CallsPerform( const CallsPerform& src, double rate, unsigned p ) : _e(src._e), _submodel(src._submodel), _k(src._k), _p(p), _f(src._f), _rate(rate) {}		// Set rate and phase.
+	CallsPerform( const CallsPerform& src, double scale ) : _e(src._e), _submodel(src._submodel), _k(src._k), _p(src._p), _f(src._f), _rate(src._rate * scale) {}	// Set rate.
 
 	const Entry * entry() const { return _e; }
 	double getRate() const { return _rate; }
@@ -235,7 +235,7 @@ public:
     
     unsigned findChildren( Call::stack&, const bool ) const;
     virtual const Phase& followInterlock( Interlock::CollectTable&  ) const;
-    virtual void callsPerform( const CallExec& ) const;
+    virtual void callsPerform( const CallsPerform& ) const;
     void addSrcCall( Call * aCall ) { _calls.insert(aCall); }
     void removeSrcCall( Call *aCall ) { _calls.erase(aCall); }
     virtual unsigned int getReplicaNumber() const;

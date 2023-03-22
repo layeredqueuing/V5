@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 16556 2023-03-19 21:51:42Z greg $
+ * $Id: actlist.cc 16564 2023-03-21 21:16:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -267,9 +267,9 @@ ForkActivityList::getInterlockedTasks( Interlock::CollectTasks& path ) const
  */
 
 void
-ForkActivityList::callsPerform( const Phase::CallExec& exec ) const
+ForkActivityList::callsPerform( const Phase::CallsPerform& operation ) const
 {
-    if ( getActivity() ) getActivity()->callsPerform( exec );
+    if ( getActivity() ) getActivity()->callsPerform( operation );
 }
 
 
@@ -351,9 +351,9 @@ JoinActivityList::getInterlockedTasks( Interlock::CollectTasks& path ) const
  */
 
 void
-JoinActivityList::callsPerform( const Phase::CallExec& exec ) const
+JoinActivityList::callsPerform( const Phase::CallsPerform& operation ) const
 {
-    if ( next() != nullptr ) next()->callsPerform( exec );
+    if ( next() != nullptr ) next()->callsPerform( operation );
 }
 
 
@@ -880,14 +880,14 @@ OrForkActivityList::collect_calls( std::deque<const Activity *>& stack, CallInfo
  */
 
 void
-OrForkActivityList::callsPerform( const Phase::CallExec& exec ) const
+OrForkActivityList::callsPerform( const Phase::CallsPerform& operation ) const
 {
     for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	(*activity)->callsPerform( Phase::CallExec( exec, prBranch(*activity) ) );
+	(*activity)->callsPerform( Phase::CallsPerform( operation, prBranch(*activity) ) );
     }
 
     if ( hasNextFork() ) {
-        getNextFork()->callsPerform( exec );
+        getNextFork()->callsPerform( operation );
     }
 }
 
@@ -1527,9 +1527,9 @@ AndForkActivityList::collect_calls( std::deque<const Activity *>& stack, CallInf
  */
 
 void
-AndForkActivityList::callsPerform( const Phase::CallExec& exec ) const
+AndForkActivityList::callsPerform( const Phase::CallsPerform& operation ) const
 {
-    if ( hasNextFork() ) getNextFork()->callsPerform( exec );
+    if ( hasNextFork() ) getNextFork()->callsPerform( operation );
 }
 
 
@@ -1829,9 +1829,9 @@ AndJoinActivityList::getInterlockedTasks( Interlock::CollectTasks& path ) const
  */
 
 void
-AndJoinActivityList::callsPerform( const Phase::CallExec& exec ) const
+AndJoinActivityList::callsPerform( const Phase::CallsPerform& operation ) const
 {
-    if ( isSync() && next() ) next()->callsPerform( exec );
+    if ( isSync() && next() ) next()->callsPerform( operation );
 }
 
 
@@ -2054,13 +2054,13 @@ RepeatActivityList::getInterlockedTasks( Interlock::CollectTasks& path ) const
  */
 
 void
-RepeatActivityList::callsPerform( const Phase::CallExec& exec ) const
+RepeatActivityList::callsPerform( const Phase::CallsPerform& operation ) const
 {
     for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-        (*activity)->callsPerform( Phase::CallExec( exec, rateBranch(*activity) ) );
+        (*activity)->callsPerform( Phase::CallsPerform( operation, rateBranch(*activity) ) );
     }
 
-    ForkActivityList::callsPerform( exec );
+    ForkActivityList::callsPerform( operation );
 }
 
 

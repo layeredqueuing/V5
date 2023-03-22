@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 16553 2023-03-19 15:53:51Z greg $
+ * $Id: entity.h 16562 2023-03-21 16:48:12Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -230,6 +230,7 @@ public:
     /* Computation */
 	
     Probability prInterlock( const Task& ) const;
+    void setInterlock( Submodel& ) const;
 
     virtual double prOt( const unsigned, const unsigned, const unsigned ) const { return 0.0; }
 
@@ -249,7 +250,6 @@ public:
 
     Entity& clear();
     virtual Server * makeServer( const unsigned ) = 0;
-    Entity& initServerStation( Submodel& );
     virtual Entity& saveServerResults( const MVASubmodel&, double );
 
     /* Threads */
@@ -265,8 +265,6 @@ protected:
     virtual double computeUtilization( const MVASubmodel& );
 	
 private:
-    void setServiceTime( const Entry * anEntry, unsigned k ) const;
-    void setInterlock( Submodel& ) const;
     double computeIdleTime( const unsigned, const double ) const;
 
 public:

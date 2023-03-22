@@ -15,27 +15,27 @@
  */
 
 #include <algorithm>
-#include <set>
 #include <cassert>
 #include <cmath>
-#include <lqio/glblerr.h>
-#include <lqio/dom_activity.h>
-#include <lqio/dom_task.h>
-#include <lqio/dom_processor.h>
-#include <lqio/dom_extvar.h>
+#include <set>
 #include <lqio/common_io.h>
-#include "errmsg.h"
-#include "results.h"
-#include "petrisrvn.h"
-#include "task.h"
-#include "entry.h"
-#include "processor.h"
-#include "phase.h"
+#include <lqio/dom_activity.h>
+#include <lqio/dom_extvar.h>
+#include <lqio/dom_processor.h>
+#include <lqio/dom_task.h>
+#include <lqio/glblerr.h>
 #include "activity.h"
 #include "actlist.h"
+#include "entry.h"
+#include "errmsg.h"
 #include "makeobj.h"
-#include "results.h"
+#include "petrisrvn.h"
+#include "phase.h"
 #include "pragma.h"
+#include "processor.h"
+#include "results.h"
+#include "results.h"
+#include "task.h"
 
 using namespace std;
 
@@ -809,7 +809,7 @@ Task::get_results()
 {
     const unsigned int max_m = n_customers();
     for ( unsigned int m = 0; m < max_m; ++m ) {
-	get_results(m);
+	get_results_for( m );
     }
     for ( std::vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
 	(*e)->check_open_result();
@@ -819,7 +819,7 @@ Task::get_results()
 
 
 void
-Task::get_results( unsigned m )
+Task::get_results_for( unsigned m )
 {
     if ( is_single_place_task() ) {
 	_utilization[m] = multiplicity() - get_pmmean( "T%s%d", name(), m );
@@ -1043,7 +1043,7 @@ Task::insert_DOM_results() const
 /* -------------------------------------------------------------------- */
 
 void
-OpenTask::get_results( unsigned m )
+OpenTask::get_results_for( unsigned m )
 {
     Phase& phase = entries[0]->phase[1];
     Call call;

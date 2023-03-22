@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16551 2023-03-19 14:55:57Z greg $
+ * $Id: task.cc 16564 2023-03-21 21:16:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -849,57 +849,6 @@ Task::makeClient( const unsigned n_chains, const unsigned submodel )
 }
 
 
-/*
- * Called from submodel to initialize client.  
- */
-
-Task&
-Task::initClientStation( Submodel& submodel )
-{
-    const unsigned int n = submodel.number();
-    Server * station = clientStation( n );
-
-    /* If the task has been pruned, use replica 1 */
-#if BUG_299_PRUNE
-    const Task * task = isPruned() ? Task::find( name() ) : this;	/* find base task if pruned */
-    const std::vector<Entry *>& entries = task->entries();
-#else
-    const std::vector<Entry *>& entries = this->entries();
-#endif
-
-    if ( isClosedModelClient() ) {
-	const ChainVector& chains = clientChains( n );
-	for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
-	    for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
-		const unsigned e = (*entry)->index();
-
-		for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
-		    station->setService( e, *k, p, (*entry)->waitExcept( n, *k, p ) );
-		}
-		station->setVisits( e, *k, 1, (*entry)->prVisit() );	// As client, called-by phase does not matter.
-	    }
-
-	    /* Set idle times for stations. */
-	    static_cast<MVASubmodel&>(submodel).setThinkTime( *k, thinkTime( n, *k ) );
-	}
-
-	if ( hasThreads() && !Pragma::threads(Pragma::Threads::NONE) ) {
-	    forkOverlapFactor( submodel );
-	}
-
-	/* Set visit ratios to all servers for this client */
-
-	callsPerform( &Call::setVisits, n );
-    }
-
-    /* This will also set arrival rates for open class from sendNoReply */
-
-    openCallsPerform( &Call::setLambda, n );
-    return *this;
-}
-
-
-
 const Task&
 Task::setChains( MVASubmodel& submodel ) const
 {
@@ -909,41 +858,6 @@ Task::setChains( MVASubmodel& submodel ) const
     }
     return *this;
 }
-
-
-
-#if PAN_REPLICATION
-/*
- * If I am replicated and I have multiple chains, I have to add on the
- * waiting time made to all other tasks in my partition but NOT in my
- * chain too.  This step must be performed after BOTH the clients and
- * servers have been created so that all of the chain information is
- * available at all stations.  Chain information is initialized in
- * makeChains.  Submodel information is initialized in initServer.
- */
-
-//++ REPL changes
-
-Task&
-Task::modifyClientServiceTime( const MVASubmodel& submodel )
-{
-    const unsigned int n = submodel.number();
-    Server * station = clientStation( n );
-    const ChainVector& chains = clientChains( n );
-
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	const unsigned e = (*entry)->index();
-
-	for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
-	    for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
-		station->setService( e, *k, p, (*entry)->waitExceptChain( n, *k, p ) );
-	    }
-	}
-    }
-    return *this;
-}
-#endif
-
 
 
 
@@ -999,8 +913,8 @@ Task::callsPerform( callFunc f, const unsigned submodel ) const
     unsigned i = 1;
 
     while ( i <= chains.size() ) {
-	std::for_each( entries().begin(), entries().end(), Entry::CallExec( f, submodel, chains[i] ) );		// regular entries
-	i = std::for_each( std::next(threads().begin()), threads().end(), Entry::CallExecWithChain( f, submodel, chains, i + 1 ) ).index();	// threads (fork-join)
+	std::for_each( entries().begin(), entries().end(), Entry::CallsPerform( f, submodel, chains[i] ) );		// regular entries
+	i = std::for_each( std::next(threads().begin()), threads().end(), Entry::CallsPerformWithChain( f, submodel, chains, i + 1 ) ).index();	// threads (fork-join)
     }
     return *this;
 }
@@ -1014,8 +928,8 @@ Task::callsPerform( callFunc f, const unsigned submodel ) const
 const Task&
 Task::openCallsPerform( callFunc f, const unsigned submodel ) const
 {
-    std::for_each ( entries().begin(), entries().end(), Entry::CallExec( f, submodel ) );
-    std::for_each ( std::next(threads().begin()), threads().end(), Entry::CallExec( f, submodel ) );
+    std::for_each( entries().begin(), entries().end(), Entry::CallsPerform( f, submodel ) );
+    std::for_each( std::next(threads().begin()), threads().end(), Entry::CallsPerform( f, submodel ) );
     return *this;
 }
 
@@ -1057,19 +971,6 @@ Task::computeVariance()
 
 
 /*
- * Compute overtaking from this client to server.
- */
-
-Task&
-Task::computeOvertaking( Entity * server )
-{
-    Overtaking overtaking( this, server );
-    overtaking.compute();
-    return *this;
-}
-
-
-/*
  * Compute change in waiting times for this task.
  */
 
@@ -1086,7 +987,7 @@ Task::updateWait( const Submodel& submodel, const double relax )
 
     /* Now recompute thread idle times */
 
-    std::for_each( threads().begin() + 1, threads().end(), Exec1<Thread,double>( &Thread::setIdleTime, relax ) );
+    std::for_each( std::next(threads().begin()), threads().end(), Exec1<Thread,double>( &Thread::setIdleTime, relax ) );
 
     return *this;
 }

@@ -1,6 +1,6 @@
 /*  -*- c++ -*-
  * synmodel.C	-- Greg Franks Fri Aug  7 1998
- * $Id: synmodel.cc 16551 2023-03-19 14:55:57Z greg $
+ * $Id: synmodel.cc 16566 2023-03-21 21:45:14Z greg $
  *
  * Special submodel to handle synchronization.  These delays are added into
  * the waiting time arrays in the usual fashion (I hope...)
@@ -46,7 +46,7 @@ SynchSubmodel::initServers( const Model& aSolver )
 SynchSubmodel&
 SynchSubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 {
-    MVAStats.start( nChains(), _servers.size() );
+    MVAStats.start( 0, _servers.size() );
 
     const bool trace = Options::Trace::mva( number() );
 	

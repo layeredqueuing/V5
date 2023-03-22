@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 16347 2023-01-18 02:20:18Z greg $
+ * $Id: submodel.h 16569 2023-03-22 10:23:09Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -83,7 +83,6 @@ public:
     unsigned number() const { return _submodel_number; }
 
     virtual Vector<double> * getOverlapFactor() const { return nullptr; } 
-    unsigned nChains() const { return _n_chains; }
 
     Submodel& addClients();
     virtual Submodel& initServers( const Model& ) { return *this; }
@@ -98,8 +97,8 @@ public:
     virtual double nrFactor( const Server *, const unsigned, const unsigned ) const { return 0; }
 #endif
 
-    virtual unsigned n_closedStns() const { return 0; }
-    virtual unsigned n_openStns() const { return 0; }
+    virtual unsigned nClosedStns() const { return 0; }
+    virtual unsigned nCopenStns() const { return 0; }
 
     virtual Submodel& solve( long, MVACount&, const double ) = 0;
 
@@ -138,14 +137,55 @@ inline std::ostream& operator<<( std::ostream& output, const Submodel& self) { r
 class MVASubmodel : public Submodel {
     friend class Generate;
 
-    struct print_server {
-	print_server( std::ostream& output, bool (Entity::*predicate)() const ) : _output(output), _predicate(predicate) {}
+    struct InitializeClientStation {
+	InitializeClientStation( MVASubmodel& submodel ) : _submodel(submodel) {}
+	void operator()( Task* task );
+    private:
+	MVASubmodel& _submodel;
+    };
+
+#if PAN_REPLICATION
+    struct ModifyClientServiceTime {
+	ModifyClientServiceTime( MVASubmodel& submodel ) : _submodel(submodel) {}
+	void operator()( Task* task );
+    private:
+	MVASubmodel& _submodel;
+    };
+#endif
+
+    struct InitializeServerStation {
+	InitializeServerStation( MVASubmodel& submodel ) : _submodel(submodel) {}
+	void operator()( Entity* entity );
+    private:
+	struct ComputeOvertaking  {
+	    ComputeOvertaking( Entity * server ) : _server(server) {}
+	    void operator()( Task * client );
+	private:
+	    Entity * _server;
+	};
+
+	struct SetServiceTime {
+	    SetServiceTime( const Entity& server, const Entry& entry );
+	    void operator()( unsigned int ) const;
+	private:
+	    Server& _station;
+	    const Entry& _entry;
+	    const bool _has_variance;
+	};
+	
+    private:
+	MVASubmodel& _submodel;
+    };
+
+    struct PrintServer {
+	PrintServer( std::ostream& output, bool (Entity::*predicate)() const ) : _output(output), _predicate(predicate) {}
 	void operator()( const Entity * ) const;
     private:
 	std::ostream& _output;
 	bool (Entity::*_predicate)() const;
     };
-    
+
+ 
 public:
     MVASubmodel( const unsigned );
     virtual ~MVASubmodel();
@@ -160,15 +200,12 @@ public:
 		
     unsigned customers( const unsigned k ) const { return _customers[k]; }
     double thinkTime( const unsigned k ) const { return _thinkTime[k]; }
-#if 0
-    void setThinkTime( unsigned int k, double thinkTime );
-#else
     void setThinkTime( unsigned int k, double thinkTime ) { _thinkTime[k] = thinkTime; }
-#endif
     unsigned priority( const unsigned k ) const { return _priority[k]; }
 
-    virtual unsigned n_closedStns() const { return _closedStation.size(); }
-    virtual unsigned n_openStns() const { return _openStation.size(); }
+    unsigned nChains() const { return _customers.size(); }
+    virtual unsigned nClosedStns() const { return _closedStation.size(); }
+    virtual unsigned nOpenStns() const { return _openStation.size(); }
     virtual Vector<double> * getOverlapFactor() const { return _overlapFactor; } 
 
 #if PAN_REPLICATION
@@ -204,6 +241,7 @@ public:
 
 protected:
     unsigned makeChains();
+    unsigned remakeChains();
     void saveWait( Entry *, const Server * );
 
     std::ostream& printClosedModel( std::ostream& ) const;

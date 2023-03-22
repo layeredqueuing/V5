@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16551 2023-03-19 14:55:57Z greg $
+ * $Id: phase.cc 16564 2023-03-21 21:16:35Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -480,11 +480,11 @@ Phase::hasVariance() const
  */
 
 void
-Phase::callsPerform( const CallExec& exec ) const
+Phase::callsPerform( const CallsPerform& operation ) const
 {
-    std::for_each( callList().begin(), callList().end(), exec );
+    std::for_each( callList().begin(), callList().end(), operation );
     for ( std::vector<DeviceInfo *>::const_iterator device = devices().begin(); device != devices().end(); ++device ) {
-	exec( (*device)->call() );
+	operation( (*device)->call() );
     }
 }
 
