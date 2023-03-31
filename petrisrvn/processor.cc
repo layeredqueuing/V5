@@ -75,10 +75,6 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
     LQIO::DOM::Processor * dom = p.second;
     if ( processor_name.size() == 0 ) abort();
 
-    if ( dom->getReplicasValue() != 1 ) {
-	dom->runtime_error( LQIO::ERR_NOT_SUPPORTED, "replication" );
-    }
-
     if ( dom->getSchedulingType() != SCHEDULE_DELAY && !Pragma::__pragmas->default_processor_scheduling() ) {
 	dom->setSchedulingType( Pragma::__pragmas->processor_scheduling() );
     }
@@ -103,6 +99,8 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 void
 Processor::initialize()
 {
+    check();
+
     if ( get_scheduling() == SCHEDULE_PS ) {
 	if ( n_tasks() > 1 || _tasks[0]->multiplicity() > 1 || _tasks[0]->n_threads() > 1 ) {
 	    get_dom()->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(get_scheduling()).str.c_str() );

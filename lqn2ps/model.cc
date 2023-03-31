@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16560 2023-03-21 11:30:00Z greg $
+ * $Id: model.cc 16590 2023-03-24 22:07:17Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -389,7 +389,7 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 	return;
     } else if ( Flags::output_format() == File_Format::UNKNOWN ) {
 	/* generally, we figure out the output format from lqn2xxx, or -Oxxx.  For rep2flat, set based on actual input format */
-	Flags::set_output_format( dom_to_lqn2xxx.at(input_format) );
+	Flags::set_output_format( dom_to_lqn2xxx.at(document->getInputFormat()) );
     }
 
     if ( !parse_file_name.empty() && Flags::print_results() ) {

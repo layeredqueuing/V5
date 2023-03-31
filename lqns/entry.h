@@ -9,13 +9,15 @@
  *
  * November, 1994
  *
- * $Id: entry.h 16564 2023-03-21 21:16:35Z greg $
+ * $Id: entry.h 16614 2023-03-30 16:50:06Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
 #ifndef LQNS_ENTRY_H
 #define LQNS_ENTRY_H
+
+//#define BUG_425 1
 
 #include <set>
 #include <vector>

@@ -10,7 +10,7 @@
  * November, 1994
  * December, 2020
  *
- * $Id: pragma.h 16546 2023-03-18 22:32:16Z greg $
+ * $Id: pragma.h 16581 2023-03-23 20:14:56Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -94,7 +94,7 @@ public:
 	    return __cache->_interlock;
 	}
 
-    static unsigned int iterationLimit()
+    static double iterationLimit()
 	{
 	    assert( __cache != nullptr );
 	    return __cache->_iteration_limit;

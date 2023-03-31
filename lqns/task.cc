@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16564 2023-03-21 21:16:35Z greg $
+ * $Id: task.cc 16614 2023-03-30 16:50:06Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -379,32 +379,36 @@ Task& Task::reinitClient( const Vector<Submodel *>& )
 Task&
 Task::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
 {
-#undef BUG_425
+    if ( std::find( stack.begin(), stack.end(), this ) == stack.end() && customers != 0 ) {
+	stack.push_back( this );
 #if BUG_425
-    std::cerr << name() << "->Task::initCustomers(stack," << customers << ")" << std::endl;
+	std::cerr << std::setw( stack.size() * 2 ) << " " << print_name() << "->Task::initCustomers(" << stack.size() << "," << customers << ")" << std::endl;
 #endif
-    if ( std::find( stack.begin(), stack.end(), this ) != stack.end() || customers == 0 ) return *this;	// Cycle found.
-    stack.push_back( this );
-    if ( customers == std::numeric_limits<unsigned int>::max() ) {
-	setOpenModelServer( true );
-	/* An infinite server with open arrivals is an open arrival to the processor */
-	if ( isInfinite() ) {
-	    const_cast<Processor *>(getProcessor())->setOpenModelServer( true );
+	if ( customers == std::numeric_limits<unsigned int>::max() ) {
+	    setOpenModelServer( true );
+	    /* An infinite server with open arrivals is an open arrival to the processor */
+	    if ( isInfinite() ) {
+		const_cast<Processor *>(getProcessor())->setOpenModelServer( true );
+	    } else {
+		setClosedModelClient( true );
+		const_cast<Processor *>(getProcessor())->setClosedModelServer( true );
+	    }
 	} else {
 	    setClosedModelClient( true );
-	    const_cast<Processor *>(getProcessor())->setClosedModelServer( true );
+	    if ( !isReferenceTask() ) setClosedModelServer( true );
+	    const_cast<Processor *>(getProcessor())->setClosedModelServer( true );	// Always.
 	}
-    } else {
-	setClosedModelClient( true );
-	if ( !isReferenceTask() ) setClosedModelServer( true );
-	const_cast<Processor *>(getProcessor())->setClosedModelServer( true );	// Always.
+	/* When I am a client, the number of customers is limited */
+	if ( !isInfinite() ) {
+	    customers = std::min( customers, copies() );
+	}
+	_customers[stack.front()] = customers;
+	std::for_each( entries().begin(), entries().end(), Exec2<Entry,std::deque<const Task *>&,unsigned int>( &Entry::initCustomers, stack, customers ) );
+#if BUG_425
+	std::cerr << std::setw( stack.size() * 2 ) << " " << print_name() << " pop." << std::endl;
+#endif
+	stack.pop_back();
     }
-    /* When I am a client, the number of customers is limited */
-    if ( !isInfinite() ) {
-	customers = std::min( customers, copies() );
-    }
-    _customers[stack.front()] = customers;
-    std::for_each( entries().begin(), entries().end(), Exec2<Entry,std::deque<const Task *>&,unsigned int>( &Entry::initCustomers, stack, customers ) );
     return *this;
 }
 /*- BUG_425 */

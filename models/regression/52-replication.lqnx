@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<lqn-model name="52-replication" description="$Id: 52-replication.lqnx 16461 2023-03-05 00:10:40Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="Simplified model from bug 166, Pan replication" conv_val="0.01" it_limit="75" underrelax_coeff="0.9" print_int="1">
-      <pragma param="replication" value="pan"/>
+<lqn-model name="52-replication" description="$Id: 52-replication.lqnx 16591 2023-03-24 22:37:39Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simplified model from bug 166, Prune replication" conv_val="0.01" it_limit="75" underrelax_coeff="0.9" print_int="1">
+      <pragma param="replication" value="prune"/>
    </solver-params>
    <processor name="p1" scheduling="inf">
       <task name="t1" scheduling="ref">

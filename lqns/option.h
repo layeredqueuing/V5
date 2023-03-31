@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * option.h	-- Greg Franks
  *
- * $Id: option.h 16194 2022-12-23 03:22:28Z greg $
+ * $Id: option.h 16614 2023-03-30 16:50:06Z greg $
  */
 
 #ifndef _OPTION_H
@@ -34,7 +34,7 @@ namespace Options
     class Debug : public Option 
     {
     private:
-	enum { ACTIVITIES=0, CALLS=1, FORKS=2, INTERLOCK=3, JOINS=4, VARIANCE=5, QUORUM=6 };
+	enum { ACTIVITIES=0, CALLS=1, FORKS=2, INTERLOCK=3, JOINS=4, REPLICATION=5, VARIANCE=6, QUORUM=7 };
 //	Debug( const Debug& ) = delete;
 	Debug& operator=( const Debug& ) = delete;
 
@@ -51,6 +51,7 @@ namespace Options
 	static bool forks() { return __bits[FORKS]; }
 	static bool interlock() { return __bits[INTERLOCK]; }
 //	static bool joins() { return __bits[JOINS]; }
+	static bool replication() { return __bits[REPLICATION]; }
 	static bool submodels( unsigned long submodel = 0 );
 	static bool variance() { return __bits[VARIANCE]; }
 #if HAVE_LIBGSL
@@ -58,14 +59,13 @@ namespace Options
 #endif
 
     private:
-	static void all( const std::string& ); 
-	static void all2( const std::string& );
 //	static void activities( const std::string& ) { __bits[ACTIVITIES] = true; }
 //	static void calls( const std::string& ) { __bits[CALLS] = true; }
 	static void forks( const std::string& s ) { __bits[FORKS] = LQIO::DOM::Pragma::isTrue( s ); }
 	static void interlock( const std::string& s ) { __bits[INTERLOCK] = LQIO::DOM::Pragma::isTrue( s ); }
 //	static void joins( const std::string& ) { __bits[JOINS] = LQIO::DOM::Pragma::isTrue( s ); }
 	static void mva( const std::string& );
+	static void replication( const std::string& s) { __bits[REPLICATION] = LQIO::DOM::Pragma::isTrue( s ); }
     public:
 	static void submodels( const std::string& s );
     private:

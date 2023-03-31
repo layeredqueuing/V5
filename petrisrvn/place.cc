@@ -86,3 +86,13 @@ bool Place::has_random_queueing() const
 {
     return get_scheduling() == SCHEDULE_RAND;
 }
+
+
+
+void
+Place::check()
+{
+    if ( get_dom()->getReplicasValue() != 1 ) {
+	get_dom()->runtime_error( LQIO::ERR_NOT_SUPPORTED, "replication" );
+    }
+}

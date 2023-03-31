@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16564 2023-03-21 21:16:35Z greg $
+ * $Id: phase.cc 16614 2023-03-30 16:50:06Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -354,6 +354,13 @@ Phase::addForwardingRendezvous( Call::stack& callStack ) const
 Phase&
 Phase::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
 {
+#if BUG_433
+    if ( callList().size() == 0 ) return *this;
+    std::cerr << "Phase(\"" << name() << "\")::initCallers(" << stack.size() << "," << customers << ")" << std::endl;
+    for ( const auto& call : callList() ) {
+	std::cerr << "  " << call << ": " << call->dstEntry()->print_name() << std::endl;
+    }
+#endif
     std::for_each( callList().begin(), callList().end(), Exec2<Call,std::deque<const Task *>&,unsigned int>( &Call::initCustomers, stack, customers ) );
     return *this;
 }

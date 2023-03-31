@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 16441 2023-02-23 21:39:47Z greg $
+ * $Id: help.cc 16614 2023-03-30 16:50:06Z greg $
  */
 
 #include "lqns.h"
@@ -1062,13 +1062,6 @@ Help::flagXML( std::ostream& output, bool verbose ) const
 /* ------------------------------------------------------------------------ */
 
 std::ostream&
-Help::debugAll( std::ostream & output, bool verbose ) const
-{
-    output << "Enable all debug output." << std::endl;
-    return output;
-}
-
-std::ostream&
 Help::debugActivities( std::ostream & output, bool verbose ) const
 {
     output << "Activities -- not functional." << std::endl;
@@ -1135,6 +1128,13 @@ std::ostream&
 Help::debugQuorum( std::ostream & output, bool verbose ) const
 {
     output << "Print out results from pseudo activities used by quorum." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::debugReplication( std::ostream & output, bool verbose ) const
+{
+    output << "Print out replica expansion and pruning." << std::endl;
     return output;
 }
 
@@ -2283,7 +2283,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 16441 2023-02-23 21:39:47Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 16614 2023-03-30 16:50:06Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2582,7 +2582,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 16441 2023-02-23 21:39:47Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 16614 2023-03-30 16:50:06Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

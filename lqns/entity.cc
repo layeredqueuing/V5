@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16562 2023-03-21 16:48:12Z greg $
+ * $Id: entity.cc 16614 2023-03-30 16:50:06Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -88,7 +88,8 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
 #if defined(BUG_393)
       _marginalQueueProbabilities(),
 #endif
-      _replica_number(1)		/* This object is not a replica	*/
+      _replica_number(1),		/* This object is not a replica	*/
+      _pruned(false)
 {
 }
 
@@ -113,9 +114,9 @@ Entity::Entity( const Entity& src, unsigned int replica )
 #if defined(BUG_393)
       _marginalQueueProbabilities(),	/* Result, don't care.		*/
 #endif
-      _replica_number(replica)		/* This object is a replica	*/
+      _replica_number(replica),		/* This object is a replica	*/
+      _pruned(false)
 {
-    setPruned(false);
 }
 
 

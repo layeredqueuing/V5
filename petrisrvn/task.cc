@@ -149,11 +149,6 @@ Task::create( const LQIO::DOM::Task * dom )
     const string& task_name = dom->getName();
     if ( task_name.size() == 0 ) abort();
 
-    if ( dom->getReplicasValue() != 1 ) {
-	dom->runtime_error( LQIO::ERR_NOT_SUPPORTED, "replication" );
-    }
-
-
     Processor * processor = Processor::find( dom->getProcessor()->getName() );
     if ( !processor ) {
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, dom->getProcessor()->getName().c_str() );
@@ -241,6 +236,8 @@ Task::create( const LQIO::DOM::Task * dom )
 void
 Task::initialize()
 {
+    check();
+    
     if ( !entries.size() ) {
 	get_dom()->runtime_error( LQIO::ERR_TASK_HAS_NO_ENTRIES );
     }

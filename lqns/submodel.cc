@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 16569 2023-03-22 10:23:09Z greg $
+ * $Id: submodel.cc 16614 2023-03-30 16:50:06Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -442,14 +442,14 @@ Submodel::partition()
 	    for ( std::vector<submodel_group_t*>::const_iterator j = std::next(i); j != disjoint.end(); ++j ) {
 		/* If all the clients in j are replicas of i, then prune j */
 		if ( !replicaGroups( (*i)->first, (*j)->first ) ) continue;
-#if 0
-		std::cerr << "Submodel " << number() << ", can prune: ";
-		std::set<Task *>& clients = (*j)->first;
-		for ( std::set<Task *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
-		    std::cerr << (*client)->name() << ":" << (*client)->getReplicaNumber();
+		if ( Options::Debug::replication() ) {
+		    std::cerr << "Submodel " << number() << ", can prune: ";
+		    std::set<Task *>& clients = (*j)->first;
+		    for ( std::set<Task *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
+			std::cerr << (*client)->name() << ":" << (*client)->getReplicaNumber();
+		    }
+		    std::cerr << std::endl;
 		}
-		std::cerr << std::endl;
-#endif
 		purgeable.insert( *j );
 	    }
 	}
@@ -776,7 +776,9 @@ MVASubmodel::InitializeServerStation::operator()( Entity * server )
 
 	/* -- Set service time for entries with visits only. -- */
 	if ( server->isClosedModelServer() ) {
-	    std::for_each( chains.begin(), chains.end(), SetServiceTime( *server, **entry ) );
+	    for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
+		setServiceTime( station, *entry, *k );
+	    }
 	}
 
 	/*
@@ -785,7 +787,7 @@ MVASubmodel::InitializeServerStation::operator()( Entity * server )
 	 */
 
 	if ( server->isOpenModelServer() ) {
-	    SetServiceTime( *server, **entry ).operator()( 0 );
+	    setServiceTime( station, *entry, 0 );
 	}
 
     }
@@ -813,23 +815,17 @@ MVASubmodel::InitializeServerStation::operator()( Entity * server )
  * Set the service time for station, entry and chain.
  */
 
-MVASubmodel::InitializeServerStation::SetServiceTime::SetServiceTime( const Entity& server, const Entry& entry ) :
-    _station(*server.serverStation()),
-    _entry(entry),
-    _has_variance(server.hasVariance())
-{}
-
 void
-MVASubmodel::InitializeServerStation::SetServiceTime::operator()( unsigned int k ) const
+MVASubmodel::InitializeServerStation::setServiceTime( Server * station, const Entry * entry, unsigned k ) const
 {
-    const unsigned e = _entry.index();
+    const unsigned e = entry->index();
 
-    if ( _station.V( e, k ) == 0 ) return;
+    if ( station->V( e, k ) == 0 ) return;
 
-    for ( unsigned p = 1; p <= _entry.maxPhase(); ++p ) {
-	_station.setService( e, k, p, _entry.elapsedTimeForPhase(p) );
-	if ( _has_variance ) {
-	    _station.setVariance( e, k, p, _entry.varianceForPhase(p) );
+    for ( unsigned p = 1; p <= entry->maxPhase(); ++p ) {
+	station->setService( e, k, p, entry->elapsedTimeForPhase(p) );
+	if ( entry->owner()->hasVariance() ) {
+	    station->setVariance( e, k, p, entry->varianceForPhase(p) );
 	}
     }
 }
@@ -1088,9 +1084,9 @@ MVASubmodel::closedModelNormalizedThroughput( const Server& station, unsigned in
 #endif
 
 double
-MVASubmodel::closedModelUtilization( const Server& station, unsigned int k ) const
+MVASubmodel::closedModelUtilization( const Server& station ) const
 {
-    return _closedModel != nullptr ? _closedModel->utilization( station, k ) : 0.0;
+    return _closedModel != nullptr ? _closedModel->utilization( station ) : 0.0;
 }
 
 double

@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 16548 2023-03-19 12:28:28Z greg $
+ * $Id: processor.cc 16583 2023-03-23 20:29:07Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -429,23 +429,7 @@ double
 Processor::computeUtilization( const MVASubmodel& submodel )
 {
     const Server * station = serverStation();
-    const std::set<Task *>& clients = submodel.getClients();
-    const unsigned int n = submodel.number();
-
-    double utilization = 0.0;
-    for ( std::set<Task *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
-	if ( isClosedModelServer() ) {
-	    const ChainVector& chains = (*client)->clientChains( n );
-	    for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
-		if ( hasServerChain( *k ) ) {
-		    utilization += submodel.closedModelUtilization( *station, *k );
-		}
-	    }
-	}
-	utilization += submodel.openModelUtilization( *station );
-    }
-    
-    return utilization;
+    return submodel.closedModelUtilization( *station ) + submodel.openModelUtilization( *station );
 }
 
 

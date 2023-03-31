@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16564 2023-03-21 21:16:35Z greg $
+ * $Id: entry.cc 16614 2023-03-30 16:50:06Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -330,6 +330,9 @@ Entry::findChildren( Call::stack& callStack, const bool directPath ) const
 Entry&
 Entry::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
 {
+#if BUG_425
+    std::cerr << std::setw( stack.size() * 2 ) << " " << ".." << print_name() << "->Entry::initCustomers(" << stack.size() << "," << customers << ")" << std::endl;
+#endif
     /* for all phases, activities, chase calls. -- since calls end up at entries... recurse there */
     if ( isActivityEntry() ) {
 	std::deque<const Activity *> activityStack;

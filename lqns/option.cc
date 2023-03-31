@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 16194 2022-12-23 03:22:28Z greg $
+ * $Id: option.cc 16614 2023-03-30 16:50:06Z greg $
  */
 
 #include "lqns.h"
@@ -22,12 +22,12 @@
 
 const std::map<const std::string, const Options::Debug> Options::Debug::__table
 {
-    { "all",        Debug( &Debug::all,         &Help::debugAll ) },
 //    { "activities", Debug( &Debug::activities,  &Help::debugActivities ) },
 //    { "calls",      Debug( &Debug::calls,       &Help::debugCalls ) },
     { "forks",      Debug( &Debug::forks,       &Help::debugForks ) },
     { "interlock",  Debug( &Debug::interlock,   &Help::debugInterlock ) },
 //    { "joins",      Debug( &Debug::joins,       &Help::debugJoins ) },
+    { "replication",Debug( &Debug::replication, &Help::debugReplication ) },
     { "submodels",  Debug( &Debug::submodels,   &Help::debugSubmodels ) },
 #if DEBUG_MVA
     { "mva",	    Debug( &Debug::mva,		&Help::debugMVA ) },
@@ -58,18 +58,6 @@ Options::Debug::initialize()
     }
 }
 
-void
-Options::Debug::all( const std::string& )
-{
-    __submodels = ~0;
-//    _bits[CALLS]      = true;
-    __bits[FORKS]      = true;
-    __bits[INTERLOCK]  = true;
-//    _bits[JOINS]      = true;
-#if HAVE_LIBGSL
-    __bits[QUORUM]     = true;
-#endif
-}
 
 void
 Options::Debug::mva( const std::string& )

@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 16546 2023-03-18 22:32:16Z greg $
+ * $Id: call.h 16616 2023-03-31 11:09:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -230,7 +230,6 @@ public:
 
     void setVisits( const unsigned k, const unsigned p, const double rate );
     virtual void setLambda( const unsigned k, const unsigned p, const double rate );
-    void clearWait( const unsigned k, const unsigned p, const double );
     void saveWait( const unsigned k, const unsigned p, const double );
     void saveOpen( const unsigned k, const unsigned p, const double );
 

@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 16529 2023-03-15 00:48:16Z greg $
+# $Id: Makefile 16591 2023-03-24 22:37:39Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	petrisrvn
@@ -90,25 +90,25 @@ diff:
 	@rm $*.d
 
 50-replication.lqxo:	50-replication.lqnx
-	@rep2flat -Oxml -o$*-flag.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	@rm $*-flat.*
 
 52-replication.lqxo:	52-replication.lqnx
-	@rep2flat -Oxml -o$*-flag.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	@rm $*-flat.*
 
 55-replication.lqxo:	55-replication.lqnx
-	@rep2flat -Oxml -o$*-flag.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	@rm $*-flat.*
 
 56-replication.lqxo:	56-replication.lqnx
-	@rep2flat -Oxml -o$*-flag.lqnx $<
+	@rep2flat -Oxml -o$*-flat.lqnx $<
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	@rm $*-flat.*

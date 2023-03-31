@@ -49,6 +49,10 @@ public:
     virtual bool is_infinite() const;
     bool has_random_queueing() const;
 
+protected:
+    void check();
+
+public:
     Place& set_origin( double x_pos, double y_pos ) { _x_pos = x_pos, _y_pos = y_pos; return *this; }
     double get_x_pos() const { return _x_pos; }
     double get_y_pos() const { return _y_pos; }

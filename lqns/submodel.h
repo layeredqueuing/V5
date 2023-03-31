@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 16569 2023-03-22 10:23:09Z greg $
+ * $Id: submodel.h 16583 2023-03-23 20:29:07Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -164,15 +164,7 @@ class MVASubmodel : public Submodel {
 	    Entity * _server;
 	};
 
-	struct SetServiceTime {
-	    SetServiceTime( const Entity& server, const Entry& entry );
-	    void operator()( unsigned int ) const;
-	private:
-	    Server& _station;
-	    const Entry& _entry;
-	    const bool _has_variance;
-	};
-	
+	void setServiceTime( Server * station, const Entry * entry, unsigned k ) const;
     private:
 	MVASubmodel& _submodel;
     };
@@ -220,7 +212,7 @@ public:
 #if PAN_REPLICATION
     double closedModelNormalizedThroughput( const Server& station, unsigned int e, const unsigned int k ) const;
 #endif
-    double closedModelUtilization( const Server& station, unsigned int k ) const;
+    double closedModelUtilization( const Server& station ) const;
     double openModelUtilization( const Server& station ) const;
 #if defined(BUG_393)
     double closedModelMarginalQueueProbability( const Server& station, unsigned int i ) const;

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
-<!-- $Id: 50-replication.lqnx 14886 2021-07-07 18:31:56Z greg $ -->
-<lqn-model name="50-replication" description="$Id: 50-replication.lqnx 14886 2021-07-07 18:31:56Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="Simplest model, Pan replication." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
-      <pragma param="replication" value="pan"/>
+<!-- $Id: 50-replication.lqnx 16591 2023-03-24 22:37:39Z greg $ -->
+<lqn-model name="50-replication" description="$Id: 50-replication.lqnx 16591 2023-03-24 22:37:39Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simplest model, Prune replication." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <pragma param="replication" value="prune"/>
    </solver-params>
    <processor name="client" scheduling="fcfs" replication="4">
       <task name="client" scheduling="ref" replication="4">

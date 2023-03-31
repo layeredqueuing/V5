@@ -12,8 +12,12 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 16262 2023-01-04 19:54:01Z greg $
+ * $Id: srvndiff.cc 16615 2023-03-30 20:19:42Z greg $
  */
+
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #define DIFFERENCE_MODE	1
 
@@ -21,14 +25,14 @@
 #include <cassert>
 #include <cfenv>
 #include <cmath>
-#include <config.h>
+#include <cstring>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
 #include <regex>
 #include <string>
-#include <unistd.h>
+#include <sstream>
 #include <vector>
 #if HAVE_GLOB_H
 #include <glob.h>
@@ -41,8 +45,9 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/param.h>
-#include <string.h>
+#if HAVE_FLOAT_H
 #include <float.h>
+#endif
 #if HAVE_LIBGEN_H
 #include <libgen.h>
 #endif
@@ -280,6 +285,7 @@ std::map<int, std::map<int, join_info_t> > join_tab[MAX_PASS];
 std::map<int, std::map<int, ot *> > overtaking_tab[MAX_PASS];
 std::map<int, std::set<int> > task_entry_tab;	/* Input mapping */
 std::map<int, std::set<int> > proc_task_tab;	/* Input mapping */
+std::map<int, const std::string> headings;
 
 unsigned pass;				/* src = 0,1, dst = 2 */
 static char header[LINE_WIDTH];
@@ -295,7 +301,6 @@ typedef struct {
 
 #endif
 static glob_t dir_list[MAX_PASS];
-static char * label_list[MAX_PASS];
 
 /*
  * Statistics.
@@ -456,7 +461,7 @@ static struct {
     { "select-files",                'F', false, required_argument, "Select files for comparison", nullptr },
     { "help",                        'H', false, no_argument,       "Print help", nullptr },
     { "ignore-errors",               'I', false, no_argument,       "Ignore invalid input file errors", &ignore_invalid_result_error },
-    { "file-label",                  'L', false, required_argument, "File label", nullptr },
+    { "file-label",                  'L', false, required_argument, "Set file label to <col>=<string>", nullptr },
     { "mean-absolute-errors",        'M', false, no_argument,       "Print mean absolute values errors", &print_error_absolute_value },
     { "quiet",                       'Q', false, no_argument,       "Quiet - print only if differences found", &print_quiet },
     { "rms-errors",                  'R', false, no_argument,       "Print RMS errors only", &print_rms_error_only },
@@ -496,7 +501,6 @@ static struct {
     { "compact",		 512+'k', false, no_argument,	    "Use a more compact format for output", nullptr },
     { "comment",		 512+'c', false, no_argument,	    "Print model comment ", nullptr },
     { "latex",			 512+'l', false, no_argument,	    "Format output for LaTeX", nullptr },
-    { "heading",		 512+'h', false, required_argument, "Set column heading <col> to <string>", nullptr },
     { "debug-xml",               512+'x', false, no_argument,       "Output debugging information while parsing XML input", nullptr },
     { "debug-json",              512+'j', false, no_argument,       "Output debugging information while parsing JSON input", nullptr },
     { "debug-srvn",		 512+'s', false, no_argument,	    "Output debugging information while parsing SRVN results", nullptr },
@@ -593,7 +597,6 @@ main (int argc, char * const argv[])
     char * options;
     const char * value;
     unsigned n_args;		/* Number of args after options	*/
-    unsigned label_index = 0;
 
     struct stat stat_buf;
 /* 	xxdebug = 1; */
@@ -851,11 +854,22 @@ main (int argc, char * const argv[])
 	    break;
 
 	case 'L':
-	    if ( label_index < MAX_PASS ) {
-		label_list[label_index++] = optarg;
-	    } /* else silently ignore... */
+	    if ( optarg != nullptr ) {
+		std::stringstream ss(optarg);
+		std::string item;
+		while (std::getline (ss, item, ',')) {
+		    int column;
+		    char heading[32];
+		    if ( sscanf( item.c_str(), "%d=%31s", &column, &heading ) < 2 || column < 1 || MAX_PASS < column ) {
+			(void) fprintf( stderr, "%s: invalid argument to -- %s\n", lq_toolname, item.c_str() );
+			usage( false );
+			exit( 1 );
+		    }
+		    headings.emplace( column-1, heading );	/* columns start from 0 internally */
+		}
+	    }
 	    break;
-
+	
 	case 'M':
 	    print_error_absolute_value = true;
 	    break;
@@ -932,12 +946,6 @@ main (int argc, char * const argv[])
 	    print_comment = true;
 	    break;
 	
-	case (512+'h'):
-	    options = optarg;
-	    while ( *options ) {
-	    }
-	    break;
-	
 	case '?':
 	    print_solver_information = true;
 	    break;
@@ -983,7 +991,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2023-01-04 14:54:01 -0500 (Wed, 04 Jan 2023) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2023-03-30 16:19:42 -0400 (Thu, 30 Mar 2023) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -995,10 +1003,6 @@ main (int argc, char * const argv[])
     if ( print_quiet ) {
 	print_rms_error_only  = true;
 	print_quiet 	      = true;
-    } else if ( error_threshold > 0.0 ) {
-	print_rms_error_only  = true;
-	print_error_only      = true;
-	print_results_only    = false;
     } else if ( print_totals_only ) {
 	print_error_only      = true;
 	print_results_only    = false;
@@ -1989,13 +1993,13 @@ make_header ( char * h_ptr, char * const names[], const unsigned passes, const b
     /* Now make a cute header. */
     std::vector<std::string> column_name(passes);
     for ( unsigned int j = 0; j < passes; ++j ) {
-	    column_name[j] = names[j];
+	column_name[j] = names[j];
     }
     minimize_path_name( column_name );
-    for ( unsigned int j = 0; j < passes; ++j ) {
-	if ( label_list[j] ) {
-	    column_name[j] = label_list[j];
-	}
+
+    /* Replace column names if necessary */
+    for ( std::map<int,const std::string>::const_iterator header = headings.begin(); header != headings.end(); ++header ) {
+	column_name.at(header->first) = header->second;
     }
 
     for ( unsigned int j = 0; j < passes && h_ptr - o_ptr < LINE_WIDTH; ++j ) {

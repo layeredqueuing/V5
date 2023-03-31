@@ -2,12 +2,12 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16491 2023-03-07 11:59:07Z greg $
+# $Id: Makefile.am 16585 2023-03-24 13:34:01Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
-OPTS=	-Pvariance=mol,threads=hyper -w
-DIFFOPTS= -Q -S0.001 
+OPTS=	-Pvariance=mol,threads=hyper,replication=prune -w
+DIFFOPTS= -Q -S0.001  +p
 
 SANITY=	01-sanity.lqxo \
 	02-sanity.lqxo \
@@ -91,7 +91,7 @@ SRCS3=	$(OBJS:.csv=.xlqn)
 
 EXTRA_DIST = $(SRCS1) $(SRCS2)
 
-SUFFIXES = .diff .csv .d .lqxo .lqnx .xlqn
+SUFFIXES = .diff .svg .csv .d .lqxo .lqnx .xlqn
 
 .lqnx.lqxo:
 	$(SRVN) $(OPTS) $<
@@ -112,9 +112,12 @@ SUFFIXES = .diff .csv .d .lqxo .lqnx .xlqn
 
 .lqxo.diff:
 	-if test -f ../../models/regression/petri-results/$<; \
-	then srvndiff --comment -IC -o $@ ../../models/regression/{petri,sim,lqns}-results/$< $<; \
-	else srvndiff --comment -IC -o $@ ../../models/regression/{sim,lqns}-results/$< $<; \
+	then srvndiff --comment -IC +p ../../models/regression/{petri,sim,lqns}-results/$< $<; \
+	else srvndiff --comment -IC +p ../../models/regression/{sim,lqns}-results/$< $<; \
 	fi
+
+.lqxo.svg:
+	lqn2ps -Osvg $<
 
 all:
 

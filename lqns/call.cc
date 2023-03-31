@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 16551 2023-03-19 14:55:57Z greg $
+ * $Id: call.cc 16616 2023-03-31 11:09:16Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -12,6 +12,7 @@
  * ------------------------------------------------------------------------
  */
 
+#define BUG_433 1
 
 #include "lqns.h"
 #include <cmath>
@@ -24,6 +25,7 @@
 #include "entry.h"
 #include "errmsg.h"
 #include "flags.h"
+#include "option.h"
 #include "pragma.h"
 #include "submodel.h"
 #include "task.h"
@@ -155,8 +157,12 @@ Call&
 Call::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
 {
     Task * task = const_cast<Task *>(dynamic_cast<const Task *>(dstTask()));
+#if BUG_425
+    std::cerr << std::setw( stack.size() * 2 ) << " " << "    Call::initCustomers(" << stack.size() << "," << customers << ") -> ";
+    if ( task != nullptr ) std::cerr << task->print_name();
+    std::cerr << std::endl;
+#endif
     if ( task == nullptr ) return *this;	/* Don't care about processors */
-
     if ( hasRendezvous() ) {
 	task->initCustomers( stack, customers );
     } else if ( hasSendNoReply() ) {
@@ -170,7 +176,7 @@ Call::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
 
 
 
-/*
+/*+ BUG_433
  * Expand replicas (Not PAN_REPLICATION) from Call(src,dst) to
  * Call(src(src_replica),dst(dst_replica)).  There is no need to copy
  * src_replica=1 to dst_replica=1.  The real guts are in the copy
@@ -180,21 +186,25 @@ Call::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
 Call&
 Call::expand()
 {
+    unsigned int next_replica = 1;
     const unsigned int src_replicas = srcTask()->replicas();
     for ( unsigned int src_replica = 1; src_replica <= src_replicas; ++src_replica ) {
-	const unsigned int dst_replicas = fanOut();
-	for ( unsigned int dst_replica = 1; dst_replica <= dst_replicas; ++dst_replica ) {
+
+	const unsigned int dst_replicas = dstEntry()->owner()->replicas();
+	const unsigned int fan_out = fanOut();
+	for ( unsigned int k = 1; k <= fan_out; k++ ) {
+
+	    /* divide the destination entries equally between calling entries. */
+	    const unsigned int dst_replica = (next_replica++ - 1) % dst_replicas + 1;
 	    if ( src_replica == 1 && dst_replica == 1 ) continue;	/* This exists already */
-	    Call * call = clone( src_replica, (src_replica - 1) * dst_replicas + dst_replica );	/* 2 goes to 2, etc */
-#if 0
-	    std::cerr << "Call::expand(): " << srcName() << "." << src_replica << " -> " << call->dstName() << "." << call->dstTask()->getReplicaNumber() << std::endl;
-#endif
+
+	    Call * call = clone( src_replica, dst_replica );		/* 2 goes to 2, etc */
 	    const_cast<Entity *>(call->dstTask())->addTask( call->srcTask() );
 	}
     }
     return *this;
 }
-
+/*- BUG_433 */
 
 
 bool
@@ -388,8 +398,8 @@ double
 Call::queueingTime() const
 {
     if ( hasRendezvous() ) {
-	if ( std::isinf( _wait ) ) return _wait;
-	const double q = _wait - elapsedTime();
+	if ( std::isinf( wait() ) ) return wait();
+	const double q = wait() - elapsedTime();
 	if ( q <= 0.000001 ) {
 	    return 0.0;
 	} else if ( q * elapsedTime() > 0. && (q/elapsedTime()) <= 0.0001 ) {
@@ -398,7 +408,7 @@ Call::queueingTime() const
 	    return q;
 	}
     } else if ( hasSendNoReply() ) {
-	return _wait;
+	return wait();
     } else {
 	return 0.0;
     }
@@ -559,19 +569,6 @@ Call::setChain( const unsigned k, const unsigned p, const double rate )
 
 
 
-
-/*
- * Clear waiting time.
- */
-
-void
-Call::clearWait( const unsigned k, const unsigned p, const double )
-{
-    _wait = 0.0;
-}
-
-
-
 /*
  * Get the waiting time for this call from the mva submodel.  A call
  * can potentially orginate from multiple chains, so add them all up.
@@ -626,7 +623,7 @@ PhaseCall::PhaseCall( const Phase * fromPhase, const Entry * toEntry )
 }
 
 
-/*
+/*+ BUG_433
  * Deep copy.  Set FromEntry to the replica.
  */
 
@@ -641,22 +638,21 @@ PhaseCall::PhaseCall( const PhaseCall& src, unsigned int src_replica, unsigned i
 
     /* Link to destination replica */
     if ( src.dstEntry() != nullptr ) {
-	const unsigned int replica = static_cast<unsigned>(std::ceil( static_cast<double>(dst_replica) / static_cast<double>(src.fanIn()) ));
-	Entry * dst = Entry::find( src.dstEntry()->name(), replica );
+	Entry * dst = Entry::find( src.dstEntry()->name(), dst_replica );
 	if ( dst == nullptr ) {
 	    std::ostringstream err;
-	    err << "PhaseCall::PhaseCall: Can't find entry " << src.dstEntry()->name() << "." << replica;
+	    err << "PhaseCall::PhaseCall: Can't find entry " << src.dstEntry()->name() << "." << dst_replica;
 	    throw std::runtime_error( err.str() );
 	}
 	setDestination( dst );
 	dst->addDstCall( this );	/* Set reverse link */
     }
-#if 0
-    std::cerr << "PhaseCall::PhaseCall() from: " << getSource()->name() << "(" << srcEntry()->getReplicaNumber() << ")"
-	      << " to: " << dstEntry()->name() << "(" << dstEntry()->getReplicaNumber() << ")" << std::endl;
-#endif
+    if ( Options::Debug::replication() ) {
+	std::cerr << "PhaseCall::PhaseCall(\"" << getSource()->name() << "." << srcEntry()->getReplicaNumber() << "\"," << src_replica << "," << dst_replica << ")"
+		  << " link to entry: " << dstEntry()->name() << "." << dstEntry()->getReplicaNumber() << std::endl;
+    }
 }
-
+/*- BUG_433 */
 
 
 /*
@@ -772,14 +768,19 @@ ActivityCall::ActivityCall( const ActivityCall& src, unsigned int src_replica, u
     
     /* Link to destination replica */
     if ( src.dstEntry() != nullptr ) {
-	Entry * dst = Entry::find( src.dstEntry()->name(), static_cast<unsigned>(std::ceil( static_cast<double>(dst_replica) / static_cast<double>(src.fanIn())) ) );
+	Entry * dst = Entry::find( src.dstEntry()->name(), dst_replica );	// BUG_433
+	if ( dst == nullptr ) {
+	    std::ostringstream err;
+	    err << "ActivityCall::ActivityCall: Can't find entry " << src.dstEntry()->name() << "." << dst_replica;
+	    throw std::runtime_error( err.str() );
+	}
 	setDestination( dst );
 	dst->addDstCall( this );	/* Set reverse link */
     }
-#if 0
-    std::cerr << "ActivityCall::ActivityCall() from: " << getSource()->name() << "(" << srcEntry()->getReplicaNumber() << ")"
-	      << " to: " << dstEntry()->name() << "(" << dstEntry()->getReplicaNumber() << ")" << std::endl;
-#endif
+    if ( Options::Debug::replication() ) {
+	std::cerr << "ActivityCall::ActivityCall() from: " << getSource()->name() << "(" << task->getReplicaNumber() << ")"
+		  << " to: " << dstEntry()->name() << "(" << dstEntry()->getReplicaNumber() << ")" << std::endl;
+    }
 }
 
 

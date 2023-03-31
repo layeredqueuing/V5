@@ -1,45 +1,45 @@
 <?xml version="1.0"?>
-<!-- $Id: 50-replication.lqxo 16227 2022-12-31 18:27:59Z greg $ -->
-<!-- lqns -pragma=variance=mol,threads=hyper -->
-<lqn-model name="50-replication" description="lqns 5.27.4 solution for model from: 50-replication.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="Simplest model, Pan replication." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
-      <pragma param="replication" value="pan"/>
-      <pragma param="threads" value="hyper"/>
-      <pragma param="variance" value="mol"/>
-      <result-general solver-info="lqns 5.27.4" valid="true" conv-val="4.06908e-06" iterations="2" platform-info="MacBook-Pro.local Darwin 22.2.0" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000" max-rss="6193152">
-         <mva-info submodels="2" core="14" step="147" step-squared="1847" wait="10838" wait-squared="1.50956e+07" faults="0"/>
-      </result-general>
-   </solver-params>
-   <processor name="client" scheduling="fcfs" replication="4">
-      <result-processor utilization="0.399998"/>
-      <task name="client" scheduling="ref" replication="4">
-         <result-task throughput="0.399998" utilization="0.999997" phase1-utilization="0.999997" proc-utilization="0.399998"/>
-         <entry name="client" type="PH1PH2">
-            <result-entry utilization="0.999997" throughput="0.399998" proc-utilization="0.399998" squared-coeff-variation="1.9" throughput-bound="0.5"/>
-            <entry-phase-activities>
-               <activity name="client_ph1" phase="1" host-demand-mean="1">
-                  <result-activity proc-waiting="0" service-time="2.5" utilization="0.999997" service-time-variance="11.875"/>
-                  <synch-call dest="server" calls-mean="1">
-                     <result-call waiting="0.500002"/>
-                  </synch-call>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-   <processor name="server" scheduling="fcfs" replication="2">
-      <result-processor utilization="0.800002"/>
-      <task name="server" scheduling="fcfs" replication="2">
-         <result-task throughput="0.800002" utilization="0.800002" phase1-utilization="0.800002" proc-utilization="0.800002"/>
-         <fan-in source="client" value="2"/>
-         <entry name="server" type="PH1PH2">
-            <result-entry utilization="0.800002" throughput="0.800002" proc-utilization="0.800002" squared-coeff-variation="1" throughput-bound="1"/>
-            <entry-phase-activities>
-               <activity name="server_ph1" phase="1" host-demand-mean="1">
-                  <result-activity proc-waiting="0" service-time="1" utilization="0.800002" service-time-variance="1"/>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
+<!-- lqns -pragma=variance=mol,threads=hyper,replication=prune -no-warnings -->
+<lqn-model name="50-replication" description="lqns 5.28.4 solution for model from: 50-replication.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+  <solver-params comment="Simplest model, Pan replication." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+    <pragma param="replication" value="prune"/>
+    <pragma param="severity-level" value="run-time"/>
+    <pragma param="threads" value="hyper"/>
+    <pragma param="variance" value="mol"/>
+    <result-general solver-info="lqns 5.28.4" valid="true" conv-val="5.76523e-06" iterations="5" platform-info="merlin.sce.carleton.ca Darwin 22.3.0" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000" max-rss="5443584">
+      <mva-info submodels="2" core="10" step="74" step-squared="650" wait="5324" wait-squared="8.29177e+06" faults="0"/>
+    </result-general>
+  </solver-params>
+  <processor name="client" scheduling="fcfs" replication="4">
+    <result-processor utilization="0.400039"/>
+    <task name="client" scheduling="ref" replication="4">
+      <result-task throughput="0.400039" utilization="1" phase1-utilization="1" proc-utilization="0.400039"/>
+      <entry name="client" type="PH1PH2">
+        <result-entry utilization="1" throughput="0.400039" proc-utilization="0.400039" squared-coeff-variation="1.89988" throughput-bound="0.5"/>
+        <entry-phase-activities>
+          <activity name="client_ph1" phase="1" host-demand-mean="1">
+            <result-activity proc-waiting="0" service-time="2.49976" utilization="1" service-time-variance="11.872"/>
+            <synch-call dest="server" calls-mean="1">
+              <result-call waiting="0.499756"/>
+            </synch-call>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="server" scheduling="fcfs" replication="2">
+    <result-processor utilization="0.800078"/>
+    <task name="server" scheduling="fcfs" replication="2">
+      <result-task throughput="0.800078" utilization="0.800078" phase1-utilization="0.800078" proc-utilization="0.800078"/>
+      <fan-in source="client" value="2"/>
+      <entry name="server" type="PH1PH2">
+        <result-entry utilization="0.800078" throughput="0.800078" proc-utilization="0.800078" squared-coeff-variation="1" throughput-bound="1"/>
+        <entry-phase-activities>
+          <activity name="server_ph1" phase="1" host-demand-mean="1">
+            <result-activity proc-waiting="0" service-time="1" utilization="0.800078" service-time-variance="1"/>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
 </lqn-model>
