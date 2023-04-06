@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16614 2023-03-30 16:50:06Z greg $
+ * $Id: task.cc 16632 2023-04-06 10:49:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -466,10 +466,11 @@ Task::initThroughputBound()
  */
 
 Task&
-Task::initReplication( const unsigned n_chains )
+Task::setSurrogateDelaySize( size_t n_chains )
 {
-    std::for_each( entries().begin(), entries().end(), Exec1<Entry,unsigned int>( &Entry::initReplication, n_chains ) );
-    std::for_each( activities().begin(), activities().end(), Exec1<Phase,unsigned int>( &Phase::initReplication, n_chains ) );
+    std::for_each( entries().begin(), entries().end(), Exec1<Entry,size_t>( &Entry::setSurrogateDelaySize, n_chains ) );
+    std::for_each( activities().begin(), activities().end(), Exec1<Phase,size_t>( &Phase::setSurrogateDelaySize, n_chains ) );
+    std::for_each( precedences().begin(), precedences().end(), Exec1<ActivityList,size_t>( &ActivityList::setSurrogateDelaySize, n_chains ) );
     return *this;
 }
 #endif
@@ -659,10 +660,10 @@ Task::addPrecedence( ActivityList * precedence )
  */
 
 void
-Task::resetReplication()
+Task::clearSurrogateDelay()
 {
-    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::resetReplication ) );
-    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::resetReplication ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::clearSurrogateDelay ) );
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::clearSurrogateDelay ) );
 }
 #endif
 
@@ -843,7 +844,7 @@ Server *
 Task::makeClient( const unsigned n_chains, const unsigned submodel )
 {
 #if PAN_REPLICATION
-    initReplication( n_chains );
+    setSurrogateDelaySize( n_chains );
 #endif
 
     Server * aStation = new Client( nEntries(), n_chains, maxPhase() );
@@ -859,29 +860,6 @@ Task::setChains( MVASubmodel& submodel ) const
     callsPerform(&Call::setChain, submodel.number());
     if ( nThreads() > 1 ) {
 	submodel.setChains( clientChains( submodel.number() ) );
-    }
-    return *this;
-}
-
-
-
-/* Get and save the waiting time results for all servers to this client */
-
-Task&
-Task::saveClientResults( const MVASubmodel& submodel )
-{
-    const unsigned int n = submodel.number();
-
-    callsPerform( &Call::saveWait, n );
-    openCallsPerform( &Call::saveOpen, n );
-
-    /* Other results (only useful for references tasks). */
-
-    if ( isReferenceTask() && !isCalled() ) {
-	if ( isClosedModelClient() ) {
-	    std::for_each( entries().begin(), entries().end(), Exec3<Entry,const MVASubmodel&, const Server&,unsigned>( &Entry::saveClientResults, submodel, *clientStation( n ), clientChains( n )[1] ) );
-	}
-	setUtilization( computeUtilization( submodel ) );
     }
     return *this;
 }
@@ -967,7 +945,7 @@ Task::thinkTime( const unsigned submodel, const unsigned k ) const
 Task&
 Task::computeVariance()
 {
-    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::updateVariance ) );
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::computeVariance ) );
     Entity::computeVariance();
     return *this;
 }
@@ -1040,6 +1018,37 @@ Task::bottleneckStrength() const
 {
     /* find out who I call */
     return 0;
+}
+
+
+/*
+ * Get and save the waiting time results for all servers to this client
+ */
+
+void
+Task::SaveClientResults::operator()( Task * client ) const
+{
+    const unsigned int n = _submodel.number();
+    saveResults( *client->clientStation( n ), *client );
+}
+
+
+void
+Task::SaveClientResults::saveResults( const Server& station, Task& client ) const
+{
+    const unsigned int n = _submodel.number();
+    client.callsPerform( &Call::saveWait, n );
+    client.openCallsPerform( &Call::saveOpen, n );
+
+    if ( !client.isReferenceTask() || client.isCalled() ) return;
+    
+    /* Other results (only useful for references tasks). */
+
+    if ( client.isClosedModelClient() ) {
+	const std::vector<Entry *>& entries = client.entries();
+	std::for_each( entries.begin(), entries.end(), Entry::SaveClientResults( _submodel, station, client.clientChains( n )[1], client ) );
+    }
+    client.setUtilization( client.computeUtilization( _submodel ) );
 }
 
 

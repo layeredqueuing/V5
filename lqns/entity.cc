@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16614 2023-03-30 16:50:06Z greg $
+ * $Id: entity.cc 16626 2023-04-01 19:37:43Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -85,7 +85,7 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
       _maxPhase(1),
       _utilization(0),
       _lastUtilization(-1.0),		/* Force update 		*/
-#if defined(BUG_393)
+#if BUG_393
       _marginalQueueProbabilities(),
 #endif
       _replica_number(1),		/* This object is not a replica	*/
@@ -111,7 +111,7 @@ Entity::Entity( const Entity& src, unsigned int replica )
       _maxPhase(1),
       _utilization(0),
       _lastUtilization(-1.0),		/* Force update 		*/
-#if defined(BUG_393)
+#if BUG_393
       _marginalQueueProbabilities(),	/* Result, don't care.		*/
 #endif
       _replica_number(replica),		/* This object is a replica	*/
@@ -286,6 +286,13 @@ bool
 Entity::isCalledBy( const Task* task ) const
 {
     return std::find( tasks().begin(), tasks().end(), task ) != tasks().end();
+}
+
+
+bool
+Entity::isReplica() const
+{
+    return Pragma::replication() == Pragma::Replication::PRUNE && getReplicaNumber() > 1;
 }
 
 
@@ -540,52 +547,64 @@ Entity::setInterlock( Submodel& submodel ) const
 
 
 /*
- * Save server results.  Servers only occur in one submodel.
+ * Save server results.  Servers only occur in one submodel.  If servers have been
+ * pruned at a lower level, set their results from the primary copy.
  */
 
-Entity&
-Entity::saveServerResults( const MVASubmodel& submodel, double relax )
+void
+Entity::SaveServerResults::operator()( Entity * server ) const
 {
-    const Server * station = serverStation();
+    const Server& station = *server->serverStation();
+    
+    /* Always save the results from the call from submodel. */
+    saveResults( station, *server );
+    if ( !server->isReplicated() ) return;
 
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	const unsigned e = (*entry)->index();
-	double lambda = 0.0;
-
-	if ( isOpenModelServer() ) {
-	    lambda = submodel.openModelThroughput( *station, e );		/* BUG_168 */
-	    (*entry)->saveOpenWait( station->R( e, 0 ) );
+    /*
+     * If this is replica 1, and it's replicated and the replicas are
+     * pruned, then save the results from replica 1's station to all
+     * the pruned copies.
+     */
+    
+    for ( size_t i = 2; i < server->replicas(); ++i ) {
+	if ( !server->isPruned() ) break;
+	else if ( server->isProcessor() ) {
+	    server = Processor::find( server->name(), i );
+	} else {
+	    server = Task::find( server->name(), i );
 	}
-
-	if ( isClosedModelServer() ) {
-	    const double tput = submodel.closedModelThroughput( *station, e );
-	    if ( std::isfinite( tput ) ) {
-		lambda += tput;
-	    } else if ( tput < 0.0 ) {
-		throw std::domain_error( "MVASubmodel::saveServerResults" );
-	    } else {
-		lambda = tput;
-		break;
-	    }
-	}
-	(*entry)->saveThroughput( lambda );
+#if DEBUG
+	std::cerr << "Entity::SaveServerResults(" << server->print_name() << ")" << std::endl;
+#endif
+	saveResults( station, *server );
     }
+}
 
-#if defined(BUG_393)
+
+/*
+ * Common code.
+ */
+
+void
+Entity::SaveServerResults::saveResults( const Server& station, Entity& server ) const
+{
+    const std::vector<Entry *>& entries = server.entries();
+    std::for_each( entries.begin(), entries.end(), Entry::SaveServerResults( _submodel, station, server ) );
+
+
+#if BUG_393
     /* Only save if needed */
-    if ( Pragma::saveMarginalProbabilities() && isClosedModelServer() && station->getMarginalProbabilitiesSize() > 0 ) {
-	unsigned int copies = static_cast<unsigned int>(station->mu());
-	_marginalQueueProbabilities.resize(copies+1);
+    if ( Pragma::saveMarginalProbabilities() && server.isClosedModelServer() && station.getMarginalProbabilitiesSize() > 0 ) {
+	unsigned int copies = static_cast<unsigned int>(station.mu());
+	server._marginalQueueProbabilities.resize(copies+1);
 	for ( unsigned int i = 0; i <= copies; ++i ) {
-	    _marginalQueueProbabilities[i] = submodel.closedModelMarginalQueueProbability( *station, i );
+	    server._marginalQueueProbabilities[i] = _submodel.closedModelMarginalQueueProbability( station, i );
 	}
     }
 #endif
 
-    setUtilization( computeUtilization( submodel ) );
-    setIdleTime( relax );
-
-    return *this;
+    server.setUtilization( server.computeUtilization( _submodel ) );
+    server.setIdleTime( _relax );
 }
 
 
@@ -605,7 +624,7 @@ Entity::setUtilization( double utilization )
 const Entity&
 Entity::insertDOMResults() const
 {
-#if defined(BUG_393)
+#if BUG_393
     if ( !_marginalQueueProbabilities.empty() ) {
 	std::vector<double>& marginals = getDOM()->getResultMarginalQueueProbabilities();
 	marginals = _marginalQueueProbabilities;

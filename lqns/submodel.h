@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 16583 2023-03-23 20:29:07Z greg $
+ * $Id: submodel.h 16624 2023-04-01 16:16:19Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -58,7 +58,7 @@ private:
     
     template <class Type> struct erase_from {
 	erase_from<Type>( std::set<Type>& x ) : _x(x) {}
-	void operator()( Type y ) { _x.erase(y); y->setPruned(true); }
+	void operator()( Type y ) { y->setPruned(true), _x.erase(y); }
     private:
 	std::set<Type>& _x;
     };
@@ -78,7 +78,7 @@ public:
     void addClient( Task * aTask ) { _clients.insert(aTask); }
     void addServer( Entity * anEntity ) { _servers.insert(anEntity); }
 
-    const std::set<Task *>& getClients() const { return _clients; }			/* Table of clients 		*/
+    const std::set<Task *>& getClients() const { return _clients; }		/* Table of clients 		*/
     virtual const char * const submodelType() const = 0;
     unsigned number() const { return _submodel_number; }
 
@@ -164,7 +164,7 @@ class MVASubmodel : public Submodel {
 	    Entity * _server;
 	};
 
-	void setServiceTime( Server * station, const Entry * entry, unsigned k ) const;
+	void setServiceTimeAndVariance( Server * station, const Entry * entry, unsigned k ) const;
     private:
 	MVASubmodel& _submodel;
     };
@@ -214,7 +214,7 @@ public:
 #endif
     double closedModelUtilization( const Server& station ) const;
     double openModelUtilization( const Server& station ) const;
-#if defined(BUG_393)
+#if BUG_393
     double closedModelMarginalQueueProbability( const Server& station, unsigned int i ) const;
 #endif
 

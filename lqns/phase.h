@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 16579 2023-03-23 20:09:37Z greg $
+ * $Id: phase.h 16630 2023-04-05 21:35:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -44,8 +44,6 @@ namespace LQIO {
 /* -------------------------------------------------------------------- */
 
 class NullPhase {
-    friend class Entry;			/* For access to myWait     */
-    friend class DeviceEntry;		/* For access to myWait     */
 
 public:
     NullPhase( const std::string& name );
@@ -64,8 +62,6 @@ public:
     virtual LQIO::DOM::Phase* getDOM() const { return _dom; }
     virtual const std::string& name() const { return _name; }
     NullPhase& setName( const std::string& name ) { _name = name; return *this; }
-    unsigned int getPhaseNumber() const { return _phase_number; }
-    NullPhase& setPhaseNumber( unsigned int p ) { _phase_number = p; return *this; }
 
     /* Queries */
     virtual bool isPresent() const { return _dom && _dom->isPresent(); }
@@ -89,6 +85,7 @@ public:
     NullPhase& setWaitTime( unsigned int submodel, double value ) { _wait[submodel] = value; return *this; }
     NullPhase& addWaitTime( unsigned int submodel, double value ) { _wait[submodel] += value; return *this; }
     double getWaitTime( unsigned int submodel ) const { return _wait[submodel];}
+    size_t getWaitSize() const { return _wait.size(); }
 
     virtual NullPhase& recalculateDynamicValues() { return *this; }
 
@@ -97,7 +94,6 @@ public:
 private:
     LQIO::DOM::Phase* _dom;
     std::string _name;			/* Name -- computed dynamically		*/
-    unsigned int _phase_number;		/* phase of entry (if phase)		*/
     double _serviceTime;		/* Initial service time.		*/
     double _variance;			/* Set if this is a processor		*/
 
@@ -109,8 +105,6 @@ protected:
 /* -------------------------------------------------------------------- */
 
 class Phase : public NullPhase {
-    friend class Entry;			/* For access to mySurrogateDelay 	*/
-    friend class TaskEntry;
     friend class Activity;		/* For access to mySurrogateDelay 	*/
     friend class ActivityList;		/* For access to mySurrogateDelay 	*/
     friend class RepeatActivityList;	/* For access to mySurrogateDelay 	*/
@@ -197,9 +191,9 @@ private:
 public:
     class CallsPerform {
     public:
-	CallsPerform( const Entry * e, unsigned submodel, unsigned k, unsigned p, callFunc f, double rate ) : _e(e), _submodel(submodel), _k(k), _p(p), _f(f), _rate(rate) {}
-	CallsPerform( const CallsPerform& src, double rate, unsigned p ) : _e(src._e), _submodel(src._submodel), _k(src._k), _p(p), _f(src._f), _rate(rate) {}		// Set rate and phase.
-	CallsPerform( const CallsPerform& src, double scale ) : _e(src._e), _submodel(src._submodel), _k(src._k), _p(src._p), _f(src._f), _rate(src._rate * scale) {}	// Set rate.
+	CallsPerform( callFunc f, unsigned submodel, const Entry * e, unsigned k, unsigned p, double rate ) : _f(f), _submodel(submodel), _e(e), _k(k), _p(p), _rate(rate) {}
+	CallsPerform( const CallsPerform& src, double rate, unsigned p ) : _f(src._f), _submodel(src._submodel), _e(src._e), _k(src._k), _p(p), _rate(rate) {}		// Set rate and phase.
+	CallsPerform( const CallsPerform& src, double scale ) : _f(src._f), _submodel(src._submodel), _e(src._e), _k(src._k), _p(src._p), _rate(src._rate * scale) {}	// Set rate.
 
 	const Entry * entry() const { return _e; }
 	double getRate() const { return _rate; }
@@ -208,27 +202,35 @@ public:
 	void operator()( Call * object ) const { if (object->submodel() == _submodel) (object->*_f)( _k, _p, _rate ); }
 
     private:
-	const Entry * _e;
+	const callFunc _f;
 	const unsigned _submodel;
+	const Entry * _e;
 	const unsigned _k;
 	const unsigned _p;
-	const callFunc _f;
 	const double _rate;
     };
     
 public:
     Phase( const std::string& = "" );
     Phase( const Phase&, unsigned int );
+    Phase( const Phase& );		/* For _phase.resize() */
     virtual ~Phase();
 
+public:
     /* Initialialization */
 	
+    void initialize( const std::string name, unsigned int n, Entry* entry );
+    unsigned int getPhaseNumber() const { return _phase_number; }
+    NullPhase& setPhaseNumber( unsigned int p ) { _phase_number = p; return *this; }
+#if PAN_REPLICATION
+    size_t getSurrogateDelaySize() const { return _surrogateDelay.size(); }
+    Phase& setSurrogateDelaySize( size_t );
+    Phase& clearSurrogateDelay();
+    Phase& addSurrogateDelay( const VectorMath<double>& );
+#endif
+
     Phase& expandCalls();
     virtual Phase& initProcessor();
-#if PAN_REPLICATION
-    Phase& initReplication( const unsigned );
-    Phase& resetReplication();
-#endif
     Phase& initCustomers( std::deque<const Task *>& stack, unsigned int customers );
     Phase& initWait();
     Phase& initVariance();
@@ -293,7 +295,7 @@ public:
     double waitExceptChain( const unsigned, const unsigned k );
 #endif
     Phase& updateWait( const Submodel&, const double );
-    Phase& updateVariance();
+    void computeVariance();	 			/* Computed variance.		*/
     double getProcWait( unsigned int submodel, const double relax ); // tomari quorum
     double getTaskWait( unsigned int submodel, const double relax );
     double getRendezvous( unsigned int submodel, const double relax );
@@ -316,7 +318,6 @@ protected:
     virtual Call * findOrAddCall( const Entry * anEntry, const queryFunc = 0 );
     virtual Call * findOrAddFwdCall( const Entry * anEntry, const Call * fwdCall );
 
-    double computeVariance() const;	 			/* Computed variance.		*/
     double processorVariance() const;
     virtual ProcessorCall * newProcessorCall( Entry * procEntry ) const;
 
@@ -334,6 +335,7 @@ private:
     double square_phase() const { return square( elapsedTime() ); }
 	
 private:
+    unsigned int _phase_number;		/* phase of entry (if phase)		*/
     const Entry * _entry;		/* Root for activity			*/
     std::set<Call *> _calls;         	/* Who I call.                          */
     std::vector<DeviceInfo *> _devices;	/* Will replace below			*/

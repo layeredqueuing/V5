@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 16583 2023-03-23 20:29:07Z greg $
+ * $Id: processor.cc 16622 2023-03-31 23:03:52Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -526,7 +526,7 @@ Processor::printTasks( std::ostream& output, unsigned int submodel ) const
 {
     if ( submodel != 0 && this->submodel() != submodel ) return output;
     for ( std::set<const Task *>::const_iterator task = _tasks.begin(); task != _tasks.end(); ++task ) {
-	if ( (isPruned() && (*task)->isPruned()) ) continue;
+	if ( (isReplica() && (*task)->isReplica()) ) continue;
 	output << std::setw(2) << " " << (*task)->print_name() << " *> " << print_name() << std::endl;
     }
     return output;

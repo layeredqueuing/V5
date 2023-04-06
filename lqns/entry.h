@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 16614 2023-03-30 16:50:06Z greg $
+ * $Id: entry.h 16630 2023-04-05 21:35:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -43,6 +43,7 @@ class Exponential;
 class MVASubmodel;
 class Model;
 class Processor;
+class Server;
 class Submodel;
 class Task;
 typedef Vector<unsigned> ChainVector;
@@ -100,6 +101,27 @@ public:
     };
 
 
+    class SaveServerResults {
+    public:
+	SaveServerResults( const MVASubmodel& submodel, const Server& station, const Entity& server ) : _submodel(submodel), _station(station), _server(server) {}
+	void operator()( Entry * entry ) const;
+    private:
+	const MVASubmodel& _submodel;
+	const Server& _station;			/* May be the base if replicated	*/
+	const Entity& _server;			/* The base or replica			*/
+    };
+
+    class SaveClientResults {
+    public:
+	SaveClientResults( const MVASubmodel& submodel, const Server& station, unsigned int chain, const Task& client ) : _submodel(submodel), _station(station), _k(chain), _client(client) {}
+	void operator()( Entry * entry ) const;
+    private:
+	const MVASubmodel& _submodel;
+	const Server& _station;			/* May be the base if replicated	*/
+	const unsigned int _k;
+	const Task& _client;			/* The base or replica			*/
+    };
+    
     struct get_clients {
 	get_clients( std::set<Task *>& clients ) : _clients(clients) {}
 	void operator()( const Entry * entry ) const;
@@ -133,7 +155,7 @@ public:
 protected:
     struct add_wait {
 	add_wait( unsigned int submodel ) : _submodel(submodel) {}
-	double operator()( double sum, const Phase& phase ) const { return sum + phase._wait[_submodel]; }
+	double operator()( double sum, const Phase& phase ) const { return sum + phase.getWaitTime( _submodel ); }
     private:
 	const unsigned int _submodel;
     };
@@ -207,7 +229,7 @@ public:
     Entry& initThroughputBound();
     Entry& initServiceTime();
 #if PAN_REPLICATION
-    Entry& initReplication( const unsigned );	// REPL
+    Entry& setSurrogateDelaySize( size_t );
 #endif
     Entry& resetInterlock();
     Entry& createInterlock();
@@ -253,7 +275,7 @@ public:
     virtual double openWait() const { return 0.; }
     LQIO::DOM::Entry* getDOM() const { return _dom; }
 #if PAN_REPLICATION
-    Entry& resetReplication();
+    Entry& clearSurrogateDelay();
 #endif
     unsigned getReplicaNumber() const { return _replica_number; }
 	

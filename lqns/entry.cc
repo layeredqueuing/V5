@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16614 2023-03-30 16:50:06Z greg $
+ * $Id: entry.cc 16630 2023-04-05 21:35:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -26,6 +26,7 @@
 #include <sstream>
 #include <lqio/error.h>
 #include <mva/prob.h>
+#include <mva/server.h>
 #include "actlist.h"
 #include "call.h"
 #include "entry.h"
@@ -65,20 +66,18 @@ Entry::Entry( LQIO::DOM::Entry* dom, unsigned int index, bool global )
 {
     const size_t size = _phase.size();
     for ( size_t p = 1; p <= size; ++p ) {
-	_phase[p].setEntry( this )
-	    .setName( name() + "_" + "123"[p-1] )
-	    .setPhaseNumber( p );
+	_phase[p].initialize( name() + "_" + "123"[p-1], p, this );
     }
 }
 
 
 /*
- * Deep copy (except DOM).
+ * Deep copy.
  */
 
 Entry::Entry( const Entry& src, unsigned int replica )
     : _dom(src._dom),
-      _phase(src._phase.size()),
+      _phase(src._phase.size()),	/* Don't copy call lists */
       _total(src._total.name()),
       _nextOpenWait(0.0),
       _startActivity(nullptr),
@@ -96,10 +95,8 @@ Entry::Entry( const Entry& src, unsigned int replica )
     /* Copy over phases.  Call lists will be done later */
     const size_t size = _phase.size();
     for ( size_t p = 1; p <= size; ++p ) {
-	_phase[p].setEntry( this )
-	    .setName( src._phase[p].name() )
-	    .setPhaseNumber( p )
-	    .setDOM( src._phase[p].getDOM() );
+	_phase[p].initialize( name() + "_" + "123"[p-1], p, this );
+	_phase[p].setDOM( src._phase[p].getDOM() );
     }
 }
 
@@ -244,7 +241,7 @@ Entry::check() const
 Entry&
 Entry::configure( const unsigned nSubmodels )
 {
-    std::for_each ( _phase.begin(), _phase.end(), Exec1<NullPhase,const unsigned>( &NullPhase::configure, nSubmodels ) );
+    std::for_each( _phase.begin(), _phase.end(), Exec1<NullPhase,const unsigned>( &NullPhase::configure, nSubmodels ) );
     _total.configure( nSubmodels );
 
     const unsigned n_e = Model::__entry.size() + 1;
@@ -395,9 +392,9 @@ Entry::initServiceTime()
  */
 
 Entry&
-Entry::initReplication( const unsigned n_chains )
+Entry::setSurrogateDelaySize( size_t n_chains )
 {
-    std::for_each( _phase.begin(), _phase.end(), Exec1<Phase,const unsigned>( &Phase::initReplication, n_chains ) );
+    std::for_each( _phase.begin(), _phase.end(), Exec1<Phase,size_t>( &Phase::setSurrogateDelaySize, n_chains ) );
     return *this;
 }
 #endif
@@ -526,13 +523,13 @@ Entry::setMaxPhase( const unsigned ph )
 {
     const unsigned int max_phase = maxPhase();
     if ( max_phase < ph ) {
-	_phase.resize(ph);
+	_phase.resize( ph );
 	for ( unsigned int p = max_phase + 1; p <= ph; ++p ) {
-	    std::string s;
-	    s = "0123"[p];
-	    _phase[p].setEntry( this )
-		.setName( s )
-		.configure( _total._wait.size() );
+	    _phase[p].initialize( name() + "_" + "123"[p-1], p, this );
+	    _phase[p].configure( _total.getWaitSize() );
+#if PAN_REPLICATION
+	    _phase[p].setSurrogateDelaySize( _phase[1].getSurrogateDelaySize() );
+#endif
 	}
     }
     max_phases = std::max( max_phase, max_phases );		/* Set global value.	*/
@@ -609,36 +606,11 @@ Entry::concurrentThreads() const
 
 
 /*
- * Save client results.
- */
-
-Entry&
-Entry::saveClientResults( const MVASubmodel& submodel, const Server& station, unsigned int k )
-{
-#if PAN_REPLICATION
-    if ( submodel.usePanReplication() ) {
-
-	/*
-	 * Get throughput PER CUSTOMER because replication
-	 * monkeys with the population levels.  Fix for
-	 * multiservers.
-	 */
-
-	saveThroughput( submodel.closedModelNormalizedThroughput( station, index(), k ) * owner()->population() );
-    } else {
-#endif
-	saveThroughput( submodel.closedModelThroughput( station, index(), k ) );
-#if PAN_REPLICATION
-    }
-#endif
-    return *this;
-}
-
-/*
- * Set the throughput of this entry to value.  If this is an activity entry, then
- * we push the throughput to all activities reachable from this entry.
- * The throughput of an activity is the sum of the throughput from all calling entries.
- * Ergo, we have to push the entry's index to the activities.
+ * Set the throughput of this entry to value.  If this is an activity
+ * entry, then we push the throughput to all activities reachable from
+ * this entry.  The throughput of an activity is the sum of the
+ * throughput from all calling entries.  Ergo, we have to push the
+ * entry's index to the activities.
  */
 
 Entry&
@@ -802,9 +774,9 @@ Entry::processorCalls() const
  */
 
 Entry&
-Entry::resetReplication()
+Entry::clearSurrogateDelay()
 {
-    std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::resetReplication ) );
+    std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::clearSurrogateDelay ) );
     return *this;
 }
 #endif
@@ -1032,6 +1004,15 @@ Entry::checkDroppedCalls() const
     }
     return rc;
 }
+
+
+Entry&
+Entry::recalculateDynamicValues()
+{
+    std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::recalculateDynamicValues ) );
+    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::serviceTime ) ) );
+    return *this;
+}
 
 const Entry&
 Entry::insertDOMResults(double *phaseUtils) const
@@ -1119,7 +1100,7 @@ Entry::print_call::operator()( const CallInfo::Item& call ) const
 {
     const Entry& src = *call.srcEntry();
     const Entry& dst = *call.dstEntry();
-    if ( (_submodel != 0 && dst.owner()->submodel() != _submodel ) || ( src.owner()->isPruned() && dst.owner()->isPruned() ) ) return;
+    if ( (_submodel != 0 && dst.owner()->submodel() != _submodel ) || ( src.owner()->isReplica() && dst.owner()->isReplica() ) ) return;
     _output << std::setw(2) << " " << src.print_name() << " " << _arrow << " " << dst.print_name() << std::endl;
 }
 
@@ -1134,13 +1115,15 @@ Entry::printSubmodelWait( std::ostream& output, unsigned int offset ) const
 	}
 	output << std::setw(8-offset);
 	if ( phase == _phase.begin() ) {
-	    output << name();
+	    std::ostringstream s;
+	    output_name( s, *this );
+	    output << s.str();
 	} else {
 	    output << " ";
 	}
 	output << " " << std::setw(1) << phase->getPhaseNumber() << "  ";
-	for ( unsigned j = 1; j <= phase->_wait.size(); ++j ) {
-	    output << std::setw(8) << phase->_wait[j];
+	for ( unsigned j = 1; j <= phase->getWaitSize(); ++j ) {
+	    output << std::setw(8) << phase->getWaitTime(j);
 	}
 	output << std::endl;
     }
@@ -1167,15 +1150,57 @@ Entry::output_name( std::ostream& output, const Entry& entry )
     return output;
 }
 
-
-/* --------------------------- Dynamic LQX  --------------------------- */
 
-Entry&
-Entry::recalculateDynamicValues()
+
+/* ------------------------------ Results ----------------------------- */
+
+/*
+ * Save client results.
+ */
+
+void
+Entry::SaveClientResults::operator()( Entry * entry ) const
 {
-    std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::recalculateDynamicValues ) );
-    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::serviceTime ) ) );
-    return *this;
+    const unsigned e = entry->index();
+#if PAN_REPLICATION
+    if ( _submodel.usePanReplication() ) {
+
+	/*
+	 * Get throughput PER CUSTOMER because replication monkeys
+	 * with the population levels.  Fix for multiservers.
+	 */
+
+	entry->saveThroughput( _submodel.closedModelNormalizedThroughput( _station, e, _k ) * _client.population() );
+    } else {
+#endif
+	entry->saveThroughput( _submodel.closedModelThroughput( _station, e, _k ) );
+#if PAN_REPLICATION
+    }
+#endif
+}
+
+void
+Entry::SaveServerResults::operator()( Entry * entry ) const
+{
+    const unsigned e = entry->index();
+    double lambda = 0.0;
+
+    if ( _server.isOpenModelServer() ) {
+	lambda = _submodel.openModelThroughput( _station, e );		/* BUG_168 */
+	entry->saveOpenWait( _station.R( e, 0 ) );
+    }
+
+    if ( _server.isClosedModelServer() ) {
+	const double tput = _submodel.closedModelThroughput( _station, e );
+	if ( std::isfinite( tput ) ) {
+	    lambda += tput;
+	} else if ( tput < 0.0 ) {
+	    throw std::domain_error( "MVASubmodel::saveServerResults" );
+	} else {
+	    lambda = tput;
+	}
+    }
+    entry->saveThroughput( lambda );
 }
 
 /* --------------------------- Task Entries --------------------------- */
@@ -1293,11 +1318,10 @@ TaskEntry::computeVariance()
 	Activity::Collect collect( &Activity::collectWait );
 	getStartActivity()->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
-	_total.addVariance( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::variance ) ) );
     } else {
-	std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::updateVariance ) );
-	_total.addVariance( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::variance ) ) );
+	std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::computeVariance ) );
     }
+    _total.addVariance( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::variance ) ) );
     if ( flags.trace_variance != 0 && (dynamic_cast<TaskEntry *>(this) != nullptr) ) {
 	std::cout << "Variance(" << name() << ",p) ";
 	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
@@ -1332,9 +1356,9 @@ Entry::set( const Entry * src, const Activity::Collect& data )
 	}
 #if PAN_REPLICATION
     } else if ( f == &Activity::collectReplication ) {
+        setMaxPhase( std::max( maxPhase(), src->maxPhase() ) );
         for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-            _phase[p]._surrogateDelay.resize( src->_phase[p]._surrogateDelay.size() );
-            _phase[p].resetReplication();
+            _phase[p].clearSurrogateDelay();
         }
 #endif
     }
@@ -1378,7 +1402,7 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 		      << ", submodel " << submodel << std::endl;
 	    std::cout << "        Wait=";
 	    for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
-		std::cout << phase->_wait[submodel] << " ";
+		std::cout << phase->getWaitTime(submodel) << " ";
 	    }
 	    std::cout << std::endl;
 	}
@@ -1406,7 +1430,7 @@ Entry&
 Entry::aggregate( const unsigned submodel, const unsigned p, const Exponential& addend )
 {
     if ( submodel ) {
-	_phase[p]._wait[submodel] += addend.mean();
+	_phase[p].addWaitTime( submodel, addend.mean() );
 
     } else if ( addend.variance() > 0.0 ) {
 
@@ -1440,7 +1464,7 @@ TaskEntry::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta 
 {
     double delta = 0.0;
     if ( isActivityEntry() ) {
-	std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::resetReplication ) );
+	std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::clearSurrogateDelay ) );
 
 	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack;
@@ -1467,7 +1491,7 @@ Entry&
 Entry::aggregateReplication( const Vector< VectorMath<double> >& addend )
 {
     for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	_phase[p]._surrogateDelay += addend[p];
+	_phase[p].addSurrogateDelay( addend[p] );
     }
     return *this;
 }
@@ -1491,10 +1515,10 @@ Entry::callsPerform( callFunc f, const unsigned submodel, const unsigned k ) con
 	 * is used to calculation entry throughput not the throughput of its owner task.
 	 * the visit of a call equals rate * rendenzvous() normally;
 	 * therefore, rate has to be set to 1.*/
-	getStartActivity()->callsPerform( Phase::CallsPerform( this, submodel, k, 1, f, rate ) );
+	getStartActivity()->callsPerform( Phase::CallsPerform( f, submodel, this, k, 1, rate ) );
     } else {
 	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    _phase[p].callsPerform( Phase::CallsPerform( this, submodel, k, p, f, rate ) );
+	    _phase[p].callsPerform( Phase::CallsPerform( f, submodel, this, k, p, rate ) );
 	}
     }
     return *this;
@@ -1547,11 +1571,11 @@ DeviceEntry::initProcessor()
 DeviceEntry&
 DeviceEntry::initWait()
 {
-    const unsigned i  = owner()->submodel();
+    const unsigned submodel  = owner()->submodel();
     const double time = _phase[1].serviceTime();
 
-    _phase[1]._wait[i] = time;
-    _total._wait[i] = time;
+    _phase[1].setWaitTime( submodel, time );
+    _total.setWaitTime( submodel, time );
     return *this;
 }
 

@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16585 2023-03-24 13:34:01Z greg $
+# $Id: Makefile.am 16629 2023-04-04 08:53:31Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -73,8 +73,13 @@ OTHER=	90-A01.lqxo \
 SPEX=	01-sanity-l.csv \
 	01-sanity-s.csv
 
-VAR=	90-A01-novar.lqxo \
-	90-A01-stoch.lqxo
+EXTRA=	90-A01-novar.lqxo \
+	90-A01-stoch.lqxo \
+	50-replication-pan.lqxo \
+	51-replication-pan.lqxo \
+	52-replication-pan.lqxo \
+	55-replication-pan.lqxo \
+	56-replication-pan.lqxo
 
 DISTTEST=disttest
 
@@ -89,7 +94,7 @@ SRCS1=	$(OBJS:.lqxo=.lqnx)
 SRCS2=	$(OBJS:.csv=.lqx)
 SRCS3=	$(OBJS:.csv=.xlqn)
 
-EXTRA_DIST = $(SRCS1) $(SRCS2)
+EXTRA_DIST = $(SRCS1) $(SRCS2) $(SRCS3)
 
 SUFFIXES = .diff .svg .csv .d .lqxo .lqnx .xlqn
 
@@ -121,11 +126,11 @@ SUFFIXES = .diff .svg .csv .d .lqxo .lqnx .xlqn
 
 all:
 
-check:	$(OBJS) $(VAR) $(SPEX)
-	echo $(OBJS) $(VAR) | tr -s " " "\n" | srvndiff $(DIFFOPTS) -@- . ../../models/regression/lqns-results
+check:	$(OBJS) $(EXTRA) $(SPEX)
+	echo $(OBJS) $(EXTRA) | tr -s " " "\n" | srvndiff $(DIFFOPTS) -@- . ../../models/regression/lqns-results
 
 recheck:
-	rm -f $(OBJS) $(VAR)
+	rm -f $(OBJS) $(EXTRA)
 	$(MAKE) -k check
 
 summary:	$(OBJS)
@@ -171,6 +176,26 @@ distclean:	clean
 # 48-activities.lqxo: 48-activities.lqnx
 # 	$(SRVN) $(OPTS) -a $<
 # 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
+
+50-replication-pan.lqxo: 50-replication.lqnx
+	$(SRVN) $(OPTS) -Preplication=pan -xo$@ $<
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
+
+51-replication-pan.lqxo: 51-replication.lqnx
+	$(SRVN) $(OPTS) -Preplication=pan -xo$@ $<
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
+
+52-replication-pan.lqxo: 52-replication.lqnx
+	$(SRVN) $(OPTS) -Preplication=pan -xo$@ $<
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
+
+55-replication-pan.lqxo: 55-replication.lqnx
+	$(SRVN) $(OPTS) -Preplication=pan -xo$@ $<
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
+
+56-replication-pan.lqxo: 56-replication.lqnx
+	$(SRVN) $(OPTS) -Preplication=pan -xo$@ $<
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 90-A01-novar.lqxo: 90-A01.lqnx
 	$(SRVN) -Pvariance=none -a -xo$@ 90-A01.lqnx

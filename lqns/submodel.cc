@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 16614 2023-03-30 16:50:06Z greg $
+ * $Id: submodel.cc 16625 2023-04-01 16:56:28Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -699,13 +699,6 @@ MVASubmodel::InitializeClientStation::operator()( Task* client )
     const unsigned int n = _submodel.number();
     Server * station = client->clientStation( n );
 
-    /* If the client has been pruned, use replica 1 */
-#if BUG_299_PRUNE
-    if ( client->isPruned() ) {
-	client = Task::find( client->name() );	/* find base task if pruned */
-    }
-#endif
-
     if ( client->isClosedModelClient() ) {
 	const ChainVector& chains = client->clientChains( n );
 	const std::vector<Entry *>& entries = client->entries();
@@ -749,13 +742,9 @@ MVASubmodel::InitializeServerStation::operator()( Entity * server )
     Server * station = server->serverStation();
     if ( !station ) return;
 
-    if ( !Pragma::init_variance_only() ) {
-	server->computeVariance();
-    }
-
     /* If this entity has been pruned, remap to the base replica */
-#if BUG_299_PRUNE
-    if ( server->isPruned() ) {
+#if 0 // BUG_299_PRUNE
+    if ( server->isReplica() ) {
 	if ( server->isProcessor() ) {
 	    server = Processor::find( server->name() );
 	} else {
@@ -763,6 +752,10 @@ MVASubmodel::InitializeServerStation::operator()( Entity * server )
 	}
     }
 #endif
+
+    if ( !Pragma::init_variance_only() ) {
+	server->computeVariance();
+    }
 
     const ChainVector& chains = server->serverChains();
     const std::vector<Entry *>& entries = server->entries();
@@ -777,7 +770,7 @@ MVASubmodel::InitializeServerStation::operator()( Entity * server )
 	/* -- Set service time for entries with visits only. -- */
 	if ( server->isClosedModelServer() ) {
 	    for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
-		setServiceTime( station, *entry, *k );
+		setServiceTimeAndVariance( station, *entry, *k );
 	    }
 	}
 
@@ -787,7 +780,7 @@ MVASubmodel::InitializeServerStation::operator()( Entity * server )
 	 */
 
 	if ( server->isOpenModelServer() ) {
-	    setServiceTime( station, *entry, 0 );
+	    setServiceTimeAndVariance( station, *entry, 0 );
 	}
 
     }
@@ -816,7 +809,7 @@ MVASubmodel::InitializeServerStation::operator()( Entity * server )
  */
 
 void
-MVASubmodel::InitializeServerStation::setServiceTime( Server * station, const Entry * entry, unsigned k ) const
+MVASubmodel::InitializeServerStation::setServiceTimeAndVariance( Server * station, const Entry * entry, unsigned k ) const
 {
     const unsigned e = entry->index();
 
@@ -1010,8 +1003,8 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    std::cout <<"MVASubmodel::solve( ) .... completed solving the MVA model......." << std::endl;
 	}
 
-	std::for_each( _clients.begin(), _clients.end(), Exec1<Task,const MVASubmodel&>( &Task::saveClientResults, *this ) );
-	std::for_each( _servers.begin(), _servers.end(), Exec2<Entity,const MVASubmodel&,double>( &Entity::saveServerResults, *this, relax ) );
+	std::for_each( _clients.begin(), _clients.end(), Task::SaveClientResults( *this ) );
+	std::for_each( _servers.begin(), _servers.end(), Entity::SaveServerResults( *this, relax ) );
 
 	/* --- Compute and save new values for entry service times. --- */
 
@@ -1095,7 +1088,7 @@ MVASubmodel::openModelUtilization( const Server& station ) const
     return _openModel != nullptr ? _openModel->utilization( station ) : 0.0;
 }
 
-#if defined(BUG_393)
+#if BUG_393
 double
 MVASubmodel::closedModelMarginalQueueProbability( const Server& station, unsigned int i ) const
 {

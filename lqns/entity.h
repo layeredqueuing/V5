@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 16579 2023-03-23 20:09:37Z greg $
+ * $Id: entity.h 16624 2023-04-01 16:16:19Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -95,6 +95,17 @@ public:
 	const std::string _name;
     };
 
+    class SaveServerResults {
+    public:
+	SaveServerResults( const MVASubmodel& submodel , double relax ) : _submodel(submodel), _relax(relax) {}
+	void operator()( Entity * entity ) const;
+    private:
+	void saveResults( const Server&, Entity& ) const;
+    private:
+	const MVASubmodel& _submodel;
+	const double _relax;
+    };
+
     /*
      * Update waiting times.
      */
@@ -128,6 +139,7 @@ protected:
     virtual Entity * clone( unsigned int ) = 0;
 
 private:
+    Entity( const Entity& ) = delete;
     Entity& operator=( const Entity& ) = delete;
 
 public:
@@ -185,26 +197,26 @@ public:
     bool isClosedModelClient() const { return _attributes.closed_client; }
     bool isClosedModelServer() const { return _attributes.closed_server; }
     bool isOpenModelServer() const   { return _attributes.open_server; }
-    bool isPruned() const		{ return _pruned; }
     Entity& setClosedModelClient( const bool yesOrNo ) { _attributes.closed_client = yesOrNo; return *this; }
     Entity& setClosedModelServer( const bool yesOrNo ) { _attributes.closed_server = yesOrNo; return *this; }
     Entity& setDeterministicPhases( const bool yesOrNo ) { _attributes.deterministic = yesOrNo; return *this; }
     Entity& setInitialized( const bool yesOrNo ) { _attributes.initialized = yesOrNo; return *this; }
     Entity& setOpenModelServer( const bool yesOrNo )   { _attributes.open_server = yesOrNo; return *this; }
-    Entity& setPruned( bool yesOrNo ) { _attributes.pruned = yesOrNo; return *this; }
     Entity& setVarianceAttribute( const bool yesOrNo ) { _attributes.variance = yesOrNo; return *this; }
-
-    virtual bool isUsed() const { return submodel() > 0; }
 
     virtual bool isTask() const          { return false; }
     virtual bool isReferenceTask() const { return false; }
     virtual bool isProcessor() const     { return false; }
     virtual bool isInfinite() const;
-
     bool isCalledBy( const Task* ) const;
     bool isMultiServer() const   	{ return copies() > 1; }
     bool isReplicated() const		{ return replicas() > 1; }
 
+    virtual bool isUsed() const { return submodel() > 0; }
+    bool isReplica() const;
+    bool isPruned() const { return _pruned; }
+    Entity& setPruned( bool yesOrNo ) { _pruned = yesOrNo; return *this; }
+    
     const std::vector<Entry *>& entries() const { return _entries; }
     Entity& addEntry( Entry * );
     Entry * entryAt( const unsigned index ) const { return _entries.at(index); }
@@ -250,7 +262,6 @@ public:
 
     Entity& clear();
     virtual Server * makeServer( const unsigned ) = 0;
-    virtual Entity& saveServerResults( const MVASubmodel&, double );
 
     /* Threads */
 	
@@ -306,7 +317,7 @@ private:
     unsigned _maxPhase;			/* Largest phase.		*/
     double _utilization;		/* Utilization			*/
     mutable double _lastUtilization;	/* For convergence test.	*/
-#if defined(BUG_393)
+#if BUG_393
     std::vector<double> _marginalQueueProbabilities;
 #endif
 
@@ -314,6 +325,6 @@ private:
 
     ChainVector _serverChains;		/* Chains for this server.	*/
     const unsigned int _replica_number;	/* > 1 if a replica		*/
-    bool _pruned;			/* True if pruned		*/
+    bool _pruned;
 };
 #endif

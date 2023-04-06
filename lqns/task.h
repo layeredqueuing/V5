@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 16579 2023-03-23 20:09:37Z greg $
+ * $Id: task.h 16630 2023-04-05 21:35:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -39,6 +39,16 @@ public:
     enum class root_level_t { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS };
     friend class Interlock;		// BUG_425 deprecate
 
+    class SaveClientResults {
+    public:
+	SaveClientResults( const MVASubmodel& submodel ) : _submodel(submodel) {}
+	void operator()( Task * Task ) const;
+    private:
+	void saveResults( const Server&, Task& ) const;
+    private:
+	const MVASubmodel& _submodel;
+    };
+    
 private:
     struct find_max_depth {
 	find_max_depth( Call::stack& callStack, bool directPath ) : _callStack(callStack), _directPath(directPath), _dstEntry(callStack.back()->dstEntry()) {}
@@ -54,7 +64,6 @@ private:
 	unsigned int operator()( unsigned int addend, const Entity * augend ) const;	// BUG_425 deprecate
     };
 
-
     class SRVNManip {
     public:
 	SRVNManip( std::ostream& (*f)(std::ostream&, const Task & ), const Task & task ) : _f(f), _task(task) {}
@@ -68,7 +77,7 @@ private:
     class SRVNIntManip {
     public:
 	SRVNIntManip( std::ostream& (*f)(std::ostream&, const Task &, const unsigned ),
-			  const Task & task, const unsigned n ) : _f(f), _task(task), _n(n) {}
+		      const Task & task, const unsigned n ) : _f(f), _task(task), _n(n) {}
     private:
 	std::ostream& (*_f)( std::ostream&, const Task&, const unsigned );
 	const Task & _task;
@@ -87,6 +96,8 @@ protected:
     virtual Task * clone( unsigned int ) = 0;
 
 private:
+    Task( const Task& ) = delete;
+    Task& operator=( const Task& ) = delete;
     void cloneActivities( const Task& src, unsigned int replica );
     
 public:
@@ -131,7 +142,7 @@ public:
     virtual unsigned int fanOut( const Entity * ) const;
     virtual unsigned int fanIn( const Task * ) const;
 #if PAN_REPLICATION
-    void resetReplication();
+    void clearSurrogateDelay();
 #endif
     Task& addThread( Thread * aThread ) { _threads.push_back(aThread); return *this; }
 
@@ -229,7 +240,7 @@ protected:
 
 private:
 #if PAN_REPLICATION
-    Task& initReplication( const unsigned );	 	// REP N-R
+    Task& setSurrogateDelaySize( size_t );
 #endif
     double bottleneckStrength() const;
     void store_activity_service_time ( const char * activity_name, const double service_time );	// quorum.

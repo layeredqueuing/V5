@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 16564 2023-03-21 21:16:35Z greg $
+ * $Id: actlist.cc 16632 2023-04-06 10:49:56Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -499,7 +499,7 @@ AndOrForkActivityList::cloneVirtualEntry( const Entry * src, const Task * owner,
 
 AndOrForkActivityList::~AndOrForkActivityList()
 {
-    std::for_each( _entryList.begin(), _entryList.end(), Delete<Entry *> );
+    std::for_each( entries().begin(), entries().end(), Delete<Entry *> );
 }
 
 
@@ -511,10 +511,19 @@ AndOrForkActivityList::~AndOrForkActivityList()
 AndOrForkActivityList&
 AndOrForkActivityList::configure( const unsigned n )
 {
-    std::for_each( _entryList.begin(), _entryList.end(), Exec1<Entry,const unsigned>( &Entry::configure, n ) );
+    std::for_each( entries().begin(), entries().end(), Exec1<Entry,const unsigned>( &Entry::configure, n ) );
     return *this;
 }
 
+
+#if PAN_REPLICATION
+ActivityList&
+AndOrForkActivityList::setSurrogateDelaySize( size_t size )
+{
+    std::for_each( entries().begin(), entries().end(), Exec1<Entry,size_t>( &Entry::setSurrogateDelaySize, size ) );
+    return *this;
+}
+#endif
 
 
 ActivityList *
@@ -622,7 +631,7 @@ AndOrForkActivityList::collectToEntry( const Activity * activity, VirtualEntry *
 std::ostream&
 AndOrForkActivityList::printSubmodelWait( std::ostream& output, unsigned offset ) const
 {
-    std::for_each( _entryList.begin(), _entryList.end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, offset ) );
+    std::for_each( entries().begin(), entries().end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, offset ) );
     return output;
 }
 
@@ -659,8 +668,8 @@ OrForkActivityList::OrForkActivityList( const OrForkActivityList& src, const Tas
     : AndOrForkActivityList( src, owner, replica )
 {
     /* Must be done here, rather in super class because constructor will not call subclass */
-    for ( std::vector<VirtualEntry *>::const_iterator entry = src._entryList.begin(); entry != src._entryList.end(); ++entry ) {
-	_entryList.push_back( cloneVirtualEntry( *entry, owner, replica ) );
+    for ( std::vector<VirtualEntry *>::const_iterator entry = src.entries().begin(); entry != src.entries().end(); ++entry ) {
+	_entries.push_back( cloneVirtualEntry( *entry, owner, replica ) );
     }
 }
 
@@ -681,8 +690,8 @@ OrForkActivityList::add( Activity * anActivity )
     VirtualEntry * anEntry = new VirtualEntry( anActivity );
     assert( anEntry->entryTypeOk(LQIO::DOM::Entry::Type::ACTIVITY) );
     anEntry->setStartActivity( anActivity );
-    _entryList.push_back( anEntry );
-    assert( _entryList.size() == activityList().size() );
+    _entries.push_back( anEntry );
+    assert( _entries.size() == activityList().size() );
 
     return *this;
 }
@@ -739,7 +748,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch( data );
 	    const Activity * activity = activityList().at(i);
-            VirtualEntry * anEntry = collectToEntry( activity, _entryList[i], activityStack, entryStack, branch );
+            VirtualEntry * anEntry = collectToEntry( activity, entries()[i], activityStack, entryStack, branch );
             phase = std::max( phase, branch.phase() );
 
             term[i].resize( currEntry->maxPhase() );
@@ -771,7 +780,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch( data );
 	    const Activity * activity = activityList().at(i);
-            VirtualEntry * anEntry = collectToEntry( activity, _entryList[i], activityStack, entryStack, branch );
+            VirtualEntry * anEntry = collectToEntry( activity, entries()[i], activityStack, entryStack, branch );
             phase = std::max( phase, branch.phase() );
 
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
@@ -789,7 +798,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch( data );
 	    const Activity * activity = activityList().at(i);
-            VirtualEntry * anEntry = collectToEntry( activity, _entryList[i], activityStack, entryStack, branch );
+            VirtualEntry * anEntry = collectToEntry( activity, entries()[i], activityStack, entryStack, branch );
             phase = std::max( phase, branch.phase() );
 
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
@@ -804,7 +813,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch( data );
 	    const Activity * activity = activityList().at(i);
-            collectToEntry( activity, _entryList[i], activityStack, entryStack, branch );
+            collectToEntry( activity, entries()[i], activityStack, entryStack, branch );
             phase = std::max( phase, branch.phase() );
         }
     }
@@ -923,8 +932,8 @@ AndForkActivityList::AndForkActivityList( const AndForkActivityList& src, const 
       _joinVariance(0.0)
 {
     /* Must be done here, rather in super class because constructor will not call subclass */
-    for ( std::vector<VirtualEntry *>::const_iterator entry = src._entryList.begin(); entry != src._entryList.end(); ++entry ) {
-	_entryList.push_back( cloneVirtualEntry( *entry, owner, replica ) );
+    for ( std::vector<VirtualEntry *>::const_iterator entry = src.entries().begin(); entry != src.entries().end(); ++entry ) {
+	_entries.push_back( cloneVirtualEntry( *entry, owner, replica ) );
     }
 }
 
@@ -958,8 +967,8 @@ AndForkActivityList::add( Activity * anActivity )
     Thread * thread = new Thread( anActivity, this );
     assert( thread->entryTypeOk(LQIO::DOM::Entry::Type::ACTIVITY) );
     thread->setStartActivity( anActivity );
-    _entryList.push_back( thread );
-    assert( _entryList.size() == activityList().size() );
+    _entries.push_back( thread );
+    assert( _entries.size() == activityList().size() );
 
     Task * task = const_cast<Task *>(dynamic_cast<const Task *>(anActivity->owner()));    /* Downcase/unconst */
     task->addThread( thread );
@@ -1090,7 +1099,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch( data );
 	    const Activity * activity = activityList().at(i);
-            Thread * anEntry = dynamic_cast<Thread *>(collectToEntry( activity, _entryList[i], activityStack, entryStack, branch ));
+            Thread * anEntry = dynamic_cast<Thread *>(collectToEntry( activity, entries()[i], activityStack, entryStack, branch ));
             phase = std::max( phase, branch.phase() );
 
             Vector<Exponential> term( currEntry->maxPhase() );
@@ -1257,7 +1266,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch(data);
 	    const Activity * activity = activityList().at(i);
-            Entry * anEntry = collectToEntry( activity, _entryList[i], activityStack, entryStack, branch );
+            Entry * anEntry = collectToEntry( activity, entries()[i], activityStack, entryStack, branch );
             phase = std::max( phase, branch.phase() );
 
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
@@ -1273,7 +1282,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch(data);
 	    const Activity * activity = activityList().at(i);
-            collectToEntry( activity, _entryList[i], activityStack, entryStack, branch );
+            collectToEntry( activity, entries()[i], activityStack, entryStack, branch );
             phase = std::max( phase, branch.phase() );
         }
     }
@@ -1334,7 +1343,7 @@ AndForkActivityList::calcQuorumKofN( const unsigned submodel,
     }
 
     if ( submodel == Model::syncSubmodel() ) {
-        for ( std::vector<VirtualEntry *>::const_iterator entry = _entryList.begin(); entry != _entryList.end(); ++entry ) {
+        for ( std::vector<VirtualEntry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
             if ( dynamic_cast<Thread *>(*entry) ) {
                 dynamic_cast<Thread *>(*entry)->joinDelay(join->mean());
             }
@@ -1891,7 +1900,7 @@ RepeatActivityList::RepeatActivityList( Task * owner, LQIO::DOM::ActivityList * 
     : ForkActivityList( owner, dom ),
       _prev(nullptr),
       _activityList(),
-      _entryList()
+      _entries()
 {
 }
 
@@ -1905,13 +1914,13 @@ RepeatActivityList::RepeatActivityList( const RepeatActivityList& src, const Tas
     : ForkActivityList( src, owner, replica ),
       _prev(nullptr),
       _activityList(),
-      _entryList()
+      _entries()
 {
     for ( std::vector<const Activity *>::const_iterator activity = src._activityList.begin(); activity != src._activityList.end(); ++activity ) {
 	_activityList.push_back( owner->findActivity( (*activity)->name() ) );
     }
-    for ( std::vector<VirtualEntry *>::const_iterator entry = src._entryList.begin(); entry != src._entryList.end(); ++entry ) {
-	_entryList.push_back( cloneVirtualEntry( *entry, owner, replica ) );
+    for ( std::vector<VirtualEntry *>::const_iterator entry = src.entries().begin(); entry != src.entries().end(); ++entry ) {
+	_entries.push_back( cloneVirtualEntry( *entry, owner, replica ) );
     }
 }
 
@@ -1919,7 +1928,7 @@ RepeatActivityList::RepeatActivityList( const RepeatActivityList& src, const Tas
 
 RepeatActivityList::~RepeatActivityList()
 {
-    std::for_each( _entryList.begin(), _entryList.end(), Delete<Entry *> );
+    std::for_each( entries().begin(), entries().end(), Delete<Entry *> );
 }
 
 
@@ -1956,7 +1965,7 @@ RepeatActivityList::add( Activity * activity )
         _activityList.push_back( activity );
 
 	VirtualEntry * entry = new VirtualEntry( activity );
-	_entryList.push_back( entry );
+	_entries.push_back( entry );
         assert( entry->entryTypeOk(LQIO::DOM::Entry::Type::ACTIVITY) );
         entry->setStartActivity( activity );
 	activity->setEntry( entry );
@@ -1975,10 +1984,20 @@ RepeatActivityList::add( Activity * activity )
 RepeatActivityList&
 RepeatActivityList::configure( const unsigned n )
 {
-    std::for_each( _entryList.begin(), _entryList.end(), Exec1<Entry,unsigned>( &Entry::configure, n ) );
+    std::for_each( entries().begin(), entries().end(), Exec1<Entry,unsigned>( &Entry::configure, n ) );
     return *this;
 }
 
+
+
+#if PAN_REPLICATION
+ActivityList&
+RepeatActivityList::setSurrogateDelaySize( size_t size )
+{
+    std::for_each( entries().begin(), entries().end(), Exec1<Entry,size_t>( &Entry::setSurrogateDelaySize, size ) );
+    return *this;
+}
+#endif
 
 
 double
@@ -2080,7 +2099,7 @@ RepeatActivityList::collect( std::deque<const Activity *>& activityStack, std::d
     for ( unsigned i = 0; i < n; ++i ) {
 	const Activity * anActivity = activityList().at(i);
 	Activity::Collect branch(data);
-	VirtualEntry * anEntry = collectToEntry( anActivity, _entryList[i], activityStack, entryStack, branch );
+	VirtualEntry * anEntry = collectToEntry( anActivity, entries()[i], activityStack, entryStack, branch );
 
         if ( f == &Activity::collectWait ) {
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
@@ -2168,7 +2187,7 @@ RepeatActivityList::concurrentThreads( unsigned n ) const
 std::ostream&
 RepeatActivityList::printSubmodelWait( std::ostream& output, unsigned offset ) const
 {
-    std::for_each( _entryList.begin(), _entryList.end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, offset ) );
+    std::for_each( entries().begin(), entries().end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, offset ) );
     return output;
 }
 

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16614 2023-03-30 16:50:06Z greg $
+ * $Id: phase.cc 16630 2023-04-05 21:35:05Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -46,7 +46,6 @@
 NullPhase::NullPhase( const std::string& name )
     : _dom(nullptr),
       _name(name),
-      _phase_number(0),
       _serviceTime(0.0),
       _variance(0.0),
       _wait()
@@ -57,7 +56,6 @@ NullPhase::NullPhase( const std::string& name )
 NullPhase::NullPhase( const NullPhase& src )
     : _dom(src._dom),
       _name(src._name),
-      _phase_number(src._phase_number),
       _serviceTime(0.0),
       _variance(0.0),
       _wait()
@@ -231,6 +229,7 @@ NullPhase::insertDOMHistogram( LQIO::DOM::Histogram * histogram, const double m,
 
 Phase::Phase( const std::string& name )
     : NullPhase( name ),
+      _phase_number(0),
       _entry(nullptr),
       _calls(),
       _devices(),
@@ -242,10 +241,25 @@ Phase::Phase( const std::string& name )
 
 Phase::Phase( const Phase& src, unsigned int replica )
     : NullPhase(src),
+      _phase_number(src._phase_number),
       _entry(src._entry != nullptr ? Entry::find( src._entry->name(), replica ) : nullptr ),	/* Only phases have entries */
       _calls(),		// Done after all entries created
       _devices(),
       _prOvertaking(0.)
+{
+}
+
+
+
+Phase::Phase( const Phase& src )
+    : NullPhase(src),
+      _entry(src._entry),
+      _calls(src._calls),
+      _devices(src._devices),
+#if PAN_REPLICATION
+      _surrogateDelay(src._surrogateDelay),
+#endif
+      _prOvertaking(src._prOvertaking)
 {
 }
 
@@ -261,6 +275,15 @@ Phase::~Phase()
     std::for_each( callList().begin(), callList().end(), Delete<Call *> );
 }
 
+
+
+void
+Phase::initialize( const std::string name, unsigned int n, Entry* entry )
+{
+    setName( name );
+    setPhaseNumber( n );
+    setEntry( entry );
+}
 
 
 /*
@@ -374,7 +397,7 @@ Phase::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
  */
  
 Phase&
-Phase::initReplication( const unsigned maxSize )
+Phase::setSurrogateDelaySize( size_t maxSize )
 {
     _surrogateDelay.resize( maxSize );
     return *this;
@@ -416,9 +439,17 @@ Phase::initVariance()
  */
 
 Phase&
-Phase::resetReplication()
+Phase::clearSurrogateDelay()
 {
-    _surrogateDelay = 0.;
+    _surrogateDelay = 0.;		/* Vector clear */
+    return *this;
+}
+
+
+Phase&
+Phase::addSurrogateDelay( const VectorMath<double>& addend )
+{
+    _surrogateDelay += addend;		/* Vector add */
     return *this;
 }
 #endif
@@ -951,14 +982,6 @@ Phase::updateWait( const Submodel& submodel, const double relax )
 
 
 
-Phase&
-Phase::updateVariance()
-{
-    setVariance( computeVariance() );
-    return *this;
-}
-
-
 #if PAN_REPLICATION
 double
 Phase::getReplicationProcWait( unsigned int submodel, const double relax ) 
@@ -1265,8 +1288,8 @@ Phase::recalculateDynamicValues()
  * Compute the variance. 
  */
 
-double
-Phase::computeVariance() const
+void
+Phase::computeVariance()
 {
     typedef double (Phase::*fptr)() const;
     static std::map<const Pragma::Variance,fptr> stochastic =
@@ -1285,13 +1308,13 @@ Phase::computeVariance() const
     };
 
     if ( !std::isfinite( elapsedTime() ) ) {
-	return elapsedTime();
+	setVariance( elapsedTime() );
     } else if ( phaseTypeFlag() == LQIO::DOM::Phase::STOCHASTIC ) {
 	const fptr f = stochastic.at(Pragma::variance());
-	return (this->*f)();
+	setVariance( (this->*f)() );
     } else {
 	const fptr f = deterministic.at(Pragma::variance());
-	return (this->*f)();
+	setVariance( (this->*f)() );
     }
 }
 

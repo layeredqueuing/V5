@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 16564 2023-03-21 21:16:35Z greg $
+ * $Id: actlist.h 16632 2023-04-06 10:49:56Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -81,6 +81,10 @@ public:
 
     bool operator!=( const ActivityList& item ) const { return !(*this == item); }
     virtual bool operator==( const ActivityList& item ) const { return false; }
+
+#if PAN_REPLICATION
+    virtual ActivityList& setSurrogateDelaySize( size_t ) { return *this; }
+#endif
 
     /* Instance Variable Access */
 	
@@ -289,11 +293,15 @@ protected:
     
 public:
     virtual AndOrForkActivityList& configure( const unsigned );
-	
+#if PAN_REPLICATION
+    virtual ActivityList& setSurrogateDelaySize( size_t );
+#endif
+
     bool hasNextFork() const;
     ActivityList * getNextFork() const;
 
     virtual ActivityList * prev() const { return _prev; }	/* Link to join list 		*/
+    const std::vector<VirtualEntry *>& entries() const { return _entries; }
     virtual const AndOrJoinActivityList * joinList() const { return _joinList; }
 
     virtual bool check() const;
@@ -315,7 +323,7 @@ private:
     void setJoinList( const AndOrJoinActivityList * joinList ) { _joinList = joinList; }
 
 protected:
-    std::vector<VirtualEntry *> _entryList;
+    std::vector<VirtualEntry *> _entries;
     mutable const AndForkActivityList * _parentForkList;
     const AndOrJoinActivityList * _joinList;
 
@@ -572,8 +580,12 @@ protected:
 public:	
     virtual ~RepeatActivityList();
     virtual RepeatActivityList& configure( const unsigned );
+#if PAN_REPLICATION
+    virtual ActivityList& setSurrogateDelaySize( size_t );
+#endif
     virtual RepeatActivityList& add( Activity * anActivity );
 	
+    const std::vector<VirtualEntry *>& entries() const { return _entries; }
     virtual ActivityList * prev() const { return _prev; }	/* Link to join list 		*/
     const std::vector<const Activity *>& activityList() const { return _activityList; }
 
@@ -599,7 +611,7 @@ private:
 private:
     ActivityList * _prev;
     std::vector<const Activity *> _activityList;
-    std::vector<VirtualEntry *> _entryList;
+    std::vector<VirtualEntry *> _entries;
 };
 
 /* Used by model.cc */

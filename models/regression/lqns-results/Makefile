@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 16474 2023-03-05 18:37:10Z greg $
+# $Id: Makefile 16629 2023-04-04 08:53:31Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqns
@@ -42,10 +42,15 @@ DSTS =	01-sanity.lqxo \
 	47-activities.lqxo \
 	48-activities.lqxo \
 	50-replication.lqxo \
+	50-replication-pan.lqxo \
 	51-replication.lqxo \
+	51-replication-pan.lqxo \
 	52-replication.lqxo \
+	52-replication-pan.lqxo \
 	55-replication.lqxo \
+	55-replication-pan.lqxo \
 	56-replication.lqxo \
+	56-replication-pan.lqxo \
 	75-distributions.lqxo \
 	76-distributions.lqxo \
 	85-fork.lqxo \
@@ -62,7 +67,7 @@ DSTS =	01-sanity.lqxo \
 	95-async-inf.lqxo
 
 QUORUM=	88-quorum.lqxo \
-	89-quorum.lqxo 
+	89-quorum.lqxo
 
 SRCS = $(DSTS:.lqxo=.lqnx)
 
@@ -83,6 +88,21 @@ all:	$(DSTS) .files
 	$(SRVN) -o $*.out $<
 	mv $*.d/$*-002.lqxo $*.lqxo
 	rm $*.d
+
+50-replication-pan.lqxo: 50-replication.lqnx
+	$(SRVN) $(OPTS) -Preplication=pan -xo $@ $<
+
+51-replication-pan.lqxo: 51-replication.lqnx
+	$(SRVN) $(OPTS) -Preplication=pan -xo $@ $<
+
+52-replication-pan.lqxo: 52-replication.lqnx
+	$(SRVN) $(OPTS) -Preplication=pan -xo $@ $<
+
+55-replication-pan.lqxo: 55-replication.lqnx
+	$(SRVN) $(OPTS) -Preplication=pan -w -xo $@ $<
+
+56-replication-pan.lqxo: 56-replication.lqnx
+	$(SRVN) $(OPTS) -Preplication=pan -w -xo $@ $<
 
 90-A01-novar.lqxo:	90-A01.lqnx
 	$(SRVN) -Pvariance=none -x -o$@ $<

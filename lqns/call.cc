@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 16616 2023-03-31 11:09:16Z greg $
+ * $Id: call.cc 16626 2023-04-01 19:37:43Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -116,7 +116,7 @@ Call::Call( const Call& src, unsigned int replica )
       _destination(nullptr),
       _chainNumber(src._chainNumber),
       _replica_number(replica),
-      _wait(0.0)
+      _wait(src._wait)
 {
 }
 
@@ -591,14 +591,14 @@ Call::saveOpen( const unsigned, const unsigned p, const double )
 /*
  * Get the waiting time for this call from the mva submodel.  A call
  * can potentially orginate from multiple chains, so add them all up.
- * (Call clearWait first.).  This may havve to be changed if the
- * result varies by chain.  Priorities perhaps?
+ * (Call clearWait first.)  This may have to be changed if the result
+ * varies by chain.  Priorities perhaps?
  */
 
 void
 Call::saveWait( const unsigned k, const unsigned p, const double )
 {
-    const Entity * server = dstTask();
+    const Entity * server = dstTask();		// BUG_433 -- remap to base?
     const unsigned e = dstEntry()->index();
     const Server * station = server->serverStation();
 
