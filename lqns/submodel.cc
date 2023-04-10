@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 16625 2023-04-01 16:56:28Z greg $
+ * $Id: submodel.cc 16645 2023-04-08 13:05:06Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -722,12 +722,12 @@ MVASubmodel::InitializeClientStation::operator()( Task* client )
 
 	/* Set visit ratios to all servers for this client */
 
-	client->callsPerform( &Call::setVisits, n );
+	client->closedCallsPerform( Call::Perform( &Call::Perform::setVisits, _submodel ) );
     }
 
     /* This will also set arrival rates for open class from sendNoReply */
 
-    client->openCallsPerform( &Call::setLambda, n );
+    client->openCallsPerform( Call::Perform( &Call::Perform::setLambda, _submodel ) );
 }
 
 

@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 16624 2023-04-01 16:16:19Z greg $
+ * $Id: submodel.h 16648 2023-04-09 11:11:47Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -77,6 +77,7 @@ public:
 
     void addClient( Task * aTask ) { _clients.insert(aTask); }
     void addServer( Entity * anEntity ) { _servers.insert(anEntity); }
+    bool hasServer( Entity * entity ) const { return _servers.find(entity) != _servers.end(); }
 
     const std::set<Task *>& getClients() const { return _clients; }		/* Table of clients 		*/
     virtual const char * const submodelType() const = 0;

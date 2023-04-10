@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 16630 2023-04-05 21:35:05Z greg $
+ * $Id: task.h 16648 2023-04-09 11:11:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -42,9 +42,7 @@ public:
     class SaveClientResults {
     public:
 	SaveClientResults( const MVASubmodel& submodel ) : _submodel(submodel) {}
-	void operator()( Task * Task ) const;
-    private:
-	void saveResults( const Server&, Task& ) const;
+	void operator()( Task * client ) const { client->saveClientResults( _submodel ); }
     private:
 	const MVASubmodel& _submodel;
     };
@@ -179,9 +177,11 @@ public:
     Task& expandCalls();
 
     Server * makeClient( const unsigned, const unsigned  );
-    Task& saveClientResults( const MVASubmodel& );
-    const Task& callsPerform( callFunc, const unsigned submodel ) const;
-    const Task& openCallsPerform( callFunc, const unsigned submodel ) const;
+private:
+    void saveClientResults( const MVASubmodel& );
+public:
+    const Task& closedCallsPerform( Call::Perform ) const;	// Copy arg.
+    const Task& openCallsPerform( Call::Perform ) const;	// Copy arg.
     const Task& setChains( MVASubmodel& submodel ) const;
 
     /* Computation */

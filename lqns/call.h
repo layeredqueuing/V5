@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 16616 2023-03-31 11:09:16Z greg $
+ * $Id: call.h 16646 2023-04-08 13:09:26Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -36,7 +36,6 @@ class Submodel;
 class Task;
 struct InterlockInfo;
 
-typedef void (Call::*callFunc)( const unsigned, const unsigned, const double );
 typedef bool (Call::*queryFunc)() const;
 
 /* ------------------- Arcs between entries are... -------------------- */
@@ -68,9 +67,46 @@ public:
     };
 	
     class Perform {
-	Perform();
-    };
+    public:
+	typedef void (Perform::*F)( Call& );
 
+	Perform( F f, const Submodel& submodel, unsigned int k=0 ) : _f(f), _submodel(submodel), _e(nullptr), _k(k), _p(0), _rate(0.0) {}
+	Perform( F f, const Submodel& submodel, const Entry * e, unsigned k, unsigned p, double rate ) : _f(f), _submodel(submodel), _e(e), _k(k), _p(p), _rate(rate) {}
+	Perform( const Perform& src, unsigned p, double rate ) : _f(src._f), _submodel(src._submodel), _e(src._e), _k(src._k), _p(p), _rate(rate) {}		// Set rate and phase.
+	Perform( const Perform& src, double scale ) : _f(src._f), _submodel(src._submodel), _e(src._e), _k(src._k), _p(src._p), _rate(src._rate * scale) {}	// Set rate.
+
+	unsigned int submodel() const; // { return _submodel.number(); }
+	Perform& setEntry( const Entry * entry ) { _e = entry; return *this; }
+	const Entry * entry() const { return _e; }
+	Perform& setChain( unsigned int k ) { _k = k; return *this; }
+	Perform& setPhase( unsigned int p ) { _p = p; return *this; }
+	Perform& setRate( double rate ) { _rate = rate; return *this; }
+	double rate() const { return _rate; }
+
+	void operator()( Call * call );
+
+	/* Functions invoked from task */
+	
+	void setChain( Call& );
+	void setVisits( Call& );
+	virtual void setLambda( Call& );
+	void saveWait( Call& );
+	void saveOpen( Call& );
+
+    private:
+	const F f() const { return _f; };
+	unsigned int k() const { return _k; }
+	unsigned int p() const { return _p; }
+
+    private:
+	const F _f;
+	const Submodel& _submodel;
+	const Entry * _e;
+	unsigned int _k;
+	unsigned int _p;
+	double _rate;
+    };
+    
     class stack : public std::deque<const Call *>
     {
     public:
@@ -140,7 +176,7 @@ public:
     Call( const Phase * fromPhase, const Entry * toEntry );
 
 protected:
-    Call( const Call&, unsigned int );
+    Call( const Call& );
     virtual Call * clone( unsigned int src_replica, unsigned int dst_replica ) = 0;
 
 public:
@@ -197,6 +233,9 @@ public:
     bool hasForwardingOrNone() const { return !hasRendezvous() && !hasSendNoReply(); }
     bool hasNoForwarding() const { return dstEntry() == nullptr || hasRendezvous() || hasSendNoReply(); }		/* Special case for topological sort */
     bool hasTypeForCallInfo( LQIO::DOM::Call::Type type ) const;
+#if PAN_REPLICATION
+    unsigned getChain() const { return _chainNumber; } //tomari
+#endif
     
     virtual const std::string& srcName() const;
     const Task * srcTask() const;
@@ -223,16 +262,6 @@ public:
     double CV_sqr() const;
     const Call& followInterlock( Interlock::CollectTable& ) const;
 
-    /* MVA interface */
-
-    void setChain( const unsigned k, const unsigned p, const double rate );
-    unsigned getChain() const { return _chainNumber; } //tomari
-
-    void setVisits( const unsigned k, const unsigned p, const double rate );
-    virtual void setLambda( const unsigned k, const unsigned p, const double rate );
-    void saveWait( const unsigned k, const unsigned p, const double );
-    void saveOpen( const unsigned k, const unsigned p, const double );
-
     /* Proxies */
 
     const Entity * dstTask() const;
@@ -246,10 +275,9 @@ private:
     const LQIO::DOM::Call* _dom;	/* Input */
     const Phase* _source;		/* Calling Phase/activity.	*/
     const Entry* _destination;		/* to whom I am referring to	*/
-
+#if PAN_REPLICATION
     unsigned _chainNumber;
-    const unsigned int _replica_number;	/* > 1 if a replica		*/
-
+#endif
     double _wait;			/* Waiting time.		*/
 };
 

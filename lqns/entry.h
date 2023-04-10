@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 16630 2023-04-05 21:35:05Z greg $
+ * $Id: entry.h 16644 2023-04-08 10:56:17Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -66,17 +66,11 @@ public:
     
     class CallsPerform {
     public:
-	CallsPerform( callFunc f, unsigned submodel, unsigned k=0 ) : _f(f), _submodel(submodel), _k(k)  {}
-	void operator()( Entry * object ) const { object->callsPerform( _f, _submodel, _k ); }
+	CallsPerform( Call::Perform& g ) : _g(g)  {}
+	void operator()( Entry * object ) const { object->callsPerform( _g ); }
 	
-	const callFunc f() const { return _f; }
-	unsigned submodel() const { return _submodel; }
-	unsigned k() const { return _k; }
-
     private:
-	const callFunc _f;
-	const unsigned _submodel;
-	const unsigned _k;
+	Call::Perform& _g;
     };
 
 
@@ -86,16 +80,13 @@ public:
     
     class CallsPerformWithChain {
     public:
-	CallsPerformWithChain( callFunc f, unsigned submodel, const ChainVector& chains, unsigned int i ) : _f(f), _submodel(submodel), _chains(chains), _i(i)  {}
-	void operator()( Entry * object ) const { object->callsPerform( _f, _submodel, _chains[_i] ); _i += 1; }
-	
-	const callFunc f() const { return _f; }
-	unsigned submodel() const { return _submodel; }
+	CallsPerformWithChain( Call::Perform& g, const ChainVector& chains, unsigned int i ) : _g(g), _chains(chains), _i(i)  {}
+
+	void operator()( Entry * object );
 	unsigned int index() const { return _i; }
 
     private:
-	const callFunc _f;
-	const unsigned _submodel;
+	Call::Perform& _g;
 	const ChainVector& _chains;
 	mutable unsigned int _i;
     };
@@ -357,7 +348,7 @@ public:
     Entry& aggregateReplication( const Vector< VectorMath<double> >& );
 #endif
 
-    const Entry& callsPerform( callFunc aFunc, const unsigned submodel, const unsigned k ) const;
+    const Entry& callsPerform( Call::Perform& ) const;
 
     /* Dynamic Updates / Late Finalization */
     /* In order to integrate LQX's support for model changes we need to have a way  */

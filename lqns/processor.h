@@ -11,7 +11,7 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 16546 2023-03-18 22:32:16Z greg $
+ * $Id: processor.h 16648 2023-04-09 11:11:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -83,7 +83,7 @@ public:
     Processor& expand();
     
     Server * makeServer( const unsigned nChains );
-    virtual double computeUtilization( const MVASubmodel& );
+    virtual double computeUtilization( const MVASubmodel&, const Server& );
 
     /* DOM insertion of results */
 

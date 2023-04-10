@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 16632 2023-04-06 10:49:56Z greg $
+ * $Id: actlist.h 16645 2023-04-08 13:05:06Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -108,7 +108,7 @@ public:
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const = 0;
     virtual CallInfo::Item::collect_calls& collect_calls( std::deque<const Activity *>&, CallInfo::Item::collect_calls& ) const = 0;
     virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const = 0;
-    virtual void callsPerform( const Phase::CallsPerform& ) const = 0;
+    virtual void callsPerform( Call::Perform& ) const = 0;
     virtual unsigned concurrentThreads( unsigned ) const = 0;
 
     virtual void backtrack( Activity::Backtrack& data ) const = 0;
@@ -177,7 +177,7 @@ public:
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
     virtual CallInfo::Item::collect_calls& collect_calls( std::deque<const Activity *>&, CallInfo::Item::collect_calls& ) const;
     virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const;
-    virtual void callsPerform( const Phase::CallsPerform& ) const;
+    virtual void callsPerform( Call::Perform& ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
 protected:
@@ -209,7 +209,7 @@ public:
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
     virtual CallInfo::Item::collect_calls& collect_calls( std::deque<const Activity *>&, CallInfo::Item::collect_calls& ) const;
     virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const;
-    virtual void callsPerform( const Phase::CallsPerform& ) const;
+    virtual void callsPerform( Call::Perform& ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
 protected:
@@ -243,10 +243,10 @@ public:
     virtual ForkJoinActivityList& add( Activity * anActivity );
 
     virtual bool operator==( const ActivityList& item ) const;
-    const std::vector<const Activity *>& activityList() const { return _activityList; }
+    const std::vector<const Activity *>& activities() const { return _activities; }
 
 private:
-    std::vector<const Activity *> _activityList;
+    std::vector<const Activity *> _activities;
 };
 
 
@@ -302,7 +302,7 @@ public:
 
     virtual ActivityList * prev() const { return _prev; }	/* Link to join list 		*/
     const std::vector<VirtualEntry *>& entries() const { return _entries; }
-    virtual const AndOrJoinActivityList * joinList() const { return _joinList; }
+    virtual const AndOrJoinActivityList * joins() const { return _joins; }
 
     virtual bool check() const;
 
@@ -320,12 +320,12 @@ protected:
     VirtualEntry * collectToEntry( const Activity *, VirtualEntry *, std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
 
 private:
-    void setJoinList( const AndOrJoinActivityList * joinList ) { _joinList = joinList; }
+    void setJoinList( const AndOrJoinActivityList * joins ) { _joins = joins; }
 
 protected:
     std::vector<VirtualEntry *> _entries;
     mutable const AndForkActivityList * _parentForkList;
-    const AndOrJoinActivityList * _joinList;
+    const AndOrJoinActivityList * _joins;
 
 private:
     ActivityList * _prev;
@@ -352,7 +352,7 @@ public:
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
     virtual CallInfo::Item::collect_calls& collect_calls( std::deque<const Activity *>&, CallInfo::Item::collect_calls& ) const;
-    virtual void callsPerform( const Phase::CallsPerform& ) const;
+    virtual void callsPerform( Call::Perform& ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
     virtual Probability prBranch( const Activity * ) const;
@@ -400,7 +400,7 @@ public:
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
     virtual CallInfo::Item::collect_calls& collect_calls( std::deque<const Activity *>&, CallInfo::Item::collect_calls& ) const;
-    virtual void callsPerform( const Phase::CallsPerform& ) const;
+    virtual void callsPerform( Call::Perform& ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
     virtual std::ostream& printJoinDelay( std::ostream& output ) const;
@@ -486,7 +486,7 @@ public:
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& data ) { return data; }			/* NOP */
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& data ) const { return data; }			/* NOP */
     virtual CallInfo::Item::collect_calls& collect_calls( std::deque<const Activity *>&, CallInfo::Item::collect_calls& data ) const { return data; }	/* NOP */
-    virtual void callsPerform( const Phase::CallsPerform& ) const {}		/* NOP - done by fork */
+    virtual void callsPerform( Call::Perform& ) const {}		/* NOP - done by fork */
     virtual unsigned concurrentThreads( unsigned n ) const { return n; }	/* NOP - done by fork */
 
 
@@ -523,7 +523,7 @@ public:
 
     virtual bool isSync() const { return _joinType == JoinType::SYNCHRONIZATION_POINT; }
     bool joinType( JoinType );
-    virtual bool hasQuorum() const { return 0 < quorumCount() && quorumCount() < activityList().size(); }
+    virtual bool hasQuorum() const { return 0 < quorumCount() && quorumCount() < activities().size(); }
 	
     virtual unsigned findChildren( Activity::Children& path ) const;
     virtual void followInterlock( Interlock::CollectTable& ) const;
@@ -531,7 +531,7 @@ public:
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
     virtual CallInfo::Item::collect_calls& collect_calls( std::deque<const Activity *>&, CallInfo::Item::collect_calls& ) const;
-    virtual void callsPerform( const Phase::CallsPerform& ) const;
+    virtual void callsPerform( Call::Perform& ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
 protected:
@@ -587,7 +587,7 @@ public:
 	
     const std::vector<VirtualEntry *>& entries() const { return _entries; }
     virtual ActivityList * prev() const { return _prev; }	/* Link to join list 		*/
-    const std::vector<const Activity *>& activityList() const { return _activityList; }
+    const std::vector<const Activity *>& activities() const { return _activities; }
 
     virtual unsigned findChildren( Activity::Children& path ) const;
     virtual void followInterlock( Interlock::CollectTable& ) const;
@@ -595,7 +595,7 @@ public:
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
     virtual CallInfo::Item::collect_calls& collect_calls( std::deque<const Activity *>&, CallInfo::Item::collect_calls& ) const;
     virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const;
-    virtual void callsPerform( const Phase::CallsPerform& ) const;
+    virtual void callsPerform( Call::Perform& ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
     virtual std::ostream& printSubmodelWait( std::ostream& output, unsigned offset ) const;
@@ -610,7 +610,7 @@ private:
 
 private:
     ActivityList * _prev;
-    std::vector<const Activity *> _activityList;
+    std::vector<const Activity *> _activities;
     std::vector<VirtualEntry *> _entries;
 };
 

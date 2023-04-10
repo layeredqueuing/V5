@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16630 2023-04-05 21:35:05Z greg $
+ * $Id: phase.cc 16649 2023-04-09 11:21:40Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -518,14 +518,13 @@ Phase::hasVariance() const
  */
 
 void
-Phase::callsPerform( const CallsPerform& operation ) const
+Phase::callsPerform( Call::Perform& g ) const
 {
-    std::for_each( callList().begin(), callList().end(), operation );
+    std::for_each( callList().begin(), callList().end(), g );
     for ( std::vector<DeviceInfo *>::const_iterator device = devices().begin(); device != devices().end(); ++device ) {
-	operation( (*device)->call() );
+	g( (*device)->call() );
     }
 }
-
 
 
 
@@ -763,7 +762,6 @@ Phase::numberOfSlices() const
 
 /* ------------------------------------------------------------------------ */
 
-
 /*
  * Return throughut for phase.
  */
@@ -795,10 +793,8 @@ Phase::utilization() const
 Phase::DeviceInfo *
 Phase::getProcessor() const
 {
-    for ( std::vector<DeviceInfo *>::const_iterator device = devices().begin(); device != devices().end(); ++device ) {
-	if ( (*device)->isHost() ) return *device;
-    }
-    return nullptr;
+    std::vector<DeviceInfo *>::const_iterator device = std::find_if( devices().begin(), devices().end(), std::mem_fn( &DeviceInfo::isHost ) );
+    return device != devices().end() ? *device : nullptr;
 }
 
 

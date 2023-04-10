@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 16630 2023-04-05 21:35:05Z greg $
+ * $Id: phase.h 16645 2023-04-08 13:05:06Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,6 +18,7 @@
 #define LQNS_PHASE_H
 
 #include <set>
+#include <lqio/dom_phase.h>
 #include <mva/vector.h>
 #include <mva/prob.h>
 #include "call.h"
@@ -64,9 +65,9 @@ public:
     NullPhase& setName( const std::string& name ) { _name = name; return *this; }
 
     /* Queries */
-    virtual bool isPresent() const { return _dom && _dom->isPresent(); }
-    bool hasServiceTime() const { return _dom && _dom->hasServiceTime(); }
-    bool hasThinkTime() const { return _dom && _dom->hasThinkTime(); }
+    virtual bool isPresent() const { return getDOM() != nullptr && getDOM()->isPresent(); }
+    bool hasServiceTime() const { return getDOM() != nullptr && getDOM()->hasServiceTime(); }
+    bool hasThinkTime() const { return getDOM() != nullptr && getDOM()->hasThinkTime(); }
     virtual bool isActivity() const { return false; }
 	
     NullPhase& setServiceTime( const double t );
@@ -106,10 +107,8 @@ protected:
 
 class Phase : public NullPhase {
     friend class Activity;		/* For access to mySurrogateDelay 	*/
-    friend class ActivityList;		/* For access to mySurrogateDelay 	*/
     friend class RepeatActivityList;	/* For access to mySurrogateDelay 	*/
     friend class OrForkActivityList;	/* For access to mySurrogateDelay 	*/
-    friend class AndForkActivityList;	/* For access to mySurrogateDelay 	*/
 
 public:
     struct get_servers {
@@ -189,27 +188,6 @@ private:
     };
 
 public:
-    class CallsPerform {
-    public:
-	CallsPerform( callFunc f, unsigned submodel, const Entry * e, unsigned k, unsigned p, double rate ) : _f(f), _submodel(submodel), _e(e), _k(k), _p(p), _rate(rate) {}
-	CallsPerform( const CallsPerform& src, double rate, unsigned p ) : _f(src._f), _submodel(src._submodel), _e(src._e), _k(src._k), _p(p), _rate(rate) {}		// Set rate and phase.
-	CallsPerform( const CallsPerform& src, double scale ) : _f(src._f), _submodel(src._submodel), _e(src._e), _k(src._k), _p(src._p), _rate(src._rate * scale) {}	// Set rate.
-
-	const Entry * entry() const { return _e; }
-	double getRate() const { return _rate; }
-	unsigned getPhase() const { return _p; }
-
-	void operator()( Call * object ) const { if (object->submodel() == _submodel) (object->*_f)( _k, _p, _rate ); }
-
-    private:
-	const callFunc _f;
-	const unsigned _submodel;
-	const Entry * _e;
-	const unsigned _k;
-	const unsigned _p;
-	const double _rate;
-    };
-    
 public:
     Phase( const std::string& = "" );
     Phase( const Phase&, unsigned int );
@@ -237,7 +215,7 @@ public:
     
     unsigned findChildren( Call::stack&, const bool ) const;
     virtual const Phase& followInterlock( Interlock::CollectTable&  ) const;
-    virtual void callsPerform( const CallsPerform& ) const;
+    virtual void callsPerform( Call::Perform& ) const;
     void addSrcCall( Call * aCall ) { _calls.insert(aCall); }
     void removeSrcCall( Call *aCall ) { _calls.erase(aCall); }
     virtual unsigned int getReplicaNumber() const;

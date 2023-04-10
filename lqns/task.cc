@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16632 2023-04-06 10:49:56Z greg $
+ * $Id: task.cc 16648 2023-04-09 11:11:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -847,17 +847,17 @@ Task::makeClient( const unsigned n_chains, const unsigned submodel )
     setSurrogateDelaySize( n_chains );
 #endif
 
-    Server * aStation = new Client( nEntries(), n_chains, maxPhase() );
+    Server * station = new Client( nEntries(), n_chains, maxPhase() );
 
-    _clientStation[submodel] = aStation;
-    return aStation;
+    _clientStation[submodel] = station;
+    return station;
 }
 
 
 const Task&
 Task::setChains( MVASubmodel& submodel ) const
 {
-    callsPerform(&Call::setChain, submodel.number());
+    closedCallsPerform( Call::Perform( &Call::Perform::setChain, submodel ) );
     if ( nThreads() > 1 ) {
 	submodel.setChains( clientChains( submodel.number() ) );
     }
@@ -883,20 +883,47 @@ Task::sanityCheck() const
 
 
 
+
+
+/*
+ * Get and save the waiting time results for all servers to this client
+ */
+
+void
+Task::saveClientResults( const MVASubmodel& submodel ) 
+{
+    closedCallsPerform( Call::Perform( &Call::Perform::saveWait, submodel ) );
+    openCallsPerform( Call::Perform( &Call::Perform::saveOpen, submodel ) );
+
+    if ( !isReferenceTask() || isCalled() ) return;
+    
+    /* Other results (only useful for references tasks). */
+
+    const unsigned int n = submodel.number();
+    const Server& station = *clientStation(n);
+    if ( isClosedModelClient() ) {
+	std::for_each( entries().begin(), entries().end(), Entry::SaveClientResults( submodel, station, clientChains(n)[1], *this ) );
+    }
+    setUtilization( computeUtilization( submodel, station ) );
+}
+
+
+
 /*
  * Set the visit ratios.  Chains can result from both replication and from
  * threads.  _thread[0] is the main entry.
  */
 
 const Task&
-Task::callsPerform( callFunc f, const unsigned submodel ) const
+Task::closedCallsPerform( Call::Perform g ) const
 {
-    const ChainVector& chains = _clientChains[submodel];
+    const ChainVector& chains = _clientChains[g.submodel()];
     unsigned i = 1;
 
     while ( i <= chains.size() ) {
-	std::for_each( entries().begin(), entries().end(), Entry::CallsPerform( f, submodel, chains[i] ) );		// regular entries
-	i = std::for_each( std::next(threads().begin()), threads().end(), Entry::CallsPerformWithChain( f, submodel, chains, i + 1 ) ).index();	// threads (fork-join)
+	g.setChain( chains[i] );
+	std::for_each( entries().begin(), entries().end(), Entry::CallsPerform( g ) );		// regular entries
+	i = std::for_each( std::next(threads().begin()), threads().end(), Entry::CallsPerformWithChain( g, chains, i + 1 ) ).index();	// threads (fork-join)
     }
     return *this;
 }
@@ -908,10 +935,10 @@ Task::callsPerform( callFunc f, const unsigned submodel ) const
  */
 
 const Task&
-Task::openCallsPerform( callFunc f, const unsigned submodel ) const
+Task::openCallsPerform( Call::Perform g ) const
 {
-    std::for_each( entries().begin(), entries().end(), Entry::CallsPerform( f, submodel ) );
-    std::for_each( std::next(threads().begin()), threads().end(), Entry::CallsPerform( f, submodel ) );
+    std::for_each( entries().begin(), entries().end(), Entry::CallsPerform( g ) );
+    std::for_each( std::next(threads().begin()), threads().end(), Entry::CallsPerform( g ) );
     return *this;
 }
 
@@ -1019,38 +1046,6 @@ Task::bottleneckStrength() const
     /* find out who I call */
     return 0;
 }
-
-
-/*
- * Get and save the waiting time results for all servers to this client
- */
-
-void
-Task::SaveClientResults::operator()( Task * client ) const
-{
-    const unsigned int n = _submodel.number();
-    saveResults( *client->clientStation( n ), *client );
-}
-
-
-void
-Task::SaveClientResults::saveResults( const Server& station, Task& client ) const
-{
-    const unsigned int n = _submodel.number();
-    client.callsPerform( &Call::saveWait, n );
-    client.openCallsPerform( &Call::saveOpen, n );
-
-    if ( !client.isReferenceTask() || client.isCalled() ) return;
-    
-    /* Other results (only useful for references tasks). */
-
-    if ( client.isClosedModelClient() ) {
-	const std::vector<Entry *>& entries = client.entries();
-	std::for_each( entries.begin(), entries.end(), Entry::SaveClientResults( _submodel, station, client.clientChains( n )[1], client ) );
-    }
-    client.setUtilization( client.computeUtilization( _submodel ) );
-}
-
 
 /*----------------------------------------------------------------------*/
 /*                       Threads (subthreads)                           */

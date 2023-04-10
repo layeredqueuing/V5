@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 16615 2023-03-30 20:19:42Z greg $
+ * $Id: srvndiff.cc 16653 2023-04-09 14:43:29Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -991,7 +991,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2023-03-30 16:19:42 -0400 (Thu, 30 Mar 2023) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2023-04-09 10:43:29 -0400 (Sun, 09 Apr 2023) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1409,26 +1409,26 @@ compare_directories (unsigned n, char * const dirs[])
 done:
 
     if ( ( print_waiting
-	   | print_waiting_variance
-	   | print_loss_probability
-	   | print_snr_waiting
-	   | print_snr_waiting_variance
-	   | ( print_join_delay && join_tab[FILE1].size() > 0 )
-	   | print_sema_util
-	   | print_rwlock_util
-	   | ( print_join_variance && join_tab[FILE1].size() > 0 )
-	   | print_service
-	   | print_variance
-	   | print_exceeded
-	   | print_cv_square
-	   | print_entry_throughput
-	   | print_task_throughput
-	   | print_task_util
-	   | print_open_wait
-	   | print_overtaking
-	   | ( print_group_util && group_tab[FILE1].size() )
-	   | print_processor_util
-	   | print_processor_waiting )
+	   || print_waiting_variance
+	   || print_loss_probability
+	   || print_snr_waiting
+	   || print_snr_waiting_variance
+	   || ( print_join_delay && join_tab[FILE1].size() > 0 )
+	   || print_sema_util
+	   || print_rwlock_util
+	   || ( print_join_variance && join_tab[FILE1].size() > 0 )
+	   || print_service
+	   || print_variance
+	   || print_exceeded
+	   || print_cv_square
+	   || print_entry_throughput
+	   || print_task_throughput
+	   || print_task_util
+	   || print_open_wait
+	   || print_overtaking
+	   || ( print_group_util && group_tab[FILE1].size() )
+	   || print_processor_util
+	   || print_processor_waiting )
 	 && !print_results_only
 	 && !print_quiet
 	 && print_total_rms_error

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 16626 2023-04-01 19:37:43Z greg $
+ * $Id: call.cc 16645 2023-04-08 13:05:06Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -101,7 +101,6 @@ Call::Call( const Phase * fromPhase, const Entry * toEntry )
       _source(fromPhase),
       _destination(toEntry), 
       _chainNumber(0),
-      _replica_number(1),
       _wait(0.0)
 {
     if ( toEntry != nullptr ) {
@@ -110,12 +109,11 @@ Call::Call( const Phase * fromPhase, const Entry * toEntry )
 }
 
 
-Call::Call( const Call& src, unsigned int replica )
+Call::Call( const Call& src )
     : _dom(src._dom),
       _source(nullptr),
       _destination(nullptr),
       _chainNumber(src._chainNumber),
-      _replica_number(replica),
       _wait(src._wait)
 {
 }
@@ -510,42 +508,59 @@ Call::followInterlock( Interlock::CollectTable& path ) const
     }
     return *this;
 }
+
+/* ------------------------------------------------------------------------ */
 
+/*
+ * Call::Perform is invoked from task by submodel and interfaces to the MVA Solver.
+ */
+
+void Call::Perform::operator()( Call * call ) 
+{
+    if ( call->submodel() != submodel() ) return;
+    (this->*f())( *call );
+}
+
+
+unsigned int 
+Call::Perform::submodel() const
+{
+    return _submodel.number();
+}
 
 
 /*
- * Set the visit ratio at the destinations station.  Called from
+ * Set the visit ratio at the destination's station.  Called from
  * Task::initClientStation only.  The calling task is mapped to the
  * base replica if necessary.
  */
-
 void
-Call::setVisits( const unsigned k, const unsigned p, const double rate )
+Call::Perform::setVisits( Call& call )
 {
-    const Entity * server = dstTask();
-    if ( server->hasServerChain( k ) && hasRendezvous() && !srcTask()->hasInfinitePopulation() ) {
+    const Entity * server = call.dstTask();
+    if ( server->hasServerChain( k() ) && call.hasRendezvous() && !call.srcTask()->hasInfinitePopulation() ) {
 	Server * station = server->serverStation();
-	const unsigned e = dstEntry()->index();
-	station->addVisits( e, k, p, rendezvous() * rate );
+	const unsigned e = call.dstEntry()->index();
+	station->addVisits( e, k(), p(), call.rendezvous() * rate() );
     }
 }
 
 
 /*
- * Set the open arrival rate to the destination's station.Called from
- * Task::initClientStation only.  The calling task is mapped to the
- * base replica if necessary.
+ * Set the open arrival rate to the destination's station.  Called
+ * from Task::initClientStation only.  The calling task is mapped to
+ * the base replica if necessary.
  */
 
 void
-Call::setLambda( const unsigned, const unsigned p, const double rate )
+Call::Perform::setLambda( Call& call )
 {
-    Server * station = dstTask()->serverStation();
-    const unsigned e = dstEntry()->index();
-    if ( hasSendNoReply() ) {
-	station->addVisits( e, 0, p, getSource()->throughput() * sendNoReply() );
-    } else if ( hasRendezvous() && srcTask()->isOpenModelServer() && srcTask()->isInfinite() ) {
-	station->addVisits( e, 0, p, getSource()->throughput() * rendezvous() );
+    Server * station = call.dstTask()->serverStation();
+    const unsigned e = call.dstEntry()->index();
+    if ( call.hasSendNoReply() ) {
+	station->addVisits( e, 0, p(), call.getSource()->throughput() * call.sendNoReply() );
+    } else if ( call.hasRendezvous() && call.srcTask()->isOpenModelServer() && call.srcTask()->isInfinite() ) {
+	station->addVisits( e, 0, p(), call.getSource()->throughput() * call.rendezvous() );
     }
 }
 
@@ -553,16 +568,16 @@ Call::setLambda( const unsigned, const unsigned p, const double rate )
 
 //tomari: set the chain number associated with this call.
 void
-Call::setChain( const unsigned k, const unsigned p, const double rate )
+Call::Perform::setChain( Call& call )
 {
-    const Entity * server = dstTask();
-    if ( server->hasServerChain( k )  ){
+    const Entity * server = call.dstTask();
+    if ( server->hasServerChain( k() )  ){
 
-	_chainNumber = k;
+	call._chainNumber = k();
 
 	if ( flags.trace_replication ) {
-	    std::cout <<"\nCall::setChain, k=" << k<< "  " ;
-	    std::cout <<",call from "<< srcName() << " To " << dstName()<< std::endl;
+	    std::cout <<"\nCall::setChain, k=" << k() << "  " ;
+	    std::cout <<",call from "<< call.srcName() << " To " << call.dstName()<< std::endl;
 	}
     }
 }
@@ -576,13 +591,13 @@ Call::setChain( const unsigned k, const unsigned p, const double rate )
  */
 
 void
-Call::saveOpen( const unsigned, const unsigned p, const double )
+Call::Perform::saveOpen( Call& call )
 {
-    const unsigned e = dstEntry()->index();
-    const Server * station = dstTask()->serverStation();
+    const unsigned e = call.dstEntry()->index();
+    const Server * station = call.dstTask()->serverStation();
 
-    if ( station->V( e, 0, p ) > 0.0 ) {
-	setWait( station->W[e][0][p] );
+    if ( station->V( e, 0, p() ) > 0.0 ) {
+	call.setWait( station->W[e][0][p()] );
     }
 }
 
@@ -596,14 +611,14 @@ Call::saveOpen( const unsigned, const unsigned p, const double )
  */
 
 void
-Call::saveWait( const unsigned k, const unsigned p, const double )
+Call::Perform::saveWait( Call& call )
 {
-    const Entity * server = dstTask();		// BUG_433 -- remap to base?
-    const unsigned e = dstEntry()->index();
+    const Entity * server = call.dstTask();		// BUG_433 -- remap to base?
+    const unsigned e = call.dstEntry()->index();
     const Server * station = server->serverStation();
 
-    if ( station->V( e, k, p ) > 0.0 ) {
-	setWait( station->W[e][k][p] );
+    if ( station->V( e, k(), p() ) > 0.0 ) {
+	call.setWait( station->W[e][k()][p()] );
     }
 }
 
@@ -628,7 +643,7 @@ PhaseCall::PhaseCall( const Phase * fromPhase, const Entry * toEntry )
  */
 
 PhaseCall::PhaseCall( const PhaseCall& src, unsigned int src_replica, unsigned int dst_replica )
-    : Call( src, dst_replica ),		/* link to DOM.	*/
+    : Call( src ),		/* link to DOM.	*/
       FromEntry( Entry::find( src.srcEntry()->name(), src_replica ) )
 {
     /* Link to source replica */
@@ -759,7 +774,7 @@ ActivityCall::ActivityCall( const Activity * fromActivity, const Entry * toEntry
 
 
 ActivityCall::ActivityCall( const ActivityCall& src, unsigned int src_replica, unsigned int dst_replica )
-    : Call( src, dst_replica ), FromActivity()
+    : Call( src ), FromActivity()
 {
     const Task * task = Task::find( src.srcTask()->name(), src_replica );
     const Activity * src_activity = task->findActivity( src.getSource()->name() );

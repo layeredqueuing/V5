@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 16622 2023-03-31 23:03:52Z greg $
+ * $Id: processor.cc 16648 2023-04-09 11:11:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -426,10 +426,9 @@ Processor::sanityCheck() const
 
 
 double
-Processor::computeUtilization( const MVASubmodel& submodel )
+Processor::computeUtilization( const MVASubmodel& submodel, const Server& station )
 {
-    const Server * station = serverStation();
-    return submodel.closedModelUtilization( *station ) + submodel.openModelUtilization( *station );
+    return submodel.closedModelUtilization( station ) + submodel.openModelUtilization( station );
 }
 
 

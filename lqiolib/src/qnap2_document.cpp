@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16431 2023-02-15 20:17:55Z greg $
+ * $Id: qnap2_document.cpp 16647 2023-04-08 18:32:19Z greg $
  *
  * Read in XML input files.
  *
@@ -2157,7 +2157,7 @@ namespace QNIO {
 	const std::string open_classes = std::accumulate( classes.begin(), classes.end(), std::string(), fold_class( chains(), BCMP::Model::Chain::Type::OPEN ) );
 	const BCMP::Model::Station::map_t::const_iterator terminal = std::find_if( stations().begin(), stations().end(), &BCMP::Model::Station::isCustomer );
 
-	if ( !closed_classes.empty() & !open_classes.empty() ) {
+	if ( !closed_classes.empty() && !open_classes.empty() ) {
 	    _output << qnap2_statement( "transit( " + closed_classes + ")=" + terminal->first );
 	    _output << qnap2_statement( "transit( " + open_classes + ")=out" );
 	} else {

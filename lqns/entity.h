@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 16624 2023-04-01 16:16:19Z greg $
+ * $Id: entity.h 16648 2023-04-09 11:11:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -97,13 +97,11 @@ public:
 
     class SaveServerResults {
     public:
-	SaveServerResults( const MVASubmodel& submodel , double relax ) : _submodel(submodel), _relax(relax) {}
+	SaveServerResults( const MVASubmodel& submodel , double relaxation ) : _submodel(submodel), _relaxation(relaxation) {}
 	void operator()( Entity * entity ) const;
     private:
-	void saveResults( const Server&, Entity& ) const;
-    private:
 	const MVASubmodel& _submodel;
-	const double _relax;
+	const double _relaxation;
     };
 
     /*
@@ -246,6 +244,9 @@ public:
 
     virtual double prOt( const unsigned, const unsigned, const unsigned ) const { return 0.0; }
 
+private:
+    void saveServerResults( const MVASubmodel&, const Server&, double );
+public:
     Entity& updateAllWaits( const Vector<Submodel *>& );
     void setIdleTime( const double );
     virtual Entity& computeVariance();
@@ -273,7 +274,7 @@ protected:
     Entity& setUtilization( double );
     virtual bool schedulingIsOK() const = 0;
     virtual scheduling_type defaultScheduling() const { return SCHEDULE_FIFO; }
-    virtual double computeUtilization( const MVASubmodel& );
+    virtual double computeUtilization( const MVASubmodel&, const Server& );
 	
 private:
     double computeIdleTime( const unsigned, const double ) const;

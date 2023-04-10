@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16626 2023-04-01 19:37:43Z greg $
+ * $Id: entity.cc 16648 2023-04-09 11:11:47Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -395,7 +395,7 @@ Entity::updateAllWaits( const Vector<Submodel *>& submodels )
 
 
 double
-Entity::computeUtilization( const MVASubmodel& submodel )
+Entity::computeUtilization( const MVASubmodel& submodel, const Server& )
 {
     return std::accumulate( entries().begin(), entries().end(), 0., add_using<double,Entry>( &Entry::utilization ) );
 }
@@ -557,26 +557,25 @@ Entity::SaveServerResults::operator()( Entity * server ) const
     const Server& station = *server->serverStation();
     
     /* Always save the results from the call from submodel. */
-    saveResults( station, *server );
-    if ( !server->isReplicated() ) return;
+    server->saveServerResults( _submodel, station, _relaxation );
+
 
     /*
      * If this is replica 1, and it's replicated and the replicas are
      * pruned, then save the results from replica 1's station to all
-     * the pruned copies.
+     * the pruned copies.  If PAN replication, the replicas are never
+     * even created.
      */
     
+    if ( !server->isReplicated() || Pragma::replication() == Pragma::Replication::PAN ) return;
     for ( size_t i = 2; i < server->replicas(); ++i ) {
-	if ( !server->isPruned() ) break;
-	else if ( server->isProcessor() ) {
+	if ( server->isProcessor() ) {
 	    server = Processor::find( server->name(), i );
 	} else {
 	    server = Task::find( server->name(), i );
 	}
-#if DEBUG
-	std::cerr << "Entity::SaveServerResults(" << server->print_name() << ")" << std::endl;
-#endif
-	saveResults( station, *server );
+	if ( !server->isPruned() ) break;
+	server->saveServerResults( _submodel, station, _relaxation );
     }
 }
 
@@ -586,25 +585,23 @@ Entity::SaveServerResults::operator()( Entity * server ) const
  */
 
 void
-Entity::SaveServerResults::saveResults( const Server& station, Entity& server ) const
+Entity::saveServerResults( const MVASubmodel& submodel, const Server& station, double relaxation )
 {
-    const std::vector<Entry *>& entries = server.entries();
-    std::for_each( entries.begin(), entries.end(), Entry::SaveServerResults( _submodel, station, server ) );
-
+    std::for_each( entries().begin(), entries().end(), Entry::SaveServerResults( submodel, station, *this ) );
 
 #if BUG_393
     /* Only save if needed */
-    if ( Pragma::saveMarginalProbabilities() && server.isClosedModelServer() && station.getMarginalProbabilitiesSize() > 0 ) {
+    if ( Pragma::saveMarginalProbabilities() && isClosedModelServer() && station.getMarginalProbabilitiesSize() > 0 ) {
 	unsigned int copies = static_cast<unsigned int>(station.mu());
-	server._marginalQueueProbabilities.resize(copies+1);
+	_marginalQueueProbabilities.resize(copies+1);
 	for ( unsigned int i = 0; i <= copies; ++i ) {
-	    server._marginalQueueProbabilities[i] = _submodel.closedModelMarginalQueueProbability( station, i );
+	    _marginalQueueProbabilities[i] = submodel.closedModelMarginalQueueProbability( station, i );
 	}
     }
 #endif
 
-    server.setUtilization( server.computeUtilization( _submodel ) );
-    server.setIdleTime( _relax );
+    setUtilization( computeUtilization( submodel, station ) );
+    setIdleTime( relaxation );
 }
 
 

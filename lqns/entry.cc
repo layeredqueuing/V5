@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16630 2023-04-05 21:35:05Z greg $
+ * $Id: entry.cc 16644 2023-04-08 10:56:17Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1505,9 +1505,10 @@ Entry::aggregateReplication( const Vector< VectorMath<double> >& addend )
  */
 
 const Entry&
-Entry::callsPerform( callFunc f, const unsigned submodel, const unsigned k ) const
+Entry::callsPerform( Call::Perform& g ) const
 {
-    const double rate = prVisit();
+    g.setPhase( 1 );
+    g.setRate( prVisit() );
 
     if ( isActivityEntry() ) {
 	/* since 'rate=prVisit()' is only for call::setvisit;
@@ -1515,13 +1516,23 @@ Entry::callsPerform( callFunc f, const unsigned submodel, const unsigned k ) con
 	 * is used to calculation entry throughput not the throughput of its owner task.
 	 * the visit of a call equals rate * rendenzvous() normally;
 	 * therefore, rate has to be set to 1.*/
-	getStartActivity()->callsPerform( Phase::CallsPerform( f, submodel, this, k, 1, rate ) );
+	getStartActivity()->callsPerform( g );
     } else {
 	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    _phase[p].callsPerform( Phase::CallsPerform( f, submodel, this, k, p, rate ) );
+	    _phase[p].callsPerform( g.setPhase( p ) );
 	}
     }
     return *this;
+}
+
+
+
+void
+Entry::CallsPerformWithChain::operator()( Entry * object )
+{
+    _g.setChain( _chains[_i] );
+    object->callsPerform( _g );
+    _i += 1;
 }
 
 /* -------------------------- Device Entries -------------------------- */
