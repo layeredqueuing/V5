@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 16645 2023-04-08 13:05:06Z greg $
+ * $Id: call.cc 16676 2023-04-19 11:56:50Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -509,10 +509,11 @@ Call::followInterlock( Interlock::CollectTable& path ) const
     return *this;
 }
 
-/* ------------------------------------------------------------------------ */
+/* ----------------------------- Save Results ----------------------------- */
 
 /*
- * Call::Perform is invoked from task by submodel and interfaces to the MVA Solver.
+ * Call::Perform is invoked from task by submodel and interfaces to the MVA
+ * Solver.
  */
 
 void Call::Perform::operator()( Call * call ) 
@@ -529,11 +530,21 @@ Call::Perform::submodel() const
 }
 
 
+
+bool
+Call::Perform::hasServer( const Entity * server ) const
+{
+    return _submodel.hasServer( server );
+}
+
+
+
 /*
  * Set the visit ratio at the destination's station.  Called from
- * Task::initClientStation only.  The calling task is mapped to the
- * base replica if necessary.
+ * Task::initClientStation only.  The calling task is mapped to the base
+ * replica if necessary.
  */
+
 void
 Call::Perform::setVisits( Call& call )
 {
@@ -547,9 +558,9 @@ Call::Perform::setVisits( Call& call )
 
 
 /*
- * Set the open arrival rate to the destination's station.  Called
- * from Task::initClientStation only.  The calling task is mapped to
- * the base replica if necessary.
+ * Set the open arrival rate to the destination's station.  Called from
+ * Task::initClientStation only.  The calling task is mapped to the base
+ * replica if necessary.
  */
 
 void
@@ -583,19 +594,47 @@ Call::Perform::setChain( Call& call )
 }
 
 
+/*
+ * Initialize waiting time.
+ */
+
+void
+Call::Perform::initWait( Call& call )
+{
+    double time = 0.0;
+    if ( call.isProcessorCall() ) {
+	time = call.dstEntry()->serviceTimeForPhase(1);
+    } else {
+	time = call.elapsedTime();
+    }
+    call.setWait( time );			/* Initialize arc wait. 	*/
+}
+
+
 
 /*
- * Get the waiting time for this call from the mva submodel.  A call
- * can potentially orginate from multiple chains, so add them all up.
- * (Call clearWait first.)
+ * Get the waiting time for this call from the mva submodel.  A call can
+ * potentially orginate from multiple chains, so add them all up.  (Call
+ * clearWait first.)
  */
 
 void
 Call::Perform::saveOpen( Call& call )
 {
+    const Entity * server = call.dstTask();		// BUG_433 -- remap to base?
     const unsigned e = call.dstEntry()->index();
-    const Server * station = call.dstTask()->serverStation();
 
+#define DEBUG 0
+    /*+ BUG_433 */
+    if ( !hasServer( server ) ) {		// Need to check for server in submodel. Need code in client? This might work as-is. */
+#if DEBUG
+	std::cerr << "Call::Perform::saveOpenWait(submodel=" << _submodel.number() << ") server=" << server->print_name() << " pruned." << std::endl;
+#endif
+	server = server->mapToReplica( 1 );	// Map to base replica.
+    }
+    /*- BUG_433 */
+
+    const Server * station = server->serverStation();
     if ( station->V( e, 0, p() ) > 0.0 ) {
 	call.setWait( station->W[e][0][p()] );
     }
@@ -604,10 +643,10 @@ Call::Perform::saveOpen( Call& call )
 
 
 /*
- * Get the waiting time for this call from the mva submodel.  A call
- * can potentially orginate from multiple chains, so add them all up.
- * (Call clearWait first.)  This may have to be changed if the result
- * varies by chain.  Priorities perhaps?
+ * Get the waiting time for this call from the mva submodel.  A call can
+ * potentially orginate from multiple chains, so add them all up.  (Call
+ * clearWait first.)  This may have to be changed if the result varies by
+ * chain.  Priorities perhaps?
  */
 
 void
@@ -615,8 +654,17 @@ Call::Perform::saveWait( Call& call )
 {
     const Entity * server = call.dstTask();		// BUG_433 -- remap to base?
     const unsigned e = call.dstEntry()->index();
-    const Server * station = server->serverStation();
 
+    /*+ BUG_433 */
+    if ( !hasServer( server ) ) {		// Need to check for server in submodel. Need code in client? This might work as-is. */
+#if DEBUG
+	std::cerr << "Call::Perform::saveWait(submodel=" << _submodel.number() << ") server=" << server->print_name() << " pruned." << std::endl;
+#endif
+	server = server->mapToReplica( 1 );	// Map to base replica.
+    }
+    /*- BUG_433 */
+
+    const Server * station = server->serverStation();
     if ( station->V( e, k(), p() ) > 0.0 ) {
 	call.setWait( station->W[e][k()][p()] );
     }
@@ -668,18 +716,6 @@ PhaseCall::PhaseCall( const PhaseCall& src, unsigned int src_replica, unsigned i
     }
 }
 /*- BUG_433 */
-
-
-/*
- * Initialize waiting time.
- */
-
-Call&
-PhaseCall::initWait()
-{
-    setWait( elapsedTime() );			/* Initialize arc wait. 	*/
-    return *this;
-}
 
 /*----------------------------------------------------------------------*/
 /*                           Forwarded Calls                            */
@@ -744,19 +780,6 @@ ProcessorCall::ProcessorCall( const Phase * fromPhase, const Entry * toEntry )
     : Call( fromPhase, toEntry )
 {
 }
-
-
-
-/*
- * Set up waiting time to processors.
- */
-
-Call&
-ProcessorCall::initWait()
-{
-    setWait( dstEntry()->serviceTimeForPhase(1) );		/* Initialize arc wait. 	*/
-    return *this;
-}
 
 /*----------------------------------------------------------------------*/
 /*                            Activity Calls                            */
@@ -796,19 +819,6 @@ ActivityCall::ActivityCall( const ActivityCall& src, unsigned int src_replica, u
 	std::cerr << "ActivityCall::ActivityCall() from: " << getSource()->name() << "(" << task->getReplicaNumber() << ")"
 		  << " to: " << dstEntry()->name() << "(" << dstEntry()->getReplicaNumber() << ")" << std::endl;
     }
-}
-
-
-
-/*
- * Initialize waiting time.
- */
-
-Call&
-ActivityCall::initWait()
-{
-    setWait( elapsedTime() );			/* Initialize arc wait. 	*/
-    return *this;
 }
 
 /*----------------------------------------------------------------------*/

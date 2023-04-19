@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16648 2023-04-09 11:11:47Z greg $
+ * $Id: task.cc 16676 2023-04-19 11:56:50Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -335,39 +335,35 @@ Task::linkForkToJoin()
  * Calculate population levels.  Punt and use the biggest unsigned int for open streams.
  */
 
-Task& Task::initClient( const Vector<Submodel *>& )
+void
+Task::initializeClient()
 {
     unsigned int customers = 0;
     if ( isReferenceTask() ) {
 	customers = copies();
     } else if ( hasOpenArrivals() ) {
 	customers = std::numeric_limits<unsigned int>::max();
-    } else {
-	return *this;
     }
     if ( customers != 0 ) {
 	std::deque<const Task *> stack;
 	initCustomers( stack, customers );
     }
-    return *this;
 }
 
 
-Task& Task::reinitClient( const Vector<Submodel *>& )
+void
+Task::reinitializeClient()
 {
     unsigned int customers = 0;
     if ( isReferenceTask() ) {
 	customers = copies();
     } else if ( hasOpenArrivals() ) {
 	customers = std::numeric_limits<unsigned int>::max();
-    } else {
-	return *this;
     }
     if ( customers != 0 ) {
 	std::deque<const Task *> stack;
 	initCustomers( stack, customers );
     }
-    return *this;
 }
 
 /*+ BUG_425 */
@@ -413,6 +409,23 @@ Task::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
 }
 /*- BUG_425 */
 
+
+
+/*+
+ * BUG_433
+ * Initialize waiting time at my entries.  
+ */
+
+void
+Task::initializeWait( const Submodel& submodel )
+{
+    Call::Perform g( &Call::Perform::initWait, submodel );
+    std::for_each( entries().begin(), entries().end(), Entry::CallsPerform( g ) );
+    updateWait( submodel, 1.0 );
+}
+/*- BUG_433 */
+
+
 /*
  * Initialize the processor for all entries and activities.
  */
@@ -424,36 +437,6 @@ Task::initProcessor()
     std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::initProcessor ) );
     return *this;
 }
-
-
-/*
- * Initialize waiting time at my entries.  Also indicate whether the
- * variance calculation should take place.  If any lower level servers
- * have variance, or if I have multiple entries, then we should employ
- * the variance calculation.
- */
-
-Task&
-Task::initWait()
-{
-    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::initWait ) );
-    Entity::initWait();
-    return *this;
-}
-
-
-
-/*
- * Initialize throughput bounds.  Must be done after initWait.
- */
-
-Task&
-Task::initThroughputBound()
-{
-    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::initThroughputBound ) );
-    return *this;
-}
-
 
 
 #if PAN_REPLICATION
@@ -682,6 +665,17 @@ Task::isCalled() const
 
 
 /*
+ * Return the base replica.
+ */
+
+Task*
+Task::mapToReplica( size_t i ) const
+{
+    return find( name(), i );
+}
+
+
+/*
  * Returns the initial depth (0 or 1) if this entity is a root of a
  * call graph.  Returns -1 otherwise.  Used by the topological sorter.
  */
@@ -883,70 +877,10 @@ Task::sanityCheck() const
 
 
 
-
-
-/*
- * Get and save the waiting time results for all servers to this client
- */
-
-void
-Task::saveClientResults( const MVASubmodel& submodel ) 
-{
-    closedCallsPerform( Call::Perform( &Call::Perform::saveWait, submodel ) );
-    openCallsPerform( Call::Perform( &Call::Perform::saveOpen, submodel ) );
-
-    if ( !isReferenceTask() || isCalled() ) return;
-    
-    /* Other results (only useful for references tasks). */
-
-    const unsigned int n = submodel.number();
-    const Server& station = *clientStation(n);
-    if ( isClosedModelClient() ) {
-	std::for_each( entries().begin(), entries().end(), Entry::SaveClientResults( submodel, station, clientChains(n)[1], *this ) );
-    }
-    setUtilization( computeUtilization( submodel, station ) );
-}
-
-
-
-/*
- * Set the visit ratios.  Chains can result from both replication and from
- * threads.  _thread[0] is the main entry.
- */
-
-const Task&
-Task::closedCallsPerform( Call::Perform g ) const
-{
-    const ChainVector& chains = _clientChains[g.submodel()];
-    unsigned i = 1;
-
-    while ( i <= chains.size() ) {
-	g.setChain( chains[i] );
-	std::for_each( entries().begin(), entries().end(), Entry::CallsPerform( g ) );		// regular entries
-	i = std::for_each( std::next(threads().begin()), threads().end(), Entry::CallsPerformWithChain( g, chains, i + 1 ) ).index();	// threads (fork-join)
-    }
-    return *this;
-}
-
-
-
-/*
- * Set the visit ratios from ...
- */
-
-const Task&
-Task::openCallsPerform( Call::Perform g ) const
-{
-    std::for_each( entries().begin(), entries().end(), Entry::CallsPerform( g ) );
-    std::for_each( std::next(threads().begin()), threads().end(), Entry::CallsPerform( g ) );
-    return *this;
-}
-
-
-
 /*
  * Return idle time.  Compensate for threads.
  */
+
 double
 Task::thinkTime( const unsigned submodel, const unsigned k ) const
 {
@@ -960,6 +894,18 @@ Task::thinkTime( const unsigned submodel, const unsigned k ) const
 	    return _threads[ix]->thinkTime();
 	}
     }
+}
+
+
+
+/*
+ * Compute throughput bounds.  Must be done after initializeWait.
+ */
+
+void
+Task::computeThroughputBound()
+{
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::computeThroughputBound ) );
 }
 
 
@@ -997,7 +943,6 @@ Task::updateWait( const Submodel& submodel, const double relax )
     /* Now recompute thread idle times */
 
     std::for_each( std::next(threads().begin()), threads().end(), Exec1<Thread,double>( &Thread::setIdleTime, relax ) );
-
     return *this;
 }
 
@@ -1045,6 +990,63 @@ Task::bottleneckStrength() const
 {
     /* find out who I call */
     return 0;
+}
+
+/* ----------------------------- Save Results ----------------------------- */
+
+/*
+ * Get and save the waiting time results for all servers to this client
+ */
+
+void
+Task::saveClientResults( const MVASubmodel& submodel, const Server& station, unsigned int chain ) 
+{
+    closedCallsPerform( Call::Perform( &Call::Perform::saveWait, submodel ) );
+    openCallsPerform( Call::Perform( &Call::Perform::saveOpen, submodel ) );
+
+    if ( !isReferenceTask() || isCalled() ) return;
+    
+    /* Other results (only useful for references tasks). */
+
+    if ( isClosedModelClient() ) {
+	std::for_each( entries().begin(), entries().end(), Entry::SaveClientResults( submodel, station, chain, *this ) );
+    }
+    setUtilization( computeUtilization( submodel, station ) );
+}
+
+
+
+/*
+ * Set the visit ratios.  Chains can result from both replication and from
+ * threads.  _thread[0] is the main entry.
+ */
+
+const Task&
+Task::closedCallsPerform( Call::Perform g ) const
+{
+    const ChainVector& chains = _clientChains[g.submodel()];
+    unsigned i = 1;
+
+    while ( i <= chains.size() ) {
+	g.setChain( chains[i] );
+	std::for_each( entries().begin(), entries().end(), Entry::CallsPerform( g ) );		// regular entries
+	i = std::for_each( std::next(threads().begin()), threads().end(), Entry::CallsPerformWithChain( g, chains, i + 1 ) ).index();	// threads (fork-join)
+    }
+    return *this;
+}
+
+
+
+/*
+ * Set the visit ratios from ...
+ */
+
+const Task&
+Task::openCallsPerform( Call::Perform g ) const
+{
+    std::for_each( entries().begin(), entries().end(), Entry::CallsPerform( g ) );
+    std::for_each( std::next(threads().begin()), threads().end(), Entry::CallsPerform( g ) );
+    return *this;
 }
 
 /*----------------------------------------------------------------------*/
@@ -1567,38 +1569,27 @@ ReferenceTask::copies() const
 
 
 /*
- * Go through and initialize all the reference tasks as they are not
- * caught the first time round via the submodel intialization.
- * Initialize populations.
+ * Reference tasks are never servers, but still need to be initialized
+ * like one (throughputs and what have you.)  See Entity::initServer()
  */
 
-ReferenceTask&
-ReferenceTask::initClient( const Vector<Submodel *>& submodels )
+void
+ReferenceTask::initializeClient()
 {
-    Task::initClient( submodels );
-    initWait();
-    updateAllWaits( submodels );
-    computeVariance();
-    initThroughputBound();
-    initThreads();
-    return *this;
+    Task::initializeClient();
+    initializeServer();
 }
 
 
 
 /*
- * Go through and initialize all the reference tasks as they are not
- * caught the first time round.
  */
 
-ReferenceTask&
-ReferenceTask::reinitClient( const Vector<Submodel *>& submodels )
+void
+ReferenceTask::reinitializeClient()
 {
-    Task::reinitClient( submodels );
-    updateAllWaits( submodels );
-    computeVariance();
-    initThroughputBound();
-    return *this;
+    Task::reinitializeClient();
+    reinitializeServer();
 }
 
 

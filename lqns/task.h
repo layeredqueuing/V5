@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/task.h $
+< * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/task.h $
  *
  * Tasks.
  *
@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 16648 2023-04-09 11:11:47Z greg $
+ * $Id: task.h 16676 2023-04-19 11:56:50Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -39,14 +39,6 @@ public:
     enum class root_level_t { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS };
     friend class Interlock;		// BUG_425 deprecate
 
-    class SaveClientResults {
-    public:
-	SaveClientResults( const MVASubmodel& submodel ) : _submodel(submodel) {}
-	void operator()( Task * client ) const { client->saveClientResults( _submodel ); }
-    private:
-	const MVASubmodel& _submodel;
-    };
-    
 private:
     struct find_max_depth {
 	find_max_depth( Call::stack& callStack, bool directPath ) : _callStack(callStack), _directPath(directPath), _dstEntry(callStack.back()->dstEntry()) {}
@@ -109,11 +101,10 @@ public:
     virtual Task& configure( const unsigned );
     virtual unsigned findChildren( Call::stack&, const bool ) const;
     Task& initProcessor();
-    virtual Task& initClient( const Vector<Submodel *>& );
-    virtual Task& reinitClient( const Vector<Submodel *>& );
+    virtual void initializeClient();
+    virtual void reinitializeClient();
     Task& initCustomers( std::deque<const Task *>& stack, unsigned int customers );
-    virtual Task& initWait();
-    virtual Task& initThroughputBound();
+    void initializeWait( const Submodel& submodel );
     Task& createInterlock();
     virtual Task& initThreads();
 
@@ -167,7 +158,8 @@ public:
 	
     Task& addClientChain( const unsigned submodel, const unsigned k ) { _clientChains[submodel].push_back(k); return *this; }
     const ChainVector& clientChains( const unsigned submodel ) const { return _clientChains[submodel]; }
-    Server * clientStation( const unsigned submodel ) const { return _clientStation[submodel]; }
+    Server* clientStation( const unsigned submodel ) const { return _clientStation[submodel]; }
+    virtual Task* mapToReplica( size_t ) const;
 
     /* Model Building. */
 
@@ -177,9 +169,7 @@ public:
     Task& expandCalls();
 
     Server * makeClient( const unsigned, const unsigned  );
-private:
-    void saveClientResults( const MVASubmodel& );
-public:
+    void saveClientResults( const MVASubmodel&, const Server&, unsigned int chain );
     const Task& closedCallsPerform( Call::Perform ) const;	// Copy arg.
     const Task& openCallsPerform( Call::Perform ) const;	// Copy arg.
     const Task& setChains( MVASubmodel& submodel ) const;
@@ -187,8 +177,10 @@ public:
     /* Computation */
 	
     virtual Task& recalculateDynamicValues();
+
+    void computeThroughputBound();
     virtual Task& computeVariance();
-    virtual Task& updateWait( const Submodel&, const double );
+    Task& updateWait( const Submodel&, const double );
 #if PAN_REPLICATION
     virtual double updateWaitReplication( const Submodel&, unsigned& );
 #endif
@@ -295,8 +287,8 @@ protected:
 public:
     virtual unsigned copies() const;
     
-    virtual ReferenceTask& initClient( const Vector<Submodel *>& );
-    virtual ReferenceTask& reinitClient( const Vector<Submodel *>& );
+    virtual void initializeClient();
+    virtual void reinitializeClient();
 
     virtual bool check() const;
     virtual ReferenceTask& recalculateDynamicValues();

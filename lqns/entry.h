@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 16644 2023-04-08 10:56:17Z greg $
+ * $Id: entry.h 16676 2023-04-19 11:56:50Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -216,8 +216,6 @@ public:
     unsigned findChildren( Call::stack&, const bool ) const;
     Entry& initCustomers( std::deque<const Task *>& stack, unsigned int customers );
     virtual Entry& initProcessor() = 0;
-    virtual Entry& initWait() = 0;
-    Entry& initThroughputBound();
     Entry& initServiceTime();
 #if PAN_REPLICATION
     Entry& setSurrogateDelaySize( size_t );
@@ -330,6 +328,7 @@ public:
 
     void add_call( unsigned p, const LQIO::DOM::Call * dom );
     void sliceTime( const Entry& dst, Slice_Info phase_info[], double y_xj[] ) const;
+    void computeThroughputBound();
     virtual Entry& computeVariance() { return *this; }
     virtual Entry& updateWait( const Submodel&, const double ) = 0;
 #if PAN_REPLICATION
@@ -420,7 +419,6 @@ public:
     virtual Entry * clone( unsigned int replica, const AndOrForkActivityList * fork=nullptr ) const { return new TaskEntry( *this, replica ); }
 
     virtual TaskEntry& initProcessor();
-    virtual TaskEntry& initWait();
 
     virtual TaskEntry& owner( const Entity * aTask ) { _task = aTask; return *this; }
     virtual const Entity * owner() const { return _task; }

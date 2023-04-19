@@ -687,9 +687,11 @@ namespace LQIO {
 	Json_Document::handleEntryResults( unsigned int e, const picojson::value::object& results ) const
 	{
 	    if ( !e ) return;
-
+	    double dummy = 0.;	/* ignored value */
+	    
 	    entry_tab[pass][e].open_arrivals = get_results( results, Xopen_wait_time, entry_tab[pass][e].open_waiting, entry_tab[pass][e].open_wait_conf );
-	    get_results( results, Xthroughput, entry_tab[pass][e].throughput, entry_tab[pass][e].throughput_conf  );
+	    entry_tab[pass][e].bounds = get_results( results, Xthroughput, entry_tab[pass][e].throughput, entry_tab[pass][e].throughput_conf );
+	    get_results( results, Xthroughput_bound, entry_tab[pass][e].throughput, dummy );
 
 	    /* For case where we have activities... results specified at entry level */
 

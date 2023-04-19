@@ -11,7 +11,7 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 16648 2023-04-09 11:11:47Z greg $
+ * $Id: processor.h 16676 2023-04-19 11:56:50Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -54,6 +54,7 @@ protected:
     
 public:
     /* Initialization */
+    virtual void initializeServer();
 
     virtual bool check() const;
     virtual Processor& configure( const unsigned );
@@ -80,6 +81,7 @@ public:
     Processor& addGroup( Group * group ) { _groups.insert( group ); return *this; }
     const std::set<Group *>& groups() const { return _groups; }
 
+    virtual Entity* mapToReplica( size_t ) const;
     Processor& expand();
     
     Server * makeServer( const unsigned nChains );

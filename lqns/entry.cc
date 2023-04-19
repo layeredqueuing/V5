@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16644 2023-04-08 10:56:17Z greg $
+ * $Id: entry.cc 16676 2023-04-19 11:56:50Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -343,25 +343,6 @@ Entry::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
     return *this;
 }
 /*- BUG_425 */
-
-
-/*
- * Type 1 throughput bounds.  Reference task think times will limit throughput
- */
-
-Entry&
-Entry::initThroughputBound()
-{
-    const double t = elapsedTime() + owner()->thinkTime();
-    if ( t > 0 ) {
-	_throughputBound = owner()->copies() / t;
-    } else {
-	_throughputBound = 0.0;
-    }
-    saveThroughput( _throughputBound );		/* Push bound to entries/phases/activities */
-    return *this;
-}
-
 
 
 /*
@@ -1149,8 +1130,6 @@ Entry::output_name( std::ostream& output, const Entry& entry )
     }
     return output;
 }
-
-
 
 /* ------------------------------ Results ----------------------------- */
 
@@ -1243,19 +1222,6 @@ TaskEntry::initProcessor()
 
 
 /*
- * Set up waiting times for calls to subordinate tasks.
- */
-
-TaskEntry&
-TaskEntry::initWait()
-{
-    std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::initWait ) );
-    return *this;
-}
-
-
-
-/*
  * Reference the value of calls to entry.  The entry must already
  * exist.  If not, returns 0.
  */
@@ -1298,6 +1264,24 @@ double
 TaskEntry::queueingTime( const unsigned p ) const
 {
     return isStandardEntry() ? _phase[p].queueingTime() : 0.0;
+}
+
+
+
+/*
+ * Compute the Type 1 throughput bounds.  Reference task think times will limit throughput
+ */
+
+void
+Entry::computeThroughputBound()
+{
+    const double t = elapsedTime() + owner()->thinkTime();
+    if ( t > 0 ) {
+	_throughputBound = owner()->copies() / t;
+    } else {
+	_throughputBound = 0.0;
+    }
+    saveThroughput( _throughputBound );		/* Push bound to entries/phases/activities */
 }
 
 
@@ -1587,6 +1571,9 @@ DeviceEntry::initWait()
 
     _phase[1].setWaitTime( submodel, time );
     _total.setWaitTime( submodel, time );
+    for ( std::set<Call *>::iterator call = callerList().begin(); call != callerList().end(); ++call ) {
+	(*call)->setWait( time );
+    }
     return *this;
 }
 

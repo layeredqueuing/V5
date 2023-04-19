@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cc 16230 2023-01-01 15:01:53Z greg $
+ * $Id: expat_document.cc 16671 2023-04-18 15:29:34Z greg $
  *
  * Read in XML input files.
  *
@@ -1053,13 +1053,15 @@ namespace LQIO {
 	    const unsigned int e = find_or_add_entry( entry );
 	    if ( !e ) return;
 
-	    const double wait_time = getDoubleAttribute( attributes, Xopen_wait_time, 0.0 );
-	    if ( wait_time > 0.0 ) {
-		entry_tab[pass][e].open_waiting = wait_time;
-		entry_tab[pass][e].open_arrivals = true;
+	    entry_tab[pass][e].open_arrivals = hasAttribute( attributes, Xopen_wait_time );
+	    if ( entry_tab[pass][e].open_arrivals ) {
+		entry_tab[pass][e].open_waiting = getDoubleAttribute( attributes, Xopen_wait_time, 0.0 );
 	    }
-
 	    entry_tab[pass][e].throughput = getDoubleAttribute( attributes, Xthroughput, 0.0 );
+	    entry_tab[pass][e].bounds = hasAttribute( attributes, Xthroughput_bound );
+	    if ( entry_tab[pass][e].bounds ) {
+		entry_tab[pass][e].throughput_bound = getDoubleAttribute( attributes, Xthroughput_bound, 0.0 );
+	    }
 	    entry_tab[pass][e].utilization = getDoubleAttribute( attributes, Xutilization, 0.0 );
 	    entry_tab[pass][e].processor_utilization = getDoubleAttribute( attributes, Xproc_utilization, 0.0 );
 	    
@@ -1067,9 +1069,8 @@ namespace LQIO {
 
 	    for ( unsigned int p = 0; p < 2; ++p ) {
 		activity_info& ph = entry_tab[pass][e].phase[p];
-		const double s = getDoubleAttribute( attributes, XphaseP_service_time[p], 0.0 );
-		if ( s ) {
-		    ph.service = s;
+		ph.service = getDoubleAttribute( attributes, XphaseP_service_time[p], 0.0 );
+		if ( ph.service > 0.0 ) {
 		    ph.variance = getDoubleAttribute( attributes, XphaseP_service_time_variance[p], 0.0 );
 		}
 	    }
@@ -1348,6 +1349,18 @@ namespace LQIO {
 	    }
 	}
 
+	bool
+	Expat_Document::hasAttribute( const XML_Char ** attributes, const XML_Char * attribute ) const
+	{
+	    for ( ; *attributes; attributes += 2 ) {
+		if ( strcasecmp( *attributes, attribute ) == 0 ) {
+		    return true;
+		}
+	    }
+	    return false;
+	}
+	
+
 	const XML_Char *
 	Expat_Document::getStringAttribute(const XML_Char ** attributes, const XML_Char * attribute, const XML_Char * default_value ) const
 	{

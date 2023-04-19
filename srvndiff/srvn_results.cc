@@ -116,6 +116,12 @@ add_mva_solver_info( const unsigned int submodels, const unsigned long core, con
 void
 add_bound (const char *entry, double lower, double upper )
 {
+    int entry_id = find_or_add_entry( entry );
+
+    if ( !entry_id ) return;
+
+    entry_tab[pass][entry_id].bounds = true;
+    entry_tab[pass][entry_id].throughput_bound = upper;
 }
 
 /*

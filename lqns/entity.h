@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 16648 2023-04-09 11:11:47Z greg $
+ * $Id: entity.h 16676 2023-04-19 11:56:50Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -95,26 +95,6 @@ public:
 	const std::string _name;
     };
 
-    class SaveServerResults {
-    public:
-	SaveServerResults( const MVASubmodel& submodel , double relaxation ) : _submodel(submodel), _relaxation(relaxation) {}
-	void operator()( Entity * entity ) const;
-    private:
-	const MVASubmodel& _submodel;
-	const double _relaxation;
-    };
-
-    /*
-     * Update waiting times.
-     */
-    
-    struct update_wait {
-	update_wait( Entity& entity ) : _entity(entity) {}
-	void operator()( const Submodel* submodel ) { _entity.updateWait( *submodel, 1.0 ); }
-    private:
-	Entity& _entity;
-    };
-
     static std::set<Task *>& add_clients( std::set<Task *>& clients, const Entity * entity ) { return entity->getClients( clients ); }
 
 private:
@@ -146,13 +126,11 @@ public:
     virtual Entity& configure( const unsigned );
     virtual bool check() const;
     virtual unsigned findChildren( Call::stack&, const bool ) const;
-    virtual Entity& initWait();
     Entity& initInterlock();
-    virtual Entity& initThroughputBound() { return *this; }
     virtual Entity& initJoinDelay() { return *this; }
     virtual Entity& initThreads() { return *this; }
-    virtual Entity& initServer( const Vector<Submodel *>& );
-    virtual Entity& reinitServer( const Vector<Submodel *>& );
+    virtual void initializeServer();
+    virtual Entity& reinitializeServer();
 	
     /* Instance Variable Access */
 	   
@@ -212,8 +190,6 @@ public:
 
     virtual bool isUsed() const { return submodel() > 0; }
     bool isReplica() const;
-    bool isPruned() const { return _pruned; }
-    Entity& setPruned( bool yesOrNo ) { _pruned = yesOrNo; return *this; }
     
     const std::vector<Entry *>& entries() const { return _entries; }
     Entity& addEntry( Entry * );
@@ -233,7 +209,8 @@ public:
     
     Entity& addServerChain( const unsigned k ) { _serverChains.push_back(k); return *this; }
     const ChainVector& serverChains() const { return _serverChains; }
-    Server * serverStation() const { return _station; }
+    Server* serverStation() const { return _station; }
+    virtual Entity* mapToReplica( size_t i ) const = 0;
 
     bool markovOvertaking() const;
 
@@ -244,13 +221,10 @@ public:
 
     virtual double prOt( const unsigned, const unsigned, const unsigned ) const { return 0.0; }
 
-private:
     void saveServerResults( const MVASubmodel&, const Server&, double );
-public:
     Entity& updateAllWaits( const Vector<Submodel *>& );
     void setIdleTime( const double );
     virtual Entity& computeVariance();
-    virtual Entity& updateWait( const Submodel&, const double ) { return *this; }	/* NOP */
     virtual double updateWaitReplication( const Submodel&, unsigned& ) { return 0.0; }	/* NOP */
     double deltaUtilization() const;
 
@@ -326,6 +300,6 @@ private:
 
     ChainVector _serverChains;		/* Chains for this server.	*/
     const unsigned int _replica_number;	/* > 1 if a replica		*/
-    bool _pruned;
+
 };
 #endif

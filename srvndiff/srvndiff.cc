@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 16653 2023-04-09 14:43:29Z greg $
+ * $Id: srvndiff.cc 16671 2023-04-18 15:29:34Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -104,8 +104,6 @@ typedef void (*output_func_ptr)( FILE *, unsigned, double, double );
 typedef double (stats_buf::*stat_func_ptr)() const;
 typedef void (*entry_waiting_func)( const result_str_t result, const unsigned passes,
 				    unsigned i, unsigned k, unsigned p, std::vector<stats_buf>*, ... );
-typedef void (*forwarding_waiting_func)( const result_str_t result, const unsigned passes,
-					 unsigned i, unsigned k, std::vector<stats_buf>*, ... );
 typedef void (*activity_waiting_func)( const result_str_t result, const unsigned passes,
 				       unsigned i, unsigned k, std::vector<stats_buf>*, ... );
 
@@ -155,6 +153,7 @@ static bool check_proc( unsigned i, unsigned j, unsigned,   unsigned );
 static bool check_rwlk( unsigned i, unsigned j, unsigned,   unsigned );
 static bool check_serv( unsigned i, unsigned j, unsigned p, unsigned );
 static bool check_snrw( unsigned i, unsigned j, unsigned k, unsigned p );
+static bool check_tbnd( unsigned i, unsigned j, unsigned,   unsigned );
 static bool check_tput( unsigned i, unsigned j, unsigned,   unsigned );
 static bool check_wait( unsigned i, unsigned j, unsigned k, unsigned p );
 
@@ -194,6 +193,7 @@ static void get_snrv( double value[], double conf_value[], unsigned i, unsigned 
 static void get_snrw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 static void get_sput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
 static void get_spwt( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
+static void get_tbnd( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 static void get_tpru( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 static void get_tput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 static void get_tutl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
@@ -228,6 +228,7 @@ static unsigned int width_j	= 16*2;
 
 result_str_tab_t result_str[(int)P_LIMIT] = {
     /*                            Heading,          entry-fmt   act-fmt   width,	entry-get,activity-get, entry-check,activity-check */
+    /* P_BOUND         */       { "Bound",          &fmt_e,     nullptr,  &width_e,     get_tbnd, nullptr,      check_tbnd, nullptr },
     /* P_CV_SQUARE,    */       { "CV Square",      &fmt_e,	nullptr,  &width_e, 	get_cvsq, nullptr,      check_cvsq, nullptr },
     /* P_DROP,         */       { "Drop Prob",      &fmt_e_e_p,	&fmt_t_a, &width_e_e_p, get_drop, get_act_drop, check_snrw, check_act_snrw },
     /* P_ENTRY_PROC,   */       { "Utilization",    &fmt_e,     nullptr,  &width_e, 	get_enpr, nullptr,      nullptr,    nullptr },
@@ -323,11 +324,7 @@ static double relative_error( const double, const double );
 
 static struct {
     const char * str;
-#if defined(__SUNPRO_CC)
     const stat_func_ptr func;
-#else
-    stat_func_ptr func;
-#endif
 } statistic[N_STATISTICS] = {
     { "Mean",      &stats_buf::mean   },
     { "Std. Dev.", &stats_buf::stddev },
@@ -408,6 +405,7 @@ static bool print_service		= true;
 static bool print_snr_waiting		= true;
 static bool print_snr_waiting_variance	= false;
 static bool print_entry_throughput	= false;
+static bool print_throughput_bound	= false;
 static bool print_task_throughput	= true;
 static bool print_task_util		= true;
 static bool print_variance		= false;
@@ -476,7 +474,7 @@ static struct {
     { "coefficient-of-variation",    'c', true,  no_argument,       "Pring coefficient of variation results", &print_cv_square },
     { "asynch-send-variance",        'd', true,  no_argument,       "Print send-no-reply waiting time variance", &print_snr_waiting_variance },
     { "entry-throughput", 	     'e', true,  no_argument,       "Print entry throughput", &print_entry_throughput },
-    { "format",                      'f', false, required_argument, "Set the output format for <col> to <arg>. Column can be separator, result, confidence, error, or percent-confidence. <arg> is passed to printf() as a format", nullptr },
+    { "throughput-bound",            'f', false, no_argument,       "Print throughput bounds", &print_throughput_bound },
     { "group-utilization",	     'g', true,  no_argument,       "Print processor group utilizations", &print_group_util },
     { "semaphore-utilization",       'h', true,  no_argument,       "Print semaphore utilization", &print_sema_util },
     { "iterations",                  'i', true,  no_argument,       "Print solver iterations", &print_iterations },
@@ -500,6 +498,7 @@ static struct {
     { "solver-information",          '?', true,  no_argument,	    "Print the solver used and its version", &print_solver_information },
     { "compact",		 512+'k', false, no_argument,	    "Use a more compact format for output", nullptr },
     { "comment",		 512+'c', false, no_argument,	    "Print model comment ", nullptr },
+    { "format",                  512+'f', false, required_argument, "Set the output format for <col> to <arg>. Column can be separator, result, confidence, error, or percent-confidence. <arg> is passed to printf() as a format", nullptr },
     { "latex",			 512+'l', false, no_argument,	    "Format output for LaTeX", nullptr },
     { "debug-xml",               512+'x', false, no_argument,       "Output debugging information while parsing XML input", nullptr },
     { "debug-json",              512+'j', false, no_argument,       "Output debugging information while parsing JSON input", nullptr },
@@ -551,14 +550,13 @@ static void print_entry_waiting( const result_str_t result, const char * file_na
 static void print_forwarding_waiting( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_entry_overtaking ( const result_str_t result, const char * file_name, const unsigned passes, const unsigned n );
 static unsigned entry_waiting( const result_str_t result, const unsigned passes, std::vector<stats_buf>&, entry_waiting_func func );
-static unsigned forwarding_waiting( const result_str_t result, const unsigned passes, std::vector<stats_buf>& rms, forwarding_waiting_func func );
+static unsigned forwarding_waiting( const result_str_t result, const unsigned passes, std::vector<stats_buf>& rms, entry_waiting_func func );
 static unsigned activity_waiting( const result_str_t result, const unsigned passes, std::vector<stats_buf>&, activity_waiting_func func );
 static unsigned entry_overtaking( const result_str_t result, const unsigned passes, std::vector<stats_buf>&, entry_waiting_func func );
 static void print_activity( const result_str_t, const unsigned passes, unsigned i, unsigned k, std::vector<stats_buf>*, ... );
 static void print_activity_join ( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_entry( const result_str_t, const unsigned passes, unsigned i, unsigned k, unsigned p, std::vector<stats_buf>*, ... );
-static void print_entry_2( const result_str_t, const unsigned passes, unsigned i, unsigned k, std::vector<stats_buf>*, ... );
-static void print_entry_activity( double value[], double conf_value[], const unsigned passes, const unsigned j, std::vector<stats_buf>* );
+static double print_entry_activity( double value[], double conf_value[], const unsigned passes, const unsigned j, std::vector<stats_buf>* );
 static void print_entry_result( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_phase_result( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_group( const result_str_t result, const char * file_name, const unsigned passes );
@@ -699,6 +697,10 @@ main (int argc, char * const argv[])
 	    break;
 
 	case 'f':
+	    print_throughput_bound = enable;
+	    break;
+	    
+	case 512+'f':
 	    options = optarg;
 	    while ( *options ) {
 		switch( getsubopt( &options, const_cast<char **>(format_opts), const_cast<char **>(&value) )) {
@@ -991,7 +993,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2023-04-09 10:43:29 -0400 (Sun, 09 Apr 2023) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2023-04-18 11:29:34 -0400 (Tue, 18 Apr 2023) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1018,6 +1020,7 @@ main (int argc, char * const argv[])
     }
 
     if ( !print_cv_square
+	 && !print_entry_throughput
 	 && !print_exceeded
 	 && !print_group_util
 	 && !print_iterations
@@ -1036,10 +1039,10 @@ main (int argc, char * const argv[])
 	 && !print_service
 	 && !print_snr_waiting
 	 && !print_snr_waiting_variance
-	 && !print_entry_throughput
 	 && !print_solver_information
 	 && !print_task_throughput
 	 && !print_task_util
+	 && !print_throughput_bound
 	 && !print_variance
 	 && !print_waiting
 	 && !print_waiting_variance ) {
@@ -1424,6 +1427,7 @@ done:
 	   || print_entry_throughput
 	   || print_task_throughput
 	   || print_task_util
+	   || print_throughput_bound
 	   || print_open_wait
 	   || print_overtaking
 	   || ( print_group_util && group_tab[FILE1].size() )
@@ -1925,6 +1929,10 @@ print ( unsigned passes, char * const names[] )
 
     /* Throughput */
 
+    if ( print_throughput_bound ) {
+	print_entry_result( P_BOUND, file_name.c_str(), passes );
+    }
+    
     if ( print_entry_throughput ) {
 	print_entry_result( P_ENTRY_TPUT, file_name.c_str(), passes );
     }
@@ -2232,7 +2240,7 @@ print_forwarding_waiting ( const result_str_t result, const char * file_name, co
 	} else {
 	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 32+5, header, "From Entry      To Entry       " );
 	} 
-	forwarding_waiting( result, passes, rms, print_entry_2 );
+	forwarding_waiting( result, passes, rms, print_entry );
 	count += 1;
 	if ( print_latex && !print_rms_error_only ) {
 	    (void) fprintf( output, "\\hline\n" );
@@ -2251,7 +2259,7 @@ print_forwarding_waiting ( const result_str_t result, const char * file_name, co
  */
 
 static unsigned
-forwarding_waiting( const result_str_t result, const unsigned passes, std::vector<stats_buf>& rms, forwarding_waiting_func func )
+forwarding_waiting( const result_str_t result, const unsigned passes, std::vector<stats_buf>& rms, entry_waiting_func func )
 {
     unsigned count = 0;
     for ( std::map<int,entry_info>::const_iterator i = entry_tab[FILE1].begin(); i != entry_tab[FILE1].end(); ++i ) {
@@ -2269,9 +2277,7 @@ forwarding_waiting( const result_str_t result, const unsigned passes, std::vecto
 	    count += 1;
 
 	    if ( func ) {
-		(*func)( result, passes, i->first, k->first, &rms,
-			 find_symbol_pos( i->first, ST_ENTRY ),
-			 find_symbol_pos( k->first, ST_ENTRY ) );
+		(*func)( result, passes, i->first, k->first, 0, &rms, find_symbol_pos( i->first, ST_ENTRY ), find_symbol_pos( k->first, ST_ENTRY ) );
 	    }
 	}
     }
@@ -2725,7 +2731,7 @@ print_information ( const result_str_t result, const char * file_name, const uns
  * indexed by result.
  */
 
-static void
+void
 print_entry ( const result_str_t result, const unsigned passes, unsigned i, unsigned k, unsigned p,
 	      std::vector<stats_buf>* delta, ... )
 {
@@ -2739,52 +2745,23 @@ print_entry ( const result_str_t result, const unsigned passes, unsigned i, unsi
     }
     va_end( args );
 
+    double difference = 0.0;
     for ( unsigned int j = 0; j < passes; ++j ) {
 	value[j]      = 0.0;
 	conf_value[j] = 0.0;
 	(*result_str[(int)result].func)( value, conf_value, i, j, k, p );
 
-	print_entry_activity( value, conf_value, passes, j, delta );
+	difference = std::max( print_entry_activity( value, conf_value, passes, j, delta ), difference );
     }
-
-    if ( !print_rms_error_only ) {
-	if ( print_latex ) {
-	    (void) fprintf( output, " \\\\" );
-	}
-	(void) fputc( '\n', output );
-    }
-}
-
-
-
-
-/*
- * Print a line.  Format information is stored in the result_str array which is
- * indexed by result.
- */
-
-static void
-print_entry_2 ( const result_str_t result, const unsigned passes, unsigned i, unsigned k, 
-	      std::vector<stats_buf>* delta, ... )
-{
-    unsigned j;
-    double value[MAX_PASS];
-    double conf_value[MAX_PASS];
-    va_list args;
 
     va_start( args, delta );
-    if ( !print_rms_error_only ) {
-	(void) vfprintf( output, *result_str[(int)result].format, args );
+    if ( verbose_flag && difference > error_threshold ) {
+	(void) vfprintf( stderr, *result_str[(int)result].format, args );
+	(void) fprintf( stderr, ": %s difference =", result_str[(int)result].string );
+	(void) fprintf( stderr, error_format, difference );
+	(void) fprintf( stderr, ".\n");
     }
     va_end( args );
-
-    for ( j = 0; j < passes; ++j ) {
-	value[j]      = 0.0;
-	conf_value[j] = 0.0;
-	(*result_str[(int)result].func)( value, conf_value, i, j, k, 0 );
-
-	print_entry_activity( value, conf_value, passes, j, delta );
-    }
 
     if ( !print_rms_error_only ) {
 	if ( print_latex ) {
@@ -2836,11 +2813,11 @@ print_activity ( const result_str_t result, const unsigned passes, unsigned i, u
 
 
 /*
- * Common code for print_entry  and print_activity
+ * Common code for print_entry  and print_activity.  Return true if the error is greater than threshold.
  */
 
-static void
-print_entry_activity( double value[], double conf_value[], const unsigned passes, const unsigned j, std::vector<stats_buf>* delta )
+static double
+print_entry_activity ( double value[], double conf_value[], const unsigned passes, const unsigned j, std::vector<stats_buf>* delta )
 {
     if ( !print_error_only && !print_rms_error_only ) {
 	(void) fprintf( output, "%s", separator_format );
@@ -2861,16 +2838,15 @@ print_entry_activity( double value[], double conf_value[], const unsigned passes
 
     if ( j == FILE1 ) {
 	(*delta)[j].update( value[FILE1] );
+	return 0.0;			/* Never a difference with the first file. */
     } else {
-	double error;
+	double error = 0.0;
 	if ( std::isfinite( value[j] ) && std::isfinite( value[FILE1] ) ) {
 	    error = value[j] - value[FILE1];
 	} else if ( !std::isfinite( value[j] ) && std::isfinite( value[FILE1] ) ) {
 	    error = value[j];
 	} else if ( std::isfinite( value[j] ) && !std::isfinite( value[FILE1] ) ) {
 	    error = -value[FILE1];
-	} else {
-	    error = 0.0;
 	}
 	const double abserr = fabs(error);
 	const bool ok = abserr <= conf_value[0] || abserr <= conf_value[j];		/* test either */
@@ -2878,14 +2854,16 @@ print_entry_activity( double value[], double conf_value[], const unsigned passes
 	    error = abserr;
 	}
 	(*delta)[j].update( error, ok );
+	const double relerr = fabs( relative_error( error, value[FILE1] ) );
 	if ( passes >= 2 && !print_rms_error_only && !print_results_only ) {
 	    (void) fprintf( output, "%s", separator_format );
-	    (void) fprintf( output, error_format, relative_error( error, value[FILE1] ) );
+	    (void) fprintf( output, error_format, relerr );
 	    if ( confidence_intervals_present[0] || confidence_intervals_present[j] ) {
 		(void) fprintf( output, "%s", ok ? "*" : " " );
 	    }
 	}
-    }
+	return relerr;
+    } 
 }
 
 /*
@@ -3358,6 +3336,15 @@ get_entp( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 
 /*ARGSUSED*/
 static void
+get_tbnd( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
+{
+    value[j]      = entry_tab[j][i].throughput_bound;
+    conf_value[j] = 0.0;
+}
+
+
+/*ARGSUSED*/
+static void
 get_tput( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p )
 {
     value[j]      = task_tab[j][i].throughput;
@@ -3724,7 +3711,7 @@ check_act_snrw( unsigned i, unsigned j, unsigned k, unsigned )
 static bool
 check_serv( unsigned i, unsigned j, unsigned p, unsigned )
 {
-    return static_cast<bool>( entry_tab[j][i].phase[p].service > 0.0 );
+    return entry_tab[j][i].phase[p].service > 0.0;
 }
 
 /*ARGSUSED*/
@@ -3757,7 +3744,7 @@ check_cvsq( unsigned i, unsigned j, unsigned, unsigned )
 static bool
 check_hold( unsigned i, unsigned j, unsigned, unsigned )
 {
-    return static_cast<bool>( task_tab[j][i].semaphore_waiting > 0.0 );
+    return task_tab[j][i].semaphore_waiting > 0.0;
 }
 /*- BUG_164 */
 
@@ -3766,9 +3753,15 @@ check_hold( unsigned i, unsigned j, unsigned, unsigned )
 static bool
 check_rwlk( unsigned i, unsigned j, unsigned, unsigned )
 {
-    return static_cast<bool>( (task_tab[j][i]. rwlock_reader_holding > 0.0 ) ||(task_tab[j][i]. rwlock_writer_holding > 0.0 ));
+    return (task_tab[j][i].rwlock_reader_holding > 0.0 ) || (task_tab[j][i].rwlock_writer_holding > 0.0 );
 }
 /*- RWLOCK */
+
+static bool
+check_tbnd( unsigned i, unsigned j, unsigned, unsigned )
+{
+    return entry_tab[j][i].bounds;
+}
 
 static bool
 check_tput( unsigned i, unsigned j, unsigned, unsigned )
@@ -3780,7 +3773,7 @@ check_tput( unsigned i, unsigned j, unsigned, unsigned )
 static bool
 check_open( unsigned i, unsigned j, unsigned, unsigned )
 {
-    return static_cast<bool>( entry_tab[j][i].open_arrivals );
+    return entry_tab[j][i].open_arrivals > 0.0;
 }
 
 /*ARGSUSED*/

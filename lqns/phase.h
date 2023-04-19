@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 16645 2023-04-08 13:05:06Z greg $
+ * $Id: phase.h 16676 2023-04-19 11:56:50Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -143,7 +143,6 @@ private:
 	double cv_sqr() const { return _phase.CV_sqr(); }
 	double n_processor_calls() const { return service_time() > 0. ? n_calls() : 0.0; }	// zero if no service. BUG 315.
 
-	static void initWait( DeviceInfo * device ) { device->call()->initWait(); }
 	static std::set<Entity *>& add_server( std::set<Entity *>&, const DeviceInfo * );
 	
 	struct add_wait {
@@ -210,7 +209,6 @@ public:
     Phase& expandCalls();
     virtual Phase& initProcessor();
     Phase& initCustomers( std::deque<const Task *>& stack, unsigned int customers );
-    Phase& initWait();
     Phase& initVariance();
     
     unsigned findChildren( Call::stack&, const bool ) const;

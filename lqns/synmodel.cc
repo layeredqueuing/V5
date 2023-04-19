@@ -1,6 +1,6 @@
 /*  -*- c++ -*-
  * synmodel.C	-- Greg Franks Fri Aug  7 1998
- * $Id: synmodel.cc 16640 2023-04-07 22:41:45Z greg $
+ * $Id: synmodel.cc 16676 2023-04-19 11:56:50Z greg $
  *
  * Special submodel to handle synchronization.  These delays are added into
  * the waiting time arrays in the usual fashion (I hope...)
@@ -27,17 +27,6 @@ SynchSubmodel::~SynchSubmodel()
 {
 }
 	       
-/*
- * Prune join paths to find sync points.
- */
-
-SynchSubmodel&
-SynchSubmodel::initServers( const Model& aSolver )
-{
-    Submodel::initServers( aSolver );
-    return *this;
-}
-
 
 
 /*

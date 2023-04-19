@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 15817 2022-08-12 17:20:52Z greg $
+ *  $Id: expat_document.h 16671 2023-04-18 15:29:34Z greg $
  *
  *  Created by Greg Franks.
  */
@@ -157,6 +157,7 @@ namespace LQIO {
 	    void handleActivitySNRCallConfResults( const DocumentObject *, const DocumentObject *, const DocumentObject *, const XML_Char ** attributes );
 	    void handleJoinConfResults( const DocumentObject *, const DocumentObject *, const DocumentObject *, const XML_Char ** attributes );
 
+	    bool hasAttribute( const XML_Char ** attributes, const XML_Char * attribute ) const;
 	    const XML_Char * getStringAttribute( const XML_Char ** attributes, const XML_Char * Xcomment, const XML_Char * default_value=0 ) const;
 	    const double getDoubleAttribute( const XML_Char ** attributes, const XML_Char * Xconv_val, const double default_value=-1.0 ) const;
 	    const long getLongAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int, const long default_value=-1 ) const;

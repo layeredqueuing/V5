@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 16646 2023-04-08 13:09:26Z greg $
+ * $Id: call.h 16676 2023-04-19 11:56:50Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -83,13 +83,15 @@ public:
 	Perform& setRate( double rate ) { _rate = rate; return *this; }
 	double rate() const { return _rate; }
 
+	bool hasServer( const Entity * ) const;
 	void operator()( Call * call );
 
 	/* Functions invoked from task */
 	
 	void setChain( Call& );
 	void setVisits( Call& );
-	virtual void setLambda( Call& );
+	void setLambda( Call& );
+	void initWait( Call& );
 	void saveWait( Call& );
 	void saveOpen( Call& );
 
@@ -189,7 +191,6 @@ public:
     int operator==( const Call& item ) const;
     int operator!=( const Call& item ) const;
 
-    virtual Call& initWait() = 0;
     Call& initCustomers( std::deque<const Task *>& stack, unsigned int customers );
     
     virtual bool check() const;
@@ -289,7 +290,6 @@ public:
     virtual NullCall * clone( unsigned int, unsigned int ) { abort(); return nullptr; }
 
     virtual const std::string& srcName() const { static const std::string null("NULL"); return null; }
-    virtual NullCall& initWait() { return *this; }
 };
 
 /* -------------------------------------------------------------------- */
@@ -308,7 +308,6 @@ public:
     PhaseCall( const Phase *, const Entry * toEntry );
     PhaseCall( const PhaseCall&, unsigned int src_replica, unsigned int dst_replica );
 
-    virtual Call& initWait();
     virtual PhaseCall * clone( unsigned int src_replica, unsigned int dst_replica ) { return new PhaseCall( *this, src_replica, dst_replica ); }
 };
 
@@ -339,7 +338,6 @@ public:
     ActivityCall( const Activity * fromActivity, const Entry * toEntry );
     ActivityCall( const ActivityCall&, unsigned int src_replica, unsigned int dst_replica );
 
-    virtual Call& initWait();
     virtual ActivityCall * clone( unsigned int src_replica, unsigned int dst_replica ) { return new ActivityCall( *this, src_replica, dst_replica ); }
 };
 
@@ -356,8 +354,6 @@ public:
 class ProcessorCall : virtual public Call {
 public:
     ProcessorCall( const Phase *, const Entry * toEntry );
-
-    virtual Call& initWait();
 
     virtual bool isProcessorCall() const { return true; }
     virtual ProcessorCall * clone( unsigned int, unsigned int ) { abort(); return nullptr; }

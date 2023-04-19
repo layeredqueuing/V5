@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 16645 2023-04-08 13:05:06Z greg $
+ * $Id: submodel.cc 16676 2023-04-19 11:56:50Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -95,8 +95,57 @@ Submodel::addClients()
     _clients = std::accumulate( _servers.begin(), _servers.end(), _clients, Entity::add_clients );
     return *this;
 }
+
+/* ---------------------------- Initialization ---------------------------- */
+
+/*
+ * Initialize server and client waiting times and populations.
+ */
+
+void
+Submodel::initializeSubmodel()
+{
+    std::for_each( _servers.begin(), _servers.end(), std::mem_fn( &Entity::initializeServer ) );
+    std::for_each( _clients.begin(), _clients.end(), std::mem_fn( &Task::initializeClient ) );
+    std::for_each( _clients.begin(), _clients.end(), InitializeWait( *this ) );
+    std::for_each( _clients.begin(), _clients.end(), std::mem_fn( &Task::computeThroughputBound ) );
+}
 
 
+/*
+ * Initialize server's waiting times and populations.
+ */
+
+void
+Submodel::reinitializeSubmodel()
+{
+    std::for_each( _servers.begin(), _servers.end(), std::mem_fn( &Entity::reinitializeServer ) );
+    std::for_each( _clients.begin(), _clients.end(), std::mem_fn( &Task::reinitializeClient ) );
+    std::for_each( _clients.begin(), _clients.end(), InitializeWait( *this ) );
+    std::for_each( _clients.begin(), _clients.end(), std::mem_fn( &Task::computeThroughputBound ) );
+}
+
+
+
+/*+ BUG_433
+ * Initialize the waiting time on all calls from client.  If replicated, then do the replicas
+ * too as this client may be a server in another submodel.
+ */
+
+void
+Submodel::InitializeWait::operator()( Task * client ) const
+{
+    client->initializeWait( _submodel );
+
+    if ( !client->isReplicated() || Pragma::replication() != Pragma::Replication::PRUNE ) return;
+    for ( size_t i = 2; i <= client->replicas(); ++i ) {
+	client = client->mapToReplica( i );
+	if ( _submodel.hasClient( client ) ) break;
+	client->initializeWait( _submodel );
+    }
+}
+/*- BUG_433 */
+
 /*
  * Handy debug function
  */
@@ -141,7 +190,17 @@ Submodel::submodel_header_str( std::ostream& output, const Submodel& submodel, c
 	   << submodel.submodelType() << " " << submodel.number() << ": "
 	   << submodel._clients.size() << " client" << (submodel._clients.size() != 1 ? "s, " : ", ")
 	   << submodel._servers.size() << " server" << (submodel._servers.size() != 1 ? "s."  : ".")
-	   << "==========";
+	   << " ==========";
+    return output;
+}
+
+
+std::ostream&
+Submodel::submodel_trace_header_str( std::ostream& output, const std::string& str )
+{
+    const size_t len = (66 - str.size()) / 2 - 1;
+    output << std::setw( len ) << std::setfill( '-' ) << "-" << " " << str << " "
+	   << std::setw( len ) << "-" << std::endl << std::setfill( ' ' ) ;
     return output;
 }
 
@@ -187,38 +246,10 @@ MVASubmodel::~MVASubmodel()
 	delete [] _overlapFactor;
     }
 }
-
-
+
 /*----------------------------------------------------------------------*/
 /*                       Initialize the model.                          */
 /*----------------------------------------------------------------------*/
-
-
-/*
- * Initialize server's waiting times and populations.
- */
-
-MVASubmodel&
-MVASubmodel::initServers( const Model& model )
-{
-    std::for_each( _servers.begin(), _servers.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::initServer, model.getSubmodels() ) );
-    return *this;
-}
-
-
-
-/*
- * Initialize server's waiting times and populations.
- */
-
-MVASubmodel&
-MVASubmodel::reinitServers( const Model& model )
-{
-    std::for_each( _servers.begin(), _servers.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::reinitServer, model.getSubmodels() ) );
-    return *this;
-}
-
-
 
 /*
  * Go through all servers and set up path tables.
@@ -843,7 +874,7 @@ MVASubmodel::InitializeServerStation::ComputeOvertaking::operator()( Task * clie
  * chain too.  This step must be performed after BOTH the clients and
  * servers have been created so that all of the chain information is
  * available at all stations.  Chain information is initialized in
- * makeChains.  Submodel information is initialized in initServer.
+ * makeChains.  Submodel information is initialized in initializeServer.
  */
 
 //++ REPL changes
@@ -867,6 +898,70 @@ MVASubmodel::ModifyClientServiceTime::operator()( Task * client )
     }
 }
 #endif
+
+
+
+/*
+ * Save client results.  Clients can occur in moret than one submodel.  If a
+ * client has been pruned, set its results from the primary replica of both
+ * the client and and server.
+ */
+
+void
+MVASubmodel::SaveClientResults::operator()( Task * client ) const
+{
+    const unsigned int n = _submodel.number();
+    const Server& station = *client->clientStation(n);
+    const unsigned int chain = client->clientChains(n)[1];
+
+    /* Always save the results from the call from submodel. */
+
+    client->saveClientResults( _submodel, station, chain );
+
+    /*+ BUG_433
+     * If this is replica 1, and it's replicated and the replicas are pruned,
+     * then save the results from replica 1's station to all the pruned
+     * copies.  If PAN replication, the replicas are never even created.
+     */
+
+    if ( !client->isReplicated() || Pragma::replication() != Pragma::Replication::PRUNE ) return;
+    for ( size_t i = 2; i <= client->replicas(); ++i ) {
+	client = client->mapToReplica( i );
+	if ( _submodel.hasClient( client ) ) break;
+	client->saveClientResults( _submodel, station, chain );
+    }
+    /*- BUG_433 */
+}
+
+
+
+/*
+ * Save server results.  Servers only occur in one submodel.  If servers have
+ * been pruned, set their results from the primary copy.
+ */
+
+void
+MVASubmodel::SaveServerResults::operator()( Entity * server ) const
+{
+    const Server& station = *server->serverStation();
+    
+    /* Always save the results from the call from submodel. */
+    server->saveServerResults( _submodel, station, _relaxation );
+
+    /*+ BUG_433
+     * If this is replica 1, and it's replicated and the replicas are pruned,
+     * then save the results from replica 1's station to all the pruned
+     * copies.  If PAN replication, the replicas are never even created.
+     */
+    
+    if ( !server->isReplicated() || Pragma::replication() != Pragma::Replication::PRUNE ) return;
+    for ( size_t i = 2; i <= server->replicas(); ++i ) {
+	server = server->mapToReplica( i );
+	if ( _submodel.hasServer( server ) ) break;
+	server->saveServerResults( _submodel, station, _relaxation );
+    }
+    /*- BUG_433 */
+}
 
 /*----------------------------------------------------------------------*/
 /*                          Solve the model.                            */
@@ -929,18 +1024,24 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    Generate::program( *this );
 	}
 
+	if ( trace ) {
+	    if ( _openModel != nullptr ) {
+		if ( _closedModel != nullptr ) std::cout << print_trace_header( "Open Model" );
+		printOpenModel( std::cout );
+	    }
+	    if ( _closedModel != nullptr ) {
+		if ( _openModel != nullptr ) std::cout << print_trace_header( "Closed Model" );
+		printClosedModel( std::cout );
+	    }
+	}
+
 	/* ----------------- Solve the model. ----------------- */
 
 	if ( _closedModel ) {
 
 	    if ( _openModel ) {
-		if ( trace ) {
-		    printOpenModel( std::cout );
-		}
 
-		/*
-		 * If model has any open classes, convert for closed model.
-		 */
+		/* If model has any open classes, convert for closed model. */
 
 		try {
 		    _openModel->convert( _customers );
@@ -953,9 +1054,6 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		}
 	    }
 
-	    if ( trace ) {
-		printClosedModel( std::cout );
-	    }
 	    try {
 		_closedModel->solve();
 	    }
@@ -969,10 +1067,6 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	}
 
 	if ( _openModel ) {
-	    if ( trace && !_closedModel ) {
-		printOpenModel( std::cout );
-	    }
-
 	    try {
 		if ( _closedModel ) {
 		    _openModel->solve( *_closedModel, _customers );	/* Calculate L[0] queue lengths. */
@@ -985,15 +1079,18 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		    throw;
 		}
 	    }
-
-	    if ( trace ) {
-		std::cout << *_openModel << std::endl << std::endl;
-	    }
 	}
 
-	if ( _closedModel && trace ) {
+	if ( trace ) {
 	    std::ios_base::fmtflags oldFlags = std::cout.setf( std::ios::right, std::ios::adjustfield );
-	    std::cout << *_closedModel << std::endl << std::endl;
+	    if ( _openModel != nullptr  ) {
+		if ( _closedModel != nullptr ) std::cout << print_trace_header( "Open Model" );
+		std::cout << *_openModel << std::endl << std::endl;
+	    }
+	    if ( _closedModel != nullptr ) {
+		if ( _openModel != nullptr ) std::cout << print_trace_header( "Closed Model" );
+		std::cout << *_closedModel << std::endl << std::endl;
+	    }
 	    std::cout.flags( oldFlags );
 	}
 
@@ -1003,8 +1100,8 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    std::cout <<"MVASubmodel::solve( ) .... completed solving the MVA model......." << std::endl;
 	}
 
-	std::for_each( _clients.begin(), _clients.end(), Task::SaveClientResults( *this ) );
-	std::for_each( _servers.begin(), _servers.end(), Entity::SaveServerResults( *this, relax ) );
+	std::for_each( _clients.begin(), _clients.end(), MVASubmodel::SaveClientResults( *this ) );
+	std::for_each( _servers.begin(), _servers.end(), MVASubmodel::SaveServerResults( *this, relax ) );
 
 	/* --- Compute and save new values for entry service times. --- */
 

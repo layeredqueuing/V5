@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 16589 2023-03-24 21:51:36Z greg $
+ * $Id: model.cc 16676 2023-04-19 11:56:50Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -21,7 +21,7 @@
  *           Activitly lists checked and are set up during the sorting process.
  *       ii) addToSubmodel() to add server stations to the basic model.
  *    c) Call configure (dimension arrays)
- *    d) Call initStations (initialize service times, etc...)
+ *    d) Call initializeSubmodels (initialize service times, etc...)
  * 3) Call solve()
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -549,7 +549,7 @@ Model::initialize()
 	    _model_initialized = true;
 	    partition();
 	    configure();		/* Dimension arrays and threads	*/
-	    initStations();		/* Init MVA values (pop&waits). */		/* -- Step 2 -- */
+	    initializeSubmodels();	/* Init MVA values (pop&waits). */		/* -- Step 2 -- */
 	}
 
 	if ( Options::Debug::submodels() ) {	/* Print out layers... 		*/
@@ -557,7 +557,7 @@ Model::initialize()
 	}
 
     } else {
-	reinitStations();
+	reinitializeSubmodels();
     }
 
     return !LQIO::io_vars.anError();
@@ -710,7 +710,7 @@ Model::configure()
  */
 
 void
-Model::initStations()
+Model::initializeSubmodels()
 {
     if ( Pragma::interlock() ) {
 	std::for_each( __task.begin(), __task.end(), std::mem_fn( &Task::createInterlock ) );
@@ -724,11 +724,7 @@ Model::initStations()
      * reverse order (bottom up) because waits propogate upwards.
      */
 
-    std::for_each( _submodels.rbegin(), _submodels.rend(), Exec1<Submodel,const Model&>( &Submodel::initServers, *this ) );
-
-    /* Initialize waiting times and populations for the reference tasks. */
-
-    std::for_each( __task.begin(), __task.end(), Exec1<Task,const Vector<Submodel *>&>( &Task::initClient, getSubmodels() ) );
+    std::for_each( _submodels.rbegin(), _submodels.rend(), std::mem_fn( &Submodel::initializeSubmodel ) );
 
     /* Initialize Interlocking */
 
@@ -750,7 +746,7 @@ Model::initStations()
  */
 
 void
-Model::reinitStations()
+Model::reinitializeSubmodels()
 {
     /*
      * Reset all counters before a run.  In particular, iterations
@@ -776,11 +772,7 @@ Model::reinitStations()
      * reverse order (bottom up) because waits propogate upwards.
      */
 
-    std::for_each( _submodels.rbegin(), _submodels.rend(), Exec1<Submodel,const Model&>( &Submodel::reinitServers, *this ) );
-
-    /* Initialize waiting times and populations for the reference tasks. */
-
-    std::for_each( __task.begin(), __task.end(), Exec1<Task,const Vector<Submodel *>&>( &Task::reinitClient, getSubmodels() ) );
+    std::for_each( _submodels.rbegin(), _submodels.rend(), std::mem_fn( &Submodel::reinitializeSubmodel ) );
 
     /* Reinitialize Interlocking */
 

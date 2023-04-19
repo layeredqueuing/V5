@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 16648 2023-04-09 11:11:47Z greg $
+ * $Id: processor.cc 16676 2023-04-19 11:56:50Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -63,6 +63,18 @@ Processor::~Processor()
 }
 
 /* ------------------------ Instance Methods -------------------------- */
+
+void
+Processor::initializeServer()
+{
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	DeviceEntry* device = dynamic_cast<DeviceEntry*>(*entry);
+	if ( device == nullptr ) continue;	// abort()?
+	device->initWait();
+    }
+}
+
+
 
 bool
 Processor::check() const
@@ -245,6 +257,17 @@ Processor::schedulingIsOK() const
 	|| scheduling() == SCHEDULE_RAND;
 }
 
+
+
+/*
+ * Return the base replica.
+ */
+
+Entity*
+Processor::mapToReplica( size_t i ) const
+{
+    return find( name(), i );
+}
 
 
 /*

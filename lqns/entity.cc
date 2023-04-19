@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16648 2023-04-09 11:11:47Z greg $
+ * $Id: entity.cc 16676 2023-04-19 11:56:50Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -88,8 +88,7 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
 #if BUG_393
       _marginalQueueProbabilities(),
 #endif
-      _replica_number(1),		/* This object is not a replica	*/
-      _pruned(false)
+      _replica_number(1)		/* This object is not a replica	*/
 {
 }
 
@@ -114,8 +113,7 @@ Entity::Entity( const Entity& src, unsigned int replica )
 #if BUG_393
       _marginalQueueProbabilities(),	/* Result, don't care.		*/
 #endif
-      _replica_number(replica),		/* This object is a replica	*/
-      _pruned(false)
+      _replica_number(replica)		/* This object is a replica	*/
 {
 }
 
@@ -181,18 +179,6 @@ Entity::findChildren( Call::stack& callStack, const bool ) const
 
 
 
-/*
- * Initialize waiting time at my entries.
- */
-
-Entity&
-Entity::initWait()
-{
-    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::initWait ) );
-    return *this;
-}
-
-
 Entity&
 Entity::initInterlock()
 {
@@ -206,16 +192,12 @@ Entity::initInterlock()
  * Initialize server's waiting times and populations (called after recalculate dynamic variables)
  */
 
-Entity&
-Entity::initServer( const Vector<Submodel *>& submodels )
+void
+Entity::initializeServer()
 {
-    initWait();
-    updateAllWaits( submodels );
     computeVariance();
-    initThroughputBound();
     initThreads();
     setInitialized(true);
-    return *this;
 }
 
 
@@ -224,11 +206,9 @@ Entity::initServer( const Vector<Submodel *>& submodels )
  */
 
 Entity&
-Entity::reinitServer( const Vector<Submodel *>& submodels )
+Entity::reinitializeServer()
 {
-    updateAllWaits( submodels );
     computeVariance();
-    initThroughputBound();
     return *this;
 }
 
@@ -316,7 +296,8 @@ Entity::addEntry( Entry * anEntry )
 
 double
 Entity::throughput() const
-{    return std::accumulate( entries().begin(), entries().end(), 0., add_using<double,Entry>( &Entry::throughput ) );
+{
+    return std::accumulate( entries().begin(), entries().end(), 0., add_using<double,Entry>( &Entry::throughput ) );
 }
 
 
@@ -381,19 +362,6 @@ Entity::markovOvertaking() const
 }
 
 
-/*
- * Upated the waiting time over all submodels.
- */
-
-Entity&
-Entity::updateAllWaits( const Vector<Submodel *>& submodels )
-{
-    std::for_each( submodels.begin(), submodels.end(), update_wait( *this ) );
-    return *this;
-}
-
-
-
 double
 Entity::computeUtilization( const MVASubmodel& submodel, const Server& )
 {
@@ -448,32 +416,6 @@ Entity::deltaUtilization() const
     }
     _lastUtilization = thisUtilization;
     return delta;
-}
-
-
-
-/*
- * Calculate and set think time.  Note that population returns the
- * maximum number of customers possible at a station.  It is used,
- * rather than copies, because some multi-servers may have more
- * threads specified than can possibly be active.
- */
-
-void
-Entity::setIdleTime( const double relax )
-{
-    if ( population() == std::numeric_limits<unsigned int>::max() ) {
-	_thinkTime = 0.0;
-    } else if ( utilization() >= population() ) {
-	_thinkTime = 0.0;
-    } else if ( throughput() > 0.0 ) {
-	_thinkTime = under_relax( _thinkTime, (population() - utilization()) / throughput(), relax );
-    } else {
-	_thinkTime = std::numeric_limits<double>::infinity();
-    }
-    if ( flags.trace_idle_time ) {
-	std::cout << "Entity(" << name() << ")::setIdleTime()   thinkTime=" << _thinkTime << std::endl;
-    }
 }
 
 
@@ -546,39 +488,20 @@ Entity::setInterlock( Submodel& submodel ) const
 }
 
 
-/*
- * Save server results.  Servers only occur in one submodel.  If servers have been
- * pruned at a lower level, set their results from the primary copy.
- */
 
-void
-Entity::SaveServerResults::operator()( Entity * server ) const
+const Entity&
+Entity::insertDOMResults() const
 {
-    const Server& station = *server->serverStation();
-    
-    /* Always save the results from the call from submodel. */
-    server->saveServerResults( _submodel, station, _relaxation );
-
-
-    /*
-     * If this is replica 1, and it's replicated and the replicas are
-     * pruned, then save the results from replica 1's station to all
-     * the pruned copies.  If PAN replication, the replicas are never
-     * even created.
-     */
-    
-    if ( !server->isReplicated() || Pragma::replication() == Pragma::Replication::PAN ) return;
-    for ( size_t i = 2; i < server->replicas(); ++i ) {
-	if ( server->isProcessor() ) {
-	    server = Processor::find( server->name(), i );
-	} else {
-	    server = Task::find( server->name(), i );
-	}
-	if ( !server->isPruned() ) break;
-	server->saveServerResults( _submodel, station, _relaxation );
+#if BUG_393
+    if ( !_marginalQueueProbabilities.empty() ) {
+	std::vector<double>& marginals = getDOM()->getResultMarginalQueueProbabilities();
+	marginals = _marginalQueueProbabilities;
     }
+#endif
+    return *this;
 }
-
+
+/* ----------------------------- Save Results ----------------------------- */
 
 /*
  * Common code.
@@ -618,18 +541,30 @@ Entity::setUtilization( double utilization )
 }
 
 
-const Entity&
-Entity::insertDOMResults() const
-{
-#if BUG_393
-    if ( !_marginalQueueProbabilities.empty() ) {
-	std::vector<double>& marginals = getDOM()->getResultMarginalQueueProbabilities();
-	marginals = _marginalQueueProbabilities;
-    }
-#endif
-    return *this;
-}
 
+/*
+ * Calculate and set think time.  Note that population returns the maximum
+ * number of customers possible at a station.  It is used, rather than copies,
+ * because some multi-servers may have more threads specified than can
+ * possibly be active.
+ */
+
+void
+Entity::setIdleTime( const double relax )
+{
+    if ( population() == std::numeric_limits<unsigned int>::max() ) {
+	_thinkTime = 0.0;
+    } else if ( utilization() >= population() ) {
+	_thinkTime = 0.0;
+    } else if ( throughput() > 0.0 ) {
+	_thinkTime = under_relax( _thinkTime, (population() - utilization()) / throughput(), relax );
+    } else {
+	_thinkTime = std::numeric_limits<double>::infinity();
+    }
+    if ( flags.trace_idle_time ) {
+	std::cout << "Entity(" << name() << ")::setIdleTime()   thinkTime=" << _thinkTime << std::endl;
+    }
+}
 
 /* -------------------------------------------------------------------- */
 /* Funky Formatting functions for inline with <<.			*/

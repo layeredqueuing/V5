@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 16614 2023-03-30 16:50:06Z greg $
+ * $Id: help.cc 16676 2023-04-19 11:56:50Z greg $
  */
 
 #include "lqns.h"
@@ -2283,7 +2283,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 16614 2023-03-30 16:50:06Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 16676 2023-04-19 11:56:50Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2582,7 +2582,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 16614 2023-03-30 16:50:06Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 16676 2023-04-19 11:56:50Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

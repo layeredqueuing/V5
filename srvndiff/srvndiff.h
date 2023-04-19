@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvndiff.h 16259 2023-01-04 01:53:42Z greg $
+ * $Id: srvndiff.h 16671 2023-04-18 15:29:34Z greg $
  */
 
 #if	!defined(SRVNDIFF_H)
@@ -19,6 +19,7 @@
 #include <set>
 #include <map>
 #include <string>
+#include <vector>
 
 #define	FILE1	0
 #define	FILE2	1
@@ -36,6 +37,7 @@ typedef enum { SYST_TIME, USER_TIME, REAL_TIME } time_values;
 
 /* See result_str table in srvndiff.cc */
 typedef enum {
+    P_BOUND,
     P_CV_SQUARE,
     P_DROP,
     P_ENTRY_PROC,
@@ -136,23 +138,6 @@ struct activity_info
 		       utilization(0.), utilization_conf(0.),
 		       processor_utilization(0.), processor_utilization_conf(0.) {}
 
-    activity_info& operator=( double x )
-	{
-	    exceeded = x;
-	    exceed_conf = x;
-	    processor_waiting = x;
-	    processor_waiting_conf = x;
-	    service = x;
-	    serv_conf = x;
-	    variance = x;
-	    var_conf = x;
-	    utilization = x;
-	    utilization_conf = x;
-	    processor_utilization = x;
-	    processor_utilization_conf = x;
-	    return *this;
-	}
-
     double exceeded;
     double exceed_conf;
     double processor_waiting;
@@ -170,22 +155,22 @@ struct activity_info
 
 struct entry_info
 {
-    entry_info() : open_arrivals(false), open_waiting(0.0), open_wait_conf(0.0),
-		   throughput(0.0), throughput_conf(0.0), utilization(0.0), utilization_conf(0.0),
+    entry_info() : open_arrivals(false), bounds(false), open_waiting(0.0), open_wait_conf(0.0),
+		   fwd_to(), phase(MAX_PHASES),
+		   throughput(0.0), throughput_conf(0.0), throughput_bound(0.0), utilization(0.0), utilization_conf(0.0),
 		   processor_utilization(0.0), processor_utilization_conf(0.0)
 	{
-	    for ( unsigned p = 0; p < MAX_PHASES; ++p ) {
-		phase[p] = 0.0;
-	    }
 	}
 
     bool open_arrivals;
+    bool bounds;
     double open_waiting;
     double open_wait_conf;
     std::map<int,call_info> fwd_to;
-    activity_info phase[MAX_PHASES];
+    std::vector<activity_info> phase;
     double throughput;
     double throughput_conf;
+    double throughput_bound;
     double utilization;
     double utilization_conf;
     double processor_utilization;

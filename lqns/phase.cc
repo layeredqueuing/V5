@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16649 2023-04-09 11:21:40Z greg $
+ * $Id: phase.cc 16676 2023-04-19 11:56:50Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -403,20 +403,6 @@ Phase::setSurrogateDelaySize( size_t maxSize )
     return *this;
 }
 #endif
-
-
-
-/*
- * Initialize waiting time from lower level servers.
- */
-
-Phase&
-Phase::initWait()
-{
-    std::for_each( callList().begin(), callList().end(), std::mem_fn( &Call::initWait ) );
-    std::for_each( devices().begin(), devices().end(), &DeviceInfo::initWait );
-    return *this;
-}
 
 
 

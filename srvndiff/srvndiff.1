@@ -1,5 +1,5 @@
 .TH SRVNDIFF 1 "4 January 2023"
-.\" $Id: srvndiff.1 16614 2023-03-30 16:50:06Z greg $
+.\" $Id: srvndiff.1 16671 2023-04-18 15:29:34Z greg $
 .SH NAME
 srvndiff \- compare SRVN results.
 .SH SYNOPSIS
@@ -81,6 +81,9 @@ print the error columns \fBand\fP the results.  Overrides \fB\-R\fP.
 .TP
 \fB(+|\-)e\fR, \fB\-\-[no-]entry-throughput\fP
 Print (don't print) entry throughput.
+.TP
+\fB(+|\-)f\fR, \fB\-\-[no-]throughput-bounds\fP
+Print (don't print) entry throughput bounds.
 .TP
 \fB\-f\fP, \fB\-\-format=\fI\<col>\fB=\fI<arg>\fR
 Set the output format for the specified column, \fIcol\fP, to
@@ -246,6 +249,10 @@ eight characters wide rather than the default sixteen.
 \fB\-\-comment\fP
 Print the model comment field.
 .TP
+\fB\-\-format=\fI\<col>\fB=\fI<arg>\fR
+Set the output format for the specified column, \fIcol\fP, to
+\fIarg\fP.  \fICol\fP can be separator, result, confidence, error, or
+.TP
 \fB\-\-latex\fP
 Format output for LaTeX.
 .TP
@@ -265,7 +272,8 @@ Strip replicas from ``flattend'' model from comparison.  See \fIrep2flat\fP(1).
 Ignore warnings when parsing results.
 .TP
 \fB\-\-verbose\fP
-Verbose output (direct differences to stderr).
+Verbose output.  Direct any differences found that were larger than
+the error threshold to stderr.
 .PP
 .SH EXIT STATUS
 \fBsrvndiff\fP returns 0 if no differences larger than the error
