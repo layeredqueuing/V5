@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 16676 2023-04-19 11:56:50Z greg $
+ * $Id: model.cc 16684 2023-04-20 10:14:09Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -684,10 +684,10 @@ Model::generate( unsigned max_depth )
 
 
 /*
- * Initialize the fan-in/out and the waiting time arrays.  The latter
- * need to know the number of layers.  Called after the model has been
- * GENERATED.  The model MUST BE COMPLETE before it can be
- * initialized.  Tasks must be done before processors.
+ * Initialize the fan-in/out and the waiting time arrays.  The latter need to
+ * know the number of layers.  Called after the model has been GENERATED.  The
+ * model MUST BE COMPLETE before it can be initialized.  Tasks must be done
+ * before processors.
  */
 
 void
@@ -704,9 +704,8 @@ Model::configure()
 
 
 /*
- * Initialize waiting times, interlocking etc.  Servers are done by
- * subclasses because of the structure of the model.  Clients are done
- * here.
+ * Initialize waiting times, interlocking etc.  Servers are done by subclasses
+ * because of the structure of the model.  Clients are done here.
  */
 
 void
@@ -720,18 +719,18 @@ Model::initializeSubmodels()
     }
 
     /*
-     * Initialize waiting times and populations at servers Done in
-     * reverse order (bottom up) because waits propogate upwards.
+     * Initialize waiting times and populations at servers Done in reverse
+     * order (bottom up) because waits propogate upwards.
      */
 
     std::for_each( _submodels.rbegin(), _submodels.rend(), std::mem_fn( &Submodel::initializeSubmodel ) );
 
-    /* Initialize Interlocking */
+    /* Initialize Interlocking -- must be done after all submodels initialized. */
 
     if ( Pragma::interlock() ) {
-	std::for_each( _submodels.begin(), _submodels.end(), std::mem_fn( &Submodel::initInterlock ) );
+	std::for_each( _submodels.begin(), _submodels.end(), std::mem_fn( &Submodel::initializeInterlock ) );
     }
-
+    
     /* build stations and customers as needed. */
 
     std::for_each( _submodels.begin(), _submodels.end(), std::mem_fn( &Submodel::build ) );      	    /* For use by MVA stats/generate*/
@@ -741,16 +740,15 @@ Model::initializeSubmodels()
 
 /*
  * Re-initialize waiting times, interlocking etc.  Servers are done by
- * subclasses because of the structure of the model.  Clients are done
- * here.
+ * subclasses because of the structure of the model.  Clients are done here.
  */
 
 void
 Model::reinitializeSubmodels()
 {
     /*
-     * Reset all counters before a run.  In particular, iterations
-     * needs to reset to zero for the convergence test.
+     * Reset all counters before a run.  In particular, iterations needs to
+     * reset to zero for the convergence test.
      */
 
     _iterations = 0;
@@ -768,8 +766,8 @@ Model::reinitializeSubmodels()
     std::for_each( __task.begin(),  __task.end(), std::mem_fn( &Task::createInterlock ) );
 
     /*
-     * Initialize waiting times and populations at servers Done in
-     * reverse order (bottom up) because waits propogate upwards.
+     * Initialize waiting times and populations at servers Done in reverse
+     * order (bottom up) because waits propogate upwards.
      */
 
     std::for_each( _submodels.rbegin(), _submodels.rend(), std::mem_fn( &Submodel::reinitializeSubmodel ) );
@@ -777,9 +775,9 @@ Model::reinitializeSubmodels()
     /* Reinitialize Interlocking */
 
     if ( Pragma::interlock() ) {
-	std::for_each( _submodels.begin(), _submodels.end(), std::mem_fn( &Submodel::initInterlock ) );
+	std::for_each( _submodels.begin(), _submodels.end(), std::mem_fn( &Submodel::initializeInterlock ) );
     }
-
+    
     /* Rebuild stations and customers as needed. */
 
     std::for_each( _submodels.begin(), _submodels.end(), std::mem_fn( &Submodel::rebuild ) );

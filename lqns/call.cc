@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 16676 2023-04-19 11:56:50Z greg $
+ * $Id: call.cc 16684 2023-04-20 10:14:09Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -373,14 +373,14 @@ Call::srcTask() const
 
 
 double
-Call::elapsedTime() const
+Call::residenceTime() const
 {
     if (flags.trace_quorum) {
-	std::cout <<"\nCall::elapsedTime(): call " << this->srcName() << " to " << dstEntry()->name() << std::endl;
+	std::cout <<"\nCall::residenceTime(): call " << this->srcName() << " to " << dstEntry()->name() << std::endl;
     }
 
     if ( hasRendezvous() ) {
-	return dstEntry()->elapsedTimeForPhase(1);
+	return dstEntry()->residenceTimeForPhase(1);
     } else {
 	return 0.0;
     }
@@ -397,10 +397,10 @@ Call::queueingTime() const
 {
     if ( hasRendezvous() ) {
 	if ( std::isinf( wait() ) ) return wait();
-	const double q = wait() - elapsedTime();
+	const double q = wait() - residenceTime();
 	if ( q <= 0.000001 ) {
 	    return 0.0;
-	} else if ( q * elapsedTime() > 0. && (q/elapsedTime()) <= 0.0001 ) {
+	} else if ( q * residenceTime() > 0. && (q/residenceTime()) <= 0.0001 ) {
 	    return 0.0;
 	} else {
 	    return q;
@@ -486,7 +486,7 @@ double
 Call::CV_sqr() const
 {
 #ifdef NOTDEF
-    return dstEntry()->variance(1) / square(elapsedTime());
+    return dstEntry()->variance(1) / square(residenceTime());
 #endif
     return variance() / square(wait());
 }
@@ -504,7 +504,7 @@ Call::followInterlock( Interlock::CollectTable& path ) const
 
     if ( rendezvous() > 0.0 && !path.prune() ) {
 	Interlock::CollectTable branch( path, path.calls() * rendezvous() );
-	const_cast<Entry *>(dstEntry())->initInterlock( branch );
+	const_cast<Entry *>(dstEntry())->initializeInterlock( branch );
     }
     return *this;
 }
@@ -605,7 +605,7 @@ Call::Perform::initWait( Call& call )
     if ( call.isProcessorCall() ) {
 	time = call.dstEntry()->serviceTimeForPhase(1);
     } else {
-	time = call.elapsedTime();
+	time = call.residenceTime();
     }
     call.setWait( time );			/* Initialize arc wait. 	*/
 }

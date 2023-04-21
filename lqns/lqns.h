@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 16556 2023-03-19 21:51:42Z greg $
+ * $Id: lqns.h 16690 2023-04-21 13:41:09Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -191,16 +191,6 @@ private:
     Type2 _arg;
 };
 
-template <class Type1, class Type2> struct add_using
-{
-    typedef Type1 (Type2::*funcPtr)() const;
-    add_using<Type1,Type2>( funcPtr f ) : _f(f) {}
-    Type1 operator()( Type1 l, const Type2 * r ) const { return l + (r->*_f)(); }
-    Type1 operator()( Type1 l, const Type2& r ) const { return l + (r.*_f)(); }
-private:
-    const funcPtr _f;
-};
-
 template <class Type1, class Type2, class Type3> struct add_two_args
 {
     typedef double (Type1::*funcPtr)( Type2, Type3 ) const;
@@ -211,27 +201,6 @@ private:
     const funcPtr _f;
     Type2 _arg1;
     Type3 _arg2;
-};
-
-template <class Type1> struct max_using
-{
-    typedef unsigned int (Type1::*funcPtr)() const;
-    max_using<Type1>( funcPtr f ) : _f(f) {}
-    unsigned int operator()( unsigned int l, const Type1 * r ) const { return std::max( l, (r->*_f)() ); }
-    unsigned int operator()( unsigned int l, const Type1& r ) const { return std::max( l, (r.*_f)() ); }
-private:
-    const funcPtr _f;
-};
-
-template <class Type1, class Type2> struct max_using_arg
-{
-    typedef unsigned int (Type1::*funcPtr)( Type2 ) const;
-    max_using_arg<Type1,Type2>( funcPtr f, Type2 arg ) : _f(f), _arg(arg) {}
-    unsigned int operator()( unsigned int l, const Type1 * r ) const { return std::max( l, (r->*_f)(_arg) ); }
-    unsigned int operator()( unsigned int l, const Type1& r ) const { return std::max( l, (r.*_f)(_arg) ); }
-private:
-    const funcPtr _f;
-    Type2 _arg;
 };
 
 template <class Type1, class Type2, class Type3 > struct max_two_args

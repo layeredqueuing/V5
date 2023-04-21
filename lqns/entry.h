@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 16676 2023-04-19 11:56:50Z greg $
+ * $Id: entry.h 16690 2023-04-21 13:41:09Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -143,6 +143,26 @@ public:
     };
     
 
+    struct sum {
+	typedef double (Entry::*funcPtr)() const;
+	sum( funcPtr f ) : _f(f) {}
+	double operator()( double l, const Entry* r ) const { return l + (r->*_f)(); }
+	double operator()( double l, const Entry& r ) const { return l + (r.*_f)(); }
+    private:
+	const funcPtr _f;
+    };
+
+    struct max
+    {
+	typedef unsigned int (Entry::*funcPtr)() const;
+	max( funcPtr f ) : _f(f) {}
+	unsigned int operator()( unsigned int l, const Entry* r ) const { return std::max( l, (r->*_f)()); }
+	unsigned int operator()( unsigned int l, const Entry& r ) const { return std::max( l, (r.*_f)()); }
+    private:
+	const funcPtr _f;
+    };
+
+
 protected:
     struct add_wait {
 	add_wait( unsigned int submodel ) : _submodel(submodel) {}
@@ -222,7 +242,7 @@ public:
 #endif
     Entry& resetInterlock();
     Entry& createInterlock();
-    Entry& initInterlock( Interlock::CollectTable& path );
+    void initializeInterlock( Interlock::CollectTable& path );
 
     /* Instance Variable access */
 
@@ -310,8 +330,8 @@ public:
 //    double waitTime( unsigned int submodel ) { return _total.getWaitTimey(submodel); }
     double getProcWait( const unsigned p, int submodel )  { return _phase[p].getProcWait(submodel, 0) ;}	
 
-    double elapsedTime() const { return _total.elapsedTime(); }			/* Found through deltaWait  */
-    double elapsedTimeForPhase( const unsigned int p) const { return _phase[p].elapsedTime(); }	/* For server service times */
+    double residenceTime() const { return _total.residenceTime(); }			/* Found through deltaWait  */
+    double residenceTimeForPhase( const unsigned int p ) const { return _phase[p].residenceTime(); }	/* For server service times */
 
     double varianceForPhase( const unsigned int p ) const { return _phase[p].variance(); }
     double variance() const { return _total.variance(); }

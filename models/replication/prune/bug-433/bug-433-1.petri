@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!-- lqn2ps -Oxml -obug-433-1.petri -merge-replicas -->
+<lqn-model name="bug-433-1" description="lqn2ps 5.28.4 solution for model from: bug-433-1.lqxo." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+  <solver-params comment="1-1 replication." conv_val="1e-05" it_limit="500" underrelax_coeff="0.9" print_int="10">
+    <pragma param="replication" value="expand"/>
+    <result-general solver-info="petrisrvn 5.28.4" valid="true" conv-val="4.03129e-06" iterations="0" platform-info="merlin-pc.sce.carleton.ca Linux 6.1.18-200.fc37.x86_64" user-cpu-time=" 0:00:00.024" system-cpu-time=" 0:00:00.067" elapsed-time=" 0:00:01.171" max-rss="12056"/>
+  </solver-params>
+  <processor name="pa" scheduling="fcfs" replication="4">
+    <result-processor utilization="0.25"/>
+    <task name="ta" scheduling="ref" replication="4">
+      <result-task throughput="0.125" utilization="1" phase1-utilization="1" proc-utilization="0.25"/>
+      <entry name="ea" type="PH1PH2">
+        <result-entry utilization="1" throughput="0.125" proc-utilization="0.25" squared-coeff-variation="0"/>
+        <entry-phase-activities>
+          <activity name="ea_1" phase="1" host-demand-mean="2">
+            <result-activity proc-waiting="0" service-time="8" utilization="1"/>
+            <synch-call dest="ec" calls-mean="2">
+              <result-call waiting="0"/>
+            </synch-call>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="pc" scheduling="fcfs" replication="4">
+    <result-processor utilization="0.75"/>
+    <task name="tc" scheduling="fcfs" replication="4">
+      <result-task throughput="0.25" utilization="0.75" phase1-utilization="0.75" proc-utilization="0.75"/>
+      <entry name="ec" type="PH1PH2">
+        <result-entry utilization="0.75" throughput="0.25" proc-utilization="0.75" squared-coeff-variation="0"/>
+        <entry-phase-activities>
+          <activity name="ec_1" phase="1" host-demand-mean="3">
+            <result-activity proc-waiting="0" service-time="3" utilization="0.75"/>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+</lqn-model>

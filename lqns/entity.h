@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 16676 2023-04-19 11:56:50Z greg $
+ * $Id: entity.h 16687 2023-04-21 01:04:31Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -47,9 +47,8 @@ class Entity {
     friend class Generate;
 
     struct Attributes {
-	Attributes() : initialized(false), closed_server(false), closed_client(false), open_server(false), pruned(false), deterministic(false), variance(false) {}
+	Attributes() : closed_server(false), closed_client(false), open_server(false), pruned(false), deterministic(false), variance(false) {}
 
-	bool initialized;	/* Task was initialized.		*/
 	bool closed_server;	/* Stn is server in closed model.	*/
 	bool closed_client;	/* Stn is client in closed model.	*/
 	bool open_server;	/* Stn is server in open model.		*/
@@ -126,11 +125,11 @@ public:
     virtual Entity& configure( const unsigned );
     virtual bool check() const;
     virtual unsigned findChildren( Call::stack&, const bool ) const;
-    Entity& initInterlock();
+    void initializeInterlock();
     virtual Entity& initJoinDelay() { return *this; }
     virtual Entity& initThreads() { return *this; }
     virtual void initializeServer();
-    virtual Entity& reinitializeServer();
+    void reinitializeServer();
 	
     /* Instance Variable Access */
 	   
@@ -161,7 +160,6 @@ public:
     bool hasSecondPhase() const { return (bool)(_maxPhase > 1); }
     bool hasOpenArrivals() const;
     
-    virtual bool hasClientChain( const unsigned, const unsigned ) const { return false; }
     bool hasServerChain( const unsigned k ) const;
     virtual bool hasActivities() const { return false; }
     bool hasThreads() const { return nThreads() > 1; }
@@ -169,14 +167,12 @@ public:
 
     virtual bool hasVariance() const { return _attributes.variance; }
     bool hasDeterministicPhases() const { return _attributes.deterministic; }
-    bool initialized() const { return _attributes.initialized; }
     bool isClosedModelClient() const { return _attributes.closed_client; }
     bool isClosedModelServer() const { return _attributes.closed_server; }
     bool isOpenModelServer() const   { return _attributes.open_server; }
     Entity& setClosedModelClient( const bool yesOrNo ) { _attributes.closed_client = yesOrNo; return *this; }
     Entity& setClosedModelServer( const bool yesOrNo ) { _attributes.closed_server = yesOrNo; return *this; }
     Entity& setDeterministicPhases( const bool yesOrNo ) { _attributes.deterministic = yesOrNo; return *this; }
-    Entity& setInitialized( const bool yesOrNo ) { _attributes.initialized = yesOrNo; return *this; }
     Entity& setOpenModelServer( const bool yesOrNo )   { _attributes.open_server = yesOrNo; return *this; }
     Entity& setVarianceAttribute( const bool yesOrNo ) { _attributes.variance = yesOrNo; return *this; }
 

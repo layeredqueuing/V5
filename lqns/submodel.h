@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 16676 2023-04-19 11:56:50Z greg $
+ * $Id: submodel.h 16684 2023-04-20 10:14:09Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -109,7 +109,7 @@ public:
     Submodel& addClients();
     void initializeSubmodel();
     void reinitializeSubmodel();
-    virtual Submodel& initInterlock() { return *this; }
+    virtual void initializeInterlock() {}
     virtual Submodel& build() { return *this; }
     virtual Submodel& rebuild() { return *this; }
     virtual Submodel& partition();
@@ -225,7 +225,7 @@ public:
 	
     const char * const submodelType() const { return "Submodel"; }
 
-    virtual MVASubmodel& initInterlock();
+    virtual void initializeInterlock();
     virtual MVASubmodel& build();
     virtual MVASubmodel& rebuild();
 		

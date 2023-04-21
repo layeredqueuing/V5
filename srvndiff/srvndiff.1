@@ -1,5 +1,5 @@
 .TH SRVNDIFF 1 "4 January 2023"
-.\" $Id: srvndiff.1 16671 2023-04-18 15:29:34Z greg $
+.\" $Id: srvndiff.1 16680 2023-04-19 14:00:31Z greg $
 .SH NAME
 srvndiff \- compare SRVN results.
 .SH SYNOPSIS
@@ -84,33 +84,6 @@ Print (don't print) entry throughput.
 .TP
 \fB(+|\-)f\fR, \fB\-\-[no-]throughput-bounds\fP
 Print (don't print) entry throughput bounds.
-.TP
-\fB\-f\fP, \fB\-\-format=\fI\<col>\fB=\fI<arg>\fR
-Set the output format for the specified column, \fIcol\fP, to
-\fIarg\fP.  \fICol\fP can be separator, result, confidence, error, or
-percent-confidence. \fIarg\fP is passed to \fIprintf\fP(3) as a format.
-.RS
-.TP
-\fBseparator=\fIstring\fR
-Set the column separator to \fIstring\fP.
-.TP
-\fBresult=\fIformat\fR
-Set the format string for the result columns to \fIformat\fP.
-\fIFormat\fP must take the form of a valid format specifier to
-\fBprintf(3)\fP with a width and precision argument for a double. The
-default is ``%12.8lg''.
-.TP
-\fBconfidence=\fIfomat\fR
-Set the format string for confidence interval columns.  The default is
-``%10.3lg''.
-.TP
-\fBerror=\fIformat\fR
-Set the format string for the error columns.  The default is ``%6.2lf''.
-.TP
-\fBpercent-confidence[=\fIformat\fB]\fR
-Report confidence intervals as percentages.  If specified, use \fIformat\fP as the
-format string.  Otherwise, use the default ``%8.3lf''.
-.RE
 .TP
 \fB\-F\fP, \fB\-\-select-files=\fI<fileglob>\fR
 Only select those files in the directory that match the shell glob
@@ -249,9 +222,32 @@ eight characters wide rather than the default sixteen.
 \fB\-\-comment\fP
 Print the model comment field.
 .TP
-\fB\-\-format=\fI\<col>\fB=\fI<arg>\fR
+\fB\-f\fP, \fB\-\-format=\fI\<col>\fB=\fI<arg>\fR
 Set the output format for the specified column, \fIcol\fP, to
 \fIarg\fP.  \fICol\fP can be separator, result, confidence, error, or
+percent-confidence. \fIarg\fP is passed to \fIprintf\fP(3) as a format.
+.RS
+.TP
+\fBseparator=\fIstring\fR
+Set the column separator to \fIstring\fP.
+.TP
+\fBresult=\fIformat\fR
+Set the format string for the result columns to \fIformat\fP.
+\fIFormat\fP must take the form of a valid format specifier to
+\fBprintf(3)\fP with a width and precision argument for a double. The
+default is ``%12.8lg''.
+.TP
+\fBconfidence=\fIfomat\fR
+Set the format string for confidence interval columns.  The default is
+``%10.3lg''.
+.TP
+\fBerror=\fIformat\fR
+Set the format string for the error columns.  The default is ``%6.2lf''.
+.TP
+\fBpercent-confidence[=\fIformat\fB]\fR
+Report confidence intervals as percentages.  If specified, use \fIformat\fP as the
+format string.  Otherwise, use the default ``%8.3lf''.
+.RE
 .TP
 \fB\-\-latex\fP
 Format output for LaTeX.

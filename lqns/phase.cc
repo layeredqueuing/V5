@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16676 2023-04-19 11:56:50Z greg $
+ * $Id: phase.cc 16689 2023-04-21 13:29:05Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -768,7 +768,7 @@ Phase::utilization() const
 {
     const double f = throughput();
     if ( std::isfinite( f ) && f > 0.0 ) {
-	const double t = elapsedTime();
+	const double t = residenceTime();
 	return f * t;
     } else {
 	return 0.0;
@@ -1004,7 +1004,7 @@ Phase::getReplicationProcWait( unsigned int submodel, const double relax )
 double
 Phase::getReplicationTaskWait( unsigned int submodel, const double relax ) 
 {
-    return std::accumulate( callList().begin(), callList().end(), 0., add_using<double,Call>( &Call::wait ) );
+    return std::accumulate( callList().begin(), callList().end(), 0., Call::sum( &Call::wait ) );
 }
 #endif
 
@@ -1232,13 +1232,13 @@ Phase::insertDOMResults() const
 {
     if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
 
-    getDOM()->setResultServiceTime(elapsedTime())
+    getDOM()->setResultServiceTime(residenceTime())
 	.setResultVarianceServiceTime(variance())
 	.setResultUtilization(utilization())
 	.setResultProcessorWaiting(queueingTime());
 
     if ( getDOM()->hasHistogram() || getDOM()->hasMaxServiceTimeExceeded() ) {
-	insertDOMHistogram( const_cast<LQIO::DOM::Histogram *>(getDOM()->getHistogram()), elapsedTime(), variance() );
+	insertDOMHistogram( const_cast<LQIO::DOM::Histogram *>(getDOM()->getHistogram()), residenceTime(), variance() );
     }
 
     for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
@@ -1289,8 +1289,8 @@ Phase::computeVariance()
 	{ Pragma::Variance::MOL, 	&Phase::deterministic_phase }
     };
 
-    if ( !std::isfinite( elapsedTime() ) ) {
-	setVariance( elapsedTime() );
+    if ( !std::isfinite( residenceTime() ) ) {
+	setVariance( residenceTime() );
     } else if ( phaseTypeFlag() == LQIO::DOM::Phase::STOCHASTIC ) {
 	const fptr f = stochastic.at(Pragma::variance());
 	setVariance( (this->*f)() );

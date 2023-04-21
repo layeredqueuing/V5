@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: variance.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: variance.cc 16678 2023-04-19 13:12:23Z greg $
  *
  * Variance calculations.  Pick and choose as desired.
  *
@@ -110,7 +110,7 @@ SeriesParallel::totalVariance( const Entity & anEntity )
     SeriesParallel sum;
 	
     for ( std::vector<Entry *>::const_iterator entry = anEntity.entries().begin(); entry != anEntity.entries().end(); ++entry ) {
-	sum.addStage( (*entry)->prVisit(), (*entry)->elapsedTime(), (*entry)->computeCV_sqr() );
+	sum.addStage( (*entry)->prVisit(), (*entry)->residenceTime(), (*entry)->computeCV_sqr() );
     }
     return sum.variance();
 }
@@ -138,11 +138,11 @@ OrVariance::totalVariance( const Entity & anEntity )
 
     const std::vector<Entry *>& entries = anEntity.entries();
     for ( std::vector<Entry *>::const_iterator entry_1 = entries.begin(); entry_1 != entries.end(); ++entry_1 ) {
-	sum.addStage( (*entry_1)->prVisit(), (*entry_1)->elapsedTime(), (*entry_1)->computeCV_sqr() );
+	sum.addStage( (*entry_1)->prVisit(), (*entry_1)->residenceTime(), (*entry_1)->computeCV_sqr() );
 
 	for ( std::vector<Entry *>::const_iterator entry_2 = entries.begin(); entry_2 != entries.end(); ++entry_2 ) {
 	    Probability pr = (*entry_1)->prVisit() * (*entry_2)->prVisit();
-	    sum.mean_sqr += ((*entry_1)->elapsedTime() - (*entry_2)->elapsedTime()) * pr;
+	    sum.mean_sqr += ((*entry_1)->residenceTime() - (*entry_2)->residenceTime()) * pr;
 	}
     }
     return sum.variance();

@@ -1,5 +1,5 @@
 /* overtake.C	-- Greg Franks Mon Mar 17 1997
- * $Id: overtake.cc 16579 2023-03-23 20:09:37Z greg $
+ * $Id: overtake.cc 16678 2023-04-19 13:12:23Z greg $
  * 
  * Overtaking calculation.  See also slice.[Ch].
  * See
@@ -86,7 +86,7 @@ Overtaking::compute( const PrintHelper * print_func )
 		/* -------- Solve Markov Chain for overtaking. -------- */
 		
 		for ( j = 0; j <= (*entD)->maxPhase(); ++j ) {
-		    const double x_j = ( j == 0 ) ? 0.0 : (*entD)->elapsedTimeForPhase(j);	// server is NEVER idle!
+		    const double x_j = ( j == 0 ) ? 0.0 : (*entD)->residenceTimeForPhase(j);	// server is NEVER idle!
 			
 		    for ( unsigned i = 0; i < (*entA)->maxPhase(); ++i ) {
 			ab_info[i].setRates( x_j, Probability(1.0) );

@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 16676 2023-04-19 11:56:50Z greg $
+ * $Id: actlist.cc 16690 2023-04-21 13:41:09Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -754,7 +754,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
             term[i].resize( currEntry->maxPhase() );
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                 if ( submodel == 0 ) {
-		    const double s =  anEntry->_phase[p].elapsedTime();
+		    const double s =  anEntry->_phase[p].residenceTime();
 		    if ( !std::isfinite( s ) ) continue;			/* Ignore bogus branches */
                     term[i][p].init( s, anEntry->_phase[p].variance() );
                     for ( unsigned j = 0; j < i; ++j ) {
@@ -908,9 +908,9 @@ OrForkActivityList::callsPerform( Call::Perform& operation ) const
  */
 
 unsigned
-OrForkActivityList::concurrentThreads( unsigned n ) const
+OrForkActivityList::concurrentThreads( unsigned int n ) const
 {
-    n = std::accumulate( activities().begin(), activities().end(), n, max_using_arg<Activity,const unsigned int>( &Activity::concurrentThreads, n ) );
+    n = std::accumulate( activities().begin(), activities().end(), n, Activity::max( &Activity::concurrentThreads, n ) );
     return hasNextFork() ? getNextFork()->concurrentThreads( n ) : n;
 }
 
@@ -1119,12 +1119,12 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
                 for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                     anEntry->_total.addVariance( anEntry->_phase[p].variance() );
                     if (flags.trace_quorum) {
-                        std::cout <<"\nEntry " << anEntry->name() << ", anEntry->elapsedTime(p="<<p<<")=" << anEntry->_phase[p].elapsedTime() << std::endl;
+                        std::cout <<"\nEntry " << anEntry->name() << ", anEntry->elapsedTime(p="<<p<<")=" << anEntry->_phase[p].residenceTime() << std::endl;
                         std::cout << "anEntry->phase[p="<<p<<"]._wait[submodel=1]=" << anEntry->_phase[p].getWaitTime(1) << std::endl;
                         std::cout << "anEntry->Entry::variance(p="<<p<<"]="<< anEntry->_phase[p].variance() << std::endl;
                     }
 
-                    term[p].init( anEntry->_phase[p].elapsedTime(), anEntry->_phase[p].variance() );
+                    term[p].init( anEntry->_phase[p].residenceTime(), anEntry->_phase[p].variance() );
                     sumTotal += term[p];            /* BUG 583 */
                 }
                 // tomari: first possible update for Quorum.
@@ -1148,11 +1148,11 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
                 for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                     anEntry->_total.addWaitTime( submodel, anEntry->_phase[p].getWaitTime( submodel ) );
                     if (flags.trace_quorum) {
-                        std::cout <<"\nEntry " << anEntry->name() <<", anEntry->elapsedTime(p="<<p<<")=" <<anEntry->_phase[p].elapsedTime() << std::endl;
+                        std::cout <<"\nEntry " << anEntry->name() <<", anEntry->elapsedTime(p="<<p<<")=" <<anEntry->_phase[p].residenceTime() << std::endl;
 //                        std::cout << "anEntry->phase[curr_p="<<curr_p<<"]._wait[submodel="<<2<<"]=" << anEntry->_phase[curr_p]._wait[2] << std::endl;
                     }
 
-                    term[p].init( anEntry->_phase[p].elapsedTime(), anEntry->_phase[p].variance() );
+                    term[p].init( anEntry->_phase[p].residenceTime(), anEntry->_phase[p].variance() );
                     sumTotal += term[p];            /* BUG 583 */
                 }
 
@@ -2108,7 +2108,7 @@ RepeatActivityList::collect( std::deque<const Activity *>& activityStack, std::d
                 Exponential term;
                 Exponential sum;
                 if ( submodel == 0 ) {
-                    term.init( anEntry->_phase[p].elapsedTime(), anEntry->_phase[p].variance() );
+                    term.init( anEntry->_phase[p].residenceTime(), anEntry->_phase[p].variance() );
                 } else {
                     term.mean( anEntry->_phase[p].getWaitTime(submodel) );
                 }
@@ -2181,7 +2181,7 @@ RepeatActivityList::collect_calls( std::deque<const Activity *>& stack, CallInfo
 unsigned
 RepeatActivityList::concurrentThreads( unsigned n ) const
 {
-    return ForkActivityList::concurrentThreads( std::accumulate( activities().begin(), activities().end(), n, max_using_arg<Activity,const unsigned int>( &Activity::concurrentThreads, n ) ) );
+    return ForkActivityList::concurrentThreads( std::accumulate( activities().begin(), activities().end(), n, Activity::max( &Activity::concurrentThreads, n ) ) );
 }
 
 

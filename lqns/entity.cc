@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16676 2023-04-19 11:56:50Z greg $
+ * $Id: entity.cc 16689 2023-04-21 13:29:05Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -179,11 +179,10 @@ Entity::findChildren( Call::stack& callStack, const bool ) const
 
 
 
-Entity&
-Entity::initInterlock()
+void
+Entity::initializeInterlock()
 {
     _interlock.initialize();
-    return *this;
 }
 
 
@@ -197,7 +196,6 @@ Entity::initializeServer()
 {
     computeVariance();
     initThreads();
-    setInitialized(true);
 }
 
 
@@ -205,11 +203,10 @@ Entity::initializeServer()
  * Initialize server's waiting times and populations (called after recalculate dynamic variables)
  */
 
-Entity&
+void
 Entity::reinitializeServer()
 {
     computeVariance();
-    return *this;
 }
 
 
@@ -297,7 +294,7 @@ Entity::addEntry( Entry * anEntry )
 double
 Entity::throughput() const
 {
-    return std::accumulate( entries().begin(), entries().end(), 0., add_using<double,Entry>( &Entry::throughput ) );
+    return std::accumulate( entries().begin(), entries().end(), 0., Entry::sum( &Entry::throughput ) );
 }
 
 
@@ -362,10 +359,14 @@ Entity::markovOvertaking() const
 }
 
 
+/*
+ * Compute the utilization based on the throughput and residence times of entries.
+ */
+
 double
 Entity::computeUtilization( const MVASubmodel& submodel, const Server& )
 {
-    return std::accumulate( entries().begin(), entries().end(), 0., add_using<double,Entry>( &Entry::utilization ) );
+    return std::accumulate( entries().begin(), entries().end(), 0., Entry::sum( &Entry::utilization ) );
 }
 
 

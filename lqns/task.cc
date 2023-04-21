@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16676 2023-04-19 11:56:50Z greg $
+ * $Id: task.cc 16690 2023-04-21 13:41:09Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -181,13 +181,6 @@ Task::hasThinkTime() const
 {
     return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasThinkTime ) )
 	|| std::any_of( activities().begin(), activities().end(), std::mem_fn( &Activity::hasThinkTime ) );
-}
-
-
-bool
-Task::hasClientChain( const unsigned submodel, const unsigned k ) const
-{
-    return _clientChains[submodel].find(k) != _clientChains[submodel].end();
 }
 
 
@@ -483,7 +476,7 @@ Task::initThreads()
 {
     _maxThreads = 1;
     if ( hasThreads() ) {
-	_maxThreads = std::accumulate( entries().begin(), entries().end(), 0, max_using<Entry>( &Entry::concurrentThreads ) );
+	_maxThreads = std::accumulate( entries().begin(), entries().end(), 0, Entry::max( &Entry::concurrentThreads ) );
     }
     if ( _maxThreads > nThreads() ) throw std::logic_error( "Task::initThreads" );
     return *this;
@@ -771,7 +764,9 @@ Task::getServers( const std::set<Entity *>& includeOnly ) const
 double
 Task::processorUtilization() const
 {
-    return std::accumulate( entries().begin(), entries().end(), 0., add_using<double,Entry>( &Entry::processorUtilization ) );
+    return std::accumulate( entries().begin(), entries().end(),
+			    std::accumulate( activities().begin(), activities().end(), 0., Phase::sum( &Activity::processorUtilization ) ),
+			    Entry::sum( &Entry::processorUtilization ) );
 }
 
 
@@ -1093,7 +1088,7 @@ Task::threadIndex( const unsigned submodel, const unsigned k ) const
  * Return the waiting time for all submodels except submodel for phase
  * `p'.  If this is an activity entry, we have to return the chain k
  * component of waiting time.  Note that if submodel == 0, we return
- * the elapsedTime().  For servers in a submodel, submodel == 0; for
+ * the residenceTime().  For servers in a submodel, submodel == 0; for
  * clients in a submodel, submodel == aSubmodel.number().
  */
 
@@ -1110,7 +1105,7 @@ Task::waitExcept( const unsigned ix, const unsigned submodel, const unsigned p )
  * Return the waiting time for all submodels except submodel for phase
  * `p'.  If this is an activity entry, we have to return the chain k
  * component of waiting time.  Note that if submodel == 0, we return
- * the elapsedTime().  For servers in a submodel, submodel == 0; for
+ * the residenceTime().  For servers in a submodel, submodel == 0; for
  * clients in a submodel, submodel == aSubmodel.number().
  */
 
@@ -1216,8 +1211,8 @@ Task::overlapFactor( const unsigned i, const unsigned j ) const
 
 	    double d_ij = min( *_threads[i], *_threads[j] );
 
-	    if ( !Pragma::threads(Pragma::Threads::MAK_LUNDSTROM) && _threads[i]->elapsedTime() != 0 ) {
-		d_ij = d_ij *  (_threads[j]->elapsedTime() / _threads[i]->elapsedTime());			// tomari quorum BUG 257
+	    if ( !Pragma::threads(Pragma::Threads::MAK_LUNDSTROM) && _threads[i]->residenceTime() != 0 ) {
+		d_ij = d_ij *  (_threads[j]->residenceTime() / _threads[i]->residenceTime());			// tomari quorum BUG 257
 	    }
 
 	    /* ---- Final overal factor ---- */
@@ -1225,8 +1220,8 @@ Task::overlapFactor( const unsigned i, const unsigned j ) const
 	    theta = pr * d_ij / x_i;
 
 	    if ( Pragma::threads(Pragma::Threads::HYPER) ) {
-		theta *= (_threads[j]->elapsedTime() / _threads[i]->elapsedTime());
-		const double inflation = _threads[j]->elapsedTime() * throughput();
+		theta *= (_threads[j]->residenceTime() / _threads[i]->residenceTime());
+		const double inflation = _threads[j]->residenceTime() * throughput();
 		if ( inflation ) {
 		    theta /= inflation;
 		}

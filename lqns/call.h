@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 16676 2023-04-19 11:56:50Z greg $
+ * $Id: call.h 16689 2023-04-21 13:29:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -146,6 +146,15 @@ public:
 	const Entry * _e;
     };
     
+    struct sum {
+	typedef double (Call::*funcPtr)() const;
+	sum( funcPtr f ) : _f(f) {}
+	double operator()( double l, const Call* r ) const { return l + (r->*_f)(); }
+	double operator()( double l, const Call& r ) const { return l + (r.*_f)(); }
+    private:
+	const funcPtr _f;
+    };
+
     struct add_replicated_rendezvous {
 	add_replicated_rendezvous( unsigned int submodel ) : _submodel(submodel) {}
 	double operator()( double sum, const Call * call ) { return call->submodel() == _submodel ? sum + call->rendezvous() * call->fanOut() : sum; }
@@ -248,7 +257,7 @@ public:
 #if PAN_REPLICATION
     double rendezvousDelay( const unsigned k );
 #endif
-    double elapsedTime() const;
+    double residenceTime() const;
     double queueingTime() const;
 #if PAN_REPLICATION
     double nrFactor( const Submodel& aSubmodel, const unsigned k ) const;

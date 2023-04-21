@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<!-- $Id: 56-replication.lqnx 16631 2023-04-06 10:09:57Z greg $ -->
+<!-- Test case "table1, set5" from  -->
+<!-- @Article{perf:heidelberger-83, -->
+<!--   author =       "Heidelberger, Philip and Trivedi, Kishor S.", -->
+<!--   title =        "Analytic Queueing Models for Programs with Internal Concurrency",  -->
+<!--   journal =      ieeetc, -->
+<!--   year =         1983, -->
+<!--   volume =       32, -->
+<!--   number =       1, -->
+<!--   pages =        "73-82", -->
+<!--   month =        jan, -->
+<!-- Replicated version. -->
+<lqn-model name="56-replication" description="$Id: 56-replication.lqnx 16631 2023-04-06 10:09:57Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Table 1, Set 5, Prune Replication" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="5">
+      <pragma param="replication" value="pan"/>
+   </solver-params>
+   <processor name="p1" scheduling="fcfs">
+      <task name="t1" scheduling="ref">
+	 <fan-out dest="d1" value="4"/>
+         <entry name="e1" type="NONE"/>
+         <task-activities>
+            <activity name="a1" bound-to-entry="e1" host-demand-mean="0.1">
+               <synch-call dest="d1" calls-mean="2.5"/>
+            </activity>
+            <activity name="b1" host-demand-mean="0.1">
+               <synch-call dest="d1" calls-mean="2.5"/>
+            </activity>
+            <activity name="b2" host-demand-mean="0.1">
+               <synch-call dest="d1" calls-mean="2.5"/>
+            </activity>
+            <activity name="b2a" host-demand-mean="0"/>
+            <activity name="b2b" host-demand-mean="0"/>
+            <activity name="b3" host-demand-mean="0.1">
+               <synch-call dest="d1" calls-mean="2.5"/>
+            </activity>
+            <activity name="b3a" host-demand-mean="0"/>
+            <activity name="b3b" host-demand-mean="0"/>
+            <activity name="c1" host-demand-mean="0"/>
+            <precedence>
+               <pre>
+                  <activity name="a1"/>
+               </pre>
+               <post-AND>
+                  <activity name="b1"/>
+                  <activity name="b2a"/>
+                  <activity name="b3a"/>
+               </post-AND>
+            </precedence>
+            <precedence>
+               <pre-AND>
+                  <activity name="b1"/>
+                  <activity name="b2b"/>
+                  <activity name="b3b"/>
+               </pre-AND>
+               <post>
+                  <activity name="c1"/>
+               </post>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="b2a"/>
+               </pre>
+               <post-LOOP end="b2b">
+                  <activity name="b2" count="0.5"/>
+               </post-LOOP>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="b3a"/>
+               </pre>
+               <post-LOOP end="b3b">
+                  <activity name="b3" count="0.33333"/>
+               </post-LOOP>
+            </precedence>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="d1" scheduling="fcfs" replication="4">
+      <task name="d1" scheduling="fcfs" replication="4">
+         <entry name="d1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="d1_ph1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

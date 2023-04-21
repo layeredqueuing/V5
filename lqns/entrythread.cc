@@ -1,5 +1,5 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 16515 2023-03-14 17:56:28Z greg $
+ * $Id: entrythread.cc 16678 2023-04-19 13:12:23Z greg $
  *
  */
 
@@ -95,7 +95,7 @@ Thread::isDescendentOf( const Thread * aThread ) const
  * Return the waiting time for all submodels except submodel for phase
  * `p'.  If this is an activity entry, we have to return the chain k
  * component of waiting time.  Note that if submodel == 0, we return
- * the elapsedTime().  For servers in a submodel, submodel == 0; for
+ * the residenceTime().  For servers in a submodel, submodel == 0; for
  * clients in a submodel, submodel == aSubmodel.number().
  */
 
@@ -201,7 +201,7 @@ Thread::startTime( const unsigned submodel, const double value )
 Thread& 
 Thread::estimateCDF()
 {
-    DiscretePoints::init( elapsedTime(), Entry::variance() );
+    DiscretePoints::init( residenceTime(), Entry::variance() );
     DiscretePoints::estimateCDF();    
     return *this;
 }

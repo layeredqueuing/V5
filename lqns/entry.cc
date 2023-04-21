@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16676 2023-04-19 11:56:50Z greg $
+ * $Id: entry.cc 16689 2023-04-21 13:29:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -361,7 +361,7 @@ Entry::initServiceTime()
 	entryStack.pop_back();
     }
 
-    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::serviceTime ) ) );
+    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::serviceTime ) ) );
     return *this;
 }
 
@@ -401,21 +401,21 @@ Entry&
 Entry::createInterlock()		/* Called from task -- initialized calls */
 {
     Interlock::CollectTable calls;
-    initInterlock( calls );
+    initializeInterlock( calls );
     return *this;
 }
 
 
 
-Entry&
-Entry::initInterlock( Interlock::CollectTable& path )
+void
+Entry::initializeInterlock( Interlock::CollectTable& path )
 {
     /*
      * Check for cycles in graph.  Return if found.  Cycle catching
      * is done by the other version.  Someday, we might make this more
      * intelligent to compute the final prob. of following the arc.
      */
-    if ( path.has_entry( this ) ) return *this;
+    if ( path.has_entry( this ) ) return;
 
     path.push_back( this );
 
@@ -433,7 +433,6 @@ Entry::initInterlock( Interlock::CollectTable& path )
     followInterlock( path );
 
     path.pop_back();
-    return *this;
 }
 
 
@@ -472,7 +471,7 @@ Entry::addServiceTime( const unsigned p, const double value )
 
     setMaxPhase( p );
     _phase[p].addServiceTime( value );
-    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::serviceTime ) ) );
+    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::serviceTime ) ) );
     return *this;
 }
 
@@ -697,12 +696,11 @@ Entry::sendNoReply( const Entry * entry ) const
  * Return the sum of all calls from the receiver during it's phase `p'.
  */
 
-
 double
 Entry::sumOfSendNoReply( const unsigned p ) const
 {
     const std::set<Call *>& callList = _phase[p].callList();
-    return std::accumulate( callList.begin(), callList.end(), 0., add_using<double,Call>( &Call::sendNoReply ) );
+    return std::accumulate( callList.begin(), callList.end(), 0., Call::sum( &Call::sendNoReply ) );
 }
 
 
@@ -744,7 +742,7 @@ Entry::setStartActivity( Activity * anActivity )
 double
 Entry::processorCalls() const
 {
-    return std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::processorCalls ) );
+    return std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::processorCalls ) );
 }
 
 
@@ -771,12 +769,12 @@ Entry::clearSurrogateDelay()
 double
 Entry::computeCV_sqr() const
 {
-    const double sum_S = std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::elapsedTime ) );
+    const double sum_S = std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::residenceTime ) );
 
     if ( !std::isfinite( sum_S ) ) {
 	return sum_S;
     } else if ( sum_S > 0.0 ) {
-	const double sum_V = std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::variance ) );
+	const double sum_V = std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::variance ) );
 	return sum_V / square(sum_S);
     } else {
 	return 0.0;
@@ -789,7 +787,7 @@ Entry::computeCV_sqr() const
  * Return the waiting time for all submodels except submodel for phase
  * `p'.  If this is an activity entry, we have to return the chain k
  * component of waiting time.  Note that if submodel == 0, we return
- * the elapsedTime().  For servers in a submodel, submodel == 0; for
+ * the residenceTime().  For servers in a submodel, submodel == 0; for
  * clients in a submodel, submodel == aSubmodel.number().
  */
 
@@ -838,13 +836,13 @@ Entry::waitExceptChain( const unsigned submodel, const unsigned k, const unsigne
 
 
 /*
- * Return utilization over all phases.
+ * Return utilization over all phases.  Derived from throughput and residence times.
  */
 
 double
 Entry::utilization() const
 {
-    return std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::utilization ) );
+    return std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::utilization ) );
 }
 
 
@@ -991,7 +989,7 @@ Entry&
 Entry::recalculateDynamicValues()
 {
     std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::recalculateDynamicValues ) );
-    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::serviceTime ) ) );
+    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::serviceTime ) ) );
     return *this;
 }
 
@@ -1027,14 +1025,14 @@ Entry::insertDOMResults(double *phaseUtils) const
     if (isActivityEntry()) {
 	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
 	    const Phase& phase = _phase[p];
-	    const double service_time = phase.elapsedTime();
+	    const double service_time = phase.residenceTime();
 	    _dom->setResultPhasePServiceTime(p,service_time)
 		.setResultPhasePVarianceServiceTime(p,phase.variance())
 		.setResultPhasePProcessorWaiting(p,phase.queueingTime())
 		.setResultPhasePUtilization(p,service_time * throughput);
 	    /*+ BUG 675 */
 	    if ( _dom->hasHistogramForPhase( p ) || _dom->hasMaxServiceTimeExceededForPhase( p ) ) {
-		NullPhase::insertDOMHistogram( const_cast<LQIO::DOM::Histogram*>(_dom->getHistogramForPhase( p )), phase.elapsedTime(), phase.variance() );
+		NullPhase::insertDOMHistogram( const_cast<LQIO::DOM::Histogram*>(_dom->getHistogramForPhase( p )), phase.residenceTime(), phase.variance() );
 	    }
 	    /*- BUG 675 */
 	}
@@ -1235,23 +1233,15 @@ TaskEntry::processorCalls( const unsigned p ) const
 
 
 /*
- * Return utilization (not including "other" service).
- * For activity entries, serviceTime() was computed in configure().
+ * Return utilization (not including "other" service).  For activity
+ * entries, utilization is computed at the task level.
  */
 
 double
 TaskEntry::processorUtilization() const
 {
-    const Processor * aProc = owner()->getProcessor();
-    const double util = std::isfinite( throughput() ) ? throughput() * serviceTime() : 0.0;
-
-    /* Adjust for processor rate */
-
-    if ( aProc ) {
-	return util * owner()->replicas() / ( aProc->rate() * aProc->replicas() );
-    } else {
-	return util;
-    }
+    if ( !isStandardEntry() ) return 0.0;
+    return std::accumulate( _phase.begin(), _phase.end(), 0.0, Phase::sum( &Phase::processorUtilization ) );
 }
 
 
@@ -1275,7 +1265,7 @@ TaskEntry::queueingTime( const unsigned p ) const
 void
 Entry::computeThroughputBound()
 {
-    const double t = elapsedTime() + owner()->thinkTime();
+    const double t = residenceTime() + owner()->thinkTime();
     if ( t > 0 ) {
 	_throughputBound = owner()->copies() / t;
     } else {
@@ -1305,7 +1295,7 @@ TaskEntry::computeVariance()
     } else {
 	std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::computeVariance ) );
     }
-    _total.addVariance( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<double,Phase>( &Phase::variance ) ) );
+    _total.addVariance( std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::variance ) ) );
     if ( flags.trace_variance != 0 && (dynamic_cast<TaskEntry *>(this) != nullptr) ) {
 	std::cout << "Variance(" << name() << ",p) ";
 	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {

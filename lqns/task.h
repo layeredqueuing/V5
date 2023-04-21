@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 16676 2023-04-19 11:56:50Z greg $
+ * $Id: task.h 16689 2023-04-21 13:29:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -38,6 +38,15 @@ class Task : public Entity {
 public:
     enum class root_level_t { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS };
     friend class Interlock;		// BUG_425 deprecate
+
+    struct sum {
+	typedef double (Task::*funcPtr)() const;
+	sum( funcPtr f ) : _f(f) {}
+	double operator()( double l, const Task* r ) const { return l + (r->*_f)(); }
+	double operator()( double l, const Task& r ) const { return l + (r.*_f)(); }
+    private:
+	const funcPtr _f;
+    };
 
 private:
     struct find_max_depth {
@@ -147,8 +156,6 @@ public:
     bool hasSyncs() const { return _has_syncs; }
     bool hasQuorum() const { return _has_quorum; }
     double  processorUtilization() const;
-
-    virtual bool hasClientChain( const unsigned submodel, const unsigned k ) const;
 
     virtual unsigned nClients() const;		// # Calling tasks
     virtual unsigned nThreads() const;

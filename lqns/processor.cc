@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 16676 2023-04-19 11:56:50Z greg $
+ * $Id: processor.cc 16689 2023-04-21 13:29:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -448,6 +448,10 @@ Processor::sanityCheck() const
 }
 
 
+/*
+ * The superclass derives the utilization.  For processors, it's easy to get directly.
+ */
+
 double
 Processor::computeUtilization( const MVASubmodel& submodel, const Server& station )
 {
@@ -458,26 +462,11 @@ Processor::computeUtilization( const MVASubmodel& submodel, const Server& statio
 const Processor&
 Processor::insertDOMResults(void) const
 {
-    if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
+    if ( getDOM()== nullptr || getReplicaNumber() != 1 ) return *this;		/* NOP */
 
     Entity::insertDOMResults();
     
-    double sumOfProcUtil = 0.0;
-    for ( std::set<const Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
-
-	const std::vector<Entry *>& entries = (*task)->entries();
-	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
-	    if ((*entry)->isStandardEntry()) {
-		sumOfProcUtil += (*entry)->processorUtilization();
-	    }
-	}
-	const std::vector<Activity *>& activities = (*task)->activities();
-	sumOfProcUtil += std::accumulate( activities.begin(), activities.end(), 0., add_using<double,Activity>( &Activity::processorUtilization ) );
-    }
-
-    if ( getDOM() ) {
-	getDOM()->setResultUtilization(sumOfProcUtil);
-    }
+    getDOM()->setResultUtilization( std::accumulate( tasks().begin(), tasks().end(), 0.0, Task::sum( &Task::processorUtilization ) ) );
     return *this;
 }
 

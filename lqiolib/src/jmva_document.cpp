@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16431 2023-02-15 20:17:55Z greg $
+ * $Id: jmva_document.cpp 16692 2023-04-21 19:54:26Z greg $
  *
  * Read in XML input files.
  *
@@ -1400,6 +1400,10 @@ namespace QNIO {
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "#set output \"" + LQIO::Filename( getInputFileName(), "svg" )() + "\"" ) );
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "#set terminal svg" ) );
 
+	if ( whatif_statements().empty() ) {
+	    setBoundsOnly( true );
+	}
+	
 	std::ostringstream plot;		// Plot command collected here.
 
 	defineDefaultResultVariables();		// Create result variables for everything for plotting.
@@ -1740,6 +1744,7 @@ namespace QNIO {
 	switch ( type ) {
 	case BCMP::Model::Result::Type::THROUGHPUT:
 	    plot << ", x/" << *BCMP::Model::add( bounds.D_sum(), bounds.Z_sum() ) << " with lines title \"" << title2 << "\"";
+	    break;
 	case BCMP::Model::Result::Type::RESPONSE_TIME:
 	    plot << ", x*" << *bounds.D_max() <<  "-" << *bounds.Z_sum() << " with lines title \"" << title2 << "\"";
 	    break;

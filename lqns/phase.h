@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 16676 2023-04-19 11:56:50Z greg $
+ * $Id: phase.h 16689 2023-04-21 13:29:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -82,7 +82,7 @@ public:
     double computeCV_sqr() const;
 
     virtual double waitExcept( const unsigned ) const;
-    double elapsedTime() const { return waitExcept( 0 ); }
+    double residenceTime() const { return waitExcept( 0 ); }
     NullPhase& setWaitTime( unsigned int submodel, double value ) { _wait[submodel] = value; return *this; }
     NullPhase& addWaitTime( unsigned int submodel, double value ) { _wait[submodel] += value; return *this; }
     double getWaitTime( unsigned int submodel ) const { return _wait[submodel];}
@@ -117,6 +117,15 @@ public:
 	void operator()( const Phase* phase ) const;
     private:
 	std::set<Entity *>& _servers;
+    };
+
+    struct sum {
+	typedef double (Phase::*funcPtr)() const;
+	sum( funcPtr f ) : _f(f) {}
+	double operator()( double l, const Phase* r ) const { return l + (r->*_f)(); }
+	double operator()( double l, const Phase& r ) const { return l + (r.*_f)(); }
+    private:
+	const funcPtr _f;
     };
 
 private:
@@ -308,7 +317,7 @@ private:
     double stochastic_phase() const;
     double deterministic_phase() const;
     double random_phase() const;
-    double square_phase() const { return square( elapsedTime() ); }
+    double square_phase() const { return square( residenceTime() ); }
 	
 private:
     unsigned int _phase_number;		/* phase of entry (if phase)		*/

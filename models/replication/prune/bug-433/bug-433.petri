@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<!-- lqn2ps -Oxml -obug-433.petri -merge-replicas -->
+<lqn-model name="bug-433" description="lqn2ps 5.28.4 solution for model from: bug-433.lqxo." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+  <solver-params comment="Replicated model from Pan thesis." conv_val="1e-05" it_limit="500" underrelax_coeff="0.9" print_int="10">
+    <pragma param="replication" value="expand"/>
+    <result-general solver-info="petrisrvn 5.28.4" valid="true" conv-val="4.47035e-08" iterations="0" platform-info="merlin-pc.sce.carleton.ca Linux 6.1.18-200.fc37.x86_64" user-cpu-time=" 0:00:00.020" system-cpu-time=" 0:00:00.076" elapsed-time=" 0:00:01.231" max-rss="11908"/>
+  </solver-params>
+  <processor name="PA" scheduling="fcfs" replication="2">
+    <result-processor utilization="0.0787401"/>
+    <task name="TA" scheduling="ref" replication="2">
+      <result-task throughput="0.03937" utilization="1" phase1-utilization="1" proc-utilization="0.0787401"/>
+      <fan-out dest="TC" value="3"/>
+      <entry name="A1" type="PH1PH2">
+        <result-entry utilization="1" throughput="0.03937" proc-utilization="0.0787401" squared-coeff-variation="0"/>
+        <entry-phase-activities>
+          <activity name="A1_1" phase="1" host-demand-mean="2">
+            <result-activity proc-waiting="0" service-time="25.4001" utilization="1"/>
+            <synch-call dest="C1" calls-mean="2">
+              <result-call waiting="0.900002" waiting-variance="0" loss-probability="0"/>
+            </synch-call>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="PC" scheduling="fcfs" replication="3">
+    <result-processor utilization="0.472441"/>
+    <task name="TC" scheduling="fcfs" replication="3">
+      <result-task throughput="0.15748" utilization="0.472441" phase1-utilization="0.472441" proc-utilization="0.472441"/>
+      <fan-in source="TA" value="2"/>
+      <entry name="C1" type="PH1PH2">
+        <result-entry utilization="0.472441" throughput="0.15748" proc-utilization="0.472441" squared-coeff-variation="0"/>
+        <entry-phase-activities>
+          <activity name="C1_1" phase="1" host-demand-mean="3">
+            <result-activity proc-waiting="0" service-time="3.00001" utilization="0.472441"/>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+</lqn-model>

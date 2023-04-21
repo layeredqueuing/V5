@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 16676 2023-04-19 11:56:50Z greg $
+ * $Id: activity.h 16690 2023-04-21 13:41:09Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -187,6 +187,17 @@ public:
 	std::deque<const AndOrForkActivityList *> _forkStack; 	// For matching forks/joins.
 	double _rate;
 	bool _replyAllowed;
+    };
+
+    struct max
+    {
+	typedef unsigned int (Activity::*funcPtr)( unsigned int ) const;
+	max( funcPtr f, unsigned int arg ) : _f(f), _arg(arg) {}
+	unsigned int operator()( unsigned int l, const Activity* r ) const { return std::max( l, (r->*_f)(_arg) ); }
+	unsigned int operator()( unsigned int l, const Activity& r ) const { return std::max( l, (r.*_f)(_arg) ); }
+    private:
+	const funcPtr _f;
+	const unsigned int _arg;
     };
     
 public:

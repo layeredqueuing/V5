@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 16676 2023-04-19 11:56:50Z greg $
+ * $Id: submodel.cc 16686 2023-04-20 10:25:37Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -10,7 +10,7 @@
  * The submodel number (myNumber) MUST be set by layerize.
  *
  * Prior to MVA submodel solution, stations are initilized by calling
- * Entry::elapsedTime() and Call::setVisits().  After MVA solution
+ * Entry::residenceTime() and Call::setVisits().  After MVA solution
  * the input model is updated with Call:saveWait() and Entry::updateWait().
  * Entry::updateWait() returns the difference in waiting times between
  * iterations of this submodel which is used for the stopping criteria.
@@ -246,21 +246,7 @@ MVASubmodel::~MVASubmodel()
 	delete [] _overlapFactor;
     }
 }
-
-/*----------------------------------------------------------------------*/
-/*                       Initialize the model.                          */
-/*----------------------------------------------------------------------*/
 
-/*
- * Go through all servers and set up path tables.
- */
-
-MVASubmodel&
-MVASubmodel::initInterlock()
-{
-    std::for_each( _servers.begin(), _servers.end(), std::mem_fn( &Entity::initInterlock ) );
-    return *this;
-}
 
 
 #if PAN_REPLICATION
@@ -274,7 +260,10 @@ MVASubmodel::usePanReplication() const
     return Pragma::pan_replication() && hasReplicas();
 }
 #endif
-
+
+/*----------------------------------------------------------------------*/
+/*                          Build the model.                            */
+/*----------------------------------------------------------------------*/
 
 /*
  * Build a submodel.
@@ -694,32 +683,20 @@ MVASubmodel::remakeChains()
     }
     return k;
 }
+
+/* ---------------------------- Initialization ---------------------------- */
 
-
-#if PAN_REPLICATION
-//REPL changes
 /*
- * Query the closed model to determine the factor needed for
- * Newton Raphson stuff.
- * (5.18) [Pan, pg 73].
+ * Go through all servers and set up path tables.
  */
 
-double
-MVASubmodel::nrFactor( const Server * aStation, const unsigned e, const unsigned k ) const
+void
+MVASubmodel::initializeInterlock()
 {
-    const double s = aStation->S( e, k, 1 );
-    if ( std::isfinite( s ) && _closedModel ) {  //tomari
-	//Solution for replicated models with open arrivals.
-	// See bug # 87.
-
-	return _closedModel->nrFactor( *aStation, e, k ) * s;
-
-    } else {
-	return s;
-    }
+    std::for_each( _servers.begin(), _servers.end(), std::mem_fn( &Entity::initializeInterlock ) );
 }
-#endif
-
+
+
 /*
  * Called from submodel to initialize client.  
  */
@@ -763,8 +740,8 @@ MVASubmodel::InitializeClientStation::operator()( Task* client )
 
 
 /*
- * Initialize the service and visit parameters for a server.  Also set myChains to
- * all chains that visit this server.
+ * Initialize the service and visit parameters for a server.  Also set
+ * myChains to all chains that visit this server.
  */
 
 void
@@ -772,17 +749,6 @@ MVASubmodel::InitializeServerStation::operator()( Entity * server )
 {
     Server * station = server->serverStation();
     if ( !station ) return;
-
-    /* If this entity has been pruned, remap to the base replica */
-#if 0 // BUG_299_PRUNE
-    if ( server->isReplica() ) {
-	if ( server->isProcessor() ) {
-	    server = Processor::find( server->name() );
-	} else {
-	    server = Task::find( server->name() );
-	}
-    }
-#endif
 
     if ( !Pragma::init_variance_only() ) {
 	server->computeVariance();
@@ -847,7 +813,7 @@ MVASubmodel::InitializeServerStation::setServiceTimeAndVariance( Server * statio
     if ( station->V( e, k ) == 0 ) return;
 
     for ( unsigned p = 1; p <= entry->maxPhase(); ++p ) {
-	station->setService( e, k, p, entry->elapsedTimeForPhase(p) );
+	station->setService( e, k, p, entry->residenceTimeForPhase(p) );
 	if ( entry->owner()->hasVariance() ) {
 	    station->setVariance( e, k, p, entry->varianceForPhase(p) );
 	}
@@ -869,12 +835,12 @@ MVASubmodel::InitializeServerStation::ComputeOvertaking::operator()( Task * clie
 
 #if PAN_REPLICATION
 /*
- * If I am replicated and I have multiple chains, I have to add on the
- * waiting time made to all other tasks in my partition but NOT in my
- * chain too.  This step must be performed after BOTH the clients and
- * servers have been created so that all of the chain information is
- * available at all stations.  Chain information is initialized in
- * makeChains.  Submodel information is initialized in initializeServer.
+ * If I am replicated and I have multiple chains, I have to add on the waiting
+ * time made to all other tasks in my partition but NOT in my chain too.  This
+ * step must be performed after BOTH the clients and servers have been created
+ * so that all of the chain information is available at all stations.  Chain
+ * information is initialized in makeChains.  Submodel information is
+ * initialized in initializeServer.
  */
 
 //++ REPL changes
@@ -898,70 +864,6 @@ MVASubmodel::ModifyClientServiceTime::operator()( Task * client )
     }
 }
 #endif
-
-
-
-/*
- * Save client results.  Clients can occur in moret than one submodel.  If a
- * client has been pruned, set its results from the primary replica of both
- * the client and and server.
- */
-
-void
-MVASubmodel::SaveClientResults::operator()( Task * client ) const
-{
-    const unsigned int n = _submodel.number();
-    const Server& station = *client->clientStation(n);
-    const unsigned int chain = client->clientChains(n)[1];
-
-    /* Always save the results from the call from submodel. */
-
-    client->saveClientResults( _submodel, station, chain );
-
-    /*+ BUG_433
-     * If this is replica 1, and it's replicated and the replicas are pruned,
-     * then save the results from replica 1's station to all the pruned
-     * copies.  If PAN replication, the replicas are never even created.
-     */
-
-    if ( !client->isReplicated() || Pragma::replication() != Pragma::Replication::PRUNE ) return;
-    for ( size_t i = 2; i <= client->replicas(); ++i ) {
-	client = client->mapToReplica( i );
-	if ( _submodel.hasClient( client ) ) break;
-	client->saveClientResults( _submodel, station, chain );
-    }
-    /*- BUG_433 */
-}
-
-
-
-/*
- * Save server results.  Servers only occur in one submodel.  If servers have
- * been pruned, set their results from the primary copy.
- */
-
-void
-MVASubmodel::SaveServerResults::operator()( Entity * server ) const
-{
-    const Server& station = *server->serverStation();
-    
-    /* Always save the results from the call from submodel. */
-    server->saveServerResults( _submodel, station, _relaxation );
-
-    /*+ BUG_433
-     * If this is replica 1, and it's replicated and the replicas are pruned,
-     * then save the results from replica 1's station to all the pruned
-     * copies.  If PAN replication, the replicas are never even created.
-     */
-    
-    if ( !server->isReplicated() || Pragma::replication() != Pragma::Replication::PRUNE ) return;
-    for ( size_t i = 2; i <= server->replicas(); ++i ) {
-	server = server->mapToReplica( i );
-	if ( _submodel.hasServer( server ) ) break;
-	server->saveServerResults( _submodel, station, _relaxation );
-    }
-    /*- BUG_433 */
-}
 
 /*----------------------------------------------------------------------*/
 /*                          Solve the model.                            */
@@ -1146,6 +1048,71 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
     return *this;
 }
+
+/* ----------------------------- Save Results ----------------------------- */
+
+
+/*
+ * Save client results.  Clients can occur in moret than one submodel.  If a
+ * client has been pruned, set its results from the primary replica of both
+ * the client and and server.
+ */
+
+void
+MVASubmodel::SaveClientResults::operator()( Task * client ) const
+{
+    const unsigned int n = _submodel.number();
+    const Server& station = *client->clientStation(n);
+    const unsigned int chain = client->clientChains(n)[1];
+
+    /* Always save the results from the call from submodel. */
+
+    client->saveClientResults( _submodel, station, chain );
+
+    /*+ BUG_433
+     * If this is replica 1, and it's replicated and the replicas are pruned,
+     * then save the results from replica 1's station to all the pruned
+     * copies.  If PAN replication, the replicas are never even created.
+     */
+
+    if ( !client->isReplicated() || Pragma::replication() != Pragma::Replication::PRUNE ) return;
+    for ( size_t i = 2; i <= client->replicas(); ++i ) {
+	client = client->mapToReplica( i );
+	if ( _submodel.hasClient( client ) ) break;
+	client->saveClientResults( _submodel, station, chain );
+    }
+    /*- BUG_433 */
+}
+
+
+
+/*
+ * Save server results.  Servers only occur in one submodel.  If servers have
+ * been pruned, set their results from the primary copy.
+ */
+
+void
+MVASubmodel::SaveServerResults::operator()( Entity * server ) const
+{
+    const Server& station = *server->serverStation();
+    
+    /* Always save the results from the call from submodel. */
+    server->saveServerResults( _submodel, station, _relaxation );
+
+    /*+ BUG_433
+     * If this is replica 1, and it's replicated and the replicas are pruned,
+     * then save the results from replica 1's station to all the pruned
+     * copies.  If PAN replication, the replicas are never even created.
+     */
+    
+    if ( !server->isReplicated() || Pragma::replication() != Pragma::Replication::PRUNE ) return;
+    for ( size_t i = 2; i <= server->replicas(); ++i ) {
+	server = server->mapToReplica( i );
+	if ( _submodel.hasServer( server ) ) break;
+	server->saveServerResults( _submodel, station, _relaxation );
+    }
+    /*- BUG_433 */
+}
 
 double
 MVASubmodel::openModelThroughput( const Server& station, unsigned int e ) const
@@ -1190,6 +1157,30 @@ double
 MVASubmodel::closedModelMarginalQueueProbability( const Server& station, unsigned int i ) const
 {
     return _closedModel != nullptr ? static_cast<double>(_closedModel->marginalQueueProbability( station, i ) ) : 0.0;
+}
+#endif
+
+
+#if PAN_REPLICATION
+//REPL changes
+/*
+ * Query the closed model to determine the factor needed for Newton Raphson
+ * stuff (5.18) [Pan, pg 73].  Called from Phase::updateWaitReplication.
+ */
+
+double
+MVASubmodel::nrFactor( const Server * aStation, const unsigned e, const unsigned k ) const
+{
+    const double s = aStation->S( e, k, 1 );
+    if ( std::isfinite( s ) && _closedModel ) {  //tomari
+	//Solution for replicated models with open arrivals.
+	// See bug # 87.
+
+	return _closedModel->nrFactor( *aStation, e, k ) * s;
+
+    } else {
+	return s;
+    }
 }
 #endif
 
