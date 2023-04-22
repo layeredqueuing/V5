@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 16395 2023-02-05 15:34:32Z greg $
+ * $Id: qnsolver.cc 16693 2023-04-22 12:21:20Z greg $
  */
 
 #include "config.h"
@@ -16,6 +16,7 @@
 #endif
 #include <lqio/dom_document.h>
 #include <lqio/filename.h>
+#include <lqio/gnuplot.h>
 #include <lqio/qnap2_document.h>
 #include "pragma.h"
 #include "model.h"
@@ -38,9 +39,10 @@ const struct option longopts[] =
     { LQIO::DOM::Pragma::_linearizer_,		no_argument,		0, 'l' },
     { LQIO::DOM::Pragma::_fast_,		no_argument,		0, 'f' },
     { "multiserver",				required_argument,	0, 'm' },
-    { LQIO::DOM::Pragma::_force_multiserver_,	no_argument,		0, 'F' },
+    { LQIO::DOM::Pragma::_force_multiserver_,	no_argument,		0, 'M' },
     { "no-execute",				no_argument,		0, 'n' },
     { "output",					required_argument,	0, 'o' },
+    { "file-format",				required_argument,	0, 'O' },
     { "plot-queue-length",			optional_argument,	0, 'q' },
     { "plot-response-time",			no_argument,		0, 'r' },
     { "plot-throughput",			optional_argument,	0, 't' },
@@ -67,7 +69,7 @@ static std::string opts = "bdefhlo:rstvxDGJLQSX";
 
 const static std::map<const std::string,const std::string> opthelp  = {
     { "bounds",                                 "Use the bounds solver." },
-    { "colours",				"Use the colours for plotting.  ARG is a list of colours." },
+    { "colours",				"Use the colours for plotting.  ARG is a list of colours. (not implemented)" },
     { "debug-lqx",                              "Debug the LQX program." },
     { "debug-mva",                              "Enable debug code in the MVA solver." },
     { "debug-qnap2",                            "Debug the QNAP2 input parser." },
@@ -75,6 +77,7 @@ const static std::map<const std::string,const std::string> opthelp  = {
     { "export-jmva",				"Export a JMVA model after solution (results embedded)." },
     { "export-jaba",				"Export a JABA model.  Results and reference stations are stripped out." },
     { "export-qnap",                            "Export a QNAP2 model.  Do not solve." },
+    { "file-format",				"When plotting, add instructions to output as ARG to the output file." },
     { "help",                                   "Show this." },
     { "multiserver",                            "Use ARG for multiservers.  ARG={conway,reiser,rolia,zhou}." },
     { "no-execute",				"Load the model and run LQX, but do not solve the model." },
@@ -93,6 +96,18 @@ const static std::map<const std::string,const std::string> opthelp  = {
     { LQIO::DOM::Pragma::_schweitzer_,          "Use Bard-Schweitzer approximate MVA." },
 };
 
+const static std::map<const std::string,const LQIO::GnuPlot::Format> gnuplot_output_format = {
+    { "emf",	LQIO::GnuPlot::Format::EMF },
+    { "eps",	LQIO::GnuPlot::Format::EPS },
+    { "fig",	LQIO::GnuPlot::Format::FIG },
+    { "gif",	LQIO::GnuPlot::Format::GIF },
+    { "pdf",	LQIO::GnuPlot::Format::PDF },
+    { "png",	LQIO::GnuPlot::Format::PNG },
+    { "svg",	LQIO::GnuPlot::Format::SVG },
+    { "latex",	LQIO::GnuPlot::Format::LATEX }
+};
+
+
 /* Flags */
 
 static bool print_qnap2 = false;		/* Export to qnap2.  		*/
@@ -110,13 +125,14 @@ QNIO::JMVA_Document* __input = nullptr;
 
 /* Local procedures */
 
-static void exec( const std::string& input_file_name, const std::string& output_file_name, const std::string& );
-static void exec( QNIO::Document& input, const std::string& output_file_name, const std::string& plot_arg );
+static void exec( const std::string& input_file_name, const std::string& output_file_name, const std::string&, LQIO::GnuPlot::Format );
+static void exec( QNIO::Document& input, const std::string& output_file_name, const std::string&, LQIO::GnuPlot::Format );
 
 int main (int argc, char *argv[])
 {
     std::string output_file_name;
     std::string plot_arg;
+    LQIO::GnuPlot::Format gnuplot_format = LQIO::GnuPlot::Format::TERMINAL;
 
     program_name = basename( argv[0] );
 
@@ -173,10 +189,6 @@ int main (int argc, char *argv[])
 	    pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_fast_);
 	    break;
 
-	case 'F':
-	    pragmas.insert(LQIO::DOM::Pragma::_force_multiserver_,LQIO::DOM::Pragma::_true_);
-	    break;
-
 	case 'h':
 	    usage();
 	    return 0;
@@ -193,6 +205,10 @@ int main (int argc, char *argv[])
 	    pragmas.insert(LQIO::DOM::Pragma::_multiserver_,optarg);
 	    break;
 
+	case 'M':
+	    pragmas.insert(LQIO::DOM::Pragma::_force_multiserver_,LQIO::DOM::Pragma::_true_);
+	    break;
+
 	case 'n':
 	    Model::no_execute = true;
 	    break;
@@ -201,6 +217,17 @@ int main (int argc, char *argv[])
             output_file_name = optarg;
 	    break;
 
+	case 'O':
+	    if ( optarg != nullptr ) {
+		std::map<const std::string,const LQIO::GnuPlot::Format>::const_iterator format = gnuplot_output_format.find( optarg );
+		if ( format == gnuplot_output_format.end() ) {
+		    std::cerr << program_name << ": Unsupported gnuplot format: " << optarg << "." << std::endl;
+		} else {
+		    gnuplot_format = format->second;
+		}
+	    }
+	    break;
+	    
 	case 'q':
 	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
 	    plot_type = BCMP::Model::Result::Type::QUEUE_LENGTH;
@@ -269,10 +296,10 @@ int main (int argc, char *argv[])
 
 #if HAVE_EXPAT_H
     if ( optind == argc ) {
-	exec( "-", output_file_name, plot_arg );
+	exec( "-", output_file_name, plot_arg, gnuplot_format );
     } else {
         for ( ; optind < argc; ++optind ) {
-	    exec( argv[optind], output_file_name, plot_arg );
+	    exec( argv[optind], output_file_name, plot_arg, gnuplot_format );
 	}
     }
 #else
@@ -286,23 +313,23 @@ int main (int argc, char *argv[])
  * Run the solver.
  */
 
-static void exec( const std::string& input_file_name, const std::string& output_file_name, const std::string& plot_arg )
+static void exec( const std::string& input_file_name, const std::string& output_file_name, const std::string& plot_arg, LQIO::GnuPlot::Format plot_format )
 {
     if ( Model::verbose_flag ) std::cerr << input_file_name << ": load... ";
     if ( LQIO::DOM::Document::getInputFormatFromFilename( input_file_name, LQIO::DOM::Document::InputFormat::JMVA ) == LQIO::DOM::Document::InputFormat::QNAP2 ) {
 	QNIO::QNAP2_Document input( input_file_name );
-	exec( input, output_file_name, plot_arg );
+	exec( input, output_file_name, plot_arg, plot_format );
 #if HAVE_LIBEXPAT
     } else {
 	QNIO::JMVA_Document input( input_file_name );
-	exec( input, output_file_name, plot_arg );
+	exec( input, output_file_name, plot_arg, plot_format );
 #endif
     }
     if ( Model::verbose_flag ) std::cerr << "done" << std::endl;
 }
 
 
-static void exec( QNIO::Document& input, const std::string& output_file_name, const std::string& plot_arg )
+static void exec( QNIO::Document& input, const std::string& output_file_name, const std::string& plot_arg, LQIO::GnuPlot::Format plot_format )
 {
     if ( !input.load() ) return;
     input.mergePragmas( pragmas.getList() );
@@ -339,7 +366,7 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
 	}
     } else {
 	try {
-	    if ( print_gnuplot ) input.plot( plot_type, plot_arg );
+	    if ( print_gnuplot ) input.plot( plot_type, plot_arg, plot_format );
 	}
 	catch ( const std::invalid_argument& e ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
@@ -388,7 +415,8 @@ usage()
 	if ( o->name ) {
 	    s = "--";
 	    s += o->name;
-	    switch ( o->val ) {
+	    if ( o->has_arg != no_argument ) {
+		s += "=ARG";
 	    }
 	} else {
 	    s = " ";
@@ -399,7 +427,7 @@ usage()
 	    std::cerr << "     ";
 	}
 	std::cerr.setf( std::ios::left, std::ios::adjustfield );
-	std::cerr << std::setw(24) << s << opthelp.at(o->name) << std::endl;
+	std::cerr << std::setw(28) << s << opthelp.at(o->name) << std::endl;
     }
 #else
     const char * s;

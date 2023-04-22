@@ -23,11 +23,14 @@ namespace LQX {
 
 namespace LQIO {
     namespace GnuPlot {
+	enum class Format { TERMINAL, EMF, EPS, FIG, GIF, LATEX, PDF, PNG, SVG };
+	    
 	void insert_header( std::vector<LQX::SyntaxTreeNode *>* program, const std::string& comment, const std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>>& variables );
 	LQX::SyntaxTreeNode * print_node( const std::string& );
 	LQX::SyntaxTreeNode * print_node( LQX::SyntaxTreeNode *, ... );
 
 	extern const std::set<std::string> colour_names;
+	extern const std::map<const LQIO::GnuPlot::Format,const std::string> output_suffix;
     };
 }
 #endif /* __LQIO_GNUPLOT_H__ */

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 16369 2023-01-26 19:21:33Z greg $
+ *  $Id: bcmp_document.h 16693 2023-04-22 12:21:20Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -53,6 +53,9 @@ namespace BCMP {
 	    virtual double response_time() const = 0;		// waiting time per visit.
 	    virtual double throughput() const = 0;
 	    virtual double utilization() const = 0;
+
+	public:
+	    static const map_t suffix;
 	};
 
 	/* ------------------------------------------------------------ */

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 16431 2023-02-15 20:17:55Z greg $
+ * $Id: bcmp_document.cpp 16693 2023-04-22 12:21:20Z greg $
  *
  * Read in XML input files.
  *
@@ -26,6 +26,15 @@
 #include <lqx/SymbolTable.h>
 
 namespace BCMP {
+
+    const Model::Result::map_t Model::Result::suffix = {
+        { Model::Result::Type::QUEUE_LENGTH,     "qlen" },
+        { Model::Result::Type::RESIDENCE_TIME,   "rest" },
+        { Model::Result::Type::RESPONSE_TIME,    "rspt" },
+        { Model::Result::Type::MEAN_SERVICE,     "svct" },
+        { Model::Result::Type::THROUGHPUT,       "tput" },
+        { Model::Result::Type::UTILIZATION,      "util" }
+    };
 
     /* ---------------------------------------------------------------- */
     /*			           Model				*/

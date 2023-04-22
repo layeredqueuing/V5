@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16409 2023-02-10 00:37:40Z greg $
+ *  $Id: jmva_document.h 16693 2023-04-22 12:21:20Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -15,7 +15,6 @@
 #if HAVE_STRINGS_H
 #include <strings.h>
 #endif
-#include "bcmp_document.h"
 #include "qnio_document.h"
 
 // undef UTILIZATION_BOUNDS
@@ -144,7 +143,7 @@ namespace QNIO {
 
 	std::ostream& print( std::ostream& ) const;
 	std::ostream& exportModel( std::ostream& ) const;
-	void plot( BCMP::Model::Result::Type, const std::string& );
+	void plot( BCMP::Model::Result::Type, const std::string&, LQIO::GnuPlot::Format format=LQIO::GnuPlot::Format::TERMINAL );
 	bool plotPopulationMix() const { return !_N1.empty() && !_N2.empty(); }
 
     private:

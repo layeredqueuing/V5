@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16692 2023-04-21 19:54:26Z greg $
+ * $Id: jmva_document.cpp 16693 2023-04-22 12:21:20Z greg $
  *
  * Read in XML input files.
  *
@@ -1394,11 +1394,20 @@ namespace QNIO {
      */
 
     void
-    JMVA_Document::plot( BCMP::Model::Result::Type type, const std::string& arg )
+    JMVA_Document::plot( BCMP::Model::Result::Type type, const std::string& arg, LQIO::GnuPlot::Format format )
     {
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set title \"" + model().comment() + "\"" ) );
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "#set output \"" + LQIO::Filename( getInputFileName(), "svg" )() + "\"" ) );
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "#set terminal svg" ) );
+	std::string prefix;
+	std::string suffix;
+	if ( format == LQIO::GnuPlot::Format::TERMINAL ) {
+	    prefix = "#";
+	    suffix = "svg";
+	} else {
+	    suffix = LQIO::GnuPlot::output_suffix.at(format);
+	}
+	std::string filename = LQIO::Filename( getInputFileName() )() + "-" + BCMP::Model::Result::suffix.at(type) + "." + suffix;
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( prefix + "set output \"" + filename + "\"" ) );
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( prefix + "set terminal " + suffix ) );
 
 	if ( whatif_statements().empty() ) {
 	    setBoundsOnly( true );
