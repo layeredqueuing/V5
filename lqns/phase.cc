@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16689 2023-04-21 13:29:05Z greg $
+ * $Id: phase.cc 16698 2023-04-24 00:52:30Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -1255,11 +1255,10 @@ Phase::insertDOMResults() const
  * through the hoops if the value changes.
  */
 
-Phase&
+void
 Phase::recalculateDynamicValues()
 {	
     std::for_each( devices().begin(), devices().end(), std::mem_fn( &Phase::DeviceInfo::recalculateDynamicValues ) );
-    return *this;
 }
 
 /*----------------------------------------------------------------------*/
@@ -1601,13 +1600,13 @@ Phase::DeviceInfo::~DeviceInfo()
 }
 
 
-Phase::DeviceInfo&
+void
 Phase::DeviceInfo::recalculateDynamicValues()
 {
     const double old_time = entry()->serviceTimeForPhase(1);
     if ( isProcessor() ) {
 	const double new_time = n_calls() > 0. ? service_time() / n_calls() : 0.0;
-	if ( old_time == new_time && !flags.full_reinitialize ) return *this;
+	if ( old_time == new_time && !flags.full_reinitialize ) return;
 
 	_entry->setServiceTime(new_time)
 	    .setCV_sqr(cv_sqr())
@@ -1619,7 +1618,7 @@ Phase::DeviceInfo::recalculateDynamicValues()
 
     } else {
 	const double new_time = think_time();
-	if ( old_time == new_time && !flags.full_reinitialize ) return *this;
+	if ( old_time == new_time && !flags.full_reinitialize ) return;
 
 	_entry->setServiceTime(new_time)
 	    .initVariance()
@@ -1627,7 +1626,6 @@ Phase::DeviceInfo::recalculateDynamicValues()
 
 	_call->setWait( new_time );
     }
-    return *this;
 }
 
 

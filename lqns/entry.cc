@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16689 2023-04-21 13:29:05Z greg $
+ * $Id: entry.cc 16698 2023-04-24 00:52:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -311,7 +311,7 @@ Entry::findChildren( Call::stack& callStack, const bool directPath ) const
 	    abort();
 	}
     } else {
-	max_depth = std::accumulate( _phase.begin(), _phase.end(), 0, max_two_args<Phase,Call::stack&,bool>( &Phase::findChildren, callStack, directPath ) );
+	max_depth = std::accumulate( _phase.begin(), _phase.end(), 0, Entry::max_depth( &Phase::findChildren, callStack, directPath ) );
     }
 
     return max_depth;
@@ -985,12 +985,11 @@ Entry::checkDroppedCalls() const
 }
 
 
-Entry&
+void
 Entry::recalculateDynamicValues()
 {
     std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::recalculateDynamicValues ) );
     _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::serviceTime ) ) );
-    return *this;
 }
 
 const Entry&

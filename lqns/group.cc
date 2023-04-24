@@ -10,7 +10,7 @@
  * November, 2008
  *
  * ------------------------------------------------------------------------
- * $Id: group.cc 15956 2022-10-07 13:54:20Z greg $
+ * $Id: group.cc 16698 2023-04-24 00:52:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -60,12 +60,11 @@ Group::initialize()
 }
 
 
-Group&
+void
 Group::recalculateDynamicValues()
 {
     /* read gorup share from lqx;  */
     initialize();
-    return *this;
 }
 
 const Group&

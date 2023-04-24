@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 16690 2023-04-21 13:41:09Z greg $
+ * $Id: actlist.cc 16698 2023-04-24 00:52:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -600,7 +600,7 @@ AndOrForkActivityList::followInterlock( Interlock::CollectTable& path ) const
 bool
 AndOrForkActivityList::getInterlockedTasks( Interlock::CollectTasks& path ) const
 {
-    bool found = std::count_if( activities().begin(), activities().end(), Predicate1<Activity,Interlock::CollectTasks&>( &Activity::getInterlockedTasks, path ) ) > 0;
+    bool found = std::count_if( activities().begin(), activities().end(), test( &Activity::getInterlockedTasks, path ) ) > 0;
     if ( hasNextFork() && getNextFork()->getInterlockedTasks( path ) ) found = true;
 
     return found;
@@ -910,7 +910,7 @@ OrForkActivityList::callsPerform( Call::Perform& operation ) const
 unsigned
 OrForkActivityList::concurrentThreads( unsigned int n ) const
 {
-    n = std::accumulate( activities().begin(), activities().end(), n, Activity::max( &Activity::concurrentThreads, n ) );
+    n = std::accumulate( activities().begin(), activities().end(), n, Activity::max_threads( &Activity::concurrentThreads, n ) );
     return hasNextFork() ? getNextFork()->concurrentThreads( n ) : n;
 }
 
@@ -2061,7 +2061,7 @@ RepeatActivityList::followInterlock( Interlock::CollectTable& path ) const
 bool
 RepeatActivityList::getInterlockedTasks( Interlock::CollectTasks& path ) const
 {
-    bool found = std::count_if( activities().begin(), activities().end(), Predicate1<Activity,Interlock::CollectTasks&>( &Activity::getInterlockedTasks, path ) ) > 0;
+    bool found = std::count_if( activities().begin(), activities().end(), test( &Activity::getInterlockedTasks, path ) ) > 0;
     if ( ForkActivityList::getInterlockedTasks( path ) ) found = true;
 
     return found;
@@ -2181,7 +2181,7 @@ RepeatActivityList::collect_calls( std::deque<const Activity *>& stack, CallInfo
 unsigned
 RepeatActivityList::concurrentThreads( unsigned n ) const
 {
-    return ForkActivityList::concurrentThreads( std::accumulate( activities().begin(), activities().end(), n, Activity::max( &Activity::concurrentThreads, n ) ) );
+    return ForkActivityList::concurrentThreads( std::accumulate( activities().begin(), activities().end(), n, Activity::max_threads( &Activity::concurrentThreads, n ) ) );
 }
 
 

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 16690 2023-04-21 13:41:09Z greg $
+ * $Id: entry.h 16698 2023-04-24 00:52:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -162,7 +162,17 @@ public:
 	const funcPtr _f;
     };
 
-
+    struct max_depth
+    {
+	typedef unsigned int (Phase::*funcPtr)( Call::stack&, bool ) const;
+	max_depth( funcPtr f, Call::stack& arg1, bool arg2 ) : _f(f), _arg1(arg1), _arg2(arg2) {}
+	unsigned int operator()( unsigned int l, const Phase* r ) const { return std::max( l, (r->*_f)(_arg1,_arg2) ); }
+	unsigned int operator()( unsigned int l, const Phase& r ) const { return std::max( l, (r.*_f)(_arg1,_arg2) ); }
+    private:
+	const funcPtr _f;
+	Call::stack& _arg1;
+	bool _arg2;
+    };
 protected:
     struct add_wait {
 	add_wait( unsigned int submodel ) : _submodel(submodel) {}
@@ -373,7 +383,7 @@ public:
     /* In order to integrate LQX's support for model changes we need to have a way  */
     /* of re-calculating what used to be static for all dynamically editable values */
 	
-    Entry& recalculateDynamicValues();
+    void recalculateDynamicValues();
 	
     /* Sanity checks */
 

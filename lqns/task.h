@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 16689 2023-04-21 13:29:05Z greg $
+ * $Id: task.h 16698 2023-04-24 00:52:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -183,7 +183,7 @@ public:
 
     /* Computation */
 	
-    virtual Task& recalculateDynamicValues();
+    virtual void recalculateDynamicValues();
 
     void computeThroughputBound();
     virtual Task& computeVariance();
@@ -298,7 +298,7 @@ public:
     virtual void reinitializeClient();
 
     virtual bool check() const;
-    virtual ReferenceTask& recalculateDynamicValues();
+    virtual void recalculateDynamicValues();
     virtual unsigned findChildren( Call::stack&, const bool ) const;
 
     virtual bool isReferenceTask() const { return true; }

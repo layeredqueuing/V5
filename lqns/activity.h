@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 16690 2023-04-21 13:41:09Z greg $
+ * $Id: activity.h 16698 2023-04-24 00:52:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -189,10 +189,10 @@ public:
 	bool _replyAllowed;
     };
 
-    struct max
+    struct max_threads
     {
 	typedef unsigned int (Activity::*funcPtr)( unsigned int ) const;
-	max( funcPtr f, unsigned int arg ) : _f(f), _arg(arg) {}
+	max_threads( funcPtr f, unsigned int arg ) : _f(f), _arg(arg) {}
 	unsigned int operator()( unsigned int l, const Activity* r ) const { return std::max( l, (r->*_f)(_arg) ); }
 	unsigned int operator()( unsigned int l, const Activity& r ) const { return std::max( l, (r.*_f)(_arg) ); }
     private:

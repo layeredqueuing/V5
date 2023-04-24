@@ -1,6 +1,6 @@
 .\" -*- nroff -*-
-.TH qnsolver 1 ""  "5.20"
-.\" $Id: qnsolver.1 16693 2023-04-22 12:21:20Z greg $
+.TH qnsolver 1 ""  "5.29"
+.\" $Id: qnsolver.1 16694 2023-04-22 14:56:28Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -54,16 +54,17 @@ Debug the LQX program.
 .TP
 \fB\-m\fR, \fB\-\-multiserver\fR=\fIarg\fR
 Use the multiserver solution specified by \fIarg\fP.  \fIArg\fP is one
-of \fIconway\fP, \Ifreiser\fP, \fIrolia\fP, or \fIzhou\fP.  The Zhou
+of \fIconway\fP, \fIreiser\fP, \fIrolia\fP, or \fIzhou\fP.  The Zhou
 and Rolia solutions should only be used with approximate MVA.  The
 Reiser solution should only be used with exact MVA.
+.TP
 \fB\-M\fR, \fB\-\-force-multiserver\fR
 Use the multiserver solution at all load-independent stations using a
 mutliplicity of one.  Normally, the simpler load-independent soltions
 are used instead.
 .TP
 \fB\-n\fR, \fB\-\-no\-execute\fR
-Load the model and run any LQX (what-if) code.  Do not solve.
+Load the model and run any LQX (``What-If'') code.  Do not solve.
 .TP
 \fB\-o\fP, \fB\-\-output\fR=\fIarg\fR
 Direct analysis results to \fIoutput\fP.  A filename of `\fI-\fR'
@@ -73,13 +74,13 @@ directs output to standard output.
 For plotting, the default is to display the plot output to the
 terminal for the host operating system.  This option add gnuplot code to
 output the plotting instructions to a file using the format specified
-in \fIarg\fP.  \fIArg\fP can be one of \fIemf\P, \fIeps\fP, \fIfig\fP,
+in \fIarg\fP.  \fIArg\fP can be one of \fIemf\fP, \fIeps\fP, \fIfig\fP,
 \fIgif\fP, \fIlatex\fP, \fIpdf\fP, \fIpng\fP, \fIsvg\fP.  The
 output file name for the gnuplot code is the base name of the input
 file being solved appended with the file format and with a suffix of \fI.gnuplot\fP.
 .TP
 \fB\-P\fR, \fB\-\-print\-lqx\fR
-Print the LQX program generated for solving what-if models.
+Print the LQX program generated for solving ``What-If'' models.
 .TP
 \fB\-q\fP, \fB\-\-plot\-queue\-length\fR=\fIarg\fR
 Generate gnuplot(1) output to plot the queue length (number of

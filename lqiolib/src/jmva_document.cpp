@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16693 2023-04-22 12:21:20Z greg $
+ * $Id: jmva_document.cpp 16697 2023-04-23 22:52:06Z greg $
  *
  * Read in XML input files.
  *
@@ -1687,35 +1687,49 @@ namespace QNIO {
 	const BCMP::Model::Chain::map_t::const_iterator k = chains().find( name );
 	const BCMP::Model::Bound bounds( *k, stations() );
 
-	/* Now plot the bounds. */
-	std::string title1 = name + " ";
-	std::string title2 = name + " ";
+	/* Compute N_star (used to scale X-axis if boundsOnly() */
+	
 	LQX::SyntaxTreeNode * nStar = bounds.N_star();
-	LQX::SyntaxTreeNode * bound1 = nullptr;
 	if ( dynamic_cast<LQX::ConstantValueExpression*>(nStar) == nullptr ) return plot;		/* Not resolved -- can't plot */
 
 	if ( boundsOnly() ) {
+	    _x_max = BCMP::Model::multiply( nStar, new LQX::ConstantValueExpression( 2.0 ) );
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + QNIO::Document::Comprehension::__type_name.at(QNIO::Document::Comprehension::Type::CUSTOMERS) + "\"" ) );
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \"" + __y_label_table.at(type) + "\"" ) );
-	    _x_max = BCMP::Model::multiply( nStar, new LQX::ConstantValueExpression( 2.0 ) );
-	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set key box" ) );
+	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set key title \"Bounds\" box" ) );
 	}
 
+	_n_labels += 1;
+	std::ostringstream label1;
+	label1 << "set label " << _n_labels << " \"" ;
+	_n_labels += 1;
+	std::ostringstream label2;
+	label2 << "set label " << _n_labels << " \"" ;
+
+	std::string title1;
+	std::string title2;
+	LQX::SyntaxTreeNode * bound1 = nullptr;
 	switch ( type ) {
 	case BCMP::Model::Result::Type::THROUGHPUT:
 	    bound1 = BCMP::Model::reciprocal( bounds.D_max() );
-	    title1 += "1/Dmax";
-	    title2 += "1/(Dsum+Z)";
 	    _y_max = BCMP::Model::max( _y_max, BCMP::Model::reciprocal( bounds.D_max() ) );
+	    label1 << "1/Dmax=";
+	    label2 << "1/(Dsum+Z)";
+	    label2 << "\" at " << *nStar << "/2.1," << *bound1 << " /2." << " left";
+	    title1 = "Saturation";
+	    title2 = "Starvation";
 	    if ( boundsOnly() ) {
 		_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key bottom right" ) );
 	    }
 	    break;
 	case BCMP::Model::Result::Type::RESPONSE_TIME:
 	    bound1 = bounds.D_sum();
-	    title1 += "Dsum";
-	    title2 += "N*Dmax-Z";
 	    _y_max = BCMP::Model::max( _y_max, BCMP::Model::subtract( BCMP::Model::multiply( _x_max, bounds.D_max() ), bounds.Z_sum() ) );
+	    label1 << "Dsum=";
+	    label2 << "N*Dmax-Z";
+	    title1 = "Starvation";
+	    title2 = "Saturation";
+	    label2 << "\" at " << *nStar << "*1.5," << *_y_max << "/2.," << 0. << " left";
 	    if ( boundsOnly() ) {
 		_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key top left" ) );
 	    }
@@ -1724,22 +1738,23 @@ namespace QNIO {
 	    break;
 	}
 
-	std::ostringstream label1;
-	_n_labels += 1;
-	label1 << "set label " << _n_labels << " \"" << *bound1 << "\" at " << 0.2 << "," << *bound1 << " * 1.02," << 0. << " left";
+	label1 << *bound1 << "\" at " << 0.2 << "," << *bound1 << "+" << *_y_max << "*0.02" << " left";
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( label1.str() ) );
-
-	std::ostringstream label2;
-	_n_labels += 1;
-	label2 << "set label " << _n_labels << " \"N*=" << *nStar << "\" at " << *nStar << "," << *bound1 << "* 1.02," << 0. << " right";
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( label2.str() ) );
+
+	_n_labels += 1;
+	std::ostringstream label3;
+	label3 << "set label " << _n_labels << " \"N*=" << *nStar << "\" at " << *nStar << "," << *bound1 << "+" << *_y_max << "*0.02" << " right";
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( label3.str() ) );
+
+	/* Now plot the bounds. */
 
 	if ( boundsOnly() ) {
 	    std::ostringstream xrange;
-	    xrange << "set xrange [" << 0 << ":" << getDoubleValue( _x_max ) << " * 1.10]";
+	    xrange << "set xrange [" << 0 << ":" << getDoubleValue( _x_max ) << "*1.10]";
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( xrange.str() ) );
 	    std::ostringstream yrange;
-	    yrange << "set yrange [" << 0 << ":" << *_y_max << " * 1.10]";
+	    yrange << "set yrange [" << 0 << ":" << *_y_max << "*1.10]";
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( yrange.str() ) );
 	}
 
@@ -1753,6 +1768,10 @@ namespace QNIO {
 	switch ( type ) {
 	case BCMP::Model::Result::Type::THROUGHPUT:
 	    plot << ", x/" << *BCMP::Model::add( bounds.D_sum(), bounds.Z_sum() ) << " with lines title \"" << title2 << "\"";
+#define LOWER_BOUND 0
+#if LOWER_BOUND
+	    plot << ", x/(x*" << *bounds.D_sum() << "+" << *bounds.Z_sum() << ")" << " with lines";
+#endif
 	    break;
 	case BCMP::Model::Result::Type::RESPONSE_TIME:
 	    plot << ", x*" << *bounds.D_max() <<  "-" << *bounds.Z_sum() << " with lines title \"" << title2 << "\"";

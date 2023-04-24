@@ -9,7 +9,7 @@
  *
  * November, 2008
  *
- * $Id: group.h 16546 2023-03-18 22:32:16Z greg $
+ * $Id: group.h 16698 2023-04-24 00:52:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -40,7 +40,7 @@ public:
 
     Group& addTask( Task * task ) { _taskList.insert(task); return *this; }
     Group& removeTask( Task * task )  { _taskList.erase(task); return *this; }
-    Group& recalculateDynamicValues();
+    void recalculateDynamicValues();
     void initialize();
     void reinitialize();
     Group& reset();

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 16684 2023-04-20 10:14:09Z greg $
+ * $Id: call.cc 16698 2023-04-24 00:52:30Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -25,6 +25,7 @@
 #include "entry.h"
 #include "errmsg.h"
 #include "flags.h"
+#include "interlock.h"
 #include "option.h"
 #include "pragma.h"
 #include "submodel.h"

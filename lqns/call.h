@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 16689 2023-04-21 13:29:05Z greg $
+ * $Id: call.h 16698 2023-04-24 00:52:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -26,7 +26,7 @@
 class Activity;
 class Call;
 class Entry;
-class Entry;
+class Entity;
 class EntryPath;
 class Path;
 class PathNode;

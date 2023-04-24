@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16690 2023-04-21 13:41:09Z greg $
+ * $Id: task.cc 16698 2023-04-24 00:52:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -972,11 +972,10 @@ Task::updateWaitReplication( const Submodel& submodel, unsigned & n_delta )
  * dynamically editable values
  */
 
-Task&
+void
 Task::recalculateDynamicValues()
 {
     std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::recalculateDynamicValues ) );
-    return *this;
 }
 
 
@@ -1597,7 +1596,7 @@ ReferenceTask::reinitializeClient()
  * dynamically editable values
  */
 
-ReferenceTask&
+void
 ReferenceTask::recalculateDynamicValues()
 {
     Task::recalculateDynamicValues();
@@ -1608,7 +1607,6 @@ ReferenceTask::recalculateDynamicValues()
     catch ( const std::domain_error& e ) {
 	getDOM()->throw_invalid_parameter( "think time", e.what() );
     }
-    return *this;
 }
 
 

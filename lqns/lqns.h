@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 16690 2023-04-21 13:41:09Z greg $
+ * $Id: lqns.h 16698 2023-04-24 00:52:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -76,19 +76,6 @@ private:
     Type3 _y;
 };
 
-template <class Type1, class Type2, class Type3, class Type4> struct Exec3
-{
-    typedef Type1& (Type1::*funcPtr)( Type2 x, Type3 y, Type4 z );
-    Exec3<Type1,Type2,Type3,Type4>( funcPtr f, Type2 x, Type3 y, Type4 z ) : _f(f), _x(x), _y(y), _z(z) {}
-    void operator()( Type1 * object ) const { (object->*_f)( _x, _y, _z ); }
-    void operator()( Type1& object ) const { (object.*_f)( _x, _y, _z ); }
-private:
-    funcPtr _f;
-    Type2 _x;
-    Type3 _y;
-    Type4 _z;
-};
-
 template <class Type1, class Type2, class Type3 > struct ExecSum1
 {
     typedef Type2 (Type1::*funcPtr)( Type3 );
@@ -127,18 +114,6 @@ private:
     Type2 _x;
 };
     
-template <class Type1, class Type2, class Type3> struct ConstExec2
-{
-    typedef const Type1& (Type1::*funcPtr)( Type2 x, Type3 y ) const;
-    ConstExec2<Type1,Type2,Type3>( const funcPtr f, Type2 x, Type3 y ) : _f(f), _x(x), _y(y) {}
-    void operator()( const Type1 * object ) const { (object->*_f)( _x, _y ); }
-    void operator()( const Type1& object ) const { (object.*_f)( _x, _y ); }
-private:
-    const funcPtr _f;
-    Type2 _x;
-    Type3 _y;
-};
-
 template <class Type1> struct ConstPrint
 {
     typedef std::ostream& (Type1::*funcPtr)( std::ostream& ) const;
@@ -178,40 +153,5 @@ template <class Type> struct EqualsReplica {
 private:
     const std::string _name;
     const unsigned int _replica;
-};
-
-template <class Type1, class Type2> struct Predicate1
-{
-    typedef bool (Type1::*predicate)( Type2 ) const;
-    Predicate1<Type1,Type2>( const predicate p, Type2 arg ) : _p(p), _arg(arg) {};
-    bool operator()( const Type1 * object ) const { return (object->*_p)(_arg); }
-    bool operator()( const Type1& object ) const { return (object.*_p)(_arg); }
-private:
-    const predicate _p;
-    Type2 _arg;
-};
-
-template <class Type1, class Type2, class Type3> struct add_two_args
-{
-    typedef double (Type1::*funcPtr)( Type2, Type3 ) const;
-    add_two_args<Type1,Type2,Type3>( funcPtr f, Type2 arg1, Type3 arg2 ) : _f(f), _arg1(arg1), _arg2(arg2) {}
-    double operator()( double l, const Type1 * r ) const { return l + (r->*_f)(_arg1,_arg2); }
-    double operator()( double l, const Type1& r ) const { return l + (r.*_f)(_arg1,_arg2); }
-private:
-    const funcPtr _f;
-    Type2 _arg1;
-    Type3 _arg2;
-};
-
-template <class Type1, class Type2, class Type3 > struct max_two_args
-{
-    typedef unsigned int (Type1::*funcPtr)( Type2, Type3 ) const;
-    max_two_args<Type1,Type2,Type3>( funcPtr f, Type2 arg1, Type3 arg2 ) : _f(f), _arg1(arg1), _arg2(arg2) {}
-    unsigned int operator()( unsigned int l, const Type1 * r ) const { return std::max( l, (r->*_f)(_arg1,_arg2) ); }
-    unsigned int operator()( unsigned int l, const Type1& r ) const { return std::max( l, (r.*_f)(_arg1,_arg2) ); }
-private:
-    const funcPtr _f;
-    Type2 _arg1;
-    Type3 _arg2;
 };
 #endif

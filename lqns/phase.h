@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 16689 2023-04-21 13:29:05Z greg $
+ * $Id: phase.h 16698 2023-04-24 00:52:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -88,7 +88,7 @@ public:
     double getWaitTime( unsigned int submodel ) const { return _wait[submodel];}
     size_t getWaitSize() const { return _wait.size(); }
 
-    virtual NullPhase& recalculateDynamicValues() { return *this; }
+    virtual void recalculateDynamicValues() {}
 
     static void insertDOMHistogram( LQIO::DOM::Histogram * histogram, const double m, const double v );
 
@@ -143,7 +143,7 @@ private:
 	bool isProcessor() const { return _type == Type::HOST || _type == Type::PROCESSOR; }
 	ProcessorCall * call() const { return _call; }
 	DeviceEntry * entry() const { return _entry; }
-	DeviceInfo& recalculateDynamicValues();
+	void recalculateDynamicValues();
 
     private:
 	double service_time() const { return _phase.serviceTime(); }
@@ -294,7 +294,7 @@ public:
 
     /* recalculation of dynamic values */
 	
-    virtual Phase& recalculateDynamicValues();
+    virtual void recalculateDynamicValues();
     virtual const Phase& insertDOMResults() const; 
 
 protected:

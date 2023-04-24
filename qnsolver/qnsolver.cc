@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 16693 2023-04-22 12:21:20Z greg $
+ * $Id: qnsolver.cc 16695 2023-04-22 15:08:24Z greg $
  */
 
 #include "config.h"
@@ -33,32 +33,32 @@ extern "C" int qnap2debug;
 const struct option longopts[] =
     /* name */ /* has arg */ /*flag */ /* val */
 {
-    { "bounds",					no_argument,		0, 'b' },
-    { LQIO::DOM::Pragma::_exact_,		no_argument,		0, 'e' },
-    { LQIO::DOM::Pragma::_schweitzer_,		no_argument,		0, 's' },
-    { LQIO::DOM::Pragma::_linearizer_,		no_argument,		0, 'l' },
-    { LQIO::DOM::Pragma::_fast_,		no_argument,		0, 'f' },
-    { "multiserver",				required_argument,	0, 'm' },
-    { LQIO::DOM::Pragma::_force_multiserver_,	no_argument,		0, 'M' },
-    { "no-execute",				no_argument,		0, 'n' },
-    { "output",					required_argument,	0, 'o' },
-    { "file-format",				required_argument,	0, 'O' },
-    { "plot-queue-length",			optional_argument,	0, 'q' },
-    { "plot-response-time",			no_argument,		0, 'r' },
-    { "plot-throughput",			optional_argument,	0, 't' },
-    { "plot-utilization",			optional_argument,	0, 'u' },
-    { "plot-waiting-time",			optional_argument,	0, 'w' },
-    { "colours",				required_argument,	0, 'C' },
-    { "verbose",				no_argument,		0, 'v' },
-    { "help",					no_argument,		0, 'h' },
-    { "export-qnap",				no_argument,		0, 'Q' },
-    { "export-jmva",				no_argument,		0, 'J' },
-    { "export-jaba",				no_argument,		0, 'B' },
-    { "debug-qnap2",				no_argument,		0, 'D' },
-    { "debug-mva",				no_argument,		0, 'd' },
-    { "debug-lqx",				no_argument,		0, 'L' },
-    { "debug-xml",				no_argument,		0, 'X' },
-    { "print-lqx",				no_argument,		0, 'P' },
+    { "bounds",                                 no_argument,            0, 'b' },
+    { LQIO::DOM::Pragma::_exact_,               no_argument,            0, 'e' },
+    { LQIO::DOM::Pragma::_fast_,                no_argument,            0, 'f' },
+    { LQIO::DOM::Pragma::_linearizer_,          no_argument,            0, 'l' },
+    { LQIO::DOM::Pragma::_schweitzer_,          no_argument,            0, 's' },
+    { LQIO::DOM::Pragma::_force_multiserver_,   no_argument,            0, 'M' },
+    { "plot-queue-length",                      optional_argument,      0, 'q' },
+    { "plot-response-time",                     no_argument,            0, 'r' },
+    { "plot-throughput",                        optional_argument,      0, 't' },
+    { "plot-utilization",                       optional_argument,      0, 'u' },
+    { "plot-waiting-time",                      optional_argument,      0, 'w' },
+    { "output",                                 required_argument,      0, 'o' },
+    { "file-format",                            required_argument,      0, 'O' },
+    { "colours",                                required_argument,      0, 'C' },
+    { "help",                                   no_argument,            0, 'h' },
+    { "multiserver",                            required_argument,      0, 'm' },
+    { "no-execute",                             no_argument,            0, 'n' },
+    { "verbose",                                no_argument,            0, 'v' },
+    { "export-jaba",                            no_argument,            0, 'B' },
+    { "export-jmva",                            no_argument,            0, 'J' },
+    { "export-qnap",                            no_argument,            0, 'Q' },
+    { "print-lqx",                              no_argument,            0, 'P' },
+    { "debug-mva",                              no_argument,            0, 'd' },
+    { "debug-qnap2",                            no_argument,            0, 'D' },
+    { "debug-lqx",                              no_argument,            0, 'L' },
+    { "debug-xml",                              no_argument,            0, 'X' },
     { nullptr, 0, 0, 0 }
 };
 

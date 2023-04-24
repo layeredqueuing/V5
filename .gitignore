@@ -4,6 +4,7 @@
 *.bbl
 *.blg
 *.cache
+*.csv
 *.deps
 *.diff
 *.dmg
