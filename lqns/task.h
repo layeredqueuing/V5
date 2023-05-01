@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 16698 2023-04-24 00:52:30Z greg $
+ * $Id: task.h 16700 2023-04-24 11:12:07Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -179,7 +179,6 @@ public:
     void saveClientResults( const MVASubmodel&, const Server&, unsigned int chain );
     const Task& closedCallsPerform( Call::Perform ) const;	// Copy arg.
     const Task& openCallsPerform( Call::Perform ) const;	// Copy arg.
-    const Task& setChains( MVASubmodel& submodel ) const;
 
     /* Computation */
 	

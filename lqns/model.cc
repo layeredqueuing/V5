@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 16684 2023-04-20 10:14:09Z greg $
+ * $Id: model.cc 16703 2023-04-30 10:45:48Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -553,7 +553,7 @@ Model::initialize()
 	}
 
 	if ( Options::Debug::submodels() ) {	/* Print out layers... 		*/
-	    std::for_each( _submodels.begin(), _submodels.end(), ConstPrint<Submodel>( &Submodel::print, std::cout ) );
+	    for ( const auto& submodel : _submodels ) submodel->print( std::cout );
 	}
 
     } else {
@@ -941,12 +941,9 @@ Model::printSubmodelWait( std::ostream& output ) const
     output.setf( std::ios::left, std::ios::adjustfield );
 
     output << std::setw(8) <<  "Submodel    ";
-    for ( unsigned i = 1; i <= nSubmodels(); ++i ) {
-	output << std::setw(8) << i;
-    }
+    for ( unsigned i = 1; i <= nSubmodels(); ++i ) output << std::setw(8) << i;
     output << std::endl;
-
-    std::for_each( __task.begin(), __task.end(), ConstPrint<Task>( &Task::printSubmodelWait, output ) );
+    for ( const auto& task : __task ) task->printSubmodelWait( output );
 
     output.setf( flags );
     output.precision( precision );

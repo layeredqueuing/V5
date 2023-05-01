@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16698 2023-04-24 00:52:30Z greg $
+ * $Id: entry.cc 16704 2023-04-30 11:27:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -311,7 +311,7 @@ Entry::findChildren( Call::stack& callStack, const bool directPath ) const
 	    abort();
 	}
     } else {
-	max_depth = std::accumulate( _phase.begin(), _phase.end(), 0, Entry::max_depth( &Phase::findChildren, callStack, directPath ) );
+	max_depth = std::accumulate( _phase.begin(), _phase.end(), max_depth, Entry::max_depth( &Phase::findChildren, callStack, directPath ) );
     }
 
     return max_depth;
@@ -1447,7 +1447,7 @@ TaskEntry::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta 
 	entryStack.pop_back();
 
     } else {
-	delta = std::for_each( _phase.begin(), _phase.end(), ExecSum1<Phase,double,const Submodel&>( &Phase::updateWaitReplication, aSubmodel )).sum();
+	for ( auto& phase : _phase ) delta += phase.updateWaitReplication( aSubmodel );
 	n_delta += _phase.size();
     }
     return delta;

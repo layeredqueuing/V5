@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 16698 2023-04-24 00:52:30Z greg $
+ * $Id: actlist.h 16702 2023-04-25 18:29:29Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -123,7 +123,7 @@ public:
     virtual void callsPerform( Call::Perform& ) const = 0;
     virtual unsigned concurrentThreads( unsigned ) const = 0;
 
-    virtual void backtrack( Activity::Backtrack& data ) const = 0;
+    virtual void backtrack( Activity::Backtrack::State& data ) const = 0;
 
     /* Printing */
 	
@@ -183,7 +183,7 @@ public:
     virtual ActivityList * prev() const { return _prev; }	/* Link to fork list 		*/
 
     virtual unsigned findChildren( Activity::Children& path ) const;
-    virtual void backtrack( Activity::Backtrack& data ) const { prev()->backtrack( data ); }
+    virtual void backtrack( Activity::Backtrack::State& data ) const { prev()->backtrack( data ); }
     virtual void followInterlock( Interlock::CollectTable& ) const;
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
@@ -215,7 +215,7 @@ public:
     virtual ActivityList * next() const { return _next; }	/* Link to Join list		*/
 
     virtual unsigned findChildren( Activity::Children& path ) const;
-    virtual void backtrack( Activity::Backtrack& data ) const { getActivity()->backtrack( data ); }
+    virtual void backtrack( Activity::Backtrack::State& data ) const { getActivity()->backtrack( data ); }
     virtual void followInterlock( Interlock::CollectTable& ) const;
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
@@ -319,7 +319,7 @@ public:
     virtual bool check() const;
 
     virtual unsigned findChildren( Activity::Children& path ) const;
-    virtual void backtrack( Activity::Backtrack& data ) const;
+    virtual void backtrack( Activity::Backtrack::State& data ) const;
     virtual void followInterlock( Interlock::CollectTable& ) const;
     virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const;
 
@@ -454,7 +454,7 @@ public:
     double getNextRate() const { return 1.0; }
 
     virtual unsigned findChildren( Activity::Children& path ) const;
-    virtual void backtrack( Activity::Backtrack& data ) const;
+    virtual void backtrack( Activity::Backtrack::State& data ) const;
 
     virtual ActivityList * next() const { return _next; }	/* Link to fork list		*/
     const AndOrForkActivityList * forkList() const { return _forkList; }

@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 16686 2023-04-20 10:25:37Z greg $
+ * $Id: submodel.cc 16704 2023-04-30 11:27:18Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -359,11 +359,11 @@ MVASubmodel::build()
 	_closedModel = (*solver)( _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
     }
 
-    std::for_each( _clients.begin(), _clients.end(), ConstExec1<Task,MVASubmodel&>( &Task::setChains, *this ) );
+    std::for_each( _clients.begin(), _clients.end(), InitializeChains( *this ) );
 #if PAN_REPLICATION
     if ( usePanReplication() ) {
 	unsigned not_used = 0;
-	std::for_each( _clients.begin(), _clients.end(), ExecSum2<Task,double,const Submodel&,unsigned&>( &Task::updateWaitReplication, *this, not_used ) );
+	for ( auto& client : _clients ) client->updateWaitReplication( *this, not_used );
     }
 #endif
     return *this;
@@ -697,6 +697,16 @@ MVASubmodel::initializeInterlock()
 }
 
 
+void
+MVASubmodel::InitializeChains::operator()( Task* client ) const
+{
+    client->closedCallsPerform( Call::Perform( &Call::Perform::setChain, _submodel ) );
+    if ( client->nThreads() > 1 ) {
+	_submodel.setChains( client->clientChains( _submodel.number() ) );
+    }
+}
+
+
 /*
  * Called from submodel to initialize client.  
  */
@@ -1017,7 +1027,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	deltaRep = 0.0;
 	if ( usePanReplication() ) {
 	    unsigned n_deltaRep = 0;
-	    deltaRep = std::for_each( _clients.begin(), _clients.end(), ExecSum2<Task,double,const Submodel&,unsigned&>( &Task::updateWaitReplication, *this, n_deltaRep ) ).sum();
+	    for ( auto& client : _clients ) deltaRep += client->updateWaitReplication( *this, n_deltaRep );
 	    if ( n_deltaRep ) {
 		deltaRep = sqrt( deltaRep / n_deltaRep );	/* Take RMS value over all phases */
 	    }
@@ -1214,9 +1224,10 @@ MVASubmodel::print( std::ostream& output ) const
     }
 
     output << std::endl << "Calls: " << std::endl;
-    std::for_each( Model::__entry.begin(), Model::__entry.end(), ConstPrint1<Entry,unsigned int>( &Entry::printCalls, output, number() ) );
-    std::for_each( Model::__processor.begin(), Model::__processor.end(), ConstPrint1<Processor,unsigned int>( &Processor::printTasks, output, number() ) );
+    for ( const auto& entry : Model::__entry ) entry->printCalls( output, number() );
+    for ( const auto& processor : Model::__processor ) processor->printTasks( output, number() );
     output << std::endl;
+
     return output;
 }
 

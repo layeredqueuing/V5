@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 16684 2023-04-20 10:14:09Z greg $
+ * $Id: submodel.h 16700 2023-04-24 11:12:07Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -177,6 +177,14 @@ class MVASubmodel : public Submodel {
     };
 #endif
 
+    class InitializeChains {
+    public:
+	InitializeChains( MVASubmodel& submodel ) : _submodel(submodel) {}
+	void operator()( Task* client ) const;
+    private:
+	MVASubmodel& _submodel;
+    };
+    
     struct InitializeServerStation {
 	InitializeServerStation( MVASubmodel& submodel ) : _submodel(submodel) {}
 	void operator()( Entity* entity );

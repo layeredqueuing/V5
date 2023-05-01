@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16698 2023-04-24 00:52:30Z greg $
+ * $Id: task.cc 16705 2023-05-01 15:12:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -255,7 +255,7 @@ Task::configure( const unsigned nSubmodels )
 
     if ( hasActivities() ) {
 	std::for_each( activities().begin(), activities().end(), Exec1<Activity,unsigned>( &Activity::configure, nSubmodels ) );
-	std::for_each( _precedences.begin(), _precedences.end(), Exec1<ActivityList,unsigned>( &ActivityList::configure, nSubmodels ) );
+	std::for_each( precedences().begin(), precedences().end(), Exec1<ActivityList,unsigned>( &ActivityList::configure, nSubmodels ) );
     }
     Entity::configure( nSubmodels );
 
@@ -302,9 +302,9 @@ Task::find_max_depth::operator()( unsigned int depth, const Entry * entry )
 Task&
 Task::linkForkToJoin()
 {
-    _has_forks = std::any_of( _precedences.begin(), _precedences.end(), std::mem_fn(&ActivityList::isFork) );
-    _has_syncs = std::any_of( _precedences.begin(), _precedences.end(), std::mem_fn(&ActivityList::isSync) );
-    _has_quorum = std::any_of( _precedences.begin(), _precedences.end(), std::mem_fn(&ActivityList::hasQuorum) );
+    _has_forks = std::any_of( precedences().begin(), precedences().end(), std::mem_fn(&ActivityList::isFork) );
+    _has_syncs = std::any_of( precedences().begin(), precedences().end(), std::mem_fn(&ActivityList::isSync) );
+    _has_quorum = std::any_of( precedences().begin(), precedences().end(), std::mem_fn(&ActivityList::hasQuorum) );
 
     Call::stack callStack;
     Activity::Children path( callStack, true, false );
@@ -578,7 +578,7 @@ Task::fanOut( const Entity * aServer ) const
 Activity *
 Task::findActivity( const std::string& name ) const
 {
-    const std::vector<Activity *>::const_iterator activity = std::find_if( activities().begin(), activities().end(), EQStr<Activity>( name ) );
+    const std::vector<Activity *>::const_iterator activity = std::find_if( activities().begin(), activities().end(), Activity::has_name( name ) );
     return activity != activities().end() ? *activity : nullptr;
 }
 
@@ -843,17 +843,6 @@ Task::makeClient( const unsigned n_chains, const unsigned submodel )
 }
 
 
-const Task&
-Task::setChains( MVASubmodel& submodel ) const
-{
-    closedCallsPerform( Call::Perform( &Call::Perform::setChain, submodel ) );
-    if ( nThreads() > 1 ) {
-	submodel.setChains( clientChains( submodel.number() ) );
-    }
-    return *this;
-}
-
-
 
 /*
  * Check results for sanity.
@@ -951,14 +940,16 @@ Task::updateWait( const Submodel& submodel, const double relax )
 double
 Task::updateWaitReplication( const Submodel& submodel, unsigned & n_delta )
 {
+    double delta = 0.0;
+
     /* Do updateWait for each activity first. */
 
-    double delta = std::for_each( activities().begin(), activities().end(), ExecSum1<Activity,double,const Submodel&>( &Activity::updateWaitReplication, submodel ) ).sum();
+    for ( auto& activity : activities() ) delta += activity->updateWaitReplication( submodel );
     n_delta += activities().size();
 
     /* Entry updateWait for activity entries will update waiting times. */
 
-    delta += std::for_each( entries().begin(), entries().end(), ExecSum2<Entry,double,const Submodel&,unsigned&>( &Entry::updateWaitReplication, submodel, n_delta ) ).sum();
+    for ( auto& entry : entries() ) delta += entry->updateWaitReplication( submodel, n_delta );
 
     return delta;
 }
@@ -1455,11 +1446,11 @@ Task::insertDOMResults(void) const
 std::ostream&
 Task::printSubmodelWait( std::ostream& output ) const
 {
-    std::for_each ( entries().begin(), entries().end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, 0 ) );
+    for ( const auto& entry : entries() ) entry->printSubmodelWait( output, 0 );
     if ( flags.trace_virtual_entry ) {
-	std::for_each ( _precedences.begin(), _precedences.end(), ConstPrint1<ActivityList,unsigned>( &ActivityList::printSubmodelWait, output, 2 ) );
+	for ( const auto& precedence : precedences() ) precedence->printSubmodelWait( output, 2 );
     } else {
-	std::for_each ( std::next(threads().begin()), threads().end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, 0 ) );
+	for ( Vector<Thread *>::const_iterator thread = std::next(threads().begin()); thread != threads().end(); ++thread ) (*thread)->printSubmodelWait( output, 0 );
     }
     return output;
 }
@@ -1526,7 +1517,7 @@ Task::printOverlapTable( std::ostream& output, const ChainVector& chain, const V
 std::ostream&
 Task::printJoinDelay( std::ostream& output ) const
 {
-    std::for_each( _precedences.begin(), _precedences.end(), ConstPrint<ActivityList>(&ActivityList::printJoinDelay, output ) );
+    for ( const auto& precedence : precedences() ) precedence->printJoinDelay( output );
     return output;
 }
 

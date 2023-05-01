@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 16698 2023-04-24 00:52:30Z greg $
+ * $Id: actlist.cc 16706 2023-05-01 16:07:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -631,7 +631,7 @@ AndOrForkActivityList::collectToEntry( const Activity * activity, VirtualEntry *
 std::ostream&
 AndOrForkActivityList::printSubmodelWait( std::ostream& output, unsigned offset ) const
 {
-    std::for_each( entries().begin(), entries().end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, offset ) );
+    for ( const auto& entry : entries() ) entry->printSubmodelWait( output, offset );
     return output;
 }
 
@@ -910,7 +910,7 @@ OrForkActivityList::callsPerform( Call::Perform& operation ) const
 unsigned
 OrForkActivityList::concurrentThreads( unsigned int n ) const
 {
-    n = std::accumulate( activities().begin(), activities().end(), n, Activity::max_threads( &Activity::concurrentThreads, n ) );
+    n = std::accumulate( activities().begin(), activities().end(), n, Activity::max_threads( n ) );
     return hasNextFork() ? getNextFork()->concurrentThreads( n ) : n;
 }
 
@@ -1027,7 +1027,7 @@ AndForkActivityList::findChildren( Activity::Children& path ) const
  */
 
 void
-AndOrForkActivityList::backtrack( Activity::Backtrack& data ) const
+AndOrForkActivityList::backtrack( Activity::Backtrack::State& data ) const
 {
     data.insert_fork( this );
     prev()->backtrack( data );
@@ -1641,7 +1641,7 @@ AndOrJoinActivityList::findChildren( Activity::Children& path ) const
 	    /* Find all forks from this activity that match anything in forkStack */
 
 	    std::set<const AndOrForkActivityList *> branchSet;
-	    Activity::Backtrack data( path.getActivityStack(), forkStack, branchSet );
+	    Activity::Backtrack::State data( path.getActivityStack(), forkStack, branchSet );
 	    (*activity)->backtrack( data );			/* find fork lists on this branch */
 
 
@@ -1705,14 +1705,14 @@ AndOrJoinActivityList::findChildren( Activity::Children& path ) const
  */
 
 void
-AndOrJoinActivityList::backtrack( Activity::Backtrack& data ) const
+AndOrJoinActivityList::backtrack( Activity::Backtrack::State& state ) const
 {
-    if ( data.find_join( this ) ) {
-	const std::deque<const Activity *>& activityStack = data.getActivityStack();
+    if ( state.find_join( this ) ) {
+	const std::deque<const Activity *>& activityStack = state.getActivityStack();
 	throw activity_cycle( activityStack.back(), activityStack );
     }
-    data.insert_join( this );
-    std::for_each ( activities().begin(), activities().end(), ConstExec1<Activity,Activity::Backtrack&>( &Activity::backtrack, data ) );
+    state.insert_join( this );
+    std::for_each( activities().begin(), activities().end(), Activity::Backtrack( state ) );
 }
 
 /* -------------------------------------------------------------------- */
@@ -2181,7 +2181,7 @@ RepeatActivityList::collect_calls( std::deque<const Activity *>& stack, CallInfo
 unsigned
 RepeatActivityList::concurrentThreads( unsigned n ) const
 {
-    return ForkActivityList::concurrentThreads( std::accumulate( activities().begin(), activities().end(), n, Activity::max_threads( &Activity::concurrentThreads, n ) ) );
+    return ForkActivityList::concurrentThreads( std::accumulate( activities().begin(), activities().end(), n, Activity::max_threads( n ) ) );
 }
 
 
@@ -2189,7 +2189,7 @@ RepeatActivityList::concurrentThreads( unsigned n ) const
 std::ostream&
 RepeatActivityList::printSubmodelWait( std::ostream& output, unsigned offset ) const
 {
-    std::for_each( entries().begin(), entries().end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, offset ) );
+    for ( const auto& entry : entries() ) entry->printSubmodelWait( output, offset );
     return output;
 }
 

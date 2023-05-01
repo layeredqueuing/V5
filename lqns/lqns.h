@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 16698 2023-04-24 00:52:30Z greg $
+ * $Id: lqns.h 16705 2023-05-01 15:12:36Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -74,77 +74,6 @@ private:
     funcPtr _f;
     Type2 _x;
     Type3 _y;
-};
-
-template <class Type1, class Type2, class Type3 > struct ExecSum1
-{
-    typedef Type2 (Type1::*funcPtr)( Type3 );
-    ExecSum1<Type1,Type2,Type3>( funcPtr f, Type3 arg ) : _f(f), _arg(arg), _sum(0.) {}
-    void operator()( Type1 * object ) { _sum += (object->*_f)( _arg ); }
-    void operator()( Type1& object ) { _sum += (object.*_f)( _arg ); }
-    Type2 sum() const { return _sum; }
-private:
-    const funcPtr _f;
-    Type3 _arg;
-    Type2 _sum;
-};
-    
-template <class Type1, class Type2, class Type3, class Type4 > struct ExecSum2
-{
-    typedef Type2 (Type1::*funcPtr)( Type3, Type4 );
-    ExecSum2<Type1,Type2,Type3,Type4>( funcPtr f, Type3 arg1, Type4 arg2 ) : _f(f), _arg1(arg1), _arg2(arg2), _sum(0.) {}
-    void operator()( Type1 * object ) { _sum += (object->*_f)( _arg1, _arg2 ); }
-    void operator()( Type1& object ) { _sum += (object.*_f)( _arg1, _arg2 ); }
-    Type2 sum() const { return _sum; }
-private:
-    const funcPtr _f;
-    Type3 _arg1;
-    Type4 _arg2;
-    Type2 _sum;
-};
-    
-template <class Type1, class Type2> struct ConstExec1
-{
-    typedef const Type1& (Type1::*funcPtr)( Type2 ) const;
-    ConstExec1<Type1,Type2>( const funcPtr f, Type2 x ) : _f(f), _x(x) {}
-    void operator()( const Type1 * object ) const { (object->*_f)(_x); }
-    void operator()( const Type1& object ) const { (object.*_f)(_x); }
-private:
-    const funcPtr _f;
-    Type2 _x;
-};
-    
-template <class Type1> struct ConstPrint
-{
-    typedef std::ostream& (Type1::*funcPtr)( std::ostream& ) const;
-    ConstPrint<Type1>( const funcPtr f, std::ostream& o ) : _f(f), _o(o) {}
-    void operator()( const Type1 * object ) const { (object->*_f)( _o ); }
-    void operator()( const Type1& object ) const { (object.*_f)( _o ); }
-private:
-    const funcPtr _f;
-    std::ostream& _o;
-};
-
-
-template <class Type1, class Type2> struct ConstPrint1
-{
-    typedef std::ostream& (Type1::*funcPtr)( std::ostream&, Type2 ) const;
-    ConstPrint1<Type1,Type2>( const funcPtr f, std::ostream& o, Type2 x ) : _f(f), _o(o), _x(x) {}
-    void operator()( const Type1 * object ) const { (object->*_f)( _o, _x ); }
-    void operator()( const Type1& object ) const { (object.*_f)( _o, _x ); }
-private:
-    const funcPtr _f;
-    std::ostream& _o;
-    const Type2 _x;
-};
-
-
-template <class Type> struct EQStr
-{
-    EQStr( const std::string & s ) : _s(s) {}
-    bool operator()(const Type * e1 ) const { return e1->name() == _s; }
-private:
-    const std::string & _s;
 };
 
 template <class Type> struct EqualsReplica {
