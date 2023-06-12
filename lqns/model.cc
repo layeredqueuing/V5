@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 16703 2023-04-30 10:45:48Z greg $
+ * $Id: model.cc 16736 2023-06-08 16:11:47Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -443,7 +443,7 @@ Model::setModelParameters()
 	_iteration_limit = Pragma::iterationLimit() > 0 ? Pragma::iterationLimit() : getDOM()->getModelIterationLimitValue();
     }
     if ( _iteration_limit < 1 ) {
-	LQIO::input_error2( ADV_ITERATION_LIMIT, _iteration_limit, 50 );
+	LQIO::input_error( ADV_ITERATION_LIMIT, _iteration_limit, 50 );
 	_iteration_limit =  50;
     }
     if ( _iteration_limit != getDOM()->getModelIterationLimitValue() ) {
@@ -452,10 +452,10 @@ Model::setModelParameters()
 
     _convergence_value = Pragma::convergenceValue() > 0. ? Pragma::convergenceValue() : getDOM()->getModelConvergenceValue();
     if ( _convergence_value <= 0. ) {
-	LQIO::input_error2( ADV_CONVERGENCE_VALUE, _convergence_value, 0.00001 );
+	LQIO::input_error( ADV_CONVERGENCE_VALUE, _convergence_value, 0.00001 );
 	_convergence_value = 0.00001;
     } else if ( _convergence_value > 0.01 ) {
-	LQIO::input_error2( ADV_LARGE_CONVERGENCE_VALUE, _convergence_value );
+	LQIO::input_error( ADV_LARGE_CONVERGENCE_VALUE, _convergence_value );
     }
     if ( _convergence_value != getDOM()->getModelConvergenceValue() ) {
 	const_cast<LQIO::DOM::Document *>(getDOM())->setModelConvergence( new LQIO::DOM::ConstantExternalVariable( _convergence_value ) );
@@ -463,7 +463,7 @@ Model::setModelParameters()
     
     _underrelaxation = Pragma::underrelaxation() > 0. ? Pragma::underrelaxation() : getDOM()->getModelUnderrelaxationCoefficientValue();
     if ( _underrelaxation <= 0.0 || 2.0 < _underrelaxation ) {
-	LQIO::input_error2( ADV_UNDERRELAXATION, _underrelaxation );
+	LQIO::input_error( ADV_UNDERRELAXATION, _underrelaxation );
 	_underrelaxation = 0.9;
     }
     if ( _underrelaxation != getDOM()->getModelUnderrelaxationCoefficientValue() ) {
@@ -694,8 +694,8 @@ void
 Model::configure()
 {
     _MVAStats.resize( nSubmodels() );	/* MVA statistics by level.	*/
-    std::for_each( __task.begin(), __task.end(), Exec1<Entity,unsigned>( &Entity::configure, nSubmodels() ) );
-    std::for_each( __processor.begin(), __processor.end(), Exec1<Entity,unsigned>( &Entity::configure, nSubmodels() ) );
+    for ( auto& task : __task ) task->configure( nSubmodels() );
+    for ( auto& processor : __processor ) processor->configure( nSubmodels() );
     if ( __think_server ) {
 	__think_server->configure( nSubmodels() );
     }

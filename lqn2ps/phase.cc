@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16551 2023-03-19 14:55:57Z greg $
+ * $Id: phase.cc 16736 2023-06-08 16:11:47Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -12,9 +12,10 @@
 
 #include "lqn2ps.h"
 #include <algorithm>
-#include <cstdlib>
-#include <string.h>
 #include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <functional>
 #include <lqio/error.h>
 #include <lqio/dom_phase.h>
 #include <lqio/dom_extvar.h>
@@ -428,7 +429,7 @@ Phase::serviceTimeForSRVNInput() const
 	/* Add in processor queueing if it isn't selected */
 
 	const std::set<const Processor *>& processors = owner()->processors();
-	if ( std::any_of( processors.begin(), processors.end(), Predicate<Processor>( &Processor::isSelected ) ) ) {
+	if ( std::any_of( processors.begin(), processors.end(), std::mem_fn( &Processor::isSelected ) ) ) {
 	    time += queueingTime();		/* queueing time is already multiplied my nRendezvous.  See lqns/parasrvn. */
 	}
     }
@@ -528,7 +529,7 @@ Phase::Histogram&
 Phase::Histogram::set( const double hist_min, const double hist_max, const unsigned n_bins )
 {
     if ( hist_min < 0 ) {
-	LQIO::input_error2( LQIO::ERR_HISTOGRAM_INVALID_MIN, hist_min );
+	LQIO::input_error( LQIO::ERR_HISTOGRAM_INVALID_MIN, hist_min );
     }
 
     myMin       = hist_min;

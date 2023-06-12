@@ -151,7 +151,7 @@ Task::create( const LQIO::DOM::Task * dom )
 
     Processor * processor = Processor::find( dom->getProcessor()->getName() );
     if ( !processor ) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, dom->getProcessor()->getName().c_str() );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, dom->getProcessor()->getName().c_str() );
 	return nullptr;
     }
 
@@ -171,7 +171,7 @@ Task::create( const LQIO::DOM::Task * dom )
 	/* Fall through */
     case SCHEDULE_CUSTOMER:
 	if ( dom->hasQueueLength() ) {
-	    LQIO::input_error2( LQIO::WRN_TASK_QUEUE_LENGTH, task_name.c_str() );
+	    LQIO::input_error( LQIO::WRN_TASK_QUEUE_LENGTH, task_name.c_str() );
 	}
 	if ( dom->isInfinite() ) {
 	    dom->input_error( LQIO::ERR_REFERENCE_TASK_IS_INFINITE );
@@ -197,7 +197,7 @@ Task::create( const LQIO::DOM::Task * dom )
 	    dom->runtime_error( LQIO::ERR_NON_REF_THINK_TIME );
 	}
 	if ( dom->hasQueueLength() ) {
-	    LQIO::input_error2( LQIO::WRN_TASK_QUEUE_LENGTH, task_name.c_str() );
+	    LQIO::input_error( LQIO::WRN_TASK_QUEUE_LENGTH, task_name.c_str() );
 	}
 	if ( dom->isMultiserver() ) {
 	    dom->runtime_error( LQIO::WRN_INFINITE_MULTI_SERVER, dom->getCopiesValue() );
@@ -207,7 +207,7 @@ Task::create( const LQIO::DOM::Task * dom )
 
     case SCHEDULE_SEMAPHORE:
 	if ( dom->hasQueueLength() ) {
-	    LQIO::input_error2( LQIO::WRN_TASK_QUEUE_LENGTH, task_name.c_str() );
+	    LQIO::input_error( LQIO::WRN_TASK_QUEUE_LENGTH, task_name.c_str() );
 	}
 	if ( dom->getCopiesValue() != 1 ) {
 	    dom->runtime_error( LQIO::ERR_INFINITE_SERVER );
@@ -217,7 +217,7 @@ Task::create( const LQIO::DOM::Task * dom )
 	    dom->runtime_error( LQIO::ERR_INFINITE_SERVER );
 	    dom->setCopiesValue( 1 );
 	} else if ( n_copies > MAX_MULT ) {
-	    LQIO::input_error2( LQIO::ERR_TOO_MANY_X, "multi-server copies", MAX_MULT );
+	    LQIO::input_error( LQIO::ERR_TOO_MANY_X, "multi-server copies", MAX_MULT );
 	    dom->setCopiesValue( MAX_MULT );
 	}
 #endif
@@ -427,7 +427,7 @@ Task::add_activity( LQIO::DOM::Activity * dom )
 {
     Activity * activity = find_activity( dom->getName() );
     if ( activity ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Activity", dom->getName().c_str() );
+	LQIO::input_error( LQIO::ERR_DUPLICATE_SYMBOL, "Activity", dom->getName().c_str() );
     } else {
 	activity = new Activity( dom, this );
 	activities.push_back( activity );

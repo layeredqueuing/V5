@@ -8,7 +8,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 16557 2023-03-20 10:21:04Z greg $
+ * $Id: phase.h 16726 2023-06-07 19:42:02Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -62,6 +62,16 @@ public:
 
 	std::vector<Phase::Histogram::Bin> bins;	/* */
     };
+
+    struct mem_fn
+    {
+	typedef bool (Phase::*predicate)() const;
+	mem_fn( const predicate p ) : _p(p) {};
+	bool operator()( const std::pair<unsigned,Phase>& phase ) const { return (phase.second.*_p)(); }
+    private:
+	const predicate _p;
+    };
+    
 
 private:
     struct SetChain {
@@ -158,13 +168,4 @@ private:
 
 inline std::ostream& operator<<( std::ostream& output, const Phase& ) { return output; }
 inline std::ostream& operator<<( std::ostream& output, const Phase::Histogram::Bin& ) { return output; }
-
-template <> struct Predicate<Phase>
-{
-    typedef bool (Phase::*predicate)() const;
-    Predicate<Phase>( const predicate p ) : _p(p) {};
-    bool operator()( const std::pair<unsigned,Phase>& phase ) const { return (phase.second.*_p)(); }
-private:
-    const predicate _p;
-};
 #endif

@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16557 2023-03-20 10:21:04Z greg $
+ * $Id: entry.cc 16736 2023-06-08 16:11:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -268,9 +268,9 @@ Entry::addCall( const unsigned int p, LQIO::DOM::Call* domCall )
     /* Internal Entry references */
     Entry * toEntry = Entry::find( to_entry_name );
     if ( !toEntry ) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, to_entry_name );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, to_entry_name );
     } else if ( this == toEntry ) {
-	LQIO::input_error2( LQIO::ERR_SRC_EQUALS_DST, name().c_str(), to_entry_name );
+	LQIO::input_error( LQIO::ERR_SRC_EQUALS_DST, name().c_str(), to_entry_name );
     } else if ( domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS) {
 	rendezvous( toEntry, p, domCall );
     } else if ( domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY ) {
@@ -899,7 +899,7 @@ Entry::Cv_sqr() const
 bool
 Entry::hasHistogram() const
 {
-    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &Phase::hasHistogram ) );
+    return std::any_of( _phases.begin(), _phases.end(), Phase::mem_fn( &Phase::hasHistogram ) );
 }
 
 
@@ -998,7 +998,7 @@ Entry::maxServiceTime( const unsigned p ) const
 bool
 Entry::hasMaxServiceTime() const
 {
-    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &Phase::hasMaxServiceTime ) );
+    return std::any_of( _phases.begin(), _phases.end(), Phase::mem_fn( &Phase::hasMaxServiceTime ) );
 }
 
 
@@ -1010,7 +1010,7 @@ Entry::hasMaxServiceTime() const
 bool
 Entry::hasDeterministicPhases() const
 {
-    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &Phase::isDeterministic ) );
+    return std::any_of( _phases.begin(), _phases.end(), Phase::mem_fn( &Phase::isDeterministic ) );
 }
 
 
@@ -1022,7 +1022,7 @@ Entry::hasDeterministicPhases() const
 bool
 Entry::hasNonExponentialPhases() const
 {
-    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &Phase::isNonExponential ) );
+    return std::any_of( _phases.begin(), _phases.end(), Phase::mem_fn( &Phase::isNonExponential ) );
 }
 
 
@@ -1033,7 +1033,7 @@ Entry::hasNonExponentialPhases() const
 bool
 Entry::hasThinkTime() const
 {
-    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &Phase::hasThinkTime ) );
+    return std::any_of( _phases.begin(), _phases.end(), Phase::mem_fn( &Phase::hasThinkTime ) );
 }
 
 
@@ -1078,7 +1078,7 @@ Entry::queueingTime( const unsigned p ) const
 bool
 Entry::hasQueueingTime() const
 {
-    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &Phase::hasQueueingTime ) );
+    return std::any_of( _phases.begin(), _phases.end(), Phase::mem_fn( &Phase::hasQueueingTime ) );
 }
 
 

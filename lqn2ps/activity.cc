@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 16551 2023-03-19 14:55:57Z greg $
+ * $Id: activity.cc 16736 2023-06-08 16:11:47Z greg $
  */
 
 #include "activity.h"
@@ -803,7 +803,7 @@ Activity::serviceTimeForSRVNInput() const
     /* Add in processor queueing is it isn't selected */
 
     const std::set<const Processor *>& processors = owner()->processors();
-    if ( std::any_of( processors.begin(), processors.end(), Predicate<Processor>( &Processor::isSelected ) ) ) {
+    if ( std::any_of( processors.begin(), processors.end(), std::mem_fn( &Processor::isSelected ) ) ) {
 	time += queueingTime();		/* queueing time is already multiplied my nRendezvous.  See lqns/parasrvn. */
     }
 
@@ -1255,7 +1255,7 @@ Activity::add_calls()
 
 	/* Make sure all is well */
 	if (!destEntry) {
-	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
+	    LQIO::input_error( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
 	} else if (!destEntry->isReferenceTaskEntry()) {
 	    isSpecified(true);
 	    if (domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY) {
@@ -1294,7 +1294,7 @@ Activity::add_reply_list ()
 
 	/* Check it out and add it to the list */
 	if (myEntry == nullptr) {
-	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, domEntry->getName().c_str() );
+	    LQIO::input_error( LQIO::ERR_NOT_DEFINED, domEntry->getName().c_str() );
 	} else if (myEntry->owner() != owner()) {
 	    getDOM()->input_error( LQIO::ERR_WRONG_TASK_FOR_ENTRY, owner()->name().c_str() );
 	} else {
@@ -1326,7 +1326,7 @@ Activity::add_activity_lists()
 	    /* Add the activity to the appropriate list based on what kind of list we have */
 	    Activity * nextActivity = task->findActivity( domAct->getName() );
 	    if ( !nextActivity ) {
-		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, domAct->getName().c_str() );
+		LQIO::input_error( LQIO::ERR_NOT_DEFINED, domAct->getName().c_str() );
 		continue;
 	    }
 
@@ -1361,7 +1361,7 @@ Activity::add_activity_lists()
 	    const LQIO::DOM::Activity* domAct = *iter;
 	    Activity * nextActivity = task->findActivity( domAct->getName() );
 	    if ( !nextActivity ) {
-		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, domAct->getName().c_str() );
+		LQIO::input_error( LQIO::ERR_NOT_DEFINED, domAct->getName().c_str() );
 		continue;
 	    }
 

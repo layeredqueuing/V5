@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 16706 2023-05-01 16:07:55Z greg $
+ * $Id: actlist.cc 16724 2023-06-07 13:13:12Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -511,7 +511,7 @@ AndOrForkActivityList::~AndOrForkActivityList()
 AndOrForkActivityList&
 AndOrForkActivityList::configure( const unsigned n )
 {
-    std::for_each( entries().begin(), entries().end(), Exec1<Entry,const unsigned>( &Entry::configure, n ) );
+    for ( auto& entry : entries() ) entry->configure( n );
     return *this;
 }
 
@@ -520,7 +520,7 @@ AndOrForkActivityList::configure( const unsigned n )
 ActivityList&
 AndOrForkActivityList::setSurrogateDelaySize( size_t size )
 {
-    std::for_each( entries().begin(), entries().end(), Exec1<Entry,size_t>( &Entry::setSurrogateDelaySize, size ) );
+    for ( auto& entry : entries() ) entry->setSurrogateDelaySize( size );
     return *this;
 }
 #endif
@@ -1985,7 +1985,7 @@ RepeatActivityList::add( Activity * activity )
 RepeatActivityList&
 RepeatActivityList::configure( const unsigned n )
 {
-    std::for_each( entries().begin(), entries().end(), Exec1<Entry,unsigned>( &Entry::configure, n ) );
+    for ( auto& entry : entries() ) entry->configure( n );
     return *this;
 }
 
@@ -1995,7 +1995,7 @@ RepeatActivityList::configure( const unsigned n )
 ActivityList&
 RepeatActivityList::setSurrogateDelaySize( size_t size )
 {
-    std::for_each( entries().begin(), entries().end(), Exec1<Entry,size_t>( &Entry::setSurrogateDelaySize, size ) );
+    for ( auto& entry : entries() ) entry->setSurrogateDelaySize( size );
     return *this;
 }
 #endif

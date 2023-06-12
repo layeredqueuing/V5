@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16705 2023-05-01 15:12:36Z greg $
+ * $Id: task.cc 16736 2023-06-08 16:11:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -70,7 +70,7 @@ Task::Task( LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup,
       _has_syncs(false),
       _has_quorum(false)
 {
-    std::for_each( entries.begin(), entries.end(), Exec1<Entry,const Entity *>( &Entry::owner, this ) );
+    for ( auto& entry : entries ) entry->owner( this );
 }
 
 
@@ -254,8 +254,8 @@ Task::configure( const unsigned nSubmodels )
     _clientStation.resize( nSubmodels, 0 );	/* Prepare client cltn		*/
 
     if ( hasActivities() ) {
-	std::for_each( activities().begin(), activities().end(), Exec1<Activity,unsigned>( &Activity::configure, nSubmodels ) );
-	std::for_each( precedences().begin(), precedences().end(), Exec1<ActivityList,unsigned>( &ActivityList::configure, nSubmodels ) );
+	for ( auto& activity : activities() ) activity->configure( nSubmodels );
+	for ( auto& precedence : precedences() ) precedence->configure( nSubmodels );
     }
     Entity::configure( nSubmodels );
 
@@ -392,7 +392,7 @@ Task::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
 	    customers = std::min( customers, copies() );
 	}
 	_customers[stack.front()] = customers;
-	std::for_each( entries().begin(), entries().end(), Exec2<Entry,std::deque<const Task *>&,unsigned int>( &Entry::initCustomers, stack, customers ) );
+	for ( auto& entry : entries() ) entry->initCustomers( stack, customers );
 #if BUG_425
 	std::cerr << std::setw( stack.size() * 2 ) << " " << print_name() << " pop." << std::endl;
 #endif
@@ -444,9 +444,9 @@ Task::initProcessor()
 Task&
 Task::setSurrogateDelaySize( size_t n_chains )
 {
-    std::for_each( entries().begin(), entries().end(), Exec1<Entry,size_t>( &Entry::setSurrogateDelaySize, n_chains ) );
-    std::for_each( activities().begin(), activities().end(), Exec1<Phase,size_t>( &Phase::setSurrogateDelaySize, n_chains ) );
-    std::for_each( precedences().begin(), precedences().end(), Exec1<ActivityList,size_t>( &ActivityList::setSurrogateDelaySize, n_chains ) );
+    for ( auto& entry : entries() ) entry->setSurrogateDelaySize( n_chains );
+    for ( auto& activity : activities() ) activity->setSurrogateDelaySize( n_chains );
+    for ( auto& precedence : precedences() ) precedence->setSurrogateDelaySize( n_chains );
     return *this;
 }
 #endif
@@ -918,15 +918,15 @@ Task::updateWait( const Submodel& submodel, const double relax )
 {
     /* Do updateWait for each activity first. */
 
-    std::for_each( activities().begin(), activities().end(), Exec2<Phase,const Submodel&,double>( &Phase::updateWait, submodel, relax ) );
+    for ( auto& activity : activities() ) activity->updateWait( submodel, relax );
 
     /* Entry updateWait for activity entries will update waiting times. */
 
-    std::for_each( entries().begin(), entries().end(), Exec2<Entry,const Submodel&,double>( &Entry::updateWait, submodel, relax ) );
+    for ( auto& entry : entries() ) entry->updateWait( submodel, relax );
 
     /* Now recompute thread idle times */
 
-    std::for_each( std::next(threads().begin()), threads().end(), Exec1<Thread,double>( &Thread::setIdleTime, relax ) );
+    for ( Vector<Thread *>::const_iterator thread = std::next(threads().begin()); thread != threads().end(); ++thread ) (*thread)->setIdleTime( relax );
     return *this;
 }
 
@@ -2115,7 +2115,7 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
     Processor * processor = Processor::find( processor_name );
 
     if ( !processor ) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, processor_name.c_str() );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, processor_name.c_str() );
 	return nullptr;
     }
 
@@ -2127,7 +2127,7 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
 	const std::string& group_name = group_dom->getName();
 	group = Group::find( group_name );
 	if ( !group ) {
-	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, group_name.c_str() );
+	    LQIO::input_error( LQIO::ERR_NOT_DEFINED, group_name.c_str() );
 	}
     }
 
@@ -2165,7 +2165,7 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
 	if ( entries.size() != N_SEMAPHORE_ENTRIES ) {
 	    dom->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, entries.size(), N_SEMAPHORE_ENTRIES );
 	}
-	LQIO::input_error2( LQIO::ERR_NOT_SUPPORTED, "Semaphore tasks" );
+	LQIO::input_error( LQIO::ERR_NOT_SUPPORTED, "Semaphore tasks" );
 	//	task = new SemaphoreTask( task_name, n_copies, replications, processor, entries, priority );
 	//	break;
 	/* fall through for now */

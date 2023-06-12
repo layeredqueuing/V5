@@ -256,7 +256,7 @@ Phase::add_call( LQIO::DOM::Call * call )
     LQIO::DOM::Entry* toDOMEntry = const_cast<LQIO::DOM::Entry*>(call->getDestinationEntry());
     Entry* to_entry = Entry::find(toDOMEntry->getName());
     if (!to_entry) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
     } else if ( call->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS ) {
 	if ( to_entry->test_and_set_recv( Requesting_Type::RENDEZVOUS ) ) {
 	    _call[to_entry]._dom = call;		/* Save dom */
@@ -298,7 +298,7 @@ Phase::check()
     } else {
 	_n_slices = static_cast<unsigned int>(round(ysum + zsum)) + 1;
 	if ( n_slices() >= DIMSLICE ) {
-	    input_error2( LQIO::ERR_TOO_MANY_X, "slices ", DIMSLICE );
+	    LQIO::input_error( LQIO::ERR_TOO_MANY_X, "slices ", DIMSLICE );
 	}
     }
     _mean_processor_calls = ysum + 1;

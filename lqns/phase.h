@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 16698 2023-04-24 00:52:30Z greg $
+ * $Id: phase.h 16740 2023-06-11 12:32:45Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -196,7 +196,6 @@ private:
     };
 
 public:
-public:
     Phase( const std::string& = "" );
     Phase( const Phase&, unsigned int );
     Phase( const Phase& );		/* For _phase.resize() */
@@ -276,19 +275,17 @@ public:
     /* computation */
 	
     virtual double waitExcept( const unsigned ) const;
-#if PAN_REPLICATION
-    double waitExceptChain( const unsigned, const unsigned k );
-#endif
     Phase& updateWait( const Submodel&, const double );
     void computeVariance();	 			/* Computed variance.		*/
-    double getProcWait( unsigned int submodel, const double relax ); // tomari quorum
-    double getTaskWait( unsigned int submodel, const double relax );
-    double getRendezvous( unsigned int submodel, const double relax );
+    double getProcWait( unsigned int submodel ); // tomari quorum
+    double getTaskWait( unsigned int submodel );
+    double getRendezvous( unsigned int submodel );
 #if PAN_REPLICATION
+    double waitExceptChain( const unsigned, const unsigned k );
     double updateWaitReplication( const Submodel& );
-    double getReplicationProcWait( unsigned int submodel, const double relax );
-    double getReplicationTaskWait( unsigned int submodel, const double relax ); //tomari quorum
-    double getReplicationRendezvous( unsigned int submodel, const double relax );
+    double getReplicationProcWait( unsigned int submodel );
+    double getReplicationTaskWait(); //tomari quorum
+    double getReplicationRendezvous( unsigned int submodel );
 #endif
     virtual bool getInterlockedTasks( Interlock::CollectTasks& path ) const;
 

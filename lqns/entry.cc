@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16704 2023-04-30 11:27:18Z greg $
+ * $Id: entry.cc 16736 2023-06-08 16:11:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -241,7 +241,7 @@ Entry::check() const
 Entry&
 Entry::configure( const unsigned nSubmodels )
 {
-    std::for_each( _phase.begin(), _phase.end(), Exec1<NullPhase,const unsigned>( &NullPhase::configure, nSubmodels ) );
+    for ( auto& phase : _phase ) phase.configure( nSubmodels );
     _total.configure( nSubmodels );
 
     const unsigned n_e = Model::__entry.size() + 1;
@@ -338,7 +338,7 @@ Entry::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
 	Activity::Collect collect( &Activity::collectCustomers, stack, customers );
 	getStartActivity()->collect( activityStack, entryStack, collect );
     } else {
-	std::for_each( _phase.begin(), _phase.end(), Exec2<Phase,std::deque<const Task *>&,unsigned int>( &Phase::initCustomers, stack, customers ) );
+	for ( auto& phase : _phase ) phase.initCustomers( stack, customers );
     }
     return *this;
 }
@@ -375,7 +375,7 @@ Entry::initServiceTime()
 Entry&
 Entry::setSurrogateDelaySize( size_t n_chains )
 {
-    std::for_each( _phase.begin(), _phase.end(), Exec1<Phase,size_t>( &Phase::setSurrogateDelaySize, n_chains ) );
+    for ( auto& phase : _phase ) phase.setSurrogateDelaySize( n_chains );
     return *this;
 }
 #endif
@@ -564,7 +564,7 @@ Entry::entrySemaphoreTypeOk( const LQIO::DOM::Entry::Semaphore aType )
     if ( _semaphoreType == LQIO::DOM::Entry::Semaphore::NONE ) {
 	_semaphoreType = aType;
     } else if ( _semaphoreType != aType ) {
-	LQIO::input_error2( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name().c_str() );
+	LQIO::input_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name().c_str() );
 	return false;
     }
     return true;
@@ -1284,7 +1284,7 @@ TaskEntry::computeVariance()
 {
     _total.setVariance( 0.0 );
     if ( isActivityEntry() ) {
-	std::for_each( _phase.begin(), _phase.end(), Exec1<NullPhase,double>( &Phase::setVariance, 0.0 ) );
+	for ( auto& phase : _phase ) phase.setVariance( 0.0 );
 	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack; //( dynamic_cast<const Task *>(owner())->activities().size() );
 	entryStack.push_back( this );
@@ -1323,9 +1323,9 @@ Entry::set( const Entry * src, const Activity::Collect& data )
         setThroughput( src->throughput() * data.rate() );
     } else if ( f == &Activity::collectWait ) {
 	if ( submodel == 0 ) {
-	    std::for_each( _phase.begin(), _phase.end(), Exec1<NullPhase,double>( &Phase::setVariance, 0.0 ) );
+	    for ( auto& phase : _phase ) phase.setVariance( 0.0 );
 	} else {
-	    std::for_each( _phase.begin(), _phase.end(), Exec2<NullPhase,unsigned int,double>( &Phase::setWaitTime, submodel, 0.0 ) );
+	    for ( auto& phase : _phase ) phase.setWaitTime( submodel, 0.0 );
 	}
 #if PAN_REPLICATION
     } else if ( f == &Activity::collectReplication ) {
@@ -1358,7 +1358,7 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 
     if ( isActivityEntry() ) {
 
-	std::for_each( _phase.begin(), _phase.end(), Exec2<NullPhase,unsigned int,double>( &Phase::setWaitTime, submodel, 0.0 ) );
+	for ( auto& phase : _phase ) phase.setWaitTime( submodel, 0.0 );
 
 	if ( flags.trace_activities ) {
 	    std::cout << "--- AggreateWait for entry " << name() << " ---" << std::endl;
@@ -1382,7 +1382,7 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 
     } else {
 
-	std::for_each( _phase.begin(), _phase.end(), Exec2<Phase,const Submodel&,double>( &Phase::updateWait, aSubmodel, relax ) );
+	for ( auto& phase : _phase ) phase.updateWait( aSubmodel, relax );
 
     }
 
@@ -1722,7 +1722,7 @@ map_entry_name( const std::string& entry_name, Entry * & entry, bool receiver, c
     entry = Entry::find( entry_name );
 
     if ( !entry ) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, entry_name.c_str() );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, entry_name.c_str() );
 	rc = false;
     } else if ( receiver && entry->owner()->isReferenceTask() ) {
 	entry->owner()->getDOM()->input_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, entry_name.c_str() );
@@ -1797,7 +1797,7 @@ Entry::setForwardingInformation( Entry* toEntry, LQIO::DOM::Call * call )
     if ( owner()->isReferenceTask() ) {
 	owner()->getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_FORWARDING, name().c_str() );
     } else if ( forward( toEntry ) > 0.0 ) {
-	LQIO::input_error2( LQIO::WRN_MULTIPLE_SPECIFICATION );
+	LQIO::input_error( LQIO::WRN_MULTIPLE_SPECIFICATION );
     } else {
 	forward( toEntry, call );
     }
@@ -1817,13 +1817,6 @@ set_start_activity (Task* task, LQIO::DOM::Entry* entry_DOM)
 }
 
 /* ---------------------------------------------------------------------- */
-
-bool
-Entry::equals::operator()( const Entry * entry ) const
-{
-    return entry->name() == _name && entry->getReplicaNumber() == _replica;
-}
-
 
 /*
  * Find the entry and return it.

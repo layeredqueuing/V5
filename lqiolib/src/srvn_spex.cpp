@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 16463 2023-03-05 12:10:03Z greg $
+ *  $Id: srvn_spex.cpp 16736 2023-06-08 16:11:47Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -119,7 +119,7 @@ namespace LQIO {
     bool Spex::duplicate_symbol( const std::string& name  )
     {
 	if ( !name.empty() && (Spex::has_input_var( name ) || Spex::has_observation_var( name )) ) {
-	    LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "variable", name.c_str() );
+	    LQIO::input_error( LQIO::ERR_DUPLICATE_SYMBOL, "variable", name.c_str() );
 	    return true;
 	}
 	return false;
@@ -555,7 +555,7 @@ namespace LQIO {
 	    if ( var->first == "$0" ) continue;		// Ignore $0.
 	    const std::string& name = var->first;
 	    if ( var->second == nullptr && !has_observation_var( name ) && !has_input_var( name ) ) {
-		LQIO::input_error2( LQIO::ADV_SPEX_UNUSED_RESULT_VARIABLE, name.c_str() );
+		LQIO::input_error( LQIO::ADV_SPEX_UNUSED_RESULT_VARIABLE, name.c_str() );
 	    }
 	}
 
@@ -645,7 +645,7 @@ namespace LQIO {
 		/* X2 handling here */
 
 		// Too many independent variables
-		LQIO::input_error2( ADV_TOO_MANY_GNUPLOT_VARIABLES, name.c_str() );
+		LQIO::input_error( ADV_TOO_MANY_GNUPLOT_VARIABLES, name.c_str() );
 		continue;		/* Ignore */
 
 	    } else {
@@ -700,7 +700,7 @@ namespace LQIO {
 		    y2_vars += 1;
  		} else {
 		    // Too many dependent variable types.
-		    LQIO::input_error2( ADV_TOO_MANY_GNUPLOT_VARIABLES, name.c_str() );
+		    LQIO::input_error( ADV_TOO_MANY_GNUPLOT_VARIABLES, name.c_str() );
 		    continue;
 		}
 		const size_t y = _result_pos.at(name);		/* Index of this y variable 	*/
@@ -773,7 +773,7 @@ namespace LQIO {
 
 		} else {
 		// Too many independent variables
-		    LQIO::input_error2( ADV_TOO_MANY_GNUPLOT_VARIABLES, name.c_str() );
+		    LQIO::input_error( ADV_TOO_MANY_GNUPLOT_VARIABLES, name.c_str() );
 		    continue;		/* Ignore */
 		}
 
@@ -802,7 +802,7 @@ namespace LQIO {
 		    z_vars += 1;
  		} else {
 		    // Too many dependent variable types.
-		    LQIO::input_error2( ADV_TOO_MANY_GNUPLOT_VARIABLES, name.c_str() );
+		    LQIO::input_error( ADV_TOO_MANY_GNUPLOT_VARIABLES, name.c_str() );
 		    continue;
 		}
 
@@ -1282,10 +1282,10 @@ void * spex_assignment_statement( const char * name, void * expr, const bool con
 void * spex_array_assignment( const char * name, void * list, const bool constant_expression )
 {
     if ( LQIO::Spex::has_input_var( name ) || LQIO::Spex::has_observation_var( name ) ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "variable", name );
+	LQIO::input_error( LQIO::ERR_DUPLICATE_SYMBOL, "variable", name );
 	return nullptr;
     } else if ( !constant_expression ) {
-	LQIO::input_error2( LQIO::ERR_NOT_A_CONSTANT, name );
+	LQIO::input_error( LQIO::ERR_NOT_A_CONSTANT, name );
 	return nullptr;
     }
 
@@ -1305,7 +1305,7 @@ void * spex_array_assignment( const char * name, void * list, const bool constan
 void * spex_array_comprehension( const char * name, double begin, double end, double stride )
 {
     if ( LQIO::Spex::has_input_var( name ) || LQIO::Spex::has_observation_var( name ) ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "variable", name );
+	LQIO::input_error( LQIO::ERR_DUPLICATE_SYMBOL, "variable", name );
 	return nullptr;
     }
 
@@ -1319,7 +1319,7 @@ void * spex_array_comprehension( const char * name, double begin, double end, do
 void * spex_forall( const char * iter_name, const char * name, void * expr )
 {
     if ( LQIO::Spex::has_input_var( name ) || LQIO::Spex::has_observation_var( name ) ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "variable", name );
+	LQIO::input_error( LQIO::ERR_DUPLICATE_SYMBOL, "variable", name );
 	return nullptr;
     }
 
@@ -1477,7 +1477,7 @@ void * spex_entry_observation( const void * obj, const int key, const int phase,
 	/* This is by phase... but LQX needs entry and phase name */
 	return LQIO::spex.observation( entry, LQIO::Spex::ObservationInfo( key, phase, var, conf, var2 ) );
     } else {
-	input_error2( LQIO::WRN_INVALID_SPEX_RESULT_PHASE, phase, LQIO::Spex::__key_code_map.at(key).first.c_str(), entry->getName().c_str() );
+	input_error( LQIO::WRN_INVALID_SPEX_RESULT_PHASE, phase, LQIO::Spex::__key_code_map.at(key).first.c_str(), entry->getName().c_str() );
 	return nullptr;
     }
 
@@ -1499,7 +1499,7 @@ void * spex_call_observation( const void * src, const int key, const int phase, 
     const LQIO::DOM::Entry * dst_entry = static_cast<const LQIO::DOM::Entry *>(dst);
 
     if ( phase <= 0 || (int)LQIO::DOM::Phase::MAX_PHASE < phase ) {
-	input_error2( LQIO::WRN_INVALID_SPEX_RESULT_PHASE, phase, LQIO::Spex::__key_code_map.at(key).first.c_str(), src_entry->getName().c_str() );
+	input_error( LQIO::WRN_INVALID_SPEX_RESULT_PHASE, phase, LQIO::Spex::__key_code_map.at(key).first.c_str(), src_entry->getName().c_str() );
 	return nullptr;
     } else {
 	return LQIO::spex.observation( src_entry, phase, dst_entry, LQIO::Spex::ObservationInfo( key, phase, var, conf, var2 ) );
@@ -1515,7 +1515,7 @@ void * spex_fwd_observation( const void * src, const int key, const int phase, c
     const LQIO::DOM::Entry * dst_entry = static_cast<const LQIO::DOM::Entry *>(dst);
 
     if ( phase != 1 ) {
-	input_error2( LQIO::WRN_INVALID_SPEX_RESULT_PHASE, phase, LQIO::Spex::__key_code_map.at(key).first.c_str(), src_entry->getName().c_str() );
+	input_error( LQIO::WRN_INVALID_SPEX_RESULT_PHASE, phase, LQIO::Spex::__key_code_map.at(key).first.c_str(), src_entry->getName().c_str() );
     }
     return LQIO::spex.observation( src_entry, dst_entry, LQIO::Spex::ObservationInfo( key, 0, var, conf, var2 ) );
 }

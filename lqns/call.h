@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 16698 2023-04-24 00:52:30Z greg $
+ * $Id: call.h 16709 2023-05-07 11:59:33Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -285,9 +285,7 @@ private:
     const LQIO::DOM::Call* _dom;	/* Input */
     const Phase* _source;		/* Calling Phase/activity.	*/
     const Entry* _destination;		/* to whom I am referring to	*/
-#if PAN_REPLICATION
     unsigned _chainNumber;
-#endif
     double _wait;			/* Waiting time.		*/
 };
 

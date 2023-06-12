@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 16705 2023-05-01 15:12:36Z greg $
+ * $Id: lqns.h 16724 2023-06-07 13:13:12Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -52,29 +52,6 @@ template <typename Type> inline void Delete( Type x ) { delete x; }
  */
 
 double under_relax( const double old_value, const double new_value, const double relax );
-
-template <class Type1, class Type2> struct Exec1
-{
-    typedef Type1& (Type1::*funcPtr)( Type2 x );
-    Exec1<Type1,Type2>( funcPtr f, Type2 x ) : _f(f), _x(x) {}
-    void operator()( Type1 * object ) const { (object->*_f)( _x ); }
-    void operator()( Type1& object ) const { (object.*_f)( _x ); }
-private:
-    funcPtr _f;
-    Type2 _x;
-};
-
-template <class Type1, class Type2, class Type3> struct Exec2
-{
-    typedef Type1& (Type1::*funcPtr)( Type2 x, Type3 y );
-    Exec2<Type1,Type2,Type3>( funcPtr f, Type2 x, Type3 y ) : _f(f), _x(x), _y(y) {}
-    void operator()( Type1 * object ) const { (object->*_f)( _x, _y ); }
-    void operator()( Type1& object ) const { (object.*_f)( _x, _y ); }
-private:
-    funcPtr _f;
-    Type2 _x;
-    Type3 _y;
-};
 
 template <class Type> struct EqualsReplica {
     EqualsReplica<Type>( const std::string& name, unsigned int replica=1 ) : _name(name), _replica(replica) {}

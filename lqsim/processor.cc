@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 16121 2022-11-17 20:31:33Z greg $
+ * $Id: processor.cc 16736 2023-06-08 16:11:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -87,7 +87,7 @@ Processor::create()
 			      SF_PER_NODE|SF_PER_HOST );
 
     if ( _node_id < 0 || MAX_NODES < _node_id ) {
-	LQIO::input_error2( ERR_CANNOT_CREATE_X, "processor", name().c_str() );
+	LQIO::input_error( ERR_CANNOT_CREATE_X, "processor", name().c_str() );
     } else {
 	processor_table[_node_id] = this;
 	r_util.init( ps_get_node_stat_index( _node_id ) );
@@ -180,7 +180,7 @@ Custom_Processor::create()
     _node_id = ps_build_node2( name().c_str(), multiplicity(), cpu_rate(), cpu_scheduler_task, SF_PER_NODE|SF_PER_HOST );
 
     if ( _node_id < 0 || MAX_NODES < _node_id ) {
-	LQIO::input_error2( ERR_CANNOT_CREATE_X, "processor", name().c_str() );
+	LQIO::input_error( ERR_CANNOT_CREATE_X, "processor", name().c_str() );
     } else {
 	processor_table[_node_id] = this;
     }
@@ -566,12 +566,12 @@ add_communication_delay( const char * from_proc_name, const char * to_proc_name,
     Processor * to_proc   = Processor::find( to_proc_name );
 
     if ( !from_proc ) {
-	input_error2( LQIO::ERR_NOT_DEFINED, from_proc_name );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, from_proc_name );
     } else if ( !to_proc ) {
-	input_error2( LQIO::ERR_NOT_DEFINED, to_proc_name );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, to_proc_name );
 #ifdef	NOTDEF
     } else if ( comm_delay[from_proc][to_proc] != inter_proc_delay ) {
-	input_error2( LQIO::ERR_DELAY_MULTIPLY_DEFINED, from_proc_name, to_proc_name );
+	LQIO::input_error( LQIO::ERR_DELAY_MULTIPLY_DEFINED, from_proc_name, to_proc_name );
     } else {
 	comm_delay[from_proc][to_proc] = delay;
 #endif

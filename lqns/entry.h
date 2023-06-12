@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 16698 2023-04-24 00:52:30Z greg $
+ * $Id: entry.h 16738 2023-06-11 11:42:58Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -126,22 +126,6 @@ public:
     private:
 	std::set<Entity *>& _servers;
     };
-
-
-    /*
-     * Compare two entries by their name and replica number.  The
-     * default replica is one, and will only not be one if replicated
-     * entries are expanded to individual entries.
-     */
-    
-    struct equals {
-	equals( const std::string& name, unsigned int replica=1 ) : _name(name), _replica(replica) {}
-	bool operator()( const Entry * entry ) const;
-    private:
-	const std::string _name;
-	const unsigned int _replica;
-    };
-    
 
     struct sum {
 	typedef double (Entry::*funcPtr)() const;
@@ -338,7 +322,7 @@ public:
     double waitExceptChain( const unsigned, const unsigned, const unsigned ) const; //REP N-R
 #endif
 //    double waitTime( unsigned int submodel ) { return _total.getWaitTimey(submodel); }
-    double getProcWait( const unsigned p, int submodel )  { return _phase[p].getProcWait(submodel, 0) ;}	
+    double getProcWait( const unsigned p, int submodel )  { return _phase[p].getProcWait( submodel ); }	
 
     double residenceTime() const { return _total.residenceTime(); }			/* Found through deltaWait  */
     double residenceTimeForPhase( const unsigned int p ) const { return _phase[p].residenceTime(); }	/* For server service times */

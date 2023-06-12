@@ -580,7 +580,7 @@ Entry::find( const std::string& from_entry_name, Entry * & from_entry, const std
     if ( !from_entry ) {
 	rc = false;
     } else if ( from_entry == to_entry ) {
-	input_error2( LQIO::ERR_SRC_EQUALS_DST, to_entry_name.c_str(), from_entry_name.c_str() );
+	LQIO::input_error( LQIO::ERR_SRC_EQUALS_DST, to_entry_name.c_str(), from_entry_name.c_str() );
 	rc = false;
     }
     return rc;

@@ -1,7 +1,7 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 16121 2022-11-17 20:31:33Z greg $
+ * $Id: target.cc 16736 2023-06-08 16:11:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -249,7 +249,7 @@ Targets::alloc_target_info( Entry * to_entry )
 	
     for ( unsigned t = 0; t < size(); ++t ) {
 	if ( _target[t]._entry == to_entry ) {
-	    input_error2( LQIO::WRN_MULTIPLE_SPECIFICATION );
+	    LQIO::input_error( LQIO::WRN_MULTIPLE_SPECIFICATION );
 	    return false;
 	}
     }

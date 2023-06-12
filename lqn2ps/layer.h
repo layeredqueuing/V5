@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 16557 2023-03-20 10:21:04Z greg $
+ * $Id: layer.h 16726 2023-06-07 19:42:02Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -67,7 +67,6 @@ public:
     Layer& number( const unsigned n );
     unsigned number() const { return _number; }
     unsigned nChains() const { return _chains; }
-
     bool check() const;
     Layer& prune();
 

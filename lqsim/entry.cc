@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 16121 2022-11-17 20:31:33Z greg $
+ * $Id: entry.cc 16736 2023-06-08 16:11:47Z greg $
  */
 
 #include "lqsim.h"
@@ -316,7 +316,7 @@ Entry::test_and_set_semaphore( LQIO::DOM::Entry::Semaphore sema )
 {
     const bool rc = getDOM()->entrySemaphoreTypeOk( sema );
     if ( !rc ) {
-	input_error2( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name().c_str() );
+	input_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name().c_str() );
     } 
     return rc;
 }
@@ -607,7 +607,7 @@ Entry::add( LQIO::DOM::Entry* dom, Task * task )
 {
     Entry * ep = 0;	
     if ( Entry::__entries.size() >= MAX_PORTS ) {
-	input_error2( LQIO::ERR_TOO_MANY_X, "entries", MAX_PORTS );
+	LQIO::input_error( LQIO::ERR_TOO_MANY_X, "entries", MAX_PORTS );
     } else {
 	const char* entry_name = dom->getName().c_str();
 	std::set<Entry *>::const_iterator entry = find_if( Entry::__entries.begin(), Entry::__entries.end(), eqEntryStr( entry_name ) );
@@ -692,7 +692,7 @@ Entry::find( const char * entry_name )
 {
     std::set<Entry *>::const_iterator entry = find_if( Entry::__entries.begin(), Entry::__entries.end(), eqEntryStr( entry_name ) );
     if ( entry == Entry::__entries.end() ) {
-	input_error2( LQIO::ERR_NOT_DEFINED, entry_name );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, entry_name );
 	return nullptr;
     } else {
 	return *entry;
@@ -718,7 +718,7 @@ Entry::find( const char * from_entry_name, Entry * & from_entry, const char * to
     if ( !from_entry ) {
 	rc = false;
     } else if ( from_entry == to_entry ) {
-	input_error2( LQIO::ERR_SRC_EQUALS_DST, to_entry_name, from_entry_name );
+	LQIO::input_error( LQIO::ERR_SRC_EQUALS_DST, to_entry_name, from_entry_name );
 	rc = false;
     }
     return rc;

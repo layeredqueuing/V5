@@ -224,7 +224,7 @@ Activity::add_reply_list()
 	Entry * ep = Entry::find( entry->getName() );
 
 	if ( !ep ) {
-	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, entry->getName().c_str() );
+	    LQIO::input_error( LQIO::ERR_NOT_DEFINED, entry->getName().c_str() );
 	} else if ( ep->task() != task() ) {
 	    get_dom()->input_error( LQIO::ERR_WRONG_TASK_FOR_ENTRY, task()->name() );
 	} else {
@@ -252,7 +252,7 @@ Activity& Activity::add_activity_lists()
 	    const LQIO::DOM::Activity* dom = *iter;
 	    Activity * nextActivity = task()->find_activity( dom->getName().c_str() );
 	    if ( !nextActivity ) {
-		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, dom->getName().c_str() );
+		LQIO::input_error( LQIO::ERR_NOT_DEFINED, dom->getName().c_str() );
 		continue;
 	    }
 
@@ -288,7 +288,7 @@ Activity& Activity::add_activity_lists()
 	    const LQIO::DOM::Activity* dom = *iter;
 	    Activity * nextActivity = task()->find_activity( dom->getName().c_str() );
 	    if ( !nextActivity ) {
-		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, dom->getName().c_str() );
+		LQIO::input_error( LQIO::ERR_NOT_DEFINED, dom->getName().c_str() );
 		continue;
 	    }
 
@@ -793,7 +793,7 @@ Activity::act_and_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList
     if ( _is_start_activity ) {
 	get_dom()->input_error( LQIO::ERR_IS_START_ACTIVITY );
     } else if ( _input ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), _input->get_dom()->getLineNumber() );
+	LQIO::input_error( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), _input->get_dom()->getLineNumber() );
     } else {
 	list = realloc_list( ActivityList::Type::AND_FORK, input_list, dom_activitylist );
 	list->list[list->_n_acts++] = this;
@@ -816,7 +816,7 @@ Activity::act_or_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList 
     if ( _is_start_activity ) {
 	get_dom()->input_error( LQIO::ERR_IS_START_ACTIVITY );
     } else if ( _input ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name(), _input->get_dom()->getLineNumber() );
+	LQIO::input_error( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name(), _input->get_dom()->getLineNumber() );
     } else {
 	list = realloc_list( ActivityList::Type::OR_FORK, input_list, dom_activitylist );
 	list->u.fork.prob[list->_n_acts] = dom_activitylist->getParameter(dynamic_cast<LQIO::DOM::Activity *>(get_dom()));
@@ -840,7 +840,7 @@ Activity::act_loop_list ( ActivityList * input_list, LQIO::DOM::ActivityList * d
     if ( _is_start_activity ) {
 	get_dom()->input_error( LQIO::ERR_IS_START_ACTIVITY );
     } else if ( _input ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name(), _input->get_dom()->getLineNumber() );
+	LQIO::input_error( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name(), _input->get_dom()->getLineNumber() );
     } else {
 	list = realloc_list( ActivityList::Type::LOOP, input_list, dom_activitylist );
 	const LQIO::DOM::ExternalVariable * count = dom_activitylist->getParameter(dynamic_cast<LQIO::DOM::Activity *>(get_dom()));
@@ -869,7 +869,7 @@ Activity::realloc_list ( const ActivityList::Type type, const ActivityList * inp
     if ( input_list ) {
 	list = const_cast<ActivityList *>(input_list);
     } else if ( task()->n_act_lists() >= MAX_ACT*2 ) {
-	input_error2( LQIO::ERR_TOO_MANY_X, "activity lists ", MAX_ACT*2 );
+	LQIO::input_error( LQIO::ERR_TOO_MANY_X, "activity lists ", MAX_ACT*2 );
 	return 0;
     } else {
 	list = new ActivityList( type, dom_activity_list );

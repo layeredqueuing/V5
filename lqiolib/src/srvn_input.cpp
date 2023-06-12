@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 16543 2023-03-17 16:05:29Z greg $
+ *  $Id: srvn_input.cpp 16736 2023-06-08 16:11:47Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -170,7 +170,7 @@ srvn_add_task (const char * task_name, const scheduling_type scheduling, const v
     /* Obtain the processor we will add to */
     LQIO::DOM::Processor* processor = LQIO::DOM::__document->getProcessorByName(processor_name);
     if ( processor == nullptr ) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, processor_name );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, processor_name );
 	return nullptr;
     }
 
@@ -179,7 +179,7 @@ srvn_add_task (const char * task_name, const scheduling_type scheduling, const v
 	task->input_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	return nullptr;
     } else if ( entries == nullptr ) {
-	task->input_error( LQIO::ERR_TASK_HAS_NO_ENTRIES );
+	LQIO::input_error( LQIO::ERR_TASK_HAS_NO_ENTRIES, task_name );
 	return nullptr;
     } else if ( scheduling == SCHEDULE_SEMAPHORE ) {
 	task = new LQIO::DOM::SemaphoreTask( LQIO::DOM::__document, task_name, *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor );
@@ -207,7 +207,7 @@ srvn_store_fanin( const char * src_name, const char * dst_name, void * value )
     if ( dst_task == nullptr ) {
 	return;
     } else if ( src_name == dst_name ) {
-        LQIO::input_error2( LQIO::ERR_SRC_EQUALS_DST, src_name, dst_name );
+        LQIO::input_error( LQIO::ERR_SRC_EQUALS_DST, src_name, dst_name );
 	return;
     }
     dst_task->setFanIn( src_name, static_cast<LQIO::DOM::ExternalVariable *>(value) );
@@ -220,7 +220,7 @@ srvn_store_fanout( const char * src_name, const char * dst_name, void * value )
     if ( src_task == nullptr ) {
 	return;
     } else if ( src_name == dst_name ) {
-        LQIO::input_error2( LQIO::ERR_SRC_EQUALS_DST, src_name, dst_name );
+        LQIO::input_error( LQIO::ERR_SRC_EQUALS_DST, src_name, dst_name );
 	return;
     }
     src_task->setFanOut( dst_name, static_cast<LQIO::DOM::ExternalVariable *>(value) );
@@ -261,7 +261,7 @@ srvn_get_task( const char * task_name )
 {
     LQIO::DOM::Task* task = LQIO::DOM::__document->getTaskByName(task_name);
     if ( task == nullptr ) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, task_name );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, task_name );
 	/* Define it to suppress additional errors */
 	task = new LQIO::DOM::Task(LQIO::DOM::__document, task_name, SCHEDULE_DELAY, std::vector<LQIO::DOM::Entry *>(), nullptr );
 	LQIO::DOM::__document->addTaskEntity(task);
@@ -275,7 +275,7 @@ srvn_get_entry( const char * entry_name )
 {
     LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName(entry_name);
     if ( entry == nullptr ) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, entry_name );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, entry_name );
 	/* Define it to suppress additional errors */
 	entry = new LQIO::DOM::Entry(LQIO::DOM::__document, entry_name );
 	LQIO::DOM::__document->addEntry(entry);
@@ -449,7 +449,7 @@ srvn_store_prob_forward_data ( void * from_entry_v, void * to_entry_v, void * pr
     if ( from_entry == nullptr || to_entry == nullptr) {
 	return;
     } else if ( from_entry == to_entry ) {
-        LQIO::input_error2( LQIO::ERR_SRC_EQUALS_DST, from_entry->getName().c_str(), to_entry->getName().c_str() );
+        LQIO::input_error( LQIO::ERR_SRC_EQUALS_DST, from_entry->getName().c_str(), to_entry->getName().c_str() );
 	return;
     }
 
@@ -466,7 +466,7 @@ srvn_store_prob_forward_data ( void * from_entry_v, void * to_entry_v, void * pr
 	name += to_entry->getName();
 	call->setName(name);
     } else if (call->getCallType() != LQIO::DOM::Call::Type::NULL_CALL) {
-	LQIO::input_error2( LQIO::WRN_MULTIPLE_SPECIFICATION );
+	LQIO::input_error( LQIO::WRN_MULTIPLE_SPECIFICATION );
     }
 }
 
@@ -480,7 +480,7 @@ srvn_store_rnv_data (void * from_entry_v, void * to_entry_v, unsigned n_phases, 
     if ( from_entry == nullptr || to_entry == nullptr) {
 	return;
     } else if ( from_entry == to_entry ) {
-        LQIO::input_error2( LQIO::ERR_SRC_EQUALS_DST, from_entry->getName().c_str(), to_entry->getName().c_str() );
+        LQIO::input_error( LQIO::ERR_SRC_EQUALS_DST, from_entry->getName().c_str(), to_entry->getName().c_str() );
 	return;
     }
     /* Make sure that this is a standard entry */
@@ -509,7 +509,7 @@ srvn_store_rnv_data (void * from_entry_v, void * to_entry_v, unsigned n_phases, 
 	    call->setName(name);
 	} else {
 	    if (call->getCallType() != LQIO::DOM::Call::Type::NULL_CALL) {
-		LQIO::input_error2( LQIO::WRN_MULTIPLE_SPECIFICATION );
+		LQIO::input_error( LQIO::WRN_MULTIPLE_SPECIFICATION );
 	    }
           
 	    /* Set the new call type and the new mean */
@@ -532,7 +532,7 @@ srvn_store_snr_data ( void * from_entry_v, void * to_entry_v, unsigned n_phases,
     if ( from_entry == nullptr || to_entry == nullptr) {
 	return;
     } else if ( from_entry == to_entry ) {
-	LQIO::input_error2( LQIO::ERR_SRC_EQUALS_DST, from_entry->getName().c_str(), to_entry->getName().c_str() );
+	LQIO::input_error( LQIO::ERR_SRC_EQUALS_DST, from_entry->getName().c_str(), to_entry->getName().c_str() );
 	return;
     }
     /* Make sure that this is a standard entry */
@@ -561,7 +561,7 @@ srvn_store_snr_data ( void * from_entry_v, void * to_entry_v, unsigned n_phases,
 	    call->setName(name);
 	} else {
 	    if (call->getCallType() != LQIO::DOM::Call::Type::NULL_CALL) {
-		LQIO::input_error2( LQIO::WRN_MULTIPLE_SPECIFICATION );
+		LQIO::input_error( LQIO::WRN_MULTIPLE_SPECIFICATION );
 	    }
           
 	    /* Set the new call type and the new mean */
@@ -620,7 +620,7 @@ srvn_set_task_group( void * task_v, const char * group_name )
     /* Ditto for the group, if specified */
     LQIO::DOM::Group * group = LQIO::DOM::__document->getGroupByName(group_name);
     if ( group == nullptr ) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, group_name );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, group_name );
     } else {
 	group->addTask(task);
 	task->setGroup(group);
@@ -699,7 +699,7 @@ srvn_find_activity( void * task, const char * name )
     if ( !task ) return nullptr;
     LQIO::DOM::Activity * activity = static_cast<LQIO::DOM::Task *>(task)->getActivity(name, false);
     if ( !activity ) {
-	input_error2( LQIO::ERR_NOT_DEFINED, name );
+	input_error( LQIO::ERR_NOT_DEFINED, name );
     }
     return activity;
 }
@@ -958,7 +958,7 @@ srvn_find_task ( const char * taskName )
     /* Return the task with the given name */
     LQIO::DOM::Task* task = LQIO::DOM::__document->getTaskByName(taskName);
     if ( !task ) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, taskName );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, taskName );
     }
     return static_cast<void *>(task);
 }

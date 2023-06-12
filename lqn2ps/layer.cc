@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16557 2023-03-20 10:21:04Z greg $
+ * $Id: layer.cc 16727 2023-06-07 20:17:22Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -235,6 +235,7 @@ Layer&
 Layer::moveBy( const double dx, const double dy )
 {
     _origin.moveBy( dx, dy );
+    _extent.moveBy( dx, dy );
     std::for_each( entities().begin(), entities().end(), ExecXY<Element>( &Element::moveBy, dx, dy ) );
     _label->moveBy( dx, dy );
     return *this;
@@ -471,7 +472,7 @@ Layer::selectSubmodel()
 {
     for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
 	if ( !(*entity)->isProcessor() || Flags::processors() != Processors::NONE ) {
-	    (*entity)->isSelected( true );		/* Enable arc drawing to this entity */
+	    (*entity)->setSelected( true );		/* Enable arc drawing to this entity */
 	}
     }
     return *this;
@@ -485,7 +486,7 @@ Layer::selectSubmodel()
 Layer&
 Layer::deselectSubmodel()
 {
-    std::for_each( entities().begin(), entities().end(), Exec1<Entity,bool>( &Entity::isSelected, false ) );
+    std::for_each( entities().begin(), entities().end(), Exec1<Entity,bool>( &Entity::setSelected, false ) );
     return *this;
 }
 
@@ -618,7 +619,7 @@ Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_pro
 	/* Create a fake processor if necessary */
 
 	const std::set<const Processor *>& processors = task->processors();
-	if ( std::any_of( processors.begin(), processors.end(), Predicate<const Processor>( &Entity::isSelected ) ) ) {
+	if ( std::any_of( processors.begin(), processors.end(), std::mem_fn( &Entity::isSelected ) ) ) {
 	    findOrAddSurrogateProcessor( document, surrogate_processor, task, number() );
 	}
 
@@ -671,7 +672,7 @@ Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *&
 	dom_processor = new LQIO::DOM::Processor( document, "Surrogate", SCHEDULE_DELAY );
 	document->addProcessorEntity( dom_processor );
 	processor = new Processor( dom_processor );		/* This is a model object */
-	processor->isSelected( true ).isSurrogate( true ).setLevel( level );
+	processor->setSelected( true ).setSurrogate( true ).setLevel( level );
 	const_cast<Layer *>(this)->_entities.push_back(processor);
 	Processor::__processors.insert( processor );
     } else {
@@ -720,7 +721,7 @@ Layer::findOrAddSurrogateTask( LQIO::DOM::Document* document, Processor*& proces
 	document->addTaskEntity( dom_task );
 	dom_processor->addTask( dom_task );
 	task = new ServerTask( dom_task, processor, 0, entries );
-	task->isSelected( true ).isSurrogate( true ).setLevel( level );
+	task->setSelected( true ).setSurrogate( true ).setLevel( level );
 	const_cast<Layer *>(this)->_entities.push_back(task);
 	Task::__tasks.insert( task );
     }

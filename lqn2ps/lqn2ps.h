@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 16557 2023-03-20 10:21:04Z greg $
+ * $Id: lqn2ps.h 16726 2023-06-07 19:42:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -570,16 +570,6 @@ private:
     funcPtrXY _f;
     double _x;
     double _y;
-};
-
-template <class Type> struct Predicate
-{
-    typedef bool (Type::*predicate)() const;
-    Predicate<Type>( const predicate p ) : _p(p) {};
-    bool operator()( const Type * object ) const { return (object->*_p)(); }
-    bool operator()( const Type& object ) const { return (object.*_p)(); }
-private:
-    const predicate _p;
 };
 
 template <class Type1, class Type2> struct Predicate1

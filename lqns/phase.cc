@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16698 2023-04-24 00:52:30Z greg $
+ * $Id: phase.cc 16739 2023-06-11 12:13:11Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -286,6 +286,19 @@ Phase::initialize( const std::string name, unsigned int n, Entry* entry )
 }
 
 
+
+/*
+ * Get my replica number
+ */
+
+unsigned int
+Phase::getReplicaNumber() const
+{
+    return owner()->getReplicaNumber();
+}
+
+
+
 /*
  * Recursively find all children and grand children from `this'.  As
  * we descend down, we bump the depth.  If our path's cross, we have a
@@ -384,26 +397,10 @@ Phase::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
 	std::cerr << "  " << call << ": " << call->dstEntry()->print_name() << std::endl;
     }
 #endif
-    std::for_each( callList().begin(), callList().end(), Exec2<Call,std::deque<const Task *>&,unsigned int>( &Call::initCustomers, stack, customers ) );
+    for ( auto& call : callList() ) call->initCustomers( stack, customers );
     return *this;
 }
 /*- BUG_425 */
-
-
-#if PAN_REPLICATION
-/*
- * Grow _surrogateDelay array as neccesary.  Initialize to zero.  Used
- * by Newton Raphson step.
- */
- 
-Phase&
-Phase::setSurrogateDelaySize( size_t maxSize )
-{
-    _surrogateDelay.resize( maxSize );
-    return *this;
-}
-#endif
-
 
 
 /*
@@ -417,28 +414,6 @@ Phase::initVariance()
     setVariance( CV_sqr() * square( serviceTime() ) );
     return *this;
 }
-
-
-#if PAN_REPLICATION
-/*
- * Clear replication variables.
- */
-
-Phase&
-Phase::clearSurrogateDelay()
-{
-    _surrogateDelay = 0.;		/* Vector clear */
-    return *this;
-}
-
-
-Phase&
-Phase::addSurrogateDelay( const VectorMath<double>& addend )
-{
-    _surrogateDelay += addend;		/* Vector add */
-    return *this;
-}
-#endif
 
 
 /*
@@ -889,47 +864,110 @@ Phase::waitExcept( const unsigned submodel ) const
 
 
 
-#if PAN_REPLICATION
-/*
- * Return waiting time.  Normally, we exclude all of chain k, but with
- * replication, we have to include replicas-1 wait for chain k too.
- */
-
-
 double
-Phase::waitExceptChain( const unsigned submodel, const unsigned k )
+Phase::getProcWait( unsigned int submodel ) //tomari : quorum
 {
-	
-    if ( k <= _surrogateDelay.size()) {
-	return _surrogateDelay[k] + waitExcept( submodel );
-    } else {
-	return waitExcept( submodel );
-    }
-}
-#endif
+    double newWait   = 0.0;
 
+    if ( processorCall() && processorCall()->submodel() == submodel ) {
+		
+	newWait += processorCall()->rendezvousDelay();
 
-
-#if PAN_REPLICATION
-/*
- * Return the weighted nr_factor.
- */
-
-double
-Phase::nrFactor( const Call * aCall, const Submodel& submodel ) const
-{
-    const Task * task = dynamic_cast<const Task *>(owner());
-    const ChainVector& chains = task->clientChains( submodel.number() );
-    if ( chains.empty() ) return 0.0;
-
-    double nr_factor = 0.0;
-    for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
-	nr_factor += aCall->nrFactor( submodel, *k );
+	if (flags.trace_quorum) {
+	    std::cout << "\nPhase::getProcWait(): Call " << this->name() << ", Submodel=" <<  processorCall()->submodel() 
+		 << ", newWait="<<newWait << std::endl;
+	    fflush(stdout);
+	}
+			
     }
 
-    return nr_factor / chains.size();
+    return newWait;
 }
-#endif
+
+
+
+//tomari quorum: Used in a closed form formula to estimate the thread service time. 
+//The closed form formula was originally developed with an assumption 
+//that an activity calls only one server. The current code is modified to 
+//average the service times if an activity calls more than one server.  
+double
+Phase::getTaskWait( unsigned int submodel ) //tomari : quorum
+{
+    const double totalRendezvous = std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_submodel_rendezvous( submodel ) );
+    return std::accumulate( callList().begin(), callList().end(), 0.0, add_weighted_wait( submodel, totalRendezvous ) );
+}
+
+
+
+double 
+Phase::getRendezvous( unsigned int submodel ) //tomari : quorum
+{
+    return std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_submodel_rendezvous( submodel ) );
+}
+
+
+
+/*
+ * Go through the call list, looking for deterministic
+ * rendezvous/async calls, to activity entries then follow them to a
+ * join.
+ */
+
+const Phase&
+Phase::followInterlock( Interlock::CollectTable& path ) const
+{
+    std::for_each( callList().begin(), callList().end(), follow_interlock( path ) );
+    std::for_each( devices().begin(), devices().end(), follow_interlock( path ) );
+    return *this;
+}
+
+
+void
+Phase::follow_interlock::operator()( const Call * call ) const
+{
+    call->followInterlock( _path );
+}
+
+void
+Phase::follow_interlock::operator()( const DeviceInfo* device ) const
+{
+    device->call()->followInterlock( _path );
+}
+
+
+
+/*
+ * Recursively search from this entry to any entry on myServer.
+ * When we pop back up the call stack we add all calling tasks
+ * for each arc which calls myServer.  The task adder
+ * will ignore duplicates.
+ *
+ * Note: we can't short circuit the search because there may be interlocking
+ * on multiple branches.
+ */
+
+bool
+Phase::getInterlockedTasks( Interlock::CollectTasks& path ) const
+{
+    return std::accumulate( callList().begin(), callList().end(),
+			    std::accumulate( devices().begin(), devices().end(), false, get_interlocked_tasks( path ) ),
+			    get_interlocked_tasks( path ) );
+}
+
+
+bool
+Phase::get_interlocked_tasks::operator()( bool found, const Call * call ) const
+{
+    const Entry * entry = call->dstEntry();
+    return (!_path.has_entry( entry ) && entry->getInterlockedTasks( _path )) || found;			/* don't short circuit! */
+}
+
+bool
+Phase::get_interlocked_tasks::operator()( bool found, const DeviceInfo* device ) const
+{
+    const Entry * entry = device->call()->dstEntry();
+    return (!_path.has_entry( entry ) && entry->getInterlockedTasks( _path )) || found;			/* don't short circuit! */
+}
 
 
 
@@ -964,102 +1002,162 @@ Phase::updateWait( const Submodel& submodel, const double relax )
 
 
 
+const Phase&
+Phase::insertDOMResults() const
+{
+    if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
+
+    getDOM()->setResultServiceTime(residenceTime())
+	.setResultVarianceServiceTime(variance())
+	.setResultUtilization(utilization())
+	.setResultProcessorWaiting(queueingTime());
+
+    if ( getDOM()->hasHistogram() || getDOM()->hasMaxServiceTimeExceeded() ) {
+	insertDOMHistogram( const_cast<LQIO::DOM::Histogram *>(getDOM()->getHistogram()), residenceTime(), variance() );
+    }
+
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( !(*call)->hasForwarding() ) {
+	    (*call)->insertDOMResults();		/* Forwarded calls are done by their proxys (ForwardCall) */
+	}
+    }
+    return *this;
+}
+
+
+/*
+ * Recalculate the service time and visits to the processor.  Only go
+ * through the hoops if the value changes.
+ */
+
+void
+Phase::recalculateDynamicValues()
+{	
+    std::for_each( devices().begin(), devices().end(), std::mem_fn( &Phase::DeviceInfo::recalculateDynamicValues ) );
+}
+
+/* ------------------------------ PAN_REPLICATION ----------------------------- */
+
 #if PAN_REPLICATION
+/*
+ * Grow _surrogateDelay array as neccesary.  Initialize to zero.  Used
+ * by Newton Raphson step.
+ */
+ 
+Phase&
+Phase::setSurrogateDelaySize( size_t maxSize )
+{
+    _surrogateDelay.resize( maxSize );
+    return *this;
+}
+
+
+
+/*
+ * Clear replication variables.
+ */
+
+Phase&
+Phase::clearSurrogateDelay()
+{
+    _surrogateDelay = 0.;		/* Vector clear */
+    return *this;
+}
+
+
+Phase&
+Phase::addSurrogateDelay( const VectorMath<double>& addend )
+{
+    _surrogateDelay += addend;		/* Vector add */
+    return *this;
+}
+
+
+
+/*
+ * Return waiting time.  Normally, we exclude all of chain k, but with
+ * replication, we have to include replicas-1 wait for chain k too.
+ */
+
+
 double
-Phase::getReplicationProcWait( unsigned int submodel, const double relax ) 
+Phase::waitExceptChain( const unsigned submodel, const unsigned k )
+{
+	
+    if ( k <= _surrogateDelay.size()) {
+	return _surrogateDelay[k] + waitExcept( submodel );
+    } else {
+	return waitExcept( submodel );
+    }
+}
+
+
+
+/*
+ * Return the weighted nr_factor.
+ */
+
+double
+Phase::nrFactor( const Call * aCall, const Submodel& submodel ) const
+{
+    const Task * task = dynamic_cast<const Task *>(owner());
+    const ChainVector& chains = task->clientChains( submodel.number() );
+    if ( chains.empty() ) return 0.0;
+
+    double nr_factor = 0.0;
+    for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
+	nr_factor += aCall->nrFactor( submodel, *k );
+    }
+
+    return nr_factor / chains.size();
+}
+
+
+
+double
+Phase::getReplicationProcWait( unsigned int submodel ) 
 {
     double newWait   = 0.0;
 
     if ( processorCall() && processorCall()->submodel() == submodel ) {
 
 	int k = processorCall()->getChain();
-	//procWait += waitExceptChain( submodel, k );	
 	if ( processorCall()->dstTask()->hasServerChain(k) ) {
-	    // newWait +=  _surrogateDelay[k];
-
 	    if (flags.trace_quorum) {
 		std::cout << "\nPhase::getReplicationProcWait(): Call " << this->name() << ", Submodel=" <<  processorCall()->submodel() 
-		     << ", _surrogateDelay[" <<k<<"]="<<_surrogateDelay[k] << std::endl;
+			  << ", _surrogateDelay[" <<k<<"]="<<_surrogateDelay[k] << std::endl;
 		fflush(stdout);
 	    }
 	}
 
 	newWait += processorCall()->wait();// * processorCall()->fanOut();
     }
-
-    /* Now update waiting values */
-    // under_relax( _wait[submodel], newWait, relax );
-   
     return newWait;
 }
-#endif
 
 
 
-#if PAN_REPLICATION
 /* 
  * Sum up waits to all other tasks in this submodel 
  */
 
 double
-Phase::getReplicationTaskWait( unsigned int submodel, const double relax ) 
+Phase::getReplicationTaskWait() 
 {
     return std::accumulate( callList().begin(), callList().end(), 0., Call::sum( &Call::wait ) );
 }
-#endif
 
 
 
-#if PAN_REPLICATION
+
 double 
-Phase::getReplicationRendezvous( unsigned int submodel, const double relax ) //tomari : quorum
+Phase::getReplicationRendezvous( unsigned int submodel ) //tomari : quorum
 {
     return std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_replicated_rendezvous( submodel ) );
 }
-#endif
-
-
-double
-Phase::getProcWait( unsigned int submodel, const double relax ) //tomari : quorum
-{
-    double newWait   = 0.0;
-
-    if ( processorCall() && processorCall()->submodel() == submodel ) {
-		
-	newWait += processorCall()->rendezvousDelay();
-
-	if (flags.trace_quorum) {
-	    std::cout << "\nPhase::getProcWait(): Call " << this->name() << ", Submodel=" <<  processorCall()->submodel() 
-		 << ", newWait="<<newWait << std::endl;
-	    fflush(stdout);
-	}
-			
-    }
-
-    return newWait;
-}
-
-//tomari quorum: Used in a closed form formula to estimate the thread service time. 
-//The closed form formula was originally developed with an assumption 
-//that an activity calls only one server. The current code is modified to 
-//average the service times if an activity calls more than one server.  
-double
-Phase::getTaskWait( unsigned int submodel, const double relax ) //tomari : quorum
-{
-    const double totalRendezvous = std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_submodel_rendezvous( submodel ) );
-    return std::accumulate( callList().begin(), callList().end(), 0.0, add_weighted_wait( submodel, totalRendezvous ) );
-}
-
-
-double 
-Phase::getRendezvous( unsigned int submodel, const double relax ) //tomari : quorum
-{
-    return std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_submodel_rendezvous( submodel ) );
-}
 
 
 
-#if PAN_REPLICATION
 /* 
  * Calculate the surrogatedelay of a chain k of a
  *specific thread....tomari
@@ -1149,117 +1247,6 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
     return delta;
 }
 #endif
-
-
-
-/*
- * Go through the call list, looking for deterministic
- * rendezvous/async calls, to activity entries then follow them to a
- * join.
- */
-
-const Phase&
-Phase::followInterlock( Interlock::CollectTable& path ) const
-{
-    std::for_each( callList().begin(), callList().end(), follow_interlock( path ) );
-    std::for_each( devices().begin(), devices().end(), follow_interlock( path ) );
-    return *this;
-}
-
-
-void
-Phase::follow_interlock::operator()( const Call * call ) const
-{
-    call->followInterlock( _path );
-}
-
-void
-Phase::follow_interlock::operator()( const DeviceInfo* device ) const
-{
-    device->call()->followInterlock( _path );
-}
-
-
-
-/*
- * Recursively search from this entry to any entry on myServer.
- * When we pop back up the call stack we add all calling tasks
- * for each arc which calls myServer.  The task adder
- * will ignore duplicates.
- *
- * Note: we can't short circuit the search because there may be interlocking
- * on multiple branches.
- */
-
-bool
-Phase::getInterlockedTasks( Interlock::CollectTasks& path ) const
-{
-    return std::accumulate( callList().begin(), callList().end(),
-			    std::accumulate( devices().begin(), devices().end(), false, get_interlocked_tasks( path ) ),
-			    get_interlocked_tasks( path ) );
-}
-
-
-bool
-Phase::get_interlocked_tasks::operator()( bool found, const Call * call ) const
-{
-    const Entry * entry = call->dstEntry();
-    return (!_path.has_entry( entry ) && entry->getInterlockedTasks( _path )) || found;			/* don't short circuit! */
-}
-
-bool
-Phase::get_interlocked_tasks::operator()( bool found, const DeviceInfo* device ) const
-{
-    const Entry * entry = device->call()->dstEntry();
-    return (!_path.has_entry( entry ) && entry->getInterlockedTasks( _path )) || found;			/* don't short circuit! */
-}
-
-
-/*
- * Get my replica number
- */
-
-unsigned int
-Phase::getReplicaNumber() const
-{
-    return owner()->getReplicaNumber();
-}
-
-
-
-const Phase&
-Phase::insertDOMResults() const
-{
-    if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
-
-    getDOM()->setResultServiceTime(residenceTime())
-	.setResultVarianceServiceTime(variance())
-	.setResultUtilization(utilization())
-	.setResultProcessorWaiting(queueingTime());
-
-    if ( getDOM()->hasHistogram() || getDOM()->hasMaxServiceTimeExceeded() ) {
-	insertDOMHistogram( const_cast<LQIO::DOM::Histogram *>(getDOM()->getHistogram()), residenceTime(), variance() );
-    }
-
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	if ( !(*call)->hasForwarding() ) {
-	    (*call)->insertDOMResults();		/* Forwarded calls are done by their proxys (ForwardCall) */
-	}
-    }
-    return *this;
-}
-
-
-/*
- * Recalculate the service time and visits to the processor.  Only go
- * through the hoops if the value changes.
- */
-
-void
-Phase::recalculateDynamicValues()
-{	
-    std::for_each( devices().begin(), devices().end(), std::mem_fn( &Phase::DeviceInfo::recalculateDynamicValues ) );
-}
 
 /*----------------------------------------------------------------------*/
 /*                       Variance Calculation                           */

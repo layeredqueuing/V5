@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 16428 2023-02-15 14:30:27Z greg $
+ * $Id: json_document.cpp 16736 2023-06-08 16:11:47Z greg $
  *
  * Read in JSON input files.
  *
@@ -904,7 +904,7 @@ namespace LQIO {
 		    const std::string& attr = get_string_attribute( Xtask, obj );
 		    Task * task = _document.getTaskByName( attr.c_str() );
 		    if ( !task ) {
-			LQIO::input_error2( LQIO::ERR_NOT_DEFINED, attr.c_str() );
+			LQIO::input_error( LQIO::ERR_NOT_DEFINED, attr.c_str() );
 		    } else {
 			for (picojson::value::object::const_iterator i = obj.begin(); i != obj.end(); ++i) {
 			    const std::string& attr = i->first;
@@ -2030,7 +2030,7 @@ namespace LQIO {
 		    if ( processor ) {
 			(group.*getFptr().gr_p)( processor );
 		    } else {
-			LQIO::input_error2( LQIO::ERR_NOT_DEFINED, value.get<std::string>().c_str() );
+			LQIO::input_error( LQIO::ERR_NOT_DEFINED, value.get<std::string>().c_str() );
 		    }
 		} else {
 		    XML::invalid_argument( attribute, value.to_str() );
@@ -2094,7 +2094,7 @@ namespace LQIO {
 			(task.*getFptr().ta_g)( group );
 			group->addTask( &task );
 		    } else {
-			LQIO::input_error2( LQIO::ERR_NOT_DEFINED, value.get<std::string>().c_str() );
+			LQIO::input_error( LQIO::ERR_NOT_DEFINED, value.get<std::string>().c_str() );
 		    }
 		} else {
 		    XML::invalid_argument( attribute, value.to_str() );
@@ -2108,7 +2108,7 @@ namespace LQIO {
 			(task.*getFptr().ta_p)( processor );
 			processor->addTask( &task );
 		    } else {
-			LQIO::input_error2( LQIO::ERR_NOT_DEFINED, value.get<std::string>().c_str() );
+			LQIO::input_error( LQIO::ERR_NOT_DEFINED, value.get<std::string>().c_str() );
 		    }
 		} else {
 		    XML::invalid_argument( attribute, value.to_str() );

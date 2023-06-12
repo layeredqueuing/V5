@@ -9,7 +9,7 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 15725 2022-06-28 16:23:33Z greg $
+ * $Id: group.cc 16736 2023-06-08 16:11:47Z greg $
  */
 
 #include "lqsim.h"
@@ -79,7 +79,7 @@ Group::create()
 	    if ( cp->multiplicity() > 1 ) {
 		int group_id = ps_build_group( name(), new_share, _processor.node_id(), cap() );
 		if ( group_id < 0 ) {
-		    LQIO::input_error2( ERR_CANNOT_CREATE_X, "group", name() );
+		    LQIO::input_error( ERR_CANNOT_CREATE_X, "group", name() );
 		    return *this;
 		}
 		cp->set_group_id( group_id );
@@ -92,7 +92,7 @@ Group::create()
 
     int group_id = ps_build_group( name(), std::max( 0.0, share - share_sum ), _processor.node_id(), cap() );
     if ( group_id < 0 ) {
-	LQIO::input_error2( ERR_CANNOT_CREATE_X, "group", name() );
+	LQIO::input_error( ERR_CANNOT_CREATE_X, "group", name() );
 	return *this;
     }
 
@@ -147,7 +147,7 @@ Group::add( const std::pair<std::string,LQIO::DOM::Group*>& p )
 
     const Processor* aProcessor = Processor::find(processor_name);
     if ( !aProcessor ) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, processor_name );
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, processor_name );
 	return;
     } else if ( aProcessor->discipline() != SCHEDULE_CFS ) {
 	dom->input_error( LQIO::WRN_NON_CFS_PROCESSOR, processor_name );

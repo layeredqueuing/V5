@@ -257,7 +257,7 @@ Processor::transmorgrify( unsigned max_count )
 	/* Regular server. */
 
 	if ( copies > MAX_MULT ) {
-	    LQIO::input_error2( LQIO::ERR_TOO_MANY_X, "cpus ", MAX_MULT );
+	    LQIO::input_error( LQIO::ERR_TOO_MANY_X, "cpus ", MAX_MULT );
 	}
 
 	PX = create_place( x_pos, y_pos, PROC_LAYER, copies, "P%s", name() );

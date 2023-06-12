@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16697 2023-04-23 22:52:06Z greg $
+ * $Id: jmva_document.cpp 16736 2023-06-08 16:11:47Z greg $
  *
  * Read in XML input files.
  *
@@ -275,16 +275,16 @@ namespace QNIO {
 	    }
 	}
 	catch ( const LQIO::duplicate_symbol& e ) {
-	    LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, el, e.what() );
+	    LQIO::input_error( LQIO::ERR_DUPLICATE_SYMBOL, el, e.what() );
 	}
 	catch ( const XML::missing_attribute & e ) {
-	    LQIO::input_error2( LQIO::ERR_MISSING_ATTRIBUTE, el, e.what() );
+	    LQIO::input_error( LQIO::ERR_MISSING_ATTRIBUTE, el, e.what() );
 	}
 	catch ( const XML::unexpected_attribute & e ) {
-	    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, el, e.what() );
+	    LQIO::input_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, el, e.what() );
 	}
 	catch ( const LQIO::undefined_symbol & e ) {
-	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, e.what() );
+	    LQIO::input_error( LQIO::ERR_NOT_DEFINED, e.what() );
 	}
 	catch ( const std::out_of_range& e ) {
 	    document->input_error( "Undefined variable." );
@@ -293,7 +293,7 @@ namespace QNIO {
 	    document->input_error( "Domain error: %s ", e.what() );
 	}
 	catch ( const std::invalid_argument & e ) {
-	    LQIO::input_error2( LQIO::ERR_INVALID_ARGUMENT, el, e.what() );
+	    LQIO::input_error( LQIO::ERR_INVALID_ARGUMENT, el, e.what() );
 	}
     }
 
@@ -417,7 +417,7 @@ namespace QNIO {
 	    std::set<const XML_Char *>::const_iterator item = table.find(*attributes);
 	    if ( item == table.end() ) {
 		if ( strncasecmp( *attributes, "http:", 5 ) != 0 ) {                /* Skip these */
-		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element_name, *attributes );
+		    LQIO::input_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element_name, *attributes );
 		    rc = false;
 		}
 	    }

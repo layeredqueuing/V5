@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 16704 2023-04-30 11:27:18Z greg $
+ * $Id: submodel.cc 16724 2023-06-07 13:13:12Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -580,7 +580,7 @@ MVASubmodel::makeChains()
 
 		/* add chain to all servers of this client */
 
-		std::for_each( clientsServers.begin(), clientsServers.end(), Exec1<Entity,unsigned int>( &Entity::addServerChain, k ) );
+		for ( auto& server : clientsServers ) server->addServerChain( k );
 	    }
 
 #if PAN_REPLICATION
@@ -1040,7 +1040,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	/* Update waits for everyone else. */
 
-	std::for_each( _clients.begin(), _clients.end(), Exec2<Task,const Submodel&,double>( &Task::updateWait,  *this, relax ) );
+	for ( auto& client : _clients ) client->updateWait( *this, relax );
 
 	if ( !check_fp_ok() ) {
 	    throw floating_point_error( __FILE__, __LINE__ );

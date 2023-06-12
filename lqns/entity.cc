@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16689 2023-04-21 13:29:05Z greg $
+ * $Id: entity.cc 16740 2023-06-11 12:32:45Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -137,7 +137,7 @@ Entity::~Entity()
 Entity&
 Entity::configure( const unsigned nSubmodels )
 {
-    std::for_each( entries().begin(), entries().end(), Exec1<Entry,unsigned>( &Entry::configure, nSubmodels ) );
+    for ( auto& entry : entries() ) entry->configure( nSubmodels );
     if ( std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasDeterministicPhases ) ) ) setDeterministicPhases( true );
     if ( !Pragma::variance(Pragma::Variance::NONE)
 	 && ((nEntries() > 1 && Pragma::entry_variance())
@@ -457,12 +457,15 @@ Entity::openModelInfinity() const
     return rc;
 }
 
+
+
 Entity&
 Entity::clear()
 {
     serverStation()->clear();
     return *this;
 }
+
 
 
 void
@@ -638,7 +641,7 @@ Entity::output_type( std::ostream& output, const Entity& entity )
     } else if ( entity.isInfinite() ) {
 	buf = "inf";
     } else if ( n > 1 ) {
-	buf = std::string( "mult(" + std::to_string( n ) + ")" );
+	buf = std::string( "mult(" ) + std::to_string( n ) + ")";
     } else {
 	buf = "serv";
     }
