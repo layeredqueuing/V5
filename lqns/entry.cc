@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: entry.cc 16771 2023-07-05 20:35:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -60,6 +60,7 @@ Entry::Entry( LQIO::DOM::Entry* dom, unsigned int index, bool global )
       _calledBy(RequestType::NOT_CALLED),
       _throughput(0.0),
       _throughputBound(0.0),
+      _visitProbability(0.0),
       _callerList(),
       _interlock(),
       _replica_number(1)		/* This object is not a replica	*/
@@ -854,7 +855,9 @@ Entry::utilization() const
 Probability
 Entry::prVisit() const
 {
-    if ( owner()->isReferenceTask() || owner()->throughput() == 0.0 ) {
+    if ( owner()->isReferenceTask() && getDOM()->hasVisitProbability() ) {
+	return getDOM()->getVisitProbabilityValue();
+    } else if ( owner()->isReferenceTask() || owner()->throughput() == 0.0 ) {
 	return Probability( 1.0 / owner()->nEntries() );
     } else {
 	return Probability( throughput() / owner()->throughput() );

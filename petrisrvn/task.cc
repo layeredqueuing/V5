@@ -92,13 +92,14 @@ Task::Task( const LQIO::DOM::Task* dom, Task::Type type, Processor * processor )
 void Task::clear()
 {
     for ( unsigned int m = 0; m < MAX_MULT; ++m ) {
-	TX[m] = 0;			/* Task place.			*/
+	TX[m] = nullptr;		/* Task place.			*/
+	ZX[m] = nullptr;
 #if BUG_163
-	SyX[m] = 0;			/* Sync wait place.		*/
+	SyX[m] = nullptr;		/* Sync wait place.		*/
 #endif
-	GdX[m] = 0;			/* Guard Place			*/
-	gdX[m] = 0;			/* Guard fork transition.	*/
-	LX[m] = 0;			/* Lock Place	(BUG_164)	*/
+	GdX[m] = nullptr;		/* Guard Place			*/
+	gdX[m] = nullptr;		/* Guard fork transition.	*/
+	LX[m] = nullptr;		/* Lock Place	(BUG_164)	*/
 	_utilization[m] = 0;		/* Result for finding util.	*/
 	task_tokens[m] = 0;		/* Result. 			*/
 	lock_tokens[m] = 0;		/* Result.			*/
@@ -688,7 +689,8 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
     double max_pos 	= base_x_pos;
 
     unsigned customers;
-
+    const LAYER layer_mask	= make_layer_mask( m );
+    
     if ( is_infinite() ) {
 	customers = Task::__open_model_tokens;
     } else if ( is_single_place_task() || type() == Task::Type::OPEN_SRC ) {
@@ -705,37 +707,50 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
 	temp_x = X_OFFSET(n_phases()*3,0);
     }
 
-    d_place = create_place( temp_x, Y_OFFSET(0.0), make_layer_mask( m ), customers, "T%s%d", name(), m );
+    d_place = create_place( temp_x, Y_OFFSET(0.0), layer_mask, customers, "T%s%d", name(), m );
     TX[m] = d_place;
 
+    /* BUG_440+ */
+    if ( think_time() ) {
+	struct place_object * z_place = create_place( X_OFFSET(1,0.0), Y_OFFSET(0.0), layer_mask, 1, "Z%s%d", name(), m );
+	ZX[m] = z_place;
+	struct trans_object * c_trans = create_trans( X_OFFSET(1,0.5), Y_OFFSET(0.0), layer_mask,
+						      1.0/think_time(), INFINITE_SERVER, EXPONENTIAL, "z%s%d", name(), m );
+	orient_trans( c_trans, 1 );
+	create_arc( layer_mask, TO_TRANS, c_trans, d_place );
+	create_arc( layer_mask, TO_PLACE, c_trans, z_place );
+    }
+    /* BUG_440- */
+
+
     if ( type() == Task::Type::SEMAPHORE ) {	/* BUG_164 */
-	LX[m] = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "LX%s%d", name(), m );
+	LX[m] = create_place( temp_x+0.5, Y_OFFSET(0.0), layer_mask, 0, "LX%s%d", name(), m );
     } else if ( _sync_server ) {
-	d_place = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "Gd%s%d", name(), m );
+	d_place = create_place( temp_x+0.5, Y_OFFSET(0.0), layer_mask, 0, "Gd%s%d", name(), m );
 	GdX[m] = d_place;
-	gdX[m] = create_trans( temp_x+0.5, Y_OFFSET(0.0)-0.5, make_layer_mask( m ),  1.0, 1, IMMEDIATE, "gd%s%d", name(), m );
-	create_arc( make_layer_mask( m ), TO_TRANS, gdX[m], d_place );
-	create_arc( make_layer_mask( m ), TO_PLACE, gdX[m], TX[m] );
+	gdX[m] = create_trans( temp_x+0.5, Y_OFFSET(0.0)-0.5, layer_mask,  1.0, 1, IMMEDIATE, "gd%s%d", name(), m );
+	create_arc( layer_mask, TO_TRANS, gdX[m], d_place );
+	create_arc( layer_mask, TO_PLACE, gdX[m], TX[m] );
 #if defined(BUG_393)
 	if ( T_place != nullptr ) {
 	    create_arc( make_layer_mask( MEASUREMENT_LAYER ), TO_PLACE, gdX[m], T_place );	/* Instrumentation */
 	}
 #endif
 #if BUG_163
-	SyX[m] = create_place( temp_x+1.0, Y_OFFSET(0.0), make_layer_mask( m ), 0, "SYNC%s%d" , name(), m );
+	SyX[m] = create_place( temp_x+1.0, Y_OFFSET(0.0), layer_mask, 0, "SYNC%s%d" , name(), m );
 #endif
     } else if ( _needs_flush ) {
-	struct trans_object * d_trans = create_trans( temp_x+0.5, Y_OFFSET(0.0)-0.5, make_layer_mask( m ), 1.0, 1, IMMEDIATE, "gd%s%d", name(), m );
+	struct trans_object * d_trans = create_trans( temp_x+0.5, Y_OFFSET(0.0)-0.5, layer_mask, 1.0, 1, IMMEDIATE, "gd%s%d", name(), m );
 	gdX[m] = d_trans;
-	create_arc( make_layer_mask( m ), TO_PLACE, d_trans, TX[m] );
+	create_arc( layer_mask, TO_PLACE, d_trans, TX[m] );
 #if defined(BUG_393)
 	if ( T_place != nullptr ) {
 	    create_arc( make_layer_mask( MEASUREMENT_LAYER ), TO_PLACE, d_trans, T_place );
 	}
 #endif
-	d_place = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "Gd%s%d", name(), m ); 	/* We don't allow multiple copies */
+	d_place = create_place( temp_x+0.5, Y_OFFSET(0.0), layer_mask, 0, "Gd%s%d", name(), m ); 	/* We don't allow multiple copies */
 	GdX[m] = d_place;
-	create_arc( make_layer_mask( m ), TO_TRANS, d_trans, d_place );
+	create_arc( layer_mask, TO_TRANS, d_trans, d_place );
     }
 
     /*

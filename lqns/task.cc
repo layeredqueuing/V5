@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: task.cc 16772 2023-07-06 00:56:41Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1617,6 +1617,10 @@ ReferenceTask::check() const
     if ( getDOM()->hasQueueLength() ) {
 	getDOM()->runtime_error( LQIO::ERR_NOT_SUPPORTED, "queue length" );
     }
+    double sum = std::accumulate( entries().begin(), entries().end(), 0.0, Entry::add_visit_probability );
+    if ( sum < 1.0 - EPSILON || 1.0 + EPSILON < sum ) {
+	getDOM()->runtime_error( LQIO::ERR_INVALID_VISIT_PROBABILITY, sum );
+    }
 
     return true;
 }
@@ -1697,7 +1701,9 @@ ServerTask::check() const
 	getDOM()->runtime_error( LQIO::WRN_INFINITE_MULTI_SERVER, copies() );
 	getDOM()->setCopiesValue(1);
     }
-
+    if ( std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasVisitProbability ) ) ) {
+	getDOM()->runtime_error( LQIO::WRN_TASK_HAS_VISIT_PROBABILITY );
+    }
     if ( isInfinite() && (std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::isCalledUsingSendNoReply ) )
 			  || std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::isCalledUsingOpenArrival ) ) ) ) {
 	getDOM()->runtime_error( LQIO::WRN_INFINITE_SERVER_OPEN_ARRIVALS );

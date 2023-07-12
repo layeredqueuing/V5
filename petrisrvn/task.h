@@ -130,6 +130,7 @@ public:
     std::vector<Activity *> activities;		/* Activity list.		*/
     std::vector<ActivityList *> act_lists;	/* Forks-Join lists.		*/
     struct place_object * TX[MAX_MULT];		/* Task place.			*/
+    struct place_object * ZX[MAX_MULT];		/* Task think time place.	*/
 #if BUG_163
     struct place_object * SyX[MAX_MULT];	/* Sync wait place.		*/
 #endif

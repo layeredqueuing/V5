@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 16736 2023-06-08 16:11:47Z greg $
+ * $Id: expat_document.cpp 16771 2023-07-05 20:35:46Z greg $
  *
  * Read in XML input files.
  *
@@ -1573,6 +1573,7 @@ namespace LQIO {
 		Xname,
 		Xtype,
 		Xpriority,
+		Xprob,
 		Xopen_arrival_rate,
 		Xsemaphore,
 		Xrwlock
@@ -1600,6 +1601,7 @@ namespace LQIO {
 
 		entry->setEntryPriority( getOptionalAttribute(attributes,Xpriority) );
 		entry->setOpenArrivalRate( getOptionalAttribute(attributes,Xopen_arrival_rate ) );
+		entry->setVisitProbability( getOptionalAttribute(attributes,Xprob ) );
 
                 const XML_Char * semaphore = XML::getStringAttribute(attributes,Xsemaphore,"");
                 if ( strlen(semaphore) > 0 ) {
@@ -2756,6 +2758,9 @@ namespace LQIO {
             if ( entry.getEntryPriority() ) {
                 output << XML::attribute( Xpriority, *entry.getEntryPriority() );
             }
+	    if ( entry.getVisitProbability() ) {
+                output << XML::attribute( Xprob, *entry.getVisitProbability() );
+	    }
 
             switch ( entry.getSemaphoreFlag() ) {
             case DOM::Entry::Semaphore::SIGNAL: output << XML::attribute( Xsemaphore, Xsignal ); break;

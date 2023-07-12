@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16727 2023-06-07 20:17:22Z greg $
+ * $Id: layer.cc 16779 2023-07-10 14:06:36Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -12,9 +12,10 @@
 #include <cstdlib>
 #include <algorithm>
 #include <functional>
+#include <lqio/dom_activity.h>
+#include <lqio/dom_document.h>
 #include <lqio/error.h>
 #include <lqio/srvn_output.h>
-#include <lqio/dom_document.h>
 #if HAVE_EXPAT_H
 #include <lqio/jmva_document.h>
 #endif
@@ -29,38 +30,6 @@
 #include "open.h"
 #include "processor.h"
 #include "task.h"
-
-/*----------------------------------------------------------------------*/
-/*                         Helper Functions                             */
-/*----------------------------------------------------------------------*/
-
-class ResetServerPhaseParameters
-{
-public:
-    ResetServerPhaseParameters( bool hasResults ) : _hasResults(hasResults) {}
-    void operator()( const std::pair<unsigned,LQIO::DOM::Phase*>& p ) const { reset( p.second ); }
-    void operator()( const Activity * a ) const { reset( const_cast<LQIO::DOM::Phase *>(a->getDOM()) ); }
-
-private:
-    void reset( LQIO::DOM::Phase * phase ) const
-	{
-	    std::vector<LQIO::DOM::Call*>& dom_calls = const_cast<std::vector<LQIO::DOM::Call*>& >(phase->getCalls());
-	    dom_calls.clear();		// Should likely delete...
-
-	    if ( _hasResults ) {
-		const double mean = phase->getResultServiceTime();
-		phase->setServiceTimeValue( mean );
-		if ( Flags::output_coefficient_of_variation ) {
-		    const double var  = phase->getResultVarianceServiceTime();
-		    phase->setCoeffOfVariationSquaredValue( var / square( mean ) );
-		} else {
-		    phase->setCoeffOfVariationSquared( 0 );		// Nuke value.
-		}
-	    }
-	}
-
-    bool _hasResults;
-};
 
 Layer::Layer()
     : _entities(), _origin(0,0), _extent(0,0), _number(0), _label(nullptr), _clients(), _chains(0), _bcmp_model()
@@ -180,9 +149,9 @@ Layer::prune()
 	} else if ( aProc ) {
 
 	    /*
-	     * If a processor is not refereneced, or if the task was
-	     * removed because it's a reference task that makes no
-	     * calls, then delete the processor.
+	     * If a processor is not refereneced, or if the task was removed
+	     * because it's a reference task that makes no calls, then delete
+	     * the processor.
 	     */
 
 	    if ( aProc->nTasks() == 0 ) {
@@ -235,7 +204,6 @@ Layer&
 Layer::moveBy( const double dx, const double dy )
 {
     _origin.moveBy( dx, dy );
-    _extent.moveBy( dx, dy );
     std::for_each( entities().begin(), entities().end(), ExecXY<Element>( &Element::moveBy, dx, dy ) );
     _label->moveBy( dx, dy );
     return *this;
@@ -572,23 +540,100 @@ Layer::aggregate()
 }
 
 /*+ BUG_626 */
+
 /*
- * Transform a submodel into a full blown LQN that can be solved on
- * its own.
+ * Convert all clients to reference tasks.
  */
 
 Layer&
-Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_processor, Task *& surrogate_task )
+Layer::transmorgrifyClients( LQIO::DOM::Document * document )		/* BUG_440 */
 {
+    for ( std::vector<Task *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
+	dynamic_cast<LQIO::DOM::Task *>(const_cast<LQIO::DOM::DocumentObject *>((*client)->getDOM()))->setSchedulingType( SCHEDULE_CUSTOMER );   // Clients become reference tasks.
+    }
+
+    for ( std::vector<Task *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
+	Task * task = *client;
+
+	/*  If the processor is not in the submodel, then create a fake processor */
+	
+	if ( !task->processor()->isSelected() ) {
+	    addSurrogateProcessor( document, task, number()+1 );
+	}
+	
+	/* Unlink calls from any other tasks */
+	
+	const std::vector<Entry *>& entries = task->entries();
+	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
+	    std::vector<GenericCall *> callers = (*entry)->callers();	// Make a copy
+	    for ( std::vector<GenericCall *>::const_iterator call = callers.begin(); call != callers.end(); ++call ) {
+		const_cast<GenericCall *>(*call)->unlink();
+		delete *call;
+	    }
+	    (*entry)->isCalledBy( request_type::NOT_CALLED );
+
+	    /* Compute service time for each phase */
+	    
+	    resetClientPhaseParameters( document, *entry );
+
+	    /* Set visit probabilities if there is more than one entry. */
+	    
+	    if ( entries.size() > 1 ) {
+		dynamic_cast<LQIO::DOM::Entry *>(const_cast<LQIO::DOM::DocumentObject *>((*entry)->getDOM()))->setVisitProbabilityValue( (*entry)->visitProbability() );
+	    }
+	}
+
+	/* set think times. */
+	    
+	if ( document->hasResults() ) {
+	    dynamic_cast<LQIO::DOM::Task *>(const_cast<LQIO::DOM::DocumentObject *>(task->getDOM()))->setThinkTimeValue( task->idleTime() );
+	}
+
+    }
+    return *this;
+}
+
+
+/*
+ * Get results from all calls except to those tasks which are not in the entity set.
+ */
+
+void
+Layer::resetClientPhaseParameters( LQIO::DOM::Document * document, Entry * entry )
+{
+//    double sum? // by phase?
+//std::for_each( calls.begin(), calls.end(), 
+//    if ( _hasResults ) {
+//	std::vector<LQIO::DOM::Call*>& dom_calls = const_cast<std::vector<LQIO::DOM::Call*>& >(phase->getCalls());
+//    }
+}
+
+
+/*
+ * Transform a submodel into a full blown LQN that can be solved on its own.
+ * Add surrogate processors to any servers which are tasks.  The service time
+ * for servers which are tasks is the residence time for the entry found from
+ * the results.  The service time for clients is calculated from the utilization
+ * and throughput (like lqns).
+*/
+
+Layer&
+Layer::transmorgrifyServers( LQIO::DOM::Document * document )
+{
+    /* ---------- Servers ---------- */
+
     std::vector<Entity *> entities = _entities;		/* Copy as _entities will change */
     for ( std::vector<Entity *>::const_iterator entity = entities.begin(); entity != entities.end(); ++entity ) {
 	Task * task = dynamic_cast<Task *>(*entity);
-	if ( !(*entity)->isSelected() || !task ) continue;
+	if ( !(*entity)->isSelected() || task == nullptr ) continue;
 
-	findOrAddSurrogateProcessor( document, surrogate_processor, task, number()+1 );
+	const_cast<Processor *>(task->processor())->setSelected( true );
+//	if ( !task->processor()->isSelected() ) {
+//	    std::cerr << "Add surrogate processor for server task " << task->name() << std::endl;
+//	}
+//	findOrAddSurrogateProcessor( document, surrogate_processor, task, number()+1 );
 
-	/* ---------- Servers ---------- */
-
+//	I need to unlink any calls to any other reference tasks. */
 	const std::vector<Entry *>& entries = task->entries();
 	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
 
@@ -599,210 +644,81 @@ Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_pro
 
 	    /* Forwarded calls? */
 
-	    const LQIO::DOM::Entry * dom_entry = dynamic_cast<const LQIO::DOM::Entry *>((*entry)->getDOM());
-	    const std::map<unsigned, LQIO::DOM::Phase*>& phases = dom_entry->getPhaseList();
+	    const std::map<unsigned, LQIO::DOM::Phase*>& phases = dynamic_cast<const LQIO::DOM::Entry *>((*entry)->getDOM())->getPhaseList();
 	    std::for_each( phases.begin(), phases.end(), ResetServerPhaseParameters( document->hasResults() ) );
 	}
 
-	const std::vector<Activity *>& activities = task->activities();
-	std::for_each ( activities.begin(), activities.end(), ResetServerPhaseParameters( document->hasResults() ) );
+	const std::map<std::string,LQIO::DOM::Activity*>& activities = dynamic_cast<const LQIO::DOM::Task *>(task->getDOM())->getActivities();
+	std::for_each( activities.begin(), activities.end(), ResetServerPhaseParameters( document->hasResults() ) );
     }
 
-    /* ---------- Clients ---------- */
+    return *this;
+}
 
-    for ( std::vector<Task *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
-	Task * task = *client;
 
-	LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(task->getDOM()));
-	dom_task->setSchedulingType( SCHEDULE_CUSTOMER );   // Clients become reference tasks.
 
-	/* Create a fake processor if necessary */
+/*
+ * Make a surrogate processor for the task.  Then unlink the task from
+ * the old processor and link it to the new one.
+ */
 
-	const std::set<const Processor *>& processors = task->processors();
-	if ( std::any_of( processors.begin(), processors.end(), std::mem_fn( &Entity::isSelected ) ) ) {
-	    findOrAddSurrogateProcessor( document, surrogate_processor, task, number() );
-	}
+Layer&
+Layer::addSurrogateProcessor( LQIO::DOM::Document * document, Task * task, size_t level )
+{
+    LQIO::DOM::Processor * dom_processor = new LQIO::DOM::Processor( document, task->name(), SCHEDULE_DELAY );
+    document->addProcessorEntity( dom_processor );
+    Processor * processor = new Processor( dom_processor );		/* This is a model object */
+    processor->setSelected( true ).setSurrogate( true ).setLevel( level );
+    _entities.push_back(processor);
+    Processor::__processors.insert( processor );
 
-	/* for all clients, reroute all non-selected calls to surrogate */
+    Processor * old_processor = const_cast<Processor *>(task->processor());
+    LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(task->getDOM()));
+    std::set<LQIO::DOM::Task*>& old_list = const_cast<std::set<LQIO::DOM::Task*>&>(dom_task->getProcessor()->getTaskList());
+    old_list.erase( find( old_list.begin(), old_list.end(), dom_task ) );		// Remove task from original processor
+    dom_processor->addTask( dom_task );
+    dom_task->setProcessor( dom_processor );
+    old_processor->removeTask( task );
+    processor->addTask( task );
+    task->removeProcessor( old_processor );
+    task->addProcessor( processor );
 
-	const std::vector<Entry *>& entries = task->entries();
-	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
-	    for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
-		if ( (*call)->isSelected() || (*call)->dstTask()->isSelectedIndirectly() ) continue;
-		findOrAddSurrogateTask( document, surrogate_processor, surrogate_task, const_cast<Entry *>( (*call)->dstEntry()), number() );
-	    }
-	}
-
-	const std::vector<Activity *> activities = task->activities();
-	for ( std::vector<Activity *>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity ) {
-	    for ( std::vector<Call *>::const_iterator call = (*activity)->calls().begin(); call != (*activity)->calls().end(); ++call ) {
-		if ( (*call)->isSelected() || (*call)->dstTask()->isSelectedIndirectly() ) continue;
-		findOrAddSurrogateTask( document, surrogate_processor, surrogate_task, const_cast<Entry *>( (*call)->dstEntry()), number() );
-	    }
-	}
-
-	/* set think times. */
-
-	if ( document->hasResults() ) {
-	    const double util = dom_task->getResultUtilization();
-	    const double tput = dom_task->getResultThroughput();
-	    const double n    = static_cast<double>(dom_task->getCopiesValue());
-	    if ( util >= n || tput == 0. ) {
-		dom_task->setThinkTimeValue( 0. );
-	    } else {
-		dom_task->setThinkTimeValue( (n - util) / tput );
-	    }
-	}
+    /* Remap processor call */
+//	Point aPoint = processor->center();
+    std::vector<EntityCall *>& task_calls = const_cast<std::vector<EntityCall *>& >(task->calls());
+    for ( std::vector<EntityCall *>::const_iterator call = task_calls.begin(); call != task_calls.end(); ++call ) {
+	if ( !(*call)->isProcessorCall() ) continue;
+	(*call)->setDstEntity( processor );
+//		(*call)->moveDst( aPoint );
+	old_processor->removeDstCall( (*call) );
+	processor->addDstCall( (*call) );
     }
     return *this;
 }
 
 
-/*
- * If a surrogate processor does not exist, make one.
- * Then unlink the task from the old processor and link it to the new one.
- */
+void
+Layer::ResetServerPhaseParameters::reset( LQIO::DOM::Activity * activity ) const { reset( dynamic_cast<LQIO::DOM::Phase*>(activity) ); }
 
-Processor *
-Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *& processor, Task * task, const size_t level ) const
+void
+Layer::ResetServerPhaseParameters::reset( LQIO::DOM::Phase * phase ) const
 {
-    LQIO::DOM::Processor * dom_processor = nullptr;
-    if ( processor == nullptr ) {
-	/* Need to create a new processor */
-	dom_processor = new LQIO::DOM::Processor( document, "Surrogate", SCHEDULE_DELAY );
-	document->addProcessorEntity( dom_processor );
-	processor = new Processor( dom_processor );		/* This is a model object */
-	processor->setSelected( true ).setSurrogate( true ).setLevel( level );
-	const_cast<Layer *>(this)->_entities.push_back(processor);
-	Processor::__processors.insert( processor );
-    } else {
-	dom_processor = const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()));
-    }
-    if ( task ) {
-	Processor * old_processor = const_cast<Processor *>(task->processor());
-	LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(task->getDOM()));
-	std::set<LQIO::DOM::Task*>& old_list = const_cast<std::set<LQIO::DOM::Task*>&>(dom_task->getProcessor()->getTaskList());
-	std::set<LQIO::DOM::Task*>::iterator pos = find( old_list.begin(), old_list.end(), dom_task );
-	old_list.erase( pos );		// Remove task from original processor
-	dom_processor->addTask( dom_task );
-	dom_task->setProcessor( dom_processor );
-	old_processor->removeTask( task );
-	processor->addTask( task );
-	task->removeProcessor( old_processor );
-	task->addProcessor( processor );
+    std::vector<LQIO::DOM::Call*>& dom_calls = const_cast<std::vector<LQIO::DOM::Call*>& >(phase->getCalls());
+    dom_calls.clear();		// Should likely delete...
 
-	/* Remap processor call */
-//	Point aPoint = processor->center();
-	std::vector<EntityCall *>& task_calls = const_cast<std::vector<EntityCall *>& >(task->calls());
-	for ( std::vector<EntityCall *>::const_iterator call = task_calls.begin(); call != task_calls.end(); ++call ) {
-	    if ( (*call)->isProcessorCall() ) {
-		(*call)->setDstEntity( processor );
-//		(*call)->moveDst( aPoint );
-		old_processor->removeDstCall( (*call) );
-		processor->addDstCall( (*call) );
-	    }
+    if ( _hasResults ) {
+	const double mean = phase->getResultServiceTime();
+	phase->setServiceTimeValue( mean );
+	if ( Flags::output_coefficient_of_variation ) {
+	    phase->setCoeffOfVariationSquaredValue( phase->getResultVarianceServiceTime() / square( mean ) );
 	}
     }
-
-    return processor;
-}
-
-Task *
-Layer::findOrAddSurrogateTask( LQIO::DOM::Document* document, Processor*& processor, Task*& task, Entry * entry, const size_t level ) const
-{
-    LQIO::DOM::Task * dom_task = nullptr;
-    /* Make sure task exists */
-    std::vector<LQIO::DOM::Entry *> dom_entries;
-    std::vector<Entry *> entries;
-    if ( !task ) {
-	findOrAddSurrogateProcessor( document, processor, nullptr, level+1 );
-	LQIO::DOM::Processor * dom_processor = const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()));
-	dom_task = new LQIO::DOM::Task( document, "Surrogate", SCHEDULE_DELAY, dom_entries, dom_processor );
-	document->addTaskEntity( dom_task );
-	dom_processor->addTask( dom_task );
-	task = new ServerTask( dom_task, processor, 0, entries );
-	task->setSelected( true ).setSurrogate( true ).setLevel( level );
-	const_cast<Layer *>(this)->_entities.push_back(task);
-	Task::__tasks.insert( task );
-    }
-
-    /* Now find or create an entry for it. */
-    findOrAddSurrogateEntry( document, task, entry );
-
-    return task;
-}
-
-Entry *
-Layer::findOrAddSurrogateEntry( LQIO::DOM::Document* document, Task* task, Entry * entry ) const
-{
-    Task * src_task = const_cast<Task *>( entry->owner() );
-    if ( src_task == task ) return entry;		/* already moved. */
-
-    src_task->removeEntry( entry );
-    task->addEntry( entry );
-    entry->owner( task );
-
-    LQIO::DOM::Entry * dom_entry = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(entry->getDOM()));
-    LQIO::DOM::Task * old_task = const_cast<LQIO::DOM::Task *>(dom_entry->getTask());
-
-    LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(task->getDOM()));
-    assert( dom_task != 0 );
-
-    std::vector<LQIO::DOM::Entry*>& old_entries = const_cast<std::vector<LQIO::DOM::Entry*>&>(old_task->getEntryList());
-    std::vector<LQIO::DOM::Entry*>::iterator pos = find( old_entries.begin(), old_entries.end(), dom_entry );
-    old_entries.erase( pos );
-    dom_entry->setTask( dom_task );
-    std::vector<LQIO::DOM::Entry*>& dom_entries = const_cast<std::vector<LQIO::DOM::Entry*>&>(dom_task->getEntryList());
-    dom_entries.push_back( dom_entry );
-
-    /* This is a server, so reset it. */
-
-    dom_entry->setEntryType( LQIO::DOM::Entry::Type::STANDARD );	/* Force type to standard */
-    const std::map<unsigned, LQIO::DOM::Phase*>& phases = dom_entry->getPhaseList();
-    std::for_each( phases.begin(), phases.end(), ResetServerPhaseParameters( document->hasResults() ) );
-    return entry;
-}
-/*- BUG_626 */
-
-/*
- * Translate a "pruned" lqn model into a BCMP model.
- */
-
-bool
-Layer::createBCMPModel()
-{
-    std::vector<const Entity *> tasks = std::accumulate( entities().begin(), entities().end(), std::vector<const Entity *>(), Select<const Entity>( &Entity::isTask ) );
-    if ( !tasks.empty() ) {
-	std::vector<std::string> names = std::accumulate( tasks.begin(), tasks.end(), std::vector<std::string>(), Collect<std::string,const Entity>( &Entity::name ) );
-	LQIO::runtime_error( ERR_BCMP_CONVERSION_FAILURE, std::accumulate( std::next(names.begin()), names.end(), names.front(), &fold ).c_str() );
-	return false;
-    }
-
-    /* 
-     * Create all of the chains for the model.
-     */
-
-    std::for_each( clients().begin(), clients().end(), Task::create_chain( _bcmp_model, entities() ) );
-
-    /*
-     * Create all of the stations except for the terminals (which are
-     * the clients in the lqn schema.
-     */
-
-    std::for_each( entities().begin(), entities().end(), Entity::create_station( _bcmp_model ) );
-    std::for_each( entities().begin(), entities().end(), Entity::accumulate_demand( _bcmp_model ) );
-
-    /*
-     * Populate the customers.  This will create a terminals station.
-     */
-    
-    BCMP::Model::Station terminals(BCMP::Model::Station::Type::DELAY);
-    terminals.setReference(true);
-    std::for_each( clients().begin(), clients().end(), Task::create_customers( terminals ) );
-    _bcmp_model.insertStation( ReferenceTask::__BCMP_station_name, terminals );	// QNAP2 limit is 8.
-    return true;
 }
 
+/* -------------------------------------------------------------------- */
+/*			       Printing   				*/
+/* -------------------------------------------------------------------- */
+
 /*
  * Print a layer.
  */
@@ -899,6 +815,54 @@ Layer::printSummary( std::ostream& output ) const
 /* -------------------------------------------------------------------- */
 /*			   Queueing Models				*/
 /* -------------------------------------------------------------------- */
+
+
+/*- BUG_626 */
+
+/*
+ * Translate a "pruned" lqn model into a BCMP model.
+ */
+
+bool
+Layer::createBCMPModel()
+{
+    if ( Flags::bcmp_model ) {
+
+	/* A strictly BCMP model should have no tasks after the pruning operation was done. */
+	
+	std::vector<const Entity *> tasks = std::accumulate( entities().begin(), entities().end(), std::vector<const Entity *>(), Select<const Entity>( &Entity::isTask ) );
+	if ( !tasks.empty() ) {
+	    std::vector<std::string> names = std::accumulate( tasks.begin(), tasks.end(), std::vector<std::string>(), Collect<std::string,const Entity>( &Entity::name ) );
+	    LQIO::runtime_error( ERR_BCMP_CONVERSION_FAILURE, std::accumulate( std::next(names.begin()), names.end(), names.front(), &fold ).c_str() );
+	    return false;
+	}
+    }
+
+    /* 
+     * Create all of the chains for the model.
+     */
+
+    std::for_each( clients().begin(), clients().end(), Task::create_chain( _bcmp_model, entities() ) );
+
+    /*
+     * Create all of the stations except for the terminals (which are
+     * the clients in the lqn schema.
+     */
+
+    std::for_each( entities().begin(), entities().end(), Entity::create_station( _bcmp_model ) );
+    std::for_each( entities().begin(), entities().end(), Entity::accumulate_demand( _bcmp_model ) );
+
+    /*
+     * Populate the customers.  This will create a terminals station.
+     */
+    
+    BCMP::Model::Station terminals(BCMP::Model::Station::Type::DELAY);
+    terminals.setReference(true);
+    std::for_each( clients().begin(), clients().end(), Task::create_customers( terminals ) );
+    _bcmp_model.insertStation( ReferenceTask::__BCMP_station_name, terminals );	// QNAP2 limit is 8.
+    return true;
+}
+
 
 
 /*

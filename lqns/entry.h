@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 16738 2023-06-11 11:42:58Z greg $
+ * $Id: entry.h 16772 2023-07-06 00:56:41Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -157,6 +157,7 @@ public:
 	Call::stack& _arg1;
 	bool _arg2;
     };
+
 protected:
     struct add_wait {
 	add_wait( unsigned int submodel ) : _submodel(submodel) {}
@@ -208,7 +209,8 @@ public:
     static Entry * find( const std::string&, unsigned int=1 );
     static Entry * create( LQIO::DOM::Entry* domEntry, unsigned int );
     static bool max_phase( const Entry * e1, const Entry * e2 ) { return e1->maxPhase() < e2->maxPhase(); }
-	
+    static double add_visit_probability( double sum, const Entry* entry ) { return sum + entry->prVisit(); }
+
 protected:
     /* Instance creation */
 
@@ -310,6 +312,7 @@ public:
     bool hasVariance() const;
     bool hasStartActivity() const { return _startActivity != nullptr; }
     bool hasOpenArrivals() const { return getDOM()->hasOpenArrivalRate(); }
+    bool hasVisitProbability() const { return getDOM()->hasVisitProbability(); }
 		
     bool entryTypeOk( const LQIO::DOM::Entry::Type );
     bool entrySemaphoreTypeOk( const LQIO::DOM::Entry::Semaphore aType );
@@ -411,6 +414,7 @@ private:
     RequestType _calledBy;			/* true if entry referenced.	*/
     double _throughput;				/* Computed throughput.		*/
     double _throughputBound;			/* Type 1 throughput bound.	*/
+    Probability _visitProbability;		/* Computed visit probability	*/
 	
     std::set<Call *> _callerList;		/* Who calls me.		*/
 

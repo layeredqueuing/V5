@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 16687 2023-04-21 01:04:31Z greg $
+ * $Id: entity.h 16762 2023-06-30 15:04:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -27,14 +27,14 @@
 
 class Entity;
 class Entry;
-class Processor;
 class Interlock;
-class Task;
-class ReferenceTask;
+class MVASubmodel;
 class Model;
+class Processor;
+class ReferenceTask;
 class Server;
 class Submodel;
-class MVASubmodel;
+class Task;
 
 typedef Vector<unsigned> ChainVector;
 
@@ -246,9 +246,6 @@ protected:
     virtual scheduling_type defaultScheduling() const { return SCHEDULE_FIFO; }
     virtual double computeUtilization( const MVASubmodel&, const Server& );
 	
-private:
-    double computeIdleTime( const unsigned, const double ) const;
-
 public:
     virtual const Entity& insertDOMResults() const;
 

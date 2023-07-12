@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 16726 2023-06-07 19:42:02Z greg $
+ * $Id: lqn2ps.cc 16759 2023-06-29 14:28:02Z greg $
  *
  * Command line processing.
  *
@@ -217,7 +217,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2023-06-07 15:42:02 -0400 (Wed, 07 Jun 2023) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2023-06-29 10:28:02 -0400 (Thu, 29 Jun 2023) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -735,7 +735,9 @@ main(int argc, char *argv[])
 
     if ( queueing_output() ) {
 	Flags::arrow_scaling *= 0.75;
-//	Flags::print[PROCESSORS].opts.value.p = Processors::ALL;
+	if ( Flags::print[PROCESSORS].opts.value.p == Processors::DEFAULT ) {
+	    Flags::print[PROCESSORS].opts.value.p = Processors::ALL;	/* Bug 438. */
+	}
 
 	if ( submodel_output() ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": -Q" << Flags::queueing_model()
@@ -954,14 +956,14 @@ setOutputFormat( const File_Format f )
 
 #if JMVA_OUTPUT && HAVE_EXPAT_H
     case File_Format::JMVA:
-	Flags::bcmp_model = true;					/* No entries. */
+	Flags::set_aggregation( Aggregate::ENTRIES );			/* No entries. */
 	break;
 #endif
 #if QNAP2_OUTPUT
     case File_Format::QNAP2:
 #warning .. need to separate by class and station
 	Flags::squish_names = true;					/* Always */
-	Flags::bcmp_model = true;					/* No entries. */
+	Flags::set_aggregation( Aggregate::ENTRIES );			/* No entries. */
 	break;
 #endif
 

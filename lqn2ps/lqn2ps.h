@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 16726 2023-06-07 19:42:02Z greg $
+ * $Id: lqn2ps.h 16764 2023-07-02 11:20:45Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -58,7 +58,7 @@ const unsigned int MAX_PHASES	    = 3;		/* Number of Phases.		*/
 
 const double PTS_PER_INCH	    = 72.0;
 const double DEFAULT_X_SPACING	    = 9.0;
-const double DEFAULT_Y_SPACING	    = 54.0;		/* Works well with xfig	*/
+const double DEFAULT_Y_SPACING	    = 45.0;		/* Works well with xfig	*/
 const double FIG_SCALING	    = 50.0/3.0;
 const double EEPIC_SCALING	    = 10.0;
 const double SVG_SCALING	    = 25.0;
@@ -455,7 +455,8 @@ void setOutputFormat( const File_Format );
 
 bool graphical_output();
 bool output_output();
-bool input_output();
+bool input_output();			/* LQN, JSON, or XML output	*/
+bool bcmp_output();			/* JMVA or QNAP2 model output	*/
 bool partial_output();
 bool processor_output();		/* true if sorting by processor */
 bool queueing_output();			/* true if generating queueing network */

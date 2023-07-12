@@ -357,15 +357,10 @@ Entry::transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struc
     /* Connect the dots. */
 
     if ( task()->is_client() ) {
-	struct trans_object * c_trans;
-	if ( task()->think_time() ) {
-	    c_trans = create_trans( X_OFFSET(0,0), task_y_offset-0.5, layer_mask,
-				    1.0/task()->think_time(), INFINITE_SERVER, EXPONENTIAL, "i%s%d", name(), m );
-	} else {
-	    c_trans = create_trans( X_OFFSET(0,0), task_y_offset-0.5, layer_mask,
-				    1.0, 1, IMMEDIATE, "i%s%d", name(), m );
-	}
-	create_arc( layer_mask, TO_TRANS, c_trans, task()->TX[m] );
+	const double prVisit = get_dom()->hasVisitProbability() ? get_dom()->getVisitProbabilityValue() : 1.0;	// BUG_440
+	struct trans_object * c_trans = create_trans( X_OFFSET(0,0), task_y_offset-0.5, layer_mask,
+						      prVisit, 1, IMMEDIATE, "i%s%d", name(), m );
+	create_arc( layer_mask, TO_TRANS, c_trans, task()->ZX[m] != nullptr ? task()->ZX[m] : task()->TX[m] );
 	create_arc( layer_mask, TO_PLACE, c_trans, start_place );
 	/* c_trans acquire processor */
 	if ( !is_regular_entry() ) {

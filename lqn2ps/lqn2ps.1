@@ -1,6 +1,6 @@
 .\" -*- nroff -*-
-.TH lqn2ps 1 "07 June 2023"  "5.29"
-.\" $Id: lqn2ps.1 16727 2023-06-07 20:17:22Z greg $
+.TH lqn2ps 1 "18 June 2023"  "5.29"
+.\" $Id: lqn2ps.1 16748 2023-06-18 13:18:38Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -246,16 +246,16 @@ Specify which processors are displayed.
 \fBnone\fR
 Don't display any processors..
 .TP
-\fBdefault\fR
-Only display those processors that might have contention.
-.TP
 \fBall\fR
 Show all processors.
 .TP
 \fBnon-infinite\fR
 Show all non-infinite processors.
+.TP
+\fBqueueable\fR
+Only display those processors that might have contention.
 .LP
-(The default is default).
+(The default is queueable).
 This option has no effect for LQN input and output file generation.
 .RE
 .TP

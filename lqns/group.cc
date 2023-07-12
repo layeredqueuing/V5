@@ -10,7 +10,7 @@
  * November, 2008
  *
  * ------------------------------------------------------------------------
- * $Id: group.cc 16698 2023-04-24 00:52:30Z greg $
+ * $Id: group.cc 16757 2023-06-28 20:24:26Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -63,7 +63,7 @@ Group::initialize()
 void
 Group::recalculateDynamicValues()
 {
-    /* read gorup share from lqx;  */
+    /* read group share from lqx;  */
     initialize();
 }
 
@@ -84,6 +84,7 @@ Group::find( const std::string& group_name, unsigned int replica )
     const std::set<Group *>::const_iterator group = find_if( Model::__group.begin(), Model::__group.end(), EqualsReplica<Group>( group_name, replica ) );
     return group != Model::__group.end() ? *group : nullptr;
 }
+
 
 /*
  * Add a group to the model.   

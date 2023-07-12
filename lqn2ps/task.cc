@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: task.cc 16767 2023-07-03 11:18:44Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -55,7 +55,6 @@ std::map<std::string,unsigned> Task::__key_table;		/* For squishName 	*/
 std::map<std::string,std::string> Task::__symbol_table;		/* For rename		*/
 const std::string ReferenceTask::__BCMP_station_name("terminal");	/* No more than 8 characters -- qnap2 limit. */
 
-bool Task::thinkTimePresent             = false;
 bool Task::holdingTimePresent           = false;
 bool Task::holdingVariancePresent       = false;
 
@@ -125,7 +124,6 @@ Task::~Task()
 void
 Task::reset()
 {
-    thinkTimePresent = false;
     holdingTimePresent = false;
     holdingVariancePresent = false;
 }
@@ -197,6 +195,21 @@ double
 Task::processorUtilization() const
 {
     return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getResultProcessorUtilization();
+}
+
+
+/*
+ * Compute time this task is idle (think time for client in submodel).
+ */
+
+double
+Task::idleTime() const
+{
+    const LQIO::DOM::Task * dom = dynamic_cast<const LQIO::DOM::Task *>(getDOM());
+    const double util = dom->getResultUtilization();
+    const double tput = dom->getResultThroughput();
+    const double n    = static_cast<double>(dom->getCopiesValue());
+    return ( util >= n || tput == 0 ) ? 0 : (n - util) / tput;
 }
 
 /*
@@ -460,7 +473,7 @@ Task::findOrAddActivity( const LQIO::DOM::Activity * activity )
 
 
 
-#if defined(REP2FLAT)
+#if REP2FLAT
 /*
  * Find an existing activity which has the same name as srcActivity.
  */
@@ -620,6 +633,7 @@ bool
 Task::isCalled( const request_type callType ) const
 {
     return std::any_of( entries().begin(), entries().end(), Predicate1<Entry,const request_type>( &Entry::isCalledBy, callType ) );
+//    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::isCalledBy, callType ) );
 }
 
 
@@ -935,6 +949,17 @@ Task::addSrcCall( EntityCall * call )
 {
     _calls.push_back( call );
 }
+
+
+
+void
+Task::removeSrcCall( EntityCall * call )
+{
+    std::vector<EntityCall *>::iterator pos = std::find( _calls.begin(), _calls.end(), call ) ;
+    if ( pos != _calls.end() ) {
+	_calls.erase( pos );
+    }
+}
 #endif
 
 
@@ -1198,8 +1223,9 @@ void
 Task::create_chain::operator()( const Task * task ) const
 {
     if ( task->isInClosedModel(_servers) ) {
-	/* Think time for a task is the class think time. */
-	_model.insertClosedChain( task->name(), getLQXVariable(&task->copies()), nullptr );
+	_model.insertClosedChain( task->name(),
+				  getLQXVariable( dynamic_cast<const LQIO::DOM::Task *>(task->getDOM())->getCopies(), 1. ),	/* Copies */
+				  getLQXVariable( dynamic_cast<const LQIO::DOM::Task *>(task->getDOM())->getThinkTime(), 0. ) );	/* think time */
     }
     if ( task->isInOpenModel(_servers) ) {
 	_model.insertOpenChain( task->name(), nullptr );
@@ -1224,6 +1250,7 @@ Task::create_customers::operator()( const Task * task )
 //	service_time = addExternalVariables( client->entries().front()->thinkTime(), &client->thinkTime() );
 	service_time = getLQXVariable( &client->thinkTime() );
     }
+//	LQX::SyntaxTreeNode * think_time = new LQX::ConstantValueExpression( 0. ); 	/* !!! BUG_439 */		// temp -- find from entry
     if ( task->processor() == nullptr ) {
 	// for all entries s += prVisit(e) * e->serviceTime ??
 	service_time = addLQXExpressions( service_time, task->entries().at(0)->serviceTime() );
@@ -2029,7 +2056,7 @@ Task::sum_demand( LQX::SyntaxTreeNode * augend, const merge_pair& addend )
 /* Replication								*/
 /* -------------------------------------------------------------------- */
 
-#if defined(REP2FLAT)
+#if REP2FLAT
 Task&
 Task::removeReplication()
 {

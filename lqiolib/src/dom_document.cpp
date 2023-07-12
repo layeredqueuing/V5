@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 16550 2023-03-19 14:03:33Z greg $
+ *  $Id: dom_document.cpp 16776 2023-07-07 17:24:25Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -904,8 +904,8 @@ namespace LQIO {
 	    const std::string directory_name = LQIO::Filename::createDirectory( Filename::Filename::isFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
 
 	    /* Set output format from input, or if LQN and LQX then force to XML. */
-    
-	    if ( output_format == OutputFormat::DEFAULT && (getInputFormat() != InputFormat::LQN || getLQXProgram() != nullptr) ) {
+
+	    if ( output_format == OutputFormat::DEFAULT && (getLQXProgram() != nullptr || (getInputFormat() != InputFormat::LQN && output_file_name.substr( output_file_name.find_last_of( "." ) ) != ".out" ) ) ) {
 		output_format = __input_to_output_format.at( getInputFormat() );
 	    }
 
@@ -1052,17 +1052,6 @@ namespace LQIO {
 	Document::print( std::ostream& output, const OutputFormat format ) const
 	{
 	    switch ( format ) {
-	    case OutputFormat::DEFAULT:
-	    case OutputFormat::LQN: {
-		SRVN::Output srvn( *this, _entities );
-		srvn.print( output );
-		break;
-	    }
-	    case OutputFormat::PARSEABLE:{
-		SRVN::Parseable srvn( *this, _entities );
-		srvn.print( output );
-		break;
-	    }
 	    case OutputFormat::RTF: {
 		SRVN::RTF srvn( *this, _entities );
 		srvn.print( output );
@@ -1080,8 +1069,11 @@ namespace LQIO {
 		json.serializeDOM( output );
 		break;
 	    }
-	    default:
-		abort();
+	    default: {
+		SRVN::Output srvn( *this, _entities );
+		srvn.print( output );
+		break;
+	    }
 	    }
 
 	    return output;

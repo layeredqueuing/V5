@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 16557 2023-03-20 10:21:04Z greg $
+ * $Id: entry.h 16779 2023-07-10 14:06:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -177,6 +177,7 @@ public:
     unsigned fanOut( const Entry * toEntry ) const;
     Entry& setStartActivity( Activity * );
     Activity * startActivity() const { return _startActivity; }
+    const std::map<unsigned,Phase>& phases() const { return  _phases; }
     bool phaseIsPresent( const unsigned p ) const { return _phases.find(p) != _phases.end(); }
 
     /* Result queries */
@@ -194,7 +195,8 @@ public:
     double utilization() const;
     double variance( const unsigned p ) const;
     double variance() const;
-
+    double visitProbability() const;
+    
     double numberSlices( const unsigned p ) const;
     double sliceTime( const unsigned p ) const;
 
@@ -277,11 +279,11 @@ public:
 
     virtual Entry& rename();
 
-#if defined(BUG_270)
+#if BUG_270
     Entry& linkToClients( const std::vector<EntityCall *>& );
     Entry& unlinkFromServers();
 #endif
-#if defined(REP2FLAT)
+#if REP2FLAT
     static Entry * find_replica( const std::string&, const unsigned );
 
     Entry& expand();
@@ -304,7 +306,7 @@ private:
     Entry& moveSrc();
     Entry& moveDst();
 
-#if defined(BUG_270)
+#if BUG_270
     static void remove_from_dst( Call * call );
 #endif
 

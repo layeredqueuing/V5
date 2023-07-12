@@ -1,6 +1,6 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 16551 2023-03-19 14:55:57Z greg $
+ * $Id: open.cc 16767 2023-07-03 11:18:44Z greg $
  */
 
 #include "lqn2ps.h"
@@ -25,9 +25,9 @@ OpenArrivalSource::OpenArrivalSource( Entry * source )
     _entries.push_back(source);		/* Owner of entry is orginal task, not this task */
     myPaths = source->paths();
     assert ( source->requestType() == request_type::OPEN_ARRIVAL );
-    OpenArrival * aCall = new OpenArrival(this,source);
-    _calls.push_back( aCall );
-    const_cast<Entry *>(source)->addDstCall( aCall );
+    OpenArrival * call = new OpenArrival(this,source);
+    addSrcCall( call );
+    const_cast<Entry *>(source)->addDstCall( call );
     __source.push_back( this );
 
     _node = Node::newNode( Flags::icon_width, Flags::graphical_output_style == Output_Style::TIMEBENCH ? Flags::icon_height : Flags::entry_height );
@@ -75,6 +75,23 @@ OpenArrivalSource::servers( std::vector<Entity *> &servers ) const
 	servers.push_back( const_cast<Task *>(myEntry().owner()) );
     }
     return servers.size();
+}
+
+
+void
+OpenArrivalSource::addSrcCall( OpenArrival * call )
+{
+    _calls.push_back( call );
+}
+
+
+void
+OpenArrivalSource::removeSrcCall( OpenArrival * call )
+{
+    std::vector<OpenArrival *>::iterator pos = std::find( _calls.begin(), _calls.end(), call ) ;
+    if ( pos != _calls.end() ) {
+	_calls.erase( pos );
+    }
 }
 
 

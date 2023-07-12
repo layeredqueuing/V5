@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: option.cc 15722 2022-06-27 20:37:32Z greg $
+ * $Id: option.cc 16759 2023-06-29 14:28:02Z greg $
  */
 
 #include "lqn2ps.h"
@@ -176,7 +176,7 @@ const std::map<const Layering, const std::string> Options::layering =
 
 const std::map<const Processors, const std::string> Options::processors = {
     { Processors::NONE,         LQIO::DOM::Pragma::_none_ },
-    { Processors::DEFAULT,      "default" },
+    { Processors::QUEUEABLE,    "queueable" },
     { Processors::NONINFINITE,	"non-infinite" },
     { Processors::ALL,          LQIO::DOM::Pragma::_all_ }
 };
@@ -545,6 +545,18 @@ input_output()
 	|| Flags::output_format() == File_Format::LQX
 	|| Flags::output_format() == File_Format::XML
 	;
+}
+
+
+/*
+ * Return true if we are generating a new input file of some form.
+ */
+
+bool
+bcmp_output()
+{
+    return Flags::output_format() == File_Format::JMVA
+	|| Flags::output_format() == File_Format::QNAP2;
 }
 
 

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16736 2023-06-08 16:11:47Z greg $
+ * $Id: jmva_document.cpp 16757 2023-06-28 20:24:26Z greg $
  *
  * Read in XML input files.
  *
@@ -2121,7 +2121,7 @@ namespace QNIO {
     double
     JMVA_Document::printCommon::getDoubleValue( LQX::SyntaxTreeNode * value ) const
     {
-	return value->invoke( _model.environment() )->getDoubleValue();
+	return value != nullptr ? value->invoke( _model.environment() )->getDoubleValue() : 0.0;
     }
 
 

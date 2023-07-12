@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 16535 2023-03-15 19:21:24Z greg $
+ * $Id: call.cc 16768 2023-07-03 12:46:11Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -469,6 +469,14 @@ Call::merge( Phase& phase, const unsigned int p, const Call& src, const double r
 }
 
 
+Call&
+Call::unlink()
+{
+    const_cast<Entry *>(dstEntry())->removeDstCall( this );
+    return *this;
+}
+
+
 /*
  * Move all phases to phase 1.
  */
@@ -592,7 +600,7 @@ Call::rendezvous( const unsigned p, const LQIO::DOM::Call * value )
 {
     if ( hasSendNoReply() ) {
 	dstEntry()->getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
-    } else if ( !_calls.at(p-1) ) {
+    } else if ( _calls.at(p-1) == nullptr ) {
 	_callType = LQIO::DOM::Call::Type::RENDEZVOUS;
 	_calls[p-1] = value;
 	if ( _arc ) {
@@ -607,7 +615,7 @@ Call::rendezvous( const unsigned p, const double value )
 {
     if ( hasSendNoReply() ) {
 	dstEntry()->getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
-    } else if ( !_calls.at(p-1) ) {
+    } else if ( _calls.at(p-1) != nullptr ) {
 	_callType = LQIO::DOM::Call::Type::RENDEZVOUS;
 	const_cast<LQIO::DOM::Call *>(_calls[p-1])->setCallMeanValue(value);
 	if ( _arc ) {
@@ -640,7 +648,7 @@ Call::sendNoReply( const unsigned p, const LQIO::DOM::Call * value )
 {
     if ( hasRendezvous() || hasForwarding() ) {
 	dstEntry()->getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
-    } else if ( !_calls.at(p-1) ) {
+    } else if ( _calls.at(p-1) == nullptr ) {
 	_callType = LQIO::DOM::Call::Type::SEND_NO_REPLY;
 	_calls[p-1] = value;
 	if ( _arc ) {
@@ -655,7 +663,7 @@ Call::sendNoReply( const unsigned p, const double value )
 {
     if ( hasRendezvous() || hasForwarding() ) {
 	dstEntry()->getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
-    } else if ( !_calls.at(p-1) ) {
+    } else if ( _calls.at(p-1) != nullptr ) {
 	_callType = LQIO::DOM::Call::Type::SEND_NO_REPLY;
 	const_cast<LQIO::DOM::Call *>(_calls[p-1])->setCallMeanValue(value);
 	if ( _arc ) {
@@ -993,7 +1001,7 @@ Call::label()
 }
 
 
-#if defined(REP2FLAT)
+#if REP2FLAT
 /*
  * Clone the call from srcEntry
  */
@@ -1285,6 +1293,32 @@ EntryCall::addForwardingCall( Entry * toEntry, const double rate )
 }
 
 
+/*
+ * Disconnect the call from the source and destination entries.
+ * Remove the call from the DOM.
+ */
+
+EntryCall&
+EntryCall::unlink()
+{
+    const_cast<Entry *>(srcEntry())->removeSrcCall( this );
+    std::vector<const LQIO::DOM::Call *> calls = getCalls();	// make a copy;
+    for ( std::vector<const LQIO::DOM::Call *>::iterator call = calls.begin(); call != calls.end(); ++call ) {
+	if ( *call == nullptr ) continue;
+	LQIO::DOM::DocumentObject* src = const_cast<LQIO::DOM::DocumentObject*>((*call)->getSourceObject());
+	/* source is either a phase or entry */
+	if ( dynamic_cast<LQIO::DOM::Phase *>(src) != nullptr ) {
+	    dynamic_cast<LQIO::DOM::Phase *>(src)->eraseCall(const_cast<LQIO::DOM::Call *>(*call));
+	} else if ( dynamic_cast<LQIO::DOM::Entry *>(src) != nullptr ) {
+	    dynamic_cast<LQIO::DOM::Entry *>(src)->eraseForwardingCall(const_cast<LQIO::DOM::Call *>(*call));
+	}
+	delete *call;
+    }
+    Call::unlink();
+    return *this;
+}
+
+
 EntryCall&
 EntryCall::setChain( const unsigned k )
 {
@@ -1435,6 +1469,17 @@ ActivityCall::addForwardingCall( Entry * toEntry, const double rate )
     return const_cast<Activity *>(srcActivity())->forwardingRendezvous( toEntry, rate * LQIO::DOM::to_double(rendezvous(0)) );
 }
 
+
+ActivityCall&
+ActivityCall::unlink()
+{
+    const_cast<Activity *>(srcActivity())->removeSrcCall( this );
+    Call::unlink();
+    return *this;
+}
+
+
+
 Graphic::Colour
 ActivityCall::colour() const
 {
@@ -1525,10 +1570,20 @@ EntityCall::dstIndex() const
     return dstEntity()->index();
 }
 
+
 unsigned
 EntityCall::dstLevel() const
 {
     return dstEntity()->level();
+}
+
+
+EntityCall&
+EntityCall::unlink()
+{
+    const_cast<Task *>(srcTask())->removeSrcCall( this );
+    const_cast<Entity *>(dstEntity())->removeDstCall( this );
+    return *this;
 }
 
 
@@ -1924,6 +1979,20 @@ ProcessorCall::isSelected() const
 
 
 ProcessorCall&
+ProcessorCall::unlink()
+{
+#if 0
+    if ( srcEntry() != nullptr ) {
+	const_cast<Entry *>(srcEntry())->removeSrcCall( this );
+    }
+    EntityCall::unlink();
+#endif
+    return *this;
+}
+
+
+
+ProcessorCall&
 ProcessorCall::setChain( const unsigned k )
 {
     if ( hasSendNoReply() ) {
@@ -2171,6 +2240,15 @@ unsigned
 OpenArrival::dstLevel() const
 {
     return dstTask()->level();
+}
+
+
+OpenArrival&
+OpenArrival::unlink()
+{
+//    const_cast<OpenArrivalSource *>(_source)->removeSrcCall( this );
+    const_cast<Task *>(dstTask())->removeDstCall( this );
+    return *this;
 }
 
 

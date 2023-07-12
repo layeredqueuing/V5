@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_entry.h 15836 2022-08-15 21:18:20Z greg $
+ *  $Id: dom_entry.h 16771 2023-07-05 20:35:46Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -90,6 +90,11 @@ namespace LQIO {
 	    const ExternalVariable* getEntryPriority() const;
 	    int getEntryPriorityValue() const;
 	    bool hasEntryPriority() const;
+	    void setVisitProbability(const ExternalVariable* value);
+	    void setVisitProbabilityValue(double value);
+	    const ExternalVariable* getVisitProbability() const;
+	    double getVisitProbabilityValue() const;
+	    bool hasVisitProbability() const;
 
 	    bool entrySemaphoreTypeOk(Entry::Semaphore);
 	    void setSemaphoreFlag(Entry::Semaphore);
@@ -251,6 +256,7 @@ namespace LQIO {
 	    /* Additional Entry Parameters */
 	    const ExternalVariable* _openArrivalRate;
 	    const ExternalVariable* _entryPriority;
+	    const ExternalVariable* _visitProbability;		/* Reference Tasks only */
 	    Semaphore _semaphoreType;
 	    RWLock _rwlockType;
 	    std::vector<Call *> _forwarding;

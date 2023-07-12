@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 16671 2023-04-18 15:29:34Z greg $
+ * $Id: srvndiff.cc 16743 2023-06-13 09:14:26Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -64,6 +64,9 @@
 #include "json_document.h"
 #include "srvndiff.h"
 #include "parseable.h"
+#if HAVE_UNISTD_H
+#include "unistd.h"
+#endif
 
 extern "C" int resultdebug;
 extern "C" int resultlineno;	/* Line number of current parse line in input file */
@@ -993,7 +996,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2023-04-18 11:29:34 -0400 (Tue, 18 Apr 2023) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2023-06-13 05:14:26 -0400 (Tue, 13 Jun 2023) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );

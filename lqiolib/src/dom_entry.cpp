@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 16548 2023-03-19 12:28:28Z greg $
+ *  $Id: dom_entry.cpp 16773 2023-07-06 11:06:49Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -26,7 +26,7 @@ namespace LQIO {
 	    : DocumentObject(document,name),
 	      _type(Entry::Type::NOT_DEFINED), _phases(), 
 	      _maxPhase(0), _task(nullptr), _histograms(),
-	      _openArrivalRate(nullptr), _entryPriority(nullptr),
+	      _openArrivalRate(nullptr), _entryPriority(nullptr), _visitProbability(nullptr),
 	      _semaphoreType(Semaphore::NONE),
 	      _rwlockType(RWLock::NONE),
 	      _forwarding(),
@@ -49,7 +49,7 @@ namespace LQIO {
 	    : DocumentObject( src ),
 	      _type(src._type), _phases(),
 	      _maxPhase(src._maxPhase), _task(nullptr), _histograms(),
-	      _openArrivalRate(src._openArrivalRate), _entryPriority(src._entryPriority),
+	      _openArrivalRate(src._openArrivalRate), _entryPriority(src._entryPriority), _visitProbability(src._visitProbability),
 	      _semaphoreType(src._semaphoreType), _rwlockType(src._rwlockType), _forwarding(src._forwarding),
 	      _startActivity(nullptr),
 	      _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
@@ -224,6 +224,37 @@ namespace LQIO {
 	{
 	    /* Find out whether a value was set */
 	    return _entryPriority != nullptr;
+	}
+    
+	void Entry::setVisitProbabilityValue(double value)
+	{
+	    if ( _visitProbability == nullptr ) {
+		_visitProbability = new ConstantExternalVariable(value);
+	    } else {
+		const_cast<ExternalVariable *>(_visitProbability)->set(value);
+	    }
+	}
+
+	void Entry::setVisitProbability(const ExternalVariable* value)
+	{
+	    /* Store the visit probability */
+	    _visitProbability = checkDoubleVariable( value, 0.0, 1.0 );
+	}
+    
+	const ExternalVariable* Entry::getVisitProbability() const
+	{
+	    return _visitProbability;
+	}
+
+	double Entry::getVisitProbabilityValue() const
+	{
+	    return getDoubleValue( getVisitProbability(), 0.0, 1.0 );
+	}
+    
+	bool Entry::hasVisitProbability() const
+	{
+	    /* Find out whether a value was set */
+	    return _visitProbability != nullptr;
 	}
     
 	bool Entry::entrySemaphoreTypeOk(Semaphore newType)

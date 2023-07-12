@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 15957 2022-10-07 17:14:47Z greg $
+ * $Id: help.cc 16748 2023-06-18 13:18:38Z greg $
  */
 
 #include "lqn2ps.h"
@@ -151,7 +151,7 @@ man()
 	      << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 15957 2022-10-07 17:14:47Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 16748 2023-06-18 13:18:38Z greg $" << std::endl
 	      << comm << std::endl
 	      << comm << " --------------------------------" << std::endl;
 
@@ -517,14 +517,14 @@ man()
 		      << "\\fB" << Options::processors.at(Processors::NONE) << "\\fR" << std::endl
 		      << "Don't display any processors.." << std::endl;
 	    std::cout << ".TP" << std::endl
-		      << "\\fB" << Options::processors.at(Processors::DEFAULT) << "\\fR" << std::endl
-		      << "Only display those processors that might have contention." << std::endl;
-	    std::cout << ".TP" << std::endl
 		      << "\\fB" << Options::processors.at(Processors::ALL) << "\\fR" << std::endl
 		      << "Show all processors." << std::endl;
 	    std::cout << ".TP" << std::endl
 		      << "\\fB" << Options::processors.at(Processors::NONINFINITE) << "\\fR" << std::endl
 		      << "Show all non-infinite processors." << std::endl;
+	    std::cout << ".TP" << std::endl
+		      << "\\fB" << Options::processors.at(Processors::QUEUEABLE) << "\\fR" << std::endl
+		      << "Only display those processors that might have contention." << std::endl;
 	    std::cout << ".LP" << std::endl
 		      << default_setting(i) << std::endl
 		      << "This option has no effect for LQN input and output file generation." << std::endl;
@@ -534,7 +534,7 @@ man()
 	case 'Q':
 	    std::cout << "The " << current_option(i) << "is used to generate a diagram of the underlying queueing" << std::endl
 		      << "model for the submodel number given as an argument." << std::endl
-		      << "This option has no effect for LQN input and output file generation." << std::endl;
+		      << "This option has no effect for any input file format or LQN output file generation." << std::endl;
 	    break;
 
 	case 'R':
@@ -740,7 +740,7 @@ default_setting_str( std::ostream& output, const Options::Type& o, const int )
     } else if ( o.opts.param.l == &Options::layering ) {
 	output << Options::layering.at(o.opts.value.l);
     } else if ( o.opts.param.p == &Options::processors ) {
-	output << Options::processors.at(o.opts.value.p);
+	output << Options::processors.at(Processors::QUEUEABLE);	// Alias for default.  Bug 438.
     } else if ( o.opts.param.r == &Options::replication ) {
 	output << Options::replication.at(o.opts.value.r);
     } else {

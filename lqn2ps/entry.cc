@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: entry.cc 16771 2023-07-05 20:35:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -519,9 +519,9 @@ Entry::removeDstCall( GenericCall * aCall)
 
 
 void
-Entry::removeSrcCall( Call * aCall )
+Entry::removeSrcCall( Call * call )
 {
-    std::vector<Call *>::iterator pos = std::find( _calls.begin(), _calls.end(), aCall ) ;
+    std::vector<Call *>::iterator pos = std::find( _calls.begin(), _calls.end(), call ) ;
     if ( pos != _calls.end() ) {
 	_calls.erase( pos );
     }
@@ -689,6 +689,14 @@ Entry::variance() const
 
 
 double
+Entry::visitProbability() const
+{
+    double total = owner()->throughput();
+    return total > 0. ? throughput() / total : 0.0;
+}
+
+
+double
 Entry::serviceExceeded( const unsigned p ) const
 {
     return getPhase(p).serviceExceeded();
@@ -708,7 +716,11 @@ Entry::serviceExceeded() const
 bool
 Entry::isCalledBy( const request_type requestType )
 {
-    if ( _requestType != request_type::NOT_CALLED && _requestType != requestType ) {
+    if ( requestType == request_type::NOT_CALLED ) {
+	assert( callers().empty() );
+	_requestType = requestType;
+	return true;
+    } else if ( _requestType != request_type::NOT_CALLED && _requestType != requestType ) {
 	getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
 	return false;
     } else {
@@ -1384,7 +1396,6 @@ Entry::check() const
 
 	/* Set some globals for output formatting */
 
-	Model::thinkTimePresent     = Model::thinkTimePresent     || hasThinkTime();
 	Model::boundsPresent        = Model::boundsPresent        || throughputBound() > 0.0;
 
     } else {
@@ -2105,7 +2116,7 @@ Entry::remove_from_dst( Call * call )
 
 
 
-#if defined(REP2FLAT)
+#if REP2FLAT
 Entry *
 Entry::find_replica( const std::string& entry_name, const unsigned replica ) 
 {

@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: activity.cc 16768 2023-07-03 12:46:11Z greg $
  */
 
 #include "activity.h"
@@ -345,6 +345,16 @@ Activity::appendReplyList( const Activity& src )
 }
 
 
+
+
+void
+Activity::removeSrcCall( Call * call )
+{
+    std::vector<Call *>::iterator pos = std::find( _calls.begin(), _calls.end(), call ) ;
+    if ( pos != _calls.end() ) {
+	_calls.erase( pos );
+    }
+}
 
 
 Activity&
@@ -1055,7 +1065,7 @@ Activity::rename()
 }
 
 
-#if defined(REP2FLAT)
+#if REP2FLAT
 Activity&
 Activity::expandActivityCalls( const Activity& src, int replica )
 {

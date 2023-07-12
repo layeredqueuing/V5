@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 16726 2023-06-07 19:42:02Z greg $
+ * $Id: model.h 16762 2023-06-30 15:04:30Z greg $
  */
 
 #ifndef _MODEL_H
@@ -58,13 +58,7 @@ public:
     /* default values */
     static int maxModelNumber;
 
-    static bool deterministicPhasesPresent;
-    static bool maxServiceTimePresent;
-    static bool nonExponentialPhasesPresent;
-    static bool thinkTimePresent;
     static bool boundsPresent;
-    static bool histogramPresent;
-    static bool serviceExceededPresent;
     static bool variancePresent;
 
 private:

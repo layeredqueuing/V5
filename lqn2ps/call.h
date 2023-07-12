@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 15958 2022-10-07 20:27:02Z greg $
+ * $Id: call.h 16768 2023-07-03 12:46:11Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -118,6 +118,8 @@ public:
     virtual GenericCall& translateY( const double );
     virtual GenericCall& depth( const unsigned );
     virtual GenericCall& label() = 0;
+
+    virtual GenericCall& unlink() = 0;
 
     const GenericCall& draw( std::ostream& ) const;
     virtual std::ostream& print( std::ostream& ) const = 0;
@@ -260,9 +262,9 @@ public:
 
     /* Other */
 
-    double srcVisits( const unsigned, const unsigned, const unsigned = 0 ) const;
+    Call& unlink();
     Call& aggregatePhases( LQIO::DOM::Phase& );
-#if defined(BUG_270)
+#if BUG_270
     Call& updateRateFrom( const Call& client, const Call& server );
 #endif
     
@@ -272,12 +274,13 @@ public:
     virtual Call& label();
     virtual std::ostream& print( std::ostream& ) const;
 
-#if defined(REP2FLAT)
+#if REP2FLAT
     virtual Call& expand( const Entry& );
     virtual Call& replicateCall( std::vector<Call *>&, Call ** );
 #endif
 
 protected:
+    const std::vector<const LQIO::DOM::Call *>& getCalls() const { return _calls; }
     Call& setArcType();
     virtual std::ostream& printSRVNLine( std::ostream& output, char code, print_func_ptr func ) const;
     virtual void dump() const;
@@ -319,6 +322,7 @@ public:
     virtual LQIO::DOM::Phase::Type phaseTypeFlag( const unsigned p ) const;
 
     virtual Call * addForwardingCall( Entry * toEntry, const double );
+    virtual EntryCall& unlink();
 
     virtual Graphic::Colour colour() const;
 
@@ -372,6 +376,8 @@ public:
 
     virtual Call * addForwardingCall( Entry * toEntry, const double );
 
+    virtual ActivityCall& unlink();
+    
     virtual Graphic::Colour colour() const;
 
 protected:
@@ -424,7 +430,9 @@ public:
     virtual unsigned dstLevel() const;
     virtual double dstIndex() const;
 
-#if defined(BUG_270)
+    EntityCall& unlink();
+    
+#if BUG_270
     virtual EntityCall& updateRateFrom( const Call& );
 #endif
 protected:
@@ -533,12 +541,14 @@ public:
     LQX::SyntaxTreeNode * visits() const { return _demand.visits(); }
     LQX::SyntaxTreeNode * service_time() const { return _demand.service_time(); }
     void setServiceTime( LQX::SyntaxTreeNode * service_time ) { _demand.setServiceTime( service_time ); }
-#if defined(BUG_270)
+#if BUG_270
     virtual ProcessorCall& updateRateFrom( const Call& );
 #endif
 
     virtual bool isSelected() const;
     virtual bool isProcessorCall() const { return true; }
+
+    virtual ProcessorCall& unlink();
 
     virtual ProcessorCall& setChain( const unsigned );
 
@@ -603,6 +613,8 @@ public:
     virtual const LQIO::DOM::ExternalVariable & rendezvous() const;
     virtual const LQIO::DOM::ExternalVariable & sendNoReply() const;
     virtual const LQIO::DOM::ExternalVariable & forward() const;
+
+    virtual OpenArrival& unlink();
 
     const LQIO::DOM::ExternalVariable& openArrivalRate() const;
     double openWait() const;

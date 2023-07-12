@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: makeobj.cc 16448 2023-02-27 13:04:14Z greg $
+ * $Id: makeobj.cc 16775 2023-07-06 14:04:30Z greg $
  *
  * Make various model objects.
  */
@@ -280,6 +280,7 @@ create_trans( double x_pos, double y_pos, LAYER layer, double rate, short enable
 
 /*
  * Change orientation of trans.  Return the first argument.
+ * The default (horizontal) is zero.  one is vertical.
  */
 
 struct trans_object *

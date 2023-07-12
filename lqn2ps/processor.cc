@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 16726 2023-06-07 19:42:02Z greg $
+ * $Id: processor.cc 16766 2023-07-03 10:48:18Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -205,8 +205,7 @@ bool
 Processor::isInteresting() const
 {
     return Flags::processors() == Processors::ALL
-	|| (Flags::processors() == Processors::DEFAULT 
-	    && !isInfinite() 
+	|| ((Flags::processors() == Processors::DEFAULT || Flags::processors() == Processors::QUEUEABLE)
 	    && clientsCanQueue() )
 	|| (Flags::processors() == Processors::NONINFINITE
 	    && !isInfinite() )
@@ -473,7 +472,7 @@ Processor::rename()
 
 
 
-#if defined(REP2FLAT)
+#if REP2FLAT
 Processor *
 Processor::find_replica( const std::string& processor_name, const unsigned replica )
 {

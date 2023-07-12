@@ -1,6 +1,6 @@
 /* -*- c++ -*-  activity.h	-- Greg Franks
  *
- * $Id: activity.h 15958 2022-10-07 20:27:02Z greg $
+ * $Id: activity.h 16768 2023-07-03 12:46:11Z greg $
  */
 
 #ifndef _ACTIVITY_H
@@ -87,6 +87,9 @@ public:
     Call * forwardingRendezvous( Entry *, const double );
 
     virtual const std::vector<Call *>& calls() const { return _calls; }
+    void addSrcCall( Call * call ) { _calls.push_back(call); }
+    void removeSrcCall( Call * call );
+
     Activity& rootEntry( const Entry * anEntry, const Arc * );
     virtual const Entry * rootEntry() const { return _rootEntry; }
 
@@ -119,7 +122,7 @@ public:
 
     virtual Activity& rename();
     
-#if defined(REP2FLAT)
+#if REP2FLAT
     Activity& expandActivityCalls( const Activity& src, int replica);
     virtual Activity& replicateActivity( LQIO::DOM::Activity * root, unsigned int replica );
     virtual Activity& replicateCall();
@@ -149,7 +152,6 @@ private:
     Activity( const Activity& anActivity );
     Activity& operator=( const Activity& );
 
-    void addSrcCall( Call * aCall ) { _calls.push_back(aCall); }
     Activity& appendReplyList( const Activity& src );
 
     ActivityList * act_join_item( LQIO::DOM::ActivityList * dom_activitylist );

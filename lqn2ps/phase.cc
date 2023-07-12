@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: phase.cc 16766 2023-07-03 10:48:18Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -273,12 +273,7 @@ Phase::check() const
 	}
     }
 
-    Model::deterministicPhasesPresent  = Model::deterministicPhasesPresent  || phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC;
-    Model::maxServiceTimePresent       = Model::maxServiceTimePresent       || maxServiceTime() > 0.0;
-    Model::nonExponentialPhasesPresent = Model::nonExponentialPhasesPresent || isNonExponential();
-    Model::serviceExceededPresent      = Model::serviceExceededPresent      || serviceExceeded() > 0.0;
     Model::variancePresent             = Model::variancePresent             || variance() > 0.0;
-    Model::histogramPresent            = Model::histogramPresent            || hasHistogram();
     return rc;
 }
 
@@ -315,13 +310,6 @@ Phase&
 Phase::histogram( const double min, const double max, const unsigned n_bins )
 {
     _histogram.set( min, max, n_bins );
-
-    if ( n_bins == 0 ) {
-	Model::maxServiceTimePresent = true;
-    } else {
-	Model::histogramPresent = true;
-    }
-
     return *this;
 }
 
@@ -439,7 +427,7 @@ Phase::serviceTimeForSRVNInput() const
 }
 
 
-#if defined(REP2FLAT)
+#if REP2FLAT
 static struct {
     set_function first;
     get_function second;

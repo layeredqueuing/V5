@@ -10,11 +10,11 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 15958 2022-10-07 20:27:02Z greg $
+ * $Id: task.h 16767 2023-07-03 11:18:44Z greg $
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(TASK_H)
+#ifndef TASK_H
 #define TASK_H
 
 #include "lqn2ps.h"
@@ -33,7 +33,7 @@ class Share;
 class Task;
 class TaskCall;
 
-#if defined(BUG_270)
+#if BUG_270
 typedef std::multimap<const Entity *,EntityCall *>::const_iterator merge_iter;
 typedef std::pair<const Entity *,EntityCall *> merge_pair;
 #endif
@@ -44,7 +44,7 @@ typedef std::pair<const Entity *,EntityCall *> merge_pair;
 class Task : public Entity {
     typedef double (Task::*taskPhaseFunc)( const unsigned ) const;
 
-#if defined(REP2FLAT)
+#if REP2FLAT
     class UpdateFanInOut {
     public:
 	UpdateFanInOut( LQIO::DOM::Task& src ) : _src( src ) {}
@@ -76,7 +76,6 @@ public:
 public:
     enum class root_level_t { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS };
 
-    static bool thinkTimePresent;
     static bool holdingTimePresent;
     static bool holdingVariancePresent;
     static void reset();
@@ -108,7 +107,7 @@ public:
     Task& removeEntry( Entry * );
     Activity * findActivity( const std::string& name ) const;
     Activity * findOrAddActivity( const LQIO::DOM::Activity * );
-#if defined(REP2FLAT)
+#if REP2FLAT
     Activity * addActivity( const Activity&, const unsigned );
     Activity * findActivity( const Activity&, const unsigned );
 #endif
@@ -137,6 +136,7 @@ public:
     double utilization( const unsigned p ) const;
     virtual double utilization() const;
     double processorUtilization() const;
+    double idleTime() const;
 
     bool hasActivities() const { return activities().size() != 0; }
     virtual bool hasCalls( const callPredicate ) const;
@@ -164,14 +164,15 @@ public:
     const std::vector<EntityCall *>& calls() const { return _calls; }
     EntityCall * findOrAddCall( Task *, const callPredicate aFunc );
     EntityCall * findOrAddPseudoCall( Entity * );		// For -Lclient
-#if defined(BUG_270)
+#if BUG_270
     void addSrcCall( EntityCall * );
+    void removeSrcCall( EntityCall * aCall );
 #endif
 
     virtual bool isInOpenModel( const std::vector<Entity *>& servers ) const;
     virtual bool isInClosedModel( const std::vector<Entity *>& servers  ) const;
 
-#if defined(BUG_270)
+#if BUG_270
     static LQX::SyntaxTreeNode * sum_rendezvous( LQX::SyntaxTreeNode *, const merge_pair& );
     static LQX::SyntaxTreeNode * sum_demand( LQX::SyntaxTreeNode *, const merge_pair& );
 #endif
@@ -203,13 +204,13 @@ public:
     virtual Task& squish( std::map<std::string,unsigned>&, std::map<std::string,std::string>& );
     Task& aggregate();
 
-#if defined(BUG_270)
+#if BUG_270
     bool canPrune() const;
     virtual Task& relink();
     Task& unlinkFromProcessor();
     Task& mergeCalls();
 #endif
-#if defined(REP2FLAT)
+#if REP2FLAT
     virtual Task& removeReplication();
     Task& expand();
     Task& replicateCall();
@@ -240,7 +241,7 @@ private:
     void renameFanInOut( const std::string&, const std::string& );
     void renameFanInOut( std::map<const std::string,const LQIO::DOM::ExternalVariable *>&, const std::string&, const std::string& );
     
-#if defined(REP2FLAT)
+#if REP2FLAT
     Task& expandActivities( const Task& src, int replica );
 
 protected:
@@ -300,7 +301,7 @@ public:
     virtual Graphic::Colour colour() const;
     virtual size_t findChildren( CallStack&, const unsigned );
 
-#if defined(BUG_270)
+#if BUG_270
     bool canPrune() const;
     virtual Task& relink();
 #endif

@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 15958 2022-10-07 20:27:02Z greg $
+ * $Id: element.cc 16766 2023-07-03 10:48:18Z greg $
  */
 
 #include "element.h"
@@ -398,7 +398,7 @@ Graphic::Colour Element::colourForDifference( double difference ) const
     }
 }
 
-#if defined(REP2FLAT)
+#if REP2FLAT
 std::string
 Element::baseReplicaName( unsigned int& replica ) const
 {
@@ -418,7 +418,7 @@ Element::baseReplicaName( unsigned int& replica ) const
 
 
 
-#if defined(REP2FLAT)
+#if REP2FLAT
 /*
  * Clone the observation saved by the old_DOM to the new DOM (this).
  * It is a two step process because we can't whack the entries in the

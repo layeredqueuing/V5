@@ -211,7 +211,7 @@ void
 Model::init_errmsg()
 {
     __io_vars.error_messages = LQIO::global_error_messages;
-    __io_vars.max_error = LQIO::LSTGBLERRMSG;
+o    __io_vars.max_error = LQIO::LSTGBLERRMSG;
 }
 
 /*
