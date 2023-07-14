@@ -1,4 +1,4 @@
-$Id: README-LOCAL 16379 2023-01-30 19:09:47Z greg $
+$Id: README-LOCAL 16781 2023-07-13 15:14:59Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -73,6 +73,9 @@ Cygwin is probably the best choice for development, though MinGW2 is
 good enough.  I believe the original MinGW is no longer supported.
 DJGPP builds for DOS.
 
+Windows does not have symbolic links, so the regression tests cannot
+be run easily using 'make check'.
+
 If using MinGW2 
 1) Install mingw2 (See msys2.org).  It's relatively painless compared to MinGW.
    - Update packages to latest:
@@ -80,6 +83,9 @@ If using MinGW2
      % pacman -Su
    - I recommend to you install most used developer apps by:
      % pacman -S base-devel
+   - for automake and friends:
+     % pacman -S autotools
+     % pacman -S groff
    - You can run MSYS2 with mingw32_shell.bat and install mingw-w64 toolchain:
      % pacman -S mingw-w64-i686-toolchain
    - Ghostscript is needed to build .pdf manual pages.
@@ -90,13 +96,10 @@ If using MinGW2
 
 3) The user manuals are built using LaTeX.
    Install texlive
-  503  pacman -S mingw-w64-i686-texlive-recommended
-  504  pacman -S mingw-w64-i686-texlive-core
-  505  pacman -S mingw-w64-i686-texlive-latex-extra
-  510  pacman -S mingw-w64-i686-texlive-font-utils
-  522  pacman -S mingw-w64-i686-texlive-plain-generic
+  pacman -S mingw-w64-x86_64-texlive-full
 
    ** For msys64, you have to set the PATH in .bashrc
+  PATH=$PATH:/mingw64/bin
 
 4) Build away...
    ** Make sure that you run the 32 bit version of MINGW (Programs->MSYS2 32bit->MinGW-wew Win64 Shell)

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 16776 2023-07-07 17:24:25Z greg $
+ *  $Id: dom_document.cpp 16781 2023-07-13 15:14:59Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -905,8 +905,11 @@ namespace LQIO {
 
 	    /* Set output format from input, or if LQN and LQX then force to XML. */
 
-	    if ( output_format == OutputFormat::DEFAULT && (getLQXProgram() != nullptr || (getInputFormat() != InputFormat::LQN && output_file_name.substr( output_file_name.find_last_of( "." ) ) != ".out" ) ) ) {
-		output_format = __input_to_output_format.at( getInputFormat() );
+	    if ( output_format == OutputFormat::DEFAULT ) {
+		size_t pos = output_file_name.find_last_of( "." );
+		if (getLQXProgram() != nullptr || (getInputFormat() != InputFormat::LQN && pos != std::string::npos && output_file_name.substr( pos ) != ".out" ) ) {
+		    output_format = __input_to_output_format.at( getInputFormat() );
+		}
 	    }
 
 	    /* override is true for '-p -o filename.out when filename.in' == '-p filename.in' */

@@ -561,10 +561,13 @@ Layer::transmorgrifyClients( LQIO::DOM::Document * document )		/* BUG_440 */
 	    addSurrogateProcessor( document, task, number()+1 );
 	}
 	
-	/* Unlink calls from any other tasks */
+	/* Update entry parameters */
 	
 	const std::vector<Entry *>& entries = task->entries();
 	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
+
+	    /* Unlink calls from any other tasks */
+
 	    std::vector<GenericCall *> callers = (*entry)->callers();	// Make a copy
 	    for ( std::vector<GenericCall *>::const_iterator call = callers.begin(); call != callers.end(); ++call ) {
 		const_cast<GenericCall *>(*call)->unlink();
