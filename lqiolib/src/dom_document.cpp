@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 16781 2023-07-13 15:14:59Z greg $
+ *  $Id: dom_document.cpp 16801 2023-08-21 19:43:12Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -201,48 +201,17 @@ namespace LQIO {
 	    return *this;
 	}
 
-	Document& Document::setModelConvergence( const ExternalVariable * value )
+	Document& Document::set( const std::string& name, const ExternalVariable * var )
 	{
-	    _controlVariables[XConvergence] = value;
+	    /* Set/replace the value */
+	    std::pair<std::map<const std::string, const ExternalVariable*>::iterator,bool> result =  _controlVariables.emplace( std::pair<const std::string,const ExternalVariable*>(name,var) );
+	    if ( !result.second ) {
+		delete result.first->second;
+		result.first->second = var;
+	    }
 	    return *this;
 	}
-
-	Document& Document::setModelIterationLimit( const ExternalVariable * value )
-	{
-	    _controlVariables[XIterationLimit] = value;
-	    return *this;
-	}
-
-	Document& Document::setModelPrintInterval( const ExternalVariable * value )
-	{
-	    _controlVariables[XPrintInterval] = value;
-	    return *this;
-	}
-
-	Document& Document::setModelUnderrelaxationCoefficient( const ExternalVariable * value )
-	{
-	    _controlVariables[XUnderrelaxationCoefficient] = value;
-	    return *this;
-	}
-
-	Document& Document::setSpexIterationLimit( const ExternalVariable * spexIterationLimit )
-	{
-	    _controlVariables[XSpexIterationLimit] = spexIterationLimit;
-	    return *this;
-	}
-
-	Document& Document::setSpexUnderrelaxation( const ExternalVariable * spexUnderrelaxation )
-	{
-	    _controlVariables[XSpexUnderrelaxation] = spexUnderrelaxation;
-	    return *this;
-	}
-
-	Document& Document::setSpexConvergence( const ExternalVariable * spexConvergence )
-	{
-	    _controlVariables[XSpexConvergence] = spexConvergence;
-	    return *this;
-	}
-
+	
 	const double Document::getValue( const std::string& index ) const
 	{
 	    /* Set to default value if NOT set elsewhere (usually the control program) */
@@ -265,9 +234,7 @@ namespace LQIO {
 		    return iter->second;
 		}
 	    }
-	    SymbolExternalVariable * var = new SymbolExternalVariable( index );
-	    var->set( __initialValues.at( index ) );
-	    return var;
+	    return new ConstantExternalVariable( __initialValues.at( index ) );
 	}
 
 	unsigned Document::getNextEntityId()
@@ -907,7 +874,7 @@ namespace LQIO {
 
 	    if ( output_format == OutputFormat::DEFAULT ) {
 		size_t pos = output_file_name.find_last_of( "." );
-		if (getLQXProgram() != nullptr || (getInputFormat() != InputFormat::LQN && pos != std::string::npos && output_file_name.substr( pos ) != ".out" ) ) {
+		if ( getLQXProgram() != nullptr || (getInputFormat() != InputFormat::LQN && (output_file_name.empty() || (pos != std::string::npos && output_file_name.substr( pos ) != ".out")) ) ) {
 		    output_format = __input_to_output_format.at( getInputFormat() );
 		}
 	    }

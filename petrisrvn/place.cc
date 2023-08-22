@@ -17,6 +17,7 @@
 #include "place.h"
 #include "errmsg.h"
 #include <cmath>
+#include <cstring>
 #include <sstream>
 #include <stdexcept>
 #include <lqio/dom_entity.h>
@@ -53,32 +54,21 @@ unsigned int Place::multiplicity() const
 {
     if ( get_scheduling() == SCHEDULE_DELAY ) return 1;	/* Ignore for infinite servers. */
 
-    const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies();
-    if ( copies == nullptr ) return 1;
-    double value = 1.;
-    assert(copies->getValue(value) == true);
-    if ( isinf( value ) ) return 1;
-    std::stringstream err;
-    if ( value < 1 ) {
-	err << value << " < " << 1;
-    } else if ( value != floor(value)  ) {
-	err << "invalid integer";
+    unsigned int value = 1;
+    try {
+	value = get_dom()->getCopiesValue();
     }
-    if ( err.str().size() > 0 ) {
-	get_dom()->throw_invalid_parameter( "multiplicity", err.str() );
+    catch ( const std::domain_error& e ) {
+	if ( !is_infinite() || std::strcmp( e.what(), "infinity" ) != 0 || value != 1 ) {	/* Will throw iff value == infinity */
+	    get_dom()->throw_invalid_parameter( "multiplicity", e.what() );
+	}
     }
-    return static_cast<unsigned int>(value);
+    return value;
 }
 
 bool Place::is_infinite() const
 {
-    if ( get_scheduling() == SCHEDULE_DELAY ) {
-	return true;
-    } else {
-	double value = 0.0;
-	const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies();
-	return  copies && (copies->wasSet() && copies->getValue(value) == true && isinf( value ));
-    }
+    return get_dom()->isInfinite();
 }
 
 
@@ -92,6 +82,10 @@ bool Place::has_random_queueing() const
 void
 Place::check()
 {
+    if ( !scheduling_is_ok() ) {
+	get_dom()->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(get_scheduling()).str.c_str() );
+	set_scheduling( SCHEDULE_FIFO );
+    }
     if ( get_dom()->getReplicasValue() != 1 ) {
 	get_dom()->runtime_error( LQIO::ERR_NOT_SUPPORTED, "replication" );
     }

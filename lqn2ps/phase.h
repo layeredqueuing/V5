@@ -8,7 +8,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 16726 2023-06-07 19:42:02Z greg $
+ * $Id: phase.h 16787 2023-07-17 14:22:14Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -121,7 +121,7 @@ public:
     bool hasCV_sqr() const;
     const LQIO::DOM::ExternalVariable& Cv_sqr() const;
 
-    double executionTime() const;
+    double residenceTime() const;
     double variance() const;
     double serviceExceeded() const;
     double queueingTime() const;

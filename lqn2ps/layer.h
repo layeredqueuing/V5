@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 16779 2023-07-10 14:06:36Z greg $
+ * $Id: layer.h 16787 2023-07-17 14:22:14Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -128,7 +128,7 @@ public:
 
 private:
     Layer& addSurrogateProcessor( LQIO::DOM::Document * document, Task * task, const size_t level );
-    void resetClientPhaseParameters( LQIO::DOM::Document * document, Entry * entry );
+    void resetClientPhaseParameters( Entry * entry );
 
 private:
     std::vector<Entity *> _entities;

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 16459 2023-03-04 23:26:51Z greg $
+ *  $Id: dom_document.h 16793 2023-08-03 13:54:41Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -131,25 +131,25 @@ namespace LQIO {
 	    Document& setModelComment( const std::string& );
 	    const ExternalVariable * getModelConvergence() const { return get( XConvergence );	}
 	    const double getModelConvergenceValue() const { return getValue( XConvergence ); }
-	    Document& setModelConvergence( const ExternalVariable * );
+	    Document& setModelConvergence( const ExternalVariable * var ) { return set( XConvergence, var ); }
 	    const ExternalVariable * getModelIterationLimit() const { return get( XIterationLimit); }
-	    const unsigned int getModelIterationLimitValue() const { return static_cast<unsigned int>(getValue( XIterationLimit)); }
-	    Document& setModelIterationLimit( const ExternalVariable * );
+	    const unsigned int getModelIterationLimitValue() const { return static_cast<unsigned int>(getValue( XIterationLimit )); }
+	    Document& setModelIterationLimit( const ExternalVariable * var ) { return set( XIterationLimit, var ); }
 	    const ExternalVariable * getModelPrintInterval() const { return get( XPrintInterval); }
-	    const unsigned int getModelPrintIntervalValue() const { return static_cast<unsigned int>(getValue( XPrintInterval)); };
-	    Document& setModelPrintInterval( const ExternalVariable * );
+	    const unsigned int getModelPrintIntervalValue() const { return static_cast<unsigned int>(getValue( XPrintInterval )); }
+	    Document& setModelPrintInterval( const ExternalVariable * var ) { return set( XPrintInterval, var ); }
 	    const ExternalVariable * getModelUnderrelaxationCoefficient() const { return get( XUnderrelaxationCoefficient); }
-	    const double getModelUnderrelaxationCoefficientValue() const { return getValue( XUnderrelaxationCoefficient); }
-	    Document& setModelUnderrelaxationCoefficient( const ExternalVariable * );
+	    const double getModelUnderrelaxationCoefficientValue() const { return getValue( XUnderrelaxationCoefficient ); }
+	    Document& setModelUnderrelaxationCoefficient( const ExternalVariable * var ) { return set( XUnderrelaxationCoefficient, var ); }
 	    const ExternalVariable * getSpexIterationLimit() const { return get( XSpexIterationLimit ); }
 	    const double getSpexIterationLimitValue() const { return getValue( XSpexIterationLimit ); }
-	    Document& setSpexIterationLimit( const ExternalVariable * );
+	    Document& setSpexIterationLimit( const ExternalVariable * var ) { return set( XSpexIterationLimit, var ); }
 	    const ExternalVariable * getSpexUnderrelaxation() const { return get( XSpexUnderrelaxation ); }
 	    const double getSpexUnderrelaxationValue() const { return getValue( XSpexUnderrelaxation ); }
-	    Document& setSpexUnderrelaxation( const ExternalVariable * );
+	    Document& setSpexUnderrelaxation( const ExternalVariable * var ) { return set( XSpexUnderrelaxation, var ); }
 	    const ExternalVariable * getSpexConvergence() const { return get( XSpexConvergence ); }
 	    const double getSpexConvergenceValue() const { return getValue( XSpexConvergence ); }
-	    Document& setSpexConvergence( const ExternalVariable * );
+	    Document& setSpexConvergence( const ExternalVariable * var ) { return set( XSpexConvergence, var ); }
 
 	    /* Cached values for formatting */
 	    const unsigned getNumberOfProcessors() const { return _processors.size(); }
@@ -240,6 +240,7 @@ namespace LQIO {
 
 	private:
 	    const double getValue( const std::string& ) const;
+	    Document& set( const std::string&, const ExternalVariable * );
 	    const ExternalVariable * get( const std::string& ) const;
 	    static inline bool wasSet(const std::pair<std::string,SymbolExternalVariable*>& var ) { return var.second->wasSet(); }
 	    struct notSet {

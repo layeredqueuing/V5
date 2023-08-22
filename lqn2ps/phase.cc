@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16766 2023-07-03 10:48:18Z greg $
+ * $Id: phase.cc 16787 2023-07-17 14:22:14Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -163,7 +163,7 @@ Phase::phaseTypeFlag( LQIO::DOM::Phase::Type aType )
 /* -------------------------- Result Queries -------------------------- */
 
 double
-Phase::executionTime() const
+Phase::residenceTime() const
 {
     const LQIO::DOM::Phase * dom = getDOM();
     return dom ? dom->getResultServiceTime() : 0.0;
@@ -235,7 +235,7 @@ Phase::accumulate_demand( const BCMP::Model::Station::Class& augend, const std::
 /* static */ double
 Phase::accumulate_execution( double augend, const std::pair<unsigned int, Phase>& addend )
 {
-    return augend + addend.second.executionTime();
+    return augend + addend.second.residenceTime();
 }
 
 
@@ -402,23 +402,22 @@ Phase::serviceTimeForSRVNInput() const
 {
     double time = 0.0;
     try {
-	double time = to_double(serviceTime());
 	const unsigned p = phase();
 	assert( p != 0 );
 
 	/* Total time up to all lower level layers (not selected) */
 
 	for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
-	    if ( !(*call)->isSelected() && (*call)->hasRendezvousForPhase(p) ) {
-		time += LQIO::DOM::to_double((*call)->rendezvous(p)) * ((*call)->waiting(p) + (*call)->dstEntry()->executionTime(1));
+	    if ( (*call)->hasRendezvousForPhase(p) && !(*call)->isSelected() ) {
+		time += LQIO::DOM::to_double((*call)->rendezvous(p)) * ((*call)->waiting(p) + (*call)->dstEntry()->residenceTime(1));
 	    }
 	}
 
 	/* Add in processor queueing if it isn't selected */
 
-	const std::set<const Processor *>& processors = owner()->processors();
-	if ( std::any_of( processors.begin(), processors.end(), std::mem_fn( &Processor::isSelected ) ) ) {
-	    time += queueingTime();		/* queueing time is already multiplied my nRendezvous.  See lqns/parasrvn. */
+	const Processor * processor = owner()->processor();
+	if ( processor != nullptr && !processor->isSelected() ) {
+	    time += to_double(serviceTime()) + queueingTime();		/* queueing time is already multiplied my nRendezvous.  See lqns/parasrvn. */
 	}
     }
     catch ( const std::domain_error( &e ) ) {

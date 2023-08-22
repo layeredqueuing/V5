@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16771 2023-07-05 20:35:46Z greg $
+ * $Id: entry.cc 16787 2023-07-17 14:22:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -651,13 +651,13 @@ Entry::thinkTime() const
 
 
 double
-Entry::executionTime( const unsigned p ) const
+Entry::residenceTime( const unsigned p ) const
 {
     if ( isStandardEntry() ) {
 	const std::map<unsigned,Phase>::const_iterator i = _phases.find(p);
 	if ( i == _phases.end() ) return 0.;
 	const Phase& phase = i->second;
-	return phase.executionTime();
+	return phase.residenceTime();
     } else if ( getDOM() ) {
 	return dynamic_cast<const LQIO::DOM::Entry *>(getDOM())->getResultPhasePServiceTime(p);
     } else {
@@ -668,9 +668,9 @@ Entry::executionTime( const unsigned p ) const
 
 
 double
-Entry::executionTime() const
+Entry::residenceTime() const
 {
-    return std::accumulate( _phases.begin(), _phases.end(), 0.0, sum( &Phase::executionTime ) );
+    return std::accumulate( _phases.begin(), _phases.end(), 0.0, sum( &Phase::residenceTime ) );
 }
 
 
@@ -891,7 +891,7 @@ Entry::sliceTime( const unsigned p ) const
 double
 Entry::Cv_sqr() const
 {
-    const double t = executionTime();
+    const double t = residenceTime();
 
     if ( !std::isfinite( t ) ) {
 	return t;
@@ -1657,7 +1657,7 @@ Entry::colour() const
 
     case Colouring::DIFFERENCES:
 	if ( Flags::have_results ) {
-	    return colourForDifference( executionTime() );
+	    return colourForDifference( residenceTime() );
 	}
 	break;
 	
@@ -1990,14 +1990,6 @@ Entry::labelQueueingNetworkService( Label& aLabel )
 /*
  * Compute the service time for this entry.
  */
-
-double
-Entry::serviceTimeForSRVNInput() const
-{
-    return std::accumulate( _phases.begin(), _phases.end(), 0.0, sum( &Phase::serviceTimeForSRVNInput ) );
-}
-
-
 
 double
 Entry::serviceTimeForSRVNInput( const unsigned p ) const
@@ -2473,7 +2465,7 @@ Entry::print_execution_time( Label& label, const Entry& entry )
 {
     for ( unsigned p = 1; p <= entry.maxPhase(); ++p ) {
 	if ( p > 1 ) label << ",";
-	label << opt_pct(entry.executionTime(p));
+	label << opt_pct(entry.residenceTime(p));
     }
     return label;
 }

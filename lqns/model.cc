@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 16757 2023-06-28 20:24:26Z greg $
+ * $Id: model.cc 16792 2023-08-03 12:55:44Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -152,6 +152,7 @@ Model::solve( solve_using solve_function, const std::string& inputFileName, cons
 		}
 	    }
 	    catch ( const std::domain_error& e ) {
+		std::cerr << LQIO::io_vars.lq_toolname << ": domain error - " << e.what() << std::endl;
 		status = INVALID_INPUT;
 	    }
 	    catch ( const std::range_error& e ) {

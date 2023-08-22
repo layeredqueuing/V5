@@ -10,7 +10,7 @@
  * Error processing for srvn program.
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: error.cpp 16736 2023-06-08 16:11:47Z greg $
+ * $Id: error.cpp 16796 2023-08-14 19:32:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -62,7 +62,6 @@ std::map<unsigned int, LQIO::error_message_type> LQIO::error_messages = {
     { LQIO::ERR_REPLICATION,		    	{ LQIO::error_severity::ERROR,    "Fan-out of %d from task \"%s\" with %d replicas does not match the fan-in of %d to task \"%s\" with %d replicas." } },
     { LQIO::ERR_REPLICATION_PROCESSOR,    	{ LQIO::error_severity::ERROR,    "The number of replicas (%d) for task \"%s\" is not an integer multiple of the number of replicas (%d) for processor \"%s\"." } },
     { LQIO::ERR_SRC_EQUALS_DST,			{ LQIO::error_severity::ERROR,    "Destination entry \"%s\" must be different from source entry \"%s\"." } },
-    { LQIO::ERR_TASK_HAS_NO_ENTRIES,	 	{ LQIO::error_severity::ERROR, 	  "No entries were defined for task \"%s\"." } },
     { LQIO::ERR_TOO_MANY_X,			{ LQIO::error_severity::ERROR,    "Number of %s is outside of program limits of (1,%d)." } },
     { LQIO::ERR_UNEXPECTED_ATTRIBUTE,		{ LQIO::error_severity::ERROR,    "Element \"%s\", unexpected attribute: \"%s\"." } },
     { LQIO::ADV_LQX_IMPLICIT_SOLVE,		{ LQIO::error_severity::ADVISORY, "No solve() call found in the lqx program in file: %s.  solve() was invoked implicitly." } },

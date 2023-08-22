@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 16768 2023-07-03 12:46:11Z greg $
+ * $Id: activity.cc 16787 2023-07-17 14:22:14Z greg $
  */
 
 #include "activity.h"
@@ -806,7 +806,7 @@ Activity::serviceTimeForSRVNInput() const
     double time = to_double(*getDOM()->getServiceTime());
     for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	if ( !(*call)->isSelected() && (*call)->hasRendezvous() ) {
-	    time += (*call)->sumOfRendezvous()->invoke(nullptr)->getDoubleValue() * ((*call)->waiting(1) + (*call)->dstEntry()->executionTime(1));
+	    time += (*call)->sumOfRendezvous()->invoke(nullptr)->getDoubleValue() * ((*call)->waiting(1) + (*call)->dstEntry()->residenceTime(1));
 	}
     }
 
@@ -1024,7 +1024,7 @@ Activity::label()
     }
     if ( Flags::have_results ) {
 	if ( Flags::print[SERVICE].opts.value.b ) {
-	    _label->newLine() << begin_math() << opt_pct(executionTime()) << end_math();
+	    _label->newLine() << begin_math() << opt_pct(residenceTime()) << end_math();
 	}
 	if ( Flags::print[VARIANCE].opts.value.b ) {
 	    _label->newLine() << begin_math( &Label::sigma ) << "=" << opt_pct(variance()) << end_math();

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 16772 2023-07-06 00:56:41Z greg $
+ *  $Id: dom_object.cpp 16798 2023-08-18 19:45:35Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -64,7 +64,7 @@ namespace LQIO {
 	    { LQIO::ERR_INFINITE_SERVER, 		{ LQIO::error_severity::ERROR, 	  "cannot be an infinite server" } },
 	    { LQIO::ERR_INVALID_FORWARDING_PROBABILITY,	{ LQIO::error_severity::ERROR,    "has a total forwarding probability of %g" } },
 	    { LQIO::ERR_INVALID_OR_BRANCH_PROBABILITY,	{ LQIO::error_severity::ERROR,    "activity \"%s\" has invalid probability of %g" } },
-	    { LQIO::ERR_INVALID_PARAMETER,		{ LQIO::error_severity::ERROR,    "invalid %s: %g" } },
+	    { LQIO::ERR_INVALID_PARAMETER,		{ LQIO::error_severity::ERROR,    "invalid %s: %s" } },
 	    { LQIO::ERR_INVALID_REPLY_DUPLICATE,	{ LQIO::error_severity::ERROR,    "makes a duplicate reply for entry \"%s\"" } },
 	    { LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY,	{ LQIO::error_severity::ERROR,    "makes an invalid reply for entry \"%s\" which does not accept rendezvous requests" } },
 	    { LQIO::ERR_INVALID_REPLY_FROM_BRANCH,	{ LQIO::error_severity::ERROR,    "makes an invalid reply from a branch for entry \"%s\"" } },
@@ -93,6 +93,7 @@ namespace LQIO {
 	    { LQIO::ERR_REFERENCE_TASK_REPLIES,		{ LQIO::error_severity::ERROR,    "replies to entry \"%s\"" } },
 	    { LQIO::ERR_REPLY_NOT_GENERATED,		{ LQIO::error_severity::ERROR,    "must reply; the reply is not specified in the activity graph" } },
 	    { LQIO::ERR_TASK_ENTRY_COUNT, 		{ LQIO::error_severity::ERROR, 	  "has %d entries defined, exactly %d are required" } },
+	    { LQIO::ERR_TASK_HAS_NO_ENTRIES,	 	{ LQIO::error_severity::ERROR, 	  "has no entries defined" } },
 	    { LQIO::ERR_WRONG_TASK_FOR_ENTRY,		{ LQIO::error_severity::ERROR,    "is not part of task \"%s\""} },
 	    { LQIO::WRN_ENTRY_HAS_NO_REQUESTS,		{ LQIO::error_severity::WARNING,  "does not receive any requests" } },
 	    { LQIO::WRN_ENTRY_TYPE_MISMATCH,		{ LQIO::error_severity::WARNING,  "was previously set to type \"%s\" - changing to type \"%s\"" } },

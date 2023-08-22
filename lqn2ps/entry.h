@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 16779 2023-07-10 14:06:36Z greg $
+ * $Id: entry.h 16787 2023-07-17 14:22:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -182,8 +182,8 @@ public:
 
     /* Result queries */
 
-    double executionTime( const unsigned p ) const;
-    double executionTime() const;
+    double residenceTime( const unsigned p ) const;
+    double residenceTime() const;
     double openWait() const;
     double processorUtilization() const;
     double queueingTime( const unsigned p ) const;
@@ -253,7 +253,6 @@ public:
     unsigned countArcs( const callPredicate = nullptr ) const;
     unsigned countCallers( const callPredicate = nullptr ) const;
 
-    double serviceTimeForSRVNInput() const;
     double serviceTimeForSRVNInput( const unsigned p ) const;
     Entry& aggregateService( const Activity * anActivity, const unsigned p, const double rate );
     Entry& aggregatePhases();

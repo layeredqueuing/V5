@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16779 2023-07-10 14:06:36Z greg $
+ * $Id: layer.cc 16787 2023-07-17 14:22:14Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -577,7 +577,7 @@ Layer::transmorgrifyClients( LQIO::DOM::Document * document )		/* BUG_440 */
 
 	    /* Compute service time for each phase */
 	    
-	    resetClientPhaseParameters( document, *entry );
+	    resetClientPhaseParameters( *entry );
 
 	    /* Set visit probabilities if there is more than one entry. */
 	    
@@ -597,18 +597,23 @@ Layer::transmorgrifyClients( LQIO::DOM::Document * document )		/* BUG_440 */
 }
 
 
+
 /*
  * Get results from all calls except to those tasks which are not in the entity set.
+ * See also Phase::serviceTimeForSRVNInput.
  */
 
 void
-Layer::resetClientPhaseParameters( LQIO::DOM::Document * document, Entry * entry )
+Layer::resetClientPhaseParameters( Entry * entry )
 {
-//    double sum? // by phase?
-//std::for_each( calls.begin(), calls.end(), 
-//    if ( _hasResults ) {
-//	std::vector<LQIO::DOM::Call*>& dom_calls = const_cast<std::vector<LQIO::DOM::Call*>& >(phase->getCalls());
-//    }
+    const unsigned int max_phase = entry->maxPhase();
+    LQIO::DOM::Entry * dom_entry = dynamic_cast<LQIO::DOM::Entry *>(const_cast<LQIO::DOM::DocumentObject *>(entry->getDOM()));
+    for ( unsigned int p = 1; p <= max_phase; ++p ) {
+	double residence_time = entry->serviceTimeForSRVNInput(p);
+	if ( residence_time > 0. ) {
+	    dom_entry->getPhase( p )->setServiceTimeValue( residence_time );
+	}
+    }
 }
 
 

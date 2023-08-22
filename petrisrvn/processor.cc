@@ -79,14 +79,7 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 	dom->setSchedulingType( Pragma::__pragmas->processor_scheduling() );
     }
 
-    Processor * processor = new Processor( dom );
-    scheduling_type scheduling = dom->getSchedulingType();
-    processor->set_scheduling( scheduling );
-    if ( !processor->scheduling_is_ok() ) {
-	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(scheduling).str.c_str() );
-	processor->set_scheduling( SCHEDULE_FIFO );
-    }
-    __processor.push_back( processor );
+    __processor.push_back( new Processor( dom ) );
 }
 
 

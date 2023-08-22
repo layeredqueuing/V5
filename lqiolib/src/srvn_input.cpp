@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 16736 2023-06-08 16:11:47Z greg $
+ *  $Id: srvn_input.cpp 16796 2023-08-14 19:32:46Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -167,6 +167,8 @@ srvn_add_group( const char *group_name, void * group_share, const char *processo
 void *
 srvn_add_task (const char * task_name, const scheduling_type scheduling, const void * entries, const char * processor_name )
 {
+    assert( entries != nullptr );		/* srvn_gram.y should always pass in a list */
+    
     /* Obtain the processor we will add to */
     LQIO::DOM::Processor* processor = LQIO::DOM::__document->getProcessorByName(processor_name);
     if ( processor == nullptr ) {
@@ -177,9 +179,6 @@ srvn_add_task (const char * task_name, const scheduling_type scheduling, const v
     LQIO::DOM::Task* task = LQIO::DOM::__document->getTaskByName(task_name);
     if ( task != nullptr ) {
 	task->input_error( LQIO::ERR_DUPLICATE_SYMBOL );
-	return nullptr;
-    } else if ( entries == nullptr ) {
-	LQIO::input_error( LQIO::ERR_TASK_HAS_NO_ENTRIES, task_name );
 	return nullptr;
     } else if ( scheduling == SCHEDULE_SEMAPHORE ) {
 	task = new LQIO::DOM::SemaphoreTask( LQIO::DOM::__document, task_name, *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor );
