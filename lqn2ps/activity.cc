@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 16787 2023-07-17 14:22:14Z greg $
+ * $Id: activity.cc 16808 2023-09-25 14:30:49Z greg $
  */
 
 #include "activity.h"
@@ -411,31 +411,31 @@ Activity::findChildren( CallStack& callStack, const unsigned directPath, std::de
  */
 
 size_t
-Activity::findActivityChildren( std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack, Entry * srcEntry, size_t depth, unsigned p, const double rate ) const
+Activity::findActivityChildren( Ancestors& ancestors ) const
 {
     /* Check for cyles. */
-    if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
-	throw cycle_error( activityStack );
+    if ( !ancestors.find( this ) ) {
+	throw cycle_error( ancestors.getActivityStack() );
     }
-    activityStack.push_back( this );
+    ancestors.push_activity( this );
 
-    size_t max_depth = std::max( depth+1, level() );
+    size_t max_depth = std::max( ancestors.depth()+1, level() );
     const_cast<Activity *>(this)->level( max_depth );
 
-    if ( repliesTo( srcEntry ) ) {
-	if ( p == 2 ) {
-	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_DUPLICATE, srcEntry->name().c_str() );
+    if ( repliesTo( ancestors.sourceEntry() ) ) {
+	if ( ancestors.getPhase() == 2 ) {
+	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_DUPLICATE, ancestors.sourceEntry()->name().c_str() );
 	}
-	if (  srcEntry->requestType() == request_type::SEND_NO_REPLY || srcEntry->requestType() == request_type::OPEN_ARRIVAL ) {
-	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, srcEntry->name().c_str() );
+	if (  ancestors.sourceEntry()->requestType() == request_type::SEND_NO_REPLY || ancestors.sourceEntry()->requestType() == request_type::OPEN_ARRIVAL ) {
+	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, ancestors.sourceEntry()->name().c_str() );
 	}
-	p = 2;
+	ancestors.setPhase( 2 );
     }
 
     if ( outputTo() ) {
-	max_depth = std::max( outputTo()->findActivityChildren( activityStack, forkStack, srcEntry, max_depth, p, rate ), max_depth );
+	max_depth = std::max( outputTo()->findActivityChildren( ancestors ), max_depth );
     }
-    activityStack.pop_back();
+    ancestors.pop_activity();
 
     return max_depth;
 }
@@ -1217,7 +1217,7 @@ Activity::compareCoord( const Activity * a1, const Activity * a2 )
 
 /* ------------------------ Exception Handling ------------------------ */
 
-Activity::cycle_error::cycle_error( std::deque<const Activity *>& activityStack )
+Activity::cycle_error::cycle_error( const std::deque<const Activity *>& activityStack )
     : std::runtime_error( std::accumulate( std::next( activityStack.rbegin() ), activityStack.rend(), activityStack.back()->name(), fold  ) ),
       _depth( activityStack.size() )
 {

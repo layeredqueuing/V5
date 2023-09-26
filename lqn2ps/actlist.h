@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 15957 2022-10-07 17:14:47Z greg $
+ * $Id: actlist.h 16808 2023-09-25 14:30:49Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -82,7 +82,7 @@ public:
     virtual ActivityList& label() { return *this; }
 
     virtual size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const = 0;
-    virtual size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, const unsigned, const double ) const = 0;
+    virtual size_t findActivityChildren( Activity::Ancestors& path ) const = 0;
     virtual void backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const = 0;
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc ) = 0;
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const = 0;
@@ -177,7 +177,7 @@ public:
     virtual Type myType() const { return Type::SEQUENCE; }
 
     virtual size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const;
-    virtual size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, const unsigned, const double ) const;
+    virtual size_t findActivityChildren( Activity::Ancestors& path ) const;
     virtual void backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const { if ( prev() ) prev()->backtrack( forkStack, forkSet, joinSet ); }
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
@@ -211,7 +211,7 @@ public:
     virtual Type myType() const { return Type::SEQUENCE; }
 
     virtual size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const;
-    virtual size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, const unsigned, const double ) const;
+    virtual size_t findActivityChildren( Activity::Ancestors& path ) const;
     virtual void backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const { if ( _activity ) _activity->backtrack( forkStack, forkSet, joinSet ); }
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
@@ -307,7 +307,7 @@ public:
     virtual ~OrForkActivityList();
     OrForkActivityList * clone() const;
 
-    virtual size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, const unsigned, const double ) const;
+    virtual size_t findActivityChildren( Activity::Ancestors& path ) const;
     virtual void backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const { if ( prev() ) prev()->backtrack( forkStack, forkSet, joinSet ); }
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
@@ -350,7 +350,7 @@ public:
     AndForkActivityList& quorumCount (int quorumCount) { myQuorumCount = quorumCount; return *this; }
     int quorumCount () const { return myQuorumCount; }
 
-    virtual size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, const unsigned, const double ) const;
+    virtual size_t findActivityChildren( Activity::Ancestors& path ) const;
     virtual void backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const;
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
@@ -410,7 +410,7 @@ public:
 
     virtual OrJoinActivityList& add( Activity * anActivity );
 
-    virtual size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, const unsigned, const double ) const;
+    virtual size_t findActivityChildren( Activity::Ancestors& path ) const;
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
 
@@ -448,7 +448,7 @@ public:
     double joinDelay() const;
     double joinVariance() const;
 
-    virtual size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, const unsigned, const double ) const;
+    virtual size_t findActivityChildren( Activity::Ancestors& path ) const;
 
     virtual AndJoinActivityList& moveSrcTo( const Point& src, Activity * anActivity );
     virtual AndJoinActivityList& scaleBy( const double, const double );
@@ -490,7 +490,7 @@ public:
 
     virtual unsigned size() const;
     virtual size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const;
-    virtual size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, const unsigned, const double ) const;
+    virtual size_t findActivityChildren( Activity::Ancestors& path ) const;
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
     virtual double getIndex() const;

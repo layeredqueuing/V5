@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16767 2023-07-03 11:18:44Z greg $
+ * $Id: task.cc 16808 2023-09-25 14:30:49Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1308,7 +1308,8 @@ Task::topologicalSort()
 	std::deque<const Activity *> activityStack;		// For checking for cycles.
 	std::deque<const AndForkActivityList *> forkStack;	// For matching forks and joins.
 	try {
-	    maxLevel = std::max( maxLevel, anActivity->findActivityChildren( activityStack, forkStack, (*entry), 0, 1, 1.0  ) );
+	    Activity::Ancestors ancestors( *entry );
+	    maxLevel = std::max( maxLevel, anActivity->findActivityChildren( ancestors ) );
 	}
 	catch ( const Activity::cycle_error& error ) {
 	    maxLevel = std::max( maxLevel, error.depth()+1 );

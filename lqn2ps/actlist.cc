@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 16551 2023-03-19 14:55:57Z greg $
+ * $Id: actlist.cc 16808 2023-09-25 14:30:49Z greg $
  */
 
 
@@ -15,11 +15,10 @@
 #include <lqio/error.h>
 #include <lqio/dom_actlist.h>
 #include "actlist.h"
-#include "task.h"
 #include "entry.h"
-#include "activity.h"
 #include "errmsg.h"
 #include "label.h"
+#include "task.h"
 #include <string>
 
 template <> struct ExecXY<Arc>
@@ -253,12 +252,12 @@ ForkActivityList::findChildren( CallStack& callStack, const unsigned directPath,
 }
 
 size_t
-ForkActivityList::findActivityChildren( std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack, Entry * anEntry, size_t depth, const unsigned p, const double rate ) const
+ForkActivityList::findActivityChildren( Activity::Ancestors& ancestors ) const
 {
     if ( _activity ) {
-	return _activity->findActivityChildren( activityStack, forkStack, anEntry, depth, p, rate );
+	return _activity->findActivityChildren( ancestors );
     } else {
-	return depth;
+	return ancestors.depth();
     }
 }
 
@@ -378,13 +377,13 @@ JoinActivityList::findChildren( CallStack& callStack, const unsigned directPath,
 
 
 size_t
-JoinActivityList::findActivityChildren( std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack, Entry * anEntry, size_t depth, const unsigned p, const double rate ) const
+JoinActivityList::findActivityChildren( Activity::Ancestors& ancestors ) const
 {
-    size_t nextLevel = depth;
     if ( next() ) {
-	nextLevel = next()->findActivityChildren( activityStack, forkStack, anEntry, depth, p, rate );
+	return next()->findActivityChildren( ancestors );
+    } else { 
+	return ancestors.depth();
     }
-    return nextLevel;
 }
 
 
@@ -797,12 +796,13 @@ OrForkActivityList::add( Activity * activity )
  */
 
 size_t
-OrForkActivityList::findActivityChildren( std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack, Entry * anEntry, size_t depth, const unsigned p, const double rate ) const
+OrForkActivityList::findActivityChildren( Activity::Ancestors& ancestors ) const
 {
-    size_t nextLevel = depth;
+    size_t nextLevel = ancestors.depth();
 
     for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	nextLevel = std::max( (*activity)->findActivityChildren( activityStack, forkStack, anEntry, depth, p, /* prBranch(i) * */ rate ), nextLevel );
+	nextLevel = std::max( (*activity)->findActivityChildren( ancestors ), nextLevel );
+//	nextLevel = std::max( (*activity)->findActivityChildren( activityStack, forkStack, anEntry, depth, p, /* prBranch(i) * */ rate ), nextLevel );
 	/* sum += prBranch(i); */
     } 
 
@@ -1010,20 +1010,21 @@ AndForkActivityList::add( Activity * activity )
 
 
 size_t
-AndForkActivityList::findActivityChildren( std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack, Entry * anEntry, size_t depth, const unsigned p, const double rate ) const
+AndForkActivityList::findActivityChildren( Activity::Ancestors& ancestors ) const
 {
-    size_t nextLevel = depth;
+    size_t nextLevel = ancestors.depth();
 
-    forkStack.push_back( this );
+    ancestors.push_fork( this );
     try { 
 	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	    nextLevel = std::max( (*activity)->findActivityChildren( activityStack, forkStack, anEntry, depth, p, /* prBranch(i) * */ rate ), nextLevel );
+	    nextLevel = std::max( (*activity)->findActivityChildren( ancestors ), nextLevel );
+//	    nextLevel = std::max( (*activity)->findActivityChildren( activityStack, forkStack, anEntry, depth, p, /* prBranch(i) * */ rate ), nextLevel );
 	}
     }
     catch ( const bad_internal_join& error ) {
 	getDOM()->runtime_error( LQIO::ERR_FORK_JOIN_MISMATCH, "join", error.getDOM()->getListTypeName().c_str(), error.what(), error.getDOM()->getLineNumber() );
     }
-    forkStack.pop_back();
+    ancestors.pop_fork();
     return nextLevel;
 }
 
@@ -1240,12 +1241,12 @@ OrJoinActivityList::add( Activity * activity )
 
 
 size_t
-OrJoinActivityList::findActivityChildren( std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack, Entry * anEntry, size_t depth, const unsigned p, const double rate ) const
+OrJoinActivityList::findActivityChildren( Activity::Ancestors& ancestors ) const
 {
     if ( next() ) {
-	return next()->findActivityChildren( activityStack, forkStack, anEntry, depth, p, rate );
+	return next()->findActivityChildren( ancestors );
     } else {
-	return depth;
+	return ancestors.depth();
     }
 }
 
@@ -1375,26 +1376,26 @@ AndJoinActivityList::quorumCount(int quorumCount)
 
 
 size_t
-AndJoinActivityList::findActivityChildren( std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack, Entry * anEntry, size_t depth, const unsigned p, const double rate ) const
+AndJoinActivityList::findActivityChildren( Activity::Ancestors& ancestors ) const
 {
     /* Aggregating activities */
-    _depth = std::max( _depth, depth );
+    _depth = std::max( _depth, ancestors.depth() );
 
     /* Look for the fork on the fork stack */
 
     if ( forkList() == nullptr ) {
-	std::set<const AndForkActivityList *> resultSet(forkStack.begin(),forkStack.end());
+	std::set<const AndForkActivityList *> resultSet( ancestors.getForkStack().begin(), ancestors.getForkStack().end() );
 
 	/* Go up all of the branches looking for forks found on forkStack */
 
 	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	    if ( *activity == activityStack.back() ) continue;		/* No need -- this is resultSet */
+	    if ( *activity == ancestors.top_activity() ) continue;		/* No need -- this is resultSet */
 	
 	    /* Find all forks from this activity that match anything in forkStack */
 	
 	    std::set<const AndForkActivityList *> branchSet;
 	    std::set<const AndOrJoinActivityList *> joinSet;
-	    (*activity)->backtrack( forkStack, branchSet, joinSet );			/* find fork lists on this branch */
+	    (*activity)->backtrack( ancestors.getForkStack(), branchSet, joinSet );			/* find fork lists on this branch */
 
 	    /* Find intersection of branches */
 	
@@ -1408,7 +1409,7 @@ AndJoinActivityList::findActivityChildren( std::deque<const Activity *>& activit
 	/* Result should be all forks that match on all branches.  Take the one closest to top-of-stack */
 
 	if ( resultSet.size() > 0 ) {
-	    for ( std::deque<const AndForkActivityList *>::const_reverse_iterator fork_list = forkStack.rbegin(); fork_list != forkStack.rend() && forkList() == nullptr; ++fork_list ) {
+	    for ( std::deque<const AndForkActivityList *>::const_reverse_iterator fork_list = ancestors.getForkStack().rbegin(); fork_list != ancestors.getForkStack().rend() && forkList() == nullptr; ++fork_list ) {
 		if ( resultSet.find( *fork_list ) == resultSet.end() ) continue;
 	    
 		if ( !const_cast<AndJoinActivityList *>(this)->joinType( JoinType::INTERNAL_FORK_JOIN  ) ) {
@@ -1423,7 +1424,7 @@ AndJoinActivityList::findActivityChildren( std::deque<const Activity *>& activit
     }
 
     if ( next() ) {
-	return next()->findActivityChildren( activityStack, forkStack, anEntry, depth, p, rate );
+	return next()->findActivityChildren( ancestors );
     } else {
 	return _depth;
     }
@@ -1681,13 +1682,13 @@ RepeatActivityList::findChildren( CallStack& callStack, const unsigned directPat
 
 
 size_t
-RepeatActivityList::findActivityChildren( std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack, Entry * anEntry, size_t depth, const unsigned p, const double rate ) const
+RepeatActivityList::findActivityChildren( Activity::Ancestors& ancestors ) const
 {
-    size_t nextLevel = ForkActivityList::findActivityChildren( activityStack, forkStack, anEntry, depth, p, rate );
+    size_t nextLevel = ForkActivityList::findActivityChildren( ancestors );
     for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
+	Activity::Ancestors branch( ancestors, false );
 	std::deque<const AndForkActivityList *> branchForkStack; 	// For matching forks/joins.
-	nextLevel = std::max( (*activity)->findActivityChildren( activityStack, branchForkStack, anEntry, depth, 
-								 p, /* rateBranch(i) * */ rate ), nextLevel );
+	nextLevel = std::max( (*activity)->findActivityChildren( branch ), nextLevel );
     } 
     return nextLevel;
 }

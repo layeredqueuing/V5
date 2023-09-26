@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 16798 2023-08-18 19:45:35Z greg $
+ *  $Id: dom_object.cpp 16807 2023-09-22 20:10:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -52,7 +52,7 @@ namespace LQIO {
 	std::map<unsigned, LQIO::error_message_type> DocumentObject::__error_messages = {
 	    { LQIO::ADV_MESSAGES_DROPPED,		{ LQIO::error_severity::ADVISORY, "dropped messages for open-class queues" } },
 	    { LQIO::ERR_ASYNC_REQUEST_TO_WAIT,		{ LQIO::error_severity::ERROR,    "(wait) cannot accept send-no-reply requests" } },
-	    { LQIO::ERR_BAD_PATH_TO_JOIN,		{ LQIO::error_severity::ERROR,    "activity %s is not reachable" } },
+	    { LQIO::ERR_BAD_PATH_TO_JOIN,		{ LQIO::error_severity::ERROR,    "activity \"%s\" is not reachable" } },
 	    { LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH,	{ LQIO::error_severity::ERROR, 	  "has a cycle in activity graph.  Backtrace is \"%s\"" } },
 	    { LQIO::ERR_CYCLE_IN_CALL_GRAPH,		{ LQIO::error_severity::ERROR,    "has a cycle in call graph,  backtrace is \"%s\"" } },
 	    { LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE,	{ LQIO::error_severity::ERROR,    "previously used in the join at line %d" } },
