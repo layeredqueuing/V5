@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 16808 2023-09-25 14:30:49Z greg $
+ * $Id: actlist.h 16811 2023-09-27 19:02:11Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -30,15 +30,6 @@ class Arc;
 typedef std::ostream& (Activity::*printFunc)( std::ostream& ) const;
 
 std::ostream& operator<<( std::ostream&, const ActivityList& );
-
-class bad_internal_join : public std::runtime_error
-{
-public:
-    bad_internal_join( const LQIO::DOM::ActivityList * );
-    const LQIO::DOM::ActivityList * getDOM() const { return _list; }
-private:
-    const LQIO::DOM::ActivityList * _list;
-};
 
 /* -------------------------------------------------------------------- */
 /*                             ActivityList                             */
@@ -58,6 +49,24 @@ protected:
 
 public:
     static void act_connect(ActivityList *, ActivityList *);
+
+    class bad_internal_join : public std::runtime_error
+    {
+    public:
+	bad_internal_join( const LQIO::DOM::ActivityList * );
+	const LQIO::DOM::ActivityList * getDOM() const { return _list; }
+    private:
+	const LQIO::DOM::ActivityList * _list;
+    };
+
+    class path_error : public std::runtime_error
+    {
+    public:
+	path_error( const LQIO::DOM::Activity * );
+	const LQIO::DOM::Activity * getDOM() const { return _activity; }
+    private:
+	const LQIO::DOM::Activity * _activity;
+    };
 
 private:
     ActivityList( const ActivityList& );		/* Copying is verbotten */
@@ -485,7 +494,7 @@ public:
 
     virtual ~RepeatActivityList();
     virtual RepeatActivityList& add( Activity * anActivity );
-	
+
     const std::vector<Activity *> & activityList() const { return _activities; }
 
     virtual unsigned size() const;

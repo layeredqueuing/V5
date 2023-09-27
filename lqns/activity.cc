@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 16738 2023-06-11 11:42:58Z greg $
+ * $Id: activity.cc 16809 2023-09-25 14:54:08Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -241,19 +241,19 @@ Activity::repliesTo( const Entry * entry ) const
  */
 
 unsigned
-Activity::findChildren( Children& path ) const
+Activity::findChildren( Ancestors& ancestors ) const
 {
     _reachable = true;
 
-    if ( path.find( this ) ) {
-	throw activity_cycle( this, path.getActivityStack() );
+    if ( ancestors.find( this ) ) {
+	throw activity_cycle( this, ancestors.getActivityStack() );
     }
 
-    unsigned max_depth = Phase::findChildren( path.getCallStack(), path.isDirectPath() );
+    unsigned max_depth = Phase::findChildren( ancestors.getCallStack(), ancestors.isDirectPath() );
     if ( nextJoin() ) {
-	path.push_activity( this );
-	max_depth = std::max( max_depth, nextJoin()->findChildren( path ) );
-	path.pop_activity();
+	ancestors.push_activity( this );
+	max_depth = std::max( max_depth, nextJoin()->findChildren( ancestors ) );
+	ancestors.pop_activity();
     }
     return max_depth;
 }

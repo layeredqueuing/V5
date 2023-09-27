@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16771 2023-07-05 20:35:46Z greg $
+ * $Id: entry.cc 16809 2023-09-25 14:54:08Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -302,8 +302,8 @@ Entry::findChildren( Call::stack& callStack, const bool directPath ) const
     if ( isActivityEntry() ) {
 	max_depth = std::max( max_depth, _phase[1].findChildren( callStack, directPath ) );    /* Always check because we may have forwarding */
 	try {
-	    Activity::Children path( callStack, directPath, true );
-	    max_depth = std::max( max_depth, getStartActivity()->findChildren( path ) );
+	    Activity::Ancestors ancestors( callStack, directPath, true );
+	    max_depth = std::max( max_depth, getStartActivity()->findChildren( ancestors ) );
 	}
 	catch ( const activity_cycle& error ) {
 	    getDOM()->runtime_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, error.what() );

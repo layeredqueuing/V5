@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16766 2023-07-03 10:48:18Z greg $
+ * $Id: model.cc 16810 2023-09-26 15:13:53Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -322,7 +322,7 @@ Model::group_by_submodel()
  * Process input and save.
  */
 
-void
+int
 Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& pragmas, const std::string& output_file_name, const std::string& parse_file_name, int model_no )
 {
     /* Maps for type conversion */
@@ -374,7 +374,7 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
     if ( !document ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": Input model was not loaded successfully." << std::endl;
 	LQIO::io_vars.error_count += 1;
-	return;
+	return INVALID_INPUT;
     } else if ( Flags::output_format() == File_Format::UNKNOWN ) {
 	/* generally, we figure out the output format from lqn2xxx, or -Oxxx.  For rep2flat, set based on actual input format */
 	Flags::set_output_format( dom_to_lqn2xxx.at(document->getInputFormat()) );
@@ -387,11 +387,11 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 	catch ( const std::runtime_error &error ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot load results file " << parse_file_name << " - " << error.what() << "." << std::endl;
 	    Flags::have_results = false;
-	    if ( output_output() ) return;
+	    if ( output_output() ) return FILEIO_ERROR;
 	}
 	if ( !Flags::have_results ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot load results file " << parse_file_name << " - " << strerror( errno ) << "." << std::endl;
-	    if ( output_output() ) return;
+	    if ( output_output() ) return FILEIO_ERROR;
 	}
     } else {
 	Flags::have_results = Flags::print_results() && document->hasResults();
@@ -452,7 +452,9 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 
     model->setModelNumber( model_no );
 
-    if ( model->process() ) {		/* This layerizes and renders the model */
+    int status = 0;
+
+    if ( model->process() ) {				/* This layerizes and renders the model */
 	LQX::Program * program = nullptr;
 
 	try {
@@ -460,8 +462,9 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 	    if ( program != nullptr && Flags::run_lqx() ) {
 		Flags::instantiate  = true;
 
-		if (program == nullptr) {
+		if ( program == nullptr ) {
 		    LQIO::runtime_error( LQIO::ERR_LQX_COMPILATION, input_file_name.c_str() );
+		    status = INVALID_INPUT;
 		} else { 
 		    /* Attempt to run the program */
 		    document->registerExternalSymbolsWithProgram(program);
@@ -477,8 +480,7 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 		    }
 		    LQIO::RegisterBindings(program->getEnvironment(), document);
 	
-		    int status = 0;
-		    FILE * output = 0;
+		    FILE * output = nullptr;
 		    if ( output_file_name.size() > 0 && output_file_name != "-" && LQIO::Filename::isRegularFile(output_file_name) ) {
 			output = fopen( output_file_name.c_str(), "w" );
 			if ( !output ) {
@@ -516,18 +518,24 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 #if !(__GNUC__ && __GNUC__ < 3)
 	catch ( const std::ios_base::failure &error ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": " << error.what() << std::endl;
+	    status = INVALID_INPUT;
 	}
 #endif
 	catch ( const std::domain_error& error ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": " << error.what() << std::endl;
+	    status = INVALID_INPUT;
 	}
 	catch ( const std::runtime_error &error ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": " << error.what() << std::endl;
+	    status = INVALID_INPUT;
 	}
+    } else {
+	status = INVALID_INPUT;
     }
 
     delete document;
     delete model;
+    return status;
 }
 
 

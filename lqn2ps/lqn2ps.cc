@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 16759 2023-06-29 14:28:02Z greg $
+ * $Id: lqn2ps.cc 16810 2023-09-26 15:13:53Z greg $
  *
  * Command line processing.
  *
@@ -217,7 +217,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2023-06-29 10:28:02 -0400 (Thu, 29 Jun 2023) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2023-09-26 11:13:53 -0400 (Tue, 26 Sep 2023) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -316,7 +316,7 @@ main(int argc, char *argv[])
 		if ( parse_file_name != "-" && access( parse_file_name.c_str(), R_OK ) != 0 ) {
 		    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open parseable output file " << parse_file_name << " - "
 			      << strerror( errno ) << std::endl;
-		    exit ( 1 );
+		    exit( 1 );
 		}
 		break;
 
@@ -350,7 +350,7 @@ main(int argc, char *argv[])
 
 	    case 'H':
 		usage();
-		exit(0);
+		exit( 0 );
 
 	    case 0x200+'h':
 		Flags::set_processors( Processors::ALL );
@@ -496,7 +496,7 @@ main(int argc, char *argv[])
 
 	    case 0x200+'M':
 		man();
-		exit(0);
+		exit( 0 );
 
 	    case 0x200+'m':
 		Flags::set_processors( Processors::ALL );
@@ -851,11 +851,12 @@ main(int argc, char *argv[])
 	}
     }
 
+    int status = 0;
     if ( optind == argc ) {
-	Model::create( "-", pragmas, output_file_name, parse_file_name, 1 );
+	status = Model::create( "-", pragmas, output_file_name, parse_file_name, 1 );
     } else {
 	for ( int i = 1; optind < argc; ++optind, ++i ) {
-	    Model::create( argv[optind], pragmas, output_file_name, parse_file_name, i );
+	    status = Model::create( argv[optind], pragmas, output_file_name, parse_file_name, i ) | status;
 	}
     }
 
@@ -871,7 +872,7 @@ main(int argc, char *argv[])
 	if ( opt->name != nullptr ) free( const_cast<char *>(opt->name) );
     }
 #endif
-    return 0;
+    exit( status );
 }
 
 #if HAVE_GETOPT_H

@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16787 2023-07-17 14:22:14Z greg $
+ * $Id: entry.cc 16810 2023-09-26 15:13:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1374,6 +1374,9 @@ Entry::check() const
 		rc = false;
 	    }
 	    max_phases = std::max( maxPhase(), max_phases );		/* Set global value.	*/
+	} else if ( requestType() == request_type::SEND_NO_REPLY || requestType() == request_type::OPEN_ARRIVAL ) {
+	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, name().c_str() );
+	    rc = false;
 	}
 
     } else if ( isStandardEntry() ) {

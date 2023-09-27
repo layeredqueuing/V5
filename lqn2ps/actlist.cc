@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 16808 2023-09-25 14:30:49Z greg $
+ * $Id: actlist.cc 16811 2023-09-27 19:02:11Z greg $
  */
 
 
@@ -755,14 +755,6 @@ OrForkActivityList::OrForkActivityList( const Task * owner, const LQIO::DOM::Act
 }
 
 
-OrJoinActivityList *
-OrJoinActivityList::clone() const 
-{ 
-    const LQIO::DOM::ActivityList& src = *getDOM();
-    return new OrJoinActivityList( nullptr, new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) ); 
-} 
-
-
 OrForkActivityList::~OrForkActivityList()
 {
     for ( std::map<Activity *, Label *>::iterator label = _labels.begin(); label != _labels.end(); ++label ) {
@@ -1231,6 +1223,14 @@ AndOrJoinActivityList::draw( std::ostream& output ) const
 /*                      Or Join Activity Lists                          */
 /* -------------------------------------------------------------------- */
 
+OrJoinActivityList *
+OrJoinActivityList::clone() const 
+{ 
+    const LQIO::DOM::ActivityList& src = *getDOM();
+    return new OrJoinActivityList( nullptr, new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) ); 
+} 
+
+
 OrJoinActivityList&
 OrJoinActivityList::add( Activity * activity )
 {
@@ -1395,7 +1395,12 @@ AndJoinActivityList::findActivityChildren( Activity::Ancestors& ancestors ) cons
 	
 	    std::set<const AndForkActivityList *> branchSet;
 	    std::set<const AndOrJoinActivityList *> joinSet;
-	    (*activity)->backtrack( ancestors.getForkStack(), branchSet, joinSet );			/* find fork lists on this branch */
+	    try {
+		(*activity)->backtrack( ancestors.getForkStack(), branchSet, joinSet );			/* find fork lists on this branch */
+	    }
+	    catch ( const path_error& error ) {
+		getDOM()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, error.what() );
+	    }
 
 	    /* Find intersection of branches */
 	
@@ -1833,8 +1838,13 @@ RepeatActivityList::draw( std::ostream& output ) const
 
 /* ------------------------ Exception Handling ------------------------ */
 
-bad_internal_join::bad_internal_join( const LQIO::DOM::ActivityList* list )
+ActivityList::bad_internal_join::bad_internal_join( const LQIO::DOM::ActivityList* list )
     : std::runtime_error( list->getListName() ), _list(list)
+{
+}
+
+ActivityList::path_error::path_error( const LQIO::DOM::Activity* activity )
+    : std::runtime_error( activity->getName() ), _activity(activity)
 {
 }
 

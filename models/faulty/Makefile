@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 15867 2022-09-19 23:56:41Z greg $
+# $Id: Makefile 16810 2023-09-26 15:13:53Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	err_activity_not_reachable.lqn \
@@ -10,8 +10,6 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_cycle_in_call_graph.lqn \
 	err_duplicate_activity_lvalue.lqn \
 	err_duplicate_activity_rvalue.lqn \
-	err_duplicate_reply.lqn \
-	err_duplicate_reply.lqnx \
 	err_duplicate_start_activity.lqn \
 	err_duplicate_symbol-entry.lqn \
 	err_duplicate_symbol-processor.lqn \
@@ -29,6 +27,7 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_invalid_parameter-calls.lqn \
 	err_invalid_parameter-proc.lqnx \
 	err_invalid_reply_duplicate.lqn \
+	err_invalid_reply_duplicate.lqnx \
 	err_invalid_reply_for_snr_entry.lqn \
 	err_invalid_reply_from_branch-1.lqn \
 	err_invalid_reply_from_branch-2.lqn \

@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 16808 2023-09-25 14:30:49Z greg $
+ * $Id: activity.cc 16811 2023-09-27 19:02:11Z greg $
  */
 
 #include "activity.h"
@@ -414,9 +414,10 @@ size_t
 Activity::findActivityChildren( Ancestors& ancestors ) const
 {
     /* Check for cyles. */
-    if ( !ancestors.find( this ) ) {
+    if ( ancestors.find( this ) ) {
 	throw cycle_error( ancestors.getActivityStack() );
     }
+    unsigned int last_phase = ancestors.getPhase();	/* BUG 384 */
     ancestors.push_activity( this );
 
     size_t max_depth = std::max( ancestors.depth()+1, level() );
@@ -426,16 +427,15 @@ Activity::findActivityChildren( Ancestors& ancestors ) const
 	if ( ancestors.getPhase() == 2 ) {
 	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_DUPLICATE, ancestors.sourceEntry()->name().c_str() );
 	}
-	if (  ancestors.sourceEntry()->requestType() == request_type::SEND_NO_REPLY || ancestors.sourceEntry()->requestType() == request_type::OPEN_ARRIVAL ) {
-	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, ancestors.sourceEntry()->name().c_str() );
-	}
 	ancestors.setPhase( 2 );
     }
 
     if ( outputTo() ) {
 	max_depth = std::max( outputTo()->findActivityChildren( ancestors ), max_depth );
     }
+
     ancestors.pop_activity();
+    ancestors.setPhase( last_phase );			/* BUG 384 */
 
     return max_depth;
 }
@@ -448,7 +448,15 @@ Activity::findActivityChildren( Ancestors& ancestors ) const
 const Activity&
 Activity::backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const
 {
-    if ( inputFrom() ) inputFrom()->backtrack( forkStack, forkSet, joinSet );
+    ActivityList * fork_list = inputFrom();
+    if ( fork_list != nullptr ) {
+	RepeatActivityList * loop_list = dynamic_cast<RepeatActivityList *>(fork_list);
+	if ( loop_list != nullptr ) {
+	    throw ActivityList::path_error( static_cast<const LQIO::DOM::Activity *>(getDOM()) );
+	} else {
+	    fork_list->backtrack( forkStack, forkSet, joinSet );
+	}
+    }
     return *this;
 }
 
@@ -486,7 +494,7 @@ Activity::aggregate( Entry * anEntry, const unsigned curr_p, unsigned& next_p, c
     }
     next_p = curr_p;
     if ( repliesTo( anEntry ) ) {
-	next_p = 2;		/* aFunc may clobber the repliesTo list, so check first. */
+	next_p = 2;		/* aFunc may clobber the repliesTo list, so checkfirst. */
     }
     double sum = (this->*aFunc)( anEntry, curr_p, rate );
     if ( outputTo() ) {

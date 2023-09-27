@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16772 2023-07-06 00:56:41Z greg $
+ * $Id: task.cc 16809 2023-09-25 14:54:08Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -307,11 +307,11 @@ Task::linkForkToJoin()
     _has_quorum = std::any_of( precedences().begin(), precedences().end(), std::mem_fn(&ActivityList::hasQuorum) );
 
     Call::stack callStack;
-    Activity::Children path( callStack, true, false );
+    Activity::Ancestors ancestors( callStack, true, false );
     for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
 	if ( !(*activity)->isStartActivity() ) continue;
 	try {
-	    (*activity)->findChildren( path );
+	    (*activity)->findChildren( ancestors );
 	}
 	catch ( const bad_external_join& error ) {
 	    error.getDOM()->runtime_error( LQIO::ERR_BAD_PATH_TO_JOIN, (*activity)->name().c_str() );

@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 16706 2023-05-01 16:07:55Z greg $
+ * $Id: activity.h 16809 2023-09-25 14:54:08Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -178,13 +178,13 @@ public:
 	double _sum;
     };
 
-    class Children {
+    class Ancestors {
     public:
-	Children( Call::stack& callStack, bool directPath, bool followCalls ) : _callStack(callStack), _directPath(directPath), _follow_calls(followCalls), _activityStack(), _forkStack(), _rate(1.), _replyAllowed(true) {}
-	Children( const Children& src ) : _callStack(src._callStack), _directPath(src._directPath), _follow_calls(src._follow_calls), _activityStack(src._activityStack), _forkStack(src._forkStack), _rate(src._rate), _replyAllowed(src._replyAllowed) {}
-	Children( const Children& src, double rate ) : _callStack(src._callStack), _directPath(src._directPath), _follow_calls(src._follow_calls), _activityStack(src._activityStack), _forkStack(src._forkStack), _rate(src._rate * rate), _replyAllowed(false) {}
-	Children( const Children& src, std::deque<const AndOrForkActivityList *>& forkStack ) : _callStack(src._callStack), _directPath(src._directPath), _follow_calls(src._follow_calls), _activityStack(src._activityStack), _forkStack(forkStack), _rate(src._rate), _replyAllowed(src._replyAllowed) {}
-	Children( const Children& src, std::deque<const AndOrForkActivityList *>& forkStack, double rate ) : _callStack(src._callStack), _directPath(src._directPath), _follow_calls(src._follow_calls), _activityStack(src._activityStack), _forkStack(forkStack), _rate(src._rate * rate), _replyAllowed(false) {}
+	Ancestors( Call::stack& callStack, bool directPath, bool followCalls ) : _callStack(callStack), _directPath(directPath), _follow_calls(followCalls), _activityStack(), _forkStack(), _rate(1.), _replyAllowed(true) {}
+	Ancestors( const Ancestors& src ) : _callStack(src._callStack), _directPath(src._directPath), _follow_calls(src._follow_calls), _activityStack(src._activityStack), _forkStack(src._forkStack), _rate(src._rate), _replyAllowed(src._replyAllowed) {}
+	Ancestors( const Ancestors& src, double rate ) : _callStack(src._callStack), _directPath(src._directPath), _follow_calls(src._follow_calls), _activityStack(src._activityStack), _forkStack(src._forkStack), _rate(src._rate * rate), _replyAllowed(false) {}
+	Ancestors( const Ancestors& src, std::deque<const AndOrForkActivityList *>& forkStack ) : _callStack(src._callStack), _directPath(src._directPath), _follow_calls(src._follow_calls), _activityStack(src._activityStack), _forkStack(forkStack), _rate(src._rate), _replyAllowed(src._replyAllowed) {}
+	Ancestors( const Ancestors& src, std::deque<const AndOrForkActivityList *>& forkStack, double rate ) : _callStack(src._callStack), _directPath(src._directPath), _follow_calls(src._follow_calls), _activityStack(src._activityStack), _forkStack(forkStack), _rate(src._rate * rate), _replyAllowed(false) {}
 
 	Call::stack& getCallStack() { return _callStack; }
 	unsigned depth() const { return _callStack.depth(); }
@@ -341,7 +341,7 @@ public:
 				       double &  avgNumCallsToLevel2Tasks);
 
     /* Thread manipulation */
-    unsigned findChildren( Children& ) const;
+    unsigned findChildren( Ancestors& ) const;
     const Activity& backtrack( Backtrack::State& data ) const;
     virtual const Activity& followInterlock( Interlock::CollectTable& ) const;
     Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Collect& ) const;
