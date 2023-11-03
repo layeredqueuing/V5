@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 16793 2023-08-03 13:54:41Z greg $
+ *  $Id: dom_document.h 16819 2023-11-01 22:42:35Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -161,12 +161,15 @@ namespace LQIO {
 
 	    /* Results */
 	    Document& setMVAStatistics( const unsigned int, const unsigned long, const double, const double, const double, const double, const unsigned int );
-	    unsigned int getResultInvocationNumber() const { return _resultInvocationNumber; }
-	    Document& setResultInvocationNumber( const unsigned int resultInvocationNumber ) { _resultInvocationNumber = resultInvocationNumber; return *this; }
-	    double getResultConvergenceValue() const { return _resultConvergenceValue; }
-	    Document& setResultConvergenceValue(double resultConvergenceValue);
 	    bool getResultValid() const { return _resultValid; }
 	    Document& setResultValid(bool resultValid);
+	    unsigned int getResultInvocationNumber() const { return _resultInvocationNumber; }
+	    Document& setResultInvocationNumber( const unsigned int resultInvocationNumber ) { _resultInvocationNumber = resultInvocationNumber; return *this; }
+	    const std::string& getResultDescription() const { return _resultDescription; }
+	    Document& setResultDescription();
+	    Document& setResultDescription( const std::string& resultDescription );
+	    double getResultConvergenceValue() const { return _resultConvergenceValue; }
+	    Document& setResultConvergenceValue(double resultConvergenceValue);
 	    unsigned int getResultIterations() const { return _resultIterations; }
 	    Document& setResultIterations(unsigned int resultIterations);
 	    unsigned int getResultNumberOfBlocks() const { return _resultIterations; }
@@ -316,6 +319,7 @@ namespace LQIO {
 	    unsigned int _resultIterations;
 	    std::string _resultPlatformInformation;
 	    std::string _resultSolverInformation;
+	    std::string _resultDescription;
 	    double _resultUserTime;
 	    double _resultSysTime;
 	    double _resultElapsedTime;

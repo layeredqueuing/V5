@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16810 2023-09-26 15:13:53Z greg $
+ * $Id: model.cc 16830 2023-11-03 09:22:55Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -122,7 +122,7 @@ Model::Model( LQIO::DOM::Document * document, const std::string& input_file_name
     if ( graphical_output() && Flags::print[KEY].opts.value.i != 0 ) {
 	_key = new Key;
     }
-    if ( graphical_output() && (Flags::print[MODEL_COMMENT].opts.value.b || Flags::print[SOLVER_INFO].opts.value.b) ) {
+    if ( graphical_output() && (Flags::print[MODEL_COMMENT].opts.value.b || Flags::print[MODEL_DESCRIPTION].opts.value.b || Flags::print[SOLVER_INFO].opts.value.b) ) {
 	_label = Label::newLabel();
     }
 
@@ -818,13 +818,19 @@ Model::process()
 	if ( Flags::print[SOLVER_INFO].opts.value.b ) {
 	    *_label << _document->getResultSolverInformation();
 	}
+	if ( Flags::print[MODEL_DESCRIPTION].opts.value.b ) {
+	    if ( !_label->empty() ) _label->newLine();
+	    *_label << _document->getResultDescription();
+	}
 	if ( Flags::print[MODEL_COMMENT].opts.value.b ) {
-	    if ( _label->size() > 0 ) _label->newLine();
+	    if ( !_label->empty() ) _label->newLine();
 	    *_label << _document->getModelComment();
 	}
-	if ( _label != nullptr && _label->size() ) {
-	    _extent.moveBy( 0, _label->height() );
-	    _label->moveTo( _origin.x() + _extent.x()/2 , _extent.y() - _label->height() );
+	if ( _label != nullptr && !_label->empty() ) {
+	    const double y = _extent.y();
+	    const double h = _label->height();
+	    _extent.moveBy( 0, h * 2 );
+	    _label->moveTo( _origin.x() + _extent.x()/2 , y + h );
 	}
 	     
 
@@ -1767,9 +1773,8 @@ Model::returnReplication()
 std::ostream&
 Model::printEEPIC( std::ostream & output ) const
 {
-    output << "% Created By: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << std::endl
-	   << "% Invoked as: " << command_line << ' ' << _inputFileName << std::endl
-	   << "\\setlength{\\unitlength}{" << 1.0/EEPIC_SCALING << "pt}" << std::endl
+    printModelComment( output, "% " );
+    output << "\\setlength{\\unitlength}{" << 1.0/EEPIC_SCALING << "pt}" << std::endl
 	   << "\\begin{picture}("
 	   << static_cast<int>(right()+0.5) << "," << static_cast<int>(top() + 0.5)
 	   << ")(" << static_cast<int>(bottom()+0.5)
@@ -1810,10 +1815,7 @@ Model::printFIG( std::ostream& output ) const
 	   << "75.00" << std::endl
 	   << "Single" << std::endl
 	   << "-2" << std::endl;
-    output << "# Created By: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << std::endl
-	   << "# Invoked as: " << command_line << ' ' << _inputFileName << std::endl
-	   << "# " << LQIO::DOM::Common_IO::svn_id() << std::endl
-	   << "# " << getDOM()->getModelComment() << std::endl;
+    printModelComment( output, "# " );
     output << "1200 2" << std::endl;
     Fig::initColours( output );
 
@@ -1904,10 +1906,7 @@ Model::printSVG( std::ostream& output ) const
     output << "<?xml version=\"1.0\" standalone=\"no\"?>" << std::endl
 	   << "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20000303 Stylable//EN\""
 	   << " \"http://www.w3.org/TR/2000/03/WD-SVG-20000303/DTD/svg-20000303-stylable.dtd\">" << std::endl;
-    output << "<!-- Title: " << _inputFileName << " -->" << std::endl;
-    output << "<!-- Creator: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << " -->" << std::endl;
-    output << "<!-- Invoked as: " << command_line << ' ' << _inputFileName << " -->" << std::endl;
-    output << "<!-- " << LQIO::DOM::Common_IO::svn_id() << " -->" << std::endl;
+    printModelComment( output, "<!-- ", " -->" );
     output << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\""
 	   << right() / (SVG_SCALING * 72.0) << "in\" height=\""
 	   << top() / (SVG_SCALING * 72.0) << "in\" viewBox=\""
@@ -1942,8 +1941,7 @@ Model::printSXD( std::ostream& output ) const
     SXD::init( output );
 
     output << indent( +1 ) << "<office:body>" << std::endl;
-    output << indent( +1 ) << "<draw:page draw:name=\""
-	   << _inputFileName
+    output << indent( +1 ) << "<draw:page draw:name=\"" << _inputFileName
 	   << "\" draw:style-name=\"dp1\" draw:master-page-name=\"Default\">" << std::endl;
 
     printLayers( output );
@@ -1962,6 +1960,20 @@ Model::printX11( std::ostream& output ) const
     return output;
 }
 #endif
+
+
+
+std::ostream&
+Model::printModelComment( std::ostream& output, const std::string& head, const std::string& tail ) const
+{
+    output << head << LQIO::DOM::Common_IO::svn_id() << tail << std::endl
+	   << head << "Invoked as: " << command_line << ' ' << _inputFileName << tail << std::endl;
+    const std::string& description = getDOM()->getResultDescription();
+    if ( !description.empty() ) output << head << "Description:" << description << tail << std::endl;
+    const std::string& comment = getDOM()->getModelComment();
+    if ( !comment.empty() ) output << head << "Comment: " << description << tail << std::endl;
+    return output;
+}
 
 /* ---------------------- Non-graphical output. ----------------------- */
 

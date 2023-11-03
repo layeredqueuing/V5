@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 16771 2023-07-05 20:35:46Z greg $
+ * $Id: json_document.cpp 16825 2023-11-02 15:11:12Z greg $
  *
  * Read in JSON input files.
  *
@@ -222,7 +222,7 @@ namespace LQIO {
 	    char * p = buffer;
 	    size_t len = 0;
 	    do {
-	        len = read( input_fd, p, std::min( size, static_cast<size_t>(BUFSIZ) ) );	/* BUG 400 -- windows issue */
+		len = read( input_fd, p, std::min( size, static_cast<size_t>(BUFSIZ) ) );	/* BUG 400 -- windows issue */
 		if ( static_cast<int>(len) < 0 ) {
 		    std::cerr << LQIO::io_vars.lq_toolname << ": Read error on " << _input_file_name << " - " << strerror( errno ) << std::endl;
 		    rc = false;
@@ -257,7 +257,7 @@ namespace LQIO {
 	{
 	    va_list args;
 	    va_start( args, fmt );
-	    verrprintf( stderr, LQIO::error_severity::ERROR, _input_file_name.c_str(),  0, 0, fmt, args );
+	    verrprintf( stderr, LQIO::error_severity::ERROR, _input_file_name.c_str(),	0, 0, fmt, args );
 	    va_end( args );
 	}
  
@@ -268,7 +268,8 @@ namespace LQIO {
 	const std::map<const char*,const JSON_Document::ImportModel,JSON_Document::ImportModel>	 JSON_Document::model_table =
 	{
 	    { Xcomment,		ImportModel() },	// Nop. Discard
-	    { Xparameters,	ImportModel( &JSON_Document::handleParameters  ) },
+	    { Xheader,		ImportModel( &JSON_Document::handleHeader ) },
+	    { Xparameters,	ImportModel( &JSON_Document::handleParameters ) },
 	    { Xgeneral,		ImportModel( &JSON_Document::handleGeneral ) },
 	    { Xprocessor,	ImportModel( &JSON_Document::handleProcessor ) },
 	    { Xresults,		ImportModel( &JSON_Document::handleResults ) },
@@ -288,7 +289,7 @@ namespace LQIO {
 		const std::string& attr = i->first;
 		const std::map<const char *,const ImportModel>::const_iterator j = model_table.find( attr.c_str() );
 		if ( j == model_table.end() ) {
-		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, "lqn-model", attr.c_str() );
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xheader, attr.c_str() );
 		} else {
 		    j->second( attr, *this, i->second );
 		}
@@ -302,6 +303,31 @@ namespace LQIO {
 	    spex_set_program( Spex::__parameter_list, Spex::__result_list, Spex::__convergence_list );
 	}
 
+	const std::map<const char*,const JSON_Document::ImportHeader,JSON_Document::ImportHeader>  JSON_Document::header_table =
+	{
+	    { Xcomment,		    ImportHeader( &Document::setModelComment ) },
+	    { Xname,		    ImportHeader() },
+	    { Xdescription,	    ImportHeader( &Document::setResultDescription ) },
+	    { "#",		    ImportHeader( &Document::setModelComment ) }
+	};
+	
+	void
+	JSON_Document::handleHeader( DocumentObject *, const picojson::value& value )
+	{
+	    if ( !value.is<picojson::object>() ) throw std::runtime_error( "JSON object expected" );
+	    const picojson::value::object& obj = value.get<picojson::object>();
+
+	    for (picojson::value::object::const_iterator i = obj.begin(); i != obj.end(); ++i) {
+		const std::string& attr = i->first;
+		const std::map<const char *,const ImportHeader>::const_iterator j = header_table.find( attr.c_str() );
+		if ( j == header_table.end() ) {
+		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xheader, attr.c_str() );
+		} else {
+		    j->second( attr, *this, _document, i->second );
+		}
+	    }
+	}
+	
 	void
 	JSON_Document::handleComment( DocumentObject *, const picojson::value& value )
 	{
@@ -346,8 +372,8 @@ namespace LQIO {
 
 	const std::map<const char*,const JSON_Document::ImportGeneral,JSON_Document::ImportGeneral>  JSON_Document::general_table =
 	{
-	    { Xconv_val,	    ImportGeneral( &Document::setModelConvergence ) },
 	    { Xcomment,		    ImportGeneral( &Document::setModelComment ) },
+	    { Xconv_val,	    ImportGeneral( &Document::setModelConvergence ) },
 	    { Xit_limit,	    ImportGeneral( &Document::setModelIterationLimit ) },
 	    { Xunderrelax_coeff,    ImportGeneral( &Document::setModelUnderrelaxationCoefficient ) },
 	    { Xprint_int,	    ImportGeneral( &Document::setModelPrintInterval ) },
@@ -368,7 +394,7 @@ namespace LQIO {
 		const std::string& attr = i->first;
 		const std::map<const char *,const ImportGeneral>::const_iterator j = general_table.find(attr.c_str());
 		if ( j != general_table.end() ) {
-		    j->second(attr,*this,_document,i->second);		/* Handle attribute */
+		    j->second(attr, *this, _document, i->second);		/* Handle attribute */
 		} else {
 		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xgeneral, attr.c_str() );
 		}
@@ -430,7 +456,7 @@ namespace LQIO {
 		const picojson::value::array& arr = value.get<picojson::array>();
 		for (picojson::value::array::const_iterator i = arr.begin(); i != arr.end(); ++i) {
 		    if ( Document::__debugJSON ) Import::beginAttribute( std::cerr, *i );
-		    handleProcessor( 0, *i );
+		    handleProcessor( nullptr, *i );
 		    if ( Document::__debugJSON ) Import::endAttribute( std::cerr, *i );
 		}
 	    } else if ( value.is<picojson::object>() ) {
@@ -1871,6 +1897,38 @@ namespace LQIO {
 	    if ( Document::__debugJSON ) std::cerr << end_attribute( attribute, value );
 	}
 
+	
+	/*
+	 * This method corresponds to the "set" method used in the constructor.
+	 */
+
+	void
+	JSON_Document::ImportHeader::operator()( const std::string& attribute, JSON_Document& input, Document& document, const picojson::value& value ) const
+	{
+	    if ( Document::__debugJSON ) std::cerr << begin_attribute( attribute, value );
+
+	    switch ( getType() ) {
+	    case dom_type::STRING:
+		if ( value.is<std::string>() ) {
+		    (document.*getFptr().ds)( value.get<std::string>() );
+/* !!! */	} else if ( value.is<picojson::array>() ) {	/* Comment is an array */
+		} else {
+		    XML::invalid_argument( attribute, value.to_str() );
+		}
+		break;
+
+	    case dom_type::DOM_NULL:
+		break;
+
+	    default:
+		XML::invalid_argument( attribute, value.to_str() );
+		break;
+	    }
+
+	    if ( Document::__debugJSON ) std::cerr << end_attribute( attribute, value );
+	}
+
+	
 	/*
 	 * This method corresponds to the "set" method used in the constructor.
 	 */
@@ -2710,20 +2768,7 @@ namespace LQIO {
 	JSON_Document::Model::print( const Document& document ) const
 	{
 	    _output << begin_object();
-	    _output << begin_array( Xcomment )
-		    << indent() << "\"Generated by: " << LQIO::io_vars.lq_toolname << ", version " << LQIO::io_vars.lq_version << "\",";
-	    const GetLogin login;
-	    _output << indent() << "\"For: " << login << "\",";
-#if HAVE_STRFTIME
-	    time_t tloc;
-	    char tbuf[32];
-	    time( &tloc );
-	    strftime( tbuf, 32, "%a %b %H:%M:%S %Y", localtime( &tloc ) );
-	    _output << indent() << "\"" << tbuf << "\",";
-#endif
-	    _output << indent() << "\"Invoked as: " << LQIO::io_vars.lq_command_line << ' ' << LQIO::DOM::Document::__input_file_name << "\",";
-	    _output << indent() << "\"" << Common_IO::svn_id() << "\"";
-	    _output << end_array() << ",";
+	    ExportHeader( _output, _conf_95 ).print( document );
 
 	    if ( !document.instantiated() && !Spex::input_variables().empty() ) {
 		_output << begin_array( Xparameters );
@@ -2734,8 +2779,8 @@ namespace LQIO {
 
 	    ExportGeneral( _output, _conf_95 ).print( document );
 
-	    const std::map<std::string,Processor *>& processors = document.getProcessors();
 	    _output << next_begin_array( Xprocessor );
+	    const std::map<std::string,Processor *>& processors = document.getProcessors();
 	    std::for_each( processors.begin(), processors.end(), ExportProcessor( _output, _conf_95 ) );
 	    _output << end_array();
 
@@ -2759,6 +2804,40 @@ namespace LQIO {
 	}
 
 	void
+	JSON_Document::ExportHeader::print( const Document& document ) const
+	{
+	    const Filename base_name( LQIO::DOM::Document::__input_file_name );
+
+	    _output << begin_object( Xheader );
+	    ExportComment( _output, _conf_95 ).print( document );
+	    _output << attribute( Xname, base_name() )
+		    << next_attribute( Xdescription, document.getResultDescription() );
+	    _output << end_object();
+	}
+	
+
+	void
+	JSON_Document::ExportComment::print( const Document& document ) const
+	{
+	    _output << begin_array( Xcomment )
+		    << indent() << "\"Generated by: " << LQIO::io_vars.lq_toolname << ", version " << LQIO::io_vars.lq_version << "\",";
+
+	    const GetLogin login;
+	    _output << indent() << "\"For: " << login << "\",";
+#if HAVE_STRFTIME
+	    time_t tloc;
+	    char tbuf[32];
+	    time( &tloc );
+	    strftime( tbuf, 32, "%a %b %H:%M:%S %Y", localtime( &tloc ) );
+	    _output << indent() << "\"" << tbuf << "\",";
+#endif
+	    _output << indent() << "\"Invoked as: " << LQIO::io_vars.lq_command_line << ' ' << LQIO::DOM::Document::__input_file_name << "\",";
+	    _output << indent() << "\"" << Common_IO::svn_id() << "\"";
+	    _output << end_array() << ",";
+	}
+
+	
+	void
 	JSON_Document::ExportPragma::operator()( const std::pair<std::string,std::string>& pragma ) const
 	{
 	    _output << separator() << indent() << "{ \"" << pragma.first << "\": \"" << pragma.second << "\" }";
@@ -2775,7 +2854,7 @@ namespace LQIO {
 	void
 	JSON_Document::ExportGeneral::print( const Document& document ) const
 	{
-	    _output << begin_object( Xgeneral );
+	    _output << next_begin_object( Xgeneral );
 	    const std::string& comment = document.getModelComment();
 	    if ( !comment.empty() ) {
 		_output << attribute( Xcomment, comment ) << ",";
@@ -3099,7 +3178,7 @@ namespace LQIO {
 		_output << next_attribute( Xpriority, *entry.getEntryPriority() );
 	    }
 	    if ( entry.getVisitProbability() ) {
-                _output << next_attribute( Xprob, *entry.getVisitProbability() );
+		_output << next_attribute( Xprob, *entry.getVisitProbability() );
 	    }
 
 	    switch ( entry.getSemaphoreFlag() ) {
@@ -3896,10 +3975,11 @@ namespace LQIO {
 	const char * JSON_Document::Xcomment				= "comment";
 	const char * JSON_Document::Xconf_95				= "conf-95";
 	const char * JSON_Document::Xconf_99				= "conf-99";
-	const char * JSON_Document::Xconvergence			= "convergence";
 	const char * JSON_Document::Xconv_val				= "conv-val";
 	const char * JSON_Document::Xconv_val_result			= "convergence-value";
+	const char * JSON_Document::Xconvergence			= "convergence";
 	const char * JSON_Document::Xcore				= "core";
+	const char * JSON_Document::Xdescription			= "description";
 	const char * JSON_Document::Xdestination			= "destination";
 	const char * JSON_Document::Xdeterministic			= "determinstic-calls";
 	const char * JSON_Document::Xdrop_probability			= "drop-probability";
@@ -3912,6 +3992,7 @@ namespace LQIO {
 	const char * JSON_Document::Xforwarding				= "forwarding";
 	const char * JSON_Document::Xgeneral				= "general";
 	const char * JSON_Document::Xgroup				= "group";
+	const char * JSON_Document::Xheader				= "header";
 	const char * JSON_Document::Xhistogram				= "histogram";
 	const char * JSON_Document::Xhistogram_bin			= "bin";
 	const char * JSON_Document::Xinitially				= "initially";

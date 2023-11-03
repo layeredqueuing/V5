@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 16810 2023-09-26 15:13:53Z greg $
+ * $Id: lqn2ps.cc 16817 2023-11-01 19:40:11Z greg $
  *
  * Command line processing.
  *
@@ -102,6 +102,7 @@ std::vector<Options::Type> Flags::print = {
     { "waiting",               'w', nullptr,               {&Options::result,       true},              "Print waiting time results." },
     { "service-exceeded",      'x', nullptr,               {&Options::result,       false},             "Print maximum execution time exceeded." },
     { "comment",         0x300+'#', nullptr,               {&Options::result,       false},             "Print model comment." },
+    { "description",	 0x300+'$', nullptr,		   {&Options::result,       false},             "Print model description." },
     { "solver-information", 0x300+'!', nullptr,            {&Options::none,         0},                 "Print solver information." },
     { "ignore-errors",   0x200+'E', nullptr,               {&Options::none,         0},                 "Ignore errors during model checking phase." },
     { "task-service-time", 512+'P', nullptr,               {&Options::none,         0},                 "Print task service times (for --tasks-only)." },
@@ -217,7 +218,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2023-09-26 11:13:53 -0400 (Tue, 26 Sep 2023) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2023-11-01 15:40:11 -0400 (Wed, 01 Nov 2023) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -669,6 +670,11 @@ main(int argc, char *argv[])
 		Flags::print[MODEL_COMMENT].opts.value.b = enable;
 		break;
 
+	    case 0x200+'$':
+	    case 0x300+'$':
+		Flags::print[MODEL_DESCRIPTION].opts.value.b = enable;
+		break;
+		
 	    case 0x200+'!':
 	    case 0x300+'!':
 		Flags::print[SOLVER_INFO].opts.value.b = enable;

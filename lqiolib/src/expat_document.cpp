@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 16771 2023-07-05 20:35:46Z greg $
+ * $Id: expat_document.cpp 16817 2023-11-01 19:40:11Z greg $
  *
  * Read in XML input files.
  *
@@ -410,7 +410,7 @@ namespace LQIO {
         Expat_Document::startModel( DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
         {
 	    static const std::set<const XML_Char *,Expat_Document::attribute_table_t> model_table = {
-		"description",
+		Xdescription,
 		"lqncore-schema-version",
 		"lqn-schema-version",
 		Xname,
@@ -421,6 +421,7 @@ namespace LQIO {
 
             if ( strcasecmp( element, Xlqn_model ) == 0 ) {
                 Document::__debugXML = (Document::__debugXML || XML::getBoolAttribute(attributes,Xxml_debug));
+		_document.setResultDescription( XML::getStringAttribute(attributes,Xdescription,"") );
                 _stack.push( parse_stack_t(element,&Expat_Document::startModelType,nullptr) );
             } else {
                 throw XML::element_error( element );
@@ -2274,13 +2275,8 @@ namespace LQIO {
 		output << XML::comment( LQIO::io_vars.lq_command_line );
 	    }
             output << XML::start_element( Xlqn_model ) << XML::attribute( Xname, base_name() )
-		   << " description=\"";
-	    if ( hasResults() ) {
-		output << LQIO::io_vars.lq_toolname << " " << io_vars.lq_version << " solution for model from: " << _input_file_name << ".";
-	    } else {
-		output << Common_IO::svn_id();
-	    }
-	    output << "\" xmlns:xsi=\"" << XMLSchema_instance << "\" xsi:noNamespaceSchemaLocation=\"";
+		   << XML::attribute( Xdescription, _document.getResultDescription() )
+		   << " xmlns:xsi=\"" << XMLSchema_instance << "\" xsi:noNamespaceSchemaLocation=\"";
 	
             const char * p = getenv( "LQN_SCHEMA_DIR" );
 	    std::string schema_path;
@@ -2333,12 +2329,6 @@ namespace LQIO {
 	    const std::map<std::string,std::string>& pragmas = _document.getPragmaList();
 	    const bool complex_element = hasResults() || !pragmas.empty() || doc_vars.size() > 0;
 
-	    if ( _document.getSymbolExternalVariableCount() > 0 ) {
-		std::ostringstream ss;
-		ss << "Variables: ";
-		_document.printExternalVariables( ss );
-		output << XML::comment( ss.str() );
-	    }
             output << XML::start_element( Xsolver_parameters, complex_element )
                    << XML::attribute( Xcomment, _document.getModelComment() )
                    << XML::attribute( Xconv_val, *_document.getModelConvergence() )
@@ -3384,6 +3374,7 @@ namespace LQIO {
         const XML_Char * Expat_Document::Xconv_val_result =                     "conv-val";
         const XML_Char * Expat_Document::Xcore =                                "core";
         const XML_Char * Expat_Document::Xcount =                               "count";
+        const XML_Char * Expat_Document::Xdescription =                         "description";
         const XML_Char * Expat_Document::Xdest =                                "dest";
         const XML_Char * Expat_Document::Xelapsed_time =                        "elapsed-time";
         const XML_Char * Expat_Document::Xend =                                 "end";

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 16421 2023-02-14 02:45:49Z greg $
+ *  $Id: expat_document.h 16817 2023-11-01 19:40:11Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -386,6 +386,7 @@ namespace LQIO {
 	    static const XML_Char *Xcore;
 	    static const XML_Char *Xcount;
 	    static const XML_Char *Xdest;
+	    static const XML_Char *Xdescription;
 	    static const XML_Char *Xelapsed_time;
 	    static const XML_Char *Xend;
 	    static const XML_Char *Xentry;

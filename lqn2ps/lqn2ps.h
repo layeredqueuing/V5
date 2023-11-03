@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 16764 2023-07-02 11:20:45Z greg $
+ * $Id: lqn2ps.h 16817 2023-11-01 19:40:11Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -136,6 +136,7 @@ typedef enum
     WAITING              ,
     SERVICE_EXCEEDED     ,
     MODEL_COMMENT        ,
+    MODEL_DESCRIPTION    ,
     SOLVER_INFO		 ,
     SUMMARY              ,
     IGNORE_ERRORS	 ,

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 16801 2023-08-21 19:43:12Z greg $
+ *  $Id: dom_document.cpp 16820 2023-11-01 22:43:39Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -10,13 +10,14 @@
 #include <config.h>
 #endif
 #include "dom_document.h"
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <functional>
-#include <cstring>
-#include <cstdlib>
-#include <cmath>
-#include <algorithm>
 #include <numeric>
+#include <sstream>
 #if HAVE_SYS_UTSNAME_H
 #include <sys/utsname.h>
 #endif
@@ -492,6 +493,25 @@ namespace LQIO {
 	    return *this;
 	}
 
+	Document& Document::setResultDescription()
+	{
+	    _resultDescription = LQIO::io_vars.lq_toolname + " " + LQIO::io_vars.lq_version + " solution for " + __input_file_name;
+	    if ( getSymbolExternalVariableCount() > 0 ) {
+		_resultDescription += ": ";
+		std::ostringstream ss;
+		printExternalVariables( ss );
+		_resultDescription += ss.str();
+	    }
+	    _resultDescription += ".";
+	    return *this;
+	}
+
+	Document& Document::setResultDescription( const std::string& resultDescription )
+	{
+	    _resultDescription = resultDescription;
+	    return *this;
+	}
+
 	Document& Document::setResultConvergenceValue(double resultConvergenceValue)
 	{
 	    _hasResults = true;
@@ -509,8 +529,8 @@ namespace LQIO {
 	Document& Document::setResultPlatformInformation(const std::string& resultPlatformInformation)
 	{
 	    _hasResults = true;
-		_resultPlatformInformation = resultPlatformInformation;
-		return *this;
+	    _resultPlatformInformation = resultPlatformInformation;
+	    return *this;
 	}
 
 	Document& Document::setResultPlatformInformation()

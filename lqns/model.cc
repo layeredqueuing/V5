@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 16792 2023-08-03 12:55:44Z greg $
+ * $Id: model.cc 16825 2023-11-02 15:11:12Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -101,14 +101,15 @@ Model::solve( solve_using solve_function, const std::string& inputFileName, cons
 
     /* Make sure we got a document */
 
-    if ( LQIO::io_vars.anError() ) {
+    if ( document == nullptr  ) {
+	return INVALID_INPUT;
+    } else if ( LQIO::io_vars.anError() ) {
 	delete document;
 	return INVALID_INPUT;
-    } else if ( document == nullptr  ) {
-	return INVALID_INPUT;
     }
+    document->setResultDescription();			/* Wipe out any description and replace with generic. */
 
-    document->mergePragmas( pragmas.getList() );       /* Save pragmas -- prepare will process */
+    document->mergePragmas( pragmas.getList() );	/* Save pragmas -- prepare will process */
     if ( Model::prepare(document) == false ) {
 	delete document;
 	return INVALID_INPUT;

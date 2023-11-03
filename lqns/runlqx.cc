@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 16438 2023-02-22 23:57:49Z greg $
+ * $Id: runlqx.cc 16820 2023-11-01 22:43:39Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -78,7 +78,8 @@ namespace SolverInterface
 	    /* Run the solver and return its success as a boolean value */
 	    assert( _model );
 	    if ( _model->check() && _model->initialize() ) {
-		_document->setResultInvocationNumber( invocationCount );
+		_document->setResultInvocationNumber( invocationCount )
+		    .setResultDescription();
 		ok = (_model->*_solve)();
 	    } else {
 		ok = false;

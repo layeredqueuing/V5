@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 16428 2023-02-15 14:30:27Z greg $
+ * $Id: model.cc 16825 2023-11-02 15:11:12Z greg $
  */
 
 #include "lqsim.h"
@@ -128,6 +128,7 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
     /* Make sure we got a document */
 
     if ( document == nullptr || LQIO::io_vars.anError() ) return INVALID_INPUT;
+    document->setResultDescription();			/* Wipe out any description and replace with generic. */
 
     if ( LQIO::Spex::input_variables().empty() ) {
 	if ( LQIO::Spex::__no_header ) {
