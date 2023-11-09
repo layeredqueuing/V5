@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 16830 2023-11-03 09:22:55Z greg $
+ * $Id: model.h 16835 2023-11-05 11:21:52Z greg $
  */
 
 #ifndef _MODEL_H
@@ -271,7 +271,7 @@ private:
     std::ostream& printXML( std::ostream& output ) const;
 
     std::ostream& printModelComment( std::ostream& output, const std::string&, const std::string& = std::string("") ) const;
-    std::ostream& printLayers( std::ostream& ) const;
+    std::ostream& draw( std::ostream& ) const;
 
     static const char * get_userid();
 

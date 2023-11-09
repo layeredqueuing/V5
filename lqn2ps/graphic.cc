@@ -1,6 +1,6 @@
 /* graphic.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: graphic.cc 15957 2022-10-07 17:14:47Z greg $
+ * $Id: graphic.cc 16832 2023-11-03 09:53:21Z greg $
  */
 
 #include <cassert>
@@ -1246,7 +1246,7 @@ Fig::clearBackground( std::ostream& output, const Point& anOrigin, const Point& 
     std::vector<Point> points(n_points);
     box_to_points( anOrigin, anExtent, points );
     polyline( output, points, Fig::BOX,
-	      Graphic::Colour::TRANSPARENT,		/* PEN */
+	      Graphic::Colour::TRANSPARENT,	/* PEN */
 	      background_colour,		/* FILL */
 	      6 );
     return output;

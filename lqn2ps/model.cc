@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16830 2023-11-03 09:22:55Z greg $
+ * $Id: model.cc 16844 2023-11-08 21:31:07Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -827,12 +827,13 @@ Model::process()
 	    *_label << _document->getModelComment();
 	}
 	if ( _label != nullptr && !_label->empty() ) {
-	    const double y = _extent.y();
+//	    const double y = _extent.y();					/* top */
 	    const double h = _label->height();
 	    _extent.moveBy( 0, h * 2 );
-	    _label->moveTo( _origin.x() + _extent.x()/2 , y + h );
+	    _origin.moveBy( 0, -h * 2 );					/* top */
+//	    _label->moveTo( _origin.x() + _extent.x()/2 , y + h );		/* top */
+	    _label->moveTo( _origin.x() + _extent.x()/2 , _origin.y() );	/* bottom */
 	}
-	     
 
 	/* Move the key iff necessary */
 
@@ -1449,14 +1450,14 @@ Model::finalScaleTranslate()
 
 #if SVG_OUTPUT
     case File_Format::SVG:
-	/* TeX's origin is lower left corner.  SVG's is upper right.  Fix and scale */
+	/* TeX's origin is lower left corner.  SVG's is upper left.  Fix and scale */
 	translateScale( SVG_SCALING );
 	break;
 #endif
 
 #if SXD_OUTPUT
     case File_Format::SXD:
-	/* TeX's origin is lower left corner.  SXD's is upper right.  Fix and scale */
+	/* TeX's origin is lower left corner.  SXD's is upper left.  Fix and scale */
 	translateScale( SXD_SCALING );
 	break;
 #endif
@@ -1780,7 +1781,7 @@ Model::printEEPIC( std::ostream & output ) const
 	   << ")(" << static_cast<int>(bottom()+0.5)
 	   << "," << -static_cast<int>(bottom()+0.5) << ")" << std::endl;
 
-    printLayers( output );
+    draw( output );
 
     output << "\\end{picture}" << std::endl;
     return output;
@@ -1793,7 +1794,7 @@ Model::printEMF( std::ostream& output ) const
 {
     /* header start */
     EMF::init( output, right(), top(), command_line );
-    printLayers( output );
+    draw( output );
     EMF::terminate( output );
     return output;
 }
@@ -1807,7 +1808,7 @@ Model::printEMF( std::ostream& output ) const
 std::ostream&
 Model::printFIG( std::ostream& output ) const
 {
-    output << "#FIG 3.2" << std::endl
+    output << "#FIG 3.2  Produced by " << LQIO::io_vars.lq_toolname << " version " << VERSION << std::endl
 	   << "Portrait" << std::endl
 	   << "Center" << std::endl
 	   << "Inches" << std::endl
@@ -1834,7 +1835,7 @@ Model::printFIG( std::ostream& output ) const
 	alignment.polyline( output, points, Fig::POLYGON, Graphic::Colour::WHITE, Graphic::Colour::TRANSPARENT, (_layers.size()+1)*10 );
     }
 
-    printLayers( output );
+    draw( output );
 
     return output;
 }
@@ -1869,7 +1870,7 @@ std::ostream&
 Model::printGD( std::ostream& output, outputFuncPtr func ) const
 {
     GD::create( static_cast<int>(right()+0.5), static_cast<int>(top()+0.5) );
-    printLayers( output );
+    draw( output );
     (* func)( output );
     GD::destroy();
     return output;
@@ -1890,7 +1891,7 @@ Model::printPostScript( std::ostream& output ) const
 
     PostScript::init( output );
 
-    printLayers( output );
+    draw( output );
 
     output << "showpage" << std::endl;
     output << "restore" << std::endl;
@@ -1915,7 +1916,7 @@ Model::printSVG( std::ostream& output ) const
 	   << static_cast<int>(top() + 0.5) << "\">" << std::endl;
     output << "<desc>" << getDOM()->getModelComment() << "</desc>" << std::endl;
 
-    printLayers( output );
+    draw( output );
     output << "</svg>" << std::endl;
     return output;
 }
@@ -1944,7 +1945,7 @@ Model::printSXD( std::ostream& output ) const
     output << indent( +1 ) << "<draw:page draw:name=\"" << _inputFileName
 	   << "\" draw:style-name=\"dp1\" draw:master-page-name=\"Default\">" << std::endl;
 
-    printLayers( output );
+    draw( output );
 
     output << indent( -1 ) << "</draw:page>" << std::endl;
     output << indent( -1 ) << "</office:body>" << std::endl;
@@ -1969,9 +1970,9 @@ Model::printModelComment( std::ostream& output, const std::string& head, const s
     output << head << LQIO::DOM::Common_IO::svn_id() << tail << std::endl
 	   << head << "Invoked as: " << command_line << ' ' << _inputFileName << tail << std::endl;
     const std::string& description = getDOM()->getResultDescription();
-    if ( !description.empty() ) output << head << "Description:" << description << tail << std::endl;
+    if ( !description.empty() ) output << head << "Description: " << description << tail << std::endl;
     const std::string& comment = getDOM()->getModelComment();
-    if ( !comment.empty() ) output << head << "Comment: " << description << tail << std::endl;
+    if ( !comment.empty() ) output << head << "Comment: " << comment << tail << std::endl;
     return output;
 }
 
@@ -2092,7 +2093,7 @@ Model::printTXT( std::ostream& output ) const
 	    const_cast<Layer&>(*layer).generateSubmodel().printSubmodel( output );
 	}
     } else {
-	printLayers( output );
+	draw( output );
     }
     return output;
 }
@@ -2135,7 +2136,7 @@ Model::printXML( std::ostream& output ) const
  */
 
 std::ostream&
-Model::printLayers( std::ostream& output ) const
+Model::draw( std::ostream& output ) const
 {
     if ( queueing_output() ) {
 	const int submodel = Flags::queueing_model();
@@ -2164,9 +2165,9 @@ Model::printLayers( std::ostream& output ) const
 	if ( _key ) {
 	    output << *_key;
 	}
-	if ( _label ) {
-	    output << *_label;
-	}
+    }
+    if ( _label ) {
+	output << *_label;
     }
     return output;
 }

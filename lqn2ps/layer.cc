@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16787 2023-07-17 14:22:14Z greg $
+ * $Id: layer.cc 16844 2023-11-08 21:31:07Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -882,15 +882,7 @@ Layer::drawQueueingNetwork( std::ostream& output ) const
 {
     double max_x = x() + width();
     for ( std::vector<Task *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
-	bool is_in_open_model = false;
-	bool is_in_closed_model = false;
-	if ( (*client)->isInClosedModel( entities() ) ) {
-	    is_in_closed_model = true;
-	}
-	if ( (*client)->isInOpenModel( entities() ) ) {
-	    is_in_open_model = true;
-	}
-	(*client)->drawClient( output, is_in_open_model, is_in_closed_model );
+	(*client)->drawClient( output, (*client)->isInOpenModel( entities() ), (*client)->isInClosedModel( entities() ) );
 	max_x = std::max( max_x, (*client)->right() );
     }
 

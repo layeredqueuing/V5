@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 16817 2023-11-01 19:40:11Z greg $
+ * $Id: lqn2ps.cc 16835 2023-11-05 11:21:52Z greg $
  *
  * Command line processing.
  *
@@ -218,7 +218,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2023-11-01 15:40:11 -0400 (Wed, 01 Nov 2023) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2023-11-05 06:21:52 -0500 (Sun, 05 Nov 2023) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -338,6 +338,7 @@ main(int argc, char *argv[])
 
 	    case 0x200+'f':
 		Flags::flatten_submodel = true;
+		Flags::print_alignment_box = false;	/* No need */
 		break;
 
 	    case 0x200+'F':
@@ -345,7 +346,7 @@ main(int argc, char *argv[])
 		break;
 
 	    case 0x200+'G':
-		Flags::set_run_lqx( true );		    /* Run lqx */
+		Flags::set_run_lqx( true );		/* Run lqx */
 		Flags::dump_graphviz 		= true;
 		break;
 

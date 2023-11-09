@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: label.cc 16551 2023-03-19 14:55:57Z greg $
+ * $Id: label.cc 16832 2023-11-03 09:53:21Z greg $
  */
 
 #include "lqn2ps.h"
@@ -677,6 +677,11 @@ LabelFig::draw( std::ostream& output ) const
 
     if ( boxExtent.x() == 0 || boxExtent.y() == 0 ) return *this;
 
+    /* Shrink bounding box if it's too wide. */
+    if ( boxOrigin.x() < 0 ) {
+	boxExtent.x( boxExtent.x() + boxOrigin.x() );
+	boxOrigin.x( 0 );
+    }
     startCompound( output, boxOrigin, boxExtent );
     if ( Flags::clear_label_background ) {
 	Fig::clearBackground( output, boxOrigin, boxExtent, backgroundColour() );

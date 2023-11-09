@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 16819 2023-11-01 22:42:35Z greg $
+ *  $Id: dom_document.h 16840 2023-11-06 15:37:15Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -32,24 +32,24 @@ namespace LQIO {
 	const char * toolname() const { return lq_toolname.c_str(); }
 	void init( const std::string& version, const std::string& toolname, void (*sa)(error_severity) );
 
-	std::string lq_toolname;                /* I:Name of tool for messages    */
-	std::string lq_version;			/* I: version number	          */
+	std::string lq_toolname;		/* I:Name of tool for messages	  */
+	std::string lq_version;			/* I: version number		  */
 	std::string lq_command_line;		/* I:Command line		  */
-	void (*severity_action)(LQIO::error_severity);	/* I:Severity action              */
+	void (*severity_action)(LQIO::error_severity);	/* I:Severity action		  */
 
-	unsigned max_error;			/* I:Maximum error ID number      */
-	mutable unsigned error_count;		/* IO:Number of errors            */
-	LQIO::error_severity severity_level;    /* I:Messages < severity_level ignored. */
+	unsigned max_error;			/* I:Maximum error ID number	  */
+	mutable unsigned error_count;		/* IO:Number of errors		  */
+	LQIO::error_severity severity_level;	/* I:Messages < severity_level ignored. */
     } io_vars;
 
     namespace DOM {
+	class Activity;
+	class ActivityList;
+	class Call;
+	class Entity;
+	class Group;
 	class Processor;
 	class Task;
-	class Group;
-	class Entity;
-	class Activity;
-	class Call;
-	class ActivityList;
 	
 	class Document {
 
@@ -115,7 +115,7 @@ namespace LQIO {
 	    void registerExternalSymbolsWithProgram(LQX::Program* program);
 	    bool instantiated() const { return _instantiated; }
 	    void setInstantiated( bool instantiated ) { _instantiated = instantiated; }
-	    
+	
 	    /* LQX Pragma Support */
 	    void addPragma(const std::string&,const std::string&);
 	    void mergePragmas(const std::map<std::string,std::string>&);
@@ -189,7 +189,7 @@ namespace LQIO {
 	    Document& setResultUserTime(double resultUserTime);
 	    long getResultMaxRSS() const { return _resultMaxRSS; }
 	    Document& setResultMaxRSS( long resultMaxRSS );
-	    
+
 
 	    const MVAStatistics& getResultMVAStatistics() const { return _mvaStatistics; }
 	    double getResultMVAStep() const { return _mvaStatistics.getNumberOfStep(); }
@@ -275,19 +275,19 @@ namespace LQIO {
 
 	    /* List of Objects */
 
-	    std::map<std::string, Processor*> _processors;    	/* processor.name -> Processor */
-	    std::map<std::string, Group*> _groups;            	/* group.name -> Group */
-	    std::map<std::string, Task*> _tasks;              	/* task.name -> Task */
-	    std::map<std::string, Entry*> _entries;           	/* entry.name -> Entry */
-	    std::map<unsigned, Entity*> _entities;            	/* entity.id -> Entity */
+	    std::map<std::string, Processor*> _processors;	/* processor.name -> Processor */
+	    std::map<std::string, Group*> _groups;		/* group.name -> Group */
+	    std::map<std::string, Task*> _tasks;		/* task.name -> Task */
+	    std::map<std::string, Entry*> _entries;		/* entry.name -> Entry */
+	    std::map<unsigned, Entity*> _entities;		/* entity.id -> Entity */
 
 	    /* We need to make sure all variables named the same point the same */
 	    std::map<const std::string, SymbolExternalVariable*> _variables;
 	    std::map<const std::string, const ExternalVariable*> _controlVariables;
 	    static std::map<const std::string, const double> __initialValues;
 
-	    unsigned _nextEntityId;                           	/* for sorting, see _entities 	*/
-	    const InputFormat _format;				/* input format 		*/
+	    unsigned _nextEntityId;				/* for sorting, see _entities	*/
+	    const InputFormat _format;				/* input format			*/
 
 	    /* The stored LQX program, if any */
 	    std::string _lqxProgram;

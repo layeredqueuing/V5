@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16766 2023-07-03 10:48:18Z greg $
+ * $Id: entity.cc 16834 2023-11-04 20:10:26Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -453,12 +453,12 @@ Entity::drawQueueingNetwork( std::ostream& output, const double max_x, const dou
 	    if ( !(*client)->hasClientChain( *k ) ) continue;
 
 	    std::stringstream aComment;
-	    aComment << "---------- Chain " << *k << ": " << name() << " -> " <<  (*client)->name() << " ----------";
+	    aComment << "========== Chain " << *k << ": " << name() << " -> " <<  (*client)->name() << " ==========";
 	    _node->comment( output, aComment.str() );
 	    drawServerToClient( output, max_x, max_y, (*client), chain, *k );
 	    
 	    aComment.seekp(17, std::ios::beg);		// rewind.
-	    aComment << *k << ": " << (*client)->name() << " -> " <<  name() << " ----------";
+	    aComment << *k << ": " << (*client)->name() << " -> " <<  name() << " ==========";
 	    _node->comment( output, aComment.str() );
 	    drawClientToServer( output, (*client), chain, *k, lastArc );
 	}
