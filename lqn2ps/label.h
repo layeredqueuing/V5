@@ -1,6 +1,6 @@
 /* -*- c++ -*- node.h	-- Greg Franks
  *
- * $Id: label.h 16817 2023-11-01 19:40:11Z greg $
+ * $Id: label.h 16856 2023-11-20 21:35:25Z greg $
  */
 
 #ifndef _LABEL_H
@@ -505,7 +505,6 @@ LabelManip _sigma();
 LabelManip _times();
 LabelDoubleManip opt_pct( double );
 
-LabelEntryManip execution_time_of( const Entry& entry );
 LabelEntryManip queueing_time_of( const Entry& entry );
 LabelEntryManip variance_of( const Entry& entry );
 #endif

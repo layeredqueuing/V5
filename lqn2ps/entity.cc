@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16834 2023-11-04 20:10:26Z greg $
+ * $Id: entity.cc 16853 2023-11-20 18:38:30Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -811,6 +811,22 @@ Entity::addLQXExpressions( LQX::SyntaxTreeNode * augend, LQX::SyntaxTreeNode * a
     } else {
 	LQX::SyntaxTreeNode * sum =  new LQX::MathExpression( LQX::MathOperation::ADD, augend, addend );
 //	std::cout << "Entity::addLQXExpressions(" << *augend << "," << *addend << ") --> " << *(sum) << std::endl;
+	return sum;
+    }
+}
+
+LQX::SyntaxTreeNode *
+Entity::subtractLQXExpressions( LQX::SyntaxTreeNode * minuend, LQX::SyntaxTreeNode * subtrahend )
+{
+    if ( BCMP::Model::isDefault( subtrahend ) ) {
+	return minuend;
+    } else if ( BCMP::Model::isDefault( minuend ) ) {
+	return new LQX::MathExpression( LQX::MathOperation::NEGATE, subtrahend, nullptr );
+    } else if ( dynamic_cast<LQX::ConstantValueExpression *>(minuend) && dynamic_cast<LQX::ConstantValueExpression *>(subtrahend) ) {
+	return new LQX::ConstantValueExpression( to_double(minuend) + to_double(subtrahend) );
+    } else {
+	LQX::SyntaxTreeNode * sum =  new LQX::MathExpression( LQX::MathOperation::SUBTRACT, minuend, subtrahend );
+//	std::cout << "Entity::subtractQXExpressions(" << *minuend << "," << *addend << ") --> " << *(sum) << std::endl;
 	return sum;
     }
 }

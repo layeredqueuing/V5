@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 16767 2023-07-03 11:18:44Z greg $
+ * $Id: task.h 16852 2023-11-20 17:04:10Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -58,20 +58,13 @@ class Task : public Entity {
     
 public:
     struct create_chain {
-	create_chain( BCMP::Model& model, const std::vector<Entity *>& servers ) : _model(model), _servers(servers) {}
+	create_chain( BCMP::Model& model, BCMP::Model::Station& terminals, const std::vector<Entity *>& servers ) : _model(model), _terminals(terminals), _servers(servers) {}
 	void operator()( const Task * ) const;
     private:
 	BCMP::Model& _model;
+	BCMP::Model::Station& _terminals;
 	const std::vector<Entity *>& _servers;
     };
-
-    struct create_customers {
-	create_customers( BCMP::Model::Station& terminals ) : _terminals(terminals) {}
-	void operator()( const Task * entity );
-    private:
-	BCMP::Model::Station& _terminals;
-    };
-
 
 public:
     enum class root_level_t { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS };
@@ -199,6 +192,7 @@ public:
 
     virtual Task& label();
     virtual Task& labelBCMPModel( const BCMP::Model::Station::Class::map_t&, const std::string& class_name="" );
+    Task& labelQueueingNetwork( entryLabelFunc func, Label& label );
 
     virtual Task& rename();
     virtual Task& squish( std::map<std::string,unsigned>&, std::map<std::string,std::string>& );
@@ -229,7 +223,6 @@ public:
 
 private:
     size_t topologicalSort();
-    Task& labelQueueingNetwork( entryLabelFunc aFunc );
     unsigned countArcs( const callPredicate = 0 ) const;
     double countCalls( const callPredicate2 ) const;
 
@@ -305,7 +298,6 @@ public:
     bool canPrune() const;
     virtual Task& relink();
 #endif
-    virtual void accumulateDemand( BCMP::Model::Station& ) const;
 
 public:
     static const std::string __BCMP_station_name;

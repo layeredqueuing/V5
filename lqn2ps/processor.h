@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 15255 2021-12-24 17:42:46Z greg $
+ * $Id: processor.h 16849 2023-11-17 16:15:19Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -58,6 +58,7 @@ public:
 	
     bool hasPriorities() const;
     bool isInteresting() const;
+    bool clientsCanQueue() const;
     virtual bool isProcessor() const { return true; }
     virtual bool isPureServer() const { return true; }
 
@@ -111,7 +112,6 @@ private:
     Processor& operator=( const Processor& );
 
     Processor& moveDst();
-    bool clientsCanQueue() const;
 
 private:
     std::set<Task *> _tasks;

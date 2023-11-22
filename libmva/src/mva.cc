@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 16194 2022-12-23 03:22:28Z greg $
+ * $Id: mva.cc 16848 2023-11-17 15:31:36Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -19,9 +19,10 @@
  *    K - (scalar) number of chains.
  *    k - index from 1..K
  *    M - (scaler) number of stations.
- *    m - index from 1..E
+ *    m - index from 1..M
  *    N - (vector) Population.
  *    n - scalar offset into W,U,L to make computations faster.
+ *    c - (scalar) class with one customer removed for Linearizer.
  *
  * ----------------------------------------------------------------------
  * All solvers execept fast linearizer from:
@@ -118,12 +119,12 @@
  * represents the array offset of customer population `N' with one
  * customer of class j removed.  See also: population.[Ch].
  *
- * The instance variable `c' used in the Linearizer solver and subclasses
- * is also very special.  It represents the class of the customer being
- * removed by the linearizer algorithm.  This variable is not be
- * explicitly visible.  However, it is used, so DO NOT USE `c' as a local
- * variable ANYWHERE.  It is used in ALL CLASSES including MVA (especially
- * MVA::step())
+ * The instance variable `c' used in the Linearizer solver and
+ * subclasses is also very special.  It represents the class of the
+ * customer being removed by the linearizer algorithm.  This variable
+ * is not explicitly visible.  However, it is used, so DO NOT USE `c'
+ * as a local variable ANYWHERE.  It is used in ALL CLASSES including
+ * MVA (especially MVA::step())
  *
  * define KRZESINSKI for a funky version of the marginal probability
  * calculation.  Too bad it does not work right now.

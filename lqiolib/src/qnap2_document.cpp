@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16759 2023-06-29 14:28:02Z greg $
+ * $Id: qnap2_document.cpp 16845 2023-11-09 14:28:52Z greg $
  *
  * Read in XML input files.
  *
@@ -2245,6 +2245,8 @@ namespace QNIO {
 		output << qnap2_statement( "n_users:=" + to_unsigned(customers), comment  ) << std::endl;
 	    }
 
+	    if ( think_time == nullptr ) continue;
+	    
 	    const std::string think_visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( k->first ) );
 	    if ( !think_visits.empty() ) {
 		if ( multiclass() ) {

@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: label.cc 16832 2023-11-03 09:53:21Z greg $
+ * $Id: label.cc 16856 2023-11-20 21:35:25Z greg $
  */
 
 #include "lqn2ps.h"
@@ -1435,6 +1435,5 @@ LabelManip _sigma() { return LabelManip( &mathFunc, &Label::sigma ); }
 LabelManip _times() { return LabelManip( &mathFunc, &Label::times ); }
 LabelDoubleManip opt_pct( const double aDouble ) { return LabelDoubleManip( &opt_pct_str, aDouble ); }
 
-LabelEntryManip execution_time_of( const Entry& entry ) { return LabelEntryManip( &Entry::print_execution_time, entry ); }
 LabelEntryManip queueing_time_of( const Entry& entry ) { return LabelEntryManip( &Entry::print_queueing_time, entry ); }
 LabelEntryManip variance_of( const Entry& entry ) { return LabelEntryManip( &Entry::print_variance, entry ); }

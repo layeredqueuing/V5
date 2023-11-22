@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 16835 2023-11-05 11:21:52Z greg $
+ * $Id: lqn2ps.cc 16845 2023-11-09 14:28:52Z greg $
  *
  * Command line processing.
  *
@@ -218,7 +218,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2023-11-05 06:21:52 -0500 (Sun, 05 Nov 2023) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2023-11-09 09:28:52 -0500 (Thu, 09 Nov 2023) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -712,6 +712,13 @@ main(int argc, char *argv[])
     if ( Flags::bcmp_model ) {
 	Flags::surrogates = false;					/* Never add surrogates */
     }
+
+    if ( (Flags::output_format() == File_Format::QNAP2 || Flags::output_format() == File_Format::JMVA) ) {
+	if ( submodel_output() && !queueing_output() ) {
+	    Flags::set_queueing_model( submodel_output() );		/* Silently fix. */
+	    Flags::set_submodel( 0 );
+	}
+    } 
 
     if ( Flags::annotate_input && !input_output() ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": -Z " << Options::special.at(Special::ANNOTATE)

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 16765 2023-07-03 09:20:10Z greg $
+ * $Id: entity.h 16853 2023-11-20 18:38:30Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -72,6 +72,7 @@ public:
     static LQX::SyntaxTreeNode * getLQXVariable( const LQIO::DOM::ExternalVariable* );
     static LQX::SyntaxTreeNode * getLQXVariable( const LQIO::DOM::ExternalVariable*, double );
     static LQX::SyntaxTreeNode * addLQXExpressions( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
+    static LQX::SyntaxTreeNode * subtractLQXExpressions( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
     static LQX::SyntaxTreeNode * multiplyLQXExpressions( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
     static LQX::SyntaxTreeNode * divideLQXExpressions( LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * );
 

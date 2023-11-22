@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16844 2023-11-08 21:31:07Z greg $
+ * $Id: layer.cc 16849 2023-11-17 16:15:19Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -847,27 +847,27 @@ Layer::createBCMPModel()
     }
 
     /* 
-     * Create all of the chains for the model.
+     * Create all of the chains for the model.  Clients in the lqns model are chains in the BCMP model.  Add a "terminals" stations.
      */
 
-    std::for_each( clients().begin(), clients().end(), Task::create_chain( _bcmp_model, entities() ) );
+    std::pair<BCMP::Model::Station::map_t::iterator,bool> result = _bcmp_model.insertStation( ReferenceTask::__BCMP_station_name, BCMP::Model::Station(BCMP::Model::Station::Type::DELAY) );	// QNAP2 limit is 8.
+    BCMP::Model::Station& terminals = result.first->second;
+    terminals.setReference(true);
+    std::for_each( clients().begin(), clients().end(), Task::create_chain( _bcmp_model, terminals, entities() ) );
 
     /*
-     * Create all of the stations except for the terminals (which are
-     * the clients in the lqn schema.
+     * Create all of the stations except for the terminals (which are the clients in the lqn schema.
      */
 
     std::for_each( entities().begin(), entities().end(), Entity::create_station( _bcmp_model ) );
-    std::for_each( entities().begin(), entities().end(), Entity::accumulate_demand( _bcmp_model ) );
 
     /*
-     * Populate the customers.  This will create a terminals station.
+     * Find the demand for all servers (reference tasks will never be here).  Processors will use the demand from the tasks that use
+     * them.  Tasks are more tricky.  See ::accumulateDemand in processor.cc and task.cc.
      */
-    
-    BCMP::Model::Station terminals(BCMP::Model::Station::Type::DELAY);
-    terminals.setReference(true);
-    std::for_each( clients().begin(), clients().end(), Task::create_customers( terminals ) );
-    _bcmp_model.insertStation( ReferenceTask::__BCMP_station_name, terminals );	// QNAP2 limit is 8.
+     
+    std::for_each( entities().begin(), entities().end(), Entity::accumulate_demand( _bcmp_model ) );
+
     return true;
 }
 

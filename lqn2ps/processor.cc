@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 16766 2023-07-03 10:48:18Z greg $
+ * $Id: processor.cc 16859 2023-11-21 20:56:17Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -389,11 +389,10 @@ Processor&
 Processor::label()
 {
     *_label << name();
-    if ( Flags::print_input_parameters() && queueing_output() ) {
-	for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
-	    const Task * aTask = *nextTask;
-	    for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
-		_label->newLine() << (*entry)->name() << " [" << service_time_of( **entry ) << "]";
+    if ( queueing_output() ) {
+	if ( Flags::print_input_parameters() ) {
+	    for ( std::set<Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
+		(*task)->labelQueueingNetwork( &Entry::labelQueueingNetworkProcessorResidenceTime, *_label );
 	    }
 	}
     } else {
