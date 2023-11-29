@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 16853 2023-11-20 18:38:30Z greg $
+ * $Id: entity.h 16868 2023-11-27 22:24:24Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -35,17 +35,13 @@ public:
 	const callPredicate _predicate;
     };
 
-    struct accumulate_demand {
-	accumulate_demand( BCMP::Model& model ) : _model(model) {}
-	void operator()( const Entity * entity ) const { entity->accumulateDemand( _model.stationAt(entity->name() ) ); }
-    private:
-	BCMP::Model& _model;
-    };
-
+private:
+    friend class Layer;
     struct create_station {
 	create_station( BCMP::Model& model, BCMP::Model::Station::Type type = BCMP::Model::Station::Type::NOT_DEFINED ) : _model(model) {}
-	void operator()( const Entity * entity ) const;
+	void operator()( const Entity * entity );
     private:
+	BCMP::Model::Chain::map_t& chains() { return _model.chains(); }
 	BCMP::Model& _model;
     };
 
@@ -57,7 +53,6 @@ public:
 	const BCMP::Model& _model;
     };
 
-    
     struct label_BCMP_client {
 	label_BCMP_client( const BCMP::Model& model ) : _model(model) {}
 	void operator()( Entity * entity ) const;
@@ -153,8 +148,6 @@ public:
 
     virtual Entity& label();
     virtual Entity& labelBCMPModel( const BCMP::Model::Station::Class::map_t&, const std::string& class_name="" ) = 0;
-
-    virtual void accumulateDemand( BCMP::Model::Station& ) const = 0;
 
     std::ostream& print( std::ostream& output ) const;
 

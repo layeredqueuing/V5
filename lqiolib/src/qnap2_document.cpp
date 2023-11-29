@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16845 2023-11-09 14:28:52Z greg $
+ * $Id: qnap2_document.cpp 16869 2023-11-28 21:04:29Z greg $
  *
  * Read in XML input files.
  *
@@ -1819,11 +1819,12 @@ namespace QNIO {
     QNAP2_Document::exportModel( std::ostream& output ) const
     {
 	std::ios_base::fmtflags flags = output.setf( std::ios::left, std::ios::adjustfield );
+	output << "& " << getDescription() << std::endl;
+	output << "/control/ option=nsource;" << std::endl;	/* Suppress source output with qnap2 */
 	output << "& " << LQIO::DOM::Common_IO::svn_id() << std::endl;
 	if ( LQIO::io_vars.lq_command_line.size() > 0 ) {
 	    output << "& " << LQIO::io_vars.lq_command_line << std::endl;
 	}
-
 
 	/* Special stations for closed and open classes */
 	bool has_closed_chain = false;

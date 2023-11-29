@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16787 2023-07-17 14:22:14Z greg $
+ * $Id: phase.cc 16868 2023-11-27 22:24:24Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -216,17 +216,19 @@ Phase::accumulate_think_time( LQX::SyntaxTreeNode * augend, const std::pair<unsi
 /* -BUG_270 */
 
 
-/*
- * I only visit the processor once for all intents and purposes.
+/*+ BUG_323
+ * If I have results, then use the residence time for the phase as the service time.  
  */
 
 /* static */ BCMP::Model::Station::Class
 Phase::accumulate_demand( const BCMP::Model::Station::Class& augend, const std::pair<unsigned,Phase>& p )
 {
-    if ( dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(&p.second.serviceTime()) ) {
-	return augend + BCMP::Model::Station::Class( new LQX::ConstantValueExpression( 1.0 ), new LQX::ConstantValueExpression(to_double(p.second.serviceTime())) );
+    if ( Flags::have_results ) {
+	return augend + BCMP::Model::Station::Class( nullptr, new LQX::ConstantValueExpression( p.second.getDOM()->getResultServiceTime()) );	// !!! for now.
+    } else if ( dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(&p.second.serviceTime()) ) {
+	return augend + BCMP::Model::Station::Class( nullptr, new LQX::ConstantValueExpression(to_double(p.second.serviceTime())) );
     } else if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(&p.second.serviceTime()) ) {
-	return augend + BCMP::Model::Station::Class( new LQX::ConstantValueExpression( 1.0 ), new LQX::VariableExpression(p.second.serviceTime().getName(), true) );
+	return augend + BCMP::Model::Station::Class( nullptr, new LQX::VariableExpression(p.second.serviceTime().getName(), true) );
     } else {
 	return augend;
     }

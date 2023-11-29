@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16853 2023-11-20 18:38:30Z greg $
+ * $Id: entity.cc 16868 2023-11-27 22:24:24Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -735,14 +735,24 @@ Entity::label_BCMP_client::operator()( Entity * entity ) const
 
 
 void
-Entity::create_station::operator()( const Entity * entity ) const
+Entity::create_station::operator()( const Entity * entity )
 {
     BCMP::Model::Station::Type type;
     if ( entity->isInfinite() ) type = BCMP::Model::Station::Type::DELAY;
     else if ( entity->isMultiServer() ) type = BCMP::Model::Station::Type::MULTISERVER;
     else type = BCMP::Model::Station::Type::LOAD_INDEPENDENT;
     const LQIO::DOM::ExternalVariable * copies = dynamic_cast<const LQIO::DOM::Entity *>(entity->getDOM())->getCopies();
-    _model.insertStation( entity->name(), type, entity->scheduling(), getLQXVariable( copies ) );
+    BCMP::Model::Station& station = _model.insertStation( entity->name(), type, entity->scheduling(), getLQXVariable( copies ) ).first->second;
+
+    /* Add classes to station */
+    typedef std::map<const std::string,BCMP::Model::Station::Class> demand_map;
+    demand_map& classes = const_cast<demand_map&>(station.classes());
+    for ( BCMP::Model::Chain::map_t::iterator k = chains().begin(); k != chains().end(); ++k ) {
+	classes.insert( std::pair<const std::string,BCMP::Model::Station::Class>( k->first, BCMP::Model::Station::Class() ) );
+    }
+//    std::pair<BCMP::Model::Station::map_t::iterator,bool> result = _model.insertStation( entity->name(), type, entity->scheduling(), getLQXVariable( copies ) );
+//    BCMP::Model::Station& station = result.first->second;
+    
 }
 
 
@@ -857,7 +867,7 @@ Entity::divideLQXExpressions( LQX::SyntaxTreeNode * dividend, LQX::SyntaxTreeNod
     } else if ( dynamic_cast<LQX::ConstantValueExpression *>(dividend) && dynamic_cast<LQX::ConstantValueExpression *>(divisor) ) {
 	return new LQX::ConstantValueExpression( to_double(dividend) / to_double(divisor) );
     } else {
-	LQX::SyntaxTreeNode * quotient =  new LQX::MathExpression( LQX::MathOperation::DIVIDE, divisor, dividend );
+	LQX::SyntaxTreeNode * quotient =  new LQX::MathExpression( LQX::MathOperation::DIVIDE, dividend, divisor );
 //	std::cout << "Entity::addLQXExpressions(" << *dividend << "," << *divisor << ") --> " << *(quotient) << std::endl;
 	return quotient;
     }

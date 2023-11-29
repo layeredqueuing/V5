@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16859 2023-11-21 20:56:17Z greg $
+ * $Id: entry.cc 16869 2023-11-28 21:04:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,6 +22,7 @@
 #include <cstring>
 #include <functional>
 #include <limits>
+#include <lqx/SyntaxTree.h>
 #include <lqio/error.h>
 #include <lqio/dom_extvar.h>
 #include <lqio/bcmp_to_lqn.h>
@@ -1316,10 +1317,10 @@ Entry::aggregatePhases()
 }
 
 
-/* static */ BCMP::Model::Station::Class
-Entry::accumulate_demand( const BCMP::Model::Station::Class& augend, const Entry * entry )
+void
+Entry::accumulateDemand( const std::string& class_name, BCMP::Model::Station& station ) const
 {
-    return std::accumulate( entry->_phases.begin(), entry->_phases.end(), augend, &Phase::accumulate_demand );
+    station.classAt(class_name) = std::accumulate( _phases.begin(), _phases.end(), BCMP::Model::Station::Class( new LQX::ConstantValueExpression( 1.0 ), nullptr ), &Phase::accumulate_demand );
 }
 
 /*
@@ -1991,12 +1992,17 @@ Entry::labelQueueingNetworkWaiting( Label& label )
 
 
 
+/*
+ * Includes queueing
+ */
+
 Entry&
-Entry::labelQueueingNetworkProcessorResidenceTime( Label& label )
+Entry::labelQueueingNetworkProcessorResponseTime( Label& label )
 {
-    labelQueueingNetworkServiceTime( label );
+    label.newLine() << name() << "[" << service_time(*this) << "]";
+
     if ( Flags::have_results ) {
-	label << " R=" << processor_residence_time( *this );
+	label << " R=" << processor_response_time( *this );
     }
     return *this;
 }
@@ -2004,11 +2010,12 @@ Entry::labelQueueingNetworkProcessorResidenceTime( Label& label )
 
 
 Entry&
-Entry::labelQueueingNetworkTaskResidenceTime( Label& label )
+Entry::labelQueueingNetworkTaskResponseTime( Label& label )
 {
-    labelQueueingNetworkServiceTime( label );
+    label.newLine() << name() << "[" << residence_time(*this) << "]";
+
     if ( Flags::have_results ) {
-	label << " R=" << task_residence_time( *this );
+	label << " R=" << task_response_time( *this );
     }
     return *this;
 }
@@ -2528,34 +2535,38 @@ Entry::print_think_time( std::ostream& output, const Entry& entry )
 
 
 /*
- * Derive the processor residence time.
+ * Derive the processor response time.
  */
 
 std::ostream&
-Entry::print_processor_residence_time( std::ostream& output, const Entry& entry )
+Entry::print_processor_response_time( std::ostream& output, const Entry& entry )
 {
     const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(entry.getDOM());
-    const double throughput = dom->getResultThroughput();
+    const unsigned n = entry.maxPhase();
 
-    for ( unsigned p = 1; p <= Entry::max_phases; ++p ) {
+    for ( unsigned p = 1; p <= n; ++p ) {
 	if ( p > 1 ) output << ",";
 
-	/* Find phase service time */
-	const double utilization = dom->getResultProcessorUtilization();
-	const double service_time = ( utilization > 0 ) ? throughput / utilization : 0.0;
-
-	/* Now find residence time (including queueing) */
+	const double service_time = LQIO::DOM::to_double( entry.serviceTime(p) );
 	output << service_time + dom->getResultPhasePProcessorWaiting(p);
     }
     return output;
 }
 
 /*
- * Derive the task residence time.
+ * Derive the task response time.
  */
 
 std::ostream&
-Entry::print_task_residence_time( std::ostream& output, const Entry& entry )
+Entry::print_task_response_time( std::ostream& output, const Entry& entry )
 {
+    const double residence_time = entry.residenceTime(1);		/* Only phase 1 residence time counts */
+    const Call * call = dynamic_cast<Call *>(entry.callers().at(0));	/* They should all be the same, so pick one */
+    const unsigned n = entry.maxPhase();
+
+    for ( unsigned p = 1; p <= n; ++p ) {
+	if ( p > 1 ) output << ",";
+	output << residence_time + call->waiting(p);
+    }
     return output;
 }

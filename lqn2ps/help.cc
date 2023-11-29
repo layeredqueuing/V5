@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 16748 2023-06-18 13:18:38Z greg $
+ * $Id: help.cc 16861 2023-11-23 17:52:43Z greg $
  */
 
 #include "lqn2ps.h"
@@ -151,7 +151,7 @@ man()
 	      << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 16748 2023-06-18 13:18:38Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 16861 2023-11-23 17:52:43Z greg $" << std::endl
 	      << comm << std::endl
 	      << comm << " --------------------------------" << std::endl;
 
@@ -408,6 +408,10 @@ man()
 	    std::cout << ".RE" << std::endl;
 	    break;
 
+	    case 0x200+'N':
+		std::cout << "Rename all of the icons to p\\fIn\\fP, t\\fIn\\fP, e\\fIn\\fP and a\\fIn\\fP where \\fIn\\fP is an integer starting from one." << std::endl;
+		break;
+	    
 	case 'o':
 	    std::cout << "The " << current_option(i) << "is used to direct all output to the" << std::endl
 		      << "file \\fIoutput\\fR regardless of the source of input.  Multiple input" << std::endl
@@ -559,6 +563,10 @@ man()
 		      << "If this option is used with \\fBlqn2lqn\\fP, parameters will be derived to approximate the submodel at the time of the final solution." << std::endl;
 	    break;
 
+	case 0x200+'t':
+	    std::cout << "Draw the model omitting all entries." << std::endl;
+	    break;
+
 	case 'Z':
 	    std::cout << "Special options:" << std::endl
 		      << ".RS" << std::endl;
@@ -610,9 +618,11 @@ man()
 	    std::cout << ".TP" << std::endl
 		      << "\\fB" << Options::special.at(Special::PRUNE) << "\\fR" << std::endl
 		      << "All tasks which are infinite servers are merged into non-infinite server tasks and clients" << std::endl;
+#if 0
 	    std::cout << ".TP" << std::endl
 		      << "\\fB" << Options::special.at(Special::RENAME) << "\\fR" << std::endl
 		      << "Rename all of the icons to p\\fIn\\fP, t\\fIn\\fP, e\\fIn\\fP and a\\fIn\\fP where \\fIn\\fP is an integer starting from one." << std::endl;
+#endif
 	    std::cout << ".TP" << std::endl
 		      << "\\fB" << Options::special.at(Special::SORT) << "\\fR" << std::endl
 		      << "Set the order of sorting of objects in a layer (ascending, descending, topological, none)." << std::endl;
@@ -622,9 +632,11 @@ man()
 	    std::cout << ".TP" << std::endl
 		      << "\\fB" << Options::special.at(Special::SUBMODEL_CONTENTS) << "\\fR" << std::endl
 		      << "For graphical output, output the submodels (though this only works for a strictly layered model)." << std::endl;
+#if 0
 	    std::cout << ".TP" << std::endl
 		      << "\\fB" << Options::special.at(Special::TASKS_ONLY) << "\\fR" << std::endl
 		      << "Draw the model omitting all entries." << std::endl;
+#endif
 	    std::cout << ".TP" << std::endl
 		      << "\\fB" << Options::special.at(Special::TASK_SCHEDULING) << "\\fR" << std::endl
 		      << "Change the scheduling for all fixed-rate tasks to ?." << std::endl;

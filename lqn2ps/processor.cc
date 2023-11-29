@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 16859 2023-11-21 20:56:17Z greg $
+ * $Id: processor.cc 16869 2023-11-28 21:04:29Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <lqx/SyntaxTree.h>
 #include <lqio/dom_document.h>
 #include <lqio/dom_processor.h>
 #include <lqio/dom_task.h>
@@ -392,7 +393,7 @@ Processor::label()
     if ( queueing_output() ) {
 	if ( Flags::print_input_parameters() ) {
 	    for ( std::set<Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
-		(*task)->labelQueueingNetwork( &Entry::labelQueueingNetworkProcessorResidenceTime, *_label );
+		(*task)->labelQueueingNetwork( &Entry::labelQueueingNetworkProcessorResponseTime, *_label );
 	    }
 	}
     } else {
@@ -566,35 +567,17 @@ Processor::draw( std::ostream& output ) const
 
 
 /* 
- * Find the total demand by each class (client tasks in submodel),
- * then change back to visits/service time when needed.  Demands are
+ * Find the total demand by each class (client tasks in submodel), then change back to visits/service time when needed.  Demands are
  * stored in entries of tasks.
  */
 
 void
-Processor::accumulateDemand( BCMP::Model::Station& station ) const
+Processor::accumulateDemand( const Entry& entry, const std::string& class_name, BCMP::Model::Station& station ) const
 {
-    typedef std::pair<const std::string,BCMP::Model::Station::Class> demand_item;
-    typedef std::map<const std::string,BCMP::Model::Station::Class> demand_map;
+    BCMP::Model::Station::Class& k = station.classAt(class_name);
+    LQX::ConstantValueExpression * visits = new LQX::ConstantValueExpression(entry.visitProbability());
+    k.accumulate( BCMP::Model::Station::Class( visits, entry.serviceTime()) );
     
-    demand_map& classes = const_cast<demand_map&>(station.classes());
-    
-    for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
-	const ProcessorCall * src = dynamic_cast<const ProcessorCall *>(*call);
-	if ( !src ) continue;
-
-        const std::pair<demand_map::iterator,bool> result = classes.insert( demand_item( src->srcTask()->name(), BCMP::Model::Station::Class() ) );	/* null entry */
-	demand_map::iterator item = result.first;
-	
-	if ( src->callType() == LQIO::DOM::Call::Type::NULL_CALL ) {
-	    /* If it is generic processor call then accumulate by entry */
-	    item->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Class(), src->srcTask() ) );
-	} else {
-	    /* Otherwise, we've been cloned, so get the values */
-	    item->second.accumulate( BCMP::Model::Station::Class(src->visits(), src->srcEntry()->serviceTime()) );
-	}
-    }
-
     /* Search for SPEX observations. */
     const LQIO::Spex::obs_var_tab_t& observations = LQIO::Spex::observations();
     for ( LQIO::Spex::obs_var_tab_t::const_iterator obs = observations.begin(); obs != observations.end(); ++obs ) {
@@ -604,17 +587,15 @@ Processor::accumulateDemand( BCMP::Model::Station& station ) const
 	    case KEY_UTILIZATION: station.insertResultVariable( BCMP::Model::Result::Type::UTILIZATION, obs->second.getVariableName() ); break;
 	    }
 	} else {
-	    for ( demand_map::iterator k = classes.begin(); k != classes.end(); ++k ) {
-		const LQIO::DOM::Task * task = getDOM()->getDocument()->getTaskByName( k->first );
-		if ( obs->first == task ) {
-		    switch ( obs->second.getKey() ) {
-		    case KEY_PROCESSOR_UTILIZATION: k->second.insertResultVariable( BCMP::Model::Result::Type::UTILIZATION, obs->second.getVariableName() ); break;
-		    }
-		} else if ( dynamic_cast<const LQIO::DOM::Phase *>(obs->first) && dynamic_cast<const LQIO::DOM::Phase *>(obs->first)->getSourceEntry()->getTask() == task ) {
-		    BCMP::Model::Station::Class& result = station.classAt(k->first);
-		    switch ( obs->second.getKey() ) {
-		    case KEY_SERVICE_TIME: result.insertResultVariable( BCMP::Model::Result::Type::RESIDENCE_TIME, obs->second.getVariableName() ); break;	/* by class? */
-		    }
+	    const LQIO::DOM::Task * task = getDOM()->getDocument()->getTaskByName( class_name );
+	    if ( obs->first == task ) {
+		switch ( obs->second.getKey() ) {
+		case KEY_PROCESSOR_UTILIZATION: k.insertResultVariable( BCMP::Model::Result::Type::UTILIZATION, obs->second.getVariableName() ); break;
+		}
+	    } else if ( dynamic_cast<const LQIO::DOM::Phase *>(obs->first) && dynamic_cast<const LQIO::DOM::Phase *>(obs->first)->getSourceEntry()->getTask() == task ) {
+		BCMP::Model::Station::Class& result = station.classAt( class_name );
+		switch ( obs->second.getKey() ) {
+		case KEY_SERVICE_TIME: result.insertResultVariable( BCMP::Model::Result::Type::RESIDENCE_TIME, obs->second.getVariableName() ); break;	/* by class? */
 		}
 	    }
 	}

@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 16859 2023-11-21 20:56:17Z greg $
+ * $Id: entry.h 16869 2023-11-28 21:04:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -47,8 +47,8 @@ class Entry : public Element {
     friend LabelEntryManip variance_of( const Entry& entry );
     friend SRVNEntryManip service_time( const Entry& entry );
     friend SRVNEntryManip think_time( const Entry& entry );
-    friend SRVNEntryManip processor_residence_time( const Entry& entry );
-    friend SRVNEntryManip task_residence_time( const Entry& entry );
+    friend SRVNEntryManip processor_response_time( const Entry& entry );
+    friend SRVNEntryManip task_response_time( const Entry& entry );
     friend LabelEntryManip queueing_time_of( const Entry& entry );
     typedef SRVNEntryManip (* print_func_ptr)( const Entry& );
 
@@ -258,7 +258,7 @@ public:
     double serviceTimeForSRVNInput( const unsigned p ) const;
     Entry& aggregateService( const Activity * anActivity, const unsigned p, const double rate );
     Entry& aggregatePhases();
-    static BCMP::Model::Station::Class accumulate_demand( const BCMP::Model::Station::Class&, const Entry * );
+    void accumulateDemand( const std::string&, BCMP::Model::Station& ) const;
 
     static Entry * find( const std::string& );
     static bool compare( const Entry *, const Entry * );
@@ -271,10 +271,8 @@ public:
     Entry& labelQueueingNetworkVisits( Label& );
     Entry& labelQueueingNetworkServiceTime( Label& );
     Entry& labelQueueingNetworkWaiting( Label& );
-    Entry& labelQueueingNetworkProcessorResidenceTime( Label& );
-    Entry& labelQueueingNetworkTaskResidenceTime( Label& );
-//    Entry& labelQueueingNetworkService( Label& );
-//    Entry& labelQueueingNetworkWaiting( Label& );
+    Entry& labelQueueingNetworkProcessorResponseTime( Label& );
+    Entry& labelQueueingNetworkTaskResponseTime( Label& );
 
     /* movement */
 
@@ -322,8 +320,8 @@ private:
     static Label& print_variance( Label&, const Entry& );
     static std::ostream& print_service_time( std::ostream&, const Entry& );
     static std::ostream& print_think_time( std::ostream&, const Entry& );
-    static std::ostream& print_processor_residence_time( std::ostream&, const Entry& );
-    static std::ostream& print_task_residence_time( std::ostream&, const Entry& );
+    static std::ostream& print_processor_response_time( std::ostream&, const Entry& );
+    static std::ostream& print_task_response_time( std::ostream&, const Entry& );
     
 public:
     static std::set<Entry *,LT<Entry> > __entries;
@@ -383,8 +381,8 @@ SRVNEntryManip compute_service_time( const Entry & anEntry );
 inline SRVNEntryManip service_time( const Entry& entry ) { return SRVNEntryManip( &Entry::print_service_time, entry ); }
 inline SRVNEntryManip residence_time( const Entry& entry ) { return SRVNEntryManip( &Entry::print_residence_time, entry ); }
 inline SRVNEntryManip think_time( const Entry& entry ) { return SRVNEntryManip( &Entry::print_think_time, entry ); }
-inline SRVNEntryManip processor_residence_time( const Entry& entry ) { return SRVNEntryManip( &Entry::print_processor_residence_time, entry ); }
-inline SRVNEntryManip task_residence_time( const Entry& entry ) { return SRVNEntryManip( &Entry::print_task_residence_time, entry ); }
+inline SRVNEntryManip processor_response_time( const Entry& entry ) { return SRVNEntryManip( &Entry::print_processor_response_time, entry ); }
+inline SRVNEntryManip task_response_time( const Entry& entry ) { return SRVNEntryManip( &Entry::print_task_response_time, entry ); }
 
 bool map_entry_names( const char * from_entry_name, Entry * & fromEntry, const char * to_entry_name, Entry * & toEntry,  err_func_t err_func );
 #endif

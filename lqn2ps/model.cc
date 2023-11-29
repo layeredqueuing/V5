@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16844 2023-11-08 21:31:07Z greg $
+ * $Id: model.cc 16870 2023-11-29 00:25:02Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -33,6 +33,10 @@
 #include <lqio/srvn_results.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
+#if HAVE_EXPAT_H
+#include <lqio/jmva_document.h>
+#endif
+#include <lqio/qnap2_document.h>
 #include "model.h"
 #include "entry.h"
 #include "activity.h"
@@ -1635,7 +1639,7 @@ Model::print( std::ostream& output ) const
 	{ File_Format::JPEG,	    &Model::printJPG },
 #endif
 #if JMVA_OUTPUT && HAVE_EXPAT_H
-	{ File_Format::JMVA,	    &Model::printBCMP },
+	{ File_Format::JMVA,	    &Model::printJMVA },
 #endif
 	{ File_Format::JSON,	    &Model::printJSON },
 	{ File_Format::NO_OUTPUT,   &Model::printNOP },
@@ -1646,7 +1650,7 @@ Model::print( std::ostream& output ) const
 	{ File_Format::PARSEABLE,   &Model::printParseable },
 	{ File_Format::POSTSCRIPT,  &Model::printPostScript },
 #if QNAP2_OUTPUT
-	{ File_Format::QNAP2,	    &Model::printBCMP },
+	{ File_Format::QNAP2,	    &Model::printQNAP2 },
 #endif
 	{ File_Format::RTF,	    &Model::printRTF },
 #if SVG_OUTPUT
@@ -2007,22 +2011,6 @@ Model::Remap::operator()( const Entity * entity )
 }
 
 
-#if QNAP2_OUTPUT || JMVA_OUTPUT
-/*
- * It has to be a submodel...
- */
-
-std::ostream&
-Model::printBCMP( std::ostream& output ) const
-{
-    if ( queueing_output() ) {
-	_layers.at(Flags::queueing_model()).printBCMPQueueingNetwork( output );
-    }
-    return output;
-}
-#endif
-
-
 /*
  * Output an input file.
  */
@@ -2129,7 +2117,38 @@ Model::printXML( std::ostream& output ) const
 
 
 
+#if JMVA_OUTPUT
+/*
+ * It has to be a submodel...
+ */
 
+std::ostream&
+Model::printJMVA( std::ostream& output ) const
+{
+    if ( queueing_output() ) {
+	QNIO::JMVA_Document model( _inputFileName, _layers.at(Flags::queueing_model()).getBCMPModel());
+	model.exportModel( output );
+    }
+    return output;
+}
+#endif
+
+#if QNAP2_OUTPUT
+/*
+ * It has to be a submodel...
+ */
+
+std::ostream&
+Model::printQNAP2( std::ostream& output ) const
+{
+    if ( queueing_output() ) {
+	QNIO::QNAP2_Document model( _inputFileName, _layers.at(Flags::queueing_model()).getBCMPModel() );
+	model.setDescription( _document->getResultDescription() );
+	model.exportModel( output );
+    }
+    return output;
+}
+#endif
 
 /*
  * Print out one layer at at time.  Used by most graphical output routines.

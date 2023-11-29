@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 16852 2023-11-20 17:04:10Z greg $
+ * $Id: task.h 16867 2023-11-27 20:26:59Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -56,13 +56,24 @@ class Task : public Entity {
     };
 #endif
     
-public:
+private:
+    friend class Layer;
+    
     struct create_chain {
 	create_chain( BCMP::Model& model, BCMP::Model::Station& terminals, const std::vector<Entity *>& servers ) : _model(model), _terminals(terminals), _servers(servers) {}
 	void operator()( const Task * ) const;
     private:
 	BCMP::Model& _model;
 	BCMP::Model::Station& _terminals;
+	const std::vector<Entity *>& _servers;
+    };
+
+    struct create_demand {
+	create_demand( BCMP::Model& model, const std::vector<Entity *>& servers ) : _model(model), _servers(servers) {}
+	void operator()( const Task * ) const;
+    private:
+	BCMP::Model& _model;
+	const std::vector<Entity *>& servers() const { return _servers; }
 	const std::vector<Entity *>& _servers;
     };
 
@@ -169,8 +180,7 @@ public:
     static LQX::SyntaxTreeNode * sum_rendezvous( LQX::SyntaxTreeNode *, const merge_pair& );
     static LQX::SyntaxTreeNode * sum_demand( LQX::SyntaxTreeNode *, const merge_pair& );
 #endif
-    virtual void accumulateDemand( BCMP::Model::Station& ) const;
-    static BCMP::Model::Station::Class accumulate_demand( const BCMP::Model::Station::Class&, const Task * );
+
     /* Activities */
     
     unsigned generate();

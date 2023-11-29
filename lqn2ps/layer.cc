@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16849 2023-11-17 16:15:19Z greg $
+ * $Id: layer.cc 16869 2023-11-28 21:04:29Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -16,10 +16,6 @@
 #include <lqio/dom_document.h>
 #include <lqio/error.h>
 #include <lqio/srvn_output.h>
-#if HAVE_EXPAT_H
-#include <lqio/jmva_document.h>
-#endif
-#include <lqio/qnap2_document.h>
 #include "activity.h"
 #include "arc.h"
 #include "entity.h"
@@ -675,10 +671,10 @@ Layer::addSurrogateProcessor( LQIO::DOM::Document * document, Task * task, size_
 {
     LQIO::DOM::Processor * dom_processor = new LQIO::DOM::Processor( document, task->name(), SCHEDULE_DELAY );
     document->addProcessorEntity( dom_processor );
-    Processor * processor = new Processor( dom_processor );		/* This is a model object */
-    processor->setSelected( true ).setSurrogate( true ).setLevel( level );
-    _entities.push_back(processor);
-    Processor::__processors.insert( processor );
+    Processor * new_processor = new Processor( dom_processor );		/* This is a model object */
+    new_processor->setSelected( true ).setSurrogate( true ).setLevel( level );
+    _entities.push_back( new_processor );
+    Processor::__processors.insert( new_processor );
 
     Processor * old_processor = const_cast<Processor *>(task->processor());
     LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(task->getDOM()));
@@ -687,19 +683,19 @@ Layer::addSurrogateProcessor( LQIO::DOM::Document * document, Task * task, size_
     dom_processor->addTask( dom_task );
     dom_task->setProcessor( dom_processor );
     old_processor->removeTask( task );
-    processor->addTask( task );
+    new_processor->addTask( task );
     task->removeProcessor( old_processor );
-    task->addProcessor( processor );
+    task->addProcessor( new_processor );
 
     /* Remap processor call */
 //	Point aPoint = processor->center();
     std::vector<EntityCall *>& task_calls = const_cast<std::vector<EntityCall *>& >(task->calls());
     for ( std::vector<EntityCall *>::const_iterator call = task_calls.begin(); call != task_calls.end(); ++call ) {
 	if ( !(*call)->isProcessorCall() ) continue;
-	(*call)->setDstEntity( processor );
+	(*call)->setDstEntity( new_processor );
 //		(*call)->moveDst( aPoint );
 	old_processor->removeDstCall( (*call) );
-	processor->addDstCall( (*call) );
+	new_processor->addDstCall( (*call) );
     }
     return *this;
 }
@@ -862,11 +858,12 @@ Layer::createBCMPModel()
     std::for_each( entities().begin(), entities().end(), Entity::create_station( _bcmp_model ) );
 
     /*
-     * Find the demand for all servers (reference tasks will never be here).  Processors will use the demand from the tasks that use
-     * them.  Tasks are more tricky.  See ::accumulateDemand in processor.cc and task.cc.
+     * Find the demand for all servers (reference tasks will never be here) for each client (chain) in the BCMP model.  For server
+     * tasks, this will be the residence time for the entry associated with the client.  For processors, it is simply the demand for
+     * the task.
      */
-     
-    std::for_each( entities().begin(), entities().end(), Entity::accumulate_demand( _bcmp_model ) );
+
+    std::for_each( clients().begin(), clients().end(), Task::create_demand( _bcmp_model, entities() ) );
 
     return true;
 }
@@ -903,24 +900,3 @@ Layer::drawQueueingNetwork( std::ostream& output ) const
     }
     return output;
 }
-
-
-#if JMVA_OUTPUT || QNAP2_OUTPUT
-std::ostream& Layer::printBCMPQueueingNetwork( std::ostream& output ) const
-{
-    /* Create them model type then print. */
-
-    switch ( Flags::output_format() ) {
-#if JMVA_OUTPUT && HAVE_LIBEXPAT
-    case File_Format::JMVA:	QNIO::JMVA_Document("",_bcmp_model).exportModel( output ); break;
-#endif
-#if QNAP2_OUTPUT
-    case File_Format::QNAP2:	QNIO::QNAP2_Document("",_bcmp_model).exportModel( output ); break;
-#endif
-    default:
-	break;
-    }
-
-    return output;
-}
-#endif

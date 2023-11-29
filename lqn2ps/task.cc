@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16855 2023-11-20 21:07:15Z greg $
+ * $Id: task.cc 16869 2023-11-28 21:04:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1191,31 +1191,7 @@ Task::canPrune() const
 #endif
 
 
-
-/*
- * This has to be done by class.
- */
-
-void
-Task::accumulateDemand( BCMP::Model::Station& station ) const
-{
-    typedef std::pair<const std::string,BCMP::Model::Station::Class> demand_item;
-    typedef std::map<const std::string,BCMP::Model::Station::Class> demand_map;
-
-    demand_map& demands = station.classes();
-    const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( name(), BCMP::Model::Station::Class() ) );	/* null entry */
-    result.first->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Class(), this ) );
-}
-
-
-/* static */ BCMP::Model::Station::Class
-Task::accumulate_demand( const BCMP::Model::Station::Class& augend, const Task * task )
-{
-    return std::accumulate( task->entries().begin(), task->entries().end(), augend, &Entry::accumulate_demand ); 
-}
-
-
-/*
+/*+ BUG 323
  * Create a chain for each client task in a submodel.  For BCMP lqn models, these will be reference tasks.
  *
  * Normally, chains have think times.  JMVA represents this as the service time at the reference station.  For QNAP2, we create a
@@ -1235,14 +1211,15 @@ Task::create_chain::operator()( const Task * task ) const
     if ( task->isInClosedModel(_servers) ) {
 	if ( task->isReferenceTask() ) {
 	    think_time = getLQXVariable( dom->getThinkTime(), 0. );
-	    if ( !task->processor()->clientsCanQueue() ) {
+#if BUG_270
+	    if ( !task->processor()->clientsCanQueue() && Flags::prune ) {
 		think_time = addLQXExpressions( think_time, task->entries().at(0)->serviceTime() );
 	    }
+#endif
 	} else if ( Flags::have_results && dom->getResultUtilization() > 0.0 ) {
-	    LQX::SyntaxTreeNode * throughput = new LQX::ConstantValueExpression( dom->getResultThroughput() );
-	    LQX::SyntaxTreeNode * utilization = new LQX::ConstantValueExpression( dom->getResultUtilization() );
-	    // (copies - utilization) / throughput
-	    /* Compute it from results. */
+	    /* throughput / (copies - utilization) BUG 323 */
+	    think_time = divideLQXExpressions( new LQX::ConstantValueExpression( dom->getResultThroughput() ),
+					       subtractLQXExpressions( getLQXVariable( dom->getCopies(), 1. ), new LQX::ConstantValueExpression( dom->getResultUtilization() ) ) );
 	}
 	_model.insertClosedChain( name, getLQXVariable( dom->getCopies(), 1. ), think_time );
     }
@@ -1265,6 +1242,53 @@ Task::create_chain::operator()( const Task * task ) const
 	}
     }
 }
+
+
+
+/*+ BUG 323
+ *
+ * This has to be done by chain.  Do visits and service time at the same time.  Service time at the servers is simply the task
+ * residence time.
+ */
+
+void
+Task::create_demand::operator()( const Task * client ) const
+{
+    const std::string& class_name = client->name();
+    const Processor * processor = client->processor();
+    std::vector<Entity *>::const_iterator server = std::find( servers().begin(), servers().end(), processor );
+
+    for ( std::vector<Entry *>::const_iterator entry = client->entries().begin(); entry != client->entries().end(); ++entry ) {
+    
+	/* Do my processor */
+
+	if ( server == servers().end() ) continue;
+	processor->accumulateDemand( **entry, class_name, _model.stationAt( processor->name() ) );
+	
+	/* Now do everyone I call */
+       
+	for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
+	    const Task * task = (*call)->dstTask();
+	    if ( std::find( servers().begin(), servers().end(), task ) == servers().end() ) continue;
+	    (*call)->dstEntry()->accumulateDemand( class_name, _model.stationAt( task->name() ) );
+	}
+    }
+}
+
+
+
+#if 0
+void
+Task::accumulateDemand( BCMP::Model::Station& station ) const
+{
+    typedef std::pair<const std::string,BCMP::Model::Station::Class> demand_item;
+    typedef std::map<const std::string,BCMP::Model::Station::Class> demand_map;
+
+    demand_map& demands = station.classes();
+    const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( name(), BCMP::Model::Station::Class() ) );	/* null entry */
+    result.first->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Class(), this ) );
+}
+#endif
 
 /*
  * Sort activities (if any).
@@ -1780,10 +1804,12 @@ Task::label()
 	    _label->newLine();
 	    labelQueueingNetwork( &Entry::labelQueueingNetworkVisits, *_label );
 	}
+#if 0	/* BUG 323 */
 	if ( Flags::have_results && Flags::print[WAITING].opts.value.b ) {
 	    _label->newLine();
 	    labelQueueingNetwork( &Entry::labelQueueingNetworkWaiting, *_label );
 	}
+#endif
     }
     if ( !queueing_output() ) {
 	_label->justification( Flags::label_justification );
@@ -1797,7 +1823,8 @@ Task::label()
 		    _label->newLine() << " Z=" << Z;
 		}
 	    } else {
-		labelQueueingNetwork( &Entry::labelQueueingNetworkServiceTime, *_label );
+		/* This is a server */
+		labelQueueingNetwork( &Entry::labelQueueingNetworkTaskResponseTime, *_label );
 	    }
 	} else {
 	    if ( Flags::aggregation() == Aggregate::ENTRIES && Flags::print[PRINT_AGGREGATE].opts.value.b ) {

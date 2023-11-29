@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 16787 2023-07-17 14:22:14Z greg $
+ * $Id: layer.h 16869 2023-11-28 21:04:29Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -123,7 +123,7 @@ public:
     std::ostream& printSubmodel( std::ostream& ) const;
     std::ostream& drawQueueingNetwork( std::ostream& ) const;
 #if JMVA_OUTPUT || QNAP2_OUTPUT
-    std::ostream& printBCMPQueueingNetwork( std::ostream& ) const;
+    const BCMP::Model& getBCMPModel() const { return _bcmp_model; }
 #endif
 
 private:
@@ -139,7 +139,7 @@ private:
 
     std::vector<Task *> _clients;		/* Only if doing a submodel 	*/
     mutable unsigned _chains;			/* Only set if doing a submodel */
-    BCMP::Model  _bcmp_model;			/* For queuing output		*/
+    BCMP::Model _bcmp_model;			/* For queuing output		*/
 };
 
 inline std::ostream& operator<<( std::ostream& output, const Layer& self ) { return self.print( output ); }

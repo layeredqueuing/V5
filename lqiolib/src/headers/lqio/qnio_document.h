@@ -9,7 +9,7 @@
  *
  * November 2022
  *
- * $Id: qnio_document.h 16693 2023-04-22 12:21:20Z greg $
+ * $Id: qnio_document.h 16869 2023-11-28 21:04:29Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -96,6 +96,8 @@ namespace QNIO {
 	bool boundsOnly() const { return _bounds_only; }
 	void setBoundsOnly( bool value ) { _bounds_only = value; }
 	const std::string& getInputFileName() const { return _input_file_name; }
+	void setDescription( const std::string& description ) { _description = description; }
+	const std::string& getDescription() const { return _description; }
 	virtual InputFormat getInputFormat() const = 0;
 	const std::deque<Comprehension>& comprehensions() const { return _comprehensions; }		/* For loops from WhatIf */
 	
@@ -127,6 +129,7 @@ namespace QNIO {
 	const std::string _input_file_name;
 	LQIO::DOM::Pragma _pragmas;
 	bool _bounds_only;
+	std::string _description;
 	BCMP::Model _model;
 	std::deque<Comprehension> _comprehensions; 			/* For loops from WhatIf */
     };
