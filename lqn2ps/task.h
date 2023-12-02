@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 16867 2023-11-27 20:26:59Z greg $
+ * $Id: task.h 16872 2023-11-29 15:56:00Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -69,10 +69,11 @@ private:
     };
 
     struct create_demand {
-	create_demand( BCMP::Model& model, const std::vector<Entity *>& servers ) : _model(model), _servers(servers) {}
+	create_demand( BCMP::Model& model, BCMP::Model::Station& terminals, const std::vector<Entity *>& servers ) : _model(model), _terminals(terminals), _servers(servers) {}
 	void operator()( const Task * ) const;
     private:
 	BCMP::Model& _model;
+	BCMP::Model::Station& _terminals;
 	const std::vector<Entity *>& servers() const { return _servers; }
 	const std::vector<Entity *>& _servers;
     };

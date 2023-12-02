@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 16869 2023-11-28 21:04:29Z greg $
+ * $Id: processor.cc 16874 2023-11-30 14:44:47Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -22,8 +22,6 @@
 #include <lqio/dom_task.h>
 #include <lqio/error.h>
 #include <lqio/labels.h>
-#include <lqio/../../srvn_gram.h>
-#include <lqio/srvn_spex.h>
 #include "call.h"
 #include "entry.h"
 #include "errmsg.h"
@@ -566,6 +564,8 @@ Processor::draw( std::ostream& output ) const
 }
 
 
+/*+ BUG_323 */
+
 /* 
  * Find the total demand by each class (client tasks in submodel), then change back to visits/service time when needed.  Demands are
  * stored in entries of tasks.
@@ -577,30 +577,14 @@ Processor::accumulateDemand( const Entry& entry, const std::string& class_name, 
     BCMP::Model::Station::Class& k = station.classAt(class_name);
     LQX::ConstantValueExpression * visits = new LQX::ConstantValueExpression(entry.visitProbability());
     k.accumulate( BCMP::Model::Station::Class( visits, entry.serviceTime()) );
-    
-    /* Search for SPEX observations. */
-    const LQIO::Spex::obs_var_tab_t& observations = LQIO::Spex::observations();
-    for ( LQIO::Spex::obs_var_tab_t::const_iterator obs = observations.begin(); obs != observations.end(); ++obs ) {
-	if ( obs->first == getDOM() ) {
-	    switch ( obs->second.getKey() ) {
-	    case KEY_THROUGHPUT:  station.insertResultVariable( BCMP::Model::Result::Type::THROUGHPUT, obs->second.getVariableName() ); break;
-	    case KEY_UTILIZATION: station.insertResultVariable( BCMP::Model::Result::Type::UTILIZATION, obs->second.getVariableName() ); break;
-	    }
-	} else {
-	    const LQIO::DOM::Task * task = getDOM()->getDocument()->getTaskByName( class_name );
-	    if ( obs->first == task ) {
-		switch ( obs->second.getKey() ) {
-		case KEY_PROCESSOR_UTILIZATION: k.insertResultVariable( BCMP::Model::Result::Type::UTILIZATION, obs->second.getVariableName() ); break;
-		}
-	    } else if ( dynamic_cast<const LQIO::DOM::Phase *>(obs->first) && dynamic_cast<const LQIO::DOM::Phase *>(obs->first)->getSourceEntry()->getTask() == task ) {
-		BCMP::Model::Station::Class& result = station.classAt( class_name );
-		switch ( obs->second.getKey() ) {
-		case KEY_SERVICE_TIME: result.insertResultVariable( BCMP::Model::Result::Type::RESIDENCE_TIME, obs->second.getVariableName() ); break;	/* by class? */
-		}
-	    }
-	}
-    }
 }
+
+void
+Processor::accumulateResponseTime( const Entry& entry, const std::string& class_name, BCMP::Model::Station& station ) const
+{
+    accumulateDemand( entry, class_name, station );
+}
+/*- BUG_323 */
 
 /*----------------------------------------------------------------------*/
 /*		 	   Called from yyparse.  			*/

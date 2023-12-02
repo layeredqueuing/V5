@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16869 2023-11-28 21:04:29Z greg $
+ * $Id: entry.cc 16874 2023-11-30 14:44:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1317,11 +1317,19 @@ Entry::aggregatePhases()
 }
 
 
+/*+ BUG_323 */
 void
 Entry::accumulateDemand( const std::string& class_name, BCMP::Model::Station& station ) const
 {
     station.classAt(class_name) = std::accumulate( _phases.begin(), _phases.end(), BCMP::Model::Station::Class( new LQX::ConstantValueExpression( 1.0 ), nullptr ), &Phase::accumulate_demand );
 }
+
+void
+Entry::accumulateResponseTime( const std::string& class_name, BCMP::Model::Station& station ) const
+{
+    accumulateDemand( class_name, station );
+}
+/*- BUG_323 */
 
 /*
  * Chase calls looking for cycles and the depth in the call tree.
@@ -1666,8 +1674,8 @@ Entry::colour() const
 	break;
 
     case Colouring::CLIENTS:
-	if ( myPaths.size() ) {
-	    return (Graphic::Colour)(*myPaths.begin() % 11 + 5);		// first element is smallest
+	if ( _paths.size() ) {
+	    return (Graphic::Colour)(*_paths.begin() % 11 + 5);		// first element is smallest
 	} else {
 	    return Graphic::Colour::DEFAULT;
 	}
@@ -2548,7 +2556,7 @@ Entry::print_processor_response_time( std::ostream& output, const Entry& entry )
 	if ( p > 1 ) output << ",";
 
 	const double service_time = LQIO::DOM::to_double( entry.serviceTime(p) );
-	output << service_time + dom->getResultPhasePProcessorWaiting(p);
+	output << (service_time + dom->getResultPhasePProcessorWaiting(p));	// Brackets needed due to operator precedence.
     }
     return output;
 }
@@ -2566,7 +2574,7 @@ Entry::print_task_response_time( std::ostream& output, const Entry& entry )
 
     for ( unsigned p = 1; p <= n; ++p ) {
 	if ( p > 1 ) output << ",";
-	output << residence_time + call->waiting(p);
+	output << (residence_time + call->waiting(p));			// Brackets needed due to operator precedence.
     }
     return output;
 }

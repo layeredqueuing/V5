@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16868 2023-11-27 22:24:24Z greg $
+ * $Id: entity.cc 16874 2023-11-30 14:44:47Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -28,6 +28,7 @@
 #include <lqio/dom_task.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
+#include <lqio/../../srvn_gram.h>
 #include "model.h"
 #include "entity.h"
 #include "entry.h"
@@ -357,7 +358,7 @@ Entity::colour() const
 	break;
 
     case Colouring::CLIENTS:
-	return (Graphic::Colour)(*myPaths.begin() % 11 + 5);		// first element is smallest 
+	return (Graphic::Colour)(*_paths.begin() % 11 + 5);		// first element is smallest 
 
     case Colouring::LAYERS:
 	return (Graphic::Colour)(level() % 11 + 5);
@@ -445,7 +446,7 @@ Entity::drawQueueingNetwork( std::ostream& output, const double max_x, const dou
 
     /* find all clients with chains calling me... */
 
-    for ( std::set<unsigned>::const_iterator k = myServerChains.begin(); k != myServerChains.end(); ++k ) {
+    for ( std::set<unsigned>::const_iterator k = _serverChains.begin(); k != _serverChains.end(); ++k ) {
 
 	/* Draw connections to this server */
 
@@ -527,7 +528,7 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
 
     if ( aClient->hasClientClosedChain(k) ) {
 	const double offset = radius() / 2.5;
-	double x = bottomCenter().x() - radius() + offsetOf( myServerChains, k ) * 2.0 * radius() / ( 1.0 + myServerChains.size() );
+	double x = bottomCenter().x() - radius() + offsetOf( _serverChains, k ) * 2.0 * radius() / ( 1.0 + _serverChains.size() );
 	double y = min_y - (radius() + offset * (max_k - k)) * direction;
 	outArc->pointAt(1).moveTo( x, y );
 
@@ -552,12 +553,12 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
 		y = aClient->top() + (spacing / 4.0 - (offset * (k-1))) * direction;
 	    }
 	    outArc->pointAt(3).moveTo( x, y );
-	    if ( aClient->myClientOpenChains.size() ) {
+	    if ( aClient->_clientOpenChains.size() ) {
 		x = aClient->topCenter().moveBy( aClient->radius() * -3.0, 0 ).x();
 	    } else {
 		x = aClient->topCenter().x();
 	    }
-	    outArc->pointAt(4).moveTo( x - radius() + offsetOf( aClient->myClientClosedChains, k ) * 2.0 * radius() / ( 1.0 + aClient->myClientClosedChains.size() ), y );
+	    outArc->pointAt(4).moveTo( x - radius() + offsetOf( aClient->_clientClosedChains, k ) * 2.0 * radius() / ( 1.0 + aClient->_clientClosedChains.size() ), y );
 		
 	    y = aClient->bottomCenter().y() + (2.0 * radius()) * direction;
 	    outArc->moveDst( x, y );
@@ -582,7 +583,7 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
 	}
     } 
     if ( aClient->hasClientOpenChain(k) ) {
-	double x = bottomCenter().x() - radius() + offsetOf( myServerChains, k ) * 2.0 * radius() / ( 1.0 + myServerChains.size() );
+	double x = bottomCenter().x() - radius() + offsetOf( _serverChains, k ) * 2.0 * radius() / ( 1.0 + _serverChains.size() );
 	double y = min_y - radius() * direction;
 	outArc->pointAt(1).moveTo( x, y );
 
@@ -627,8 +628,8 @@ Entity::drawClientToServer( std::ostream& output, const Entity * aClient, std::v
     double x = aClient->bottomCenter().x();
     double y = aClient->bottomCenter().y();
 
-    if ( aClient->myClientOpenChains.size() && aClient->myClientClosedChains.size() ) {
-	if ( aClient->myClientOpenChains.find( k ) != aClient->myClientOpenChains.end() ) {
+    if ( aClient->_clientOpenChains.size() && aClient->_clientClosedChains.size() ) {
+	if ( aClient->_clientOpenChains.find( k ) != aClient->_clientOpenChains.end() ) {
 	    x += aClient->radius() * 1.5;
 	} else {
 	    x -= aClient->radius() * 3.0;
@@ -638,15 +639,15 @@ Entity::drawClientToServer( std::ostream& output, const Entity * aClient, std::v
 
     /* Adjust for chains */
 
-    if ( aClient->myClientOpenChains.find( k ) != aClient->myClientOpenChains.end() ) {
-	x = x - radius() + offsetOf( aClient->myClientOpenChains, k ) * 2.0 * radius() / ( 1.0 + aClient->myClientOpenChains.size() );
+    if ( aClient->_clientOpenChains.find( k ) != aClient->_clientOpenChains.end() ) {
+	x = x - radius() + offsetOf( aClient->_clientOpenChains, k ) * 2.0 * radius() / ( 1.0 + aClient->_clientOpenChains.size() );
     } else {
-	x = x - radius() + offsetOf( aClient->myClientClosedChains, k ) * 2.0 * radius() / ( 1.0 + aClient->myClientClosedChains.size() );
+	x = x - radius() + offsetOf( aClient->_clientClosedChains, k ) * 2.0 * radius() / ( 1.0 + aClient->_clientClosedChains.size() );
     }
     y -= static_cast<double>(k+1) * offset * direction;
     inArc->pointAt(1).moveTo( x, y );
 
-    x = bottomCenter().x() - radius() + offsetOf( myServerChains, k ) * 2.0 * radius() / ( 1.0 + myServerChains.size() );
+    x = bottomCenter().x() - radius() + offsetOf( _serverChains, k ) * 2.0 * radius() / ( 1.0 + _serverChains.size() );
     inArc->pointAt(2).moveTo( x, y );
 
     y = bottomCenter().y() + 4.0 * radius() * _node->direction();
@@ -733,7 +734,7 @@ Entity::label_BCMP_client::operator()( Entity * entity ) const
     entity->labelBCMPModel( station.classes(), entity->name() );
 }
 
-
+/* BUG_323 */
 void
 Entity::create_station::operator()( const Entity * entity )
 {
@@ -750,10 +751,41 @@ Entity::create_station::operator()( const Entity * entity )
     for ( BCMP::Model::Chain::map_t::iterator k = chains().begin(); k != chains().end(); ++k ) {
 	classes.insert( std::pair<const std::string,BCMP::Model::Station::Class>( k->first, BCMP::Model::Station::Class() ) );
     }
-//    std::pair<BCMP::Model::Station::map_t::iterator,bool> result = _model.insertStation( entity->name(), type, entity->scheduling(), getLQXVariable( copies ) );
-//    BCMP::Model::Station& station = result.first->second;
-    
 }
+
+
+/*
+ * this may have to be subclassed
+ */
+
+void
+Entity::addSPEXObservations( BCMP::Model::Station& station, const std::string& class_name ) const
+{
+    /* Search for SPEX observations. */
+    const LQIO::Spex::obs_var_tab_t& observations = LQIO::Spex::observations();
+    BCMP::Model::Station::Class& k = station.classAt(class_name);
+    for ( LQIO::Spex::obs_var_tab_t::const_iterator obs = observations.begin(); obs != observations.end(); ++obs ) {
+	if ( obs->first == getDOM() ) {
+	    switch ( obs->second.getKey() ) {
+	    case KEY_THROUGHPUT:  station.insertResultVariable( BCMP::Model::Result::Type::THROUGHPUT, obs->second.getVariableName() ); break;
+	    case KEY_UTILIZATION: station.insertResultVariable( BCMP::Model::Result::Type::UTILIZATION, obs->second.getVariableName() ); break;
+	    }
+	} else {
+	    const LQIO::DOM::Task * task = getDOM()->getDocument()->getTaskByName( class_name );
+	    if ( obs->first == task ) {
+		switch ( obs->second.getKey() ) {
+		case KEY_PROCESSOR_UTILIZATION: k.insertResultVariable( BCMP::Model::Result::Type::UTILIZATION, obs->second.getVariableName() ); break;
+		}
+	    } else if ( dynamic_cast<const LQIO::DOM::Phase *>(obs->first) && dynamic_cast<const LQIO::DOM::Phase *>(obs->first)->getSourceEntry()->getTask() == task ) {
+		BCMP::Model::Station::Class& result = station.classAt( class_name );
+		switch ( obs->second.getKey() ) {
+		case KEY_SERVICE_TIME: result.insertResultVariable( BCMP::Model::Result::Type::RESIDENCE_TIME, obs->second.getVariableName() ); break;	/* by class? */
+		}
+	    }
+	}
+    }
+}
+/*- BUG_323 */
 
 
 /* +BUG_270 */

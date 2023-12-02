@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16869 2023-11-28 21:04:29Z greg $
+ * $Id: layer.cc 16872 2023-11-29 15:56:00Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -815,13 +815,12 @@ Layer::printSummary( std::ostream& output ) const
 
     return output;
 }
+/*- BUG_626 */
 
 /* -------------------------------------------------------------------- */
 /*			   Queueing Models				*/
 /* -------------------------------------------------------------------- */
-
-
-/*- BUG_626 */
+/*+ BUG_323 */
 
 /*
  * Translate a "pruned" lqn model into a BCMP model.
@@ -860,10 +859,10 @@ Layer::createBCMPModel()
     /*
      * Find the demand for all servers (reference tasks will never be here) for each client (chain) in the BCMP model.  For server
      * tasks, this will be the residence time for the entry associated with the client.  For processors, it is simply the demand for
-     * the task.
+     * the task.  Any calls by tasks which are not in the model are lumped into the terminals station.
      */
 
-    std::for_each( clients().begin(), clients().end(), Task::create_demand( _bcmp_model, entities() ) );
+    std::for_each( clients().begin(), clients().end(), Task::create_demand( _bcmp_model, terminals, entities() ) );
 
     return true;
 }
@@ -900,3 +899,4 @@ Layer::drawQueueingNetwork( std::ostream& output ) const
     }
     return output;
 }
+/*- BUG_323 */

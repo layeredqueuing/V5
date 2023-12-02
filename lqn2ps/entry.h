@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 16869 2023-11-28 21:04:29Z greg $
+ * $Id: entry.h 16874 2023-11-30 14:44:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -255,10 +255,13 @@ public:
     unsigned countArcs( const callPredicate = nullptr ) const;
     unsigned countCallers( const callPredicate = nullptr ) const;
 
-    double serviceTimeForSRVNInput( const unsigned p ) const;
     Entry& aggregateService( const Activity * anActivity, const unsigned p, const double rate );
     Entry& aggregatePhases();
+    double serviceTimeForSRVNInput( const unsigned p ) const;
+    /*+ BUG_323 */
     void accumulateDemand( const std::string&, BCMP::Model::Station& ) const;
+    void accumulateResponseTime( const std::string& class_name, BCMP::Model::Station& station ) const;
+    /*- BUG_323 */
 
     static Entry * find( const std::string& );
     static bool compare( const Entry *, const Entry * );

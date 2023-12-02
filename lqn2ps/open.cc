@@ -1,6 +1,6 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 16767 2023-07-03 11:18:44Z greg $
+ * $Id: open.cc 16872 2023-11-29 15:56:00Z greg $
  */
 
 #include "lqn2ps.h"
@@ -23,7 +23,7 @@ OpenArrivalSource::OpenArrivalSource( Entry * source )
     : Task( 0, 0, 0, std::vector<Entry *>() )
 {
     _entries.push_back(source);		/* Owner of entry is orginal task, not this task */
-    myPaths = source->paths();
+    _paths = source->paths();
     assert ( source->requestType() == request_type::OPEN_ARRIVAL );
     OpenArrival * call = new OpenArrival(this,source);
     addSrcCall( call );

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 16868 2023-11-27 22:24:24Z greg $
+ * $Id: entity.h 16874 2023-11-30 14:44:47Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -141,6 +141,9 @@ public:
 #if defined(REP2FLAT)
     virtual Entity& removeReplication();
 #endif
+    /*+ BUG_323 */
+    void addSPEXObservations( BCMP::Model::Station& station, const std::string& class_name ) const;
+    /*- BUG_323 */
 
     double align() const;
 

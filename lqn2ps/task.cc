@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16869 2023-11-28 21:04:29Z greg $
+ * $Id: task.cc 16874 2023-11-30 14:44:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1245,8 +1245,7 @@ Task::create_chain::operator()( const Task * task ) const
 
 
 
-/*+ BUG 323
- *
+/*
  * This has to be done by chain.  Do visits and service time at the same time.  Service time at the servers is simply the task
  * residence time.
  */
@@ -1262,33 +1261,26 @@ Task::create_demand::operator()( const Task * client ) const
     
 	/* Do my processor */
 
-	if ( server == servers().end() ) continue;
-	processor->accumulateDemand( **entry, class_name, _model.stationAt( processor->name() ) );
+	if ( server != servers().end() ) {
+	    processor->accumulateDemand( **entry, class_name, _model.stationAt( processor->name() ) );
+	} else {
+	    processor->accumulateResponseTime( **entry, class_name, _terminals );
+	}
+	processor->addSPEXObservations( _model.stationAt( processor->name() ), class_name );
 	
 	/* Now do everyone I call */
        
 	for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
 	    const Task * task = (*call)->dstTask();
-	    if ( std::find( servers().begin(), servers().end(), task ) == servers().end() ) continue;
-	    (*call)->dstEntry()->accumulateDemand( class_name, _model.stationAt( task->name() ) );
+	    if ( std::find( servers().begin(), servers().end(), task ) != servers().end() ) {
+		(*call)->dstEntry()->accumulateDemand( class_name, _model.stationAt( task->name() ) );
+	    } else {
+		(*call)->dstEntry()->accumulateResponseTime( class_name, _terminals );
+	    }
 	}
     }
 }
-
-
-
-#if 0
-void
-Task::accumulateDemand( BCMP::Model::Station& station ) const
-{
-    typedef std::pair<const std::string,BCMP::Model::Station::Class> demand_item;
-    typedef std::map<const std::string,BCMP::Model::Station::Class> demand_map;
-
-    demand_map& demands = station.classes();
-    const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( name(), BCMP::Model::Station::Class() ) );	/* null entry */
-    result.first->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Class(), this ) );
-}
-#endif
+/*- BUG_323 */
 
 /*
  * Sort activities (if any).
@@ -1799,17 +1791,10 @@ Task&
 Task::label()
 {
     Entity::label();
-    if ( queueing_output() && isSelected() ) {	/* Clients in queueing model won't be selected */
-	if ( Flags::print_input_parameters() ) {
-	    _label->newLine();
-	    labelQueueingNetwork( &Entry::labelQueueingNetworkVisits, *_label );
-	}
-#if 0	/* BUG 323 */
-	if ( Flags::have_results && Flags::print[WAITING].opts.value.b ) {
-	    _label->newLine();
-	    labelQueueingNetwork( &Entry::labelQueueingNetworkWaiting, *_label );
-	}
-#endif
+    if ( queueing_output() && isSelected() && Flags::print_input_parameters() ) {
+	/* Clients in queueing model won't be selected */
+	_label->newLine();
+	labelQueueingNetwork( &Entry::labelQueueingNetworkVisits, *_label );
     }
     if ( !queueing_output() ) {
 	_label->justification( Flags::label_justification );
@@ -2115,7 +2100,7 @@ Task::expand()
 	    throw std::runtime_error( msg );
 	}
 	Task * new_task = clone( replica, replica_name.str(), Processor::find_replica( processor->name(), proc_replica ), share() );
-	new_task->myPaths = myPaths;		// Bad hack?
+	new_task->_paths = _paths;		// Bad hack?
 	new_task->setLevel( level() );
 	__tasks.insert( new_task );
 

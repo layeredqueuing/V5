@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 16766 2023-07-03 10:48:18Z greg $
+ * $Id: element.cc 16872 2023-11-29 15:56:00Z greg $
  */
 
 #include "element.h"
@@ -80,7 +80,7 @@ Element::squish( std::map<std::string,unsigned>& key_table, std::map<std::string
 Element&
 Element::addPath( const unsigned aPath ) 
 {
-    myPaths.insert( aPath );
+    _paths.insert( aPath );
     return *this;
 }
 
@@ -187,7 +187,7 @@ Element::addForwardingRendezvous( CallStack& callStack ) const
 Element&
 Element::setClientClosedChain( unsigned k )
 {
-    myClientClosedChains.insert( k );
+    _clientClosedChains.insert( k );
     return *this;
 }
 
@@ -199,7 +199,7 @@ Element::setClientClosedChain( unsigned k )
 Element&
 Element::setClientOpenChain( unsigned k )
 {
-    myClientOpenChains.insert( k );
+    _clientOpenChains.insert( k );
     return *this;
 }
 
@@ -211,7 +211,7 @@ Element::setClientOpenChain( unsigned k )
 Element&
 Element::setServerChain( unsigned k )
 {
-    myServerChains.insert(k);
+    _serverChains.insert(k);
     return *this;
 }
 
@@ -223,7 +223,7 @@ Element::setServerChain( unsigned k )
 bool 
 Element::hasServerChain( unsigned k ) const
 {
-    return myServerChains.find( k ) != myServerChains.end();
+    return _serverChains.find( k ) != _serverChains.end();
 }
 
 
@@ -235,7 +235,7 @@ Element::hasServerChain( unsigned k ) const
 bool 
 Element::hasClientChain( unsigned k ) const
 {
-    return myClientClosedChains.find( k ) != myClientClosedChains.end() || myClientOpenChains.find( k ) != myClientOpenChains.end();
+    return _clientClosedChains.find( k ) != _clientClosedChains.end() || _clientOpenChains.find( k ) != _clientOpenChains.end();
 }
 
 
@@ -246,7 +246,7 @@ Element::hasClientChain( unsigned k ) const
 bool 
 Element::hasClientClosedChain( unsigned k ) const
 {
-    return myClientClosedChains.find( k ) != myClientClosedChains.end();
+    return _clientClosedChains.find( k ) != _clientClosedChains.end();
 }
 
 
@@ -257,7 +257,7 @@ Element::hasClientClosedChain( unsigned k ) const
 bool 
 Element::hasClientOpenChain( unsigned k ) const
 {
-    return myClientOpenChains.find( k ) != myClientOpenChains.end();
+    return _clientOpenChains.find( k ) != _clientOpenChains.end();
 }
 
 

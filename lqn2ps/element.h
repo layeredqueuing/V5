@@ -2,7 +2,7 @@
  * element.h	-- Greg Franks
  *
  * ------------------------------------------------------------------------
- * $Id: element.h 15958 2022-10-07 20:27:02Z greg $
+ * $Id: element.h 16872 2023-11-29 15:56:00Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -40,18 +40,19 @@ public:
     Element& setName( const std::string& s ) { const_cast<LQIO::DOM::DocumentObject *>(getDOM())->setName(s); return *this; }
     const LQIO::DOM::DocumentObject * getDOM() const { return _documentObject; }
     Element& setDOM( const LQIO::DOM::DocumentObject * dom ) { _documentObject = dom; return *this; }
+    size_t elementId() const { return _elementId; }
 
     virtual Element& rename() = 0;
     virtual Element& squish( std::map<std::string,unsigned>&, std::map<std::string,std::string>& );
 
     Element& addPath( const unsigned );
 
-    bool hasPath( const unsigned aPath ) const { return myPaths.find( aPath ) != myPaths.end(); }
+    bool hasPath( const unsigned path ) const { return _paths.find( path ) != _paths.end(); }
     bool pathTest() const;
-    bool isReachable() const { return myPaths.size() > 0; }
+    bool isReachable() const { return !_paths.empty(); }
     virtual int span() const { return 0; }
     double index() const { return (left() + right()) / 2.0; }
-    const std::set<unsigned>& paths() const { return myPaths; }
+    const std::set<unsigned>& paths() const { return _paths; }
     virtual Element& reformat() { return *this; }
 
     virtual Element& setClientClosedChain( unsigned );
@@ -104,7 +105,6 @@ public:
     static void cloneObservations( const LQIO::DOM::DocumentObject *, const LQIO::DOM::DocumentObject * );
 #endif    
 
-    size_t elementId() const { return _elementId; }
     static bool compare( const Element *, const Element * );
 
 private:
@@ -118,10 +118,10 @@ protected:
     Label * _label;			/* Label (for drawing).		*/
     Node * _node;			/* Graphical thingy.		*/
 
-    std::set<unsigned> myPaths;		/* Who calls me.		*/
-    std::set<unsigned> myClientOpenChains;	/* Chains when I am a client 	*/
-    std::set<unsigned> myClientClosedChains;	/* Chains when I am a client 	*/
-    std::set<unsigned> myServerChains;	/* Chains when I am a server	*/
+    std::set<unsigned> _paths;		/* Who calls me.		*/
+    std::set<unsigned> _clientOpenChains;	/* Chains when I am a client 	*/
+    std::set<unsigned> _clientClosedChains;	/* Chains when I am a client 	*/
+    std::set<unsigned> _serverChains;	/* Chains when I am a server	*/
 };
 
 typedef bool (* compare_func_ptr)( const Element *, const Element * );

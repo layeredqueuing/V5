@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 16867 2023-11-27 20:26:59Z greg $
+ * $Id: processor.h 16874 2023-11-30 14:44:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -98,9 +98,10 @@ public:
 
     virtual const Processor& draw( std::ostream& output ) const;
 
-    /* BUG 323. */
-    
+    /*+ BUG_323. */
     void accumulateDemand( const Entry& entry, const std::string& class_name, BCMP::Model::Station& station ) const;
+    void accumulateResponseTime( const Entry& entry, const std::string& class_name, BCMP::Model::Station& station ) const;
+    /*- BUG_323. */
 
 public:
     static std::ostream& printHeader( std::ostream& );
