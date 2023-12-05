@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 16874 2023-11-30 14:44:47Z greg $
+ * $Id: entry.h 16883 2023-12-04 22:47:52Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -271,11 +271,12 @@ public:
     Graphic::Colour colour() const;
 
     virtual Entry& label();
-    Entry& labelQueueingNetworkVisits( Label& );
-    Entry& labelQueueingNetworkServiceTime( Label& );
-    Entry& labelQueueingNetworkWaiting( Label& );
     Entry& labelQueueingNetworkProcessorResponseTime( Label& );
+    Entry& labelQueueingNetworkProcessorServiceTime( Label& );
     Entry& labelQueueingNetworkTaskResponseTime( Label& );
+    Entry& labelQueueingNetworkTaskServiceTime( Label& );
+    Entry& labelQueueingNetworkVisits( Label& );
+    Entry& labelQueueingNetworkWaiting( Label& );
 
     /* movement */
 

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 16874 2023-11-30 14:44:47Z greg $
+ * $Id: processor.cc 16883 2023-12-04 22:47:52Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -137,6 +137,17 @@ Processor::quantum() const
 }
 
 /* -------------------------- Result Queries -------------------------- */
+
+/*
+ * Derive from the tasks.
+ */
+
+double
+Processor::throughput() const
+{
+    return std::accumulate( tasks().begin(), tasks().end(), 0., Task::sum_throughput );
+}
+
 
 double 
 Processor::utilization() const
@@ -391,7 +402,12 @@ Processor::label()
     if ( queueing_output() ) {
 	if ( Flags::print_input_parameters() ) {
 	    for ( std::set<Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
-		(*task)->labelQueueingNetwork( &Entry::labelQueueingNetworkProcessorResponseTime, *_label );
+		if ( utilization() > 0. ) {
+		    /* We have results... */
+		    (*task)->labelQueueingNetwork( &Entry::labelQueueingNetworkProcessorResponseTime, *_label );
+		} else {
+		    (*task)->labelQueueingNetwork( &Entry::labelQueueingNetworkProcessorServiceTime, *_label );
+		}
 	    }
 	}
     } else {
@@ -421,10 +437,30 @@ Processor::label()
 	    }
 	}
     }
-    if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
-	_label->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(utilization()) << end_math();
-	if ( hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
-	    _label->colour(Graphic::Colour::RED);
+    if ( Flags::have_results ) {
+ 	bool print_goop = false;
+	if ( Flags::print[TASK_THROUGHPUT].opts.value.b ) {
+	    _label->newLine();
+	    if ( throughput() == 0.0 && Flags::colouring() != Colouring::NONE ) {
+		_label->colour( Graphic::Colour::RED );
+	    }
+	    *_label << begin_math( &Label::lambda ) << "=" << opt_pct(throughput());
+	    print_goop = true;
+	}
+	if ( Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
+	    if ( print_goop ) {
+		*_label << ',';
+	    } else {
+		_label->newLine() << begin_math();
+		print_goop = true;
+	    }
+	    *_label << _rho() << "=" << opt_pct(utilization());
+	    if ( hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
+		_label->colour(Graphic::Colour::RED);
+	    }
+	}
+	if ( print_goop ) {
+	    *_label << end_math();
 	}
     }
     return *this;

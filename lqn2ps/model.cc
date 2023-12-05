@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16870 2023-11-29 00:25:02Z greg $
+ * $Id: model.cc 16884 2023-12-05 00:16:36Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -1041,17 +1041,31 @@ Model::getExtension()
 	{ File_Format::XML, 	    "lqnx" }
     };
 
+    /* Map any of source extensions to lqn */
+    static const std::set<std::string> source_extensions = {
+	"lqnx",
+	"xlqn",
+	"xml",
+	"json",
+	"lqxo",
+	"lqjo",
+	"jmva",
+	"qnap2",
+	"qnap",
+	"qnp"
+    };
+
     std::map<const File_Format,const std::string>::const_iterator i;
     const File_Format o = Flags::output_format();
 
-    /* Non standard files names are retained (in theory) */
     if ( Flags::output_format() == File_Format::SRVN ) {
-	std::size_t i = _inputFileName.find_last_of( '.' );
-	if ( i != std::string::npos ) {
-	    std::string ext = _inputFileName.substr( i+1 );
+	/* Non standard files names are retained (in theory) */
+	std::size_t n = _inputFileName.find_last_of( '.' );
+	if ( n != std::string::npos ) {
+	    std::string ext = _inputFileName.substr( n+1 );
 	    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-	    if ( ext != "lqnx" && ext != "xlqn" && ext != "xml" && ext != "json" && ext != "lqxo" && ext != "lqjo"  && ext != "jmva" ) {
-		return ext;
+	    if ( source_extensions.find( ext ) == source_extensions.end() ) {
+		return ext;	/* Not in the list above, so overwrite file. */
 	    }
 	} 
 	return "lqn";

@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16874 2023-11-30 14:44:47Z greg $
+ * $Id: task.cc 16883 2023-12-04 22:47:52Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1191,7 +1191,7 @@ Task::canPrune() const
 #endif
 
 
-/*+ BUG 323
+/*+ BUG_323
  * Create a chain for each client task in a submodel.  For BCMP lqn models, these will be reference tasks.
  *
  * Normally, chains have think times.  JMVA represents this as the service time at the reference station.  For QNAP2, we create a
@@ -1216,10 +1216,14 @@ Task::create_chain::operator()( const Task * task ) const
 		think_time = addLQXExpressions( think_time, task->entries().at(0)->serviceTime() );
 	    }
 #endif
-	} else if ( Flags::have_results && dom->getResultUtilization() > 0.0 ) {
+	} else if ( Flags::have_results && task->throughput() > 0.0 ) {
 	    /* throughput / (copies - utilization) BUG 323 */
-	    think_time = divideLQXExpressions( new LQX::ConstantValueExpression( dom->getResultThroughput() ),
-					       subtractLQXExpressions( getLQXVariable( dom->getCopies(), 1. ), new LQX::ConstantValueExpression( dom->getResultUtilization() ) ) );
+#if 0
+	    think_time = divideLQXExpressions( subtractLQXExpressions( getLQXVariable( dom->getCopies(), 1. ), new LQX::ConstantValueExpression( task->utilization() ) ), 
+					       new LQX::ConstantValueExpression( task->throughput() ) );
+// 	    std::cerr << "Task::create_chain::operator()( " << name << " ): think_time = " << ( task->copiesValue() - task->utilization() ) / task->throughput() << std::endl;
+#endif
+	    think_time = new LQX::ConstantValueExpression( ( task->copiesValue() - task->utilization() ) / task->throughput() );
 	}
 	_model.insertClosedChain( name, getLQXVariable( dom->getCopies(), 1. ), think_time );
     }
@@ -1801,15 +1805,14 @@ Task::label()
     }
     if ( Flags::print_input_parameters() ) {
 	if ( queueing_output() ) {
-	    if ( !isSelected() ) {
-		/* Clients in the queueing model will not be selected */
-		const double Z = Flags::have_results ? (copiesValue() - utilization()) / throughput() : 0.0;
-		if ( Z > 0.0 ) {
-		    _label->newLine() << " Z=" << Z;
-		}
-	    } else {
-		/* This is a server */
+	    if ( isSelected() ) {
+		/* Clients in the queueing model will not be selected, so this is a server */
 		labelQueueingNetwork( &Entry::labelQueueingNetworkTaskResponseTime, *_label );
+	    } else if ( throughput() > 0 ) {
+		/* We have results so derive */
+		_label->newLine() << " Z=" << (copiesValue() - utilization()) / throughput();
+	    } else {
+		labelQueueingNetwork( &Entry::labelQueueingNetworkTaskServiceTime, *_label );
 	    }
 	} else {
 	    if ( Flags::aggregation() == Aggregate::ENTRIES && Flags::print[PRINT_AGGREGATE].opts.value.b ) {

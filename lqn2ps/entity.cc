@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16874 2023-11-30 14:44:47Z greg $
+ * $Id: entity.cc 16875 2023-12-02 22:48:35Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -865,7 +865,7 @@ Entity::subtractLQXExpressions( LQX::SyntaxTreeNode * minuend, LQX::SyntaxTreeNo
     } else if ( BCMP::Model::isDefault( minuend ) ) {
 	return new LQX::MathExpression( LQX::MathOperation::NEGATE, subtrahend, nullptr );
     } else if ( dynamic_cast<LQX::ConstantValueExpression *>(minuend) && dynamic_cast<LQX::ConstantValueExpression *>(subtrahend) ) {
-	return new LQX::ConstantValueExpression( to_double(minuend) + to_double(subtrahend) );
+	return new LQX::ConstantValueExpression( to_double(minuend) - to_double(subtrahend) );
     } else {
 	LQX::SyntaxTreeNode * sum =  new LQX::MathExpression( LQX::MathOperation::SUBTRACT, minuend, subtrahend );
 //	std::cout << "Entity::subtractQXExpressions(" << *minuend << "," << *addend << ") --> " << *(sum) << std::endl;

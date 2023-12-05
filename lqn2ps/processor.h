@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 16874 2023-11-30 14:44:47Z greg $
+ * $Id: processor.h 16875 2023-12-02 22:48:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -52,6 +52,7 @@ public:
     size_t taskDepth() const;
     double meanLevel() const;
 	
+    double throughput() const;
     virtual double utilization() const;
 
     /* Queries */

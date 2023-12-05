@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 16395 2023-02-05 15:34:32Z greg $
+ *  $Id: qnap2_document.h 16882 2023-12-04 22:24:07Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -194,6 +194,7 @@ namespace QNIO {
 	virtual ~QNAP2_Document();
 
 	virtual bool load();
+	static bool load( LQIO::DOM::Document&, const std::string& );		// Factory.
 	virtual InputFormat getInputFormat() const { return InputFormat::QNAP; }
 
 	virtual bool disableDefaultOutputWithLQX() const { return !_result; }
@@ -213,6 +214,8 @@ namespace QNIO {
 	bool multiclass() const { return chains().size() > 1; }
 
     private:
+	bool debug() const { return _debug; }
+
 	LQX::SyntaxTreeNode * getAllObjects( QNIO::QNAP2_Document::Type ) const;
 	LQX::SyntaxTreeNode * getArray( const Symbol& symbol, QNAP2_Document::Type ) const;
 	LQX::ArrayObject* getArrayObject( LQX::SyntaxTreeNode * variable ) const;
@@ -423,6 +426,22 @@ namespace QNIO {
 	    static const std::string __separator;
 
 	    const BCMP::Model& _model;
+	};
+
+	class PreSolve : public LQX::Method {
+	public:
+	    /* maps solve() to QNAP2_Document::preSolve() to set visit ration. Used by BCMP_to_LQN transformation. */
+	    PreSolve(QNAP2_Document& model ) : _model(model) {}
+	    virtual ~PreSolve() {}
+		
+	    /* All of the glue code to make sure LQX can call solve() */
+	    virtual std::string getName() const { return "solve"; } 
+	    virtual const char* getParameterInfo() const { return "1"; } 
+	    virtual std::string getHelp() const { return "Solves the model."; } 
+	    virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args);
+	
+	private:
+	    QNAP2_Document& _model;
 	};
 
 	/* -------------------------------------------------------------------- */

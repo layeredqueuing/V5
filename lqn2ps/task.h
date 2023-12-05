@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 16872 2023-11-29 15:56:00Z greg $
+ * $Id: task.h 16875 2023-12-02 22:48:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -181,7 +181,8 @@ public:
     static LQX::SyntaxTreeNode * sum_rendezvous( LQX::SyntaxTreeNode *, const merge_pair& );
     static LQX::SyntaxTreeNode * sum_demand( LQX::SyntaxTreeNode *, const merge_pair& );
 #endif
-
+    static double sum_throughput( double augend, const Task * task ) { return augend + task->throughput(); }
+    
     /* Activities */
     
     unsigned generate();

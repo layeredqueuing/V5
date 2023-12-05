@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16869 2023-11-28 21:04:29Z greg $
+ * $Id: qnap2_document.cpp 16882 2023-12-04 22:24:07Z greg $
  *
  * Read in XML input files.
  *
@@ -834,6 +834,40 @@ namespace QNIO {
 
 
     /*
+     * For loading a QNAP2 document into an LQN document.  There is a
+     * memory leak here, but the external variables are shared between
+     * the jmva document and the dom.
+     */
+
+    bool
+    QNAP2_Document::load( LQIO::DOM::Document& lqn, const std::string& input_file_name )
+    {
+	QNAP2_Document * input = new QNAP2_Document( input_file_name );
+	if ( !input->load() ) return false;
+
+	/* Now run presolve as the solver. */
+
+	LQX::Program * lqx = input->getLQXProgram();
+	assert( lqx != nullptr );
+	LQX::Environment * environment = lqx->getEnvironment();
+	input->setLQXEnvironment( environment );
+	input->registerExternalSymbolsWithProgram( lqx );
+	input->disableDefaultOutputWithLQX();
+	
+	/* Run preSolve() to map transits to visits */	    
+	BCMP::RegisterBindings(environment, &input->model());
+	environment->getMethodTable()->registerMethod(new QNIO::QNAP2_Document::PreSolve(*input));
+	if ( input->_debug ) {
+	    lqx->print( std::cerr );		// debug
+	}
+	if ( !lqx->invoke() ) {
+	    LQIO::runtime_error( LQIO::ERR_LQX_EXECUTION, input_file_name.c_str() );
+	}
+	return input->convertToLQN( lqn );
+    }
+
+
+    /*
      * Declare a chain/class.  For single class models, a chain is still needed, so "" is accepted
      */
     
@@ -1183,6 +1217,12 @@ namespace QNIO {
 	method_table->registerMethod(new DeepCopy);
 	method_table->registerMethod(new Print);
 	method_table->registerMethod(new Output(model()));
+    }
+
+    LQX::SymbolAutoRef
+    QNAP2_Document::PreSolve::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args)
+    {
+	return LQX::Symbol::encodeBoolean( _model.preSolve() );
     }
 }
 

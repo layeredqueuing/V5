@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16757 2023-06-28 20:24:26Z greg $
+ * $Id: jmva_document.cpp 16877 2023-12-03 17:18:47Z greg $
  *
  * Read in XML input files.
  *
@@ -37,7 +37,6 @@
 #include <lqx/SyntaxTree.h>
 #include <lqx/Program.h>
 #include "bcmp_bindings.h"
-#include "bcmp_to_lqn.h"
 #include "common_io.h"
 #include "dom_document.h"
 #include "error.h"
@@ -2612,15 +2611,6 @@ namespace QNIO
 	std::vector<std::string> result = arg1;
 	result.push_back( arg2 );
 	return result;
-    }
-}
-
-namespace QNIO {
-    using namespace LQIO;
-
-    bool JMVA_Document::convertToLQN( DOM::Document& document ) const
-    {
-	return LQIO::DOM::BCMP_to_LQN( model(), document ).convert();
     }
 }
 

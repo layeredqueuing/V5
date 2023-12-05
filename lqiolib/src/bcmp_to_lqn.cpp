@@ -1,6 +1,6 @@
 
 /* -*- c++ -*-
- * $Id: bcmp_to_lqn.cpp 16344 2023-01-17 22:30:38Z greg $
+ * $Id: bcmp_to_lqn.cpp 16880 2023-12-04 18:12:03Z greg $
  *
  * Read in XML input files.
  *
@@ -47,6 +47,13 @@ DOM::BCMP_to_LQN::convert()
 }
 
 
+LQX::Environment *
+DOM::BCMP_to_LQN::Self::environment() const
+{
+    return _self._bcmp.environment();
+}
+    
+
 /*
  * Create LQN Reference tasks from chains.
  */
@@ -76,10 +83,10 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Chain::
 //    phase->setServiceTimeValue(k.second.think_time());
     DOM::Phase* phase = entry->getPhase(1);
     phase->setName(k.first);
-    phase->setServiceTime(getExternalVariable(clasx.service_time()));
+    phase->setServiceTime( getExternalVariable( clasx.service_time(), environment() ) );
 
     DOM::Task * task = new DOM::Task( &lqn(), name, SCHEDULE_CUSTOMER, entries, processor );
-    task->setCopies(getExternalVariable(k.second.customers()));
+    task->setCopies( getExternalVariable( k.second.customers(), environment() ) );
     processor->addTask(task);
     lqn().addTaskEntity(task);
 }
@@ -100,7 +107,7 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
     std::replace( name.begin(), name.end(), ' ', '_' );
     DOM::Processor * processor = new DOM::Processor( &lqn(), name, station.scheduling() );	/* Match queueing model. */
     lqn().addProcessorEntity(processor);
-    processor->setCopies(getExternalVariable(m.second.copies()));
+    processor->setCopies( getExternalVariable( m.second.copies(), environment() ) );
 
     /* Create the entries */
     std::vector<DOM::Entry *> entries;
@@ -118,13 +125,13 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
 	DOM::Phase* phase = entry->getPhase(1);
 	phase->setName( entry_name.str() );
 	const BCMP::Model::Station::Class& clasx = m.second.classAt( k->first );
-	phase->setServiceTime(getExternalVariable(clasx.service_time()));
+	phase->setServiceTime( getExternalVariable( clasx.service_time(), environment() ) );
 	entries.push_back( entry );
     }
 
     /* Create the task -- it's a placeholder, but needed for entries. */
     DOM::Task * task = new DOM::Task( &lqn(), name, SCHEDULE_DELAY, entries, processor );
-    task->setCopies(getExternalVariable(m.second.copies()));
+    task->setCopies(getExternalVariable( m.second.copies(), environment() ) );
     processor->addTask(task);
     lqn().addTaskEntity(task);
 }
@@ -158,19 +165,10 @@ DOM::BCMP_to_LQN::connectClassToStation::operator()( const BCMP::Model::Chain::p
 
 
 LQIO::DOM::ExternalVariable *
-DOM::BCMP_to_LQN::getExternalVariable( const LQX::SyntaxTreeNode * expression ) 
+DOM::BCMP_to_LQN::getExternalVariable( const LQX::SyntaxTreeNode * expression, LQX::Environment * environment ) 
 {
     LQIO::DOM::ExternalVariable * variable = nullptr;
-    if ( dynamic_cast<const LQX::ConstantValueExpression *>(expression) ) {
-
-	/* It's a constant. */
-
-	LQX::SymbolAutoRef value = const_cast<LQX::SyntaxTreeNode *>(expression)->invoke(nullptr);
-	assert( value->getType() == LQX::Symbol::SYM_DOUBLE );
-//	    std::cerr << "*** Value is " << value->getDoubleValue() << " ***" << std::endl;
-	variable = new LQIO::DOM::ConstantExternalVariable( value->getDoubleValue() );
-
-    } else if ( dynamic_cast<const LQX::VariableExpression *>( expression ) ) {
+    if ( dynamic_cast<const LQX::VariableExpression *>( expression ) ) {
 
 	/* It's a variable */
 	    
@@ -179,9 +177,15 @@ DOM::BCMP_to_LQN::getExternalVariable( const LQX::SyntaxTreeNode * expression )
 //	    std::cerr << "*** Value is " << name.str() << " ***" << std::endl;
 	variable = LQIO::DOM::__document->db_build_parameter_variable( name.str(), nullptr );
 
-    } else {
+    } else if ( environment != nullptr || dynamic_cast<const LQX::ConstantValueExpression *>(expression) ) {
 
 	/* It's an expression.  create a temporary variable, then assign the expression  */
+	/* Constants don't need the environment */
+	
+	LQX::SymbolAutoRef value = const_cast<LQX::SyntaxTreeNode *>(expression)->invoke(environment);
+	assert( value->getType() == LQX::Symbol::SYM_DOUBLE );
+//	std::cerr << "*** Value is " << value->getDoubleValue() << " ***" << std::endl;	// debug!!!
+	variable = new LQIO::DOM::ConstantExternalVariable( value->getDoubleValue() );
     }
 
     return variable;

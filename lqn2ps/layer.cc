@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16872 2023-11-29 15:56:00Z greg $
+ * $Id: layer.cc 16881 2023-12-04 19:37:13Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -399,11 +399,11 @@ Layer::shift( unsigned i, double amount )
 Layer&
 Layer::label()
 {
-    if ( !Flags::bcmp_model ) {
-	std::for_each( entities().begin(), entities().end(), std::mem_fn( &Element::label ) );
-    } else if ( !_bcmp_model.empty() ) {
+    if ( !_bcmp_model.empty() ) {
 	std::for_each( clients().begin(), clients().end(), Entity::label_BCMP_client( _bcmp_model ) );
 	std::for_each( entities().begin(), entities().end(), Entity::label_BCMP_server( _bcmp_model ) );
+    } else { 
+	std::for_each( entities().begin(), entities().end(), std::mem_fn( &Element::label ) );
     }
     if ( Flags::print_layer_number ) {
 	*_label << "Layer " << number();

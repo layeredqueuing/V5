@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16693 2023-04-22 12:21:20Z greg $
+ *  $Id: jmva_document.h 16877 2023-12-03 17:18:47Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -331,8 +331,6 @@ namespace QNIO {
 	    size_t _population;
 	    std::vector<std::pair<double,double>> _N;
 	};
-
-	bool convertToLQN( LQIO::DOM::Document& ) const;
 
 	std::ostream& printModel( std::ostream& ) const;
 	std::ostream& printSPEX(  std::ostream& ) const;

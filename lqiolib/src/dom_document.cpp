@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 16820 2023-11-01 22:43:39Z greg $
+ *  $Id: dom_document.cpp 16879 2023-12-04 18:08:54Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -38,6 +38,7 @@
 #include "dom_task.h"
 #include "filename.h"
 #include "json_document.h"
+#include "qnap2_document.h"
 #include "srvn_input.h"
 #include "srvn_output.h"
 #include "srvn_results.h"
@@ -87,7 +88,7 @@ namespace LQIO {
 #endif
 	    { InputFormat::JABA,	OutputFormat::JABA },
 	    { InputFormat::JMVA,	OutputFormat::JMVA },
-	    { InputFormat::QNAP2,	OutputFormat::QNAP2 }
+	    { InputFormat::QNAP2,	OutputFormat::TXT }
 	};
 	const std::map<const std::string,const Document::InputFormat> Document::__extensions_input = {
 	    { "in",			InputFormat::LQN },
@@ -808,6 +809,10 @@ namespace LQIO {
 
 	    case InputFormat::JSON:
 		rc = JSON_Document::load( *document, input_filename, errorCode, load_results );
+		break;
+
+	    case InputFormat::QNAP2:
+		rc = QNIO::QNAP2_Document::load( *document, input_filename );
 		break;
 
 	    default:

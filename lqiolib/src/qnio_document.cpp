@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnio_document.cpp 16388 2023-02-02 19:34:48Z greg $
+ * $Id: qnio_document.cpp 16877 2023-12-03 17:18:47Z greg $
  *
  * Superclass for Queueing Network models.
  *
@@ -16,6 +16,7 @@
 #include <lqx/SyntaxTree.h>
 #include "qnio_document.h"
 #include "dom_document.h"
+#include "bcmp_to_lqn.h"
 
 QNIO::Document::Comprehension&
 QNIO::Document::Comprehension::operator=( const QNIO::Document::Comprehension& src )
@@ -110,8 +111,6 @@ const std::map<QNIO::Document::Comprehension::Type,const std::string> QNIO::Docu
     { QNIO::Document::Comprehension::Type::DEMANDS,	  "Service Demands" },
     { QNIO::Document::Comprehension::Type::SERVERS,       "Servers" }
 };
-	    
-
 
 QNIO::Document::Document( const std::string& input_file_name, const BCMP::Model& model )
     : _input_file_name(input_file_name), _pragmas(), _bounds_only(false), _model(model), _comprehensions()
@@ -122,4 +121,10 @@ QNIO::Document::Document( const std::string& input_file_name, const BCMP::Model&
 QNIO::Document::~Document()
 {
     LQIO::DOM::Document::__input_file_name.clear();
+}
+
+bool
+QNIO::Document::convertToLQN( LQIO::DOM::Document& document ) const
+{
+    return LQIO::DOM::BCMP_to_LQN( model(), document ).convert();
 }
