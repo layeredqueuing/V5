@@ -10,7 +10,7 @@
  * Error processing for srvn program.
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: error.cpp 16796 2023-08-14 19:32:46Z greg $
+ * $Id: error.cpp 16886 2023-12-07 17:32:51Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -147,12 +147,8 @@ LQIO::verrprintf( FILE * output, error_severity level, const char * file_name, u
 	(void) fprintf( output, "%s: ", LQIO::io_vars.toolname() );
     }
     (void) fprintf( output, " %s: ", severity_table.at(level).c_str() );
-    if ( args ) {
-	(void) vfprintf( output, fmt, args );
-	(void) fprintf( output, "\n" );
-    } else {
-	(void) fprintf( output, "%s\n", fmt );	/* Don't interpret % in fmt because there are no args. */
-    }
+    (void) vfprintf( output, fmt, args );
+    (void) fprintf( output, "\n" );
 
     if ( LQIO::io_vars.severity_action != nullptr ) LQIO::io_vars.severity_action( level );
 }
