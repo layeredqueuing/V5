@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16877 2023-12-03 17:18:47Z greg $
+ *  $Id: jmva_document.h 16891 2023-12-09 13:39:20Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -132,6 +132,7 @@ namespace QNIO {
 	void setLQXProgramLineNumber( const unsigned n ) { _lqx_program_line_number = n; }
 	const unsigned getLQXProgramLineNumber() const { return _lqx_program_line_number; }
 	virtual std::vector<std::string> getUndefinedExternalVariables() const;
+	virtual unsigned getSymbolExternalVariableCount() const;
 	const std::deque<Comprehension>& whatif_statements() const { return comprehensions(); }
 
 	virtual void registerExternalSymbolsWithProgram(LQX::Program* program);

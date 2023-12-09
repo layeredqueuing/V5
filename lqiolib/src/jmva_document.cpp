@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16877 2023-12-03 17:18:47Z greg $
+ * $Id: jmva_document.cpp 16891 2023-12-09 13:39:20Z greg $
  *
  * Read in XML input files.
  *
@@ -1372,6 +1372,12 @@ namespace QNIO {
     JMVA_Document::getUndefinedExternalVariables() const
     {
 	return std::accumulate( _input_variables.begin(), _input_variables.end(), std::vector<std::string>(), notSet(*this) );
+    }
+
+    unsigned
+    JMVA_Document::getSymbolExternalVariableCount() const
+    {
+	return _input_variables.size();
     }
 
     /*

@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16884 2023-12-05 00:16:36Z greg $
+ * $Id: model.cc 16893 2023-12-09 19:29:22Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -2157,7 +2157,7 @@ Model::printQNAP2( std::ostream& output ) const
 {
     if ( queueing_output() ) {
 	QNIO::QNAP2_Document model( _inputFileName, _layers.at(Flags::queueing_model()).getBCMPModel() );
-	model.setDescription( _document->getResultDescription() );
+	model.setComment( _document->getResultDescription() );
 	model.exportModel( output );
     }
     return output;

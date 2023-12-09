@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16882 2023-12-04 22:24:07Z greg $
+ * $Id: qnap2_document.cpp 16893 2023-12-09 19:29:22Z greg $
  *
  * Read in XML input files.
  *
@@ -1766,7 +1766,9 @@ namespace QNIO {
     QNAP2_Document::Output::print( std::ostream& output ) const
     {
 	const std::streamsize old_precision = output.precision(__precision);
-//    output << " - (" << _solver << ") - " << std::endl;
+	if ( !model().getResultDescription().empty() ) {
+	    output << " - " << model().getResultDescription() << " - " << std::endl;
+	}
 	output.fill('*');
 	output << std::setw(__width*6+7) << "*" << std::endl;
 	output.fill(' ');
@@ -1859,7 +1861,9 @@ namespace QNIO {
     QNAP2_Document::exportModel( std::ostream& output ) const
     {
 	std::ios_base::fmtflags flags = output.setf( std::ios::left, std::ios::adjustfield );
-	output << "& " << getDescription() << std::endl;
+	if ( !getComment().empty() ) {
+	    output << "& " << getComment() << std::endl;
+	}
 	output << "/control/ option=nsource;" << std::endl;	/* Suppress source output with qnap2 */
 	output << "& " << LQIO::DOM::Common_IO::svn_id() << std::endl;
 	if ( LQIO::io_vars.lq_command_line.size() > 0 ) {

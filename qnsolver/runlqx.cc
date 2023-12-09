@@ -2,13 +2,14 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 16324 2023-01-12 17:44:44Z greg $
+ * $Id: runlqx.cc 16893 2023-12-09 19:29:22Z greg $
  * ------------------------------------------------------------------------
  */
 
 #include <config.h>
 #include <iomanip>
 #include <sstream>
+#include <lqio/dom_document.h>
 #include <lqio/qnio_document.h>
 #include <lqx/Program.h>
 #include <lqx/MethodTable.h>
@@ -58,7 +59,7 @@ namespace SolverInterface
 			
 	/* Make sure all external variables are accounted for */
 	    
-	const std::vector<std::string>& undefined = _model._input.getUndefinedExternalVariables();
+	const std::vector<std::string>& undefined = input().getUndefinedExternalVariables();
 	if ( !undefined.empty() ) {
 	    std::string msg = "The following external variables were not assigned at time of solve: ";
 	    for ( std::vector<std::string>::const_iterator var = undefined.begin(); var != undefined.end(); ++var ) {
@@ -66,7 +67,22 @@ namespace SolverInterface
 		msg += *var;
 	    }
 	    throw std::runtime_error( msg );
+	} else if ( input().getSymbolExternalVariableCount() > 0 ) {
 	}
-	return LQX::Symbol::encodeBoolean( _model.compute( invocationCount ) );
+	
+	return LQX::Symbol::encodeBoolean( compute( invocationCount ) );
     }
+}
+
+
+QNIO::Document& SolverInterface::Solve::input() const
+{
+    return _model._input;
+}
+
+
+bool
+SolverInterface::Solve::compute( size_t invocationCount ) const
+{
+    return _model.compute( invocationCount );
 }

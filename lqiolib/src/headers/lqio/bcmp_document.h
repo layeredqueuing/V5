@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 16693 2023-04-22 12:21:20Z greg $
+ *  $Id: bcmp_document.h 16893 2023-12-09 19:29:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -371,7 +371,10 @@ namespace BCMP {
 	virtual ~Model();
 
 	bool empty() const { return _chains.size() == 0 || _stations.size() == 0; }
+	bool insertComment( const std::string comment ) { _comment = comment; return true; }
 	const std::string& comment() const { return _comment; }
+	void setResultDescription( const std::string& result_description ) { _result_description = result_description; }
+	const std::string& getResultDescription() const { return _result_description; }
 	Chain::map_t& chains() { return _chains; }
 	const Chain::map_t& chains() const { return _chains; }
 	Station::map_t& stations() { return _stations; }
@@ -388,7 +391,6 @@ namespace BCMP {
 	
 	Station::map_t::const_iterator findStation( const Station* m ) const;
 
-	bool insertComment( const std::string comment ) { _comment = comment; return true; }
 	std::pair<Chain::map_t::iterator,bool> insertClosedChain( const std::string&, LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * think_time=nullptr );
 	std::pair<Chain::map_t::iterator,bool> insertOpenChain( const std::string&, LQX::SyntaxTreeNode * );
 	std::pair<Station::map_t::iterator,bool> insertStation( const std::string&, const Station& );
@@ -442,7 +444,8 @@ namespace BCMP {
 	};
 
     private:
-	std::string _comment;
+	std::string _comment;			/* Model Comment (input generally)	*/
+	std::string _result_description;	/* Solver version etc.			*/
 	Chain::map_t _chains;
 	Station::map_t _stations;
 	LQX::Environment * _environment;

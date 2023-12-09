@@ -292,6 +292,10 @@ Model::print( std::ostream& output ) const
 void
 Model::saveResults( size_t iteration )
 {
+    std::string description = LQIO::io_vars.lq_toolname + " " + LQIO::io_vars.lq_version + " solution for " + _input.getInputFileName()
+	+ " (" + solver_name() + ")";
+    const_cast<BCMP::Model&>(_model).setResultDescription( description );
+
     if ( _bounds_model ) {
 	_bounds_model->saveResults();
     }
