@@ -1,3 +1,8 @@
+2024-01-09  Gregory Franks  <greg@Gregs-Retina-iMac.local>
+
+	* lqiolib
+	- bug fixes for queueing solver.
+
 2023-04-19  Greg Franks  <greg@merlin.sce.carleton.ca>
 
 	* lqns
@@ -594,4 +599,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 16681 2023-04-19 15:37:24Z greg $
+$Id: ChangeLog 16895 2024-01-09 18:21:03Z greg $
