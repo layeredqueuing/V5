@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 16695 2023-04-22 15:08:24Z greg $
+ * $Id: qnsolver.cc 16894 2023-12-10 19:41:38Z greg $
  */
 
 #include "config.h"
@@ -125,8 +125,8 @@ QNIO::JMVA_Document* __input = nullptr;
 
 /* Local procedures */
 
-static void exec( const std::string& input_file_name, const std::string& output_file_name, const std::string&, LQIO::GnuPlot::Format );
-static void exec( QNIO::Document& input, const std::string& output_file_name, const std::string&, LQIO::GnuPlot::Format );
+static bool exec( const std::string& input_file_name, const std::string& output_file_name, const std::string&, LQIO::GnuPlot::Format );
+static bool exec( QNIO::Document& input, const std::string& output_file_name, const std::string&, LQIO::GnuPlot::Format );
 
 int main (int argc, char *argv[])
 {
@@ -141,7 +141,7 @@ int main (int argc, char *argv[])
     makeopts( longopts, opts );
 #endif
 
-    LQIO::io_vars.init( VERSION, basename( argv[0] ), nullptr );
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), LQIO::severity_action );
 
     pragmas.insert( getenv( "QNSOLVER_PRAGMAS" ) );
 
@@ -294,18 +294,19 @@ int main (int argc, char *argv[])
 
     /* input is assumed to come in from stdin.                          */
 
+    int rc = 0;
 #if HAVE_EXPAT_H
     if ( optind == argc ) {
-	exec( "-", output_file_name, plot_arg, gnuplot_format );
+	rc = exec( "-", output_file_name, plot_arg, gnuplot_format ) ? 0 : 1;
     } else {
         for ( ; optind < argc; ++optind ) {
-	    exec( argv[optind], output_file_name, plot_arg, gnuplot_format );
+	    rc |= (exec( argv[optind], output_file_name, plot_arg, gnuplot_format ) ? 0 : 1);
 	}
     }
 #else
     std::cerr << LQIO::io_vars.lq_toolname << ": No expat library available." << std::endl;
 #endif
-    return 0;
+    return rc;
 }
 
 
@@ -313,25 +314,27 @@ int main (int argc, char *argv[])
  * Run the solver.
  */
 
-static void exec( const std::string& input_file_name, const std::string& output_file_name, const std::string& plot_arg, LQIO::GnuPlot::Format plot_format )
+static bool exec( const std::string& input_file_name, const std::string& output_file_name, const std::string& plot_arg, LQIO::GnuPlot::Format plot_format )
 {
+    bool rc = false;
     if ( Model::verbose_flag ) std::cerr << input_file_name << ": load... ";
     if ( LQIO::DOM::Document::getInputFormatFromFilename( input_file_name, LQIO::DOM::Document::InputFormat::JMVA ) == LQIO::DOM::Document::InputFormat::QNAP2 ) {
 	QNIO::QNAP2_Document input( input_file_name );
-	exec( input, output_file_name, plot_arg, plot_format );
+	rc = exec( input, output_file_name, plot_arg, plot_format );
 #if HAVE_LIBEXPAT
     } else {
 	QNIO::JMVA_Document input( input_file_name );
-	exec( input, output_file_name, plot_arg, plot_format );
+	rc = exec( input, output_file_name, plot_arg, plot_format );
 #endif
     }
     if ( Model::verbose_flag ) std::cerr << "done" << std::endl;
+    return rc;
 }
 
 
-static void exec( QNIO::Document& input, const std::string& output_file_name, const std::string& plot_arg, LQIO::GnuPlot::Format plot_format )
+static bool exec( QNIO::Document& input, const std::string& output_file_name, const std::string& plot_arg, LQIO::GnuPlot::Format plot_format )
 {
-    if ( !input.load() ) return;
+    if ( !input.load() || LQIO::io_vars.error_count > 0 ) return false;
     input.mergePragmas( pragmas.getList() );
     Pragma::set( input.getPragmaList() );		/* load pragmas here */
 
@@ -346,6 +349,7 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
 	output.open( output_file_name, std::ios::out );
 	if ( !output ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << output_file_name << "\" -- " << strerror( errno ) << std::endl;
+	    return false;
 	}
     } else if ( print_jmva ) {
 	const std::string extension = bounds ? "jmva" : "jaba";
@@ -354,6 +358,7 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
 	output.open( filename(), std::ios::out );
 	if ( !output ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << input.getInputFileName() << "\" -- " << strerror( errno ) << std::endl;
+	    return false;
 	}
     }
 
@@ -387,6 +392,7 @@ static void exec( QNIO::Document& input, const std::string& output_file_name, co
     if ( output ) {
 	output.close();
     }
+    return true;
 }
 
 static void
@@ -452,4 +458,28 @@ usage()
     }
 #endif
     std::cerr << std::endl;
+}
+
+
+
+/*
+ * What to do based on the severity of the error.
+ */
+
+void
+LQIO::severity_action (LQIO::error_severity severity)
+{
+    switch( severity ) {
+    case LQIO::error_severity::FATAL:
+	(void) abort();
+	break;
+
+    case LQIO::error_severity::ERROR:
+	LQIO::io_vars.error_count += 1;
+	if  ( LQIO::io_vars.error_count >= LQIO::io_vars.max_error ) {
+	    throw std::runtime_error( "Too many errors" );
+	}
+	break;
+    default:;
+    }
 }
