@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16881 2023-12-04 19:37:13Z greg $
+ * $Id: layer.cc 16901 2024-01-18 01:35:49Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -475,11 +475,11 @@ Layer::generateSubmodel()
     for ( std::vector<Task *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
 	if ( (*client)->isInClosedModel( entities() ) ) {
 	    _chains += 1;
-	    _chains = const_cast<Task *>(*client)->setChain( _chains, &GenericCall::hasRendezvous );
+	    _chains = (*client)->setChain( _chains, &GenericCall::hasRendezvous );
 	}
 	if ( (*client)->isInOpenModel( entities() ) ) {
 	    _chains += 1;
-	    _chains = const_cast<Task *>(*client)->setChain( _chains, &GenericCall::hasSendNoReply );
+	    _chains = (*client)->setChain( _chains, &GenericCall::hasSendNoReply );
 	}
     }
 

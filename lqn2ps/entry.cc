@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16883 2023-12-04 22:47:52Z greg $
+ * $Id: entry.cc 16900 2024-01-17 14:36:38Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1966,9 +1966,9 @@ Entry::labelQueueingNetworkProcessorServiceTime( Label& label )
 {
 //    label.newLine() << owner()->processor()->name();
 
-//    label.newLine() << name() << "[" << service_time(*this) << "]";
+    label.newLine() << name() << "[" << service_time(*this) << "]";
     
-    label.newLine() << name() << "[" << LQIO::DOM::to_double(serviceTime(1)) << "]";
+//    label.newLine() << name() << "[" << LQIO::DOM::to_double(serviceTime(1)) << "]";
     return *this;
 }
 

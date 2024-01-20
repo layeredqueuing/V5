@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * open.h	-- Greg Franks
  *
- * $Id: open.h 16767 2023-07-03 11:18:44Z greg $
+ * $Id: open.h 16901 2024-01-18 01:35:49Z greg $
  */
 
 #ifndef _OPEN_H
@@ -42,7 +42,7 @@ public:
     virtual bool isInOpenModel( const std::vector<Entity *>& servers ) const;
     virtual bool isSelectedIndirectly() const;
     
-    virtual unsigned setChain( unsigned, callPredicate aFunc );
+    virtual unsigned setChain( unsigned, callPredicate aFunc ) const;
     virtual OpenArrivalSource& aggregate();
 
     virtual double radius() const;

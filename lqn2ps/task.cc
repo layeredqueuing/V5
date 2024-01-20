@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16883 2023-12-04 22:47:52Z greg $
+ * $Id: task.cc 16902 2024-01-18 20:45:19Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -677,7 +677,7 @@ Task::hasCalls( const callPredicate aFunc ) const
 bool
 Task::hasOpenArrivals() const
 {
-    return openArrivalRate() > 0.;
+    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasOpenArrivalRate ) );
 }
 
 
@@ -2005,11 +2005,12 @@ Task::mergeCalls()
 	upper = merge.upper_bound( server ); 
 	LQX::SyntaxTreeNode * visits       = std::accumulate( lower, upper, static_cast<LQX::SyntaxTreeNode *>(nullptr), &Task::sum_rendezvous );
 	/* Accumlating visits appears to be correct, but service time is NOT... I need demand, then normalize to visits */
-	LQX::SyntaxTreeNode * demand 	 = std::accumulate( lower, upper, static_cast<LQX::SyntaxTreeNode *>(nullptr), &Task::sum_demand );
+	LQX::SyntaxTreeNode * demand 	   = std::accumulate( lower, upper, static_cast<LQX::SyntaxTreeNode *>(nullptr), &Task::sum_demand );
 	LQX::SyntaxTreeNode * service_time = Entity::divideLQXExpressions( demand, visits );
 #if BUG_270_DEBUG
 	size_t count = merge.count( server );
-	std::cout << "  To " << server->name() << ", count=" << count
+	std::cout << "  To " << (server->isProcessor() ? "processor" : "task") << " " << server->name()
+		  << ", count=" << count
 		  << ", visits=";
 	if ( visits != nullptr ) {
 	    std::cout << *visits;

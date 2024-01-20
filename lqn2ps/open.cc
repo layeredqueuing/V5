@@ -1,6 +1,6 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 16872 2023-11-29 15:56:00Z greg $
+ * $Id: open.cc 16901 2024-01-18 01:35:49Z greg $
  */
 
 #include "lqn2ps.h"
@@ -102,12 +102,12 @@ OpenArrivalSource::removeSrcCall( OpenArrival * call )
 bool
 OpenArrivalSource::isInOpenModel( const std::vector<Entity *>& servers ) const
 {
-    return std::any_of( servers.begin(), servers.begin(), EQ<Element>(myEntry().owner()) );
+    return std::any_of( servers.begin(), servers.end(), EQ<Element>(myEntry().owner()) );
 }
 
 
 unsigned 
-OpenArrivalSource::setChain( unsigned k, const callPredicate aFunc )
+OpenArrivalSource::setChain( unsigned k, const callPredicate aFunc ) const
 {
     std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::setChain, k ) );
     return k;
