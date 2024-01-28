@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 16817 2023-11-01 19:40:11Z greg $
+ * $Id: expat_document.cpp 16952 2024-01-26 20:15:32Z greg $
  *
  * Read in XML input files.
  *
@@ -263,11 +263,10 @@ namespace LQIO {
                 }
                 std::cerr << ">" << std::endl;
             }
+	    if ( document->_stack.empty() ) return;
             try {
-                if ( document->_stack.size() > 0 ) {
-		    const parse_stack_t& top = document->_stack.top();
-		    (document->*top.start)(top.object,el,attr);
-		}
+		const parse_stack_t& top = document->_stack.top();
+		(document->*top.start)(top.object,el,attr);
             }
 	    catch ( const LQIO::duplicate_symbol& e ) {
 		LQIO::input_error( LQIO::ERR_DUPLICATE_SYMBOL, el, e.what() );

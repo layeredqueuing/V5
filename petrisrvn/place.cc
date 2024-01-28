@@ -82,6 +82,7 @@ bool Place::has_random_queueing() const
 void
 Place::check()
 {
+    if ( get_dom() == nullptr ) return;
     if ( !scheduling_is_ok() ) {
 	get_dom()->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(get_scheduling()).str.c_str() );
 	set_scheduling( SCHEDULE_FIFO );

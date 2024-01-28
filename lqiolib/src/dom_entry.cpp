@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 16773 2023-07-06 11:06:49Z greg $
+ *  $Id: dom_entry.cpp 16949 2024-01-26 15:47:59Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -485,6 +485,7 @@ namespace LQIO {
 
 	Entry& Entry::setResultThroughput(const double resultThroughput)
 	{
+	    assert( resultThroughput >= 0.0 );
 	    /* Stores the given ResultThroughput of the Entry */ 
 	    _resultThroughput = resultThroughput;
 	    return *this;
@@ -498,6 +499,7 @@ namespace LQIO {
     
 	Entry& Entry::setResultThroughputVariance(const double resultThroughputVariance)
 	{
+	    assert( resultThroughputVariance >= 0.0 );
 	    /* Stores the given ResultThroughput of the Entry */ 
 	    if ( resultThroughputVariance > 0 ) {
 		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
@@ -514,6 +516,7 @@ namespace LQIO {
 
 	Entry& Entry::setResultThroughputBound(const double resultThroughputBound)
 	{
+	    assert( resultThroughputBound >= 0.0 );
 	    /* Stores the given ResultThroughputBound of the Entry */ 
 	    _resultThroughputBound = resultThroughputBound;
 	    _hasThroughputBound = true;
@@ -528,6 +531,7 @@ namespace LQIO {
 
 	Entry& Entry::setResultUtilization(const double resultUtilization)
 	{
+	    assert( resultUtilization >= 0.0 );
 	    /* Stores the given ResultUtilization of the Entry */ 
 	    _resultUtilization = resultUtilization;
 	    return *this;
@@ -541,6 +545,7 @@ namespace LQIO {
     
 	Entry& Entry::setResultUtilizationVariance(const double resultUtilizationVariance)
 	{
+	    assert( resultUtilizationVariance >= 0.0 );
 	    /* Stores the given ResultUtilization of the Entry */ 
 	    if ( resultUtilizationVariance > 0 ) {
 		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
@@ -557,6 +562,7 @@ namespace LQIO {
 
 	Entry& Entry::setResultProcessorUtilization(const double resultProcessorUtilization)
 	{
+	    assert( resultProcessorUtilization >= 0.0 );
 	    /* Stores the given ResultProcessorUtilization of the Entry */ 
 	    _resultProcessorUtilization = resultProcessorUtilization;
 	    return *this;
@@ -570,6 +576,7 @@ namespace LQIO {
     
 	Entry& Entry::setResultProcessorUtilizationVariance(const double resultProcessorUtilizationVariance)
 	{
+	    assert( resultProcessorUtilizationVariance >= 0.0 );
 	    /* Stores the given ResultProcessorUtilization of the Entry */ 
 	    if ( resultProcessorUtilizationVariance > 0 ) {
 		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
@@ -591,6 +598,7 @@ namespace LQIO {
 
 	Entry& Entry::setResultSquaredCoeffVariation(const double resultSquaredCoeffVariation)
 	{
+	    assert( resultSquaredCoeffVariation >= 0.0 );
 	    /* Stores the given ResultSquaredCoeffVariation of the Entry */ 
 	    _resultSquaredCoeffVariation = resultSquaredCoeffVariation;
 	    _hasResultSquaredCoeffVariation = true;
@@ -604,6 +612,7 @@ namespace LQIO {
     
 	Entry& Entry::setResultSquaredCoeffVariationVariance(const double resultSquaredCoeffVariationVariance)
 	{
+	    assert( resultSquaredCoeffVariationVariance >= 0.0 );
 	    /* Stores the given ResultSquaredCoeffVariation of the Entry */ 
 	    _resultSquaredCoeffVariationVariance = resultSquaredCoeffVariationVariance;
 	    return *this;
@@ -617,7 +626,7 @@ namespace LQIO {
 
 	Entry& Entry::setResultWaitingTime(const double resultWaitingTime)
 	{
-	    if ( resultWaitingTime > 0 ) {
+	    if ( resultWaitingTime > 0. ) {
 		if ( !hasOpenArrivalRate() ) throw std::invalid_argument( "Open Wait Time" );
 		/* Stores the given ResultWaitingTime of the Entry */ 
 		_resultWaitingTime = resultWaitingTime;
@@ -634,7 +643,7 @@ namespace LQIO {
 
 	Entry& Entry::setResultWaitingTimeVariance(const double resultWaitingTimeVariance)
 	{
-	    if ( resultWaitingTimeVariance > 0 ) {
+	    if ( resultWaitingTimeVariance > 0. ) {
 		if ( !hasOpenArrivalRate() ) throw std::invalid_argument( "Open Wait Time" );
 		/* Stores the given ResultWaitingTime of the Entry */ 
 		_resultWaitingTimeVariance = resultWaitingTimeVariance;
@@ -672,8 +681,9 @@ namespace LQIO {
 	
 	Entry& Entry::setResultPhasePServiceTime(const unsigned p,const double resultServiceTime)
 	{
+	    assert( resultServiceTime >= 0. );
 	    if ( isStandardEntry() ) {
-		if ( hasPhase( p ) || resultServiceTime > 0 ) {
+		if ( hasPhase( p ) || resultServiceTime > 0. ) {
 		    getPhase( p )->setResultServiceTime( resultServiceTime );
 		}
 	    } else {
@@ -697,6 +707,7 @@ namespace LQIO {
 
 	Entry& Entry::setResultPhasePServiceTimeVariance(const unsigned p, const double resultServiceTimeVariance) 
 	{
+	    assert( resultServiceTimeVariance >= 0. );
 	    if ( isStandardEntry() ) {
 		if ( hasPhase( p ) || resultServiceTimeVariance > 0 ) {
 		    getPhase( p )->setResultServiceTimeVariance( resultServiceTimeVariance );
@@ -721,6 +732,7 @@ namespace LQIO {
     
 	Entry& Entry::setResultPhasePVarianceServiceTime(unsigned p, double resultVarianceServiceTime ) 
 	{
+	    assert( resultVarianceServiceTime >= 0. );
 	    if ( isStandardEntry() ) {
 		if ( hasPhase( p ) || resultVarianceServiceTime > 0 ) {
 		    getPhase( p )->setResultVarianceServiceTime( resultVarianceServiceTime );
@@ -745,6 +757,7 @@ namespace LQIO {
 
 	Entry& Entry::setResultPhasePVarianceServiceTimeVariance(unsigned p, double resultVarianceServiceTimeVariance) 
 	{
+	    assert( resultVarianceServiceTimeVariance >= 0. );
 	    if ( isStandardEntry() ) {
 		if ( hasPhase( p ) || resultVarianceServiceTimeVariance > 0 ) {
 		    getPhase( p )->setResultVarianceServiceTimeVariance( resultVarianceServiceTimeVariance );
@@ -793,6 +806,7 @@ namespace LQIO {
 
 	Entry& Entry::setResultPhasePProcessorWaitingVariance(unsigned p, double resultProcessorWaitingVariance ) 
 	{
+	    assert( resultProcessorWaitingVariance >= 0.0 );
 	    if ( isStandardEntry() ) {
 		if ( hasPhase( p ) || resultProcessorWaitingVariance > 0 ) {
 		    getPhase( p )->setResultProcessorWaitingVariance( resultProcessorWaitingVariance );
@@ -817,6 +831,7 @@ namespace LQIO {
     
 	Entry& Entry::setResultPhasePUtilization( unsigned p, double resultUtilization ) 
 	{
+	    assert( resultUtilization >= 0.0 );
 	    if ( isStandardEntry() ) {
 		if ( hasPhase( p ) || resultUtilization > 0 ) {
 		    getPhase( p )->setResultUtilization( resultUtilization );
@@ -841,6 +856,7 @@ namespace LQIO {
 
 	Entry& Entry::setResultPhasePUtilizationVariance( unsigned p, double resultUtilizationVariance ) 
 	{
+	    assert( resultUtilizationVariance >= 0. );
 	    if ( isStandardEntry() ) {
 		if ( hasPhase( p ) || resultUtilizationVariance > 0 ) {
 		    getPhase( p )->setResultUtilizationVariance( resultUtilizationVariance );

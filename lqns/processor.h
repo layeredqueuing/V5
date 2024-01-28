@@ -11,7 +11,7 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 16698 2023-04-24 00:52:30Z greg $
+ * $Id: processor.h 16961 2024-01-28 02:12:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -28,16 +28,6 @@ class Server;
 class Group;
 
 class Processor : public Entity {
-
-    class SRVNManip {
-    public:
-	SRVNManip( std::ostream& (*ff)(std::ostream&, const Processor & ), const Processor & theProcessor ) : f(ff), aProcessor(theProcessor) {}
-    private:
-	std::ostream& (*f)( std::ostream&, const Processor& );
-	const Processor & aProcessor;
-
-	friend std::ostream& operator<<(std::ostream & os, const SRVNManip& m ) { return m.f(os,m.aProcessor); }
-    };
 
 public:
     static void create( const std::pair<std::string,LQIO::DOM::Processor*>& );
@@ -99,10 +89,6 @@ protected:
 public:
     static Processor * find( const std::string&, unsigned int=1 );
 
-private:
-    SRVNManip print_processor_type() const { return SRVNManip( output_processor_type, *this ); }
-    static std::ostream& output_processor_type( std::ostream& output, const Processor& aProcessor );
-    
 private:
     std::set<Group *> _groups;		/* List of processor's Group	*/
 };

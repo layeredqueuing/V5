@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 16689 2023-04-21 13:29:05Z greg $
+ * $Id: processor.cc 16961 2024-01-28 02:12:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -466,7 +466,7 @@ Processor::insertDOMResults(void) const
 
     Entity::insertDOMResults();
     
-    getDOM()->setResultUtilization( std::accumulate( tasks().begin(), tasks().end(), 0.0, Task::sum( &Task::processorUtilization ) ) );
+    getDOM()->setResultUtilization( std::accumulate( tasks().begin(), tasks().end(), 0.0, []( double l, const Task * r ){ return l + r->processorUtilization(); } ) );
     return *this;
 }
 

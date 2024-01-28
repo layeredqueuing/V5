@@ -9,7 +9,7 @@
  * November, 1994
  * August, 2005
  *
- * $Id: mva.h 16194 2022-12-23 03:22:28Z greg $
+ * $Id: mva.h 16939 2024-01-26 02:52:57Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -156,7 +156,7 @@ protected:
     virtual void marginalQueueProbabilities( const unsigned m, const Population& N ) = 0;
     virtual void marginalStateProbabilities( const unsigned m, const Population& N ) = 0;
 
-#if	DEBUG_MVA
+#if DEBUG_MVA
     std::ostream& printL( std::ostream&, const Population& ) const;
     std::ostream& printW( std::ostream& ) const;
     std::ostream& printU( std::ostream&, const Population & N ) const;

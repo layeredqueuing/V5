@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16739 2023-06-11 12:13:11Z greg $
+ * $Id: phase.cc 16961 2024-01-28 02:12:54Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -75,36 +75,36 @@ NullPhase::configure( const unsigned n )
 }
 
 
-NullPhase& 
+NullPhase&
 NullPhase::setDOM(LQIO::DOM::Phase* dom)
 {
     _dom = dom;
     return *this;
 }
 
-NullPhase& 
-NullPhase::setServiceTime( const double t ) 
+NullPhase&
+NullPhase::setServiceTime( const double t )
 {
     if (getDOM() != nullptr) {
 	abort();
     } else {
-	_serviceTime = t; 
+	_serviceTime = t;
     }
 	
-    return *this; 
+    return *this;
 }
 
 
-NullPhase& 
-NullPhase::addServiceTime( const double t ) 
-{ 
+NullPhase&
+NullPhase::addServiceTime( const double t )
+{
     if (getDOM() != nullptr) {
 	abort();
     } else {
-	_serviceTime += t; 
+	_serviceTime += t;
     }
 	
-    return *this; 
+    return *this;
 }
 
 double
@@ -168,12 +168,12 @@ double
 NullPhase::waitExcept( const unsigned submodel ) const
 {
     const unsigned n = _wait.size();
- 
+
     double sum = 0.0;
     for ( unsigned i = 1; i <= n; ++i ) {
 	if ( i != submodel ) {
 	    sum += _wait[i];
-	    if (_wait[i] < 0 && flags.trace_quorum) { 
+	    if (_wait[i] < 0 && flags.trace_quorum) {
 		std::cout << "\nNullPhase::waitExcept(submodel=" << submodel
 		     << "): submodel number "<<i<<" has less than zero wait. sum of waits=" << sum << std::endl;
 	    }
@@ -317,7 +317,7 @@ Phase::findChildren( Call::stack& callStack, const bool directPath ) const
 	const Entity * dstTask = (*call)->dstTask();
 	try {
 
-	    /* 
+	    /*
 	     * Chase the call if there is no loop, and if following the path results in pushing
 	     * tasks down.  Open class requests can loop up.  Always check the stack because of the
 	     * short-circuit test with directPath.
@@ -329,7 +329,7 @@ Phase::findChildren( Call::stack& callStack, const bool directPath ) const
 		callStack.push_back( (*call) );
 		if ( (*call)->hasForwarding() && directPath ) {
 		    addForwardingRendezvous( callStack );
-		} 
+		}
 		max_depth = std::max( dstTask->findChildren( callStack, directPath ), max_depth );
 		callStack.pop_back();
 
@@ -355,13 +355,13 @@ Phase::findChildren( Call::stack& callStack, const bool directPath ) const
 
 
 
-/* 
+/*
  * We have to add a psuedo forwarding arc.  Search back for on the
  * call stack for a rendezvous.  On drawing, we may have to do some
  * fancy labelling.  We may have to have more than one proxy.
  */
 
-Phase const& 
+Phase const&
 Phase::addForwardingRendezvous( Call::stack& callStack ) const
 {
     double rate     = 1.0;
@@ -393,11 +393,11 @@ Phase::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
 #if BUG_433
     if ( callList().size() == 0 ) return *this;
     std::cerr << "Phase(\"" << name() << "\")::initCallers(" << stack.size() << "," << customers << ")" << std::endl;
-    for ( const auto& call : callList() ) {
+    for ( const auto call : callList() ) {
 	std::cerr << "  " << call << ": " << call->dstEntry()->print_name() << std::endl;
     }
 #endif
-    for ( auto& call : callList() ) call->initCustomers( stack, customers );
+    for ( auto call : callList() ) call->initCustomers( stack, customers );
     return *this;
 }
 /*- BUG_425 */
@@ -409,8 +409,8 @@ Phase::initCustomers( std::deque<const Task *>& stack, unsigned int customers )
  */
 
 Phase&
-Phase::initVariance() 
-{ 
+Phase::initVariance()
+{
     setVariance( CV_sqr() * square( serviceTime() ) );
     return *this;
 }
@@ -434,7 +434,7 @@ Phase::check() const
 	const LQIO::DOM::Task * task = dynamic_cast<const LQIO::DOM::Entry *>(parent)->getTask();
 	parent_has_think_time = task->hasThinkTime();
     }
-    
+
     /* Service time not zero? */
     if ( serviceTime() == 0 && !parent_has_think_time ) {
 	getDOM()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
@@ -474,7 +474,7 @@ Phase::hasVariance() const
 
 
 /*
- * Aggregate whatever aFunc into the entry at the top of stack. 
+ * Aggregate whatever aFunc into the entry at the top of stack.
  * Follow the activitylist and continue.
  */
 
@@ -664,7 +664,7 @@ Phase::forwardedRendezvous( const Call * fwdCall, const double value )
 	Call * aCall = findOrAddFwdCall( toEntry, fwdCall );
 	LQIO::DOM::Phase* aDOM = getDOM();
 	LQIO::DOM::Call* rendezvousCall = new LQIO::DOM::Call( aDOM->getDocument(), LQIO::DOM::Call::Type::RENDEZVOUS,
-							       getDOM(), toEntry->getDOM(), 
+							       getDOM(), toEntry->getDOM(),
 							       new LQIO::DOM::ConstantExternalVariable(value));
 	aCall->rendezvous(rendezvousCall);
     }
@@ -735,7 +735,7 @@ Phase::throughput() const
 
 
 /*
- * Return utilization for phase.  
+ * Return utilization for phase.
  */
 
 double
@@ -820,7 +820,7 @@ Phase::processorWait() const
 
 
 /*
- * Return variance at processor.  
+ * Return variance at processor.
  */
 
 double
@@ -874,9 +874,9 @@ Phase::getProcWait( unsigned int submodel ) //tomari : quorum
 	newWait += processorCall()->rendezvousDelay();
 
 	if (flags.trace_quorum) {
-	    std::cout << "\nPhase::getProcWait(): Call " << this->name() << ", Submodel=" <<  processorCall()->submodel() 
+	    std::cout << "\nPhase::getProcWait(): Call " << this->name() << ", Submodel=" <<  processorCall()->submodel()
 		 << ", newWait="<<newWait << std::endl;
-	    fflush(stdout);
+	    std::cout.flush();
 	}
 			
     }
@@ -886,10 +886,10 @@ Phase::getProcWait( unsigned int submodel ) //tomari : quorum
 
 
 
-//tomari quorum: Used in a closed form formula to estimate the thread service time. 
-//The closed form formula was originally developed with an assumption 
-//that an activity calls only one server. The current code is modified to 
-//average the service times if an activity calls more than one server.  
+//tomari quorum: Used in a closed form formula to estimate the thread service time.
+//The closed form formula was originally developed with an assumption
+//that an activity calls only one server. The current code is modified to
+//average the service times if an activity calls more than one server.
 double
 Phase::getTaskWait( unsigned int submodel ) //tomari : quorum
 {
@@ -899,13 +899,80 @@ Phase::getTaskWait( unsigned int submodel ) //tomari : quorum
 
 
 
-double 
+double
 Phase::getRendezvous( unsigned int submodel ) //tomari : quorum
 {
     return std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_submodel_rendezvous( submodel ) );
 }
 
 
+/*
+ * Calculate total wait for a particular submodel and save.  Return
+ * the difference between this pass and the previous.
+ */
+
+Phase&
+Phase::updateWait( const Submodel& submodel, const double relax )
+{
+    const unsigned n = submodel.number();
+    const double oldWait = _wait[n];
+
+    /* Sum up waits to all other tasks and devices in this submodel */
+
+    const double newWait = std::accumulate( devices().begin(), devices().end(),
+					    std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_wait( n ) ),
+					    DeviceInfo::add_wait( n ) );
+
+    /* Now update waiting values */
+
+    setWaitTime( n, under_relax( getWaitTime( n ), newWait, relax ) );
+
+    if ( oldWait && Options::Trace::delta_wait( n ) ) {
+	std::cout << "Phase::updateWait(" << n << "," << relax << ") for " << name() << std::endl;
+	std::cout << "        Sum of wait=" << newWait << ", _wait[" << n << "]=" << _wait[n] << std::endl;
+    }
+
+    return *this;
+}
+
+
+
+const Phase&
+Phase::insertDOMResults() const
+{
+    if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
+
+    getDOM()->setResultServiceTime(residenceTime())
+	.setResultVarianceServiceTime(variance())
+	.setResultUtilization(utilization())
+	.setResultProcessorWaiting(queueingTime());
+
+    if ( getDOM()->hasHistogram() || getDOM()->hasMaxServiceTimeExceeded() ) {
+	insertDOMHistogram( const_cast<LQIO::DOM::Histogram *>(getDOM()->getHistogram()), residenceTime(), variance() );
+    }
+
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( !(*call)->hasForwarding() ) {
+	    (*call)->insertDOMResults();		/* Forwarded calls are done by their proxys (ForwardCall) */
+	}
+    }
+    return *this;
+}
+
+
+
+/*
+ * Recalculate the service time and visits to the processor.  Only go
+ * through the hoops if the value changes.
+ */
+
+void
+Phase::recalculateDynamicValues()
+{	
+    std::for_each( devices().begin(), devices().end(), std::mem_fn( &Phase::DeviceInfo::recalculateDynamicValues ) );
+}
+
+/* -------------------------- Interlock ------------------------------- */
 
 /*
  * Go through the call list, looking for deterministic
@@ -968,73 +1035,6 @@ Phase::get_interlocked_tasks::operator()( bool found, const DeviceInfo* device )
     const Entry * entry = device->call()->dstEntry();
     return (!_path.has_entry( entry ) && entry->getInterlockedTasks( _path )) || found;			/* don't short circuit! */
 }
-
-
-
-/*
- * Calculate total wait for a particular submodel and save.  Return
- * the difference between this pass and the previous.  
- */
-
-Phase&
-Phase::updateWait( const Submodel& submodel, const double relax ) 
-{
-    const unsigned n = submodel.number();
-    const double oldWait = _wait[n];
-
-    /* Sum up waits to all other tasks and devices in this submodel */
-
-    const double newWait = std::accumulate( devices().begin(), devices().end(),
-					    std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_wait( n ) ),
-					    DeviceInfo::add_wait( n ) );
-
-    /* Now update waiting values */
-
-    setWaitTime( n, under_relax( getWaitTime( n ), newWait, relax ) );
-
-    if ( oldWait && Options::Trace::delta_wait( n ) ) {
-	std::cout << "Phase::updateWait(" << n << "," << relax << ") for " << name() << std::endl;
-	std::cout << "        Sum of wait=" << newWait << ", _wait[" << n << "]=" << _wait[n] << std::endl;
-    }
-
-    return *this;
-}
-
-
-
-const Phase&
-Phase::insertDOMResults() const
-{
-    if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
-
-    getDOM()->setResultServiceTime(residenceTime())
-	.setResultVarianceServiceTime(variance())
-	.setResultUtilization(utilization())
-	.setResultProcessorWaiting(queueingTime());
-
-    if ( getDOM()->hasHistogram() || getDOM()->hasMaxServiceTimeExceeded() ) {
-	insertDOMHistogram( const_cast<LQIO::DOM::Histogram *>(getDOM()->getHistogram()), residenceTime(), variance() );
-    }
-
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	if ( !(*call)->hasForwarding() ) {
-	    (*call)->insertDOMResults();		/* Forwarded calls are done by their proxys (ForwardCall) */
-	}
-    }
-    return *this;
-}
-
-
-/*
- * Recalculate the service time and visits to the processor.  Only go
- * through the hoops if the value changes.
- */
-
-void
-Phase::recalculateDynamicValues()
-{	
-    std::for_each( devices().begin(), devices().end(), std::mem_fn( &Phase::DeviceInfo::recalculateDynamicValues ) );
-}
 
 /* ------------------------------ PAN_REPLICATION ----------------------------- */
 
@@ -1043,7 +1043,7 @@ Phase::recalculateDynamicValues()
  * Grow _surrogateDelay array as neccesary.  Initialize to zero.  Used
  * by Newton Raphson step.
  */
- 
+
 Phase&
 Phase::setSurrogateDelaySize( size_t maxSize )
 {
@@ -1115,7 +1115,7 @@ Phase::nrFactor( const Call * aCall, const Submodel& submodel ) const
 
 
 double
-Phase::getReplicationProcWait( unsigned int submodel ) 
+Phase::getReplicationProcWait( unsigned int submodel )
 {
     double newWait   = 0.0;
 
@@ -1124,7 +1124,7 @@ Phase::getReplicationProcWait( unsigned int submodel )
 	int k = processorCall()->getChain();
 	if ( processorCall()->dstTask()->hasServerChain(k) ) {
 	    if (flags.trace_quorum) {
-		std::cout << "\nPhase::getReplicationProcWait(): Call " << this->name() << ", Submodel=" <<  processorCall()->submodel() 
+		std::cout << "\nPhase::getReplicationProcWait(): Call " << this->name() << ", Submodel=" <<  processorCall()->submodel()
 			  << ", _surrogateDelay[" <<k<<"]="<<_surrogateDelay[k] << std::endl;
 		fflush(stdout);
 	    }
@@ -1137,20 +1137,19 @@ Phase::getReplicationProcWait( unsigned int submodel )
 
 
 
-/* 
- * Sum up waits to all other tasks in this submodel 
+/*
+ * Sum up waits to all other tasks in this submodel
  */
 
 double
-Phase::getReplicationTaskWait() 
+Phase::getReplicationTaskWait()
 {
-    return std::accumulate( callList().begin(), callList().end(), 0., Call::sum( &Call::wait ) );
+    return std::accumulate( callList().begin(), callList().end(), 0., []( double l, const Call * r ){ return l + r->wait(); } );
 }
 
 
 
-
-double 
+double
 Phase::getReplicationRendezvous( unsigned int submodel ) //tomari : quorum
 {
     return std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_replicated_rendezvous( submodel ) );
@@ -1158,22 +1157,22 @@ Phase::getReplicationRendezvous( unsigned int submodel ) //tomari : quorum
 
 
 
-/* 
+/*
  * Calculate the surrogatedelay of a chain k of a
  *specific thread....tomari
  */
 
 double
-Phase::updateWaitReplication( const Submodel& aSubmodel ) 
+Phase::updateWaitReplication( const Submodel& aSubmodel )
 {
     double delta = 0.0;
-   
+
     // Over all chains k that belong to the owner thread
     // of this phase...
-    
+
     if ( flags.trace_replication ) {
 	std::cout <<"\nPhase::updateWaitReplication()........Current phase is " << entry()->name() << ":" << name();
-	std::cout <<" ..............." << std::endl; 
+	std::cout <<" ..............." << std::endl;
     }
     const Task * ownerTask = dynamic_cast<const Task *>(owner());
 
@@ -1190,11 +1189,11 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 
 	for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
 	    if ( (*call)->submodel() != aSubmodel.number() ) continue;
-           
+
 	    if (chainThreadIx != ownerTask->threadIndex( aSubmodel.number(), (*call)->getChain() )  ) {
 		continue;
 	    }
-	    
+	
 	    const double temp = (*call)->rendezvousDelay( *k );
 	    if ( (*call)->dstTask()->hasServerChain( *k ) ) {
 		nr_factor = (*call)->nrFactor( aSubmodel, *k );
@@ -1203,16 +1202,16 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 		std::cout << "\nCallChainNum=" << (*call)->getChain() << ",Src=" << (*call)->srcName() << ",Dst=" << (*call)->dstName() << ",Wait=" << temp << std::endl;
 	    }
 	    newWait += temp;
- 
+
 	    //Take note if there are zero visits to task.
 
 	    if ( (*call)->rendezvousDelay() > 0 ) {
 		proc_mod = true;
-	    } 
+	    }
 	}
- 
-	if ( processorCall() && proc_mod && processorCall()->submodel() == aSubmodel.number() ) { 
-   
+
+	if ( processorCall() && proc_mod && processorCall()->submodel() == aSubmodel.number() ) {
+
 	    if (chainThreadIx == ownerTask->threadIndex( aSubmodel.number(), processorCall()->getChain() ) ) {
 		double temp=  processorCall()->rendezvousDelay( *k );
 		newWait += temp;
@@ -1223,15 +1222,15 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 		if ( processorCall()->dstTask()->hasServerChain( *k ) ) {
 		    nr_factor = processorCall()->nrFactor( aSubmodel, *k );
 		}
-	    }   
+	    }
 	}
 	
 	//REP NEWTON-RAPHSON (if NR selected)
 
-	if ( nr_factor != 0.0 ) { 
+	if ( nr_factor != 0.0 ) {
 	    newWait = (newWait + _surrogateDelay[*k] * nr_factor) / (1.0 + nr_factor);
 	} else {
-	    newWait = 0; 
+	    newWait = 0;
 	}
 
 	delta = std::max( delta, square( (_surrogateDelay[*k] - newWait) * throughput() ) );
@@ -1253,7 +1252,7 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 /*----------------------------------------------------------------------*/
 
 /*
- * Compute the variance. 
+ * Compute the variance.
  */
 
 void
@@ -1315,7 +1314,7 @@ Phase::stochastic_phase() const
 
 	/* first extract the properties of the delay for one call instance*/
 	const double blocking_mean = (*call)->wait(); //includes service ph 1
-	// + Positive( (*call)->dstEntry()->elapsedTime(1) ); 
+	// + Positive( (*call)->dstEntry()->elapsedTime(1) );
 	/* mean delay for one of these calls */
 	if ( !std::isfinite( blocking_mean ) ) {
 	    return blocking_mean;
@@ -1326,14 +1325,14 @@ Phase::stochastic_phase() const
 	    return blocking_var;
 	}
 	// this includes variance due to service
-	// + square (Positive( (*call)->dstEntry()->elapsedTime(1) )) * Positive( (*call)->dstEntry()->computeCV_sqr(1) ); 
+	// + square (Positive( (*call)->dstEntry()->elapsedTime(1) )) * Positive( (*call)->dstEntry()->computeCV_sqr(1) );
 	/*  variance of one of these calls */
- 
+
 	/* then add up; the sum accounts for no of calls and fanout  */
 	//accumulate mean sum
 	const double fan_out = Pragma::pan_replication() ? static_cast<double>(processorCall()->fanOut()) : 1.0;
 	const double calls_var = (*call)->rendezvous() * fan_out * ((*call)->rendezvous() * fan_out + 1 );  //var of no of calls if geometric
-	sumOfVariance += (*call)->rendezvous() * fan_out * (blocking_var + proc_var) 
+	sumOfVariance += (*call)->rendezvous() * fan_out * (blocking_var + proc_var)
 	    + calls_var * square(proc_wait + blocking_mean ); //accumulate variance sum
     }
 
@@ -1388,7 +1387,7 @@ Phase::mol_phase() const
 	    SP_Model.addStage( prVisit, (*call)->wait(), Positive( (*call)->CV_sqr() ) );
 #else
 	    /* Use variance of phase, not of phase+arc */
-	    SP_Model.addStage( prVisit, (*call)->wait(), 
+	    SP_Model.addStage( prVisit, (*call)->wait(),
 			       Positive( (*call)->dstEntry()->computeCV_sqr(1) ) );
 #endif
 	}
@@ -1402,7 +1401,7 @@ Phase::mol_phase() const
     const Probability q   = 1.0 / (sumOfRNV + 1);
     const Probability v   = 1.0 - q;
     const double r_iter   = processorWait() + SP_Model.S();		// Pg 132 says: v * r_ncs.
-    const double var_iter = processorVariance() + v * SP_Model.variance() 
+    const double var_iter = processorVariance() + v * SP_Model.variance()
 	+ v * ( 1.0 - v ) * square(SP_Model.S());
     variance = var_iter / q + ( 1.0 - q ) / square( q ) * square( r_iter );
 
@@ -1416,7 +1415,7 @@ Phase::mol_phase() const
 /*
  * Variance calculation for deterministic phases (See eqn 12 and 13
  * from srvn6 paper.)  Code is from srvn6 solver.  There are some
- * discrepencies between the two. 
+ * discrepencies between the two.
  */
 
 double
@@ -1444,14 +1443,14 @@ Phase::deterministic_phase() const
 /*
  * Variance calculation for deterministic phases (See eqn 12 and 13
  * from srvn6 paper.)  Code is from srvn6 solver.  There are some
- * discrepencies between the two. 
+ * discrepencies between the two.
  */
 
 double
 Phase::random_phase() const
 {
     Positive var_x = 0;
-    Positive sum_x = 0; 
+    Positive sum_x = 0;
     Positive mean_n = sumOfRendezvous();
 
     if ( mean_n == 0.0 ) {
@@ -1464,7 +1463,7 @@ Phase::random_phase() const
 	const double fan_out = Pragma::pan_replication() ? static_cast<double>(processorCall()->fanOut()) : 1.0;
 #ifdef NOTDEF
 	var_x += (*call)->rendezvous() * fan_out * ((*call)->dstEntry()->computeCV_sqr(1) * square((*call)->wait()));
-#else					           
+#else					
 	var_x += (*call)->rendezvous() * fan_out * (*call)->variance();
 #endif
 	sum_x += (*call)->rendezvousDelay();
@@ -1487,7 +1486,7 @@ Phase::expandCalls()
 {
 //    std::for_each( callList().begin(), callList().end(), std::mem_fn( &Call::expand ) );
     const std::set<Call *> calls = callList();	/* Create a copy as the list is changed */
-    for ( auto& call : calls ) {
+    for ( auto call : calls ) {
 	call->expand();
     }
     return *this;
@@ -1500,15 +1499,15 @@ Phase::expandCalls()
  * Do this during initialization, rather than construction as we
  * don't know how many slices exist until the entire model is loaded.
  */
-       
+
 Phase&
 Phase::initProcessor()
 {	
     if ( getProcessor() != nullptr || getDOM() == nullptr || owner()->getProcessor() == nullptr ) return *this;
-    
-    /* 
+
+    /*
      * If I don't have an entry on the processor, create one provided
-     * that the processor is interesting 
+     * that the processor is interesting
      */
 	
     if ( hasServiceTime() ) {
@@ -1520,7 +1519,7 @@ Phase::initProcessor()
     /*
      * If the entry has think time, connect it to the delay server.
      */
-    
+
     if ( hasThinkTime() ) {
 	const std::string entry_name = Model::__think_server->name() + ":" + name();
 	_devices.push_back( new DeviceInfo( *this, entry_name, DeviceInfo::Type::THINK_TIME ) );
@@ -1565,7 +1564,7 @@ Phase::DeviceInfo::DeviceInfo( const Phase& phase, const std::string& name, Type
     }
     assert( Model::__entry.insert( _entry ).second == true );
 		
-    /* 
+    /*
      * We may have to change this at some point.  However, we can't do
      * priority by class in the analytic solver anyway - only by
      * chain.  Note - _call_dom is NOT stored in the DOM, so we delete it.

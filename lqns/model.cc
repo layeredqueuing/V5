@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 16825 2023-11-02 15:11:12Z greg $
+ * $Id: model.cc 16958 2024-01-27 23:43:28Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -555,7 +555,7 @@ Model::initialize()
 	}
 
 	if ( Options::Debug::submodels() ) {	/* Print out layers... 		*/
-	    for ( const auto& submodel : _submodels ) submodel->print( std::cout );
+	    for ( const auto submodel : _submodels ) submodel->print( std::cout );
 	}
 
     } else {
@@ -696,8 +696,8 @@ void
 Model::configure()
 {
     _MVAStats.resize( nSubmodels() );	/* MVA statistics by level.	*/
-    for ( auto& task : __task ) task->configure( nSubmodels() );
-    for ( auto& processor : __processor ) processor->configure( nSubmodels() );
+    for ( auto task : __task ) task->configure( nSubmodels() );
+    for ( auto processor : __processor ) processor->configure( nSubmodels() );
     if ( __think_server ) {
 	__think_server->configure( nSubmodels() );
     }
@@ -945,7 +945,7 @@ Model::printSubmodelWait( std::ostream& output ) const
     output << std::setw(8) <<  "Submodel    ";
     for ( unsigned i = 1; i <= nSubmodels(); ++i ) output << std::setw(8) << i;
     output << std::endl;
-    for ( const auto& task : __task ) task->printSubmodelWait( output );
+    for ( const auto task : __task ) task->printSubmodelWait( output );
 
     output.setf( flags );
     output.precision( precision );
@@ -1103,7 +1103,7 @@ MOL_Model::run()
 
 	    std::for_each( _submodels.begin(), &_submodels[_HWSubmodel], solveSubmodel );
 
-	    delta = sqrt( std::accumulate( __task.begin(), __task.end(), 0.0, Entity::sum_square( &Entity::deltaUtilization ) ) / __task.size() );		/* RMS */
+	    delta = sqrt( std::accumulate( __task.begin(), __task.end(), 0.0, []( double l, const Entity * r ){ return l + square( r->deltaUtilization() ); } ) / __task.size() );		/* RMS */
 
 	    if ( delta > convergenceValue() ) {
 		backPropogate();
@@ -1128,7 +1128,7 @@ MOL_Model::run()
 	    printSubmodelWait();
 	}
 
-	delta = sqrt( std::accumulate( __processor.begin(), __processor.end(), 0.0, Entity::sum_square( &Entity::deltaUtilization ) ) / __processor.size() );		/* RMS */
+	delta = sqrt( std::accumulate( __processor.begin(), __processor.end(), 0.0, []( double l, const Entity * r ){ return l + square( r->deltaUtilization() ); } ) / __processor.size() );		/* RMS */
 	if ( verbose ) std::cerr << " [" << delta << "]" << std::endl;
 
     } while ( ( _iterations < flags.min_steps || delta > convergenceValue() ) && _iterations < iterationLimit() );
@@ -1246,8 +1246,8 @@ Batch_Model::run()
 
 	delta = sqrt( std::accumulate( __processor.begin(), __processor.end(),
 				       std::accumulate( __task.begin(), __task.end(), 0.0,
-							Entity::sum_square( &Entity::deltaUtilization ) ),
-				       Entity::sum_square( &Entity::deltaUtilization ) ) / count );		/* RMS */
+							[]( double l, const Entity * r ){ return l + square( r->deltaUtilization() ); } ),
+				       []( double l, const Entity * r ){ return l + square( r->deltaUtilization() ); } ) / count );		/* RMS */
 
 	if ( delta > convergenceValue() ) {
 	    backPropogate();

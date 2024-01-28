@@ -710,17 +710,15 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
     d_place = create_place( temp_x, Y_OFFSET(0.0), layer_mask, customers, "T%s%d", name(), m );
     TX[m] = d_place;
 
-    /* BUG_440+ */
     if ( think_time() ) {
-	struct place_object * z_place = create_place( X_OFFSET(1,0.0), Y_OFFSET(0.0), layer_mask, 1, "Z%s%d", name(), m );
+	struct place_object * z_place = create_place( X_OFFSET(1,-0.5), Y_OFFSET(0.0), layer_mask, 0, "Z%s%d", name(), m );
 	ZX[m] = z_place;
-	struct trans_object * c_trans = create_trans( X_OFFSET(1,0.5), Y_OFFSET(0.0), layer_mask,
+	struct trans_object * c_trans = create_trans( X_OFFSET(1,0.0), Y_OFFSET(0.0), layer_mask,
 						      1.0/think_time(), INFINITE_SERVER, EXPONENTIAL, "z%s%d", name(), m );
 	orient_trans( c_trans, 1 );
 	create_arc( layer_mask, TO_TRANS, c_trans, d_place );
 	create_arc( layer_mask, TO_PLACE, c_trans, z_place );
     }
-    /* BUG_440- */
 
 
     if ( type() == Task::Type::SEMAPHORE ) {	/* BUG_164 */
@@ -840,6 +838,7 @@ Task::get_results_for( unsigned m )
     } else {
 	_utilization[m] = Task::__open_model_tokens - get_pmmean( "T%s%d", name(), m );
     }
+    assert( _utilization[m] >= 0. );
     task_tokens[m] = 0.0;
 
     if ( type() == Task::Type::SEMAPHORE ) {

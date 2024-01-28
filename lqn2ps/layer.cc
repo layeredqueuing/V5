@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16901 2024-01-18 01:35:49Z greg $
+ * $Id: layer.cc 16967 2024-01-28 20:33:35Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -200,7 +200,7 @@ Layer&
 Layer::moveBy( const double dx, const double dy )
 {
     _origin.moveBy( dx, dy );
-    std::for_each( entities().begin(), entities().end(), ExecXY<Element>( &Element::moveBy, dx, dy ) );
+    std::for_each( entities().begin(), entities().end(), [=]( Entity * entity ){ entity->moveBy( dx, dy ); } );
     _label->moveBy( dx, dy );
     return *this;
 }
@@ -239,7 +239,7 @@ Layer::scaleBy( const double sx, const double sy )
 Layer&
 Layer::translateY( const double dy )
 {
-    std::for_each( entities().begin(), entities().end(), Exec1<Element,double>( &Element::translateY, dy ) );
+    std::for_each( entities().begin(), entities().end(), [=]( Entity * entity ){ entity->translateY( dy ); } );
     _origin.y( dy - _origin.y() );
     _label->translateY( dy );
     return *this;
@@ -250,7 +250,7 @@ Layer::translateY( const double dy )
 Layer&
 Layer::depth( const unsigned depth )
 {
-    std::for_each( entities().begin(), entities().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
+    std::for_each( entities().begin(), entities().end(), [=]( Entity * entity ){ entity->depth( depth ); } );
     return *this;
 }
 
@@ -450,7 +450,7 @@ Layer::selectSubmodel()
 Layer&
 Layer::deselectSubmodel()
 {
-    std::for_each( entities().begin(), entities().end(), Exec1<Entity,bool>( &Entity::setSelected, false ) );
+    std::for_each( entities().begin(), entities().end(), [=]( Entity * entity ){ entity->setSelected( false ); } );
     return *this;
 }
 

@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16902 2024-01-18 20:45:19Z greg $
+ * $Id: task.cc 16962 2024-01-28 02:20:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1319,8 +1319,6 @@ Task::topologicalSort()
 	Activity * anActivity = (*entry)->startActivity();
 	if ( !anActivity ) continue;
 
-	std::deque<const Activity *> activityStack;		// For checking for cycles.
-	std::deque<const AndForkActivityList *> forkStack;	// For matching forks and joins.
 	try {
 	    Activity::Ancestors ancestors( *entry );
 	    maxLevel = std::max( maxLevel, anActivity->findActivityChildren( ancestors ) );
@@ -2449,12 +2447,12 @@ Task::draw( std::ostream& output ) const
     output << *_label;
 
     if ( Flags::aggregation() != Aggregate::ENTRIES ) {
-	std::for_each( entries().begin(), entries().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
-	std::for_each( activities().begin(), activities().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
-	std::for_each( precedences().begin(), precedences().end(), ConstExec1<ActivityList,std::ostream&>( &ActivityList::draw, output ) );
+	std::for_each( entries().begin(), entries().end(), [&]( const Entry * e ){ e->draw( output ); } );
+	std::for_each( activities().begin(), activities().end(), [&]( const Activity * a ){ a->draw( output ); } );
+	std::for_each( precedences().begin(), precedences().end(), [&]( const ActivityList * l ){ l->draw( output ); } );
     }
 
-    std::for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,std::ostream&>( &GenericCall::draw, output ) );
+    std::for_each( calls().begin(), calls().end(), [&]( GenericCall * c ){ c->draw( output ); } );
 
     return *this;
 }

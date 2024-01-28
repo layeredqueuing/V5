@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 16724 2023-06-07 13:13:12Z greg $
+ * $Id: submodel.cc 16961 2024-01-28 02:12:54Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -363,7 +363,7 @@ MVASubmodel::build()
 #if PAN_REPLICATION
     if ( usePanReplication() ) {
 	unsigned not_used = 0;
-	for ( auto& client : _clients ) client->updateWaitReplication( *this, not_used );
+	for ( auto client : _clients ) client->updateWaitReplication( *this, not_used );
     }
 #endif
     return *this;
@@ -520,7 +520,9 @@ Submodel::replicaGroups( const std::set<Task *>& a, const std::set<Task *>& b ) 
 {
     std::set<Task *> dst = b;	/* Copy for erasure */
     for ( std::set<Task *>::const_iterator src = a.begin(); src != a.end(); ++src ) {
-	std::set<Task *>::iterator item = std::find_if( dst.begin(), dst.end(), Entity::matches( (*src)->name() ) );
+	const std::string& name = (*src)->name();
+	std::set<Task *>::iterator item = std::find_if( dst.begin(), dst.end(), [&]( const Task * t ) { return t->name() == name && t->getReplicaNumber() > 1; } );
+
 	if ( item == dst.end() ) return false;
 	dst.erase( item );
     }
@@ -530,7 +532,7 @@ Submodel::replicaGroups( const std::set<Task *>& a, const std::set<Task *>& b ) 
 
 
 void
-MVASubmodel::setChains( const ChainVector& chain )
+MVASubmodel::setChains( const ChainVector& chain ) const
 {
     const unsigned k1 = chain[1];
     for ( ChainVector::const_iterator k2 = std::next(chain.begin()); k2 != chain.end(); ++k2 ) {
@@ -580,7 +582,7 @@ MVASubmodel::makeChains()
 
 		/* add chain to all servers of this client */
 
-		for ( auto& server : clientsServers ) server->addServerChain( k );
+		for ( auto server : clientsServers ) server->addServerChain( k );
 	    }
 
 #if PAN_REPLICATION
@@ -900,7 +902,6 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	std::cout << print_submodel_header( *this, iterations ) << std::endl;
     }
 
-
     /* ----------------- initialize the stations ------------------ */
 
     std::for_each( _servers.begin(), _servers.end(), std::mem_fn( &Entity::clear ) );	/* Clear visit ratios and what have you */
@@ -1027,7 +1028,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	deltaRep = 0.0;
 	if ( usePanReplication() ) {
 	    unsigned n_deltaRep = 0;
-	    for ( auto& client : _clients ) deltaRep += client->updateWaitReplication( *this, n_deltaRep );
+	    for ( auto client : _clients ) deltaRep += client->updateWaitReplication( *this, n_deltaRep );
 	    if ( n_deltaRep ) {
 		deltaRep = sqrt( deltaRep / n_deltaRep );	/* Take RMS value over all phases */
 	    }
@@ -1040,7 +1041,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	/* Update waits for everyone else. */
 
-	for ( auto& client : _clients ) client->updateWait( *this, relax );
+	for ( auto client : _clients ) client->updateWait( *this, relax );
 
 	if ( !check_fp_ok() ) {
 	    throw floating_point_error( __FILE__, __LINE__ );
@@ -1224,8 +1225,8 @@ MVASubmodel::print( std::ostream& output ) const
     }
 
     output << std::endl << "Calls: " << std::endl;
-    for ( const auto& entry : Model::__entry ) entry->printCalls( output, number() );
-    for ( const auto& processor : Model::__processor ) processor->printTasks( output, number() );
+    for ( const auto entry : Model::__entry ) entry->printCalls( output, number() );
+    for ( const auto processor : Model::__processor ) processor->printTasks( output, number() );
     output << std::endl;
 
     return output;

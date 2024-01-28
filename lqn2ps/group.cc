@@ -1,6 +1,6 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 16551 2023-03-19 14:55:57Z greg $
+ * $Id: group.cc 16967 2024-01-28 20:33:35Z greg $
  */
 
 #include <algorithm>
@@ -67,7 +67,7 @@ Group::format()
 
     /* Justify the current "slice", then move it to its column */
 
-    std::for_each ( _layers.begin(), _layers.end(), Exec1<Layer,double>( &Layer::justify, width() ) );
+    std::for_each( _layers.begin(), _layers.end(), [=]( Layer& layer ){ layer.justify( width() ); } );
     return *this;
 }
 
@@ -179,7 +179,7 @@ Group::moveBy( const double dx, const double dy )
 Group&
 Group::moveGroupBy( const double dx, const double dy )
 {
-    std::for_each( _layers.begin(), _layers.end(), ExecXY<Layer>( &Layer::moveBy, dx, dy ) );
+    std::for_each( _layers.begin(), _layers.end(), [=]( Layer& layer ){ layer.moveBy( dx, dy ); } );
     moveBy( dx, dy );
     return *this;
 }

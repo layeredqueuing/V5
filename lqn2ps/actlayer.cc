@@ -2,7 +2,7 @@
  *
  * Layering logic for activities.
  *
- * $Id: actlayer.cc 16551 2023-03-19 14:55:57Z greg $
+ * $Id: actlayer.cc 16967 2024-01-28 20:33:35Z greg $
  */
 
 
@@ -110,7 +110,7 @@ ActivityLayer::moveTo( const double x, const double y )
     const double dy = y - origin.y();
     origin.moveTo( x, y );
 
-    std::for_each( activities().begin(), activities().end(), ExecXY<Element>( &Element::moveBy, dx, dy ) );
+    std::for_each( activities().begin(), activities().end(), [=]( Activity * activity ){ activity->moveBy( dx, dy ); } );
     return *this;
 }
 
@@ -120,7 +120,7 @@ ActivityLayer&
 ActivityLayer::moveBy( const double dx, const double dy )
 {
     origin.moveBy( dx, dy );
-    std::for_each( activities().begin(), activities().end(), ExecXY<Element>( &Element::moveBy, dx, dy ) );
+    std::for_each( activities().begin(), activities().end(), [=]( Activity * activity ){ activity->moveBy( dx, dy ); } );
     return *this;
 }
 
@@ -131,7 +131,7 @@ ActivityLayer::scaleBy( const double sx, const double sy )
 {
     extent.scaleBy( sx, sy );
     origin.scaleBy( sx, sy );
-    std::for_each( activities().begin(), activities().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
+    std::for_each( activities().begin(), activities().end(), [=]( Activity * activity ){ activity->scaleBy( sx, sy ); } );
     return *this;
 }
 
@@ -141,7 +141,7 @@ ActivityLayer&
 ActivityLayer::translateY( const double dy )
 {
     origin.y( dy - origin.y() );
-    std::for_each( activities().begin(), activities().end(), Exec1<Element,double>( &Element::translateY, dy ) );
+    std::for_each( activities().begin(), activities().end(), [=]( Activity * activity ){ activity->translateY( dy ); } );
     return *this;
 }
 
@@ -150,7 +150,7 @@ ActivityLayer::translateY( const double dy )
 ActivityLayer&
 ActivityLayer::depth( const unsigned depth )
 {
-    std::for_each( activities().begin(), activities().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
+    std::for_each( activities().begin(), activities().end(), [=]( Activity * activity ){ activity->depth( depth ); } );
     return *this;
 }
 

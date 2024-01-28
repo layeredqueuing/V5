@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 16700 2023-04-24 11:12:07Z greg $
+ * $Id: task.h 16961 2024-01-28 02:12:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -38,15 +38,6 @@ class Task : public Entity {
 public:
     enum class root_level_t { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS };
     friend class Interlock;		// BUG_425 deprecate
-
-    struct sum {
-	typedef double (Task::*funcPtr)() const;
-	sum( funcPtr f ) : _f(f) {}
-	double operator()( double l, const Task* r ) const { return l + (r->*_f)(); }
-	double operator()( double l, const Task& r ) const { return l + (r.*_f)(); }
-    private:
-	const funcPtr _f;
-    };
 
 private:
     struct find_max_depth {

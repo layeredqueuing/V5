@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 16809 2023-09-25 14:54:08Z greg $
+ * $Id: activity.h 16956 2024-01-27 20:51:07Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -216,22 +216,6 @@ public:
 	double _rate;
 	bool _replyAllowed;
     };
-
-    struct has_name
-    {
-	has_name( const std::string & s ) : _s(s) {}
-	bool operator()(const Activity * a ) const { return a->name() == _s; }
-    private:
-	const std::string & _s;
-    };
-
-    struct max_threads
-    {
-	max_threads( unsigned int n ) : _n(n) {}
-	unsigned int operator()( unsigned int l, const Activity* r ) const { return std::max( l, r->concurrentThreads(_n) ); }
-    private:
-	const unsigned int _n;
-    };
 
 /* ------------------------------------------------------------------------ */
 public:
@@ -315,7 +299,7 @@ public:
 				     const bool isThereQuorumDelayedThreads, 
 				     bool & isQuorumDelayedThreadsActive);
 #if HAVE_LIBGSL
-    bool estimateGammaQuorumCDF(phase_type phaseTypeFlag, double level1Mean, 
+    bool estimateGammaQuorumCDF(LQIO::DOM::Phase::Type phaseTypeFlag, double level1Mean, 
 				double level2Mean,  double avgNumCallsToLevel2Tasks,
 				DiscretePoints & sumTotal, DiscretePoints & sumLocal, 
 				DiscretePoints & sumRemote, DiscreteCDFs & quorumCDFs, 

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 16817 2023-11-01 19:40:11Z greg $
+ * $Id: lqn2ps.h 16963 2024-01-28 02:29:06Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -491,17 +491,6 @@ private:
     Type2 _x;
 };
 
-template <class Type1, class Type2> struct ConstExec1
-{
-    typedef const Type1& (Type1::*funcPtr)( Type2 x ) const;
-    ConstExec1<Type1,Type2>( const funcPtr f, Type2 x ) : _f(f), _x(x) {}
-    void operator()( Type1 * object ) const { (object->*_f)( _x ); }
-    void operator()( Type1& object ) const { (object.*_f)( _x ); }
-private:
-    const funcPtr _f;
-    Type2 _x;
-};
-
 template <class Type1, class Type2, class Type3> struct Exec2
 {
     typedef Type1& (Type1::*funcPtr)( Type2 x, Type3 y );
@@ -515,33 +504,6 @@ private:
 };
 
 
-template <class Type1, class Type2, class Type3> struct ConstExec2
-{
-    typedef const Type1& (Type1::*funcPtr)( Type2 x, Type3 y ) const;
-    ConstExec2<Type1,Type2,Type3>( const funcPtr f, Type2 x, Type3 y ) : _f(f), _x(x), _y(y) {}
-    void operator()( const Type1 * object ) const { (object->*_f)( _x, _y ); }
-    void operator()( const Type1& object ) const { (object.*_f)( _x, _y ); }
-private:
-    const funcPtr _f;
-    Type2 _x;
-    Type3 _y;
-};
-
-
-template <class Type1, class Type2, class Type3, class Type4> struct ConstExec3
-{
-    typedef const Type1& (Type1::*funcPtr)( Type2 x, Type3 y, Type4 z ) const;
-    ConstExec3<Type1,Type2,Type3,Type4>( const funcPtr f, Type2 x, Type3 y, Type4 z ) : _f(f), _x(x), _y(y), _z(z) {}
-    void operator()( const Type1 * object ) const { (object->*_f)( _x, _y, _z ); }
-    void operator()( const Type1& object ) const { (object.*_f)( _x, _y, _z ); }
-private:
-    const funcPtr _f;
-    Type2 _x;
-    Type3 _y;
-    Type4 _z;
-};
-
-
 template <class Type1, class Type2, class Type3> struct ExecX
 {
     typedef Type1& (Type1::*funcPtr)( Type3 x );
@@ -549,16 +511,6 @@ template <class Type1, class Type2, class Type3> struct ExecX
     void operator()( const Type2& object ) const { (object.second->*_f)( _x ); }
 private:
     funcPtr _f;
-    Type3 _x;
-};
-
-template <class Type1, class Type2, class Type3> struct ConstExecX
-{
-    typedef const Type1& (Type1::*funcPtr)( Type3 x ) const;
-    ConstExecX<Type1,Type2,Type3>( const funcPtr f, Type3 x ) : _f(f), _x(x) {}
-    void operator()( const Type2& object ) const { (object.second->*_f)( _x ); }
-private:
-    const funcPtr _f;
     Type3 _x;
 };
 

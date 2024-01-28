@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16740 2023-06-11 12:32:45Z greg $
+ * $Id: entity.cc 16947 2024-01-26 14:22:35Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -137,7 +137,7 @@ Entity::~Entity()
 Entity&
 Entity::configure( const unsigned nSubmodels )
 {
-    for ( auto& entry : entries() ) entry->configure( nSubmodels );
+    for ( auto entry : entries() ) entry->configure( nSubmodels );
     if ( std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasDeterministicPhases ) ) ) setDeterministicPhases( true );
     if ( !Pragma::variance(Pragma::Variance::NONE)
 	 && ((nEntries() > 1 && Pragma::entry_variance())
@@ -384,24 +384,6 @@ Entity::computeVariance()
 
 
 /*
- * Return in probability of interlocking.
- */
-
-Probability
-Entity::prInterlock( const Task& aClient ) const
-{
-    const Probability pr = _interlock.interlockedFlow( aClient ) / population();
-    if ( flags.trace_interlock ) {
-	std::cout << "Interlock: "
-	     << aClient.name() << "(" << aClient.population() << ") -> "
-	     << name()         << "(" << population()         << ")  = " << pr << std::endl;
-    }
-    return pr;
-}
-
-
-
-/*
  * Update utilization for this entity and return
  */
 
@@ -417,6 +399,15 @@ Entity::deltaUtilization() const
     }
     _lastUtilization = thisUtilization;
     return delta;
+}
+
+
+
+Entity&
+Entity::clear()
+{
+    serverStation()->clear();
+    return *this;
 }
 
 
@@ -459,11 +450,35 @@ Entity::openModelInfinity() const
 
 
 
-Entity&
-Entity::clear()
+const Entity&
+Entity::insertDOMResults() const
 {
-    serverStation()->clear();
+#if BUG_393
+    if ( !_marginalQueueProbabilities.empty() ) {
+	std::vector<double>& marginals = getDOM()->getResultMarginalQueueProbabilities();
+	marginals = _marginalQueueProbabilities;
+    }
+#endif
     return *this;
+}
+
+/* -------------------------- Interlock ------------------------------- */
+
+
+/*
+ * Return in probability of interlocking.
+ */
+
+Probability
+Entity::prInterlock( const Task& aClient ) const
+{
+    const Probability pr = _interlock.interlockedFlow( aClient ) / population();
+    if ( flags.trace_interlock ) {
+	std::cout << "Interlock: "
+	     << aClient.name() << "(" << aClient.population() << ") -> "
+	     << name()         << "(" << population()         << ")  = " << pr << std::endl;
+    }
+    return pr;
 }
 
 
@@ -489,20 +504,6 @@ Entity::setInterlock( Submodel& submodel ) const
 	    }
 	}
     }
-}
-
-
-
-const Entity&
-Entity::insertDOMResults() const
-{
-#if BUG_393
-    if ( !_marginalQueueProbabilities.empty() ) {
-	std::vector<double>& marginals = getDOM()->getResultMarginalQueueProbabilities();
-	marginals = _marginalQueueProbabilities;
-    }
-#endif
-    return *this;
 }
 
 /* ----------------------------- Save Results ----------------------------- */

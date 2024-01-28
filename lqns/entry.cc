@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16809 2023-09-25 14:54:08Z greg $
+ * $Id: entry.cc 16961 2024-01-28 02:12:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -483,7 +483,7 @@ Entry::addServiceTime( const unsigned p, const double value )
  */
 
 bool
-Entry::setIsCalledBy(const RequestType callType )
+Entry::setIsCalledBy( const RequestType callType )
 {
     if ( _calledBy != RequestType::NOT_CALLED && _calledBy != callType ) {
 	getDOM()->runtime_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES );
@@ -582,6 +582,22 @@ Entry::concurrentThreads() const
     if ( !isActivityEntry() ) return 1;
 
     return getStartActivity()->concurrentThreads( 1 );
+}
+
+
+
+/*
+ * Check for dropped messages.
+ */
+
+bool
+Entry::checkDroppedCalls() const
+{
+    bool rc = std::isfinite( openWait() );
+    for ( std::set<Call *>::const_iterator call = callerList().begin(); call != callerList().end(); ++call ) {
+	rc = rc && ( !(*call)->hasSendNoReply() || std::isfinite( (*call)->wait() ) );
+    }
+    return rc;
 }
 
 
@@ -701,7 +717,7 @@ double
 Entry::sumOfSendNoReply( const unsigned p ) const
 {
     const std::set<Call *>& callList = _phase[p].callList();
-    return std::accumulate( callList.begin(), callList.end(), 0., Call::sum( &Call::sendNoReply ) );
+    return std::accumulate( callList.begin(), callList.end(), 0., []( double l, const Call * r ){ return l + r->sendNoReply(); } );
 }
 
 
@@ -789,7 +805,7 @@ Entry::computeCV_sqr() const
  * `p'.  If this is an activity entry, we have to return the chain k
  * component of waiting time.  Note that if submodel == 0, we return
  * the residenceTime().  For servers in a submodel, submodel == 0; for
- * clients in a submodel, submodel == aSubmodel.number().
+ * clients in a submodel, submodel == submodel.number().
  */
 
 /* As a client (submodel != 0) -- don't count join delays! */
@@ -889,112 +905,15 @@ Entry::sliceTime( const Entry& dst, Slice_Info slice[], double y_xj[] ) const
 
 
 
-/*
- * Set up interlocking tables and set up paths for locating remote
- * join points.
- */
-
-const Entry&
-Entry::followInterlock( Interlock::CollectTable& path ) const
-{
-    if ( isActivityEntry() ) {
-	getStartActivity()->followInterlock( path );
-    } else {
-	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    Interlock::CollectTable branch( path, p > 1 );
-	    _phase[p].followInterlock( branch );
-	}
-    }
-    return *this;
-}
-
-
-
-/*
- * Recursively search from this entry to any entry on myServer.
- * When we pop back up the call stack we add all calling tasks
- * for each arc which calls myServer.  The task adder
- * will ignore duplicates.
- */
-
-bool
-Entry::getInterlockedTasks( Interlock::CollectTasks& path ) const
-{
-    bool found = false;
-
-    if ( path.server() == owner() ) {
-
-	/*
-	 * Special case -- we have hit the end of the line.
-	 * Indicate that the path being followed is on the path,
-	 * but do not add the server itself to the interlocked
-	 * task set.
-	 */
-
-	return true;
-    }
-
-    /*
-     * Check all outgoing paths of this task.  If head of path,
-     * then any call o.k, otherwise, only phase 1 allowed.
-     */
-
-    const bool headOfPath = path.headOfPath();
-    const unsigned int max_phase = headOfPath ? maxPhase() : 1;
-
-    path.push_back( this );
-    if ( isStandardEntry() ) {
-	for ( unsigned p = 1; p <= max_phase; ++p ) {
-	    if ( _phase[p].getInterlockedTasks( path ) ) found = true;
-	}
-    } else if ( isActivityEntry() ) {
-	found = getStartActivity()->getInterlockedTasks( path );
-    }
-    path.pop_back();
-
-    if ( found && !headOfPath ) {
-	path.insert( owner() );
-    }
-
-    return found;
-}
-
-
-
-/*
- * Return true if dst is reachable from any entry of src.
- */
-
-bool
-Entry::isInterlocked( const Entry * dstEntry ) const
-{
-    return _interlock[dstEntry->entryId()].all != 0.0;
-}
-
-
-
-/*
- * Check for dropped messages.
- */
-
-bool
-Entry::checkDroppedCalls() const
-{
-    bool rc = std::isfinite( openWait() );
-    for ( std::set<Call *>::const_iterator call = callerList().begin(); call != callerList().end(); ++call ) {
-	rc = rc && ( !(*call)->hasSendNoReply() || std::isfinite( (*call)->wait() ) );
-    }
-    return rc;
-}
-
-
 void
 Entry::recalculateDynamicValues()
 {
     std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::recalculateDynamicValues ) );
     _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::serviceTime ) ) );
 }
-
+
+
+
 const Entry&
 Entry::insertDOMResults(double *phaseUtils) const
 {
@@ -1182,6 +1101,90 @@ Entry::SaveServerResults::operator()( Entry * entry ) const
     entry->saveThroughput( lambda );
 }
 
+/* -------------------------- Interlock ------------------------------- */
+
+/*
+ * Set up interlocking tables and set up paths for locating remote
+ * join points.
+ */
+
+const Entry&
+Entry::followInterlock( Interlock::CollectTable& path ) const
+{
+    if ( isActivityEntry() ) {
+	getStartActivity()->followInterlock( path );
+    } else {
+	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
+	    Interlock::CollectTable branch( path, p > 1 );
+	    _phase[p].followInterlock( branch );
+	}
+    }
+    return *this;
+}
+
+
+
+/*
+ * Recursively search from this entry to any entry on myServer.
+ * When we pop back up the call stack we add all calling tasks
+ * for each arc which calls myServer.  The task adder
+ * will ignore duplicates.
+ */
+
+bool
+Entry::getInterlockedTasks( Interlock::CollectTasks& path ) const
+{
+    bool found = false;
+
+    if ( path.server() == owner() ) {
+
+	/*
+	 * Special case -- we have hit the end of the line.
+	 * Indicate that the path being followed is on the path,
+	 * but do not add the server itself to the interlocked
+	 * task set.
+	 */
+
+	return true;
+    }
+
+    /*
+     * Check all outgoing paths of this task.  If head of path,
+     * then any call o.k, otherwise, only phase 1 allowed.
+     */
+
+    const bool headOfPath = path.headOfPath();
+    const unsigned int max_phase = headOfPath ? maxPhase() : 1;
+
+    path.push_back( this );
+    if ( isStandardEntry() ) {
+	for ( unsigned p = 1; p <= max_phase; ++p ) {
+	    if ( _phase[p].getInterlockedTasks( path ) ) found = true;
+	}
+    } else if ( isActivityEntry() ) {
+	found = getStartActivity()->getInterlockedTasks( path );
+    }
+    path.pop_back();
+
+    if ( found && !headOfPath ) {
+	path.insert( owner() );
+    }
+
+    return found;
+}
+
+
+
+/*
+ * Return true if dst is reachable from any entry of src.
+ */
+
+bool
+Entry::isInterlocked( const Entry * dstEntry ) const
+{
+    return _interlock[dstEntry->entryId()].all != 0.0;
+}
+
 /* --------------------------- Task Entries --------------------------- */
 
 
@@ -1346,10 +1349,10 @@ Entry::set( const Entry * src, const Activity::Collect& data )
  */
 
 TaskEntry&
-TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
+TaskEntry::updateWait( const Submodel& submodel, const double relax )
 {
-    const unsigned submodel = aSubmodel.number();
-    if ( submodel == 0 ) throw std::logic_error( "TaskEntry::updateWait" );
+    const unsigned n = submodel.number();
+    if ( n == 0 ) throw std::logic_error( "TaskEntry::updateWait" );
 
     /* Open arrivals first... */
 
@@ -1361,7 +1364,7 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 
     if ( isActivityEntry() ) {
 
-	for ( auto& phase : _phase ) phase.setWaitTime( submodel, 0.0 );
+	for ( auto& phase : _phase ) phase.setWaitTime( n, 0.0 );
 
 	if ( flags.trace_activities ) {
 	    std::cout << "--- AggreateWait for entry " << name() << " ---" << std::endl;
@@ -1369,27 +1372,27 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack;
 	entryStack.push_back( this );
-	Activity::Collect collect( &Activity::collectWait, submodel );
+	Activity::Collect collect( &Activity::collectWait, n );
 	getStartActivity()->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
 
-	if ( Options::Trace::delta_wait( submodel ) || flags.trace_activities ) {
+	if ( Options::Trace::delta_wait( n ) || flags.trace_activities ) {
 	    std::cout << "--DW--  Entry(with Activities) " << name()
-		      << ", submodel " << submodel << std::endl;
+		      << ", submodel " << n << std::endl;
 	    std::cout << "        Wait=";
 	    for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
-		std::cout << phase->getWaitTime(submodel) << " ";
+		std::cout << phase->getWaitTime(n) << " ";
 	    }
 	    std::cout << std::endl;
 	}
 
     } else {
 
-	for ( auto& phase : _phase ) phase.updateWait( aSubmodel, relax );
+	for ( auto& phase : _phase ) phase.updateWait( submodel, relax );
 
     }
 
-    _total.setWaitTime( submodel, std::accumulate( _phase.begin(), _phase.end(), 0.0, add_wait( submodel ) ) );
+    _total.setWaitTime( n, std::accumulate( _phase.begin(), _phase.end(), 0.0, [=]( double l, const Phase& r ){ return l + r.getWaitTime( n ); } ) );
 
     return *this;
 }
@@ -1436,7 +1439,7 @@ Entry::aggregate( const unsigned submodel, const unsigned p, const Exponential& 
  */
 
 double
-TaskEntry::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta )
+TaskEntry::updateWaitReplication( const Submodel& submodel, unsigned & n_delta )
 {
     double delta = 0.0;
     if ( isActivityEntry() ) {
@@ -1445,12 +1448,12 @@ TaskEntry::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta 
 	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack;
 	entryStack.push_back( this );
-	Activity::Collect collect( &Activity::collectReplication, aSubmodel.number() );
+	Activity::Collect collect( &Activity::collectReplication, submodel.number() );
 	getStartActivity()->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
 
     } else {
-	for ( auto& phase : _phase ) delta += phase.updateWaitReplication( aSubmodel );
+	for ( auto& phase : _phase ) delta += phase.updateWaitReplication( submodel );
 	n_delta += _phase.size();
     }
     return delta;
@@ -1754,7 +1757,7 @@ Entry::create(LQIO::DOM::Entry* dom, unsigned int index )
 	Model::__entry.insert( entry );
 
 	/* Make sure that the entry type is set properly for all entries */
-	if (entry->entryTypeOk(static_cast<const LQIO::DOM::Entry::Type>(dom->getEntryType())) == false) {
+	if ( entry->entryTypeOk( dom->getEntryType() ) == false ) {
 	    dom->runtime_error( LQIO::ERR_MIXED_ENTRY_TYPES );
 	}
 

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 16809 2023-09-25 14:54:08Z greg $
+ * $Id: actlist.h 16961 2024-01-28 02:12:54Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -65,18 +65,6 @@ class ActivityList
 public:
     static void connect( ActivityList * src, ActivityList * dst );
 
-protected:
-    struct test
-    {
-	typedef bool (Activity::*predicate)( Interlock::CollectTasks& ) const;
-	test( const predicate p, Interlock::CollectTasks& arg ) : _p(p), _arg(arg) {};
-	bool operator()( const Activity* object ) const { return (object->*_p)(_arg); }
-	bool operator()( const Activity& object ) const { return (object.*_p)(_arg); }
-    private:
-	const predicate _p;
-	Interlock::CollectTasks& _arg;
-    };
-    
 public:
     ActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
     virtual ActivityList * clone( const Task* task, unsigned int replica ) const = 0;

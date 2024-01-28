@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 16762 2023-06-30 15:04:30Z greg $
+ * $Id: entity.h 16961 2024-01-28 02:12:54Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -57,43 +57,7 @@ class Entity {
  	bool variance;		/* an entry has Cv_sqn != 1.		*/
     };
 
-protected:
-    /*
-     * Compare two entities by their name and replica number.  The
-     * default replica is one, and will only not be one if replicas
-     * are expanded to individual tasks.
-     */
-    
-    struct equals {
-	equals( const std::string& name, unsigned int replica=1 ) : _name(name), _replica(replica) {}
-	bool operator()( const Entity * entity ) const { return entity->name() == _name && entity->getReplicaNumber() == _replica; }
-    private:
-	const std::string _name;
-	const unsigned int _replica;
-    };
-
 public:
-    struct sum_square {
-	typedef double (Entity::*funcPtr)() const;
-	sum_square( funcPtr f ) : _f(f) {}
-	double operator()( double addend, const Entity* object ) { return addend + square( (object->*_f)() ); }
-	double operator()( double addend, const Entity& object ) { return addend + square( (object.*_f)() ); }
-    private:
-	const funcPtr _f;
-    };
-
-    /*
-     * Compare two entities by their name, but not replica number
-     * except that entity must be a replica.
-     */
-
-    struct matches {
-	matches( const std::string& name ) : _name(name) {}
-	bool operator()( const Entity * entity ) const { return entity->name() == _name && entity->getReplicaNumber() > 1; }
-    private:
-	const std::string _name;
-    };
-
     static std::set<Task *>& add_clients( std::set<Task *>& clients, const Entity * entity ) { return entity->getClients( clients ); }
 
 private:

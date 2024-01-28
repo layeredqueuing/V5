@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 16700 2023-04-24 11:12:07Z greg $
+ * $Id: submodel.h 16944 2024-01-26 12:40:01Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -32,11 +32,11 @@ class Task;
 typedef Vector<unsigned> ChainVector;
 
 /* ------- Submodel Abstract Superclass.  Subclassed as needed. ------- */
-	 
+	
 class Submodel {
 protected:
     typedef std::pair< std::set<Task *>, std::set<Entity*> > submodel_group_t;
-    
+
 private:
     class InitializeWait {
     public:
@@ -45,7 +45,7 @@ private:
     private:
 	const Submodel& _submodel;
     };
-    
+
     class SubmodelManip {
     public:
 	SubmodelManip( std::ostream& (*ff)(std::ostream&, const Submodel&, const unsigned long ),
@@ -75,7 +75,7 @@ private:
      * Remove all tasks/entites 'y' from either _clients/_servers 'x'.  Mark 'y'
      * as pruned.
      */
-    
+
     template <class Type> struct erase_from {
 	erase_from<Type>( std::set<Type>& x ) : _x(x) {}
 	void operator()( Type y ) { _x.erase(y); }
@@ -104,7 +104,7 @@ public:
     virtual const char * const submodelType() const = 0;
     unsigned number() const { return _submodel_number; }
 
-    virtual Vector<double> * getOverlapFactor() const { return nullptr; } 
+    virtual Vector<double> * getOverlapFactor() const { return nullptr; }
 
     Submodel& addClients();
     void initializeSubmodel();
@@ -132,14 +132,14 @@ protected:
     void setNChains( unsigned int n ) { _n_chains = n; }
     SubmodelManip print_submodel_header( const Submodel& aSubModel, const unsigned long iterations  ) { return SubmodelManip( &Submodel::submodel_header_str, aSubModel, iterations ); }
     SubmodelTraceManip print_trace_header( const std::string& str ) { return SubmodelTraceManip( &Submodel::submodel_trace_header_str, str ); }
-    
+
 private:
     void addToGroup( Task *, submodel_group_t& group ) const;
     bool replicaGroups( const std::set<Task *>&, const std::set<Task *>& ) const;
-		     
+		
     static std::ostream& submodel_header_str( std::ostream& output, const Submodel& aSubmodel, const unsigned long iterations );
     static std::ostream& submodel_trace_header_str( std::ostream& output, const std::string& );
-    
+
 protected:
     std::set<Task *> _clients;		/* Table of clients 		*/
     std::set<Entity *> _servers;	/* Table of servers 		*/
@@ -184,7 +184,7 @@ class MVASubmodel : public Submodel {
     private:
 	MVASubmodel& _submodel;
     };
-    
+
     struct InitializeServerStation {
 	InitializeServerStation( MVASubmodel& submodel ) : _submodel(submodel) {}
 	void operator()( Entity* entity );
@@ -208,7 +208,7 @@ class MVASubmodel : public Submodel {
     private:
 	const MVASubmodel& _submodel;
     };
-    
+
     class SaveServerResults {
     public:
 	SaveServerResults( const MVASubmodel& submodel , double relaxation ) : _submodel(submodel), _relaxation(relaxation) {}
@@ -226,7 +226,7 @@ class MVASubmodel : public Submodel {
 	bool (Entity::*_predicate)() const;
     };
 
- 
+
 public:
     MVASubmodel( const unsigned );
     virtual ~MVASubmodel();
@@ -245,7 +245,7 @@ public:
     unsigned nChains() const { return _customers.size(); }
     virtual unsigned nClosedStns() const { return _closedStation.size(); }
     virtual unsigned nOpenStns() const { return _openStation.size(); }
-    virtual Vector<double> * getOverlapFactor() const { return _overlapFactor; } 
+    virtual Vector<double> * getOverlapFactor() const { return _overlapFactor; }
 
 #if PAN_REPLICATION
     virtual double nrFactor( const Server *, const unsigned e, const unsigned k ) const;
@@ -260,13 +260,14 @@ public:
     double closedModelNormalizedThroughput( const Server& station, unsigned int e, const unsigned int k ) const;
 #endif
     double closedModelUtilization( const Server& station ) const;
+    double closedModelUtilization( const Server& station, unsigned int k ) const;		// CFS
     double openModelUtilization( const Server& station ) const;
 #if BUG_393
     double closedModelMarginalQueueProbability( const Server& station, unsigned int i ) const;
 #endif
 
     virtual std::ostream& print( std::ostream& ) const;
-    
+
 private:
     bool hasThreads() const { return _hasThreads; }
     bool hasSynchs() const { return _hasSynchs; }
@@ -276,7 +277,7 @@ public:
 #if PAN_REPLICATION
     bool usePanReplication() const;
 #endif
-    void setChains( const ChainVector& chain );
+    void setChains( const ChainVector& chain ) const;
 
 protected:
     unsigned makeChains();

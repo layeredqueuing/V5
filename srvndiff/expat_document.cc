@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cc 16671 2023-04-18 15:29:34Z greg $
+ * $Id: expat_document.cc 16952 2024-01-26 20:15:32Z greg $
  *
  * Read in XML input files.
  *
@@ -340,6 +340,7 @@ namespace LQIO {
 	Expat_Document::start( void *data, const XML_Char *el, const XML_Char **attr )
 	{
 	    Expat_Document * document = static_cast<Expat_Document *>(data);
+	    if ( document->_stack.empty() ) return;
 	    const parse_stack_t& top = document->_stack.top();
 	    if ( __debugXML ) {
 		for ( unsigned i = 0; i < document->_stack.size(); ++i ) {

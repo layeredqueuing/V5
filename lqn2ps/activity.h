@@ -1,6 +1,6 @@
 /* -*- c++ -*-  activity.h	-- Greg Franks
  *
- * $Id: activity.h 16808 2023-09-25 14:30:49Z greg $
+ * $Id: activity.h 16958 2024-01-27 23:43:28Z greg $
  */
 
 #ifndef _ACTIVITY_H
@@ -47,7 +47,7 @@ public:
 	Ancestors( const Ancestors& ancestors, bool reply_allowed ) : _activity_stack(ancestors._activity_stack), _fork_stack(), _source_entry( ancestors._source_entry ), _depth( ancestors._depth ), _phase( ancestors._phase ), _rate( ancestors._rate ), _reply_allowed( reply_allowed ) {}
 
 	const std::deque<const Activity *>& getActivityStack() const { return _activity_stack; }
-	const std::deque<const AndForkActivityList *>& getForkStack() const { return _fork_stack; }
+	const std::deque<const AndOrForkActivityList *>& getForkStack() const { return _fork_stack; }
 
 	size_t depth() const { return _depth; }
 	const Entry * sourceEntry() const { return _source_entry; }
@@ -55,19 +55,19 @@ public:
 	unsigned int getPhase() const { return _phase; }
 	void setRate( double rate ) { _rate = rate; }
 	double getRate() const { return _rate; }
-	bool replyAllowed() const { return _reply_allowed; }
+	bool canReply() const { return _reply_allowed; }
 	
 	bool find( const Activity * activity ) const { return std::find( _activity_stack.begin(), _activity_stack.end(), activity ) != _activity_stack.end(); }
 	void push_activity( const Activity * activity ) { _activity_stack.push_back( activity ); }
 	void pop_activity() { _activity_stack.pop_back(); }
 	const Activity * top_activity() { return _activity_stack.empty() ? nullptr : _activity_stack.back(); }
-	void push_fork( const AndForkActivityList * fork_list ) { _fork_stack.push_back( fork_list ); }
+	void push_fork( const AndOrForkActivityList * fork_list ) { _fork_stack.push_back( fork_list ); }
 	void pop_fork() { _fork_stack.pop_back(); }
-	const AndForkActivityList * top_fork() { return _fork_stack.empty() ? nullptr : _fork_stack.back(); }
+	const AndOrForkActivityList * top_fork() { return _fork_stack.empty() ? nullptr : _fork_stack.back(); }
 	
     private:
 	std::deque<const Activity *> _activity_stack;
-	std::deque<const AndForkActivityList *> _fork_stack;
+	std::deque<const AndOrForkActivityList *> _fork_stack;
 	const Entry * _source_entry;
 	size_t _depth;
 	unsigned _phase;
@@ -98,7 +98,7 @@ public:
     Activity& resetLevel();
     size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const;
     size_t findActivityChildren( Ancestors& ) const;
-    const Activity& backtrack( const std::deque<const AndForkActivityList *>&, std::set<const AndForkActivityList *>&, std::set<const AndOrJoinActivityList *>& ) const;
+    void backtrack( const std::deque<const AndOrForkActivityList *>&, std::set<const AndOrForkActivityList *>&, std::set<const AndOrJoinActivityList *>& ) const;
     double aggregate( Entry * anEntry, const unsigned curr_p, unsigned &next_p, const double rate, std::deque<const Activity *>& activityStack, const aggregateFunc aFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc  );
     virtual Activity& setClientClosedChain( unsigned );

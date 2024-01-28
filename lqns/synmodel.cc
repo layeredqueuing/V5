@@ -1,6 +1,6 @@
 /*  -*- c++ -*-
  * synmodel.C	-- Greg Franks Fri Aug  7 1998
- * $Id: synmodel.cc 16724 2023-06-07 13:13:12Z greg $
+ * $Id: synmodel.cc 16947 2024-01-26 14:22:35Z greg $
  *
  * Special submodel to handle synchronization.  These delays are added into
  * the waiting time arrays in the usual fashion (I hope...)
@@ -54,7 +54,7 @@ SynchSubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
     if ( !Pragma::init_variance_only() ) {
 	std::for_each( _clients.begin(), _clients.end(), std::mem_fn( &Task::computeVariance ) );
     }
-    for ( auto& client : _clients ) client->updateWait( *this, relax );
+    for ( auto client : _clients ) client->updateWait( *this, relax );
 	
     if ( trace ) {
 	printSyncModel( std::cout );

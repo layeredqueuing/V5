@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16900 2024-01-17 14:36:38Z greg $
+ * $Id: entry.cc 16967 2024-01-28 20:33:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1871,7 +1871,7 @@ Entry&
 Entry::scaleBy( const double sx, const double sy )
 {
     Element::scaleBy( sx, sy );
-    std::for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
+    std::for_each( calls().begin(), calls().end(), [=]( Call * call ){ call->scaleBy( sx, sy ); } );
     if ( _activityCall ) {
 	_activityCall->scaleBy( sx, sy );
     }
@@ -1884,7 +1884,7 @@ Entry&
 Entry::translateY( const double dy )
 {
     Element::translateY( dy );
-    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
+    std::for_each( calls().begin(), calls().end(), [=]( Call * call ){ call->translateY( dy ); } );
     if ( _activityCall ) {
 	_activityCall->translateY( dy );
     }
@@ -1897,7 +1897,7 @@ Entry&
 Entry::depth( const unsigned depth  )
 {
     Element::depth( depth-1 );
-    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth-2 ) );
+    std::for_each( calls().begin(), calls().end(), [=]( Call * call ){ call->depth( depth - 2 ); } );
     if ( _activityCall ) {
 	_activityCall->depth( depth-2 );
     }
@@ -2404,7 +2404,7 @@ Entry::draw( std::ostream& output ) const
 
     /* Draw reply arcs here for PostScript layering */
 
-    std::for_each( _activityCallers.begin(), _activityCallers.end(), ConstExec1<GenericCall,std::ostream&>(&GenericCall::draw, output) );
+    std::for_each( _activityCallers.begin(), _activityCallers.end(), [&]( const GenericCall * call ){ call->draw( output ); } );
     return *this;
 }
 

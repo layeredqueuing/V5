@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 16811 2023-09-27 19:02:11Z greg $
+ * $Id: activity.cc 16967 2024-01-28 20:33:35Z greg $
  */
 
 #include "activity.h"
@@ -445,19 +445,13 @@ Activity::findActivityChildren( Ancestors& ancestors ) const
  * Search backwards up activity list looking for a match on forkStack
  */
 
-const Activity&
-Activity::backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const
+void
+Activity::backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const
 {
     ActivityList * fork_list = inputFrom();
     if ( fork_list != nullptr ) {
-	RepeatActivityList * loop_list = dynamic_cast<RepeatActivityList *>(fork_list);
-	if ( loop_list != nullptr ) {
-	    throw ActivityList::path_error( static_cast<const LQIO::DOM::Activity *>(getDOM()) );
-	} else {
-	    fork_list->backtrack( forkStack, forkSet, joinSet );
-	}
+	fork_list->backtrack( forkStack, forkSet, joinSet );
     }
-    return *this;
 }
 
 
@@ -977,8 +971,8 @@ Activity&
 Activity::scaleBy( const double sx, const double sy )
 {
     Element::scaleBy( sx, sy );
-    std::for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
-    std::for_each( replyArcs().begin(), replyArcs().end(), ExecReplyXY( &GenericCall::scaleBy, sx, sy ) );
+    std::for_each( calls().begin(), calls().end(), [=]( Call * call ){ call->scaleBy( sx, sy ); } );
+    std::for_each( replyArcs().begin(), replyArcs().end(), [=]( const std::pair<Entry *,Reply *>& reply ){ reply.second->scaleBy( sx, sy ); } );
     return *this;
 }
 
@@ -988,8 +982,8 @@ Activity&
 Activity::translateY( const double dy )
 {
     Element::translateY( dy );
-    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
-    std::for_each( replyArcs().begin(), replyArcs().end(), ExecX<GenericCall,std::pair<Entry *,Reply *>,double>( &GenericCall::translateY, dy ) );
+    std::for_each( calls().begin(), calls().end(), [=]( Call * call ){ call->translateY( dy ); } );
+    std::for_each( replyArcs().begin(), replyArcs().end(), [=]( const std::pair<Entry *,Reply *>& reply ){ reply.second->translateY( dy ); } );
     return *this;
 }
 
@@ -999,8 +993,8 @@ Activity&
 Activity::depth( const unsigned depth  )
 {
     Element::depth( depth-3 );
-    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth-2 ) );
-    std::for_each( replyArcs().begin(), replyArcs().end(), ExecX<GenericCall,std::pair<Entry *,Reply *>,unsigned>( &GenericCall::depth, depth-1 ) );
+    std::for_each( calls().begin(), calls().end(), [=]( Call * call ){ call->depth( depth-2 ); } );
+    std::for_each( replyArcs().begin(), replyArcs().end(), [=]( const std::pair<Entry *,Reply *>& reply ){ reply.second->depth( depth-1 ); } );
     return *this;
 }
 
@@ -1180,7 +1174,7 @@ Activity::draw( std::ostream & output ) const
     _node->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
     _node->rectangle( output );
 
-    std::for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,std::ostream&>( &GenericCall::draw, output ) );
+    std::for_each( calls().begin(), calls().end(), [&]( const GenericCall * call ) { call->draw( output ); } );
 
     _label->backgroundColour( colour() );
     output << *_label;

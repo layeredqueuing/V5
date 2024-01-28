@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16893 2023-12-09 19:29:22Z greg $
+ * $Id: model.cc 16967 2024-01-28 20:33:35Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -208,7 +208,7 @@ Model::~Model()
 Model&
 Model::operator*=( const double s )
 {
-    std::for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::scaleBy, s, s ) );
+    std::for_each( _layers.begin(), _layers.end(), [=]( Layer& layer ){ layer.scaleBy( s, s ); } );
     if ( _key ) {
 	_key->scaleBy( s, s );
     }
@@ -228,7 +228,7 @@ Model::operator*=( const double s )
 Model&
 Model::translateScale( const double s ) 
 {
-    std::for_each( _layers.begin(), _layers.end(), Exec1<Layer,double>( &Layer::translateY, top() ) );
+    std::for_each( _layers.begin(), _layers.end(), [=]( Layer& layer ){ layer.translateY( top() ); } );
     if ( _key ) {
 	_key->translateY( top() );
     }
@@ -245,7 +245,7 @@ Model::translateScale( const double s )
 Model&
 Model::moveBy( const double dx, const double dy ) 
 {
-    std::for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::moveBy, dx, dy ) );
+    std::for_each( _layers.begin(), _layers.end(), [=]( Layer& layer ){ layer.moveBy( dx, dy ); } );
     if ( _key ) {
 	_key->moveBy( dx, dy );
     }
@@ -1262,9 +1262,9 @@ Model::rename()
 Model&
 Model::squish()
 {
-    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), ::Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, Processor::__key_table, Processor::__symbol_table ) );
-    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), ::Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, Task::__key_table, Task::__symbol_table ) );
-    std::for_each( Entry::__entries.begin(), Entry::__entries.end(), ::Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, Entry::__key_table, Entry::__symbol_table ) );
+    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), []( Processor * p ){ p->squish ( Processor::__key_table, Processor::__symbol_table ); } );
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), []( Task * t ) { t->squish( Task::__key_table, Task::__symbol_table ); } );
+    std::for_each( Entry::__entries.begin(), Entry::__entries.end(), []( Entry * e ) { e->squish( Entry::__key_table, Entry::__symbol_table ); } );
     return *this;
 }
 
@@ -1359,7 +1359,7 @@ Model::format( Layer& serverLayer )
 Model&
 Model::justify()
 {
-    std::for_each( _layers.begin(), _layers.end(), Exec1<Layer,double>( &Layer::justify, right() ) );
+    std::for_each( _layers.begin(), _layers.end(), [=]( Layer& layer ){ layer.justify( right() ); } );
     return *this;
 }
 
@@ -1424,7 +1424,7 @@ Model::finalScaleTranslate()
     const double x_offset = offset - left();
     const double y_offset = offset - bottom();		/* Shift to origin */
     _origin.moveTo( 0, 0 );
-    std::for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::moveBy, x_offset, y_offset ) );
+    std::for_each( _layers.begin(), _layers.end(), [=]( Layer& layer ){ layer.moveBy( x_offset, y_offset ); } );
     if ( _key ) {
 	_key->moveBy( x_offset, y_offset );
     }
