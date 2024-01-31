@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16967 2024-01-28 20:33:35Z greg $
+ * $Id: entry.cc 16973 2024-01-29 19:51:08Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -168,16 +168,16 @@ Entry::~Entry()
 Entry *
 Entry::clone( unsigned int replica ) const
 {
-    std::ostringstream aName;
-    aName << name() << "_" << replica;
-    std::set<Entry *>::const_iterator nextEntry = find_if( __entries.begin(), __entries.end(), EQStr<Entry>( aName.str() ) );
+    std::ostringstream name;
+    name << this->name() << "_" << replica;
+    std::set<Entry *>::const_iterator nextEntry = find_if( __entries.begin(), __entries.end(), [&]( Entry * entry ){ return entry->name() == name.str(); } );
     if ( nextEntry != __entries.end() ) {
-	const std::string msg = "Entry::clone(): cannot add symbol " + aName.str();
+	const std::string msg = "Entry::clone(): cannot add symbol " + name.str();
 	throw std::runtime_error( msg );
     }
 
     Entry * new_entry = new Entry( *this );
-    new_entry->setName( aName.str() );
+    new_entry->setName( name.str() );
     LQIO::DOM::Entry * new_entry_dom  = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(new_entry->getDOM()));
     for ( std::map<unsigned,Phase>::const_iterator i = _phases.begin(); i != _phases.end(); ++i ) {
 	const unsigned int p = i->first;
@@ -671,7 +671,7 @@ Entry::residenceTime( const unsigned p ) const
 double
 Entry::residenceTime() const
 {
-    return std::accumulate( _phases.begin(), _phases.end(), 0.0, sum( &Phase::residenceTime ) );
+    return std::accumulate( _phases.begin(), _phases.end(), 0.0, []( double l, const std::pair<unsigned int,Phase>& r ){ return l + r.second.residenceTime(); } );
 }
 
 
@@ -685,7 +685,7 @@ Entry::variance( const unsigned p ) const
 double
 Entry::variance() const
 {
-    return std::accumulate( _phases.begin(), _phases.end(), 0.0, sum( &Phase::variance ) );
+    return std::accumulate( _phases.begin(), _phases.end(), 0.0, []( double l, const std::pair<unsigned int,Phase>& r ){ return l + r.second.variance(); } );
 }
 
 
@@ -707,7 +707,7 @@ Entry::serviceExceeded( const unsigned p ) const
 double
 Entry::serviceExceeded() const
 {
-    return std::accumulate( _phases.begin(), _phases.end(), 0.0, sum( &Phase::serviceExceeded ) );
+    return std::accumulate( _phases.begin(), _phases.end(), 0.0, []( double l, const std::pair<unsigned int,Phase>& r ){ return l + r.second.serviceExceeded(); } );
 }
 
 /*
@@ -1301,7 +1301,7 @@ Entry::aggregatePhases()
 
     /* Merge all calls to phase 1 */
 
-    std::for_each( calls().begin(), calls().end(), Exec1<Call,LQIO::DOM::Phase&>( &Call::aggregatePhases, *phase_1 ) );
+    std::for_each( calls().begin(), calls().end(), [=]( Call * call ){ call->aggregatePhases( *phase_1 ); } );
 
     /* Delete old stuff */
 
@@ -2168,12 +2168,12 @@ Entry::remove_from_dst( Call * call )
 Entry *
 Entry::find_replica( const std::string& entry_name, const unsigned replica )
 {
-    std::ostringstream aName;
-    aName << entry_name << "_" << replica;
-    std::set<Entry *>::const_iterator nextEntry = find_if( __entries.begin(), __entries.end(), EQStr<Entry>( aName.str() ) );
+    std::ostringstream name;
+    name << entry_name << "_" << replica;
+    std::set<Entry *>::const_iterator nextEntry = find_if( __entries.begin(), __entries.end(), [&]( Entry * entry ){ return entry->name() == name.str(); } );
     if ( nextEntry == __entries.end() ) {
 	std::string msg = "Entry::find_replica: cannot find symbol ";
-	msg += aName.str();
+	msg += name.str();
 	throw std::runtime_error( msg );
     }
     return *nextEntry;
@@ -2202,7 +2202,7 @@ Entry::expand()
 Entry&
 Entry::expandCalls()
 {
-    std::for_each( calls().begin(), calls().end(), Exec1<Call,const Entry&>( &Call::expand, *this ) );
+    std::for_each( calls().begin(), calls().end(), [this]( Call * call ){ call->expand( *this ); } );
     return *this;
 }
 
@@ -2301,10 +2301,10 @@ Entry::replicateCall()
 	 * drawing calls are associated with entries
 	 */
 
-	std::for_each( _phases.begin(), _phases.end(), Exec( &Phase::replicateCall ) );
+	std::for_each( _phases.begin(), _phases.end(), []( const std::pair<unsigned,Phase>& phase ){ const_cast<Phase *>(&phase.second)->replicateCall(); } );
 
 	Call * root = nullptr;
-	std::for_each( old_calls.begin(), old_calls.end(), Exec2<Call, std::vector<Call *>&, Call **>( &Call::replicateCall, _calls, &root ) );
+	std::for_each( old_calls.begin(), old_calls.end(), [&]( Call * call ){ call->replicateCall( _calls, &root ); } );
     }
     return *this;
 }
@@ -2463,7 +2463,7 @@ Entry::compare( const Entry * e1, const Entry * e2 )
 Entry *
 Entry::find( const std::string& name )
 {
-    std::set<Entry *>::const_iterator entry = find_if( __entries.begin(), __entries.end(), EQStr<Entry>( name ) );
+    std::set<Entry *>::const_iterator entry = find_if( __entries.begin(), __entries.end(), [&]( Entry * entry ){ return entry->name() == name; } );
     return entry != __entries.end() ? *entry : nullptr;
 }
 

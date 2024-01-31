@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 16883 2023-12-04 22:47:52Z greg $
+ * $Id: processor.cc 16969 2024-01-28 22:57:43Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -94,7 +94,7 @@ Processor::~Processor()
 Processor *
 Processor::clone( const std::string& name ) const
 {
-    std::set<Processor *>::const_iterator nextProcessor = find_if( __processors.begin(), __processors.end(), EQStr<Processor>( name ) );
+    std::set<Processor *>::const_iterator nextProcessor = find_if( __processors.begin(), __processors.end(), [&]( Processor * processor ){ return processor->name() == name; } );
     if ( nextProcessor != __processors.end() ) {
 	const std::string msg = "Processor::clone(): cannot add symbol " + name;
 	throw std::runtime_error( msg );
@@ -510,12 +510,12 @@ Processor::rename()
 Processor *
 Processor::find_replica( const std::string& processor_name, const unsigned replica )
 {
-    std::ostringstream aName;
-    aName << processor_name << "_" << replica;
-    std::set<Processor *>::const_iterator nextProcessor = find_if( __processors.begin(), __processors.end(), EQStr<Processor>( aName.str() ) );
+    std::ostringstream name;
+    name << processor_name << "_" << replica;
+    std::set<Processor *>::const_iterator nextProcessor = find_if( __processors.begin(), __processors.end(), [&]( Processor * processor ){ return processor->name() == name.str(); } );
     if ( nextProcessor == __processors.end() ) {
 	std::string msg = "Processor::find_replica: cannot find symbol ";
-	msg += aName.str();
+	msg += name.str();
 	throw std::runtime_error( msg );
     }
     return *nextProcessor;
@@ -634,7 +634,7 @@ Processor::accumulateResponseTime( const Entry& entry, const std::string& class_
 Processor *
 Processor::find( const std::string& name )
 {
-    std::set<Processor *>::const_iterator processor = find_if( __processors.begin(), __processors.end(), EQStr<Processor>( name ) );
+    std::set<Processor *>::const_iterator processor = find_if( __processors.begin(), __processors.end(), [&]( Processor * processor ){ return processor->name() == name; } );
     return processor != __processors.end() ? *processor : nullptr;
 }
 

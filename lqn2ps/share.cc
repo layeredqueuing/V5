@@ -2,7 +2,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/share.cc $
  *
  * ------------------------------------------------------------------------
- * $Id: share.cc 15957 2022-10-07 17:14:47Z greg $
+ * $Id: share.cc 16969 2024-01-28 22:57:43Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -47,7 +47,7 @@ Share::create( const std::pair<std::string,LQIO::DOM::Group *>& p )
 
     if ( !processor ) return;
 
-    if ( std::any_of( __share.begin(), __share.end(), EQStr<Share>( group_name ) ) ) {
+    if ( std::any_of( __share.begin(), __share.end(), [&]( Share * share ){ return share->name() == group_name; } ) ) {
 	group->input_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	return;
     } 
@@ -64,6 +64,6 @@ Share::create( const std::pair<std::string,LQIO::DOM::Group *>& p )
 Share * 
 Share::find( const std::string& name )
 {
-    std::set<Share *>::const_iterator share = find_if( __share.begin(), __share.end(), EQStr<Share>( name ) );
+    std::set<Share *>::const_iterator share = find_if( __share.begin(), __share.end(), [&]( Share * share ){ return share->name() == name; } );
     return share != __share.end() ? *share : nullptr;
 }

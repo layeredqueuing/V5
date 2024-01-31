@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 16772 2023-07-06 00:56:41Z greg $
+ * $Id: entry.h 16976 2024-01-29 21:25:19Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -127,25 +127,6 @@ public:
 	std::set<Entity *>& _servers;
     };
 
-    struct sum {
-	typedef double (Entry::*funcPtr)() const;
-	sum( funcPtr f ) : _f(f) {}
-	double operator()( double l, const Entry* r ) const { return l + (r->*_f)(); }
-	double operator()( double l, const Entry& r ) const { return l + (r.*_f)(); }
-    private:
-	const funcPtr _f;
-    };
-
-    struct max
-    {
-	typedef unsigned int (Entry::*funcPtr)() const;
-	max( funcPtr f ) : _f(f) {}
-	unsigned int operator()( unsigned int l, const Entry* r ) const { return std::max( l, (r->*_f)()); }
-	unsigned int operator()( unsigned int l, const Entry& r ) const { return std::max( l, (r.*_f)()); }
-    private:
-	const funcPtr _f;
-    };
-
     struct max_depth
     {
 	typedef unsigned int (Phase::*funcPtr)( Call::stack&, bool ) const;
@@ -158,27 +139,7 @@ public:
 	bool _arg2;
     };
 
-protected:
-    struct add_wait {
-	add_wait( unsigned int submodel ) : _submodel(submodel) {}
-	double operator()( double sum, const Phase& phase ) const { return sum + phase.getWaitTime( _submodel ); }
-    private:
-	const unsigned int _submodel;
-    };
-
-
 private:
-    struct add_calls
-    {
-	typedef double (Phase::*funcPtr)( const Entry* ) const;
-	add_calls( funcPtr f, const Entry* arg ) : _f(f), _arg(arg) {}
-	double operator()( double l, const Phase * r ) const { return l + (r->*_f)(_arg); }
-	double operator()( double l, const Phase& r ) const { return l + (r.*_f)(_arg); }
-    private:
-	const funcPtr _f;
-	const Entry * _arg;
-    };
-
     class SRVNManip {
     public:
 	SRVNManip( std::ostream& (*f)( std::ostream&, const Entry& ), const Entry& entry ) : _f(f), _entry(entry) {}

@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16962 2024-01-28 02:20:29Z greg $
+ * $Id: task.cc 16973 2024-01-29 19:51:08Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -92,7 +92,7 @@ Task::Task( const LQIO::DOM::Task* dom, const Processor * processor, const Share
       _key_table(),			/* Squish name - activities 	*/
       _symbol_table()			/* Squish name - activities 	*/
 {
-    std::for_each( _entries.begin(), _entries.end(), Exec1<Entry,const Task *>( &Entry::owner, this ) );
+    std::for_each( _entries.begin(), _entries.end(), [this]( Entry * entry ){ entry->owner( this ); } );
 
     if ( processor ) {
 	_processors.insert(processor);
@@ -235,7 +235,7 @@ Task::squish( std::map<std::string,unsigned>& key_table, std::map<std::string,st
 {
     const std::string old_name = name();
     Element::squish( key_table, symbol_table );
-    std::for_each( activities().begin(), activities().end(), Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, _key_table, _symbol_table ) );
+    std::for_each( activities().begin(), activities().end(), [&]( Activity * activity ){ activity->squish( _key_table, _symbol_table ); } );
 
     renameFanInOut( old_name, name() );
     return *this;
@@ -453,7 +453,7 @@ Task::removeEntry( Entry * anEntry )
 Activity *
 Task::findActivity( const std::string& name ) const
 {
-    const std::vector<Activity *>::const_iterator activity = find_if( activities().begin(), activities().end(), EQStr<Activity>( name ) );
+    const std::vector<Activity *>::const_iterator activity = find_if( activities().begin(), activities().end(), [&]( Activity * activity ){ return activity->name() == name; } );
     return activity != activities().end() ? *activity : nullptr;
 }
 
@@ -493,16 +493,16 @@ Task::findActivity( const Activity& srcActivity, const unsigned replica )
  */
 
 Activity *
-Task::addActivity( const Activity& srcActivity, const unsigned replica )
+Task::addActivity( const Activity * srcActivity, const unsigned replica )
 {
     std::ostringstream srcName;
-    srcName << srcActivity.name() << "_" << replica;
+    srcName << srcActivity->name() << "_" << replica;
 
     Activity * dstActivity = findActivity( srcName.str() );
     if ( dstActivity ) return dstActivity;	// throw error?
 
     LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(getDOM()));
-    LQIO::DOM::Activity * dstDOM = new LQIO::DOM::Activity( *(dynamic_cast<const LQIO::DOM::Activity *>(srcActivity.getDOM())) );
+    LQIO::DOM::Activity * dstDOM = new LQIO::DOM::Activity( *(dynamic_cast<const LQIO::DOM::Activity *>(srcActivity->getDOM())) );
     dstDOM->setName( srcName.str() );
     dom_task->addActivity( dstDOM );
     dstActivity = new Activity( this, dstDOM );
@@ -510,16 +510,16 @@ Task::addActivity( const Activity& srcActivity, const unsigned replica )
 
     /* Clone instance variables */
     
-    dstActivity->isSpecified( srcActivity.isSpecified() );
-    if ( srcActivity.reachable() ) {
+    dstActivity->isSpecified( srcActivity->isSpecified() );
+    if ( srcActivity->reachable() ) {
 	std::ostringstream name;
-	name << srcActivity.reachedFrom()->name() << "_" << replica;
+	name << srcActivity->reachedFrom()->name() << "_" << replica;
 	Activity * anActivity = findActivity( name.str() );
 	dstActivity->setReachedFrom( anActivity );
     }
 
-    if ( srcActivity.isStartActivity() ) {
-	Entry *dstEntry = Entry::find_replica( srcActivity.rootEntry()->name(), replica );
+    if ( srcActivity->isStartActivity() ) {
+	Entry *dstEntry = Entry::find_replica( srcActivity->rootEntry()->name(), replica );
 	dstActivity->rootEntry( dstEntry, nullptr );
 	const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(dstEntry->getDOM()))->setStartActivity( dstDOM );
 	if (dstEntry->entryTypeOk(LQIO::DOM::Entry::Type::ACTIVITY)) {
@@ -530,13 +530,13 @@ Task::addActivity( const Activity& srcActivity, const unsigned replica )
     /* Clone reply list */
 
     std::vector<Entry *>& dstReplyList = const_cast<std::vector<Entry *>&>(dstActivity->replies());
-    for ( std::vector<Entry *>::const_iterator entry = srcActivity.replies().begin(); entry != srcActivity.replies().end(); ++entry ) {
+    for ( std::vector<Entry *>::const_iterator entry = srcActivity->replies().begin(); entry != srcActivity->replies().end(); ++entry ) {
 	Entry * dstEntry = Entry::find_replica( (*entry)->name(), replica );
 	dstReplyList.push_back( dstEntry );
 	dstDOM->getReplyList().push_back(const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(dstEntry->getDOM())));	/* Need dom for entry, the push that */
     }
 
-    dstActivity->expandActivityCalls( srcActivity, replica );
+    dstActivity->expandActivityCalls( *srcActivity, replica );
 
     return dstActivity;
 }
@@ -597,9 +597,9 @@ Task::rootLevel() const
  */
 
 bool
-Task::forwardsTo( const Task * aTask ) const
+Task::forwardsTo( const Task * task ) const
 {
-    return std::any_of( entries().begin(), entries().end(), Predicate1<Entry,const Task *>( &Entry::forwardsTo, aTask ) );
+    return std::any_of( entries().begin(), entries().end(), [=]( Entry * entry ){ return entry->forwardsTo( task ); } );
 }
 
 
@@ -632,8 +632,7 @@ Task::isForwardingTarget() const
 bool
 Task::isCalled( const request_type callType ) const
 {
-    return std::any_of( entries().begin(), entries().end(), Predicate1<Entry,const request_type>( &Entry::isCalledBy, callType ) );
-//    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::isCalledBy, callType ) );
+    return std::any_of( entries().begin(), entries().end(), [=]( Entry * entry ){ return entry->isCalledBy( callType ); } );
 }
 
 
@@ -661,10 +660,10 @@ Task::openArrivalRate() const
  */
 
 bool
-Task::hasCalls( const callPredicate aFunc ) const
+Task::hasCalls( const callPredicate f ) const
 {
-    return std::any_of( entries().begin(), entries().end(), Predicate1<Entry,const callPredicate>( &Entry::hasCalls, aFunc ) )
-	|| std::any_of( activities().begin(), activities().end(), Predicate1<Activity,const callPredicate>( &Activity::hasCalls, aFunc ) );
+    return std::any_of( entries().begin(), entries().end(), [=]( Entry * entry ){ return entry->hasCalls( f ); } )
+	|| std::any_of( activities().begin(), activities().end(), [=]( Activity * activity ){ return activity->hasCalls( f ); } );
 }
 
 
@@ -846,8 +845,7 @@ Task::check() const
 	_maxPhase = std::max( _maxPhase, (*entry)->maxPhase() );
     }
 
-    rc = std::for_each( activities().begin(), activities().end(), AndPredicate<Activity>( &Activity::check ) ).result() && rc;
-    return rc;
+    return std::all_of( activities().begin(), activities().end(), std::mem_fn( &Activity::check ) ) && rc;
 }
 
 
@@ -1603,9 +1601,9 @@ Task::moveBy( const double dx, const double dy )
 {
     _node->moveBy( dx, dy );
     _label->moveBy( dx, dy );
-    std::for_each( entries().begin(), entries().end(), ExecXY<Element>( &Entry::moveBy, dx, dy ) );    		/* Move entries */
-    std::for_each( _layers.begin(), _layers.end(), ExecXY<ActivityLayer>( &ActivityLayer::moveBy, dx, dy ) );	/* Move activities */
-    std::for_each( _layers.rbegin(), _layers.rend(), ExecXY<ActivityLayer>( &ActivityLayer::moveBy, 0, 0 ) );	/* clean up.*/
+    std::for_each( entries().begin(), entries().end(), [=]( Entry *  entry ){ entry->moveBy( dx, dy ); } ); 	/* Move entries */
+    std::for_each( _layers.begin(), _layers.end(), [=]( ActivityLayer& layer ){ layer.moveBy( dx, dy ); } );	/* Move activities */
+    std::for_each( _layers.rbegin(), _layers.rend(), [=]( ActivityLayer& layer ){ layer.moveBy( 0, 0 ); } );	/* clean up.*/
 
     sort();			/* Reorder arcs */
     moveDst();			/* Move arcs calling me.	      */
@@ -1767,7 +1765,7 @@ Task::moveDst()
 Task&
 Task::moveSrcBy( const double dx, const double dy )
 {
-    std::for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::moveSrcBy, dx, dy ) );
+    std::for_each( calls().begin(), calls().end(), [=]( EntityCall * call ){ call->moveSrcBy( dx, dy ); } );
     return *this;
 }
 
@@ -1889,7 +1887,7 @@ Task::labelBCMPModel( const BCMP::Model::Station::Class::map_t& demand, const st
 Task&
 Task::labelQueueingNetwork( entryLabelFunc aFunc, Label& label )
 {
-    std::for_each( _entries.begin(), _entries.end(), Exec1<Entry,Label&>( aFunc, label ) );
+    std::for_each( _entries.begin(), _entries.end(), [&]( Entry * entry ){ (entry->*aFunc)( label ); } );
     return *this;
 }
 
@@ -1903,10 +1901,10 @@ Task&
 Task::scaleBy( const double sx, const double sy )
 {
     Entity::scaleBy( sx, sy );
-    std::for_each( entries().begin(), entries().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
-    std::for_each( activities().begin(), activities().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
-    std::for_each( precedences().begin(), precedences().end(), ExecXY<ActivityList>( &ActivityList::scaleBy, sx, sy ) ) ;
-    std::for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
+    std::for_each( entries().begin(), entries().end(), [=]( Entry *  entry ){ entry->scaleBy( sx, sy ); } );
+    std::for_each( activities().begin(), activities().end(), [=]( Activity *  activity ){ activity->scaleBy( sx, sy ); } );
+    std::for_each( precedences().begin(), precedences().end(), [=]( ActivityList *  list ){ list->scaleBy( sx, sy ); } );
+    std::for_each( calls().begin(), calls().end(), [=]( GenericCall* call ){ call->scaleBy( sx, sy ); } );
     return *this;
 }
 
@@ -1920,10 +1918,10 @@ Task&
 Task::depth( const unsigned depth )
 {
     Entity::depth( depth );
-    std::for_each( entries().begin(), entries().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
-    std::for_each( activities().begin(), activities().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
-    std::for_each( precedences().begin(), precedences().end(), Exec1<ActivityList,unsigned int>( &ActivityList::depth, depth ) );
-    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth ) );
+    std::for_each( entries().begin(), entries().end(), [=]( Entry *  entry ){ entry->depth( depth ); } );
+    std::for_each( activities().begin(), activities().end(), [=]( Activity *  activity ){ activity->depth( depth ); } );
+    std::for_each( precedences().begin(), precedences().end(), [=]( ActivityList *  list ){ list->depth( depth ); } );
+    std::for_each( calls().begin(), calls().end(), [=]( GenericCall* call ){ call->depth( depth ); } );
     return *this;
 }
 
@@ -1937,10 +1935,10 @@ Task&
 Task::translateY( const double dy )
 {
     Entity::translateY( dy );
-    std::for_each( entries().begin(), entries().end(), Exec1<Element,double>( &Element::translateY, dy ) );
-    std::for_each( activities().begin(), activities().end(), Exec1<Element,double>( &Element::translateY, dy ) );
-    std::for_each( precedences().begin(), precedences().end(), Exec1<ActivityList,double>( &ActivityList::translateY, dy ) );
-    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
+    std::for_each( entries().begin(), entries().end(), [=]( Entry *  entry ){ entry->translateY( dy ); } );
+    std::for_each( activities().begin(), activities().end(), [=]( Activity *  activity ){ activity->translateY( dy ); } );
+    std::for_each( precedences().begin(), precedences().end(), [=]( ActivityList *  list ){ list->translateY( dy ); } );
+    std::for_each( calls().begin(), calls().end(), [=]( GenericCall* call ){ call->translateY( dy ); } );
     return *this;
 }
 
@@ -1953,7 +1951,7 @@ Task&
 Task::relink()
 {
     if ( !canPrune() ) return *this;
-    std::for_each( entries().begin(), entries().end(), Exec1<Entry,const std::vector<EntityCall *>&>( &Entry::linkToClients, calls() ) );
+    std::for_each( entries().begin(), entries().end(), [=]( Entry *  entry ){ entry->linkToClients( calls() ); } );
     std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::unlinkFromServers ) );
     unlinkFromProcessor();
     Model::__zombies.push_back( this );
@@ -2096,7 +2094,7 @@ Task::expand()
 
 	std::ostringstream replica_name;
 	replica_name << name() << "_" << replica;
-	if ( find_if( __tasks.begin(), __tasks.end(), eqTaskStr( replica_name.str() ) )!= __tasks.end() ) {
+	if ( find_if( __tasks.begin(), __tasks.end(), [&]( const Task * task ){ return task->name() == replica_name.str(); } ) != __tasks.end() ) {
 	    std::string msg = "Task::expand(): cannot add symbol ";
 	    msg += replica_name.str();
 	    throw std::runtime_error( msg );
@@ -2132,9 +2130,7 @@ Task::expand()
 const std::vector<Entry *>&
 Task::groupEntries( int replica, std::vector<Entry *>& newEntryList  ) const
 {
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	newEntryList.push_back( Entry::find_replica( (*entry)->name(), replica ) );
-    }
+    std::for_each( entries().begin(), entries().end(), [&]( Entry * entry ){ newEntryList.push_back( Entry::find_replica( entry->name(), replica ) ); } );
     return newEntryList;
 }
 
@@ -2143,12 +2139,11 @@ Task::groupEntries( int replica, std::vector<Entry *>& newEntryList  ) const
 Task&
 Task::expandActivities( const Task& src, int replica )
 {
-    /* clone the activities */
     LQIO::DOM::Task * task_dom = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(getDOM()));
 
-    for ( std::vector<Activity *>::const_iterator activity = src.activities().begin(); activity != src.activities().end(); ++activity ) {
-	addActivity(**activity, replica);
-    }
+    /* clone the activities */
+
+    std::for_each( src.activities().begin(), src.activities().end(), [&]( Activity * activity ){ this->addActivity( activity, replica ); } );
 
     /* Now reconnect the precedences.  Do the join list from the task.  We have to connect the fork list. */
 
@@ -2427,7 +2422,7 @@ Task::draw( std::ostream& output ) const
     if ( isMultiServer() || isInfinite() || isReplicated() ) {
 	std::vector<Point> copies = points;
 	const double delta = -2.0 * Model::scaling() * _node->direction();
-	std::for_each( copies.begin(), copies.end(), ExecXY<Point>( &Point::moveBy, 2.0 * Model::scaling(), delta ) );
+	std::for_each( copies.begin(), copies.end(), [=]( Point& point ){ point.moveBy( 2.0 * Model::scaling(), delta ); } );
 	const int aDepth = _node->depth();
 	_node->depth( aDepth + 1 );
 	_node->polygon( output, copies );
@@ -2707,17 +2702,15 @@ Task *
 Task::create( const LQIO::DOM::Task* task_dom, std::vector<Entry *>& entries )
 {
     /* Recover the old parameter information that used to be passed in */
-    const char* task_name = task_dom->getName().c_str();
+
     const LQIO::DOM::Group * group_dom = task_dom->getGroup();
     const scheduling_type sched_type = task_dom->getSchedulingType();
 
-    if ( !task_name || strlen( task_name ) == 0 ) abort();
-
-    if ( entries.size() == 0 ) {
+    if ( entries.empty() ) {
 	task_dom->runtime_error( LQIO::ERR_TASK_HAS_NO_ENTRIES );
 	return nullptr;
     }
-    if ( std::any_of( __tasks.begin(), __tasks.end(), eqTaskStr( task_name ) ) ) {
+    if ( std::any_of( __tasks.begin(), __tasks.end(), [=]( const Task * task ){ return task->name() == task_dom->getName(); } ) ) {
 	task_dom->input_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	return nullptr;
     }
@@ -2732,7 +2725,7 @@ Task::create( const LQIO::DOM::Task* task_dom, std::vector<Entry *>& entries )
     if ( !group_dom && processor->scheduling() == SCHEDULE_CFS ) {
 	task_dom->runtime_error( LQIO::ERR_NO_GROUP_SPECIFIED, processor_name.c_str() );
     } else if ( group_dom ) {
-	std::set<Share *>::const_iterator nextShare = find_if( processor->shares().begin(), processor->shares().end(), EQStr<Share>( group_dom->getName() ) );
+	std::set<Share *>::const_iterator nextShare = find_if( processor->shares().begin(), processor->shares().end(), [&]( Share * ){ return share->name() == group_dom->getName(); } );
 	if ( nextShare == processor->shares().end() ) {
 	    LQIO::input_error( LQIO::ERR_NOT_DEFINED, group_dom->getName().c_str() );
 	} else {
@@ -2784,9 +2777,9 @@ Task::create( const LQIO::DOM::Task* task_dom, std::vector<Entry *>& entries )
 /* ---------------------------------------------------------------------- */
 
 static std::ostream&
-entries_of_str( std::ostream& output, const Task& aTask )
+entries_of_str( std::ostream& output, const Task& task )
 {
-    for ( std::vector<Entry *>::const_reverse_iterator entry = aTask.entries().rbegin(); entry != aTask.entries().rend(); ++entry ) {
+    for ( std::vector<Entry *>::const_reverse_iterator entry = task.entries().rbegin(); entry != task.entries().rend(); ++entry ) {
 	if ( (*entry)->pathTest() ) {
 	    output << " " << (*entry)->name();
 	}

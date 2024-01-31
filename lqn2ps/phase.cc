@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16868 2023-11-27 22:24:24Z greg $
+ * $Id: phase.cc 16972 2024-01-29 19:23:49Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -265,7 +265,7 @@ Phase::queueingTime() const
 bool 
 Phase::check() const
 {
-    bool rc = std::for_each( calls().begin(), calls().end(), AndPredicate<Call>( &Call::check ) ).result();
+    bool rc = std::all_of( calls().begin(), calls().end(), std::mem_fn( &Call::check ) );
 
     if ( phaseTypeFlag() == LQIO::DOM::Phase::Type::STOCHASTIC && hasCV_sqr() ) {
 	if ( dynamic_cast<const Activity *>(this) ) {			/* c, phase_flag are incompatible  */

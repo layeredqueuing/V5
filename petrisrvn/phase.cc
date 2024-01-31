@@ -918,7 +918,7 @@ Phase::drop_lambda( unsigned m, const Entry * b, const Phase * src_phase ) const
 bool
 Phase::simplify_phase() const
 {
-    return simplify_network && (!processor() || (processor()->PX == 0 && !is_hyperexponential() && !task()->inservice_flag()));
+    return simplify_network && (!processor() || (processor()->PX == nullptr && !is_hyperexponential() && !task()->inservice_flag()));
 }
 
 bool

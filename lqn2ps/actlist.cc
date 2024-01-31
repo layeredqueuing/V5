@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 16967 2024-01-28 20:33:35Z greg $
+ * $Id: actlist.cc 16980 2024-01-30 00:59:22Z greg $
  */
 
 
@@ -204,7 +204,7 @@ SequentialActivityList::draw( std::ostream& output ) const
 
 ForkActivityList::ForkActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist ) 
     : SequentialActivityList( owner, dom_activitylist ), 
-      prevLink(0) 
+      _prev(0) 
 {
 }
 
@@ -559,7 +559,7 @@ const ForkJoinActivityList&
 ForkJoinActivityList::draw( std::ostream& output ) const
 {
     const Graphic::Colour pen_colour = colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour();
-    std::for_each( _arcs.begin(), _arcs.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,Graphic::Colour>( &Graphic::penColour, pen_colour ) );
+    std::for_each( _arcs.begin(), _arcs.end(), [=]( const std::pair<Activity *, Arc *>& arc ){ arc.second->penColour( pen_colour ); } );
     const Point ctr( _node->center() );
     _node->penColour( pen_colour ).fillColour( colour() );
     _node->circle( output, ctr, radius() );
@@ -603,7 +603,7 @@ ForkJoinActivityList::getName() const
 
 AndOrForkActivityList::AndOrForkActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist ) 
     : ForkJoinActivityList( owner, dom_activitylist ), 
-      prevLink(0) 
+      _prev(0) 
 {
 }
 
@@ -1530,7 +1530,7 @@ AndJoinActivityList::draw( std::ostream& output ) const
 
 RepeatActivityList::RepeatActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist ) 
     : ForkActivityList( owner, dom_activitylist ), 
-      prevLink(0)
+      _prev(0)
 {
     _node = Node::newNode( 12.0, 12.0 );
 }
@@ -1619,10 +1619,8 @@ RepeatActivityList::setChain( std::deque<const Activity *>& activityStack, unsig
 RepeatActivityList&
 RepeatActivityList::add( Activity * activity )
 {
-    const LQIO::DOM::Activity * dom = dynamic_cast<const LQIO::DOM::Activity *>(activity->getDOM());
-    if ( dom ) {
-//	const LQIO::DOM::ExternalVariable * arg = getDOM()->getParameter(dom);
-
+    const LQIO::DOM::ExternalVariable * arg = getDOM()->getParameter(dynamic_cast<const LQIO::DOM::Activity *>(activity->getDOM()));
+    if ( arg ) {
 	_activities.push_back(activity);
 
 	Label * label = Label::newLabel();
@@ -1640,7 +1638,6 @@ RepeatActivityList::add( Activity * activity )
     } else {
 
 	/* End of list */
-
 	ForkActivityList::add( activity );
     }
 
@@ -1713,7 +1710,7 @@ RepeatActivityList::translateY( const double dy )
 {
     _arc->translateY( dy );
     std::for_each( _arcs.begin(), _arcs.end(), [=]( const std::pair<Activity *,Arc *>& arc ){ arc.second->translateY( dy ); } );
-    std::for_each( _labels.begin(), _labels.end(), ExecX<Label,std::pair<Activity *,Label *>,double>( &Label::translateY, dy ) );
+    std::for_each( _labels.begin(), _labels.end(), [=]( const std::pair<Activity *,Label *>& label ){ label.second->translateY( dy ); } );
     if ( activityList().size() ) {
 	_node->translateY( dy );
     }
@@ -1726,8 +1723,8 @@ RepeatActivityList&
 RepeatActivityList::depth( unsigned depth )
 {
     _arc->depth( depth );
-    std::for_each( _arcs.begin(), _arcs.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,unsigned>( &Graphic::depth, depth ) );
-    std::for_each( _labels.begin(), _labels.end(), ExecX<Graphic,std::pair<Activity *,Label *>,unsigned>( &Graphic::depth, depth ) );
+    std::for_each( _arcs.begin(), _arcs.end(), [=]( const std::pair<Activity *,Arc *>& arc ){ arc.second->depth( depth ); } );
+		   std::for_each( _labels.begin(), _labels.end(), [=]( const std::pair<Activity *,Label *>& label ){ label.second->depth( depth ); } );
     if ( activityList().size() ) {
 	_node->depth( depth );
     }
@@ -1809,7 +1806,7 @@ const RepeatActivityList&
 RepeatActivityList::draw( std::ostream& output ) const
 {
     const Graphic::Colour pen_colour = colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour();
-    std::for_each( _arcs.begin(), _arcs.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,Graphic::Colour>( &Graphic::penColour, pen_colour ) );
+    std::for_each( _arcs.begin(), _arcs.end(), [=]( const std::pair<Activity *, Arc *>& arc ){ arc.second->penColour( pen_colour ); } );
 
     ForkActivityList::draw( output );
     std::for_each( _arcs.begin(), _arcs.end(), [&]( const std::pair<Activity *,Arc *>& arc ){ arc.second->draw( output ); } );

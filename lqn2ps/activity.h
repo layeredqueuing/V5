@@ -1,6 +1,6 @@
 /* -*- c++ -*-  activity.h	-- Greg Franks
  *
- * $Id: activity.h 16958 2024-01-27 23:43:28Z greg $
+ * $Id: activity.h 16980 2024-01-30 00:59:22Z greg $
  */
 
 #ifndef _ACTIVITY_H
@@ -43,13 +43,13 @@ public:
 
     class Ancestors {
     public:
-	Ancestors( const Entry * source_entry ) : _activity_stack(), _fork_stack(), _source_entry( source_entry ), _depth( 0 ), _phase( 1 ), _rate( 1.0 ), _reply_allowed( true ) {}
-	Ancestors( const Ancestors& ancestors, bool reply_allowed ) : _activity_stack(ancestors._activity_stack), _fork_stack(), _source_entry( ancestors._source_entry ), _depth( ancestors._depth ), _phase( ancestors._phase ), _rate( ancestors._rate ), _reply_allowed( reply_allowed ) {}
+	Ancestors( const Entry * source_entry ) : _activity_stack(), _fork_stack(), _source_entry( source_entry ), _phase( 1 ), _rate( 1.0 ), _reply_allowed( true ) {}
+	Ancestors( const Ancestors& ancestors, bool reply_allowed ) : _activity_stack(ancestors._activity_stack), _fork_stack(), _source_entry( ancestors._source_entry ), _phase( ancestors._phase ), _rate( ancestors._rate ), _reply_allowed( reply_allowed ) {}
 
 	const std::deque<const Activity *>& getActivityStack() const { return _activity_stack; }
 	const std::deque<const AndOrForkActivityList *>& getForkStack() const { return _fork_stack; }
 
-	size_t depth() const { return _depth; }
+	size_t depth() const { return _activity_stack.size(); }
 	const Entry * sourceEntry() const { return _source_entry; }
 	void setPhase( unsigned int phase ) { _phase = phase; }
 	unsigned int getPhase() const { return _phase; }
@@ -69,7 +69,6 @@ public:
 	std::deque<const Activity *> _activity_stack;
 	std::deque<const AndOrForkActivityList *> _fork_stack;
 	const Entry * _source_entry;
-	size_t _depth;
 	unsigned _phase;
 	double _rate;
 	bool _reply_allowed;

@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 16967 2024-01-28 20:33:35Z greg $
+ * $Id: activity.cc 16969 2024-01-28 22:57:43Z greg $
  */
 
 #include "activity.h"
@@ -1150,10 +1150,9 @@ Activity::replicateCall()
     Phase::replicateCall();		/* Reset DOM calls */
     
     Call * root = nullptr;
-    std::for_each( old_calls.begin(), old_calls.end(), Exec2<Call, std::vector<Call *>&, Call **>( &Call::replicateCall, _calls, &root ) );
+    std::for_each( old_calls.begin(), old_calls.end(), [&]( Call * call ){ call->replicateCall( _calls, &root ); } );
     return *this;
 }
-
 #endif
 
 /* ------------------------------------------------------------------------ */

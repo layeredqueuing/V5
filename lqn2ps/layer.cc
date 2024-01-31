@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16967 2024-01-28 20:33:35Z greg $
+ * $Id: layer.cc 16972 2024-01-29 19:23:49Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -106,7 +106,7 @@ Layer::number( const unsigned n )
 bool
 Layer::check() const
 {
-    return std::for_each( entities().begin(), entities().end(), AndPredicate<Entity>( &Entity::check ) ).result();
+    return std::all_of( entities().begin(), entities().end(), std::mem_fn( &Entity::check ) );
 }
 
 
@@ -114,7 +114,7 @@ Layer::check() const
 unsigned
 Layer::count( const taskPredicate predicate ) const
 {
-    return count_if( entities().begin(), entities().end(), Predicate1<Entity,taskPredicate>( &Entity::test, predicate ) );
+    return count_if( entities().begin(), entities().end(), [=]( Entity * entity ){ return entity->test( predicate ); } );
 }
 
 
@@ -227,7 +227,7 @@ Layer::moveLabelTo( const double xx, const double yy )
 Layer&
 Layer::scaleBy( const double sx, const double sy )
 {
-    std::for_each( entities().begin(), entities().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
+    std::for_each( entities().begin(), entities().end(), [=]( Entity * entity ){ entity->scaleBy( sx, sy ); } );
     _origin.scaleBy( sx, sy );
     _extent.scaleBy( sx, sy );
     _label->scaleBy( sx, sy );
@@ -258,8 +258,8 @@ Layer::depth( const unsigned depth )
 Layer&
 Layer::fill( const double maxWidthPts )
 {
-    const double width = std::accumulate( entities().begin(), entities().end(), 0.0, sum( &Element::width ) );
-    const double fill = std::max( 0.0, (maxWidthPts - width) / static_cast<double>(entities().size() + 1) );
+    const double fill = std::max( 0.0, (maxWidthPts - std::accumulate( entities().begin(), entities().end(), 0.0, [=]( double l, Entity * r ){ return l + r->width(); } ))
+				  / static_cast<double>(entities().size() + 1) );
     if ( fill < Flags::x_spacing() ) return *this;		/* Don't bother... */
 
     _origin.x( fill );

@@ -39,6 +39,12 @@ private:
 
     Processor( LQIO::DOM::Entity * );
 
+    typedef double (Processor::*queue_func)( double x_pos, double y_pos, const int priority,
+					     struct place_object * prio_place,
+					     const short trans_prio, history_t history[],
+					     const unsigned count, unsigned depth,
+					     const unsigned low, const unsigned curr, const unsigned m,
+					     Phase * curr_phase );
 public:
     virtual ~Processor() {}
     static void create( const std::pair<std::string,LQIO::DOM::Processor*>& );
@@ -50,6 +56,7 @@ public:
     unsigned int ref_count() const;
 
     bool is_single_place_processor() const;
+    bool is_ps_processor() const;		/* BUG 415 */
 
     void remove_netobj() { PX = nullptr; }
     void initialize();
@@ -64,7 +71,7 @@ protected:
     virtual bool scheduling_is_ok() const;
 
 private:
-    double make_queue( double x_pos, double y_pos, const int priority,
+    double make_queue( queue_func, double x_pos, double y_pos, const int priority,
 		       struct place_object * prio_place,
 		       const short trans_prio, history_t history[],
 		       const unsigned count, unsigned depth,

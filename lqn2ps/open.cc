@@ -1,6 +1,6 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 16901 2024-01-18 01:35:49Z greg $
+ * $Id: open.cc 16970 2024-01-28 23:12:30Z greg $
  */
 
 #include "lqn2ps.h"
@@ -109,7 +109,7 @@ OpenArrivalSource::isInOpenModel( const std::vector<Entity *>& servers ) const
 unsigned 
 OpenArrivalSource::setChain( unsigned k, const callPredicate aFunc ) const
 {
-    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::setChain, k ) );
+    std::for_each( calls().begin(), calls().end(), [=]( GenericCall * call ){ call->setChain( k ); } );
     return k;
 }
 
@@ -154,7 +154,7 @@ OpenArrivalSource::moveTo( const double x, const double y )
 OpenArrivalSource&
 OpenArrivalSource::moveSrc( const Point& aPoint )
 {
-    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,const Point &>( &GenericCall::moveSrc, aPoint ) );
+    std::for_each( calls().begin(), calls().end(), [=]( OpenArrival* call ){ call->moveSrc( aPoint ); } );
     return *this;
 }
 
@@ -167,7 +167,7 @@ OpenArrivalSource&
 OpenArrivalSource::scaleBy( const double sx, const double sy )
 {
     Element::scaleBy( sx, sy );
-    std::for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
+    std::for_each( calls().begin(), calls().end(), [=]( OpenArrival* call ){ call->scaleBy( sx, sy ); } );
     return *this;
 }
 
@@ -181,7 +181,7 @@ OpenArrivalSource&
 OpenArrivalSource::depth( const unsigned depth )
 {
     Element::depth( depth );
-    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth ) );
+    std::for_each( calls().begin(), calls().end(), [=]( OpenArrival* call ){ call->depth( depth ); } );
     return *this;
 }
 
@@ -195,7 +195,7 @@ OpenArrivalSource&
 OpenArrivalSource::translateY( const double dy )
 {
     Element::translateY( dy );
-    std::for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
+    std::for_each( calls().begin(), calls().end(), [=]( GenericCall * call ){ call->translateY( dy ); } );
     return *this;
 }
 

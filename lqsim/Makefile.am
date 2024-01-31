@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 16118 2022-11-17 18:45:33Z greg $
+# $Id: Makefile.am 16989 2024-01-31 11:40:29Z greg $
 #----------------------------------------------------------------------
 SUBDIRS		= regression
 
@@ -11,7 +11,7 @@ noinst_HEADERS 	= activity.h actlist.h entry.h errmsg.h group.h histogram.h inst
 		  message.h pragma.h processor.h result.h runlqx.h target.h task.h
 EXTRA_DIST	= lqsim.1
 
-lqsim_CXXFLAGS	= -std=c++11 -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-switch -Wno-overloaded-virtual
+lqsim_CXXFLAGS	= -std=c++17 -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-switch -Wno-overloaded-virtual
 lqsim_LDADD	= -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio -L../parasol/src -lparasolc
 lqsim_LDFLAGS	= @STATIC@
 man1_MANS	= lqsim.1

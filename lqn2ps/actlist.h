@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 16958 2024-01-27 23:43:28Z greg $
+ * $Id: actlist.h 16980 2024-01-30 00:59:22Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -202,11 +202,11 @@ public:
     /* Printing */
 
 protected:
-    virtual ActivityList * prev() const { return prevLink; }	/* Link to fork list 		*/
-    virtual ForkActivityList& prev( ActivityList * aList) { prevLink = aList; return *this; }
+    virtual ActivityList * prev() const { return _prev; }	/* Link to fork list 		*/
+    virtual ForkActivityList& prev( ActivityList * list) { _prev = list; return *this; }
 
 private:
-    ActivityList * prevLink;
+    ActivityList * _prev;
 };
 
 /* -------------------------------------------------------------------- */
@@ -236,7 +236,7 @@ public:
 
 public:
     virtual ActivityList * next() const { return _next; }	/* Link to Join list		*/
-    virtual ActivityList& next( ActivityList * aList ) { _next = aList; return *this; }	/* Link to Join list		*/
+    virtual ActivityList& next( ActivityList * list ) { _next = list; return *this; }	/* Link to Join list		*/
 
 private:
     ActivityList *_next;
@@ -300,8 +300,8 @@ public:
     virtual const AndOrForkActivityList& draw( std::ostream& ) const;
 
 protected:
-    virtual ActivityList * prev() const { return prevLink; }	/* Link to join list 		*/
-    virtual AndOrForkActivityList& prev( ActivityList * aList) { prevLink = aList; return *this; }
+    virtual ActivityList * prev() const { return _prev; }	/* Link to join list 		*/
+    virtual AndOrForkActivityList& prev( ActivityList * list) { _prev = list; return *this; }
 
 private:
     void setJoinList( const AndOrJoinActivityList * joins ) { _joinList = joins; }
@@ -310,7 +310,7 @@ protected:
     const AndOrJoinActivityList * _joinList;
     
 private:
-    ActivityList * prevLink;
+    ActivityList * _prev;
 };
 
 
@@ -411,7 +411,7 @@ public:
     virtual const AndOrJoinActivityList& draw( std::ostream& ) const;
  
     virtual ActivityList * next() const { return _next; }	/* Link to fork list		*/
-    virtual AndOrJoinActivityList& next( ActivityList * aList ) { _next = aList; return *this; }
+    virtual AndOrJoinActivityList& next( ActivityList * list ) { _next = list; return *this; }
     const AndOrForkActivityList * forkList() const { return _forkList; }
 
 private:
@@ -537,8 +537,8 @@ protected:
 
     virtual Point findSrcPoint() const;
 
-    virtual ActivityList * prev() const { return prevLink; }	/* Link to join list 		*/
-    virtual RepeatActivityList& prev( ActivityList * aList) { prevLink = aList; return *this; }
+    virtual ActivityList * prev() const { return _prev; }	/* Link to join list 		*/
+    virtual RepeatActivityList& prev( ActivityList * list) { _prev = list; return *this; }
 
     const LQIO::DOM::ExternalVariable* rateBranch( const Activity * ) const;
 
@@ -547,7 +547,7 @@ private:
     std::map<Activity *,Arc *> _arcs;
     std::map<Activity *,Label *> _labels;
     Node * _node;
-    ActivityList * prevLink;
+    ActivityList * _prev;
 };
 
 /* Used by model.cc */

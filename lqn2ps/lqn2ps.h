@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 16963 2024-01-28 02:29:06Z greg $
+ * $Id: lqn2ps.h 16972 2024-01-29 19:23:49Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -480,88 +480,6 @@ StringPlural plural( const std::string& s, const unsigned i );	/* See main.cc */
 #endif
 
 
-template <class Type1, class Type2> struct Exec1
-{
-    typedef Type1& (Type1::*funcPtr)( Type2 x );
-    Exec1<Type1,Type2>( funcPtr f, Type2 x ) : _f(f), _x(x) {}
-    void operator()( Type1 * object ) const { (object->*_f)( _x ); }
-    void operator()( Type1& object ) const { (object.*_f)( _x ); }
-private:
-    funcPtr _f;
-    Type2 _x;
-};
-
-template <class Type1, class Type2, class Type3> struct Exec2
-{
-    typedef Type1& (Type1::*funcPtr)( Type2 x, Type3 y );
-    Exec2<Type1,Type2,Type3>( funcPtr f, Type2 x, Type3 y ) : _f(f), _x(x), _y(y) {}
-    void operator()( Type1 * object ) const { (object->*_f)( _x, _y ); }
-    void operator()( Type1& object ) const { (object.*_f)( _x, _y ); }
-private:
-    funcPtr _f;
-    Type2 _x;
-    Type3 _y;
-};
-
-
-template <class Type1, class Type2, class Type3> struct ExecX
-{
-    typedef Type1& (Type1::*funcPtr)( Type3 x );
-    ExecX<Type1,Type2,Type3>( funcPtr f, Type3 x ) : _f(f), _x(x) {}
-    void operator()( const Type2& object ) const { (object.second->*_f)( _x ); }
-private:
-    funcPtr _f;
-    Type3 _x;
-};
-
-template <class Type> struct ExecXY
-{
-    typedef Type& (Type::*funcPtrXY)( double x, double y );
-    ExecXY<Type>( funcPtrXY f, double x, double y ) : _f(f), _x(x), _y(y) {};
-    void operator()( Type * object ) const { (object->*_f)( _x, _y ); }
-    void operator()( Type& object ) const { (object.*_f)( _x, _y ); }
-private:
-    funcPtrXY _f;
-    double _x;
-    double _y;
-};
-
-template <class Type1, class Type2> struct Predicate1
-{
-    typedef bool (Type1::*predicate)(Type2) const;
-    Predicate1<Type1,Type2>( const predicate p, Type2 v ) : _p(p), _v(v) {};
-    bool operator()( const Type1 * object ) const { return (object->*_p)(_v); }
-    bool operator()( const Type1& object ) const { return (object.*_p)(_v); }
-private:
-    const predicate _p;
-    Type2 _v;
-};
-
-template <class Type> struct AndPredicate
-{
-    typedef bool (Type::*predicate)() const;
-    AndPredicate<Type>( const predicate p ) : _p(p), _rc(true) {};
-    void operator()( const Type * object ) { _rc = (object->*_p)() && _rc; }
-    void operator()( const Type& object ) { _rc = (object.*_p)() && _rc; }
-    bool result() const { return _rc; }
-private:
-    const predicate _p;
-    bool _rc;
-};
-
-template <class Type1, class Type2> struct Count
-{
-    typedef unsigned (Type1::*funcPtr)(const Type2) const;
-    Count<Type1,Type2>( funcPtr f, const Type2 p ) : _f(f), _p(p), _count(0) {}
-    void operator()( const Type1 * object ) { _count += (object->*_f)(_p); }
-    void operator()( const Type1& object ) { _count += (object.*_f)(_p); }
-    unsigned int count() const { return _count; }
-private:
-    funcPtr _f;
-    const Type2 _p;
-    unsigned int _count;
-};
-
 template <class Type> struct Select
 {
     typedef bool (Type::*predicate)() const;
@@ -591,14 +509,6 @@ template <class Type> struct EQ
     bool operator()( const Type * const b ) const { return _a == b; }
 private:
     const Type * const _a;
-};
-
-template <class Type> struct EQStr
-{
-    EQStr( const std::string & s ) : _s(s) {}
-    bool operator()(const Type * e1 ) const { return e1->name() == _s; }
-private:
-    const std::string & _s;
 };
 
 template <class Type> struct LT

@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16955 2024-01-27 12:13:08Z greg $
+ * $Id: task.cc 16976 2024-01-29 21:25:19Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -476,7 +476,7 @@ Task::initThreads()
 {
     _maxThreads = 1;
     if ( hasThreads() ) {
-	_maxThreads = std::accumulate( entries().begin(), entries().end(), 0, Entry::max( &Entry::concurrentThreads ) );
+	_maxThreads = std::accumulate( entries().begin(), entries().end(), 0, []( unsigned int l, Entry * r ){ return std::max( l, r->concurrentThreads() ); } );
     }
     if ( _maxThreads > nThreads() ) throw std::logic_error( "Task::initThreads" );
     return *this;
@@ -766,7 +766,7 @@ Task::processorUtilization() const
 {
     return std::accumulate( entries().begin(), entries().end(),
 			    std::accumulate( activities().begin(), activities().end(), 0., Phase::sum( &Activity::processorUtilization ) ),
-			    Entry::sum( &Entry::processorUtilization ) );
+			    []( double l, Entry * r ){ return l + r->processorUtilization(); } );
 }
 
 

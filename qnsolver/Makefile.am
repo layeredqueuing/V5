@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 16446 2023-02-27 03:10:46Z greg $
+# $Id: Makefile.am 16989 2024-01-31 11:40:29Z greg $
 #----------------------------------------------------------------------
 
 AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers -I../libmva/src/headers
@@ -14,7 +14,7 @@ endif
 
 EXTRA_DIST	= qnsolver.1 
 
-qnsolver_CXXFLAGS= -std=c++11 -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-overloaded-virtual
+qnsolver_CXXFLAGS= -std=c++17 -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-overloaded-virtual
 qnsolver_LDADD	= -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio -L../libmva/src/.libs -lmva 
 qnsolver_LDFLAGS= @STATIC@
 man1_MANS	= qnsolver.1

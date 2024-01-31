@@ -2,10 +2,10 @@
 #
 # Make file for Unit test files
 #
-# $Id: Makefile.am 15517 2022-04-05 13:34:18Z greg $
+# $Id: Makefile.am 16989 2024-01-31 11:40:29Z greg $
 # ------------------------------------------------------------------------
 
-AM_CXXFLAGS	= -std=c++11 -DTESTMVA -DTESTDIST -DDEBUG_MVA
+AM_CXXFLAGS	= -std=c++17 -DTESTMVA -DTESTDIST -DDEBUG_MVA
 AM_CPPFLAGS	= -I../src/headers/mva
 check_PROGRAMS  = test0 test0a \
 		  test1 test1hv test1hvp test1p test1ps \
