@@ -11,7 +11,6 @@
 #define __SYNTAX_TREE_H__
 
 /* Internal headers */
-#include "NonCopyable.h"
 #include "RuntimeException.h"
 #include "Environment.h"
 #include "Parser.h"
@@ -37,11 +36,11 @@ namespace LQX {
 
     static void setVariablePrefix( const std::string& s ) { variablePrefix = s; }
     
-  protected:
-    
     /* This object is not copyable, and will throw an exception if you try */
-    SyntaxTreeNode(const SyntaxTreeNode&) { throw NonCopyableException(); }
-    virtual SyntaxTreeNode& operator=(const SyntaxTreeNode&) { throw NonCopyableException(); }
+
+  private:
+    SyntaxTreeNode(const SyntaxTreeNode&) = delete;
+    SyntaxTreeNode& operator=(const SyntaxTreeNode&) = delete;
     
   public:
     

@@ -36,8 +36,10 @@ namespace LQX {
     
     /* Always use the provided Static Initializers for loading */
     Program(std::vector<SyntaxTreeNode*>* rawProgram, double compileTime);
-    Program(const Program& other);
-    Program& operator=(const Program& other);
+
+  private:
+    Program(const Program& other) = delete;
+    Program& operator=(const Program& other) = delete;
     
   public:
     

@@ -7,7 +7,6 @@
  *
  */
 
-#include "NonCopyable.h"
 #include "SymbolTable.h"
 #include "Environment.h"
 #include "LanguageObject.h"
@@ -499,16 +498,6 @@ namespace LQX {
       _ss << " " << std::setw(17) << std::left << symbol->getTypeName();
       _ss << " " << std::setw(15) << std::left << value.str() << std::endl;
     }
-  }
-  
-  SymbolTable::SymbolTable(const SymbolTable&)
-  {
-    throw NonCopyableException();
-  }
-  
-  SymbolTable& SymbolTable::operator=(const SymbolTable&)
-  {
-    throw NonCopyableException();
   }
   
 };

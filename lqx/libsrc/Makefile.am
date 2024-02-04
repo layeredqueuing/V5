@@ -1,9 +1,9 @@
-# $Id: Makefile.am 16989 2024-01-31 11:40:29Z greg $
+# $Id: Makefile.am 17007 2024-02-01 17:30:55Z greg $
 # Binaries that need to be produced
 SUBDIRS = headers/lqx
 lib_LTLIBRARIES = liblqx.la
 liblqx_la_SOURCES = Array.cpp Environment.cpp Intrinsics.cpp LanguageObject.cpp \
-	MethodTable.cpp NonCopyable.cpp Parser.cpp Parser_pre.ypp Program.cpp \
+	MethodTable.cpp Parser.cpp Parser_pre.ypp Program.cpp \
 	ReferenceCountedObject.cpp RuntimeException.cpp Scanner.cpp \
 	Scanner_pre.lpp Strings.cpp SymbolTable.cpp SyntaxTree.cpp
 liblqx_la_LDFLAGS = -no-undefined -version-info 0:1:0

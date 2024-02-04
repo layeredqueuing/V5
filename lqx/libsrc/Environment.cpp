@@ -7,7 +7,6 @@
  *
  */
 
-#include "NonCopyable.h"
 #include "Environment.h"
 #include "Intrinsics.h"
 #include "LQXStrings.h"
@@ -37,16 +36,6 @@ namespace LQX {
     delete _methodTable;
     delete _runtimeVariables;
     delete _specialVariables;
-  }
-  
-  Environment::Environment(const Environment& )
-  {
-    throw NonCopyableException();
-  }
-  
-  Environment& Environment::operator=(const Environment& )
-  {
-    throw NonCopyableException();
   }
   
   SymbolTable* Environment::getSymbolTable() const

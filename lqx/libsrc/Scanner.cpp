@@ -7,7 +7,6 @@
  *
  */
 
-#include "NonCopyable.h"
 #include "Scanner.h"
 #include "Parser.h"
 #include <cassert>
@@ -146,16 +145,6 @@ namespace LQX {
   
   Scanner::~Scanner()
   {
-  }
-  
-  Scanner::Scanner(const Scanner&) : _current(0, LQX::PT_EOS)
-  {
-    throw NonCopyableException();
-  }
-  
-  Scanner& Scanner::operator=(const Scanner&)
-  {
-    throw NonCopyableException();
   }
   
   Scanner* Scanner::getSharedScanner()

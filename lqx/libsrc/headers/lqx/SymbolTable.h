@@ -162,11 +162,11 @@ namespace LQX {
     /* Output debug data */
     void dump(std::stringstream& ss);
     
-  protected:
+  private:
     
     /* Symbol table is non-copyable */
-    SymbolTable(const SymbolTable& other);
-    SymbolTable& operator=(const SymbolTable& other);
+    SymbolTable(const SymbolTable& other) = delete;
+    SymbolTable& operator=(const SymbolTable& other) = delete;
     
   private:
     

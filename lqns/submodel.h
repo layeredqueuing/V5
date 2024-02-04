@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 16944 2024-01-26 12:40:01Z greg $
+ * $Id: submodel.h 17014 2024-02-02 00:18:14Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -38,14 +38,6 @@ protected:
     typedef std::pair< std::set<Task *>, std::set<Entity*> > submodel_group_t;
 
 private:
-    class InitializeWait {
-    public:
-	InitializeWait( const Submodel& submodel ) : _submodel(submodel) {}
-	void operator()( Task* client ) const;
-    private:
-	const Submodel& _submodel;
-    };
-
     class SubmodelManip {
     public:
 	SubmodelManip( std::ostream& (*ff)(std::ostream&, const Submodel&, const unsigned long ),
@@ -134,6 +126,8 @@ protected:
     SubmodelTraceManip print_trace_header( const std::string& str ) { return SubmodelTraceManip( &Submodel::submodel_trace_header_str, str ); }
 
 private:
+    void initializeWait( Task * ) const;
+
     void addToGroup( Task *, submodel_group_t& group ) const;
     bool replicaGroups( const std::set<Task *>&, const std::set<Task *>& ) const;
 		
@@ -176,14 +170,6 @@ class MVASubmodel : public Submodel {
 	MVASubmodel& _submodel;
     };
 #endif
-
-    class InitializeChains {
-    public:
-	InitializeChains( MVASubmodel& submodel ) : _submodel(submodel) {}
-	void operator()( Task* client ) const;
-    private:
-	MVASubmodel& _submodel;
-    };
 
     struct InitializeServerStation {
 	InitializeServerStation( MVASubmodel& submodel ) : _submodel(submodel) {}
@@ -272,6 +258,8 @@ private:
     bool hasThreads() const { return _hasThreads; }
     bool hasSynchs() const { return _hasSynchs; }
     bool hasReplicas() const { return _hasReplicas; }
+
+    void initializeChains( Task* client ) const;
 
 public:
 #if PAN_REPLICATION

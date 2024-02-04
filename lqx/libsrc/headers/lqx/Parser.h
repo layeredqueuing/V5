@@ -131,11 +131,11 @@ namespace LQX {
     bool getSyntaxErrorDidOccur() const;
     void clearSyntaxError();
     
-  protected:
+  private:
     
     /* This object is not copyable, and will throw an exception if you try */
-    Parser(const Parser& other);
-    Parser& operator=(const Parser& other);
+    Parser(const Parser& other) = delete;
+    Parser& operator=(const Parser& other) = delete;
     
   public:
     

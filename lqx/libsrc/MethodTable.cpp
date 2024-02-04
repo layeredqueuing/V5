@@ -7,7 +7,6 @@
  *
  */
 
-#include "NonCopyable.h"
 #include "MethodTable.h"
 #include "SymbolTable.h"
 #include "Environment.h"
@@ -23,16 +22,6 @@ namespace LQX {
   
   Method::~Method()
   {
-  }
-  
-  MethodTable::MethodTable(const MethodTable&)
-  {
-    throw NonCopyableException();
-  }
-  
-  MethodTable& MethodTable::operator=(const MethodTable&)
-  {
-    throw NonCopyableException();
   }
   
   std::vector<Symbol::Type>& Method::getRequiredParameterTypes()

@@ -8,7 +8,6 @@
  */
 
 #include <config.h>
-#include "NonCopyable.h"
 #include "Program.h"
 #include "Scanner.h"
 #include "Parser.h"
@@ -171,16 +170,6 @@ Program* Program::loadFromText(const char* filename, const unsigned line_number,
     /* Clean up any used memory */
     delete(_runEnvironment);
     delete(_program);
-  }
-  
-  Program::Program(const Program&)
-  {
-    throw NonCopyableException();
-  }
-  
-  Program& Program::operator=(const Program&)
-  {
-    throw NonCopyableException();
   }
   
   std::ostream& Program::getGraphvizRepresentation( std::ostream& ss ) const

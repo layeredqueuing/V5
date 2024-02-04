@@ -94,9 +94,10 @@ namespace LQX {
     /* Class is a Singleton */
     Scanner();
     
+  private:
     /* This object is not copyable, and will throw an exception if you try */
-    Scanner(const Scanner& other);
-    Scanner& operator=(const Scanner& other);
+    Scanner(const Scanner& other) = delete;
+    Scanner& operator=(const Scanner& other) = delete;
     
   private:
     

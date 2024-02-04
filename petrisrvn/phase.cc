@@ -440,11 +440,6 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 }
 
 
-
-
-
-
-
 /*
  * Request service FROM the processor.
  */
@@ -453,10 +448,12 @@ void
 Phase::request_processor( struct trans_object * c_trans, const unsigned m, const unsigned s ) const
 {
     c_trans->layer |= PROC_LAYER;
-    if ( processor()->is_single_place_processor() ) {
-        if ( processor()->PX ) {
-	    create_arc( PROC_LAYER, TO_TRANS, c_trans, processor()->PX );
-	}
+    if ( !processor()->PX ) return;
+
+    if ( processor()->is_ps_processor() ) {		/* BUG 415 */
+	create_arc( PROC_LAYER, TO_PLACE, c_trans, processor()->PX );
+    } else if ( processor()->is_single_place_processor() ) {
+	create_arc( PROC_LAYER, TO_TRANS, c_trans, processor()->PX );
     } else {
 	create_arc( PROC_LAYER, TO_PLACE, c_trans, no_place( "Preq%s%s%d%d", processor()->name(), name(), m, s ) );
     }
@@ -482,7 +479,12 @@ Phase::release_processor( struct trans_object * c_trans, const unsigned m, const
     c_trans->layer |= PROC_LAYER;
     if ( !processor()->PX ) return;
 
-    create_arc( PROC_LAYER, TO_PLACE, c_trans, processor()->PX );
+    if ( processor()->is_ps_processor() ) {		/* BUG 415 */
+	create_arc( PROC_LAYER, TO_TRANS, c_trans, processor()->PX );
+    } else {
+	create_arc( PROC_LAYER, TO_PLACE, c_trans, processor()->PX );
+    }
+
     if ( !processor()->is_single_place_processor() ) {
 #if defined(BUG_111)
 	if ( n_slices() == 1 ) {

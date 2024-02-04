@@ -24,11 +24,11 @@ namespace LQX {
     Environment();
     virtual ~Environment();
     
-  protected:
+  private:
     
     /* This object is not copyable, and will throw an exception if you try */
-    Environment(const Environment& other);
-    Environment& operator=(const Environment& other);
+    Environment(const Environment& other) = delete;
+    Environment& operator=(const Environment& other) = delete;
     
   public:
     void setDefaultOutput( FILE * defaultOutput ) { _defaultOutput = defaultOutput; }

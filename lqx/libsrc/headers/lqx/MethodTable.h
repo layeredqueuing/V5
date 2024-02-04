@@ -44,11 +44,11 @@ namespace LQX {
     Method();
     virtual ~Method();
     
-  protected:
+  private:
     
     /* This object is not copyable, and will throw an exception if you try */
-    Method(const Method& other);
-    Method& operator=(const Method& other);
+    Method(const Method& other) = delete;
+    Method& operator=(const Method& other) = delete;
     
   public:
     

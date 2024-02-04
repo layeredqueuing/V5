@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16973 2024-01-29 19:51:08Z greg $
+ * $Id: task.cc 17035 2024-02-04 22:37:38Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2386,6 +2386,7 @@ Task::draw( std::ostream& output ) const
 	{ SCHEDULE_HOL,	        'h' },
 	{ SCHEDULE_POLL,        'P' },
 	{ SCHEDULE_PPR,	        'p' },
+	{ SCHEDULE_RAND,	'r' },
 	{ SCHEDULE_RWLOCK,      'W' },
 	{ SCHEDULE_UNIFORM,     'u' }
     };
@@ -2746,6 +2747,7 @@ Task::create( const LQIO::DOM::Task* task_dom, std::vector<Entry *>& entries )
     case SCHEDULE_FIFO:
     case SCHEDULE_PPR:
     case SCHEDULE_HOL:
+    case SCHEDULE_RAND:
     case SCHEDULE_DELAY:
 	task = new ServerTask( task_dom, processor, share, entries );
 	break;

@@ -7,7 +7,6 @@
  *
  */
 
-#include "NonCopyable.h"
 #include "Parser.h"
 #include "Scanner.h"
 #include <sstream>
@@ -117,16 +116,6 @@ namespace LQX {
   {
     /* Release the parser with system free() */
     ModLangParserFree(_parser, free);
-  }
-  
-  Parser::Parser(const Parser&)
-  {
-    throw NonCopyableException();
-  }
-  
-  Parser& Parser::operator=(const Parser&)
-  {
-    throw NonCopyableException();
   }
   
   bool Parser::processToken(LQX::ScannerToken* value)
