@@ -11,7 +11,7 @@
 #define PETRISRVN_PHASE_H
 
 /*
- * $Id: petrisrvn.h 10943 2012-06-13 20:21:13Z greg $
+ * $Id: phase.h 17069 2024-02-27 23:16:21Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -20,6 +20,7 @@
 #include <vector>
 #include <map>
 #include "wspnlib/global.h"
+#include "call.h"
 
 class Processor;
 class Task;
@@ -42,21 +43,6 @@ struct slice_info_t {
     struct place_object * ChX[MAX_MULT];	/* Choose next action.		*/
     struct place_object * PrX[MAX_MULT];	/* Processor request.		*/
     struct place_object * PgX[MAX_MULT];	/* Processor grant.		*/
-};
-
-struct Call {
-    Call() : _dom(NULL), _rpar_y(0), _w(0), _dp(0) {}
-
-    bool is_rendezvous() const;
-    bool is_send_no_reply() const;
-    double value( const Phase *, double = 0.0 ) const;
-    LQIO::DOM::Call * get_dom() const { return _dom; }
-
-    LQIO::DOM::Call * _dom;			/* DOMs for the calls		*/
-    short _rpar_y;				/* Rendezvous rate (by phase).	*/
-    double _w;					/* Waiting from entry to entry	*/
-    double _dp;					/* Drop prob from entry to entry*/
-    std::vector<double> _bin;			/* Histogram of customers	*/
 };
 
 class Phase {

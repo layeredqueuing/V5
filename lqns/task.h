@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 16961 2024-01-28 02:12:54Z greg $
+ * $Id: task.h 17044 2024-02-06 18:38:48Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -50,8 +50,10 @@ private:
     };
     
     struct add_customers {
-	unsigned int operator()( unsigned int addend, const std::pair<const Task *,unsigned int>& augend ) const;
-	unsigned int operator()( unsigned int addend, const Entity * augend ) const;	// BUG_425 deprecate
+	unsigned int operator()( unsigned int addend, const std::pair<const Task *,unsigned int>& augend ) const { return add( addend, augend.second ); }
+	unsigned int operator()( unsigned int addend, const Entity * augend ) const { return add( addend, augend->population() ); }	// BUG_425 deprecate
+    private:
+	unsigned int add( unsigned int addend, unsigned int augend ) const;
     };
 
     class SRVNManip {

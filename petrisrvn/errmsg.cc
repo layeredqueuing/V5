@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: errmsg.cc 16448 2023-02-27 13:04:14Z greg $
+ * $Id: errmsg.cc 17070 2024-02-27 23:50:32Z greg $
  */
 
 #include "petrisrvn.h"
@@ -23,14 +23,11 @@
 std::vector< std::pair<unsigned, LQIO::error_message_type> > local_error_messages =
 {
     { FTL_TAG_TABLE_FULL,               { LQIO::error_severity::FATAL,      "Tag hash table overflow."} },
-    { ERR_SEND_NO_REPLIES_PROHIBITED,   { LQIO::error_severity::ERROR,      "Send-no-reply from \"%s\" to \"%s\" is not supported."} },
     { ERR_BOGUS_REFERENCE_TASK,         { LQIO::error_severity::ERROR,      "Entry \"%s\" for reference task \"%s\" must have service time, think time, or deterministic phases."} },
     { ERR_MULTI_SYNC_SERVER,            { LQIO::error_severity::ERROR,      "Task \"%s\" provides external synchronization: it cannot be a multiserver."} },
     { ERR_COMMON_ENTRY_EXTERNAL_SYNC,   { LQIO::error_severity::ERROR,      "Task \"%s\": join from common entry \"%s\"."} },
     { WRN_CONVERGENCE,                  { LQIO::error_severity::WARNING,    "Convergence problems for \"%s\"; precision is %g."} },
     { WRN_PREEMPTIVE_SCHEDULING,        { LQIO::error_severity::WARNING,    "Premptive scheduling for processor \"%s\" cannot be used with non-unity coefficient of variation at entry \"%s\"."} },
-    { ADV_MESSAGES_LOST,                { LQIO::error_severity::ADVISORY,   "Open-class messages are dropped at task \"%s\" with probability %g."} },
-    { ADV_OPEN_ARRIVALS_DONT_MATCH,     { LQIO::error_severity::ADVISORY,   "Throughput %g does not match open arrival rate %g at Entry \"%s\"."} },
     { ADV_ERLANG_N,                     { LQIO::error_severity::ADVISORY,   "Using Erlang %d distribution for Entry \"%s\"."} }
 };
 

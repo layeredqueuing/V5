@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 16676 2023-04-19 11:56:50Z greg $
+ * $Id: option.cc 17067 2024-02-27 18:45:36Z greg $
  */
 
 #include "lqns.h"
@@ -307,13 +307,13 @@ std::map<const std::string, const Options::Special> Options::Special::__table =
 {
     { "full-reinitialize",                      Special( &Special::full_reinitialize,           false, &Help::specialFullReinitialize ) },
     { "generate",                               Special( &Special::generate_queueing_model,     true,  &Help::specialGenerateQueueingModel ) },
+    { "generate-jmva",                          Special( &Special::generate_jmva_output,        true,  &Help::specialGenerateJMVAOutput ) },
 #if HAVE_LIBGSL
     { "ignore-overhanging-threads",             Special( &Special::ignore_overhanging_threads,  false, &Help::specialIgnoreOverhangingThreads ) },
 #endif
     { "man",                                    Special( &Special::make_man,                    true,  &Help::specialMakeMan ) },
     { "min-steps",                              Special( &Special::min_steps,                   true,  &Help::specialMinSteps ) },
     { "print-interval",                         Special( &Special::print_interval,              true,  &Help::specialPrintInterval ) },
-    { "overtaking",                             Special( &Special::overtaking,                  false, &Help::specialOvertaking ) },
     { "single-step",                            Special( &Special::single_step,                 false, &Help::specialSingleStep ) },
     { "tex",                                    Special( &Special::make_tex,                    true,  &Help::specialMakeTex ) },
 };
@@ -354,6 +354,19 @@ Options::Special::generate_queueing_model( const std::string& arg )
 	Generate::__directory_name = arg;
     }
 }
+
+
+void
+Options::Special::generate_jmva_output( const std::string& arg )
+{
+    flags.generate = true;
+    if ( arg.empty() ) {
+	Generate::__directory_name = "jmva";
+    } else {
+	Generate::__directory_name = arg;
+    }
+}
+
 
 #if HAVE_LIBGSL
 void
@@ -408,12 +421,6 @@ Options::Special::min_steps( const std::string& arg )
     if ( arg.empty() || (flags.min_steps = (unsigned)strtol( arg.c_str(), &endptr, 10 )) == 0 || *endptr != '\0' ) {
 	throw std::runtime_error( std::string( "min-steps=" ) + arg + ", choose an integer greater than 0." );
     }
-}
-
-void
-Options::Special::overtaking( const std::string& )
-{
-    flags.print_overtaking = true;
 }
 
 void

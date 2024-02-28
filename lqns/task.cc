@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 16976 2024-01-29 21:25:19Z greg $
+ * $Id: task.cc 17050 2024-02-06 21:26:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -504,30 +504,20 @@ Task::population() const
 
 
 /*
- * For accumulate.  The second argument is a pair, so the default doesn't work. 
+ * For accumulate.  Make sure we don't overflow unsigned ints.  Open arrivals use the upper limit.
  */
 
 unsigned int
-Task::add_customers::operator()( unsigned int augend, const std::pair<const Task *,unsigned int>& addend ) const
+Task::add_customers::add( unsigned int augend, unsigned int addend ) const
 {
-    if ( addend.second == std::numeric_limits<unsigned int>::max() ) {
-	return addend.second;
-    } else {
-	return augend + addend.second;
-    }	
-};
-
-unsigned int // BUG_425 deprecate
-Task::add_customers::operator()( unsigned int augend, const Entity * entity ) const
-{
-    const unsigned int addend = entity->population();
-    if ( addend == std::numeric_limits<unsigned int>::max() ) {
-	return addend;
+    if ( augend == std::numeric_limits<unsigned int>::max()
+	 || addend == std::numeric_limits<unsigned int>::max()
+	 || addend > std::numeric_limits<unsigned int>::max() - augend ) {
+	return std::numeric_limits<unsigned int>::max();
     } else {
 	return augend + addend;
     }	
-}
-/*- BUG_425 */
+};
 
 
 int
@@ -765,8 +755,8 @@ double
 Task::processorUtilization() const
 {
     return std::accumulate( entries().begin(), entries().end(),
-			    std::accumulate( activities().begin(), activities().end(), 0., Phase::sum( &Activity::processorUtilization ) ),
-			    []( double l, Entry * r ){ return l + r->processorUtilization(); } );
+			    std::accumulate( activities().begin(), activities().end(), 0., []( double sum, const Activity * activity ){ return sum + activity->processorUtilization(); } ),
+			    []( double sum, Entry * entry ){ return sum + entry->processorUtilization(); } );
 }
 
 

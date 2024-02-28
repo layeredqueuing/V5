@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 16740 2023-06-11 12:32:45Z greg $
+ * $Id: phase.h 17050 2024-02-06 21:26:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -117,15 +117,6 @@ public:
 	void operator()( const Phase* phase ) const;
     private:
 	std::set<Entity *>& _servers;
-    };
-
-    struct sum {
-	typedef double (Phase::*funcPtr)() const;
-	sum( funcPtr f ) : _f(f) {}
-	double operator()( double l, const Phase* r ) const { return l + (r->*_f)(); }
-	double operator()( double l, const Phase& r ) const { return l + (r.*_f)(); }
-    private:
-	const funcPtr _f;
     };
 
 private:

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 10943 2012-06-13 20:21:13Z greg $
+ * $Id: phase.cc 17069 2024-02-27 23:16:21Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -155,7 +155,7 @@ const Processor * Phase::processor() const
 LQIO::DOM::Call * Phase::get_call(const Entry* entry) const
 {
     std::map<const Entry *,Call>::const_iterator e = _call.find(entry);
-    return ( e != _call.end() ) ? e->second._dom : NULL;
+    return ( e != _call.end() ) ? e->second.get_dom() : nullptr;
 }
 
 
@@ -259,11 +259,11 @@ Phase::add_call( LQIO::DOM::Call * call )
 	LQIO::input_error( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
     } else if ( call->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS ) {
 	if ( to_entry->test_and_set_recv( Requesting_Type::RENDEZVOUS ) ) {
-	    _call[to_entry]._dom = call;		/* Save dom */
+	    _call[to_entry].set_dom( call );		/* Save dom */
 	}
     } else if ( call->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY ) {
 	if ( to_entry->test_and_set_recv( Requesting_Type::SEND_NO_REPLY ) ) {
-	    _call[to_entry]._dom = call;		/* Save dom */
+	    _call[to_entry].set_dom( call );		/* Save dom */
 	}
     }
     return *this;
@@ -581,7 +581,7 @@ Phase::create_ypar( Entry * entry )
 {
     std::map<const Entry *,Call>::iterator e = _call.find(entry);
     if ( e != _call.end() ) {
-	e->second._rpar_y = create_rpar( __parameter_x, __parameter_y, CALL_RATE_LAYER, e->second._dom->getCallMeanValue(), "r%s%s", name(), entry->name() );
+	e->second._rpar_y = create_rpar( __parameter_x, __parameter_y, CALL_RATE_LAYER, e->second.get_dom()->getCallMeanValue(), "r%s%s", name(), entry->name() );
 	inc_par_offsets();
     }
 }
@@ -624,12 +624,12 @@ Phase::insert_DOM_results() const
 	const Call& call = c->second;
 	const Entry * entry = c->first;
 	if ( call.is_rendezvous() ) {
-	    const_cast<Call&>(call)._dom->setResultWaitingTime( queueing_time( entry ) );
+	    const_cast<Call&>(call).get_dom()->setResultWaitingTime( queueing_time( entry ) );
 	} else if ( call.is_send_no_reply() > 0.0 ) {
-	    const_cast<Call&>(call)._dom->setResultWaitingTime( response_time( entry ) );
-	    const_cast<Call&>(call)._dom->setResultDropProbability( drop_probability( entry ) );
+	    const_cast<Call&>(call).get_dom()->setResultWaitingTime( response_time( entry ) );
+	    const_cast<Call&>(call).get_dom()->setResultDropProbability( drop_probability( entry ) );
 	}
-	LQIO::DOM::Histogram * histogram = const_cast<LQIO::DOM::Histogram *>(call._dom->getHistogram());
+	LQIO::DOM::Histogram * histogram = const_cast<LQIO::DOM::Histogram *>(call.get_dom()->getHistogram());
 	if ( histogram != NULL ) {
 	    std::vector<double> * bins = get_histogram( entry );
 	    histogram->capacity( bins->size(), 0, bins->size() );
@@ -805,11 +805,10 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
 	    /* direct call: this == src_phase */
 
 	    src->second._w = queue_tokens / tput;
-//	    call._w = queue_tokens / tput;	/* Can't do this because of pseudo calls (open arrivals) */
 
 	    /* Drop probabiltity */
 
-	    if ( call._dom->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY ) {
+	    if ( call.get_dom()->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY ) {
 		const double drop_tput = drop_lambda( m, b, src_phase );
 		src->second._dp = drop_tput / (tput + drop_tput);
 	    }
@@ -922,37 +921,3 @@ Phase::simplify_phase() const
 {
     return simplify_network && (!processor() || (processor()->PX == nullptr && !is_hyperexponential() && !task()->inservice_flag()));
 }
-
-bool
-Call::is_rendezvous() const
-{
-    return _dom->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS;
-}
-
-
-bool
-Call::is_send_no_reply() const
-{
-    return _dom->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY;
-}
-
-double
-Call::value( const Phase * src, double upper_limit ) const
-{
-    try {
-	const double value = _dom->getCallMeanValue();
-	if ( !src->has_stochastic_calls() ) {
-	    if ( value != trunc(value) ) throw std::domain_error( "invalid integer" );
-	} else if ( 0 < upper_limit && upper_limit < value ) {
-	    std::stringstream ss;
-	    ss << value << " > " << upper_limit;
-	    throw std::domain_error( ss.str() );
-	}
-	return value;
-    }
-    catch ( const std::domain_error &e ) {
-	_dom->throw_invalid_parameter( "mean value", e.what() );
-    }
-    return 0.;
-}
-

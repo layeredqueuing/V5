@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 16961 2024-01-28 02:12:54Z greg $
+ * $Id: actlist.h 17050 2024-02-06 21:26:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -257,13 +257,6 @@ class AndOrForkActivityList : public ForkJoinActivityList
     friend class AndOrJoinActivityList;
 
 protected:
-    struct add_prBranch {
-	add_prBranch( const AndOrForkActivityList * self ) : _self(self) {}
-	double operator()( double sum, const Activity * object ) { return sum + _self->prBranch(object); }
-    private:
-	const AndOrForkActivityList * _self;
-    };
-	
     struct find_children {
 	find_children( const AndOrForkActivityList& self, const Activity::Ancestors& ancestors ) : _self(self), _ancestors(ancestors) {}
 	unsigned operator()( unsigned arg1, const Activity * arg2 ) const;
@@ -464,9 +457,6 @@ private:
 
 class OrJoinActivityList : public AndOrJoinActivityList
 {
-private:
-    struct add_rate { double operator()( const double l, const std::pair<const Activity *,double>& r ) { return l + r.second; } };
-
 public:
     OrJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom ) : AndOrJoinActivityList( owner, dom ), _rateList() {}
     virtual ~OrJoinActivityList() = default;

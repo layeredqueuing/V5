@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 10943 2012-06-13 20:21:13Z greg $
+ * $Id: entry.cc 17069 2024-02-27 23:16:21Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -21,7 +21,6 @@
 #include <sstream>
 #include <lqio/glblerr.h>
 #include <lqio/dom_entry.h>
-#include "model.h"
 #include "makeobj.h"
 #include "errmsg.h"
 #include "entry.h"
@@ -105,7 +104,7 @@ double Entry::prob_fwd( const Entry * entry ) const
 {
     std::map<const Entry *,Call>::const_iterator e = _fwd.find(entry);
     if ( e != _fwd.end() ) {
-	const LQIO::DOM::Call * call = e->second._dom;
+	const LQIO::DOM::Call * call = e->second.get_dom();
 	try {
 	    const double value = call->getCallMeanValue();
 	    if ( value > 1.0 ) {
@@ -199,7 +198,7 @@ Entry::add_fwd_call( LQIO::DOM::Call * call )
 	if ( from_task->type() == Task::Type::REF_TASK ) {
 	    from_task->get_dom()->runtime_error( LQIO::ERR_REFERENCE_TASK_FORWARDING, from_entry->name() );
 	} else {
-	    from_entry->_fwd[to_entry]._dom = call;		/* Save dom */
+	    from_entry->_fwd[to_entry].set_dom( call );		/* Save dom */
 	}
     }
 }
@@ -458,32 +457,15 @@ Entry::task_utilization ( unsigned p ) const
  */
 
 bool
-Entry::check_open_result()
+Entry::messages_lost() const
 {
-    if ( Pragma::__pragmas->stop_on_message_loss() ) {
-	LQIO::error_messages.at(ADV_MESSAGES_LOST).severity = LQIO::error_severity::ERROR;
-    }
-
-    Model::__open_class_error = false;
 #if defined(BUFFER_BY_ENTRY)
-    if ( openArrivalRate() > 0.0 && fabs ( openArrivalRate() - throughput[1] ) / openArrivalRate() > 0.05 ) {
-	LQIO::runtime_error( ADV_OPEN_ARRIVALS_DONT_MATCH, throughput[1], openArrivalRate(), name() );
-	Model::__open_class_error = true;
-    } else if ( requests() == SEND_NO_REPLY_REQUEST && get_prob( 0, "ZZ%s", name() ) > EPSILON ) {
-	LQIO::runtime_error( ADV_MESSAGES_LOST, name, get_prob( 0, "ZZ%s", name() ) );
-	Model::__open_class_error = true;
-    }
+    return ( openArrivalRate() > 0.0 && fabs ( openArrivalRate() - throughput[1] ) / openArrivalRate() > 0.05 )
+	|| ( requests() == SEND_NO_REPLY_REQUEST && get_prob( 0, "ZZ%s", name() ) > EPSILON );
 #else
-    if ( openArrivalRate() > 0.0 && fabs ( openArrivalRate() - task()->multiplicity() * _throughput[0] ) / openArrivalRate() > 0.02 ) {
-	LQIO::runtime_error( ADV_OPEN_ARRIVALS_DONT_MATCH, task()->multiplicity() * _throughput[0], openArrivalRate(), name() );
-	Model::__open_class_error = true;
-    } else if ( requests() == Requesting_Type::SEND_NO_REPLY && get_prob( 0, "ZZ%s", task()->name()) > EPSILON ) {
-	LQIO::runtime_error( ADV_MESSAGES_LOST, task()->name(), get_prob( 0, "ZZ%s", task()->name() ) );
-	Model::__open_class_error = true;
-    }
-
+    return ( openArrivalRate() > 0.0 && fabs ( openArrivalRate() - task()->multiplicity() * _throughput[0] ) / openArrivalRate() > 0.02)
+	|| ( requests() == Requesting_Type::SEND_NO_REPLY && get_prob( 0, "ZZ%s", task()->name()) > EPSILON );
 #endif
-    return !Model::__open_class_error;
 }
 
 void
@@ -531,7 +513,7 @@ Entry::insert_DOM_results() const
     for ( std::map<const Entry *,Call>::const_iterator f = _fwd.begin(); f != _fwd.end(); ++f ) {
 	const Call& call = f->second;
 	const Entry * entry = f->first;
-	call._dom->setResultWaitingTime( queueing_time( entry ) );
+	const_cast<LQIO::DOM::Call *>(call.get_dom())->setResultWaitingTime( queueing_time( entry ) );
     }
 }
 

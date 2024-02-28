@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * option.h	-- Greg Franks
  *
- * $Id: option.h 16676 2023-04-19 11:56:50Z greg $
+ * $Id: option.h 17067 2024-02-27 18:45:36Z greg $
  */
 
 #ifndef _OPTION_H
@@ -143,6 +143,7 @@ namespace Options
     private:
 	static void single_step( const std::string& );
 	static void generate_queueing_model( const std::string& );
+	static void generate_jmva_output( const std::string& );
 	static void make_man( const std::string& );
 	static void make_tex( const std::string& );
 	static void min_steps( const std::string& );

@@ -11,7 +11,7 @@
 #define _ENTRY_H
 
 /*
- * $Id: petrisrvn.h 10943 2012-06-13 20:21:13Z greg $
+ * $Id: entry.h 17069 2024-02-27 23:16:21Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -102,8 +102,7 @@ public:
 
     double task_utilization( unsigned p ) const;
     double queueing_time( const Entry * entry ) const;
-    bool check_open_result();
-
+    bool messages_lost() const;
 
 public:
     Phase phase[DIMPH+1];			/* Phases			*/

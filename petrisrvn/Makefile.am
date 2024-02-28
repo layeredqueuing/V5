@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 16989 2024-01-31 11:40:29Z greg $
+# $Id: Makefile.am 17068 2024-02-27 22:16:51Z greg $
 #----------------------------------------------------------------------
 
 SUBDIRS=	wspnlib regression
@@ -7,6 +7,7 @@ AM_CPPFLAGS =	-I../lqiolib/src/headers -I../lqx/libsrc/headers/
 bin_PROGRAMS=	petrisrvn
 petrisrvn_SOURCES = actlist.cc \
 	activity.cc \
+	call.cc \
 	entry.cc \
 	errmsg.cc \
 	makeobj.cc \
@@ -22,6 +23,7 @@ petrisrvn_SOURCES = actlist.cc \
 
 noinst_HEADERS=	activity.h \
 	actlist.h \
+	call.h \
 	entry.h \
 	errmsg.h \
 	makeobj.h \

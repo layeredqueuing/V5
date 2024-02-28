@@ -14,9 +14,10 @@
 #include <string>
 #include <wspnlib/global.h>
 #include "petrisrvn.h"
+#include "call.h"
 
 /*
- * $Id: petrisrvn.h 10943 2012-06-13 20:21:13Z greg $
+ * $Id: task.h 17069 2024-02-27 23:16:21Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -176,7 +177,8 @@ public:
 
 class OpenTask : public Task {
 public:
-    OpenTask( LQIO::DOM::Document * document, const std::string& name, const Entry * dst ) : Task( 0, Type::OPEN_SRC, 0 ), _document(document), _name(name), _dst(dst) {}
+    OpenTask( LQIO::DOM::Document * document, const std::string& name, const Entry * dst );
+    virtual ~OpenTask();
 
     const char * name() const { return _name.c_str(); }
 
@@ -198,6 +200,7 @@ private:
     LQIO::DOM::Document * _document;
     const std::string _name;
     const Entry * _dst;
+    Call _call;
 };
 
 extern std::vector<Task *> __task;

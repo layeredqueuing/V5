@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17035 2024-02-04 22:37:38Z greg $
+ * $Id: task.cc 17059 2024-02-08 15:43:01Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2200,7 +2200,7 @@ Task::expandActivities( const Task& src, int replica )
 		post_act_list = dynamic_cast<const ForkJoinActivityList *>(dstPrecedence)->activityList();
 	    } else if (dynamic_cast<const RepeatActivityList *>(dstPrecedence)) {
 		post_act_list = dynamic_cast<const RepeatActivityList *>(dstPrecedence)->activityList();
-//		post_act_list.push_back(dynamic_cast<const RepeatActivityList *>(dstPrecedence)->getMyActivity());
+		post_act_list.push_back(dynamic_cast<const RepeatActivityList *>(dstPrecedence)->getMyActivity());
 	    } else if (dynamic_cast<const SequentialActivityList *>(dstPrecedence)) {
 		post_act_list.push_back(dynamic_cast<const SequentialActivityList *>(dstPrecedence)->getMyActivity());
 	    }

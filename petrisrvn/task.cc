@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 10943 2012-06-13 20:21:13Z greg $
+ * $Id: task.cc 17069 2024-02-27 23:16:21Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -29,11 +29,11 @@
 #include "entry.h"
 #include "errmsg.h"
 #include "makeobj.h"
+#include "model.h"
 #include "petrisrvn.h"
 #include "phase.h"
 #include "pragma.h"
 #include "processor.h"
-#include "results.h"
 #include "results.h"
 #include "task.h"
 
@@ -821,8 +821,9 @@ Task::get_results()
     for ( unsigned int m = 0; m < max_m; ++m ) {
 	get_results_for( m );
     }
-    for ( std::vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
-	(*e)->check_open_result();
+    if ( std::any_of( entries.begin(), entries.end(), std::mem_fn( &Entry::messages_lost ) ) ) {
+	get_dom()->runtime_error( LQIO::ADV_MESSAGES_DROPPED );
+	Model::__open_class_error = true;
     }
 }
 
@@ -1053,15 +1054,24 @@ Task::insert_DOM_results() const
 /* Open Arrival Tasks							*/
 /* -------------------------------------------------------------------- */
 
+OpenTask::OpenTask( LQIO::DOM::Document * document, const std::string& name, const Entry * dst )
+    : Task( 0, Type::OPEN_SRC, 0 ), _document(document), _name(name), _dst(dst), _call()
+{
+    _call.set_dom( new LQIO::DOM::Call( _document, LQIO::DOM::Call::Type::SEND_NO_REPLY, 0, 0, new LQIO::DOM::ConstantExternalVariable(1.0) ) );
+}
+
+
+OpenTask::~OpenTask()
+{
+    delete _call.get_dom();
+}
+
+
 void
 OpenTask::get_results_for( unsigned m )
 {
     Phase& phase = entries[0]->phase[1];
-    Call call;
-    LQIO::DOM::ConstantExternalVariable value(1.0);
-    LQIO::DOM::Call dom( _document, LQIO::DOM::Call::Type::SEND_NO_REPLY, 0, 0, &value );
-    call._dom = &dom;
-    phase.compute_queueing_delay( call, m, _dst, multiplicity(), &phase );
+    phase.compute_queueing_delay( _call, m, _dst, multiplicity(), &phase );
 }
 
 
@@ -1074,4 +1084,7 @@ OpenTask::insert_DOM_results() const
 {
     LQIO::DOM::Entry * entry = const_cast<LQIO::DOM::Entry *>(_dst->get_dom());
     entry->setResultWaitingTime( entries[0]->phase[1].response_time( _dst ) );
+    if ( _call._dp > 0. ) {
+	entry->setResultDropProbability( _call._dp );
+    }
 }

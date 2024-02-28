@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 16676 2023-04-19 11:56:50Z greg $
+ * $Id: help.h 17066 2024-02-27 17:50:25Z greg $
  */
 
 #ifndef _HELP_H
@@ -216,12 +216,12 @@ public:
     std::ostream& traceWait( std::ostream & output, bool verbose ) const;
 
     std::ostream& specialFullReinitialize( std::ostream & output, bool verbose ) const;
+    std::ostream& specialGenerateJMVAOutput( std::ostream & output, bool verbose ) const;
     std::ostream& specialGenerateQueueingModel( std::ostream & output, bool verbose ) const;
     std::ostream& specialIgnoreOverhangingThreads( std::ostream & output, bool verbose ) const;
     std::ostream& specialMakeMan( std::ostream & output, bool verbose ) const;
     std::ostream& specialMakeTex( std::ostream & output, bool verbose ) const;
     std::ostream& specialMinSteps( std::ostream & output, bool verbose ) const;
-    std::ostream& specialOvertaking( std::ostream & output, bool verbose ) const;
     std::ostream& specialPrintInterval( std::ostream & output, bool verbose ) const;
     std::ostream& specialSingleStep( std::ostream & output, bool verbose ) const;
     std::ostream& speicalSkipLayer( std::ostream & output, bool verbose ) const;

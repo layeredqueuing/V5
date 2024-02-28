@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 10943 2012-06-13 20:21:13Z greg $
+ * $Id: processor.cc 17069 2024-02-27 23:16:21Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -242,15 +242,14 @@ Processor::transmorgrify( unsigned max_count )
     const unsigned int copies = multiplicity();		/* Check for validity before is_single_place... */
 
     if ( is_single_place_processor() ) {
-
-	if ( is_ps_processor() ) {		/* BUG 415 */
-	    PX = create_place( x_pos, y_pos, PROC_LAYER, 0, "P%s", name() );
-	} else if ( !simplify_network || is_infinite() ) {
+	if ( is_infinite() ) {
 	    if ( ref_count() ) {
 		PX = create_place( x_pos, y_pos, PROC_LAYER, ref_count(), "P%s", name() );
 	    } else {
 		PX = create_place( x_pos, y_pos, PROC_LAYER, Task::__open_model_tokens, "P%s", name() );
 	    }
+	} else {
+	    PX = create_place( x_pos, y_pos, PROC_LAYER, multiplicity(), "P%s", name() );
 	}
 
     } else {

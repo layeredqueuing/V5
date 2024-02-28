@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 16961 2024-01-28 02:12:54Z greg $
+ * $Id: actlist.cc 17050 2024-02-06 21:26:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -707,7 +707,7 @@ OrForkActivityList::check() const
 {
     AndOrForkActivityList::check();
 
-    const double sum = std::accumulate( activities().begin(), activities().end(), 0.0, add_prBranch( this ) );
+    const double sum = std::accumulate( activities().begin(), activities().end(), 0.0, [this]( double sum, const Activity * activity ){ return sum + prBranch( activity ); } );
     if ( sum < 1.0 - EPSILON || 1.0 + EPSILON < sum ) {
         getDOM()->runtime_error( LQIO::ERR_OR_BRANCH_PROBABILITIES, sum );
 	return false;
@@ -1728,7 +1728,7 @@ bool
 OrJoinActivityList::updateRate( const Activity * activity, double rate )
 {
     _rateList.insert( std::pair<const Activity *,double>( activity, rate ) );
-    _rate = std::accumulate( _rateList.begin(), _rateList.end(), 0., add_rate() );
+    _rate = std::accumulate( _rateList.begin(), _rateList.end(), 0., [this]( double sum, const std::pair<const Activity *,double>& rate ){ return sum + rate.second; } );
     return true;
 }
 

@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16976 2024-01-29 21:25:19Z greg $
+ * $Id: entry.cc 17050 2024-02-06 21:26:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -362,7 +362,7 @@ Entry::initServiceTime()
 	entryStack.pop_back();
     }
 
-    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::serviceTime ) ) );
+    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., []( double sum, const Phase& phase ){ return sum + phase.serviceTime(); } ) );
     return *this;
 }
 
@@ -472,7 +472,7 @@ Entry::addServiceTime( const unsigned p, const double value )
 
     setMaxPhase( p );
     _phase[p].addServiceTime( value );
-    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::serviceTime ) ) );
+    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., []( double sum, const Phase& phase ){ return sum + phase.serviceTime(); } ) );
     return *this;
 }
 
@@ -759,7 +759,7 @@ Entry::setStartActivity( Activity * anActivity )
 double
 Entry::processorCalls() const
 {
-    return std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::processorCalls ) );
+    return std::accumulate( _phase.begin(), _phase.end(), 0., []( double sum, const Phase& phase ){ return sum + phase.processorCalls(); } );
 }
 
 
@@ -786,12 +786,12 @@ Entry::clearSurrogateDelay()
 double
 Entry::computeCV_sqr() const
 {
-    const double sum_S = std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::residenceTime ) );
+    const double sum_S = std::accumulate( _phase.begin(), _phase.end(), 0., []( double sum, const Phase& phase ){ return sum + phase.residenceTime(); } );
 
     if ( !std::isfinite( sum_S ) ) {
 	return sum_S;
     } else if ( sum_S > 0.0 ) {
-	const double sum_V = std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::variance ) );
+	const double sum_V = std::accumulate( _phase.begin(), _phase.end(), 0., []( double sum, const Phase& phase ){ return sum + phase.variance(); } );
 	return sum_V / square(sum_S);
     } else {
 	return 0.0;
@@ -859,7 +859,7 @@ Entry::waitExceptChain( const unsigned submodel, const unsigned k, const unsigne
 double
 Entry::utilization() const
 {
-    return std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::utilization ) );
+    return std::accumulate( _phase.begin(), _phase.end(), 0., []( double sum, const Phase& phase ){ return sum + phase.utilization(); } );
 }
 
 
@@ -909,7 +909,7 @@ void
 Entry::recalculateDynamicValues()
 {
     std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::recalculateDynamicValues ) );
-    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::serviceTime ) ) );
+    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., []( double sum, const Phase& phase ){ return sum + phase.serviceTime(); } ) );
 }
 
 
@@ -1246,7 +1246,7 @@ double
 TaskEntry::processorUtilization() const
 {
     if ( !isStandardEntry() ) return 0.0;
-    return std::accumulate( _phase.begin(), _phase.end(), 0.0, Phase::sum( &Phase::processorUtilization ) );
+    return std::accumulate( _phase.begin(), _phase.end(), 0.0, []( double sum, const Phase& phase ){ return sum + phase.processorUtilization(); } );
 }
 
 
@@ -1300,7 +1300,7 @@ TaskEntry::computeVariance()
     } else {
 	std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::computeVariance ) );
     }
-    _total.addVariance( std::accumulate( _phase.begin(), _phase.end(), 0., Phase::sum( &Phase::variance ) ) );
+    _total.addVariance( std::accumulate( _phase.begin(), _phase.end(), 0., []( double sum, const Phase& phase ){ return sum + phase.variance() ; } ) );
     if ( flags.trace_variance != 0 && (dynamic_cast<TaskEntry *>(this) != nullptr) ) {
 	std::cout << "Variance(" << name() << ",p) ";
 	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {

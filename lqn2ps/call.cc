@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 16768 2023-07-03 12:46:11Z greg $
+ * $Id: call.cc 17062 2024-02-08 16:30:37Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -2555,11 +2555,14 @@ static Label&
 drop_probability_of_str( Label& label, const Call& call )
 {
     for ( unsigned p = 1; p <= call.maxPhase(); ++p ) {
-	if ( !call.hasDropProbability( p ) ) break;
 	if ( p != 1 ) {
 	    label << ',';
 	}
-	label << opt_pct(call.dropProbability(p));
+	if ( call.hasDropProbability( p )  ) {
+	    label << opt_pct(call.dropProbability(p));
+	} else {
+	    label << 0;
+	}
     }
     return label;
 }
