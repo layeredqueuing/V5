@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 17050 2024-02-06 21:26:47Z greg $
+ * $Id: actlist.cc 17073 2024-02-28 19:42:11Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1728,7 +1728,7 @@ bool
 OrJoinActivityList::updateRate( const Activity * activity, double rate )
 {
     _rateList.insert( std::pair<const Activity *,double>( activity, rate ) );
-    _rate = std::accumulate( _rateList.begin(), _rateList.end(), 0., [this]( double sum, const std::pair<const Activity *,double>& rate ){ return sum + rate.second; } );
+    _rate = std::accumulate( _rateList.begin(), _rateList.end(), 0., []( double sum, const std::pair<const Activity *,double>& rate ){ return sum + rate.second; } );
     return true;
 }
 

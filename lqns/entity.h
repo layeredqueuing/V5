@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 16961 2024-01-28 02:12:54Z greg $
+ * $Id: entity.h 17077 2024-02-29 02:23:32Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -60,7 +60,6 @@ class Entity {
 public:
     static std::set<Task *>& add_clients( std::set<Task *>& clients, const Entity * entity ) { return entity->getClients( clients ); }
 
-private:
     class SRVNManip {
     public:
 	SRVNManip( std::ostream& (*f)( std::ostream&, const Entity& ), const Entity& entity ) : _f(f), _entity(entity) {}

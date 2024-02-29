@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 16566 2023-03-21 21:45:14Z greg $
+ * $Id: generate.cc 17079 2024-02-29 16:17:30Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -15,6 +15,7 @@
 
 
 #include "lqns.h"
+#include <filesystem>
 #include <sstream>
 #include <fstream>
 #include <cstdlib>
@@ -34,6 +35,7 @@
 #include <mva/server.h>
 #include <mva/multserv.h>
 #include <mva/ph2serv.h>
+#include <mva/vector.h>
 #include "entity.h"
 #include "entry.h"
 #include "generate.h"
@@ -44,23 +46,39 @@
 #include "submodel.h"
 #include "task.h"
 
+void
+Generate::output( const Vector<Submodel *>& submodels )
+{
+    try {
+	std::filesystem::create_directory( __directory_name );
+    }
+    catch( const std::filesystem::filesystem_error& e ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot create directory " << Generate::__directory_name << ": " << e.what() << "." << std::endl;
+	return;
+    }
+
+    Generate::makefile( submodels.size() );	/* We are dumping C source -- make a makefile. */
+    std::for_each( submodels.begin(), submodels.end(), Generate::program );
+}
+
 /*
  * Command line options which are output into the generated code.
  */
 
 const std::vector<struct option> Generate::__longopts = {
-    { "fraction", no_argument, nullptr, 'd' },
-    { "queue-length", no_argument, nullptr, 'l' },
-    { "customers", no_argument, nullptr, 'n' },
-    { "marginals", no_argument, nullptr, 'p' },
-    { "utilization", no_argument, nullptr, 'u' },
-    { "waiting", no_argument, nullptr, 'w' },
-    { "throughput", no_argument, nullptr, 'x' },
-    { "multiserver", required_argument, nullptr, 'M' },
-    { "exact-mva",  no_argument, nullptr, 'E' },
-    { "schweitzer", no_argument, nullptr, 'S' },
-    { "linearizer", no_argument, nullptr, 'L' },
-    { "help",	 no_argument, nullptr, 'h' }
+    { "fraction",	no_argument, nullptr, 'd' },
+    { "queue-length",	no_argument, nullptr, 'l' },
+    { "customers",	no_argument, nullptr, 'n' },
+    { "marginals",	no_argument, nullptr, 'p' },
+    { "utilization",	no_argument, nullptr, 'u' },
+    { "waiting",	no_argument, nullptr, 'w' },
+    { "throughput",	no_argument, nullptr, 'x' },
+    { "multiserver",	required_argument, nullptr, 'M' },
+    { "exact-mva",	no_argument, nullptr, 'E' },
+    { "schweitzer",	no_argument, nullptr, 'S' },
+    { "linearizer",	no_argument, nullptr, 'L' },
+    { "verbose",	no_argument, nullptr, 'v' },
+    { "help",		no_argument, nullptr, 'h' }
 };
 
 const std::map<const char, const std::string> Generate::__help = {
@@ -75,6 +93,7 @@ const std::map<const char, const std::string> Generate::__help = {
     { 'E', "Use Exact MVA." },
     { 'S', "Use Schweitzer approximate MVA." },
     { 'L', "Use Linearizer approximage MVA." },
+    { 'v', "Verbose - print the input." },
     { 'h', "Print this help." }
 };
 
@@ -167,10 +186,12 @@ std::string Generate::__directory_name;
  */
 
 /* static */ void
-Generate::program( const MVASubmodel& submodel ) 
+Generate::program( const Submodel * submodel ) 
 {
+    if ( dynamic_cast<const MVASubmodel *>(submodel) == nullptr ) return;
+
     std::ostringstream fileName;
-    fileName << __directory_name << "/submodel-" << submodel.number() << ".cc";
+    fileName << __directory_name << "/submodel-" << submodel->number() << ".cc";
 
     std::ofstream output;
     output.open( fileName.str(), std::ios::out );
@@ -178,7 +199,7 @@ Generate::program( const MVASubmodel& submodel )
     if ( !output ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << fileName.str() << " - " << strerror( errno ) << std::endl;
     } else {
-	Generate program( submodel );
+	Generate program( *dynamic_cast<const MVASubmodel *>(submodel) );
 	program.print( output );
     }
 
@@ -195,6 +216,11 @@ Generate::makefile( const unsigned nSubmodels )
 {
     const std::string makefileName = __directory_name + "/Makefile";
 	
+    if ( std::filesystem::exists( makefileName ) ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": " << makefileName << " exists.  It was not generated." << std::endl;
+	return;
+    }
+    
     std::ofstream output;
     output.open( makefileName, std::ios::out );
 
@@ -268,8 +294,7 @@ Generate::Generate( const MVASubmodel& submodel )
 
 
 /*
- * Make a test program based on the current layer.  Note that solver may overwrite the
- * same file over and over again.  Use -zstep to extract an intermediate model.
+ * Make a test program based on the current layer.  
  */
 
 std::ostream& 
@@ -339,8 +364,8 @@ Generate::print( std::ostream& output ) const
     output << std::endl << "int main ( int argc, char* argv[] )" << std::endl << "{" << std::endl
 	   << "    extern char *optarg;" << std::endl
 	   << "    Multiserver multiserver = Multiserver::DEFAULT;" << std::endl
-	   << "    MVA::MOL_multiserver_underrelaxation = 0.5;	/* For MOL Multiservers */" << std::endl;
-
+	   << "    MVA::MOL_multiserver_underrelaxation = 0.5;	/* For MOL Multiservers */" << std::endl
+	   << "    bool print_input = false;  /* Output input parameters if true */" << std::endl;
 
     if ( _submodel.nOpenStns() ) {
 	output << "    const unsigned n_open_stations\t= " << _submodel.nOpenStns() << ";" << std::endl;
@@ -377,6 +402,7 @@ Generate::print( std::ostream& output ) const
     output << "        case 'E': solver = ExactMVA::create; break;" << std::endl;
     output << "        case 'S': solver = Schweitzer::create; break;" << std::endl;
     output << "        case 'L': solver = Linearizer::create; break;" << std::endl;
+    output << "        case 'v': print_input = true;" << std::endl;
     output << "        case 'M':" << std::endl;
     output << "            if ( optarg != nullptr ) {" << std::endl;
     output << "                const std::map<const std::string,const Multiserver>::const_iterator m = multiservers.find(optarg);" << std::endl;
@@ -453,25 +479,35 @@ Generate::print( std::ostream& output ) const
     unsigned closedStnNo = 0;
     unsigned openStnNo 	 = 0;
 
-    output << "    std::cout << \"Clients:\" << std::endl;" << std::endl;
+    output << "    if ( print_input ) std::cout << \"Clients:\" << std::endl;" << std::endl;
     for ( std::set<Task *>::const_iterator client = _submodel._clients.begin(); client != _submodel._clients.end(); ++client ) {
 	++closedStnNo;
-	output << "    station[" << closedStnNo << "]\t= " << station_name( **client ) << ";";
- 	output << "\tstd::cout << \"" << closedStnNo << ": " << **client << "\" << std::endl;" << std::endl;
+	output << "    station[" << closedStnNo << "]\t= " << station_name( **client ) << ";"  << std::endl
+	       << "    if ( print_input ) std::cout << \"" << closedStnNo << ": " << **client << "\" << std::endl"
+	       << " << *station[" << closedStnNo << "] << std::endl;" << std::endl;
     }
-    output << "    std::cout << std::endl << \"Servers:\" << std::endl;" << std::endl;
+    output << "    if ( print_input ) std::cout << std::endl << \"Servers:\" << std::endl;" << std::endl;
     for ( std::set<Entity *>::const_iterator server = _submodel._servers.begin(); server != _submodel._servers.end(); ++server ) {
 	if ( (*server)->isClosedModelServer() ) {
 	    ++closedStnNo;
-	    output << "    station[" << closedStnNo << "]\t= " << station_name( **server ) << ";";
-	    output << "\tstd::cout << \"" << closedStnNo << ": " << **server << "\" << std::endl;" << std::endl;
+	    output << "    station[" << closedStnNo << "]\t= " << station_name( **server ) << ";" << std::endl;
 	}
 	if ( (*server)->isOpenModelServer() ) {
 	    ++openStnNo;
 	    output << "    open_station[" << openStnNo << "]\t= " << station_name( **server ) << ";" << std::endl;
 	}
+	output << "    if ( print_input ) std::cout << \"";
+	if ( (*server)->isOpenModelServer() ) {
+	    if ( (*server)->isClosedModelServer() ) {
+		output << closedStnNo << ", ";
+	    }
+	    output << openStnNo;
+	} else {
+	    output << closedStnNo;
+	}
+	output << ": " << **server << "\" << std::endl" << " << *" << station_name( **server ) << " << std::endl;" << std::endl;
     }
-    output << "    std::cout << std::endl;" << std::endl;
+    output << "    if ( print_input ) std::cout << std::endl;" << std::endl;
     output << std::endl;
 
     /* Solver */
@@ -570,20 +606,21 @@ Generate::printClientStation( std::ostream& output, const Task& aClient ) const
 std::ostream &
 Generate::printServerStation( std::ostream& output, const Entity& server ) const
 {
-    const Server * const aStation = server.serverStation();
-    const unsigned P = server.maxPhase();
-    const unsigned E = server.nEntries();
-
+    const Server& station = *server.serverStation();
+    const unsigned P = station.nPhases();
+    const unsigned E = station.nEntries();
+    const std::string& name = server.name();
+    
     output << "    /* " << server << " */" << std::endl;
 
     /* Create the station */
 	
     output << "    Server * " << station_name( server );
-    if ( server.isMultiServer() ) {
+    if ( station.mu() > 1.0 ) {
 	output << ";" << std::endl << "    switch ( multiserver ) {" << std::endl;
 	for ( std::map<const Pragma::Multiserver,std::string>::const_iterator m = __multiservers.begin(); m != __multiservers.end(); ++m ) {
 	    if ( m->first == Pragma::Multiserver::DEFAULT ) {
-		output << "    default: " << station_name( server ) << " = new " << aStation->typeStr();
+		output << "    default: " << station_name( server ) << " = new " << station.typeStr();
 	    } else {
 		output << "    case Multiserver::" << m->second << ": " << station_name( server ) << " = new ";
 		if ( P == 1 ) output << __stations.at(m->first).first;	/* Single phase */
@@ -593,7 +630,7 @@ Generate::printServerStation( std::ostream& output, const Entity& server ) const
 	}
 	output << "    }" << std::endl;
     } else {
-	output << "= new " << aStation->typeStr() << '(' << station_args( E, K, P ) << ");" << std::endl;
+	output << "= new " << station.typeStr() << '(' << station_args( E, K, P ) << ");" << std::endl;
     }
 
     for ( std::vector<Entry *>::const_iterator entry = server.entries().begin(); entry != server.entries().end(); ++entry ) {
@@ -602,11 +639,11 @@ Generate::printServerStation( std::ostream& output, const Entity& server ) const
 	
 	for ( unsigned k = 0; k <= K; ++k ) {
 	    for ( unsigned p = 1; p <= P; ++p ) {
-		if ( aStation->S( e, k, p ) > 0 ) {
+		if ( station.S( e, k, p ) > 0 ) {
 		    hasService = true;
 		    output << "    " << station_name( server ) << "->setService("  
 			   << station_args( e, k, p )
-			   << "," << aStation->S( e, k, p ) << ")";
+			   << "," << station.S( e, k, p ) << ")";
 		    if ( server.hasVariance()
 			 && ( server.isTask()
 			      || ( server.isProcessor() && Pragma::defaultProcessorScheduling() )) ) {
@@ -615,10 +652,10 @@ Generate::printServerStation( std::ostream& output, const Entity& server ) const
 			       << "," << (*entry)->varianceForPhase(p) << ")";
 		    }
 		    for ( unsigned q = 1; q <= Entry::max_phases; ++q ) {
-			if ( aStation->V( e, k, q ) == 0 ) continue;
+			if ( station.V( e, k, q ) == 0 ) continue;
 			output << ".setVisits(" 
 			       << station_args( e, k, q )
-			       << "," << aStation->V( e, k, q ) << ")";
+			       << "," << station.V( e, k, q ) << ")";
 		    }
 		    output << ";" << std::endl;
 		}
@@ -633,7 +670,7 @@ Generate::printServerStation( std::ostream& output, const Entity& server ) const
 	/* Overtaking probabilities. */
 		
 	if ( server.markovOvertaking() ) {
-	    Probability *** prOt = aStation->getPrOt( e );
+	    Probability *** prOt = station.getPrOt( e );
 
 	    output << "    prOt = " << station_name( server ) << "->getPrOt("
 		   << e << ");" << std::endl;

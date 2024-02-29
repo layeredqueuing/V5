@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 16743 2023-06-13 09:14:26Z greg $
+ * $Id: srvndiff.cc 17074 2024-02-28 20:35:29Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -150,6 +150,7 @@ static bool check_fwdw( unsigned i, unsigned j, unsigned k, unsigned );
 static bool check_grup( unsigned i, unsigned j, unsigned,   unsigned );
 static bool check_hold( unsigned i, unsigned j, unsigned,   unsigned );
 static bool check_join( unsigned i, unsigned j, unsigned k, unsigned );
+static bool check_opdr( unsigned i, unsigned j, unsigned,   unsigned );
 static bool check_open( unsigned i, unsigned j, unsigned,   unsigned );
 static bool check_ovtk( unsigned i, unsigned j, unsigned k, unsigned p_i, unsigned p_j );
 static bool check_proc( unsigned i, unsigned j, unsigned,   unsigned );
@@ -182,6 +183,7 @@ static void get_iter( double value[], double junk[],       unsigned j, unsigned 
 static void get_join( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
 static void get_jvar( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned );
 static void get_mvaw( double value[], double junk[],       unsigned j, unsigned p, unsigned,   unsigned );
+static void get_opdr( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 static void get_open( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 static void get_ovtk( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p_1, unsigned p_j );
 static void get_phut( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
@@ -245,6 +247,7 @@ result_str_tab_t result_str[(int)P_LIMIT] = {
     /* P_JOIN,         */       { "Join Delay",     nullptr,    &fmt_j,   &width_j, 	nullptr,  get_join,     nullptr,    check_join },
     /* P_JOIN_VAR,     */       { "Join Var.",      nullptr,    &fmt_j,   &width_j, 	nullptr,  get_jvar,     nullptr,    check_join },
     /* P_MVA_WAITS,    */       { "MVA waits",      &fmt_e,     nullptr,  &width_e, 	get_mvaw, nullptr,      nullptr,    nullptr },
+    /* P_OPEN_DROP,    */	{ "Open Drop",	    &fmt_e,	nullptr,  &width_e,	get_opdr, nullptr,	check_opdr, nullptr },
     /* P_OPEN_WAIT,    */       { "Open Wait",      &fmt_e,     nullptr,  &width_e, 	get_open, nullptr,      check_open, nullptr },
     /* P_OVERTAKING,   */       { "Overtaking",     &fmt_o,     nullptr,  &width_e_e_p, nullptr,  nullptr,      nullptr,    nullptr },	/* extra arg, so handled specially */ 
     /* P_PHASE_UTIL    */       { "Phase Util.",    &fmt_e,     nullptr,  &width_e, 	get_phut, nullptr,      check_proc, nullptr },
@@ -996,7 +999,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2023-06-13 05:14:26 -0400 (Tue, 13 Jun 2023) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2024-02-28 15:35:29 -0500 (Wed, 28 Feb 2024) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1956,6 +1959,10 @@ print ( unsigned passes, char * const names[] )
 	print_entry_result( P_OPEN_WAIT, file_name.c_str(), passes );
     }
 
+    if ( print_loss_probability ) {
+	print_entry_result( P_OPEN_DROP, file_name.c_str(), passes );
+    }
+    
     /* Group utilization */
 
     if ( print_group_util && group_tab[FILE1].size() > 0 ) {
@@ -3396,6 +3403,15 @@ get_enpr( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
 
 /*ARGSUSED*/
 static void
+get_opdr( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
+{
+    value[j]      = entry_tab[j][i].drop_probability;
+    conf_value[j] = entry_tab[j][i].drop_probability_conf;
+}
+
+
+/*ARGSUSED*/
+static void
 get_open( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned )
 {
     value[j]      = entry_tab[j][i].open_waiting;
@@ -3772,6 +3788,12 @@ check_tput( unsigned i, unsigned j, unsigned, unsigned )
     return task_tab[j][i].has_results;
 }
 
+
+static bool
+check_opdr( unsigned i, unsigned j, unsigned, unsigned )
+{
+    return entry_tab[j][i].open_arrivals > 0.0 && entry_tab[j][i].drop_probability > 0.0;
+}
 
 static bool
 check_open( unsigned i, unsigned j, unsigned, unsigned )

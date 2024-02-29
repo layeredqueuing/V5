@@ -11,7 +11,7 @@
 #define PETRISRVN_PHASE_H
 
 /*
- * $Id: phase.h 17069 2024-02-27 23:16:21Z greg $
+ * $Id: phase.h 17074 2024-02-28 20:35:29Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -46,6 +46,7 @@ struct slice_info_t {
 };
 
 class Phase {
+    friend class OpenTask;		/* For open arrival results */
 public:
     typedef double (Phase::*util_fnptr)( unsigned );
 

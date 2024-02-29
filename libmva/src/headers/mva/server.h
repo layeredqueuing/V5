@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: server.h 15771 2022-07-28 18:11:54Z greg $
+ * $Id: server.h 17079 2024-02-29 16:17:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -74,7 +74,9 @@ public:
 
     /* Queries */
 
-    unsigned nEntries() const { return E; }			/* Number of entries 	*/
+    unsigned nEntries() const { return E; }			/* Number of entries. 	*/
+    unsigned nClasses() const { return K; }			/* Number of classes.	*/
+    unsigned nPhases() const { return P; }			/* Number of phases.	*/
     virtual double mu() const { return 1.0; }			/* Capacity function.	*/
     virtual double mu( const unsigned ) const { return 1.0; }	/* Capacity function.	*/
     virtual bool hasTau() const { return false; }

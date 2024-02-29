@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 16949 2024-01-26 15:47:59Z greg $
+ *  $Id: dom_entry.cpp 17073 2024-02-28 19:42:11Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -31,16 +31,16 @@ namespace LQIO {
 	      _rwlockType(RWLock::NONE),
 	      _forwarding(),
 	      _startActivity(nullptr),
-	      _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
+	      _resultDropProbability(0.0), _resultDropProbabilityVariance(0.0),
 	      _resultPhasePProcessorWaiting(), _resultPhasePProcessorWaitingVariance(),
 	      _resultPhasePServiceTime(), _resultPhasePServiceTimeVariance(),
 	      _resultPhasePVarianceServiceTime(), _resultPhasePVarianceServiceTimeVariance(),
 	      _resultProcessorUtilization(0.0), _resultProcessorUtilizationVariance(0.0),
 	      _resultSquaredCoeffVariation(0.0), _resultSquaredCoeffVariationVariance(0.0),
-	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
-	      _resultThroughputBound(0.0), 
+	      _resultThroughput(0.0), _resultThroughputBound(0.0), _resultThroughputVariance(0.0),
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
-	      _hasResultsForPhase(),  _hasOpenWait(false), _hasThroughputBound(false), _hasResultSquaredCoeffVariation(false)
+	      _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
+	      _hasResultsForPhase(),  _hasOpenWait(false), _hasThroughputBound(false), _hasResultSquaredCoeffVariation(false), _hasResultDropProbability(false)
 	{
 	    clearPhaseResults();
 	}
@@ -52,16 +52,16 @@ namespace LQIO {
 	      _openArrivalRate(src._openArrivalRate), _entryPriority(src._entryPriority), _visitProbability(src._visitProbability),
 	      _semaphoreType(src._semaphoreType), _rwlockType(src._rwlockType), _forwarding(src._forwarding),
 	      _startActivity(nullptr),
-	      _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
+	      _resultDropProbability(0.0), _resultDropProbabilityVariance(0.0),
 	      _resultPhasePProcessorWaiting(), _resultPhasePProcessorWaitingVariance(),
 	      _resultPhasePServiceTime(), _resultPhasePServiceTimeVariance(),
 	      _resultPhasePVarianceServiceTime(), _resultPhasePVarianceServiceTimeVariance(),
 	      _resultProcessorUtilization(0.0), _resultProcessorUtilizationVariance(0.0),
 	      _resultSquaredCoeffVariation(0.0), _resultSquaredCoeffVariationVariance(0.0),
-	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
-	      _resultThroughputBound(0.0), 
+	      _resultThroughput(0.0), _resultThroughputBound(0.0), _resultThroughputVariance(0.0),
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
-	      _hasResultsForPhase(),  _hasOpenWait(false), _hasThroughputBound(false), _hasResultSquaredCoeffVariation(false)
+	      _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
+	      _hasResultsForPhase(),  _hasOpenWait(false), _hasThroughputBound(false), _hasResultSquaredCoeffVariation(false), _hasResultDropProbability(false)
 	{
 	    clearPhaseResults();
 	}
@@ -654,6 +654,30 @@ namespace LQIO {
 	    return *this;
 	}
     
+	Entry& Entry::setResultDropProbability( double resultDropProbability )
+	{
+	    _hasResultDropProbability = true;
+	    _resultDropProbability = resultDropProbability;
+	    return *this;
+	}
+	
+	double Entry::getResultDropProbability() const
+	{
+	    return _resultDropProbability;
+	}
+
+	Entry& Entry::setResultDropProbabilityVariance( double resultDropProbabilityVariance )
+	{
+	    _hasResultDropProbability = true;
+	    _resultDropProbabilityVariance = resultDropProbabilityVariance;
+	    return *this;
+	}
+	
+	double Entry::getResultDropProbabilityVariance() const
+	{
+	    return _resultDropProbabilityVariance;
+	}
+
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 	/*

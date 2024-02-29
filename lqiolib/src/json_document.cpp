@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 16825 2023-11-02 15:11:12Z greg $
+ * $Id: json_document.cpp 17073 2024-02-28 19:42:11Z greg $
  *
  * Read in JSON input files.
  *
@@ -3241,6 +3241,9 @@ namespace LQIO {
 		}
 		if ( entry.hasResultsForOpenWait() ) {
 		    _output << next_attribute( Xopen_wait_time, entry.getResultWaitingTime(), _conf_95, entry.getResultWaitingTimeVariance() );
+		    if ( entry.hasResultDropProbability() ) {
+			_output << next_attribute( Xdrop_probability, entry.getResultDropProbability(), _conf_95, entry.getResultDropProbabilityVariance() );
+		    }
 		}
 		if ( entry.getStartActivity() != NULL ) {
 		    _output << entry_phase_results( entry, Xservice_time, &Entry::getResultPhasePServiceTime, _conf_95, &Entry::getResultPhasePServiceTimeVariance )

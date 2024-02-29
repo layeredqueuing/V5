@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_entry.h 16771 2023-07-05 20:35:46Z greg $
+ *  $Id: dom_entry.h 17073 2024-02-28 19:42:11Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -161,6 +161,10 @@ namespace LQIO {
 	    Entry& setResultWaitingTime(const double resultWaitingTime);
 	    double getResultWaitingTimeVariance() const;
 	    Entry& setResultWaitingTimeVariance(const double resultWaitingTimeVariance);
+	    double getResultDropProbability() const;
+	    Entry& setResultDropProbability( const double resultDropProbability );
+	    double getResultDropProbabilityVariance() const;
+	    Entry& setResultDropProbabilityVariance( const double resultDropProbabilityVariance );
 
 	    /* Result Information for Phase Service Info */
 	    unsigned int getResultPhaseCount() const;
@@ -238,6 +242,7 @@ namespace LQIO {
 	    bool hasResultsForOpenWait() const;
 	    bool hasResultsForThroughputBound() const;
 	    bool hasResultsForSquaredCoeffVariation() const;
+	    bool hasResultDropProbability() const { return _hasResultDropProbability; }	/* Might be zero... */
 
 
 	private:
@@ -265,14 +270,14 @@ namespace LQIO {
 	    Activity* _startActivity;
 
 	    /* Computation Results from LQNS */
-	    double _resultWaitingTime;
-	    double _resultWaitingTimeVariance;
+	    double _resultDropProbability;
+	    double _resultDropProbabilityVariance;
 	    double _resultPhasePProcessorWaiting[Phase::MAX_PHASE];
 	    double _resultPhasePProcessorWaitingVariance[Phase::MAX_PHASE];
-	    double _resultPhasePUtilization[Phase::MAX_PHASE];
-	    double _resultPhasePUtilizationVariance[Phase::MAX_PHASE];
 	    double _resultPhasePServiceTime[Phase::MAX_PHASE];
 	    double _resultPhasePServiceTimeVariance[Phase::MAX_PHASE];
+	    double _resultPhasePUtilization[Phase::MAX_PHASE];
+	    double _resultPhasePUtilizationVariance[Phase::MAX_PHASE];
 	    double _resultPhasePVarianceServiceTime[Phase::MAX_PHASE];
 	    double _resultPhasePVarianceServiceTimeVariance[Phase::MAX_PHASE];
 	    double _resultProcessorUtilization;
@@ -280,11 +285,13 @@ namespace LQIO {
 	    double _resultSquaredCoeffVariation;
 	    double _resultSquaredCoeffVariationVariance;
 	    double _resultThroughput;
-	    double _resultThroughputVariance;
 	    double _resultThroughputBound;
+	    double _resultThroughputVariance;
 	    double _resultUtilization;
 	    double _resultUtilizationVariance;
-	    bool _hasResultsForPhase[Phase::MAX_PHASE], _hasOpenWait, _hasThroughputBound, _hasResultSquaredCoeffVariation;
+	    double _resultWaitingTime;
+	    double _resultWaitingTimeVariance;
+	    bool _hasResultsForPhase[Phase::MAX_PHASE], _hasOpenWait, _hasThroughputBound, _hasResultSquaredCoeffVariation, _hasResultDropProbability;
 
 	public:
 	    static const char * __typeName;

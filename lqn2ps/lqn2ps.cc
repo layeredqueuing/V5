@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 16845 2023-11-09 14:28:52Z greg $
+ * $Id: lqn2ps.cc 17077 2024-02-29 02:23:32Z greg $
  *
  * Command line processing.
  *
@@ -21,6 +21,8 @@
 #include <stdexcept>
 #include <errno.h>
 #include <libgen.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -218,7 +220,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2023-11-09 09:28:52 -0500 (Thu, 09 Nov 2023) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2024-02-28 21:23:32 -0500 (Wed, 28 Feb 2024) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -836,17 +838,25 @@ main(int argc, char *argv[])
 
     /* If stdout is not a terminal For pipelines.	*/
 
+    struct stat statbuf;
+
 #if !defined(__WINNT__) && !defined(MSDOS)
-    if ( output_file_name == "" && LQIO::Filename::isWriteableFile( fileno( stdout ) ) > 0 ) {
+    if ( output_file_name == "" && fstat( fileno( stdout ), &statbuf )
+	 && ( S_ISREG(statbuf.st_mode) || S_ISFIFO(statbuf.st_mode)
+#if defined(S_ISSOCK)
+	      || S_ISSOCK(statbuf.st_mode)
+#endif
+	     ) ) {
 	output_file_name = "-";
     }
 #endif
 
     if ( output_file_name == "-" ) {
+
 	switch( Flags::output_format() ) {
 #if EMF_OUTPUT
 	case File_Format::EMF:
-	    if ( LQIO::Filename::isRegularFile( fileno( stdout ) ) == 0 ) {
+	    if ( fstat( fileno( stdout ), &statbuf ) != 0 || !S_ISREG(statbuf.st_mode) ) {
 		std::cerr << LQIO::io_vars.lq_toolname << ": Cannot write "
 			  << Options::file_format.at(Flags::output_format())
 			  << " to stdout - stdout is not a regular file."  << std::endl;

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 16775 2023-07-06 14:04:30Z greg $
+ * $Id: srvn_output.h 17073 2024-02-28 19:42:11Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -709,6 +709,7 @@ namespace LQIO {
 	    void printEntryMaxServiceTimeExceeded( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
 	    void printEntryVarianceServiceTime( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
 	    void printOpenQueueWait( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
+	    void printOpenQueueDropProbability( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
 	    void printForwardingWaiting( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
 	    void printForwardingVarianceWaiting( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
 

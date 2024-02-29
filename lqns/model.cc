@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 16958 2024-01-27 23:43:28Z greg $
+ * $Id: model.cc 17077 2024-02-29 02:23:32Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -831,7 +831,7 @@ Model::compute()
     }
 
     if ( flags.generate ) {
-	Generate::makefile( nSubmodels() );	/* We are dumping C source -- make a makefile. */
+	Generate::output( _submodels );
     }
     if ( Options::Trace::verbose() ) {
 	report.print( std::cout );

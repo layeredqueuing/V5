@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: task.cc 17069 2024-02-27 23:16:21Z greg $
+ * $Id: task.cc 17074 2024-02-28 20:35:29Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <functional>
 #include <set>
 #include <lqio/common_io.h>
 #include <lqio/dom_activity.h>
@@ -1055,15 +1056,13 @@ Task::insert_DOM_results() const
 /* -------------------------------------------------------------------- */
 
 OpenTask::OpenTask( LQIO::DOM::Document * document, const std::string& name, const Entry * dst )
-    : Task( 0, Type::OPEN_SRC, 0 ), _document(document), _name(name), _dst(dst), _call()
+    : Task( 0, Type::OPEN_SRC, 0 ), _document(document), _name(name), _dst(dst)
 {
-    _call.set_dom( new LQIO::DOM::Call( _document, LQIO::DOM::Call::Type::SEND_NO_REPLY, 0, 0, new LQIO::DOM::ConstantExternalVariable(1.0) ) );
 }
 
 
 OpenTask::~OpenTask()
 {
-    delete _call.get_dom();
 }
 
 
@@ -1071,7 +1070,9 @@ void
 OpenTask::get_results_for( unsigned m )
 {
     Phase& phase = entries[0]->phase[1];
-    phase.compute_queueing_delay( _call, m, _dst, multiplicity(), &phase );
+    assert( phase._call.size() == 1 );
+    Call& call = phase._call.begin()->second;
+    phase.compute_queueing_delay( call, m, _dst, multiplicity(), &phase );
 }
 
 
@@ -1083,8 +1084,10 @@ void
 OpenTask::insert_DOM_results() const
 {
     LQIO::DOM::Entry * entry = const_cast<LQIO::DOM::Entry *>(_dst->get_dom());
-    entry->setResultWaitingTime( entries[0]->phase[1].response_time( _dst ) );
-    if ( _call._dp > 0. ) {
-	entry->setResultDropProbability( _call._dp );
+    Phase& phase = entries[0]->phase[1];
+    entry->setResultWaitingTime( phase.response_time( _dst ) );
+    Call& call = phase._call.begin()->second;
+    if ( call._dp > 0. ) {
+	entry->setResultDropProbability( call._dp );
     }
 }

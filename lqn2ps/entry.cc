@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 16973 2024-01-29 19:51:08Z greg $
+ * $Id: entry.cc 17074 2024-02-28 20:35:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -542,15 +542,21 @@ Entry::deleteActivityReplyArc( Reply * aReply )
 
 double Entry::openWait() const
 {
-    const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
-    return dom->getResultWaitingTime();
+    return getDOM()->getResultWaitingTime();
 }
+
+/* --- */
+
+double Entry::openDropProbability() const
+{
+    return getDOM()->getResultDropProbability();
+}
+
 /* --- */
 
 double Entry::processorUtilization() const
 {
-    const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
-    return dom->getResultProcessorUtilization();
+    return getDOM()->getResultProcessorUtilization();
 }
 
 /* --- */
@@ -558,8 +564,7 @@ double Entry::processorUtilization() const
 double
 Entry::throughput() const
 {
-    const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
-    return dom->getResultThroughput();
+    return getDOM()->getResultThroughput();
 }
 
 /* --- */
@@ -567,8 +572,7 @@ Entry::throughput() const
 double
 Entry::throughputBound() const
 {
-    const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
-    return dom->getResultThroughputBound();
+    return getDOM()->getResultThroughputBound();
 }
 
 
@@ -582,8 +586,7 @@ Entry::utilization( const unsigned p ) const
 double
 Entry::utilization() const
 {
-    const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
-    return dom->getResultUtilization();
+    return getDOM()->getResultUtilization();
 }
 
 /*
@@ -660,7 +663,7 @@ Entry::residenceTime( const unsigned p ) const
 	const Phase& phase = i->second;
 	return phase.residenceTime();
     } else if ( getDOM() ) {
-	return dynamic_cast<const LQIO::DOM::Entry *>(getDOM())->getResultPhasePServiceTime(p);
+	return getDOM()->getResultPhasePServiceTime(p);
     } else {
 	return 0.;
     }

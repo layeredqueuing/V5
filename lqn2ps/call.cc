@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 17062 2024-02-08 16:30:37Z greg $
+ * $Id: call.cc 17074 2024-02-28 20:35:29Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -2309,6 +2309,14 @@ OpenArrival::openWait() const
     return _destination->openWait();
 }
 
+
+bool
+OpenArrival::hasDropProbability() const
+{
+    return _destination->openDropProbability() > 0.;
+}
+
+
 OpenArrival&
 OpenArrival::setChain( const unsigned k )
 {
@@ -2358,8 +2366,11 @@ OpenArrival::label()
 	 && Flags::have_results
 	 && Flags::print[OPEN_WAIT].opts.value.b ) {
 	if ( print ) _label->newLine();
-	Graphic::Colour c = std::isfinite( _destination->openWait() ) ? Graphic::Colour::DEFAULT : Graphic::Colour::RED;
+	Graphic::Colour c = (std::isfinite( _destination->openWait() ) && !hasDropProbability()) ? Graphic::Colour::DEFAULT : Graphic::Colour::RED;
 	_label->colour(c) << begin_math() << _destination->openWait() << end_math();
+	if ( Flags::print[LOSS_PROBABILITY].opts.value.b && hasDropProbability() ) {
+	    _label->newLine().colour(c) << begin_math( &Label::epsilon ) << "=" << _destination->openDropProbability() << end_math();
+	}
 	print = true;
     }
     return *this;

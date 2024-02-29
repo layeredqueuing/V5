@@ -17,7 +17,7 @@
 #include "call.h"
 
 /*
- * $Id: task.h 17069 2024-02-27 23:16:21Z greg $
+ * $Id: task.h 17074 2024-02-28 20:35:29Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -200,7 +200,6 @@ private:
     LQIO::DOM::Document * _document;
     const std::string _name;
     const Entry * _dst;
-    Call _call;
 };
 
 extern std::vector<Task *> __task;
