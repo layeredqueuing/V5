@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 17074 2024-02-28 20:35:29Z greg $
+ *  $Id: srvn_output.cpp 17081 2024-03-01 22:09:31Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -17,12 +17,6 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-#if HAVE_PWD_H
-#include <pwd.h>
-#endif
 #include <lqx/SyntaxTree.h>
 #include "common_io.h"
 #include "dom_activity.h"

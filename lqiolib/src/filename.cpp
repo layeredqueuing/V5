@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: filename.cpp 17077 2024-02-29 02:23:32Z greg $
+ * $Id: filename.cpp 17081 2024-03-01 22:09:31Z greg $
  *
  * File name generation.
  *
@@ -17,9 +17,6 @@
 #include <iostream>
 #include <cstdio>
 #include <cstring>
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "filename.h"
@@ -232,18 +229,11 @@ namespace LQIO {
 	}
 
 	if ( !directory_name.empty() ) {
-	    int rc = access( directory_name.c_str(), R_OK|W_OK|X_OK );
-	    if ( rc < 0 ) {
-		if ( errno == ENOENT ) {
-#if defined(__WINNT__)
-		    rc = mkdir( directory_name.c_str() );
-#else
-		    rc = mkdir( directory_name.c_str(), S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );
-#endif
-		}
-		if ( rc < 0 ) {
-		    runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
-		}
+	    try {
+		std::filesystem::create_directory( directory_name );
+	    }
+	    catch( const std::filesystem::filesystem_error& e ) {
+		runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), e.what() );
 	    }
 	}
 	return directory_name;

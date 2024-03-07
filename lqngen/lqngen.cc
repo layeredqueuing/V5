@@ -3,22 +3,21 @@
  * If invoked as lqngen, generate a model.
  * In invoked as lqn2lqx, convert model to lqx.
  *
- * $Id: lqngen.cc 15694 2022-06-22 23:27:00Z greg $
+ * $Id: lqngen.cc 17082 2024-03-01 22:31:21Z greg $
  */
 
 #include "lqngen.h"
 
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <cstring>
 #include <getopt.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <errno.h>
 #include <libgen.h>
 #include <lqio/commandline.h>
 #include <lqio/filename.h>
-#include <lqio/glblerr.h>
 #include "generate.h"
 #include "help.h"
 #if !HAVE_DRAND48
@@ -980,21 +979,11 @@ lqn2lqx( int argc, char **argv )
 static void
 multi( const std::string& dir )
 {
-    struct stat sb;
-    if ( stat ( dir.c_str(), &sb ) < 0 ) {
-	if ( errno != ENOENT ) {
-	    std::cerr << LQIO::io_vars.lq_toolname << ": " << strerror( errno ) << std::endl;
-	    exit ( 1 );
-	} else if ( mkdir( dir.c_str()
-#if !defined(__WINNT__) && !defined(MSDOS)
-			   ,S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH
-#endif
-			) < 0 ) {
-	    std::cerr << LQIO::io_vars.lq_toolname << ": " << strerror( errno ) << std::endl;
-	    exit( 1 );
-	}
-    } else if ( !S_ISDIR( sb.st_mode ) ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot output multiple files to " << dir << std::endl;
+    try {
+	std::filesystem::create_directory( dir );
+    }
+    catch( const std::filesystem::filesystem_error& e ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot create directory " << dir << ": " << e.what() << std::endl;
 	exit( 1 );
     }
 

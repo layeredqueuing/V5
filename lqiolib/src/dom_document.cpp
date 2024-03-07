@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 16879 2023-12-04 18:08:54Z greg $
+ *  $Id: dom_document.cpp 17101 2024-03-05 18:35:57Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -167,7 +167,6 @@ namespace LQIO {
 	    LQIO::Spex::clear();
 
 	    __document = nullptr;
-	    __input_file_name = "";
 	}
 
 	void Document::setModelParameters(const std::string& comment, ExternalVariable* convergence_value, ExternalVariable* iteration_limit, ExternalVariable* print_interval, ExternalVariable* underrelax_coeff, const void * element )

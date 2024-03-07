@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 17077 2024-02-29 02:23:32Z greg $
+ * $Id: lqn2ps.cc 17083 2024-03-02 01:39:15Z greg $
  *
  * Command line processing.
  *
@@ -220,7 +220,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2024-02-28 21:23:32 -0500 (Wed, 28 Feb 2024) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2024-03-01 20:39:15 -0500 (Fri, 01 Mar 2024) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -715,7 +715,11 @@ main(int argc, char *argv[])
 	Flags::surrogates = false;					/* Never add surrogates */
     }
 
-    if ( (Flags::output_format() == File_Format::QNAP2 || Flags::output_format() == File_Format::JMVA) ) {
+    if ( Flags::output_format() == File_Format::QNAP2 
+#if JMVA_OUTPUT && HAVE_EXPAT_H
+	  || Flags::output_format() == File_Format::JMVA
+#endif
+	) {
 	if ( submodel_output() && !queueing_output() ) {
 	    Flags::set_queueing_model( submodel_output() );		/* Silently fix. */
 	    Flags::set_submodel( 0 );

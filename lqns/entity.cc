@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 16976 2024-01-29 21:25:19Z greg $
+ * $Id: entity.cc 17100 2024-03-05 16:56:53Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -484,7 +484,7 @@ Entity::prInterlock( const Task& aClient ) const
 
 
 void
-Entity::setInterlock( Submodel& submodel ) const
+Entity::setInterlock( Submodel& submodel )
 {
     Server * station = serverStation();
     const std::set<Task *>& clients = submodel.getClients();
@@ -501,6 +501,7 @@ Entity::setInterlock( Submodel& submodel ) const
 		for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 		    station->setInterlock( (*entry)->index(), *k, PrIL );
 		}
+		setInterlockedFlows( true );
 	    }
 	}
     }

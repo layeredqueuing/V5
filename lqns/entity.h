@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 17077 2024-02-29 02:23:32Z greg $
+ * $Id: entity.h 17107 2024-03-05 21:34:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -47,7 +47,7 @@ class Entity {
     friend class Generate;
 
     struct Attributes {
-	Attributes() : closed_server(false), closed_client(false), open_server(false), pruned(false), deterministic(false), variance(false) {}
+	Attributes() : closed_server(false), closed_client(false), open_server(false), pruned(false), deterministic(false), variance(false), interlocked(false) {}
 
 	bool closed_server;	/* Stn is server in closed model.	*/
 	bool closed_client;	/* Stn is client in closed model.	*/
@@ -55,6 +55,7 @@ class Entity {
 	bool pruned;		/* Stn can be pruned			*/
 	bool deterministic;	/* an entry has det. phase.		*/
  	bool variance;		/* an entry has Cv_sqn != 1.		*/
+	bool interlocked;	/* Server has interlocked flow.		*/
     };
 
 public:
@@ -132,10 +133,12 @@ public:
     bool hasDeterministicPhases() const { return _attributes.deterministic; }
     bool isClosedModelClient() const { return _attributes.closed_client; }
     bool isClosedModelServer() const { return _attributes.closed_server; }
+    bool isInterlocked() const { return _attributes.interlocked; }
     bool isOpenModelServer() const   { return _attributes.open_server; }
     Entity& setClosedModelClient( const bool yesOrNo ) { _attributes.closed_client = yesOrNo; return *this; }
     Entity& setClosedModelServer( const bool yesOrNo ) { _attributes.closed_server = yesOrNo; return *this; }
     Entity& setDeterministicPhases( const bool yesOrNo ) { _attributes.deterministic = yesOrNo; return *this; }
+    Entity& setInterlockedFlows( const bool yesOrNo )  { _attributes.interlocked = yesOrNo; return *this; }
     Entity& setOpenModelServer( const bool yesOrNo )   { _attributes.open_server = yesOrNo; return *this; }
     Entity& setVarianceAttribute( const bool yesOrNo ) { _attributes.variance = yesOrNo; return *this; }
 
@@ -176,7 +179,7 @@ public:
     /* Computation */
 	
     Probability prInterlock( const Task& ) const;
-    void setInterlock( Submodel& ) const;
+    void setInterlock( Submodel& );
 
     virtual double prOt( const unsigned, const unsigned, const unsigned ) const { return 0.0; }
 

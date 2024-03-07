@@ -25,7 +25,9 @@
 #include <lqio/bcmp_bindings.h>
 #include <lqio/dom_document.h>
 #include <lqio/glblerr.h>
+#if HAVE_EXPAT_H
 #include <lqio/jmva_document.h>
+#endif
 #include <lqio/qnio_document.h>
 #include <lqio/srvn_spex.h>
 #include <lqx/Program.h>

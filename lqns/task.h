@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 17044 2024-02-06 18:38:48Z greg $
+ * $Id: task.h 17099 2024-03-04 22:02:11Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -141,13 +141,14 @@ public:
 
     virtual bool isTask() const { return true; }
     bool isCalled() const;
-    virtual bool hasInfinitePopulation() const { return false; }
-
     virtual bool hasActivities() const { return _activities.size() != 0 ? true : false; }
-    bool hasThinkTime() const;
+    bool hasClientChain( unsigned int n, unsigned int k ) const;
     bool hasForks() const { return _has_forks; }
-    bool hasSyncs() const { return _has_syncs; }
+    virtual bool hasInfinitePopulation() const { return false; }
     bool hasQuorum() const { return _has_quorum; }
+    bool hasSyncs() const { return _has_syncs; }
+    bool hasThinkTime() const;
+
     double  processorUtilization() const;
 
     virtual unsigned nClients() const;		// # Calling tasks

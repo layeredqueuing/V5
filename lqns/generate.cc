@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 17079 2024-02-29 16:17:30Z greg $
+ * $Id: generate.cc 17110 2024-03-05 21:39:33Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -15,57 +15,76 @@
 
 
 #include "lqns.h"
+#include <algorithm>
 #include <filesystem>
+#include <functional>
 #include <sstream>
 #include <fstream>
 #include <cstdlib>
 #include <cmath>
-#include <errno.h>
 #include <getopt.h>
-#if HAVE_SYS_UTSNAME_H
-#include <sys/utsname.h>
-#endif
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#endif
+#include <lqio/bcmp_document.h>
+#include <lqio/jmva_document.h>
+#include <lqio/qnap2_document.h>
 #include <lqio/error.h>
 #include <lqio/glblerr.h>
 #include <mva/mva.h>
-#include <mva/open.h>
 #include <mva/server.h>
-#include <mva/multserv.h>
-#include <mva/ph2serv.h>
 #include <mva/vector.h>
+#include <mva/multserv.h>
 #include "entity.h"
 #include "entry.h"
+#include "errmsg.h"
 #include "generate.h"
 #include "flags.h"
 #include "model.h"
 #include "pragma.h"
-#include "processor.h"
 #include "submodel.h"
 #include "task.h"
 
+/*
+ * The directory name where the generated code will go.  By default "debug".
+ */
+
+std::string Generate::__directory_name;
+Generate::Output Generate::__mode = Generate::Output::NONE;
+
 void
 Generate::output( const Vector<Submodel *>& submodels )
 {
+    typedef void (*fptr)( const Submodel* );
+    static std::map<Generate::Output,fptr> f = {
+	{ Generate::Output::NONE,   nullptr },
+	{ Generate::Output::LIBMVA, &Generate::LibMVA::program },
+	{ Generate::Output::JMVA,   &Generate::BCMP_Model::serialize_JMVA },
+	{ Generate::Output::QNAP,   &Generate::BCMP_Model::serialize_QNAP },
+    };
+    
+    if ( __mode == Output::NONE ) return;
+
     try {
 	std::filesystem::create_directory( __directory_name );
     }
     catch( const std::filesystem::filesystem_error& e ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot create directory " << Generate::__directory_name << ": " << e.what() << "." << std::endl;
+	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, __directory_name.c_str(), e.what() );
 	return;
     }
 
-    Generate::makefile( submodels.size() );	/* We are dumping C source -- make a makefile. */
-    std::for_each( submodels.begin(), submodels.end(), Generate::program );
+    if ( __mode == Output::LIBMVA ) {
+	Generate::LibMVA::makefile( submodels.size() );	/* We are dumping C source -- make a makefile. */
+    }
+    std::for_each( submodels.begin(), submodels.end(), f.at(__mode) );
 }
 
+/* -------------------------------------------------------------------- */
+/*                    Output LibMVA source code.                        */
+/* -------------------------------------------------------------------- */
+
 /*
  * Command line options which are output into the generated code.
  */
 
-const std::vector<struct option> Generate::__longopts = {
+const std::vector<struct option> Generate::LibMVA::__longopts = {
     { "fraction",	no_argument, nullptr, 'd' },
     { "queue-length",	no_argument, nullptr, 'l' },
     { "customers",	no_argument, nullptr, 'n' },
@@ -81,7 +100,7 @@ const std::vector<struct option> Generate::__longopts = {
     { "help",		no_argument, nullptr, 'h' }
 };
 
-const std::map<const char, const std::string> Generate::__help = {
+const std::map<const char, const std::string> Generate::LibMVA::__help = {
     { 'd', "Print the linearizer variable D." },
     { 'l', "Print the the queue length at all the stations." },
     { 'n', "Print the number of customers for all the classes." },
@@ -97,7 +116,7 @@ const std::map<const char, const std::string> Generate::__help = {
     { 'h', "Print this help." }
 };
 
-const std::map<const int,const std::string> Generate::__argument_type = {
+const std::map<const int,const std::string> Generate::LibMVA::__argument_type = {
     { no_argument,       "no_argument"       },
     { required_argument, "required_argument" },
     { optional_argument, "optional_argument" }
@@ -107,7 +126,7 @@ const std::map<const int,const std::string> Generate::__argument_type = {
  * All the includes needed by the generated code.
  */
 
-const std::vector<std::string> Generate::__includes = {
+const std::vector<std::string> Generate::LibMVA::__includes = {
     "<iostream>",
     "<iomanip>",
     "<map>",
@@ -128,7 +147,7 @@ const std::vector<std::string> Generate::__includes = {
  * Map the pragma to the class name of the solver.
  */
 
-const std::map<const Pragma::MVA,const std::string> Generate::__solvers = {
+const std::map<const Pragma::MVA,const std::string> Generate::LibMVA::__solvers = {
     { Pragma::MVA::EXACT, 		"ExactMVA" },
     { Pragma::MVA::FAST, 		"Linearizer2" },
     { Pragma::MVA::LINEARIZER,		"Linearizer" },
@@ -139,11 +158,11 @@ const std::map<const Pragma::MVA,const std::string> Generate::__solvers = {
 
 /*
  * Map the pragma enum to our local (which is output into
- * submodel-?.cc) by Generate::print so that we don't have to drag
+ * submodel-?.cc) by Generate::LibMVA::print so that we don't have to drag
  * they lqns header files into the generated code.
  */
 
-std::map<const Pragma::Multiserver,std::string> Generate::__multiservers =
+std::map<const Pragma::Multiserver,std::string> Generate::LibMVA::__multiservers =
 {
     { Pragma::Multiserver::DEFAULT,   "" },
     { Pragma::Multiserver::CONWAY,    "" },
@@ -162,7 +181,7 @@ std::map<const Pragma::Multiserver,std::string> Generate::__multiservers =
  * than one phase for an entry at the station.
  */
 
-const std::map<const Pragma::Multiserver,const std::pair<const std::string&,const std::string&> > Generate::__stations =
+const std::map<const Pragma::Multiserver,const std::pair<const std::string&,const std::string&> > Generate::LibMVA::__stations =
 {
     { Pragma::Multiserver::CONWAY,    { Conway_Multi_Server::__type_str,    Markov_Phased_Conway_Multi_Server::__type_str    } },
     { Pragma::Multiserver::REISER,    { Reiser_Multi_Server::__type_str,    Markov_Phased_Reiser_Multi_Server::__type_str    } },
@@ -171,14 +190,18 @@ const std::map<const Pragma::Multiserver,const std::pair<const std::string&,cons
     { Pragma::Multiserver::ROLIA_PS,  { Rolia_PS_Multi_Server::__type_str,  Markov_Phased_Rolia_PS_Multi_Server::__type_str  } },
     { Pragma::Multiserver::ZHOU,      { Zhou_Multi_Server::__type_str,      Markov_Phased_Zhou_Multi_Server::__type_str      } }
 };
-
-/*
- * The directory name where the generated code will go.  By default "debug".
- */
-
-std::string Generate::__directory_name;
 
 /* ------------------------------------------------------------------------ */
+
+/*
+ * Constructor
+ */
+
+Generate::LibMVA::LibMVA( const MVASubmodel& submodel )
+    : _submodel( submodel ),  K(submodel.nChains())
+{
+}
+
 
 /*
  * Make a test program based on the current layer.  Note that solver may overwrite the
@@ -186,7 +209,7 @@ std::string Generate::__directory_name;
  */
 
 /* static */ void
-Generate::program( const Submodel * submodel ) 
+Generate::LibMVA::program( const Submodel * submodel ) 
 {
     if ( dynamic_cast<const MVASubmodel *>(submodel) == nullptr ) return;
 
@@ -199,7 +222,7 @@ Generate::program( const Submodel * submodel )
     if ( !output ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << fileName.str() << " - " << strerror( errno ) << std::endl;
     } else {
-	Generate program( *dynamic_cast<const MVASubmodel *>(submodel) );
+	Generate::LibMVA program( *dynamic_cast<const MVASubmodel *>(submodel) );
 	program.print( output );
     }
 
@@ -212,7 +235,7 @@ Generate::program( const Submodel * submodel )
  */
 
 /* static */ void
-Generate::makefile( const unsigned nSubmodels )
+Generate::LibMVA::makefile( const unsigned nSubmodels )
 {
     const std::string makefileName = __directory_name + "/Makefile";
 	
@@ -229,7 +252,7 @@ Generate::makefile( const unsigned nSubmodels )
 	return;
     }
 
-    const std::string defines = "-g -std=c++11 -Wall -DDEBUG_MVA=1 -DHAVE_CONFIG_H=1 -I$(LQNDIR)/libmva -I$(LQNDIR)/libmva/src/headers/mva";
+    const std::string defines = "-g -std=c++17 -Wall -DDEBUG_MVA=1 -DHAVE_CONFIG_H=1 -I$(LQNDIR)/libmva -I$(LQNDIR)/libmva/src/headers/mva";
      
     /* try to find libmva in the directory path */
     std::string path = ".";
@@ -283,22 +306,11 @@ Generate::makefile( const unsigned nSubmodels )
 /* ------------------------------------------------------------------------ */
 
 /*
- * Constructor
- */
-
-Generate::Generate( const MVASubmodel& submodel )
-    : _submodel( submodel ),  K(submodel.nChains())
-{
-}
-
-
-
-/*
  * Make a test program based on the current layer.  
  */
 
 std::ostream& 
-Generate::print( std::ostream& output ) const
+Generate::LibMVA::print( std::ostream& output ) const
 {
     /* Output the includes needed */
     
@@ -336,8 +348,8 @@ Generate::print( std::ostream& output ) const
        
     output << std::endl << "enum class Multiserver {DEFAULT";
     for ( std::map<const std::string,const Pragma::Multiserver>::const_iterator m = Pragma::__multiserver_pragma.begin(); m != Pragma::__multiserver_pragma.end(); ++m ) {
-	std::map<const Pragma::Multiserver,std::string>::iterator s = Generate::__multiservers.find(m->second);
-	if ( s == Generate::__multiservers.end() ) continue;
+	std::map<const Pragma::Multiserver,std::string>::iterator s = Generate::LibMVA::__multiservers.find(m->second);
+	if ( s == Generate::LibMVA::__multiservers.end() ) continue;
 	const std::string& src = m->first;
 	std::string& dst = s->second;
 	dst.clear();
@@ -369,16 +381,16 @@ Generate::print( std::ostream& output ) const
 
     if ( _submodel.nOpenStns() ) {
 	output << "    const unsigned n_open_stations\t= " << _submodel.nOpenStns() << ";" << std::endl;
-	output << "    Vector<Server *> open_station(n_open_stations);" << std::endl;
+	output << "    Vector<Server *> open_stations(n_open_stations);" << std::endl;
     }
     if ( _submodel.nClosedStns() ) {
 	output << "    const unsigned n_stations\t= " << _submodel.nClosedStns() << ";" << std::endl;
 
 	output << "    const unsigned n_chains\t= " << K << ";" << std::endl;
-	output << "    Vector<Server *> station( n_stations);" << std::endl;
+	output << "    Vector<Server *> stations( n_stations);" << std::endl;
 	output << "    Population customers( n_chains );" << std::endl;
-	output << "    VectorMath<double> thinkTime( n_chains );" << std::endl;
-	output << "    VectorMath<unsigned> priority( n_chains );" << std::endl;
+	output << "    VectorMath<double> think_times( n_chains );" << std::endl;
+	output << "    VectorMath<unsigned> priorities( n_chains );" << std::endl;
 	if ( _submodel._overlapFactor ) {
 	    output << "    Probability *** prOt;\t\t//Overtaking Probabilities" << std::endl << std::endl;
 	}
@@ -431,8 +443,8 @@ Generate::print( std::ostream& output ) const
 
 	for ( unsigned i = 1; i <= K; ++i ) {
 	    output << "    customers[" << i << "] = " << _submodel.customers(i) << ";" << std::endl;
-	    output << "    thinkTime[" << i << "] = " << _submodel.thinkTime(i) << ";" << std::endl;
-	    output << "    priority[" << i << "]  = " << _submodel.priority(i)  << ";" << std::endl;
+	    output << "    think_times[" << i << "] = " << _submodel.thinkTime(i) << ";" << std::endl;
+	    output << "    priorities[" << i << "]  = " << _submodel.priority(i)  << ";" << std::endl;
 	}
 	output << std::endl;
     }
@@ -440,18 +452,12 @@ Generate::print( std::ostream& output ) const
     /* Clients */
 
     output << "    /* Clients */" << std::endl << std::endl;
-
-    for ( std::set<Task *>::const_iterator client = _submodel._clients.begin(); client != _submodel._clients.end(); ++client ) {
-	printClientStation( output, **client );
-    }
+    std::for_each( _submodel._clients.begin(), _submodel._clients.end(), [&](Task * client){ printClientStation( output, *client ); } );
 
     /* Servers */
 	
     output << std::endl << "    /* Servers */" << std::endl << std::endl;
-
-    for ( std::set<Entity *>::const_iterator server = _submodel._servers.begin(); server != _submodel._servers.end(); ++server ) {
-	printServerStation( output, **server );
-    }
+    std::for_each( _submodel._servers.begin(), _submodel._servers.end(), [&]( Entity * server){ printServerStation( output, *server ); } );
 
     /* Overlap factor */
 
@@ -479,35 +485,48 @@ Generate::print( std::ostream& output ) const
     unsigned closedStnNo = 0;
     unsigned openStnNo 	 = 0;
 
-    output << "    if ( print_input ) std::cout << \"Clients:\" << std::endl;" << std::endl;
     for ( std::set<Task *>::const_iterator client = _submodel._clients.begin(); client != _submodel._clients.end(); ++client ) {
 	++closedStnNo;
-	output << "    station[" << closedStnNo << "]\t= " << station_name( **client ) << ";"  << std::endl
-	       << "    if ( print_input ) std::cout << \"" << closedStnNo << ": " << **client << "\" << std::endl"
-	       << " << *station[" << closedStnNo << "] << std::endl;" << std::endl;
+	output << "    stations[" << closedStnNo << "]\t= " << station_name( **client ) << ";"  << std::endl;
     }
-    output << "    if ( print_input ) std::cout << std::endl << \"Servers:\" << std::endl;" << std::endl;
     for ( std::set<Entity *>::const_iterator server = _submodel._servers.begin(); server != _submodel._servers.end(); ++server ) {
 	if ( (*server)->isClosedModelServer() ) {
 	    ++closedStnNo;
-	    output << "    station[" << closedStnNo << "]\t= " << station_name( **server ) << ";" << std::endl;
+	    output << "    stations[" << closedStnNo << "]\t= " << station_name( **server ) << ";" << std::endl;
 	}
 	if ( (*server)->isOpenModelServer() ) {
 	    ++openStnNo;
-	    output << "    open_station[" << openStnNo << "]\t= " << station_name( **server ) << ";" << std::endl;
+	    output << "    open_stations[" << openStnNo << "]\t= " << station_name( **server ) << ";" << std::endl;
 	}
-	output << "    if ( print_input ) std::cout << \"";
+    }
+    output << std::endl;
+
+    /* Verbose */
+    
+    closedStnNo = 0;
+    openStnNo   = 0;
+    output << "    if ( print_input ) {" << std::endl << "        std::cout << \"Clients:\" << std::endl;" << std::endl;
+    for ( std::set<Task *>::const_iterator client = _submodel._clients.begin(); client != _submodel._clients.end(); ++client ) {
+	++closedStnNo;
+	output << "        std::cout << \"" << closedStnNo << ": " << **client << "\" << std::endl << *" << station_name( **client ) << " << std::endl;" << std::endl;
+    }
+    output << "        std::cout << std::endl << \"Servers:\" << std::endl;" << std::endl;
+    for ( std::set<Entity *>::const_iterator server = _submodel._servers.begin(); server != _submodel._servers.end(); ++server ) {
+	output << "        std::cout << \"";
 	if ( (*server)->isOpenModelServer() ) {
 	    if ( (*server)->isClosedModelServer() ) {
+		++closedStnNo;
 		output << closedStnNo << ", ";
 	    }
+	    openStnNo   = 0;
 	    output << openStnNo;
 	} else {
+	    ++closedStnNo;
 	    output << closedStnNo;
 	}
 	output << ": " << **server << "\" << std::endl" << " << *" << station_name( **server ) << " << std::endl;" << std::endl;
     }
-    output << "    if ( print_input ) std::cout << std::endl;" << std::endl;
+    output << "        std::cout << std::endl;" << std::endl << "    }" << std::endl;
     output << std::endl;
 
     /* Solver */
@@ -523,7 +542,7 @@ Generate::print( std::ostream& output ) const
 	if ( MVA::__bounds_limit ) {
 	    output << "    " << "MVA::__bounds_limit = " << MVA::__bounds_limit << ";" << std::endl;
 	}
-	output << "    MVA* model = (*solver)( station, customers, thinkTime, priority";
+	output << "    MVA* model = (*solver)( stations, customers, think_times, priorities";
 	if ( _submodel._overlapFactor ) {
 	    output << ", _overlapFactor";
 	} else {
@@ -553,43 +572,34 @@ Generate::print( std::ostream& output ) const
  */
 
 std::ostream &
-Generate::printClientStation( std::ostream& output, const Task& aClient ) const
+Generate::LibMVA::printClientStation( std::ostream& output, const Task& client ) const
 {
-    const Server * const aStation = aClient.clientStation(_submodel.number());
-    const unsigned P = aClient.maxPhase();
-    const unsigned E = aClient.nEntries();
+    const Server& station = *client.clientStation( _submodel.number() );
+    const unsigned P = station.nPhases();
+    const unsigned E = station.nEntries();
+    const std::string& station_name = std::string( "t_" ) + client.name();
 
-    output << "    /* " << aClient << " */" << std::endl;
+    output << "    /* " << client << " */" << std::endl;
 
     /* Create the station */
 	
-    output << "    Server * " << station_name( aClient ) << " = new " << aStation->typeStr() 
-	   << '(' << station_args( E, K, P ) << ");" << std::endl;
+    output << "    Server * " << station_name << " = new " << station.typeStr() << '(' << station_args( E, K, P ) << ");" << std::endl;
 
-    for ( std::vector<Entry *>::const_iterator entry = aClient.entries().begin(); entry != aClient.entries().end(); ++entry ) {
-	const unsigned e = (*entry)->index();
+    for ( unsigned int e = 1; e <= E; ++e ) {
 	bool hasService = false;
 
 	for ( unsigned k = 1; k <= K; ++k ) {
 	    for ( unsigned p = 1; p <= P; ++p ) {
-		if ( aStation->S( e, k, p ) > 0 ) {
+		if ( station.S( e, k, p ) > 0 && station.V( e, k, p ) > 0 ) {
 		    hasService = true;
-		    output << "    " << station_name( aClient ) << "->setService("  
-			   << station_args( e, k, p ) << "," 
-			   << aStation->S( e, k, p ) << ")";
-		    for ( unsigned q = 1; q <= Entry::max_phases; ++q ) {
-			if ( aStation->V( e, k, q ) == 0 ) continue;
-			output << ".setVisits(" 
-			       << station_args( e, k, q ) 
-			       << "," << aStation->V( e, k, q ) << ")";
-		    }
-		    output << ";" << std::endl;
+		    output << "    " << station_name
+			   << "->setService(" << station_args( e, k, p ) << "," << station.S( e, k, p ) << ")"
+			   << ".setVisits(" << station_args( e, k, p )   << "," << station.V( e, k, p ) << ");";
 		}
 	    }
 	}
 	if ( !hasService ) {
-	    output << "    /* No service time for station "
-		   << station_name( aClient ) << " */" << std::endl;
+	    output << "    /* No service time for station " << station_name << " */" << std::endl;
 	}
     }
     output << std::endl;
@@ -604,25 +614,25 @@ Generate::printClientStation( std::ostream& output, const Task& aClient ) const
  */
 
 std::ostream &
-Generate::printServerStation( std::ostream& output, const Entity& server ) const
+Generate::LibMVA::printServerStation( std::ostream& output, const Entity& server ) const
 {
     const Server& station = *server.serverStation();
     const unsigned P = station.nPhases();
     const unsigned E = station.nEntries();
-    const std::string& name = server.name();
+    const std::string& station_name = std::string( server.isTask() ? "t_" : "p_" ) + server.name();
     
     output << "    /* " << server << " */" << std::endl;
 
     /* Create the station */
 	
-    output << "    Server * " << station_name( server );
-    if ( station.mu() > 1.0 ) {
+    output << "    Server * " << station_name;
+    if ( std::isfinite( station.mu() ) && station.mu() > 1.0 ) {
 	output << ";" << std::endl << "    switch ( multiserver ) {" << std::endl;
 	for ( std::map<const Pragma::Multiserver,std::string>::const_iterator m = __multiservers.begin(); m != __multiservers.end(); ++m ) {
 	    if ( m->first == Pragma::Multiserver::DEFAULT ) {
-		output << "    default: " << station_name( server ) << " = new " << station.typeStr();
+		output << "    default: " << station_name << " = new " << station.typeStr();
 	    } else {
-		output << "    case Multiserver::" << m->second << ": " << station_name( server ) << " = new ";
+		output << "    case Multiserver::" << m->second << ": " << station_name << " = new ";
 		if ( P == 1 ) output << __stations.at(m->first).first;	/* Single phase */
 		else output << __stations.at(m->first).second;		/* Two phase */
 	    }
@@ -633,59 +643,44 @@ Generate::printServerStation( std::ostream& output, const Entity& server ) const
 	output << "= new " << station.typeStr() << '(' << station_args( E, K, P ) << ");" << std::endl;
     }
 
-    for ( std::vector<Entry *>::const_iterator entry = server.entries().begin(); entry != server.entries().end(); ++entry ) {
-	const unsigned e = (*entry)->index();
+    for ( unsigned int e = 1; e <= E; ++e ) {
 	bool hasService = false;
 	
 	for ( unsigned k = 0; k <= K; ++k ) {
 	    for ( unsigned p = 1; p <= P; ++p ) {
-		if ( station.S( e, k, p ) > 0 ) {
-		    hasService = true;
-		    output << "    " << station_name( server ) << "->setService("  
-			   << station_args( e, k, p )
-			   << "," << station.S( e, k, p ) << ")";
-		    if ( server.hasVariance()
-			 && ( server.isTask()
-			      || ( server.isProcessor() && Pragma::defaultProcessorScheduling() )) ) {
-			output << ".setVariance("
-			       << station_args( e, k, p )
-			       << "," << (*entry)->varianceForPhase(p) << ")";
-		    }
-		    for ( unsigned q = 1; q <= Entry::max_phases; ++q ) {
-			if ( station.V( e, k, q ) == 0 ) continue;
-			output << ".setVisits(" 
-			       << station_args( e, k, q )
-			       << "," << station.V( e, k, q ) << ")";
-		    }
-		    output << ";" << std::endl;
+		if ( station.S( e, k, p ) == 0. || station.V( e, k, p ) == 0. ) continue;
+		hasService = true;
+		output << "    " << station_name
+		       << "->setService(" << station_args( e, k, p ) << "," << station.S( e, k, p ) << ")"
+		       << ".setVisits(" << station_args( e, k, p )   << "," << station.V( e, k, p ) << ")";
+		if ( station.hasVariance() ) {
+		    output << ".setVariance(" << station_args( e, k, p ) << "," << station.getVariance( e, k, p ) << ")";
 		}
+		output << ";" << std::endl;
+	    }
+	    if ( hasService && station.hasVariance() ) {
+		output << "    " << station_name << ".setVariance(" << station_args( e, k, 0 ) << "," << station.getVariance( e, k, 0 ) << ");";
 	    }
 	}
 	if ( !hasService ) {
-	    output << "    /* No service time for station "
-		   << station_name( server ) << " */" << std::endl;
+	    output << "    /* No service time for station " << station_name << " */" << std::endl;
 	}
-
 		
 	/* Overtaking probabilities. */
 		
 	if ( server.markovOvertaking() ) {
 	    Probability *** prOt = station.getPrOt( e );
-
-	    output << "    prOt = " << station_name( server ) << "->getPrOt("
-		   << e << ");" << std::endl;
+	    output << "    prOt = " << station_name << "->getPrOt(" << e << ");" << std::endl;
 			
 	    for( unsigned int k = 1; k <= K; ++k ) {
 		for ( unsigned p = 0; p <= Entry::max_phases; ++p ) {	// Total probability!
 		    for ( unsigned q = 1; q <= P; ++q ) {
 			if ( prOt[k][p][q] == 0.0 ) continue;
-			output << "    prOt" << overtaking_args( k, p, q )
-			       << " = " << prOt[k][p][q] << ";" << std::endl;
+			output << "    prOt" << overtaking_args( k, p, q ) << " = " << prOt[k][p][q] << ";" << std::endl;
 		    }
 		}
 	    }
 	}
-
     }
 
     if ( Pragma::interlock() ) {
@@ -704,7 +699,7 @@ Generate::printServerStation( std::ostream& output, const Entity& server ) const
  */
 
 std::ostream &
-Generate::printInterlock( std::ostream& output, const Entity& server ) const
+Generate::LibMVA::printInterlock( std::ostream& output, const Entity& server ) const
 {
     for ( std::set<Task *>::const_iterator client = _submodel._clients.begin(); client != _submodel._clients.end(); ++client ) {
 	if ( (*client)->throughput() == 0.0 ) continue;
@@ -730,7 +725,7 @@ Generate::printInterlock( std::ostream& output, const Entity& server ) const
 /* ---------------------------------------------------------------------- */
 
 char
-Generate::remap( char c )
+Generate::LibMVA::remap( char c )
 {
     if ( c == '-' ) return '_';
     else return toupper( c );
@@ -738,18 +733,22 @@ Generate::remap( char c )
 
 
 /*
- * Look for libmva
+ * Look for libmva.  Don't bother with root.
  */
 
 bool
-Generate::find_libmva( std::string& pathname )
+Generate::LibMVA::find_libmva( std::string& pathname )
 {
-    if ( access( pathname.c_str(), F_OK ) == 0 ) {			/* Directory exists? 	*/
-	std::string filename = pathname + "/libmva";
-	pathname.insert( 0, "../" );
-	if ( access( filename.c_str(), F_OK ) == 0 ) return true;	/* libmva found		*/
-	return find_libmva( pathname );					/* try parent 		*/
-    } 
+    try { 
+	if ( std::filesystem::exists( pathname ) ) {	/* Directory exists? 	*/
+	    std::string filename = pathname + "/libmva";
+	    if ( std::filesystem::exists( filename ) ) return true;	/* libmva found		*/
+	    pathname.insert( 0, "../" );
+	    return !std::filesystem::equivalent( "/", pathname ) && find_libmva( pathname );	/* try parent 		*/
+	}
+    }
+    catch ( const std::filesystem::filesystem_error& e ) {		/* Ignore 		*/
+    }
     return false;							/* Not found		*/
 }
 
@@ -759,7 +758,7 @@ Generate::find_libmva( std::string& pathname )
  */
 
 /* static */ std::ostream&
-Generate::print_station_name( std::ostream& output, const Entity& anEntity )
+Generate::LibMVA::print_station_name( std::ostream& output, const Entity& anEntity )
 {
     if ( anEntity.isTask() ) {
 	output << "t_";
@@ -776,7 +775,7 @@ Generate::print_station_name( std::ostream& output, const Entity& anEntity )
  */
 
 /* static */ std::ostream&
-Generate::print_station_args( std::ostream& output, const unsigned e, const unsigned k, const unsigned p )
+Generate::LibMVA::print_station_args( std::ostream& output, const unsigned e, const unsigned k, const unsigned p )
 {
     output << e << "," << k << "," << p;
     return output; 
@@ -787,10 +786,188 @@ Generate::print_station_args( std::ostream& output, const unsigned e, const unsi
  */
 
 /* static */ std::ostream&
-Generate::print_overtaking_args( std::ostream& output, const unsigned e, const unsigned k, const unsigned p )
+Generate::LibMVA::print_overtaking_args( std::ostream& output, const unsigned e, const unsigned k, const unsigned p )
 {
     output << "[" << e << "][" << k << "][" << p << "]";
     return output; 
 }
+
+/* -------------------------------------------------------------------- */
+/*                        Output BCMP Model                             */
+/* -------------------------------------------------------------------- */
+
+/*
+ * Construct a BCMP model from the submodel.  This can be solved using
+ * a regular MVA solver.
+ */
+
+void
+Generate::BCMP_Model::serialize_JMVA( const Submodel * submodel )
+{
+    serialize( submodel, &Generate::JMVA_Document::serialize );
+}
+
+void
+Generate::BCMP_Model::serialize_QNAP( const Submodel * submodel )
+{
+    serialize( submodel, &Generate::QNAP_Document::serialize );
+}
+	       
+
+void
+Generate::BCMP_Model::serialize( const Submodel * submodel, serialize_fptr f )
+{
+    std::map<serialize_fptr, const std::string> extension = {
+	{ JMVA_Document::serialize, "jmva" },
+	{ QNAP_Document::serialize, "qnap" },
+    };
+    
+    if ( dynamic_cast<const MVASubmodel *>(submodel) == nullptr ) return;
+
+    const std::string source_file_name = LQIO::DOM::Document::__input_file_name;	/* We need a copy to preserve over output */
+    std::ostringstream file_name;
+    file_name << __directory_name << "/submodel-" << submodel->number() << "." << extension.at(f);
+    
+    std::ofstream output;
+    output.open( file_name.str(), std::ios::out );
+
+    if ( !output ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << file_name.str() << " - " << strerror( errno ) << std::endl;
+    } else {
+	Generate::BCMP_Model bcmp( *dynamic_cast<const MVASubmodel *>(submodel) );
+	std::ostringstream comment;
+	comment << source_file_name << ", submodel " << submodel->number();
+	bcmp.setComment( comment.str() );
+	(*f)( output, source_file_name, bcmp._model );
+    }
+
+    output.close();
+}
 
 
+void
+Generate::JMVA_Document::serialize( std::ostream& output, const std::string& filename, const BCMP::Model& model )
+{
+    QNIO::JMVA_Document jmva( model );
+    jmva.print( output );
+}
+
+
+void
+Generate::QNAP_Document::serialize( std::ostream& output, const std::string& filename, const BCMP::Model& model )
+{
+    QNIO::QNAP2_Document qnap( model );
+    qnap.exportModel( output );
+}
+
+/* -------------------------------------------------------------------- */
+
+/*
+ * Constructor.  Add the reference station here.  Populate it in contstruct().
+ */
+
+Generate::BCMP_Model::BCMP_Model( const MVASubmodel& submodel )
+    : _submodel( submodel ), K(submodel.nChains()), _model(), 
+      _reference( _model.insertStation( "Reference", BCMP::Model::Station::Type::DELAY, SCHEDULE_DELAY, BCMP::Model::constant( 1. ) ).first->second ),
+      _chains()
+{
+    _reference.setReference( true );
+    construct();
+}
+
+
+
+void
+Generate::BCMP_Model::setComment( const std::string& comment )
+{
+    _model.insertComment( comment );
+}
+
+
+const std::set<Task *>&
+Generate::BCMP_Model::clients() const
+{
+    return _submodel._clients;
+}
+
+
+const std::set<Entity *>&
+Generate::BCMP_Model::servers() const
+{
+    return _submodel._servers;
+}
+
+
+unsigned int 
+Generate::BCMP_Model::number() const
+{
+    return _submodel.number();
+}
+
+
+/*
+ * Return the think time computed by the submodel.
+ */
+ 
+double
+Generate::BCMP_Model::think_time( unsigned int k ) const
+{
+    return _submodel.thinkTime( k );
+}
+
+
+/*
+ * Construct the chains and stations for the model.
+ */
+
+void
+Generate::BCMP_Model::construct()
+{
+    if ( std::any_of( servers().begin(), servers().end(), std::mem_fn(&Entity::hasSecondPhase) ) ) { LQIO::runtime_error( ADV_BCMP_NOT_SUPPORTED, number(), "second phases" ); }
+    if ( std::any_of( servers().begin(), servers().end(), std::mem_fn(&Entity::hasThreads) ) ) { LQIO::runtime_error( ADV_BCMP_NOT_SUPPORTED, number(), "threads" ); }
+    if ( std::any_of( servers().begin(), servers().end(), std::mem_fn(&Entity::isInterlocked) ) ) { LQIO::runtime_error( ADV_BCMP_NOT_SUPPORTED, number(), "interlocking" ); }
+    std::for_each( clients().begin(), clients().end(), [&]( const Task * client ){ createChain( *client ); } );
+    std::for_each( servers().begin(), servers().end(), [&]( const Entity * server ){ createStation( *server ); } );
+}
+
+
+/*
+ * Add chains.  Clients in the submodel (should not have) service times.  So the chain think time for the MVA solver
+ * in the submodel is used to set the service time for the reference task for the BCMP model.
+ */
+
+void
+Generate::BCMP_Model::createChain( const Task& client ) 
+{
+    const Server& source = *client.clientStation( number() );
+    for ( unsigned int k = 1; k <= K; ++k ) {
+	if ( !client.hasClientChain( number(), k ) || source.V( k ) == 0. ) continue;
+	_chains.emplace( std::make_pair( k, client.name() ) );
+	if ( !_model.insertClosedChain( client.name(), BCMP::Model::constant( client.copies() ), BCMP::Model::constant( 0 ) ).second ) {
+	    std::cerr << "Generate::BCMP_Model::createChain: client has more than one chain" << std::endl;
+	    abort();
+	}
+	_reference.insertClass( client.name(), BCMP::Model::constant( source.V( k ) ), BCMP::Model::constant( think_time( k ) ) );
+    }
+}
+
+/* Add stations */
+void
+Generate::BCMP_Model::createStation( const Entity& server ) 
+{
+    const Server& source = *server.serverStation();
+
+    BCMP::Model::Station& destination = _model.insertStation( server.name(), stationType( server ), server.scheduling(), BCMP::Model::constant( server.copies() ) ).first->second;
+    for ( unsigned k = 0; k <= K; ++k ) {
+	if ( !server.hasServerChain(k) || source.S( k ) == 0. || source.V( k ) == 0. ) continue;
+	destination.insertClass( _chains.at( k ), BCMP::Model::constant( source.V( k ) ), BCMP::Model::constant( source.S( k ) ) );
+    }
+}
+
+BCMP::Model::Station::Type
+Generate::BCMP_Model::stationType( const Entity& server ) const
+{
+    if ( server.isInfinite() ) return BCMP::Model::Station::Type::DELAY;
+    else if ( server.isMultiServer() ) return BCMP::Model::Station::Type::MULTISERVER;
+    else return BCMP::Model::Station::Type::LOAD_INDEPENDENT;
+}

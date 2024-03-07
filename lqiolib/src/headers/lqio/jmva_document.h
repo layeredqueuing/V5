@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 16891 2023-12-09 13:39:20Z greg $
+ *  $Id: jmva_document.h 17101 2024-03-05 18:35:57Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -8,7 +8,9 @@
 #define __LQIO_JMVA_DOCUMENT__
 
 #include <config.h>
+#if HAVE_EXPAT_H
 #include <expat.h>
+#endif
 #include <stack>
 #include <set>
 #include <cstring>
@@ -114,7 +116,7 @@ namespace QNIO {
 
     public:
 	JMVA_Document( const std::string& input_file_name );
-	JMVA_Document( const std::string&, const BCMP::Model& );
+	JMVA_Document( const BCMP::Model& );
 	virtual ~JMVA_Document();
 
 	virtual bool load();

@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17050 2024-02-06 21:26:47Z greg $
+ * $Id: task.cc 17099 2024-03-04 22:02:11Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -170,6 +170,14 @@ Task::cloneActivities( const Task& src, unsigned int replica )
 }
 
 /* ----------------------- Abstract Superclass. ----------------------- */
+
+bool
+Task::hasClientChain( const unsigned int n, const unsigned int k ) const
+{
+    return _clientChains[n].find(k) != _clientChains[n].end();
+}
+
+
 
 /*
  * Return true if any entry or activity has a think time value.  If

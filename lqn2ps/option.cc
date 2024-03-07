@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: option.cc 16861 2023-11-23 17:52:43Z greg $
+ * $Id: option.cc 17083 2024-03-02 01:39:15Z greg $
  */
 
 #include "lqn2ps.h"
@@ -553,8 +553,11 @@ input_output()
 bool
 bcmp_output()
 {
-    return Flags::output_format() == File_Format::JMVA
-	|| Flags::output_format() == File_Format::QNAP2;
+    return Flags::output_format() == File_Format::QNAP2
+#if JMVA_OUTPUT && HAVE_EXPAT_H
+	|| Flags::output_format() == File_Format::JMVA
+#endif
+	;
 }
 
 

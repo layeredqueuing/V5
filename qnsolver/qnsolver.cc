@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 16894 2023-12-10 19:41:38Z greg $
+ * $Id: qnsolver.cc 17101 2024-03-05 18:35:57Z greg $
  */
 
 #include "config.h"
@@ -363,7 +363,7 @@ static bool exec( QNIO::Document& input, const std::string& output_file_name, co
     }
 
     if ( print_qnap2 ) {
-	QNIO::QNAP2_Document qnap_model( input.getInputFileName(), input.model() );
+	QNIO::QNAP2_Document qnap_model( input.model() );
 	if ( output ) {
 	    qnap_model.exportModel( output );
 	} else {

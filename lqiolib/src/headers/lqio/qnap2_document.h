@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 16882 2023-12-04 22:24:07Z greg $
+ *  $Id: qnap2_document.h 17101 2024-03-05 18:35:57Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -189,8 +189,8 @@ namespace QNIO {
 	};
 
     public:
-	QNAP2_Document( const std::string& input_file_name );					/* For input */
-	QNAP2_Document( const std::string& input_file_name, const BCMP::Model& model );		/* For output */
+	QNAP2_Document( const std::string& input_file_name );			/* For input */
+	QNAP2_Document( const BCMP::Model& model );				/* For output */
 	virtual ~QNAP2_Document();
 
 	virtual bool load();

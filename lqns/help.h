@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 17066 2024-02-27 17:50:25Z greg $
+ * $Id: help.h 17099 2024-03-04 22:02:11Z greg $
  */
 
 #ifndef _HELP_H
@@ -217,6 +217,7 @@ public:
 
     std::ostream& specialFullReinitialize( std::ostream & output, bool verbose ) const;
     std::ostream& specialGenerateJMVAOutput( std::ostream & output, bool verbose ) const;
+    std::ostream& specialGenerateQNAPOutput( std::ostream & output, bool verbose ) const;
     std::ostream& specialGenerateQueueingModel( std::ostream & output, bool verbose ) const;
     std::ostream& specialIgnoreOverhangingThreads( std::ostream & output, bool verbose ) const;
     std::ostream& specialMakeMan( std::ostream & output, bool verbose ) const;

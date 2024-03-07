@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 16972 2024-01-29 19:23:49Z greg $
+ * $Id: model.cc 17101 2024-03-05 18:35:57Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -12,21 +12,18 @@
 #include <cstdlib>
 #include <cstring>
 #include <errno.h>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <time.h>
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#endif
 #if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
-#include <sys/stat.h>
-#if HAVE_SYS_TYPES_H
-#include <sys/types.h>
+#if HAVE_UNISTD_H
+#include <unistd.h>
 #endif
 #include <lqio/dom_document.h>
 #include <lqio/dom_activity.h>
@@ -2131,7 +2128,7 @@ Model::printXML( std::ostream& output ) const
 
 
 
-#if JMVA_OUTPUT
+#if JMVA_OUTPUT && HAVE_EXPAT_H
 /*
  * It has to be a submodel...
  */
@@ -2140,7 +2137,7 @@ std::ostream&
 Model::printJMVA( std::ostream& output ) const
 {
     if ( queueing_output() ) {
-	QNIO::JMVA_Document model( _inputFileName, _layers.at(Flags::queueing_model()).getBCMPModel());
+	QNIO::JMVA_Document model( _layers.at(Flags::queueing_model()).getBCMPModel() );
 	model.exportModel( output );
     }
     return output;
@@ -2156,7 +2153,7 @@ std::ostream&
 Model::printQNAP2( std::ostream& output ) const
 {
     if ( queueing_output() ) {
-	QNIO::QNAP2_Document model( _inputFileName, _layers.at(Flags::queueing_model()).getBCMPModel() );
+	QNIO::QNAP2_Document model( _layers.at(Flags::queueing_model()).getBCMPModel() );
 	model.setComment( _document->getResultDescription() );
 	model.exportModel( output );
     }
@@ -2267,35 +2264,31 @@ Model::printSXD( const char * file_name ) const
     /* Use basename of input file name */
     LQIO::Filename dir_name( file_name, "" );
 
-    if ( MKDIR( dir_name().c_str(), S_IRWXU ) < 0 ) {
-	std::ostringstream msg;
-	msg << "Cannot create directory \"" << dir_name() << "\" - " << strerror( errno );
-	throw std::runtime_error( msg.str() );
-    } else {
-	std::string meta_name = dir_name();
-	meta_name += "/META-INF";
-	if ( MKDIR( meta_name.c_str(), S_IRWXU ) < 0 ) {
-	    std::ostringstream msg;
-	    msg << "Cannot create directory \"" << meta_name << "\" - " << strerror( errno );
-	    rmdir( dir_name().c_str() );
-	    throw std::runtime_error( msg.str() );
-	} else try {
-		printSXD( file_name, dir_name(), "META-INF/manifest.xml", &Model::printSXDManifest );
-		printSXD( file_name, dir_name(), "content.xml", &Model::printSXD );
-		printSXD( file_name, dir_name(), "meta.xml", &Model::printSXDMeta );
-		printSXD( file_name, dir_name(), "styles.xml", &Model::printSXDStyles );
-		printSXD( file_name, dir_name(), "settings.xml", &Model::printSXDSettings );
-		printSXD( file_name, dir_name(), "mimetype", &Model::printSXDMimeType );
-		rmdir( meta_name.c_str() );
-	    }
-	    catch ( const std::runtime_error &error ) {
-		rmdir( meta_name.c_str() );
-		rmdir( dir_name().c_str() );
-		throw;
-	    }
-
-	rmdir( dir_name().c_str() );
+    try {
+	std::filesystem::create_directory( dir_name() );
     }
+    catch ( std::filesystem::filesystem_error& e ) {
+	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, dir_name().c_str(), e.what() );
+	throw;
+    } 
+
+    std::string meta_name = dir_name();
+    meta_name += "/META-INF";
+    try {
+	std::filesystem::create_directory( meta_name );
+	printSXD( file_name, dir_name(), "META-INF/manifest.xml", &Model::printSXDManifest );
+	printSXD( file_name, dir_name(), "content.xml", &Model::printSXD );
+	printSXD( file_name, dir_name(), "meta.xml", &Model::printSXDMeta );
+	printSXD( file_name, dir_name(), "styles.xml", &Model::printSXDStyles );
+	printSXD( file_name, dir_name(), "settings.xml", &Model::printSXDSettings );
+	printSXD( file_name, dir_name(), "mimetype", &Model::printSXDMimeType );
+    }
+    catch ( const std::runtime_error &error ) {
+	rmdir( meta_name.c_str() );
+	rmdir( dir_name().c_str() );
+	throw;
+    }
+
     return *this;
 }
 

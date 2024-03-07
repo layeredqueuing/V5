@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 16693 2023-04-22 12:21:20Z greg $
+ * $Id: bcmp_document.cpp 17089 2024-03-03 19:12:56Z greg $
  *
  * Read in XML input files.
  *
@@ -184,6 +184,12 @@ namespace BCMP {
 	return var->invoke(nullptr)->getDoubleValue();
     }
 
+    LQX::SyntaxTreeNode *
+    Model::constant( double value )
+    {
+	return new LQX::ConstantValueExpression( value );
+    }
+    
     LQX::SyntaxTreeNode *
     Model::add( LQX::SyntaxTreeNode * a1, LQX::SyntaxTreeNode * a2 )
     {

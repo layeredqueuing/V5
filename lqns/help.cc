@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 17066 2024-02-27 17:50:25Z greg $
+ * $Id: help.cc 17099 2024-03-04 22:02:11Z greg $
  */
 
 #include "lqns.h"
@@ -1326,7 +1326,18 @@ Help::specialGenerateJMVAOutput( std::ostream & output, bool verbose ) const
     output << "This option is used to generate a JMVA queueing model (if possible) for solver in the directory " << emph( *this, "arg" ) << "." << std::endl;
     if ( verbose ) {
 	output << "A directory named " << emph( *this, "arg" )
-	       << " will be created containing source code for invoking the MVA solver directly."  << std::endl;
+	       << " will be created model files for input to the JMVA solver or to qnsolver."  << std::endl;
+    }
+    return output;
+}
+
+std::ostream&
+Help::specialGenerateQNAPOutput( std::ostream & output, bool verbose ) const
+{
+    output << "This option is used to generate a QNAP queueing model (if possible) for solver in the directory " << emph( *this, "arg" ) << "." << std::endl;
+    if ( verbose ) {
+	output << "A directory named " << emph( *this, "arg" )
+	       << " will be created model files for input to the QNAP2 solver or to qnsolver."  << std::endl;
     }
     return output;
 }
@@ -2287,7 +2298,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 17066 2024-02-27 17:50:25Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 17099 2024-03-04 22:02:11Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2586,7 +2597,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 17066 2024-02-27 17:50:25Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 17099 2024-03-04 22:02:11Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 16891 2023-12-09 13:39:20Z greg $
+ * $Id: jmva_document.cpp 17101 2024-03-05 18:35:57Z greg $
  *
  * Read in XML input files.
  *
@@ -87,8 +87,8 @@ namespace QNIO {
     {
     }
 
-    JMVA_Document::JMVA_Document( const std::string& input_file_name, const BCMP::Model& model ) :
-	Document( input_file_name, model ),
+    JMVA_Document::JMVA_Document( const BCMP::Model& model ) :
+	Document( model ),
 	_strict_jmva(true), _parser(nullptr), _stack(),
 	_lqx_program_text(), _lqx_program_line_number(0), _lqx(nullptr), _program(),
 	_input_variables(), _whatif_body(), _independent_variables(), _result_variables(), _station_index(),
@@ -717,7 +717,7 @@ namespace QNIO {
 		if ( dynamic_cast<LQX::VariableExpression *>(service_time) ) _service_time_vars.emplace(k,dynamic_cast<LQX::VariableExpression *>(service_time)->getName());
 	    }
 	}
-	m->setCopies( BCMP::Model::max( m->copies(), new LQX::ConstantValueExpression( static_cast<double>(count) ) ) );
+	m->setCopies( BCMP::Model::max( m->copies(), BCMP::Model::constant( static_cast<double>(count) ) ) );
     }
 
     void
@@ -917,7 +917,7 @@ namespace QNIO {
 	    if ( strcasecmp( *attributes, attribute ) == 0 ) return getVariable( attribute, *(attributes+1) );
 	}
 	if ( default_value >= 0.0 ) {
-	    return new LQX::ConstantValueExpression( default_value );
+	    return BCMP::Model::constant( default_value );
 	} else {
 	    throw XML::missing_attribute( attribute );
 	}
@@ -934,7 +934,7 @@ namespace QNIO {
 	    const char* realEndPtr = value + strlen(value);
 	    const double real = strtod(value, &endPtr);
 	    if ( endPtr != realEndPtr ) throw std::invalid_argument(value);
-	    return new LQX::ConstantValueExpression(real);
+	    return BCMP::Model::constant(real);
 	}
     }
 
@@ -1194,7 +1194,7 @@ namespace QNIO {
 	_input_variables.emplace( class1_population );
 	k1->second.setCustomers( new LQX::VariableExpression( class1_population, is_external ) );	/* ... so swap constant for variable in class.	*/
 	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( x_name, false ),
-							      new LQX::ConstantValueExpression( k1_customers ) ) );
+							      BCMP::Model::constant( k1_customers ) ) );
 	std::vector<LQX::SyntaxTreeNode *> * function_args = new std::vector<LQX::SyntaxTreeNode *>;
 	function_args->push_back( new LQX::MathExpression( LQX::MathOperation::MULTIPLY,
 							   new LQX::VariableExpression( beta, false ),
@@ -1209,10 +1209,10 @@ namespace QNIO {
 	_input_variables.emplace( class2_population );
 	k2->second.setCustomers( new LQX::VariableExpression( class2_population, is_external ) );	/* ... so swap constanst for variable in class.	*/
 	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( y_name, false ),
-							      new LQX::ConstantValueExpression( k2_customers ) ) );
+							      BCMP::Model::constant( k2_customers ) ) );
 	function_args = new std::vector<LQX::SyntaxTreeNode *>;
 	function_args->push_back( new LQX::MathExpression( LQX::MathOperation::MULTIPLY,
-							   new LQX::MathExpression( LQX::MathOperation::SUBTRACT,  new LQX::ConstantValueExpression( 1. ), new LQX::VariableExpression( beta, false ) ),
+							   new LQX::MathExpression( LQX::MathOperation::SUBTRACT,  BCMP::Model::constant( 1. ), new LQX::VariableExpression( beta, false ) ),
 							   new LQX::VariableExpression( y_name, false ) ) );
 	assignment_expr = new LQX::AssignmentStatementNode( new LQX::VariableExpression( class2_population, is_external ), new LQX::MethodInvocationExpression( "round", function_args ) );
 	_whatif_body.push_back( assignment_expr );
@@ -1559,7 +1559,7 @@ namespace QNIO {
 	}
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set key box" ) );
 
-	_x_max = new LQX::ConstantValueExpression( whatif->max() );
+	_x_max = BCMP::Model::constant( whatif->max() );
 	_y_max = nullptr;
 	_n_labels = 0;
 
@@ -1698,7 +1698,7 @@ namespace QNIO {
 	if ( dynamic_cast<LQX::ConstantValueExpression*>(nStar) == nullptr ) return plot;		/* Not resolved -- can't plot */
 
 	if ( boundsOnly() ) {
-	    _x_max = BCMP::Model::multiply( nStar, new LQX::ConstantValueExpression( 2.0 ) );
+	    _x_max = BCMP::Model::multiply( nStar, BCMP::Model::constant( 2.0 ) );
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + QNIO::Document::Comprehension::__type_name.at(QNIO::Document::Comprehension::Type::CUSTOMERS) + "\"" ) );
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \"" + __y_label_table.at(type) + "\"" ) );
 	    _gnuplot.push_back( LQIO::GnuPlot::print_node( "set key title \"Bounds\" box" ) );
@@ -1949,8 +1949,8 @@ namespace QNIO {
 	XML::set_indent(0);
 	output << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl
 	       << "<!-- " << LQIO::DOM::Common_IO::svn_id() << " -->" << std::endl;
-	if ( LQIO::io_vars.lq_command_line.size() > 0 ) {
-	    output << "<!-- " << LQIO::io_vars.lq_command_line << " -->" << std::endl;
+	if ( !LQIO::io_vars.lq_command_line.empty() ) {
+	    output << XML::comment( LQIO::io_vars.lq_command_line );
 	}
 
 	printModel( output );
@@ -1965,8 +1965,8 @@ namespace QNIO {
 	XML::set_indent(0);
 	output << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl
 	       << "<!-- " << LQIO::DOM::Common_IO::svn_id() << " -->" << std::endl;
-	if ( LQIO::io_vars.lq_command_line.size() > 0 ) {
-	    output << "<!-- " << LQIO::io_vars.lq_command_line << " -->" << std::endl;
+	if ( !LQIO::io_vars.lq_command_line.empty() ) {
+	    output << XML::comment( LQIO::io_vars.lq_command_line );
 	}
 
 	printModel( output );
@@ -2450,7 +2450,7 @@ namespace QNIO
 	} else {
 	    _program.push_back( print_csv_header() );
 	}
-	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "_0", false ), new LQX::ConstantValueExpression( 0. ) ) );
+	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "_0", false ), BCMP::Model::constant( 0. ) ) );
 	_program.push_back( foreach_loop( whatif_statements().begin(), whatif_statements().end() ) );
 
 	/*+ gnuplo t-> append the gnuplot program. */
@@ -2492,7 +2492,7 @@ namespace QNIO
     {
 	std::vector<LQX::SyntaxTreeNode *>* loop_code = new std::vector<LQX::SyntaxTreeNode *>();
 	loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "_0", false ),
-								new LQX::MathExpression(LQX::MathOperation::ADD, new LQX::VariableExpression( "_0", false ), new LQX::ConstantValueExpression( 1.0 ) ) ) );
+								new LQX::MathExpression(LQX::MathOperation::ADD, new LQX::VariableExpression( "_0", false ), BCMP::Model::constant( 1.0 ) ) ) );
 	loop_code->insert( loop_code->end(), _whatif_body.begin(), _whatif_body.end() );
 	loop_code->push_back( new LQX::ConditionalStatementNode( new LQX::MethodInvocationExpression("solve"),
 								 new LQX::CompoundStatementNode( solve_success() ),

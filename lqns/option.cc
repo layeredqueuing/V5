@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 17067 2024-02-27 18:45:36Z greg $
+ * $Id: option.cc 17099 2024-03-04 22:02:11Z greg $
  */
 
 #include "lqns.h"
@@ -308,6 +308,7 @@ std::map<const std::string, const Options::Special> Options::Special::__table =
     { "full-reinitialize",                      Special( &Special::full_reinitialize,           false, &Help::specialFullReinitialize ) },
     { "generate",                               Special( &Special::generate_queueing_model,     true,  &Help::specialGenerateQueueingModel ) },
     { "generate-jmva",                          Special( &Special::generate_jmva_output,        true,  &Help::specialGenerateJMVAOutput ) },
+    { "generate-qnap",                          Special( &Special::generate_qnap_output,        true,  &Help::specialGenerateQNAPOutput ) },
 #if HAVE_LIBGSL
     { "ignore-overhanging-threads",             Special( &Special::ignore_overhanging_threads,  false, &Help::specialIgnoreOverhangingThreads ) },
 #endif
@@ -347,7 +348,7 @@ Options::Special::full_reinitialize( const std::string& )
 void
 Options::Special::generate_queueing_model( const std::string& arg )
 {
-    flags.generate = true;
+    Generate::__mode = Generate::Output::LIBMVA;
     if ( arg.empty() ) {
 	Generate::__directory_name = "debug";
     } else {
@@ -359,9 +360,21 @@ Options::Special::generate_queueing_model( const std::string& arg )
 void
 Options::Special::generate_jmva_output( const std::string& arg )
 {
-    flags.generate = true;
+    Generate::__mode = Generate::Output::JMVA;
     if ( arg.empty() ) {
 	Generate::__directory_name = "jmva";
+    } else {
+	Generate::__directory_name = arg;
+    }
+}
+
+
+void
+Options::Special::generate_qnap_output( const std::string& arg )
+{
+    Generate::__mode = Generate::Output::QNAP;
+    if ( arg.empty() ) {
+	Generate::__directory_name = "qnap";
     } else {
 	Generate::__directory_name = arg;
     }

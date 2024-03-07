@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 17077 2024-02-29 02:23:32Z greg $
+ * $Id: lqns.cc 17093 2024-03-04 11:47:34Z greg $
  *
  * Command line processing.
  *
@@ -144,7 +144,7 @@ int main (int argc, char *argv[])
     
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2024-02-28 21:23:32 -0500 (Wed, 28 Feb 2024) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2024-03-04 06:47:34 -0500 (Mon, 04 Mar 2024) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = fp_exception_reporting::DEFERRED_ABORT;
 
@@ -443,7 +443,7 @@ int main (int argc, char *argv[])
     }
     LQIO::io_vars.lq_command_line = command_line.c_str();
 
-    if ( flags.generate && flags.no_execute ) {
+    if ( Generate::__mode != Generate::Output::NONE && flags.no_execute ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": -n is incompatible with -zgenerate.  -zgenerate ignored." << std::endl;
     }
 
@@ -496,7 +496,6 @@ void init_flags()
     flags.no_execute            = false;
     flags.bounds_only           = false;
     flags.rtf_output            = false;
-    flags.generate              = false;
     flags.reset_mva		= false;
     flags.print_overtaking      = false;
     flags.single_step           = false;

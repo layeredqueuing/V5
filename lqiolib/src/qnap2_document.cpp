@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 16893 2023-12-09 19:29:22Z greg $
+ * $Id: qnap2_document.cpp 17113 2024-03-06 10:47:42Z greg $
  *
  * Read in XML input files.
  *
@@ -743,8 +743,8 @@ namespace QNIO {
 	__document = this;
     }
 
-    QNAP2_Document::QNAP2_Document( const std::string& input_file_name, const BCMP::Model& model ) :
-	Document(input_file_name, model),
+    QNAP2_Document::QNAP2_Document( const BCMP::Model& model ) :
+	Document(model),
  	_symbolTable(), _transit(), _entry(), _main(), _exit(), _lqx(LQX::Program::loadRawProgram( &_main )), _env(_lqx->getEnvironment()),
 	_debug(false), _result(true)
     {
@@ -2243,7 +2243,9 @@ namespace QNIO {
     {
 	std::string s = s1;
 	const BCMP::Model::Station& station = m2.second;
-	LQX::SyntaxTreeNode * visits = station.classAt(_name).visits();
+	const BCMP::Model::Station::Class::map_t::const_iterator k = station.classes().find(_name);
+	if ( k == station.classes().end() ) return s;
+	LQX::SyntaxTreeNode * visits = k->second.visits();
 	if ( !station.reference() && station.hasClass(_name) && !BCMP::Model::isDefault(visits) ) {
 	    if ( !s.empty() ) s += ",";
 	    s += m2.first + "," + to_real(visits);
@@ -2315,6 +2317,7 @@ namespace QNIO {
     {
 	const BCMP::Model::Station& station = m.second;
 	for ( BCMP::Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
+	    if ( !station.hasClass(k->first) ) continue;
 	    std::string name;
 
 	    if ( station.type() == BCMP::Model::Station::Type::SOURCE ) {
@@ -2328,7 +2331,7 @@ namespace QNIO {
 	    std::string comment;
 	    LQX::SyntaxTreeNode * service_time = station.classAt(k->first).service_time();
 
-	    if ( !station.hasClass(k->first) || BCMP::Model::isDefault( service_time ) ) {
+	    if ( BCMP::Model::isDefault( service_time ) ) {
 		comment = "QNAP does not like zero (0)";
 	    } else {
 		if ( dynamic_cast<LQX::VariableExpression *>(service_time) != nullptr ) {

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: server.h 17079 2024-02-29 16:17:30Z greg $
+ * $Id: server.h 17095 2024-03-04 14:39:03Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -67,6 +67,7 @@ public:
     Server& setVisits( const unsigned k, const double _v ) { return setVisits( 1, k, 1, _v ); }
     Server& addVisits( const unsigned e, const unsigned k, const unsigned p, const double );
     virtual Server& setVariance( const unsigned, const unsigned, const unsigned, const double );
+    virtual double getVariance( const unsigned, const unsigned, const unsigned ) const { return 0.0; }
     virtual Server& setClientChain( const unsigned e, const unsigned k );
 
     virtual Probability *** getPrOt( const unsigned ) const;
@@ -80,6 +81,9 @@ public:
     virtual double mu() const { return 1.0; }			/* Capacity function.	*/
     virtual double mu( const unsigned ) const { return 1.0; }	/* Capacity function.	*/
     virtual bool hasTau() const { return false; }
+    virtual bool infiniteServer() const { return false; }
+    virtual bool priorityServer() const { return false; }
+    virtual bool hasVariance() const { return false; }
 
     double S() const;
     double S( const MVA& solver, const Population& ) const;
@@ -109,8 +113,6 @@ public:
     virtual unsigned int getMarginalProbabilitiesSize() const { return 0; }
     virtual void setMarginalProbabilitiesSize( const Population& ) { return; }
     virtual bool useStateProbabilities() const { return false; }
-    virtual bool infiniteServer() const { return false; }
-    virtual bool priorityServer() const { return false; }
 
     virtual const std::string& typeStr() const = 0;
 
@@ -344,6 +346,8 @@ public:
     virtual void clear();
 
     virtual Server& setVariance( const unsigned, const unsigned, const unsigned, const double );
+    virtual double getVariance( const unsigned, const unsigned, const unsigned ) const;
+    virtual bool hasVariance() const { return true; }
 
     virtual double r( const unsigned, const unsigned, const unsigned=0 ) const;
 
@@ -362,7 +366,7 @@ private:
     Positive MG1( const unsigned ) const;
 
 private:
-    double *** myVariance;
+    double *** _variance;
 };
 
 
