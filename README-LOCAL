@@ -1,4 +1,4 @@
-$Id: README-LOCAL 16781 2023-07-13 15:14:59Z greg $
+$Id: README-LOCAL 17118 2024-03-07 20:23:07Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -50,7 +50,7 @@ Please refer to the file INSTALL for more information.
 If building from source files fetched directly from the git
 repository, you need to bootstrap the build process.  Run:
 
-./autogen.sh
+autoreconf -i
 
 Then follow the instructions for the tarball.
 
@@ -61,6 +61,7 @@ The simulator does not execute on a 64 bit environment, so it is
 necessary to build a 32 bit version:
 
 sudo apt install gcc-multilib g++-multilib
+autoreconf -i		      # optional
 ./.configure-m32	      # to use -m32
 make
 make install
@@ -106,7 +107,7 @@ If using MinGW2
    ** You need /mingw32/bin/gcc
 
    If buidling from the repo:
-   ./autogen.sh
+   autoreconf -i
    ./.configure-mingw32
    make
    make install
@@ -127,6 +128,7 @@ If using Cygwin:
 Note: Be sure that tetex, groff, and xfree (for ps2pdf) are all
 installed!  
 
+autoreconf -i
 ./configure
 make
 make install

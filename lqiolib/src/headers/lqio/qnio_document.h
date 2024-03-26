@@ -9,18 +9,18 @@
  *
  * November 2022
  *
- * $Id: qnio_document.h 17101 2024-03-05 18:35:57Z greg $
+ * $Id: qnio_document.h 17136 2024-03-22 01:40:35Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
 #ifndef QNIO_DOCUMENT_H
 #define QNIO_DOCUMENT_H
+#include <deque>
 #include <iostream>
 #include <map>
 #include <string>
 #include <vector>
-#include <deque>
 #include "bcmp_document.h"
 #include "dom_pragma.h"
 #include "gnuplot.h"
@@ -40,13 +40,13 @@ namespace QNIO {
 	class Comprehension
 	{
 	public:
-	    enum class Type { ARRIVAL_RATES, CUSTOMERS, SERVERS, DEMANDS };
+	    enum class Type { ARRIVAL_RATES, CUSTOMERS, SERVERS, DEMANDS, SCALE };
 
 	    /* Variable = begin(); variable < end(); variable += step() */
 	public:
 	    friend std::ostream& operator<<( std::ostream& output, const QNIO::Document::Comprehension& comprehension ) { return comprehension.print( output ); }
 	    
-	    Comprehension( const std::string& name, Type type, const std::string& s, bool integer ) : _name(name), _type(type), _begin(0.), _step(0.), _size(0) { convert(s,integer); }
+	    Comprehension( const std::string& name, Type type, const std::string& s ) : _name(name), _type(type), _begin(0.), _step(0.), _size(0) { convert(s); }
 	    Comprehension& operator=( const Comprehension& );
 
 	    LQX::VariableExpression * getVariable() const;
@@ -58,6 +58,7 @@ namespace QNIO {
 	    double end() const { return begin() + size() * step(); }		// Like an iterator
 	    double step() const { return _step; }
 	    double max() const { return begin() + step() * (size() - 1); }	// Largest possible value
+	    bool isInteger() const { return type() == Type::CUSTOMERS || type() == Type::SERVERS; }
 
 	    LQX::SyntaxTreeNode * collect( std::vector<LQX::SyntaxTreeNode *>* ) const;
 
@@ -71,7 +72,7 @@ namespace QNIO {
 	    };
 
 	private:
-	    void convert( const std::string&, bool );
+	    void convert( const std::string& );
 
 	    std::string _name;
 	    const Type _type;
@@ -88,6 +89,7 @@ namespace QNIO {
 	
 	Document( const std::string& input_file_name, const BCMP::Model& model );
 	Document( const BCMP::Model& model );
+	Document( const Document& );
 	virtual ~Document();
 
 	virtual bool load() = 0;
@@ -101,6 +103,9 @@ namespace QNIO {
 	const std::string& getInputFileName() const { return _input_file_name; }
 	virtual InputFormat getInputFormat() const = 0;
 	const std::deque<Comprehension>& comprehensions() const { return _comprehensions; }		/* For loops from WhatIf */
+	bool hasVariable( const std::string& name ) const { return _input_variables.find(name) != _input_variables.end(); }
+	const std::map<const std::string,LQX::SyntaxTreeNode*>::iterator insertInputVariable( const std::string& name, LQX::SyntaxTreeNode * init=nullptr ) { return _input_variables.emplace(name,init).first; }
+	const std::map<const std::string,LQX::SyntaxTreeNode *>& input_variables() const { return _input_variables; }
 	
 	void setLQXEnvironment( LQX::Environment * environment ) { _model.setEnvironment( environment ); }
 	LQX::Environment * getLQXEnvironment() const { return _model.environment(); }
@@ -135,7 +140,8 @@ namespace QNIO {
 	LQIO::DOM::Pragma _pragmas;
 	bool _bounds_only;
 	BCMP::Model _model;
-	std::deque<Comprehension> _comprehensions; 			/* For loops from WhatIf */
+	std::map<const std::string,LQX::SyntaxTreeNode *> _input_variables;	/* Spex vars and inital values	*/
+	std::deque<Comprehension> _comprehensions; 				/* For loops from WhatIf */
     };
 }
 #endif

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 17089 2024-03-03 19:12:56Z greg $
+ *  $Id: bcmp_document.h 17140 2024-03-22 17:48:42Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -73,15 +73,17 @@ namespace BCMP {
 	    enum class Type { UNDEFINED, CLOSED, OPEN };
 
 	public:
-	    Chain() : _type(Type::UNDEFINED), _customers(nullptr), _think_time(nullptr), _arrival_rate(nullptr), _result_vars() {}
-	    Chain( Type type, LQX::SyntaxTreeNode * customers, LQX::SyntaxTreeNode * think_time ) : _type(Type::CLOSED), _customers(customers), _think_time(think_time), _arrival_rate(nullptr), _result_vars() { assert(type==Type::CLOSED); }
-	    Chain( Type type, LQX::SyntaxTreeNode * arrival_rate ) : _type(Type::OPEN), _customers(nullptr), _think_time(nullptr), _arrival_rate(arrival_rate), _result_vars() { assert(type==Type::OPEN); }
+	    Chain() : _type(Type::UNDEFINED), _arrival_rate(nullptr), _customers(nullptr), _think_time(nullptr), _priority(nullptr), _result_vars() {}
+	    Chain( Type type, LQX::SyntaxTreeNode * customers, LQX::SyntaxTreeNode * think_time, LQX::SyntaxTreeNode * priority=nullptr ) : _type(Type::CLOSED), _arrival_rate(nullptr), _customers(customers), _think_time(think_time), _priority(priority), _result_vars() { assert(type==Type::CLOSED); }
+	    Chain( Type type, LQX::SyntaxTreeNode * arrival_rate ) : _type(Type::OPEN), _arrival_rate(arrival_rate), _customers(nullptr), _think_time(nullptr), _priority(nullptr), _result_vars() { assert(type==Type::OPEN); }
 
 	    virtual const char * getTypeName() const { return __typeName; }
 	    Type type() const { return _type; }
 	    void setType( Type type ) { _type = type; }
  	    LQX::SyntaxTreeNode * customers() const { assert(type()==Type::CLOSED); return _customers; }
 	    void setCustomers( LQX::SyntaxTreeNode* customers ) { assert(type()==Type::CLOSED); _customers = customers; }
+ 	    LQX::SyntaxTreeNode * priority() const { assert(type()==Type::CLOSED); return _priority; }
+	    void setPriority( LQX::SyntaxTreeNode* priority ) { assert(type()==Type::CLOSED); _priority = priority; }
 	    LQX::SyntaxTreeNode * think_time() const { assert(type()==Type::CLOSED); return _think_time; }
 	    void setThinkTime( LQX::SyntaxTreeNode* think_time ) { assert(type()==Type::CLOSED); _think_time = think_time; }
 	    LQX::SyntaxTreeNode * arrival_rate() const { assert(type()==Type::OPEN); return _arrival_rate; }
@@ -122,9 +124,10 @@ namespace BCMP {
 
 	private:
 	    Type _type;
+	    LQX::SyntaxTreeNode * _arrival_rate;
 	    LQX::SyntaxTreeNode * _customers;
 	    LQX::SyntaxTreeNode * _think_time;
-	    LQX::SyntaxTreeNode * _arrival_rate;
+	    LQX::SyntaxTreeNode * _priority;
 	    Result::map_t _result_vars;
 	};
 
@@ -391,7 +394,7 @@ namespace BCMP {
 	
 	Station::map_t::const_iterator findStation( const Station* m ) const;
 
-	std::pair<Chain::map_t::iterator,bool> insertClosedChain( const std::string&, LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * think_time=nullptr );
+	std::pair<Chain::map_t::iterator,bool> insertClosedChain( const std::string&, LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * think_time=nullptr, LQX::SyntaxTreeNode * priority=nullptr );
 	std::pair<Chain::map_t::iterator,bool> insertOpenChain( const std::string&, LQX::SyntaxTreeNode * );
 	std::pair<Station::map_t::iterator,bool> insertStation( const std::string&, const Station& );
 	std::pair<Station::map_t::iterator,bool> insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, LQX::SyntaxTreeNode * copies=nullptr ) { return insertStation( name, Station( type, scheduling, copies ) ); }
@@ -428,8 +431,8 @@ namespace BCMP {
 	    const Station::Class::map_t& _visits;
 	};
 
-	struct sum_response_time {
-	    sum_response_time( const std::string& name ) : _name(name) {}
+	struct sum_residence_time {
+	    sum_residence_time( const std::string& name ) : _name(name) {}
 	    double operator()( double augend, const Station::pair_t& m ) const;
 	private:
 	    const std::string& _name;

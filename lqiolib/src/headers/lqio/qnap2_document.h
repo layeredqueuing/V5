@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 17101 2024-03-05 18:35:57Z greg $
+ *  $Id: qnap2_document.h 17142 2024-03-22 19:47:05Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -191,6 +191,7 @@ namespace QNIO {
     public:
 	QNAP2_Document( const std::string& input_file_name );			/* For input */
 	QNAP2_Document( const BCMP::Model& model );				/* For output */
+	QNAP2_Document( const QNIO::Document& );
 	virtual ~QNAP2_Document();
 
 	virtual bool load();
@@ -456,6 +457,8 @@ namespace QNIO {
 	static XML::StringManip qnap2_keyword( const std::string& s1, const std::string& s2="" ) { return XML::StringManip( &QNAP2_Document::printKeyword, s1, s2 ); }
 	static std::string to_real( LQX::SyntaxTreeNode* v );
 	static std::string to_unsigned( LQX::SyntaxTreeNode* v );
+	static std::string to_identifier( const std::string& );
+	static std::string to_identifier( const std::string&, const std::string& );
 
     private:
 	struct getIntegerVariables {
@@ -558,10 +561,13 @@ namespace QNIO {
 	void printResults( std::ostream& output, const std::string& prefix, const std::string& vars, const std::string& postfix  ) const;
 
 	struct for_loop {
-	    for_loop( std::ostream& output ) : _output(output) {}
+	    for_loop( std::ostream& output, const std::map<const std::string,LQX::SyntaxTreeNode *>& input_variables ) : _output(output), _input_variables(input_variables) {}
 	    void operator()( const Comprehension& ) const;
 	private:
+	    const std::map<const std::string,LQX::SyntaxTreeNode *>& input_variables() const { return _input_variables; }
+
 	    std::ostream& _output;
+	    const std::map<const std::string,LQX::SyntaxTreeNode *>& _input_variables;	/* Spex vars and inital values	*/
 	};
 
 	struct end_for {
@@ -571,6 +577,8 @@ namespace QNIO {
 	    std::ostream& _output;
 	};
 
+	static std::string fold( const std::string& s1, const std::string& s2 );
+	
 	struct fold_station {
 	    fold_station( const std::string& suffix="" ) : _suffix(suffix) {}
 	    std::string operator()( const std::string& s1, const BCMP::Model::Station::pair_t& m ) const;

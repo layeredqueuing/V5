@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="JMTmodel.xsd">
   <description>
-    <![CDATA[Lazowska, Ch 6, Pg 117 (libmva/regression/test0)]]>
   </description>
   <parameters>
     <classes number="1">
-      <closedclass name="Class1" population="1"/>
+      <closedclass name="Class1" population="1" priority="0"/>
     </classes>
     <stations number="4">
       <listation name="CPU" servers="1">
@@ -49,10 +48,9 @@
     <algType maxSamples="10000" name="MVA" tolerance="1.0E-7"/>
     <compareAlgs value="false"/>
   </algParams>
-  <whatIf className="Class1" type="Customer Numbers" values="1.0;2.0;3.0;4.0;5.0;6.0;7.0;8.0;9.0;10.0"/>
+  <whatIf className="Class1" type="Number of Customers" values="1.0;2.0;3.0;4.0;5.0;6.0;7.0;8.0;9.0;10.0"/>
   <solutions algCount="1" iteration="0" iterationValue="1.0" ok="true" solutionMethod="analytical whatif">
     <algorithm iterations="0" name="MVA">
-      <normconst logValue="0.0"/>
       <stationresults station="CPU">
 	<classresults customerclass="Class1">
 	  <measure meanValue="0.031750196798740485" measureType="Number of Customers" successful="true"/>
@@ -85,11 +83,11 @@
 	  <measure meanValue="0.7871949619522435" measureType="Utilization" successful="true"/>
 	</classresults>
       </stationresults>
+      <normconst logValue="NaN"/>
     </algorithm>
   </solutions>
   <solutions algCount="1" iteration="1" iterationValue="2.0" ok="true" solutionMethod="analytical whatif">
     <algorithm iterations="0" name="MVA">
-      <normconst logValue="0.0"/>
       <stationresults station="CPU">
 	<classresults customerclass="Class1">
 	  <measure meanValue="0.0643471564335187" measureType="Number of Customers" successful="true"/>
@@ -122,11 +120,11 @@
 	  <measure meanValue="1.5462890617867784" measureType="Utilization" successful="true"/>
 	</classresults>
       </stationresults>
+      <normconst logValue="NaN"/>
     </algorithm>
   </solutions>
   <solutions algCount="1" iteration="2" iterationValue="3.0" ok="true" solutionMethod="analytical whatif">
     <algorithm iterations="0" name="MVA">
-      <normconst logValue="0.0"/>
       <stationresults station="CPU">
 	<classresults customerclass="Class1">
 	  <measure meanValue="0.09756601940835935" measureType="Number of Customers" successful="true"/>
@@ -159,11 +157,11 @@
 	  <measure meanValue="2.2727473852064333" measureType="Utilization" successful="true"/>
 	</classresults>
       </stationresults>
+      <normconst logValue="NaN"/>
     </algorithm>
   </solutions>
   <solutions algCount="1" iteration="3" iterationValue="4.0" ok="true" solutionMethod="analytical whatif">
     <algorithm iterations="0" name="MVA">
-      <normconst logValue="0.0"/>
       <stationresults station="CPU">
 	<classresults customerclass="Class1">
 	  <measure meanValue="0.13110054696352508" measureType="Number of Customers" successful="true"/>
@@ -196,11 +194,11 @@
 	  <measure meanValue="2.961486349560791" measureType="Utilization" successful="true"/>
 	</classresults>
       </stationresults>
+      <normconst logValue="NaN"/>
     </algorithm>
   </solutions>
   <solutions algCount="1" iteration="4" iterationValue="5.0" ok="true" solutionMethod="analytical whatif">
     <algorithm iterations="0" name="MVA">
-      <normconst logValue="0.0"/>
       <stationresults station="CPU">
 	<classresults customerclass="Class1">
 	  <measure meanValue="0.16455437323203592" measureType="Number of Customers" successful="true"/>
@@ -233,11 +231,11 @@
 	  <measure meanValue="3.6069830434692793" measureType="Utilization" successful="true"/>
 	</classresults>
       </stationresults>
+      <normconst logValue="NaN"/>
     </algorithm>
   </solutions>
   <solutions algCount="1" iteration="5" iterationValue="6.0" ok="true" solutionMethod="analytical whatif">
     <algorithm iterations="0" name="MVA">
-      <normconst logValue="0.0"/>
       <stationresults station="CPU">
 	<classresults customerclass="Class1">
 	  <measure meanValue="0.19744008147876127" measureType="Number of Customers" successful="true"/>
@@ -270,11 +268,11 @@
 	  <measure meanValue="4.203503712857091" measureType="Utilization" successful="true"/>
 	</classresults>
       </stationresults>
+      <normconst logValue="NaN"/>
     </algorithm>
   </solutions>
   <solutions algCount="1" iteration="6" iterationValue="7.0" ok="true" solutionMethod="analytical whatif">
     <algorithm iterations="0" name="MVA">
-      <normconst logValue="0.0"/>
       <stationresults station="CPU">
 	<classresults customerclass="Class1">
 	  <measure meanValue="0.2291914104339689" measureType="Number of Customers" successful="true"/>
@@ -307,11 +305,11 @@
 	  <measure meanValue="4.7454830947655315" measureType="Utilization" successful="true"/>
 	</classresults>
       </stationresults>
+      <normconst logValue="NaN"/>
     </algorithm>
   </solutions>
   <solutions algCount="1" iteration="7" iterationValue="8.0" ok="true" solutionMethod="analytical whatif">
     <algorithm iterations="0" name="MVA">
-      <normconst logValue="0.0"/>
       <stationresults station="CPU">
 	<classresults customerclass="Class1">
 	  <measure meanValue="0.25919368043858976" measureType="Number of Customers" successful="true"/>
@@ -344,11 +342,11 @@
 	  <measure meanValue="5.2280625646270735" measureType="Utilization" successful="true"/>
 	</classresults>
       </stationresults>
+      <normconst logValue="NaN"/>
     </algorithm>
   </solutions>
   <solutions algCount="1" iteration="8" iterationValue="9.0" ok="true" solutionMethod="analytical whatif">
     <algorithm iterations="0" name="MVA">
-      <normconst logValue="0.0"/>
       <stationresults station="CPU">
 	<classresults customerclass="Class1">
 	  <measure meanValue="0.28683481001086986" measureType="Number of Customers" successful="true"/>
@@ -381,11 +379,11 @@
 	  <measure meanValue="5.647746625679212" measureType="Utilization" successful="true"/>
 	</classresults>
       </stationresults>
+      <normconst logValue="NaN"/>
     </algorithm>
   </solutions>
   <solutions algCount="1" iteration="9" iterationValue="10.0" ok="true" solutionMethod="analytical whatif">
     <algorithm iterations="0" name="MVA">
-      <normconst logValue="0.0"/>
       <stationresults station="CPU">
 	<classresults customerclass="Class1">
 	  <measure meanValue="0.3115733300892997" measureType="Number of Customers" successful="true"/>
@@ -418,6 +416,7 @@
 	  <measure meanValue="6.003069342824285" measureType="Utilization" successful="true"/>
 	</classresults>
       </stationresults>
+      <normconst logValue="NaN"/>
     </algorithm>
   </solutions>
 </model>

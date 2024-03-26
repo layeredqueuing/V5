@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 17113 2024-03-06 10:47:42Z greg $
+ * $Id: qnap2_document.cpp 17142 2024-03-22 19:47:05Z greg $
  *
  * Read in XML input files.
  *
@@ -751,6 +751,16 @@ namespace QNIO {
 	registerMethods();
 	__document = this;
     }
+
+    QNAP2_Document::QNAP2_Document( const QNIO::Document& document ) :
+	Document(document),
+ 	_symbolTable(), _transit(), _entry(), _main(), _exit(), _lqx(LQX::Program::loadRawProgram( &_main )), _env(_lqx->getEnvironment()),
+	_debug(false), _result(true)
+    {
+	registerMethods();
+	__document = this;
+    }
+
 
     QNAP2_Document::~QNAP2_Document()
     {
@@ -1904,6 +1914,9 @@ namespace QNIO {
 	std::set<std::string> symbol_table2;
 	const std::string result_vars  	= std::accumulate( stations().begin(), stations().end(), std::string(""), getResultVariables( model(), symbol_table2 ) );
 	if ( !result_vars.empty() )     output << qnap2_statement( "real " + result_vars, "Result vars." ) << std::endl;
+	for ( const auto& comprehension : comprehensions() ) {
+	    output << qnap2_statement( std::string( comprehension.isInteger() ? "integer" : "real" ) + " " + to_identifier( comprehension.name() ), "Comprehension" ) << std::endl;
+	}
 
 	/* 2) Declare all stations */
 	output << qnap2_statement( "queue " + std::accumulate( stations().begin(), stations().end(), customers, fold_station() ), "Station identifiers" ) << std::endl;
@@ -1917,16 +1930,15 @@ namespace QNIO {
 	    if ( has_open_chain ) {
 		output << qnap2_statement( "real arrivals", "Arrival Rate." ) << std::endl;
 	    }
-	    output << qnap2_statement( "real " + std::accumulate( stations().begin(), stations().end(), std::string(""), fold_station( "_t") ), "Station service time" ) << std::endl;
+	    output << qnap2_statement( std::string( "real " ) + std::accumulate( stations().begin(), stations().end(), std::string(""), fold_station( "_t") ), "Station service time" ) << std::endl;
 	} else {
-	    /* Variables */
 	    output << qnap2_statement( "class string name", "Name (for output)" ) << std::endl;		// LQN client.
 	    if ( has_closed_chain ) {
 		output << qnap2_statement( "class integer n_users", "Population." ) << std::endl
 		       << qnap2_statement( "class real think_t", "Think time." ) << std::endl;
 	    }
 	    if ( has_open_chain ) {
-		output << qnap2_statement( "real arrivals", "Arrival Rate." ) << std::endl;
+		output << qnap2_statement( "class real arrivals", "Arrival Rate." ) << std::endl;
 	    }
 	    output << qnap2_statement( "class real " + std::accumulate( stations().begin(), stations().end(), std::string(""), fold_station( "_t") ), "Station service time" ) << std::endl;
 	    /* Chains */
@@ -1961,7 +1973,7 @@ namespace QNIO {
 	/* Insert QNAP for statements for arrays and completions. */
 	if ( !comprehensions().empty() ) {
 	    output << "&  -- Comprehensions --" << std::endl;
-	    std::for_each( comprehensions().begin(), comprehensions().end(), for_loop( output ) );
+	    std::for_each( comprehensions().begin(), comprehensions().end(), for_loop( output, input_variables() ) );
 	}
 
 	output << "&  -- Class variables --" << std::endl;
@@ -1996,7 +2008,7 @@ namespace QNIO {
     }
 
     /*
-     * Collect all variables.  Only add an itemm to the string if it's
+     * Collect all variables.  Only add an item to the string if it's
      * a variable (the name), and the variable has not been seen
      * before (insert will return true).
      */
@@ -2027,8 +2039,9 @@ namespace QNIO {
 
 
     /*
-     * Think times. Only add an item to the string if it's a variable (the name), and the variable
-     * has not been seen before.
+     * Collect all integer variables (Populations for chains). Only
+     * add an item to the string if it's a variable (the name), and
+     * the variable has not been seen before.
      */
 
     std::string
@@ -2133,7 +2146,7 @@ namespace QNIO {
     {
 	const BCMP::Model::Station& station = m.second;
 	_output << "&" << std::endl
-		<< "/station/ name=" << m.first << ";" << std::endl;
+		<< "/station/ name=" << to_identifier(m.first) << ";" << std::endl;
 	switch ( station.type() ) {
 	case BCMP::Model::Station::Type::SOURCE:
 	    _output << qnap2_statement( "type=source" ) << std::endl;
@@ -2169,7 +2182,7 @@ namespace QNIO {
 		    << qnap2_statement( "service=exp(think_t)" ) << std::endl;
 	    printCustomerTransit();
 	} else {
-	    _output << qnap2_statement( "service=exp(" + m.first + "_t)" ) << std::endl;
+	    _output << qnap2_statement( "service=exp(" + to_identifier( m.first, "_t" ) + ")" ) << std::endl;
 	    printServerTransit( m );
 	}
     }
@@ -2183,9 +2196,9 @@ namespace QNIO {
 	    _output << qnap2_statement("transit=" + visits, "visits to servers" ) << std::endl;
 	} else {
 	    for ( BCMP::Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
-		std::string visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_transit(k->first) );
+		std::string visits = std::accumulate( stations().begin(), stations().end(), std::string(), fold_transit(k->first) );
 		if ( visits.empty() ) continue;
-		_output << qnap2_statement("transit(" + k->first + ")=" + visits, "visits to servers" ) << std::endl;
+		_output << qnap2_statement("transit(" + to_identifier(k->first) + ")=" + visits, "visits to servers" ) << std::endl;
 	    }
 	}
     }
@@ -2202,18 +2215,14 @@ namespace QNIO {
 	const std::string open_classes = std::accumulate( classes.begin(), classes.end(), std::string(), fold_class( chains(), BCMP::Model::Chain::Type::OPEN ) );
 	const BCMP::Model::Station::map_t::const_iterator terminal = std::find_if( stations().begin(), stations().end(), &BCMP::Model::Station::isCustomer );
 
+	const std::string name = terminal != stations().end() ? to_identifier( terminal->first ) : std::string( "out" );
 	if ( !closed_classes.empty() && !open_classes.empty() ) {
-	    _output << qnap2_statement( "transit( " + closed_classes + ")=" + terminal->first );
+	    _output << qnap2_statement( "transit( " + closed_classes + ")=" + name );
 	    _output << qnap2_statement( "transit( " + open_classes + ")=out" );
+	} else if ( multiclass() ) {
+	    _output << qnap2_statement( "transit(all class)=" + name ) << std::endl;
 	} else {
-	    std::string name;
-	    if ( terminal != stations().end() ) name = terminal->first;
-	    else name = "out";
-	    if ( multiclass() ) {
-		_output << qnap2_statement( "transit(all class)=" + name ) << std::endl;
-	    } else {
-		_output << qnap2_statement( "transit=" + name ) << std::endl;
-	    }
+	    _output << qnap2_statement( "transit=" + name ) << std::endl;
 	}
     }
 
@@ -2233,7 +2242,7 @@ namespace QNIO {
 	} else {
 	    for ( BCMP::Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
 		const std::string visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( k->first ) );
-		_output << qnap2_statement( "service=(" + k->first + ")=exp(1./((" + visits + ")*arrivals))", "Convert to inter-arrival time." ) << std::endl;
+		_output << qnap2_statement( "service=(" + to_identifier(k->first) + ")=exp(1./((" + visits + ")*arrivals))", "Convert to inter-arrival time." ) << std::endl;
 	    }
 	}
     }
@@ -2248,7 +2257,7 @@ namespace QNIO {
 	LQX::SyntaxTreeNode * visits = k->second.visits();
 	if ( !station.reference() && station.hasClass(_name) && !BCMP::Model::isDefault(visits) ) {
 	    if ( !s.empty() ) s += ",";
-	    s += m2.first + "," + to_real(visits);
+	    s += to_identifier(m2.first) + "," + to_real(visits);
 	}
 	return s;
     }
@@ -2285,9 +2294,10 @@ namespace QNIO {
 		comment = "SPEX variable " + dynamic_cast<LQX::VariableExpression *>(k->second.customers())->getName();
 	    }
 
+	    const std::string name = to_identifier( k->first );
 	    if ( multiclass() ) {
-		output << qnap2_statement( k->first + ".name:=\"" + k->first + "\"", "Class (client) name" ) << std::endl;
-		output << qnap2_statement( k->first + ".n_users:=" + to_unsigned(customers), comment  ) << std::endl;
+		output << qnap2_statement( name + ".name:=\"" + name + "\"", "Class (client) name" ) << std::endl;
+		output << qnap2_statement( name + ".n_users:=" + to_unsigned(customers), comment  ) << std::endl;
 	    } else {
 		output << qnap2_statement( "n_users:=" + to_unsigned(customers), comment  ) << std::endl;
 	    }
@@ -2297,7 +2307,7 @@ namespace QNIO {
 	    const std::string think_visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( k->first ) );
 	    if ( !think_visits.empty() ) {
 		if ( multiclass() ) {
-		    output << qnap2_statement( k->first + ".think_t:=" + to_real(think_time) + "/(" + think_visits + ")", "Slice time at client" ) << std::endl;
+		    output << qnap2_statement( name + ".think_t:=" + to_real(think_time) + "/(" + think_visits + ")", "Slice time at client" ) << std::endl;
 		} else {
 		    output << qnap2_statement( "think_t:=" + to_real(think_time) + "/(" + think_visits + ")", "Slice time at client" ) << std::endl;
 		}
@@ -2325,7 +2335,7 @@ namespace QNIO {
 	    } else if ( station.reference() ) {
 		continue;
 	    } else {
-		name = m.first + "_t";
+		name = to_identifier( m.first, "_t" );
 	    }
 
 	    std::string comment;
@@ -2339,7 +2349,7 @@ namespace QNIO {
 		}
 	    }
 	    if ( multiclass() ) {
-		_output << qnap2_statement( k->first + "." + name + ":=" + to_real(service_time), comment ) << std::endl;
+		_output << qnap2_statement( to_identifier(k->first) + "." + name + ":=" + to_real(service_time), comment ) << std::endl;
 	    } else {
 		_output << qnap2_statement( name + ":=" + to_real(service_time), comment ) << std::endl;
 	    }
@@ -2390,6 +2400,11 @@ namespace QNIO {
     QNAP2_Document::for_loop::operator()( const Comprehension& comprehension ) const
     {
 	_output << "   " << "for "<< comprehension.name() << ":=" << comprehension.begin() << " step " << comprehension.step() << " until " << comprehension.max() << " do begin" << std::endl;
+	if ( comprehension.type() == Comprehension::Type::SCALE ) {
+	    for ( const auto& var : input_variables() ) {
+		_output << qnap2_statement( var.first + ":=" + to_real(var.second) + "*" + comprehension.name() ) << std::endl;
+	    }
+	}
     }
 
     /*
@@ -2546,13 +2561,23 @@ namespace QNIO {
     }
 
     std::string
+    QNAP2_Document::fold( const std::string& s1, const std::string& s2 )
+    {
+	if ( s1.empty() ) {
+	    return QNAP2_Document::to_identifier( s2 );
+	} else {
+	    return s1 + "," + QNAP2_Document::to_identifier( s2 );
+	}
+    }
+
+    std::string
     QNAP2_Document::fold_station::operator()( const std::string& s1, const BCMP::Model::Station::pair_t& s2 ) const
     {
 	if ( s2.second.reference() || s2.second.type() == BCMP::Model::Station::Type::SOURCE ) return s1;
 	else if ( s1.empty() ) {
-	    return s2.first + _suffix;
+	    return to_identifier( s2.first, _suffix );
 	} else {
-	    return s1 + "," + s2.first + _suffix;
+	    return s1 + "," + to_identifier( s2.first, _suffix );
 	}
     }
 
@@ -2561,9 +2586,9 @@ namespace QNIO {
     {
 	if ( _chains.at(k2.first).type() != _type ) return s1;
 	else if ( s1.empty() ) {
-	    return k2.first;
+	    return to_identifier( k2.first );
 	} else {
-	    return s1 + "," + k2.first;
+	    return s1 + "," + to_identifier( k2.first );
 	}
     }
 
@@ -2641,6 +2666,25 @@ namespace QNIO {
 	return str;
     }
 
+    /* Remap any funny characters to _ */
+    std::string
+    QNAP2_Document::to_identifier( const std::string& s, const std::string& suffix )
+    {
+	const size_t trim = suffix.size();
+	std::string out;
+	std::transform( s.begin(), s.end(), std::back_inserter(out), [](unsigned char c){ return std::isalnum(c) ? c : '_'; } );
+	return out + suffix;
+    }
+    
+    /* Remap any funny characters to _ */
+    std::string
+    QNAP2_Document::to_identifier( const std::string& s )
+    {
+	std::string out;
+	std::transform( s.begin(), s.end(), std::back_inserter(out), [](unsigned char c){ return std::isalnum(c) ? c : '_'; } );
+	return out;
+    }
+    
     /* static */ std::ostream&
     QNAP2_Document::printKeyword( std::ostream& output, const std::string& s1, const std::string& s2 )
     {

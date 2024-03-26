@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 17089 2024-03-03 19:12:56Z greg $
+ * $Id: bcmp_document.cpp 17140 2024-03-22 17:48:42Z greg $
  *
  * Read in XML input files.
  *
@@ -47,9 +47,9 @@ namespace BCMP {
     }
 
     std::pair<Model::Chain::map_t::iterator,bool>
-    Model::insertClosedChain( const std::string& name, LQX::SyntaxTreeNode * customers, LQX::SyntaxTreeNode * think_time )
+    Model::insertClosedChain( const std::string& name, LQX::SyntaxTreeNode * customers, LQX::SyntaxTreeNode * think_time, LQX::SyntaxTreeNode * priority  )
     {
-	return _chains.emplace( name, Chain( Chain::Type::CLOSED, customers, think_time )  );
+	return _chains.emplace( name, Chain( Chain::Type::CLOSED, customers, think_time, priority )  );
     }
 
     std::pair<Model::Chain::map_t::iterator,bool>
@@ -105,15 +105,19 @@ namespace BCMP {
     }
 
     /*
-     * Compute reponse time for class "name"
+     * Compute reponse time for class "name" as seen from the customer station. 
      */
 
     double
     Model::response_time( const std::string& name ) const
     {
-	return std::accumulate( stations().begin(), stations().end(), 0.0, sum_response_time( name ) );
+	return std::accumulate( stations().begin(), stations().end(), 0.0, sum_residence_time( name ) );
     }
 
+    /*
+     * Return the throughput for the system as seen from the customer station.
+     */
+    
     double
     Model::throughput( const std::string& name ) const
     {
@@ -261,16 +265,16 @@ namespace BCMP {
 	}
     }
 
-    double Model::sum_response_time::operator()( double augend, const Station::pair_t& m ) const
+    double Model::sum_residence_time::operator()( double augend, const Station::pair_t& m ) const
     {
 	const Model::Station& station = m.second;
 
 	if ( !Station::isServer( m ) ) {
 	    return augend;
 	} else if ( _name.empty() ) {
-	    return augend + station.response_time();
+	    return augend + station.residence_time();
 	} else if ( station.hasClass( _name ) ) {
-	    return augend + station.classAt( _name ).response_time();
+	    return augend + station.classAt( _name ).residence_time();
 	} else {
 	    return augend;
 	}

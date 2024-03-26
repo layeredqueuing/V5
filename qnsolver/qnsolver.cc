@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 17101 2024-03-05 18:35:57Z greg $
+ * $Id: qnsolver.cc 17128 2024-03-21 15:23:02Z greg $
  */
 
 #include "config.h"
@@ -53,7 +53,7 @@ const struct option longopts[] =
     { "verbose",                                no_argument,            0, 'v' },
     { "export-jaba",                            no_argument,            0, 'B' },
     { "export-jmva",                            no_argument,            0, 'J' },
-    { "export-qnap",                            no_argument,            0, 'Q' },
+    { "export-qnap",                            optional_argument,      0, 'Q' },
     { "print-lqx",                              no_argument,            0, 'P' },
     { "debug-mva",                              no_argument,            0, 'd' },
     { "debug-qnap2",                            no_argument,            0, 'D' },
@@ -107,10 +107,11 @@ const static std::map<const std::string,const LQIO::GnuPlot::Format> gnuplot_out
     { "latex",	LQIO::GnuPlot::Format::LATEX }
 };
 
-
 /* Flags */
 
-static bool print_qnap2 = false;		/* Export to qnap2.  		*/
+typedef enum { Off, Loose, Strict } QNAP_OUTPUT;
+
+static QNAP_OUTPUT print_qnap2 = Off;		/* Export to qnap2.  		*/
 static bool print_jmva = false;			/* Export to JMVA		*/
 static bool print_gnuplot = false;		/* Output WhatIf as gnuplot	*/
 static BCMP::Model::Result::Type plot_type = BCMP::Model::Result::Type::THROUGHPUT;
@@ -275,7 +276,11 @@ int main (int argc, char *argv[])
 	    break;
 	    
 	case 'Q':
-	    print_qnap2 = true;
+	    if ( optarg == nullptr ) {
+		print_qnap2 = Strict;
+	    } else {
+		print_qnap2 = Loose;
+	    }
 	    break;
 
 	case 'P':
@@ -362,13 +367,20 @@ static bool exec( QNIO::Document& input, const std::string& output_file_name, co
 	}
     }
 
-    if ( print_qnap2 ) {
-	QNIO::QNAP2_Document qnap_model( input.model() );
-	if ( output ) {
-	    qnap_model.exportModel( output );
-	} else {
-	    qnap_model.exportModel( std::cout );
-	}
+    if ( print_qnap2 != Off ) {
+
+	QNIO::QNAP2_Document qnap_model( input );
+	if ( output_file_name.empty() ) {
+	    LQIO::Filename filename( input.getInputFileName(), "qnap" );
+	    LQIO::Filename::backup( filename() );
+	    output.open( filename(), std::ios::out );
+	    if ( !output ) {
+		std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << input.getInputFileName() << "\" -- " << strerror( errno ) << std::endl;
+		return false;
+	    }
+	} 
+	qnap_model.exportModel( output );
+
     } else {
 	try {
 	    if ( print_gnuplot ) input.plot( plot_type, plot_arg, plot_format );

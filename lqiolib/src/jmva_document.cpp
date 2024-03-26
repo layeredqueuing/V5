@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 17101 2024-03-05 18:35:57Z greg $
+ * $Id: jmva_document.cpp 17148 2024-03-25 21:25:02Z greg $
  *
  * Read in XML input files.
  *
@@ -54,6 +54,9 @@ extern "C" {
 
 
 namespace QNIO {
+    const std::string JMVA_Document::__Beta("Beta");
+    
+
     /*
      * BSD complains about the implicit copy constructor.
      */
@@ -80,7 +83,7 @@ namespace QNIO {
 	Document( input_file_name, BCMP::Model() ),
 	_strict_jmva(true), _parser(nullptr), _stack(),
 	_lqx_program_text(), _lqx_program_line_number(0), _lqx(nullptr), _program(),
-	_input_variables(), _whatif_body(), _independent_variables(), _result_variables(), _station_index(),
+	_whatif_body(), _independent_variables(), _result_variables(), _station_index(),
 	_think_time_vars(), _population_vars(), _arrival_rate_vars(), _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 	_results(),
 	_N1(), _N2(), _n_labels(0), _x_max(nullptr), _y_max(nullptr)
@@ -91,7 +94,7 @@ namespace QNIO {
 	Document( model ),
 	_strict_jmva(true), _parser(nullptr), _stack(),
 	_lqx_program_text(), _lqx_program_line_number(0), _lqx(nullptr), _program(),
-	_input_variables(), _whatif_body(), _independent_variables(), _result_variables(), _station_index(),
+	_whatif_body(), _independent_variables(), _result_variables(), _station_index(),
 	_think_time_vars(), _population_vars(), _arrival_rate_vars(), _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 	_results(),
 	_N1(), _N2(), _n_labels(0), _x_max(nullptr), _y_max(nullptr)
@@ -238,13 +241,15 @@ namespace QNIO {
     void
     JMVA_Document::input_error( const std::string& msg )
     {
-	std::cerr << getInputFileName() << ":" << std::to_string(srvnlineno) << ": error: " << msg << std::endl;
+	std::cerr << getInputFileName() << ":" << std::to_string(srvnlineno) << ": error: " << msg << "." << std::endl;
     }
 
     void
     JMVA_Document::input_error( const std::string& msg, const std::string& arg )
     {
-	std::cerr << getInputFileName() << ":" << std::to_string(srvnlineno) << ": error: " << msg << ": " << arg << std::endl;
+	char buf[1024];
+	snprintf( buf, 1024, msg.c_str(), arg.c_str() );
+	input_error( std::string( buf ) );
     }
 
     /*
@@ -428,13 +433,13 @@ namespace QNIO {
     void
     JMVA_Document::registerExternalSymbolsWithProgram(LQX::Program* program)
     {
-	std::for_each( _input_variables.begin(), _input_variables.end(), register_variable( program ) );
+	std::for_each( input_variables().begin(), input_variables().end(), register_variable( program ) );
     }
 
     void
-    JMVA_Document::register_variable::operator()( const std::string& variable ) const
+    JMVA_Document::register_variable::operator()( const std::pair<const std::string,LQX::SyntaxTreeNode*>& variable ) const
     {
-	_lqx->defineExternalVariable( variable );
+	_lqx->defineExternalVariable( variable.first );
     }
 
 
@@ -568,7 +573,7 @@ namespace QNIO {
     JMVA_Document::startClasses( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
 	if ( strcasecmp( element, Xclosedclass) == 0 ) {
-	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> closedclass_table = { Xname, Xpopulation, Xthinktime };
+	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> closedclass_table = { Xname, Xpopulation, Xpriority, Xthinktime };
 	    checkAttributes( element, attributes, closedclass_table );
 	    createClosedChain( attributes );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP) );
@@ -927,7 +932,7 @@ namespace QNIO {
     JMVA_Document::getVariable( const XML_Char *attribute, const XML_Char *value )
     {
 	if ( value[0] == '$' ) {
-	    _input_variables.emplace(value);
+	    insertInputVariable(value);
 	    return new LQX::VariableExpression(value,true);	// Always create a new value because LQX will delete them all.
 	} else {
 	    char* endPtr = nullptr;
@@ -950,8 +955,9 @@ namespace QNIO {
     {
 	std::string name = XML::getStringAttribute( attributes, Xname );
 	LQX::SyntaxTreeNode * population = getVariableAttribute( attributes, Xpopulation );
+	LQX::SyntaxTreeNode * priority   = getVariableAttribute( attributes, Xpriority, 0.0 );
 	LQX::SyntaxTreeNode * think_time = getVariableAttribute( attributes, Xthinktime, 0.0 );
-	std::pair<BCMP::Model::Chain::map_t::iterator,bool> result = model().insertClosedChain( name, population, think_time );
+	std::pair<BCMP::Model::Chain::map_t::iterator,bool> result = model().insertClosedChain( name, population, think_time, priority );
 	if ( !result.second ) throw std::runtime_error( "Duplicate class" );
 	if ( dynamic_cast<LQX::VariableExpression *>(population) ) _population_vars.emplace(&result.first->second,dynamic_cast<LQX::VariableExpression *>(population)->getName());
 	if ( dynamic_cast<LQX::VariableExpression *>(think_time) ) _think_time_vars.emplace(&result.first->second,dynamic_cast<LQX::VariableExpression *>(think_time)->getName());
@@ -1011,12 +1017,13 @@ namespace QNIO {
      * "Population Mix" - ratio between two classes)
      */
 
-    const std::map<const std::string,std::pair<Document::Comprehension::Type,JMVA_Document::setIndependentVariable>> JMVA_Document::independent_var_table = {
-	{ XArrival_Rates, 	{ Document::Comprehension::Type::ARRIVAL_RATES,	&JMVA_Document::setArrivalRate } },
-	{ XCustomer_Numbers, 	{ Document::Comprehension::Type::CUSTOMERS,	&JMVA_Document::setCustomers } },
-	{ XNumber_of_Servers, 	{ Document::Comprehension::Type::SERVERS,	&JMVA_Document::setMultiplicity } },
-	{ XPopulation_Mix,	{ Document::Comprehension::Type::CUSTOMERS,	&JMVA_Document::setPopulationMix } },
-	{ XService_Demands, 	{ Document::Comprehension::Type::DEMANDS,	&JMVA_Document::setDemand } }
+    const std::map<const std::string,JMVA_Document::what_if_function> JMVA_Document::independent_var_table = {
+	{ XArrival_Rates, 	{ Document::Comprehension::Type::ARRIVAL_RATES,	&JMVA_Document::setArrivalRate,	  nullptr } },
+	{ XCustomer_Numbers, 	{ Document::Comprehension::Type::CUSTOMERS,	&JMVA_Document::setCustomers, 	  nullptr } },	// Old. BUG 458
+	{ XNumber_of_Customers, { Document::Comprehension::Type::CUSTOMERS,	&JMVA_Document::setCustomers, 	  &JMVA_Document::setAllCustomers } },	// New. BUG 458
+	{ XNumber_of_Servers, 	{ Document::Comprehension::Type::SERVERS,	&JMVA_Document::setMultiplicity,  nullptr } },
+	{ XPopulation_Mix,	{ Document::Comprehension::Type::SCALE,		&JMVA_Document::setPopulationMix, nullptr } },
+	{ XService_Demands, 	{ Document::Comprehension::Type::DEMANDS,	&JMVA_Document::setDemand, 	  &JMVA_Document::setAllDemands } }
     };
 
     void
@@ -1026,23 +1033,43 @@ namespace QNIO {
 	const std::string stationName = XML::getStringAttribute( attributes, XstationName, "" );	/* className and/or stationName */
 
 	const std::string x_label = XML::getStringAttribute( attributes, Xtype );
-	std::map<const std::string,std::pair<Document::Comprehension::Type,JMVA_Document::setIndependentVariable>>::const_iterator independent_var = independent_var_table.find( x_label );
+	std::map<const std::string,JMVA_Document::what_if_function>::const_iterator independent_var = independent_var_table.find( x_label );
 	if ( independent_var == independent_var_table.end() ) throw std::runtime_error( "JMVA_Document::createWhatIf" );
+	const Document::Comprehension::Type independent_var_type = independent_var->second.key;
 
-	JMVA_Document::setIndependentVariable f = independent_var->second.second;
-	const Document::Comprehension::Type independent_var_type = independent_var->second.first;
-	const bool is_unsigned = (f == &JMVA_Document::setMultiplicity || f == &JMVA_Document::setCustomers);
-	const std::string x_var = (this->*(f))( stationName, className );
-	const Comprehension comprehension( x_var, independent_var_type, XML::getStringAttribute( attributes, Xvalues ), is_unsigned );
+	if ( !className.empty() ) {
+	    /* Changing one class only */
+	    const JMVA_Document::setIndependentVariable f = independent_var->second.single_class;
+	    const std::string x_var = (this->*(f))( stationName, className );	/* Create a variable */
 
-	_independent_variables.emplace_back( x_var );
-	appendResultVariable( x_var, new LQX::VariableExpression( x_var, false ) );
+	    _independent_variables.emplace_back( x_var );
+	    appendResultVariable( x_var, new LQX::VariableExpression( x_var, false ) );
 
-	if ( comprehension.begin() != comprehension.end() ) {
-	    if ( f == &JMVA_Document::setPopulationMix ) {
-		setPopulationMixN1N2( className, comprehension );
+	    const Comprehension comprehension( x_var, independent_var_type, XML::getStringAttribute( attributes, Xvalues ) );
+	    if ( comprehension.begin() != comprehension.end() ) {
+		if ( f == &JMVA_Document::setPopulationMix ) {
+		    setPopulationMixN1N2( className, comprehension );
+		}
+		insertComprehension( comprehension );
 	    }
-	    insertComprehension( comprehension );
+	} else {
+
+	    /* Changing all classes */
+
+	    _independent_variables.emplace_back( __Beta );
+	    appendResultVariable( __Beta, new LQX::VariableExpression( __Beta, false ) );
+	    
+	    const JMVA_Document::setIndependentVariable f = independent_var->second.all_class;
+	    for ( BCMP::Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
+		const std::string x_var = (this->*(f))( stationName, k->first );	/* Create a variable */
+		_independent_variables.emplace_back( x_var );
+		appendResultVariable( x_var, new LQX::VariableExpression( x_var, false ) );
+	    }
+
+	    const Comprehension comprehension( __Beta, Comprehension::Type::SCALE, XML::getStringAttribute( attributes, Xvalues ) );
+	    if ( comprehension.begin() != comprehension.end() ) {
+		insertComprehension( comprehension );
+	    }
 	}
     }
 
@@ -1087,7 +1114,7 @@ namespace QNIO {
 	} else {
 	    name = "$A" + std::to_string(_arrival_rate_vars.size() + 1);
 	    _arrival_rate_vars.emplace( &k, name );
-	    _input_variables.emplace( name );
+	    insertInputVariable( name, k.arrival_rate() );
 	}
 	k.setArrivalRate( new LQX::VariableExpression( name, false ) );
 	return name;
@@ -1107,7 +1134,7 @@ namespace QNIO {
 	} else {
 	    name = "$N" + std::to_string(_population_vars.size() + 1);				/* Need to create one 		*/
 	    _population_vars.emplace( &k, name );
-	    _input_variables.emplace( name );							/* Save it.			*/
+	    insertInputVariable( name, k.customers() );						/* Save it.			*/
 	}
 	k.setCustomers( new LQX::VariableExpression( name, false ) );				/* swap constanst for variable in class */
 	return name;
@@ -1128,7 +1155,7 @@ namespace QNIO {
 	} else {
 	    name = "$S" + std::to_string(_service_time_vars.size() + 1);
 	    _service_time_vars.emplace( &d, name );
-	    _input_variables.emplace( name );
+	    insertInputVariable( name, d.service_time() );
 	}
 	d.setServiceTime( new LQX::VariableExpression( name, false ) );
 	return name;
@@ -1146,7 +1173,7 @@ namespace QNIO {
 	} else {
 	    name = "$M" + std::to_string(_multiplicity_vars.size() + 1);
 	    _multiplicity_vars.emplace( &m, name );
-	    _input_variables.emplace( name );
+	    insertInputVariable( name, m.copies() );
 	}
 	m.setCopies( new LQX::VariableExpression( name, false ) );
 	return name;
@@ -1176,53 +1203,93 @@ namespace QNIO {
 
 	const BCMP::Model::Chain::map_t::iterator k1 = i->first == className ? i : j;
 	const BCMP::Model::Chain::map_t::iterator k2 = i->first == className ? j : i;
-	const double k1_customers = getDoubleValue(k1->second.customers());	/* Get original (constant) values	*/
-	const double k2_customers = getDoubleValue(k2->second.customers());	/* Get original (constant) values	*/
 
-	_N1.setName( k1->first );
-	_N1.setPopulation( k1_customers );
-	_N2.setName( k2->first );
-	_N2.setPopulation( k2_customers );
-	
-	const bool is_external = false;
-	const std::string class1_population = "N_" + k1->first;
-	const std::string x_name = "_N_" + k1->first;
-	const std::string beta = "Beta";					/* Local variable	*/
-	LQX::SyntaxTreeNode * assignment_expr;
-	
-	_population_vars.emplace( &k1->second, class1_population );
-	_input_variables.emplace( class1_population );
-	k1->second.setCustomers( new LQX::VariableExpression( class1_population, is_external ) );	/* ... so swap constant for variable in class.	*/
-	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( x_name, false ),
-							      BCMP::Model::constant( k1_customers ) ) );
-	std::vector<LQX::SyntaxTreeNode *> * function_args = new std::vector<LQX::SyntaxTreeNode *>;
-	function_args->push_back( new LQX::MathExpression( LQX::MathOperation::MULTIPLY,
-							   new LQX::VariableExpression( beta, false ),
-							   new LQX::VariableExpression( x_name, false ) ) );
-	assignment_expr = new LQX::AssignmentStatementNode( new LQX::VariableExpression( class1_population, is_external ), new LQX::MethodInvocationExpression( "round", function_args ) );
-	_whatif_body.push_back( assignment_expr );
+	setPopulationMixK( true,  k1, _N1 );
+	setPopulationMixK( false, k2, _N2 );
 
-	const std::string class2_population = "N_" + k2->first;
-	const std::string y_name = "_N_" + k2->first;
-
-	_population_vars.emplace( &k2->second, class2_population );
-	_input_variables.emplace( class2_population );
-	k2->second.setCustomers( new LQX::VariableExpression( class2_population, is_external ) );	/* ... so swap constanst for variable in class.	*/
-	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( y_name, false ),
-							      BCMP::Model::constant( k2_customers ) ) );
-	function_args = new std::vector<LQX::SyntaxTreeNode *>;
-	function_args->push_back( new LQX::MathExpression( LQX::MathOperation::MULTIPLY,
-							   new LQX::MathExpression( LQX::MathOperation::SUBTRACT,  BCMP::Model::constant( 1. ), new LQX::VariableExpression( beta, false ) ),
-							   new LQX::VariableExpression( y_name, false ) ) );
-	assignment_expr = new LQX::AssignmentStatementNode( new LQX::VariableExpression( class2_population, is_external ), new LQX::MethodInvocationExpression( "round", function_args ) );
-	_whatif_body.push_back( assignment_expr );
-	return beta;
+	return __Beta;
     }
 
+    /*
+     * Set the population based on a ratio determined by the LQX variable Beta.
+     */
+    
+    std::string
+    JMVA_Document::setAllCustomers( const std::string& stationName, const std::string& className )
+    {
+	BCMP::Model::Chain& k = chains().at(className);
+	const std::string var_name = "N_" + className;
+	const std::string const_name = "_N_" + className;
+	const bool is_external = false;
+	const std::map<const std::string,LQX::SyntaxTreeNode*>::iterator var = insertInputVariable( var_name, k.customers() );
 
-     /*
-      * Set the values for the x and x2 axes.
-      */
+	_population_vars.emplace( &k, var_name );
+	
+	k.setCustomers( new LQX::VariableExpression( var_name, is_external ) );
+	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( const_name, false ), var->second ) );
+	std::vector<LQX::SyntaxTreeNode *> * function_args = new std::vector<LQX::SyntaxTreeNode *>;
+	function_args->push_back( new LQX::MathExpression( LQX::MathOperation::MULTIPLY, new LQX::VariableExpression( const_name, false ), new LQX::VariableExpression( __Beta, false ) ) );
+	_whatif_body.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( var_name, is_external ),
+								  new LQX::MethodInvocationExpression( "round", function_args ) ) );
+	return var_name;
+    }
+
+    std::string
+    JMVA_Document::setAllDemands( const std::string& stationName, const std::string& className )
+    {
+	const BCMP::Model::Station& m = stations().at(stationName);
+	const std::string var_name = "S_" + stationName;
+	if ( m.hasClass( className ) ) {
+	    BCMP::Model::Station::Class& k = const_cast<BCMP::Model::Station::Class&>(m.classAt(className));
+	    const std::string const_name = "_S_" + stationName;
+	    const bool is_external = false;
+	    const std::map<const std::string,LQX::SyntaxTreeNode*>::iterator var = insertInputVariable( var_name, k.service_time() );
+	    k.setServiceTime( new LQX::VariableExpression( var_name, is_external ) );
+	    _program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( const_name, false ), var->second ) );
+	    _whatif_body.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( var_name, is_external ),
+								      new LQX::MathExpression( LQX::MathOperation::MULTIPLY, new LQX::VariableExpression( const_name, false ),
+											       new LQX::VariableExpression( __Beta, false ) ) ) );
+	}
+
+	return var_name;
+    }
+
+    /*
+     * Common logic for LQX setup.
+     */
+    
+    void
+    JMVA_Document::setPopulationMixK( bool ascend, const BCMP::Model::Chain::map_t::iterator& k, Population& N )
+    {
+	const std::string var_name = "N_" + k->first;
+	const std::string const_name = "_N_" + k->first;
+	const bool is_external = false;
+    
+	N.setName( k->first );
+	N.setPopulation( getDoubleValue( k->second.customers() ) );
+
+	/* Save initial value */
+	_program.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( const_name, false ), k->second.customers() ) );
+
+	/* ... so swap constant for variable in class.	*/
+	insertInputVariable( var_name, k->second.customers() );
+	_population_vars.emplace( &k->second, var_name );
+	k->second.setCustomers( new LQX::VariableExpression( var_name, is_external ) );
+	LQX::SyntaxTreeNode * multiplicand = nullptr;
+	if ( ascend ) {
+	    multiplicand = new LQX::VariableExpression( __Beta, false );
+	} else {
+	    multiplicand = new LQX::MathExpression( LQX::MathOperation::SUBTRACT,  BCMP::Model::constant( 1. ), new LQX::VariableExpression( __Beta, false ) );
+	}
+	std::vector<LQX::SyntaxTreeNode *> * function_args = new std::vector<LQX::SyntaxTreeNode *>;
+	function_args->push_back( new LQX::MathExpression( LQX::MathOperation::MULTIPLY, multiplicand, new LQX::VariableExpression( const_name, false ) ) );
+	_whatif_body.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( var_name, is_external ), new LQX::MethodInvocationExpression( "round", function_args ) ) );
+    }
+
+    
+    /*
+     * Set the values for the x and x2 axes.
+     */
 
     void
     JMVA_Document::setPopulationMixN1N2( const std::string& className, const Comprehension& population )
@@ -1371,13 +1438,13 @@ namespace QNIO {
     std::vector<std::string>
     JMVA_Document::getUndefinedExternalVariables() const
     {
-	return std::accumulate( _input_variables.begin(), _input_variables.end(), std::vector<std::string>(), notSet(*this) );
+	return std::accumulate( input_variables().begin(), input_variables().end(), std::vector<std::string>(), notSet(*this) );
     }
 
     unsigned
     JMVA_Document::getSymbolExternalVariableCount() const
     {
-	return _input_variables.size();
+	return input_variables().size();
     }
 
     /*
@@ -1520,7 +1587,7 @@ namespace QNIO {
 	if ( whatif == whatif_statements().end() || whatif->size() <= 1 ) throw std::invalid_argument( _independent_variables.at(0) + " is not a whatif" );
 
 	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set xlabel \"" + whatif->typeName() + "\"" ) );
-	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \"Station" + name + " " + __y_label_table.at(type) + "\"" ) );
+	_gnuplot.push_back( LQIO::GnuPlot::print_node( "set ylabel \"Station " + name + " " + __y_label_table.at(type) + "\"" ) );
 
 	const BCMP::Model::Station& station = stations().at( name );
 
@@ -1534,7 +1601,6 @@ namespace QNIO {
 	    for ( BCMP::Model::Station::Class::map_t::const_iterator k = station.classes().begin(); k != station.classes().end(); ++k ) {
 		if ( k != station.classes().begin() ) plot << ", ";
 		plot << "\"$DATA\" using 1:" << get_gnuplot_index(k->second.resultVariables().at(type)) << " with linespoints" << " title \"" << k->first << "\"";
-
 	    }
 	}
 
@@ -2035,9 +2101,9 @@ namespace QNIO {
 	    /* Insert WhatIf for statements for arrays and completions. */
 	    /* 	<whatIf className="c1" stationName="p2" type="Service Demands" values="1.0;1.1;1.2;1.3;1.4;1.5;1.6;1.7;1.8;1.9;2.0"/> */
 
-	    if ( !_input_variables.empty() ) {
+	    if ( !input_variables().empty() ) {
 		What_If what_if( output, *this );
-		std::for_each( _input_variables.begin(), _input_variables.end(),  what_if );		/* Do arrays in order	*/
+		std::for_each( input_variables().begin(), input_variables().end(), what_if );		/* Do arrays in order	*/
 	    }
 	}
 
@@ -2197,6 +2263,9 @@ namespace QNIO {
 	    _output << XML::simple_element( Xclosedclass )
 		    << XML::attribute( Xname, k.first );
 	    print_attribute( _output, Xpopulation, k.second.customers() );
+	    if ( k.second.priority() ) {
+		print_attribute( _output, Xpriority, k.second.priority() );
+	    }
 	    _output << XML::end_element( Xclosedclass, false );
 	    print_comment( _output, k.second.customers() );
 	    _output << std::endl;
@@ -2319,32 +2388,32 @@ namespace QNIO {
      */
 
     void
-    JMVA_Document::What_If::operator()( const std::string& var ) const
+    JMVA_Document::What_If::operator()( const std::pair<const std::string,LQX::SyntaxTreeNode*>& var ) const
     {
 	/* Find the variable */
 	BCMP::Model::Station::map_t::const_iterator m;
 	BCMP::Model::Chain::map_t::const_iterator k;
-	if ( (k = std::find_if( chains().begin(), chains().end(), What_If::has_customers( var ) )) != chains().end() ) {
+	if ( (k = std::find_if( chains().begin(), chains().end(), What_If::has_customers( var.first ) )) != chains().end() ) {
 	    _output << XML::simple_element( XwhatIf )
 		    << XML::attribute( XclassName, k->first )
-		    << XML::attribute( Xtype, XCustomer_Numbers );
-	} else if ( (k = std::find_if( chains().begin(), chains().end(), What_If::has_customers( var ) )) != chains().end() ) {
+		    << XML::attribute( Xtype, XNumber_of_Customers );
+	} else if ( (k = std::find_if( chains().begin(), chains().end(), What_If::has_customers( var.first ) )) != chains().end() ) {
 	    _output << XML::simple_element( XwhatIf )
 		    << XML::attribute( XclassName, k->first )
 		    << XML::attribute( Xtype, XArrival_Rates );
-	} else if ( (m = std::find_if( stations().begin(), stations().end(), What_If::has_copies( var ) )) != stations().end() ) {
+	} else if ( (m = std::find_if( stations().begin(), stations().end(), What_If::has_copies( var.first ) )) != stations().end() ) {
 	    _output << XML::simple_element( XwhatIf )
 		    << XML::attribute( XstationName, m->first )
 		    << XML::attribute( Xtype, XNumber_of_Servers );
-	} else if ( (m = std::find_if( stations().begin(), stations().end(), What_If::has_var( var ) )) != stations().end() ) {
+	} else if ( (m = std::find_if( stations().begin(), stations().end(), What_If::has_var( var.first ) )) != stations().end() ) {
 	    const BCMP::Model::Station::Class::map_t& classes = m->second.classes();
 	    BCMP::Model::Station::Class::map_t::const_iterator d;
 	    _output << XML::simple_element( XwhatIf );
-	    if ( (d = std::find_if( classes.begin(), classes.end(), What_If::has_service_time( var ) )) != classes.end() ) {
+	    if ( (d = std::find_if( classes.begin(), classes.end(), What_If::has_service_time( var.first ) )) != classes.end() ) {
 		_output << XML::attribute( XstationName, m->first )
 			<< XML::attribute( XclassName, d->first )
 			<< XML::attribute( Xtype, XService_Demands );
-	    } else if ( (d = std::find_if( classes.begin(), classes.end(), What_If::has_visits( var ) )) != classes.end() ) {
+	    } else if ( (d = std::find_if( classes.begin(), classes.end(), What_If::has_visits( var.first ) )) != classes.end() ) {
 		_output << XML::attribute( XstationName, m->first )
 			<< XML::attribute( XclassName, d->first )
 			<< XML::attribute( Xtype, "Visits" );
@@ -2353,20 +2422,20 @@ namespace QNIO {
 	    }
 	} else {
 	    /* Var not found! */
-	    _output << "<!-- Var not found: " << var << " -->" << std::endl;
+	    _output << "<!-- Var not found: " << var.first << " -->" << std::endl;
 	    return;
 	}
 
 	/* Print it out */
 
 	std::ostringstream values;
-	std::deque<Comprehension>::const_iterator whatif = std::find_if( whatif_statements().begin(), whatif_statements().end(), Comprehension::find(var) );
+	std::deque<Comprehension>::const_iterator whatif = std::find_if( whatif_statements().begin(), whatif_statements().end(), Comprehension::find(var.first) );
 	if ( whatif != whatif_statements().end() ) {
 	    /* Simple, run the comprehension directly */
 	    values << *whatif;
 	}
 	_output << XML::attribute( Xvalues, values.str() );
-	_output << "/>  <!--" << var << "-->" << std::endl;
+	_output << "/>  <!--" << var.first << "-->" << std::endl;
     }
 
     bool
@@ -2513,6 +2582,7 @@ namespace QNIO
 	/* Insert all functions to extract results. */
 
 	for ( std::vector<var_name_and_expr>::const_iterator result = _result_variables.begin(); result != _result_variables.end(); ++result ) {
+	    if ( dynamic_cast<LQX::AssignmentStatementNode *>( result->second ) == nullptr ) continue;
 	    block->push_back( result->second );
 	}
 
@@ -2611,11 +2681,11 @@ namespace QNIO
     }
 
     std::vector<std::string>
-    JMVA_Document::notSet::operator()( const std::vector<std::string>& arg1, const std::string& arg2 ) const
+    JMVA_Document::notSet::operator()( const std::vector<std::string>& arg1, const std::pair<const std::string,LQX::SyntaxTreeNode*>& arg2 ) const
     {
-	if ( _variables.find(arg2) != _variables.end() ) return arg1;
+	if ( _variables.find( arg2.first ) != _variables.end() ) return arg1;
 	std::vector<std::string> result = arg1;
-	result.push_back( arg2 );
+	result.push_back( arg2.first );
 	return result;
     }
 }
@@ -2681,6 +2751,7 @@ namespace QNIO {
     const XML_Char * JMVA_Document::Xparameters		= "parameters";
     const XML_Char * JMVA_Document::Xpopulation		= "population";
     const XML_Char * JMVA_Document::Xpragma		= "pragma";
+    const XML_Char * JMVA_Document::Xpriority		= "priority";
     const XML_Char * JMVA_Document::Xrate		= "rate";
     const XML_Char * JMVA_Document::XrefStation		= "refStation";
     const XML_Char * JMVA_Document::Xservers		= "servers";

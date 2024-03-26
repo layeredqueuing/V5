@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 17101 2024-03-05 18:35:57Z greg $
+ *  $Id: jmva_document.h 17148 2024-03-25 21:25:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -37,6 +37,26 @@ namespace QNIO {
     class JMVA_Document : public Document {
 	typedef std::string (JMVA_Document::*setIndependentVariable)( const std::string&, const std::string& );
 	typedef std::pair<const std::string,LQX::SyntaxTreeNode *> var_name_and_expr;
+
+	/* Used for Population Mix solutions. */
+	
+	struct Population {
+	    Population() : _name(), _population(0), _N() {}
+	    const std::pair<double,double>& operator[]( size_t i ) const { return _N.at(i); }
+	    bool empty() const { return _N.empty(); }
+	    size_t size() const { return _N.size(); }
+	    void setName( const std::string& name ) { _name = name; }
+	    const std::string& name() const { return _name; }
+	    void setPopulation( size_t population ) { _population = population; }
+	    size_t population() const { return _population; }
+	    void reserve( size_t size ) { _N.reserve( size ); }
+	    void emplace_back( const std::pair<double,double>& item ) { _N.emplace_back( item ); }
+	private:
+	    std::string _name;
+	    size_t _population;
+	    std::vector<std::pair<double,double>> _N;
+	};
+
 
 	/* Safe union for stack object */
 	class Object {
@@ -109,10 +129,17 @@ namespace QNIO {
 
 	struct register_variable {
 	    register_variable( LQX::Program * lqx ) : _lqx(lqx) {}
-	    void operator()( const std::string& symbol ) const;
+	    void operator()( const std::pair<const std::string,LQX::SyntaxTreeNode*>& symbol ) const;
 	private:
 	    LQX::Program * _lqx;
 	};
+
+	struct what_if_function {
+	    Document::Comprehension::Type key;
+	    JMVA_Document::setIndependentVariable single_class;
+	    JMVA_Document::setIndependentVariable all_class;
+	};
+
 
     public:
 	JMVA_Document( const std::string& input_file_name );
@@ -129,13 +156,11 @@ namespace QNIO {
 	void input_error( const std::string&, const std::string& );
 
     public:
-	bool hasVariable( const std::string& name ) const { return _input_variables.find(name) != _input_variables.end(); }
 	std::string& getLQXProgramText() { return _lqx_program_text; }
 	void setLQXProgramLineNumber( const unsigned n ) { _lqx_program_line_number = n; }
 	const unsigned getLQXProgramLineNumber() const { return _lqx_program_line_number; }
 	virtual std::vector<std::string> getUndefinedExternalVariables() const;
 	virtual unsigned getSymbolExternalVariableCount() const;
-	const std::deque<Comprehension>& whatif_statements() const { return comprehensions(); }
 
 	virtual void registerExternalSymbolsWithProgram(LQX::Program* program);
 
@@ -153,6 +178,7 @@ namespace QNIO {
 	void setStrictJMVA( bool value ) { _strict_jmva = value; }
 	bool strictJMVA() const { return _strict_jmva; }
 	bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,JMVA_Document::attribute_table_t>& table ) const;
+	const std::deque<Comprehension>& whatif_statements() const { return comprehensions(); }
 
 	static void start( void *data, const XML_Char *el, const XML_Char **attr );
 	static void end( void *data, const XML_Char *el );
@@ -208,8 +234,11 @@ namespace QNIO {
 	std::string setDemand( const std::string&, const std::string& );
 	std::string setMultiplicity( const std::string&, const std::string& );
 	std::string setPopulationMix( const std::string&, const std::string& );
+	std::string setAllCustomers( const std::string&, const std::string& );
+	std::string setAllDemands( const std::string&, const std::string& );
 
 	void setPopulationMixN1N2( const std::string& className, const Comprehension& population );
+	void setPopulationMixK( bool, const BCMP::Model::Chain::map_t::iterator& k, Population& N );
 	void appendResultVariable( const std::string&, LQX::SyntaxTreeNode * );
 
 	/* LQX */
@@ -274,7 +303,7 @@ namespace QNIO {
 
 	public:
 	    What_If( std::ostream& output, const JMVA_Document& document ) : _output(output), _document(document) {}
-	    void operator()( const std::string& ) const;	// For input variables. (obsolete)
+	    void operator()( const std::pair<const std::string,LQX::SyntaxTreeNode*>& ) const;	// For input variables. (obsolete)
 	    const BCMP::Model::Station::map_t& stations() const { return model().stations(); }
 	    const BCMP::Model::Chain::map_t& chains() const { return model().chains(); }
 	    const std::deque<Comprehension>& whatif_statements() const { return _document.comprehensions(); }
@@ -311,28 +340,11 @@ namespace QNIO {
 
 	struct notSet {
 	    notSet( const JMVA_Document& document ) : _variables() { getVariables(document); }
-	    std::vector<std::string> operator()( const std::vector<std::string>& arg1, const std::string& arg2 ) const;
+	    std::vector<std::string> operator()( const std::vector<std::string>& arg1, const std::pair<const std::string,LQX::SyntaxTreeNode*>& arg2 ) const;
 
 	private:
 	    void getVariables( const JMVA_Document& document );
 	    std::set<std::string> _variables;
-	};
-
-	struct Population {
-	    Population() : _name(), _population(0), _N() {}
-	    const std::pair<double,double>& operator[]( size_t i ) const { return _N.at(i); }
-	    bool empty() const { return _N.empty(); }
-	    size_t size() const { return _N.size(); }
-	    void setName( const std::string& name ) { _name = name; }
-	    const std::string& name() const { return _name; }
-	    void setPopulation( size_t population ) { _population = population; }
-	    size_t population() const { return _population; }
-	    void reserve( size_t size ) { _N.reserve( size ); }
-	    void emplace_back( const std::pair<double,double>& item ) { _N.emplace_back( item ); }
-	private:
-	    std::string _name;
-	    size_t _population;
-	    std::vector<std::pair<double,double>> _N;
 	};
 
 	std::ostream& printModel( std::ostream& ) const;
@@ -475,7 +487,6 @@ namespace QNIO {
 
 	/* LQX */
 	std::vector<LQX::SyntaxTreeNode*> _program;
-	std::set<std::string> _input_variables;						/* Spex vars -- may move to QNAP/QNIO */
 	std::vector<LQX::SyntaxTreeNode*> _whatif_body;
 	std::vector<std::string> _independent_variables;				/* x variables */
 	std::vector<var_name_and_expr> _result_variables;				/* y variables */
@@ -502,7 +513,7 @@ namespace QNIO {
 	LQX::SyntaxTreeNode * _x_max;
 	LQX::SyntaxTreeNode * _y_max;
 
-	static const std::map<const std::string,std::pair<Document::Comprehension::Type,JMVA_Document::setIndependentVariable>> independent_var_table;
+	static const std::map<const std::string,JMVA_Document::what_if_function> independent_var_table;
 
 	static const std::set<const XML_Char *,attribute_table_t> algParams_table;
 	static const std::set<const XML_Char *,attribute_table_t> compareAlgs_table;
@@ -512,6 +523,8 @@ namespace QNIO {
 	static const std::map<const BCMP::Model::Result::Type,const std::string> __y_label_table;
 	static const std::map<const BCMP::Model::Result::Type,const std::string> __lqx_function_table;
 	static const std::map<const std::string,const BCMP::Model::Result::Type> __result_name_table;
+
+	static const std::string __Beta;
 
 	static const XML_Char * XArrivalProcess;
 	static const XML_Char * XClass;
@@ -539,6 +552,7 @@ namespace QNIO {
 	static const XML_Char * Xparam;
 	static const XML_Char * Xpopulation;
 	static const XML_Char * Xpragma;
+	static const XML_Char * Xpriority;
 	static const XML_Char * Xrate;
 	static const XML_Char * XrefStation;
 	static const XML_Char * Xservers;

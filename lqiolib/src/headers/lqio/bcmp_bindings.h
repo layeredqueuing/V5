@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: bcmp_bindings.h 16188 2022-12-20 22:11:21Z greg $
+ *  $Id: bcmp_bindings.h 17145 2024-03-23 23:08:31Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -167,8 +167,8 @@ namespace BCMP {
 		
 	/* All of the glue code to make sure LQX can call solve() */
 	virtual std::string getName() const { return "mbusypct"; } 
-	virtual const char* getParameterInfo() const { return "o"; } 
-	virtual std::string getHelp() const { return "Returns the throughput for the station argument."; } 
+	virtual const char* getParameterInfo() const { return "o+"; } 
+	virtual std::string getHelp() const { return "Returns the utilization for the station argument."; } 
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args);
     };
 
@@ -181,9 +181,9 @@ namespace BCMP {
 		
 	/* All of the glue code to make sure LQX can call solve() */
 	virtual std::string getName() const { return "mcustnb"; } 
-	virtual const char* getParameterInfo() const { return "o"; }
+	virtual const char* getParameterInfo() const { return "o+"; }
 	
-	virtual std::string getHelp() const { return "Returns the throughput for the station argument."; } 
+	virtual std::string getHelp() const { return "Returns the number of customers for the station argument."; } 
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args);
     };
 
@@ -196,8 +196,8 @@ namespace BCMP {
 		
 	/* All of the glue code to make sure LQX can call solve() */
 	virtual std::string getName() const { return "mresponse"; } 
-	virtual const char* getParameterInfo() const { return "o"; } 
-	virtual std::string getHelp() const { return "Returns the throughput for the station argument."; } 
+	virtual const char* getParameterInfo() const { return "o+"; } 
+	virtual std::string getHelp() const { return "Returns the respopsne time for the station argument."; } 
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args);
     };
 
@@ -209,8 +209,8 @@ namespace BCMP {
 		
 	/* All of the glue code to make sure LQX can call solve() */
 	virtual std::string getName() const { return "mservice"; } 
-	virtual const char* getParameterInfo() const { return "o"; } 
-	virtual std::string getHelp() const { return "Returns the throughput for the station argument."; } 
+	virtual const char* getParameterInfo() const { return "o+"; } 
+	virtual std::string getHelp() const { return "Returns the service time for the station argument."; } 
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args);
     };
 

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnio_document.cpp 17101 2024-03-05 18:35:57Z greg $
+ * $Id: qnio_document.cpp 17135 2024-03-22 00:19:31Z greg $
  *
  * Superclass for Queueing Network models.
  *
@@ -35,7 +35,7 @@ QNIO::Document::Comprehension::operator=( const QNIO::Document::Comprehension& s
  */
     
 void
-QNIO::Document::Comprehension::convert( const std::string& s, bool integer )
+QNIO::Document::Comprehension::convert( const std::string& s )
 {
     /* tokenize the string on ';' */
     const char delim = ';';
@@ -59,9 +59,10 @@ QNIO::Document::Comprehension::convert( const std::string& s, bool integer )
     } else {
 	_step = 0;
     }
-    if ( integer ) {
+    if ( isInteger() ) {
 	_step = ::rint( _step );
     }
+    if ( _step == 0. ) throw std::domain_error( name() + ": step size is zero" );
 }
 
 
@@ -109,17 +110,26 @@ const std::map<QNIO::Document::Comprehension::Type,const std::string> QNIO::Docu
     { QNIO::Document::Comprehension::Type::ARRIVAL_RATES, "Arrival Rate" },
     { QNIO::Document::Comprehension::Type::CUSTOMERS,     "Customers" },
     { QNIO::Document::Comprehension::Type::DEMANDS,	  "Service Demands" },
-    { QNIO::Document::Comprehension::Type::SERVERS,       "Servers" }
+    { QNIO::Document::Comprehension::Type::SERVERS,       "Servers" },
+    { QNIO::Document::Comprehension::Type::SCALE,         "Beta" }
 };
 
 QNIO::Document::Document( const std::string& input_file_name, const BCMP::Model& model )
-    : _input_file_name(input_file_name), _comment(), _pragmas(), _bounds_only(false), _model(model), _comprehensions()
+    : _input_file_name(input_file_name), _comment(), _pragmas(), _bounds_only(false), _model(model),
+      _input_variables(), _comprehensions()
 {
     LQIO::DOM::Document::__input_file_name = input_file_name;
 }
 
 QNIO::Document::Document( const BCMP::Model& model )
-    : _input_file_name(), _comment(), _pragmas(), _bounds_only(false), _model(model), _comprehensions()
+    : _input_file_name(), _comment(), _pragmas(), _bounds_only(false), _model(model),
+      _input_variables(), _comprehensions()
+{
+}
+
+QNIO::Document::Document( const Document& document )
+    : _input_file_name(), _comment(document._comment), _pragmas(document._pragmas), _bounds_only(false), _model(document._model),
+      _input_variables(document._input_variables), _comprehensions(document._comprehensions)
 {
 }
 
