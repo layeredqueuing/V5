@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 17142 2024-03-22 19:47:05Z greg $
+ *  $Id: qnap2_document.h 17152 2024-03-27 16:59:55Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -17,6 +17,8 @@
 #include "qnio_document.h"
 #include "xml_output.h"
 #include <lqx/MethodTable.h>
+
+#define STRICT_QNAP	1		/* code for struct qnap2 output */
 
 extern "C" {
 #else
@@ -622,12 +624,19 @@ namespace QNIO {
 	static const std::map<const int,const BCMP::Model::Station::Type> __station_type;
 	static const std::map<int,const QNIO::QNAP2_Document::Type> __parser_to_type;
 	static const std::map<const std::string,std::pair<option_fptr,bool>> __option;
+#if STRICT_QNAP
+	static bool __strict;
+#endif
 
     private:
 	static QNAP2_Document * __document;
 	static std::pair<std::string,BCMP::Model::Station> __station;				/* Station under construction */
 	static std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>> __transit; 	/* chain, to-station, value under construction */
-
+#if STRICT_QNAP
+	static std::map<std::string,std::string> __map;						/* Original to New		*/
+	static std::map<std::string,unsigned int> __collision;
+#endif
+	
     private:
 	std::set<Symbol> _symbolTable;
 	TransitFromClassToValue _transit; /* from, chain, to, value under construction */

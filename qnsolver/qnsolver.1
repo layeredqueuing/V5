@@ -1,6 +1,6 @@
 .\" -*- nroff -*-
 .TH qnsolver 1 ""  "5.29"
-.\" $Id: qnsolver.1 16694 2023-04-22 14:56:28Z greg $
+.\" $Id: qnsolver.1 17154 2024-03-31 19:41:41Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -88,10 +88,12 @@ customers) for either all stations for the class named \fIarg\fP, or
 for all classes for the station named \fIarg\fP.  The independent
 ``What-If'' variable is used as the X-axis.  
 .TP
-\fB\-Q\fP, \fB\-\-export\-qnap\fR
-Convert the input model into QNAP.  The conversion \fIdoes not\fP translate
-class or station names into a form suitable for QNAP2 (i.e., no more than
-eight characters and no spaces for station and class names).
+\fB\-Q\fP, \fB\-\-export\-qnap\fR[=\fIstrict\fR]
+Convert the input model into QNAP.  If the optional \fIstrict\fR is
+present, the conversion \Iwill\fP translate class, station and
+variables names into a form suitable for QNAP2 (i.e., no more than
+eight characters and no spaces for station and class names).  Spaces
+or other non-alphanumeric characters are always converted to underscores.
 .TP
 \fB\-s\fR, \fB\-\-bard\-schweitzer\fR
 Use Bard\-Schweitzer approximate MVA to solve the model(s).

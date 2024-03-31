@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 17142 2024-03-22 19:47:05Z greg $
+ * $Id: qnap2_document.cpp 17153 2024-03-31 12:12:29Z greg $
  *
  * Read in XML input files.
  *
@@ -67,7 +67,12 @@ namespace QNIO {
     QNAP2_Document * QNAP2_Document::__document = nullptr;
     std::pair<std::string,BCMP::Model::Station> QNAP2_Document::__station;		/* Station under construction */
     std::map<std::string,std::map<std::string,LQX::SyntaxTreeNode *>> QNAP2_Document::__transit;	/* to, chain, value under construction */
-
+#if STRICT_QNAP
+    bool QNAP2_Document::__strict;
+    std::map<std::string,std::string> QNAP2_Document::__map;				/* Original to new		*/
+    std::map<std::string,unsigned int> QNAP2_Document::__collision;
+#endif
+    
     const std::map<const scheduling_type,const std::string> QNAP2_Document::__scheduling_str = {
 	{ SCHEDULE_CUSTOMER,"infinite" },
 	{ SCHEDULE_DELAY,   "infinite" },
@@ -1889,7 +1894,7 @@ namespace QNIO {
 	    has_closed_chain = true;
 	    const std::string name = customer->first;
 	    model().computeCustomerDemand( name );	/* compute terminal service times based on visits */
-	    customers = name;
+	    customers = to_identifier( name );
 	}
 	BCMP::Model::Chain::map_t::const_iterator chain = std::find_if( chains().begin(), chains().end(), &BCMP::Model::Chain::openChain );
 	if ( chain != chains().end() ) {
@@ -1898,7 +1903,7 @@ namespace QNIO {
 	    BCMP::Model::Station& source = const_cast<BCMP::Model&>(model()).insertStation( name, BCMP::Model::Station::Type::SOURCE ).first->second;
 	    source.insertClass( chain->first, nullptr, chain->second.arrival_rate() );
 	    if ( !customers.empty() ) customers += ',';
-	    customers += name;
+	    customers += to_identifier( name );
 	}
 
 
@@ -2020,7 +2025,7 @@ namespace QNIO {
 	const LQX::VariableExpression * copies = dynamic_cast<const LQX::VariableExpression *>(m.second.copies());
 	if ( BCMP::Model::Station::isServer(m) && copies != nullptr && _symbol_table.insert(copies).second == true ) {
 	    if ( !s.empty() ) s += ",";
-	    s += copies->getName();
+	    s += to_identifier( copies->getName() );
 	}
 	return s;
     }
@@ -2032,7 +2037,7 @@ namespace QNIO {
 	const LQX::VariableExpression * service_time = dynamic_cast<const LQX::VariableExpression *>(demand.second.service_time());
 	if ( service_time != nullptr && _symbol_table.insert(service_time).second == true ) {
 	    if ( !s.empty() ) s += ",";
-	    s += service_time->getName();
+	    s += to_identifier( service_time->getName() );
 	}
 	return s;
     }
@@ -2051,7 +2056,7 @@ namespace QNIO {
 	const LQX::VariableExpression * customers = dynamic_cast<LQX::VariableExpression *>(k.second.customers());
 	if ( k.second.isClosed() && customers != nullptr && _symbol_table.insert(customers).second == true ) {
 	    if ( !s.empty() ) s += ",";
-	    s += customers->getName();
+	    s += to_identifier( customers->getName() );
 	}
 	return s;
     }
@@ -2068,10 +2073,10 @@ namespace QNIO {
 	const LQX::VariableExpression * arrival_rate = dynamic_cast<const LQX::VariableExpression *>(k.second.arrival_rate());
 	if ( k.second.isClosed() && think_time != nullptr && _symbol_table.insert(think_time).second == true ) {
 	    if ( !s.empty() ) s += ",";
-	    s += think_time->getName();
+	    s += to_identifier( think_time->getName() );
 	} else if ( k.second.isOpen() && arrival_rate != nullptr && _symbol_table.insert(arrival_rate).second == true ) {
 	    if ( !s.empty() ) s += ",";
-	    s += arrival_rate->getName();
+	    s += to_identifier( arrival_rate->getName() );
 	}
 	return s;
     }
@@ -2110,7 +2115,7 @@ namespace QNIO {
 	    const std::string& name = result->second;
 	    if ( _symbol_table.insert(name).second == true ) {
 		if ( !s.empty() ) s += ",";
-		s += name;
+		s += to_identifier( name );
 	    }
 	}
 
@@ -2131,7 +2136,7 @@ namespace QNIO {
 	    const std::string& name = result->second;
 	    if ( _symbol_table.insert(name).second == true ) {
 		if ( !s.empty() ) s += ",";
-		s += name;
+		s += to_identifier( name );
 	    }
 	}
 	return s;
@@ -2215,7 +2220,7 @@ namespace QNIO {
 	const std::string open_classes = std::accumulate( classes.begin(), classes.end(), std::string(), fold_class( chains(), BCMP::Model::Chain::Type::OPEN ) );
 	const BCMP::Model::Station::map_t::const_iterator terminal = std::find_if( stations().begin(), stations().end(), &BCMP::Model::Station::isCustomer );
 
-	const std::string name = terminal != stations().end() ? to_identifier( terminal->first ) : std::string( "out" );
+	const std::string name = to_identifier( terminal != stations().end() ? terminal->first : std::string( "out" ) );
 	if ( !closed_classes.empty() && !open_classes.empty() ) {
 	    _output << qnap2_statement( "transit( " + closed_classes + ")=" + name );
 	    _output << qnap2_statement( "transit( " + open_classes + ")=out" );
@@ -2247,6 +2252,11 @@ namespace QNIO {
 	}
     }
 
+
+    /*
+     * Output the stations and values that the caller transits to.  Don't transit to stations with zero demand.
+     */
+    
     std::string
     QNAP2_Document::fold_transit::operator()( const std::string& s1, const BCMP::Model::Station::pair_t& m2 ) const
     {
@@ -2255,7 +2265,7 @@ namespace QNIO {
 	const BCMP::Model::Station::Class::map_t::const_iterator k = station.classes().find(_name);
 	if ( k == station.classes().end() ) return s;
 	LQX::SyntaxTreeNode * visits = k->second.visits();
-	if ( !station.reference() && station.hasClass(_name) && !BCMP::Model::isDefault(visits) ) {
+	if ( !station.reference() && station.hasClass(_name) && !(BCMP::Model::isDefault(visits) || BCMP::Model::isDefault(k->second.service_time()) ) ) {
 	    if ( !s.empty() ) s += ",";
 	    s += to_identifier(m2.first) + "," + to_real(visits);
 	}
@@ -2274,7 +2284,7 @@ namespace QNIO {
 
 	const BCMP::Model::Station::Class::map_t visits = std::accumulate( stations().begin(), stations().end(), BCMP::Model::Station::Class::map_t(), BCMP::Model::Station::select( &BCMP::Model::Station::isServer ) );
 	const BCMP::Model::Station::Class::map_t service_times = std::accumulate( stations().begin(), stations().end(), BCMP::Model::Station::Class::map_t(), BCMP::Model::Station::select( &BCMP::Model::Station::isCustomer ) );
-	BCMP::Model::Station::Class::map_t classes = std::accumulate( service_times.begin(), service_times.end(), BCMP::Model::Station::Class::map_t(), BCMP::Model::sum_visits(visits) );
+	const BCMP::Model::Station::Class::map_t classes = std::accumulate( service_times.begin(), service_times.end(), BCMP::Model::Station::Class::map_t(), BCMP::Model::sum_visits(visits) );
 
 	/*
 	 * QNAP Does everything by "transit", so the service time at
@@ -2342,11 +2352,12 @@ namespace QNIO {
 	    LQX::SyntaxTreeNode * service_time = station.classAt(k->first).service_time();
 
 	    if ( BCMP::Model::isDefault( service_time ) ) {
-		comment = "QNAP does not like zero (0)";
-	    } else {
-		if ( dynamic_cast<LQX::VariableExpression *>(service_time) != nullptr ) {
-		    comment = "SPEX variable " + dynamic_cast<LQX::VariableExpression *>(service_time)->getName();
-		}
+		comment = "QNAP2 does not like zero (0)";
+#if STRICT_QNAP
+		if ( __strict ) service_time = new LQX::ConstantValueExpression( 0.000001 );
+#endif
+	    } else if ( dynamic_cast<LQX::VariableExpression *>(service_time) != nullptr ) {
+		comment = "SPEX variable " + dynamic_cast<LQX::VariableExpression *>(service_time)->getName();
 	    }
 	    if ( multiclass() ) {
 		_output << qnap2_statement( to_identifier(k->first) + "." + name + ":=" + to_real(service_time), comment ) << std::endl;
@@ -2670,18 +2681,43 @@ namespace QNIO {
     std::string
     QNAP2_Document::to_identifier( const std::string& s, const std::string& suffix )
     {
-	const size_t trim = suffix.size();
-	std::string out;
-	std::transform( s.begin(), s.end(), std::back_inserter(out), [](unsigned char c){ return std::isalnum(c) ? c : '_'; } );
-	return out + suffix;
+	return to_identifier( s + suffix );
     }
     
-    /* Remap any funny characters to _ */
+    /*
+     * Identifiers in JMA can contain anything.  QNAP only allows
+     * Alphanumeric characters and the underscore, and for the crufty
+     * old Fortran version, eight character max.  Fold, mutiliate and
+     * spindle here.
+     */
+
     std::string
     QNAP2_Document::to_identifier( const std::string& s )
     {
 	std::string out;
 	std::transform( s.begin(), s.end(), std::back_inserter(out), [](unsigned char c){ return std::isalnum(c) ? c : '_'; } );
+
+#if STRICT_QNAP
+	if ( __strict && out.size() > 8 ) {
+	    std::pair<std::map<std::string,std::string>::iterator,bool> map = __map.emplace( s, out );
+
+	    if ( map.second ) {
+		/* If it's a new string && bigger than 8, then map to ssssssnn */
+		out.erase( 6 );
+		std::pair<std::map<std::string,unsigned int>::iterator,bool> collision = __collision.emplace(out,1);
+		const unsigned int n = collision.first->second;
+		collision.first->second += 1;
+		assert( n < 100 );
+		char buf[3];
+		snprintf( buf, 3, "%02d", n );
+		out += buf;
+		map.first->second = out;
+	    } else {
+		/* Otherwise, replace with the mapped version. */
+		out = map.first->second;
+	    }
+	} 
+#endif
 	return out;
     }
     

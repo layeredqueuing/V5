@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 17128 2024-03-21 15:23:02Z greg $
+ * $Id: qnsolver.cc 17153 2024-03-31 12:12:29Z greg $
  */
 
 #include "config.h"
@@ -109,9 +109,7 @@ const static std::map<const std::string,const LQIO::GnuPlot::Format> gnuplot_out
 
 /* Flags */
 
-typedef enum { Off, Loose, Strict } QNAP_OUTPUT;
-
-static QNAP_OUTPUT print_qnap2 = Off;		/* Export to qnap2.  		*/
+static bool print_qnap2 = false;		/* Export to qnap2.  		*/
 static bool print_jmva = false;			/* Export to JMVA		*/
 static bool print_gnuplot = false;		/* Output WhatIf as gnuplot	*/
 static BCMP::Model::Result::Type plot_type = BCMP::Model::Result::Type::THROUGHPUT;
@@ -276,11 +274,14 @@ int main (int argc, char *argv[])
 	    break;
 	    
 	case 'Q':
-	    if ( optarg == nullptr ) {
-		print_qnap2 = Strict;
-	    } else {
-		print_qnap2 = Loose;
-	    }
+	    print_qnap2 = true;
+	    if ( optarg != nullptr ) {
+		if ( strcmp(optarg,"strict") == 0 ) {
+		    QNIO::QNAP2_Document::__strict = true;
+		} else {
+		    std::cerr << program_name << ": --print-qnap=" << optarg << ", unknow argument." << std::endl;
+		}
+	    } 
 	    break;
 
 	case 'P':
@@ -367,7 +368,7 @@ static bool exec( QNIO::Document& input, const std::string& output_file_name, co
 	}
     }
 
-    if ( print_qnap2 != Off ) {
+    if ( print_qnap2 ) {
 
 	QNIO::QNAP2_Document qnap_model( input );
 	if ( output_file_name.empty() ) {
