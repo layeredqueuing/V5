@@ -1,3 +1,12 @@
+2024-04-07  Gregory Franks  <greg@Gregs-ARM-MacBook-Pro.local>
+
+	* lqiolib
+	- queueing model updates.
+	- Add drop probability for open arrivals to schema.
+	* qnsolver
+	- add --no-bounds to suppress bounds output.
+	- change --plot-xxxx to --xxxx.
+
 2024-01-09  Gregory Franks  <greg@Gregs-Retina-iMac.local>
 
 	* lqiolib
@@ -599,4 +608,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 16895 2024-01-09 18:21:03Z greg $
+$Id: ChangeLog 17174 2024-04-07 11:26:06Z greg $

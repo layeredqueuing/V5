@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: filename.cpp 17081 2024-03-01 22:09:31Z greg $
+ * $Id: filename.cpp 17158 2024-04-01 17:13:10Z greg $
  *
  * File name generation.
  *
@@ -135,19 +135,6 @@ namespace LQIO {
 
 
     /*
-     * Return non-zero if fileName is a regular file, -1 if the file cannot
-     * be accessed using stat(1), and zero if the file is a directory or
-     * other wierd item, such as /dev/null.
-     */
-
-    bool
-    Filename::isRegularFile( const std::string& fileName )
-    {
-	return std::filesystem::is_regular_file( fileName );
-    }
-
-
-    /*
      * Return non-zero if fileName is a directory, -1 if the file cannot
      * be accessed using stat(1), and zero otherwise.
      */
@@ -206,10 +193,9 @@ namespace LQIO {
     void
     Filename::backup( const std::string& filename )
     {
-	if ( isRegularFile( filename ) ) {
-	    std::string backup = filename;
-	    backup += "~";
-	    rename( filename.c_str(), backup.c_str() );
+	if ( std::filesystem::is_regular_file( filename ) ) {
+	    const std::filesystem::path backup = filename + "~";
+	    std::filesystem::rename( filename, backup );
 	}
     }
 
@@ -220,15 +206,15 @@ namespace LQIO {
     std::string
     Filename::createDirectory( const std::string& file_name, bool lqx_output ) 
     {
-	std::string directory_name;
-	if ( isDirectory( file_name ) > 0 ) {
-	    directory_name = file_name;
-	} else if ( lqx_output ) {
-	    /* We need to create a directory to store output. */
-	    directory_name = LQIO::Filename( file_name, "d" )();		/* Get the base file name */
+	if ( std::filesystem::is_directory( file_name ) ) {
+	    return file_name;
 	}
 
-	if ( !directory_name.empty() ) {
+	std::string directory_name;
+	if ( lqx_output ) {
+	    /* We need to create a directory to store output. */
+	    directory_name = LQIO::Filename( file_name, "d" )();		/* Get the base file name */
+
 	    try {
 		std::filesystem::create_directory( directory_name );
 	    }
@@ -238,6 +224,4 @@ namespace LQIO {
 	}
 	return directory_name;
     }
-
-    
 }

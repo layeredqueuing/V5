@@ -1,3 +1,18 @@
+* Bugs fixes in 5.30
+208 	lqiolib 	Add --gnuplot output. 
+448 	lqiolib 	Faults in open models.
+456 	lqiolib 	Add drop probability for open arrivals.
+458 	lqiolib 	Schema change for latest version of JMVA.
+459 	lqiolib 	LQX output is not saved to a file with -ofilename 
+460 	lqiolib 	Multiclass response time plotting is borked. 
+384 	lqn2xxx 	Join is permitted in loop
+454 	lqn2xxx 	libc++abi: terminating due to uncaught exception of type std::out_of_range: map::at: key not found
+432 	lqns 		Bizarre error setting convergence value.
+433 	lqns 		51-replication
+452 	lqns		56-replication fails. 
+449 	petrisrv 	Petrisrvn regression failures
+450 	srvndiff 	srvndiff: 34-priority.lqxo:11: error: Invalid argument "-0.538461" to attribute for element <result-task>
+
 * Bugs fixes in 5.29
 441     lqiolib         Null model comment.
 443     lqiolib         Export/Import the schema "description" field.

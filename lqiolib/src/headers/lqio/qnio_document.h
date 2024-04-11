@@ -9,7 +9,7 @@
  *
  * November 2022
  *
- * $Id: qnio_document.h 17136 2024-03-22 01:40:35Z greg $
+ * $Id: qnio_document.h 17169 2024-04-05 23:31:35Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -127,13 +127,13 @@ namespace QNIO {
 
 	virtual bool disableDefaultOutputWithLQX() const { return false; }
 	virtual void saveResults( size_t, const std::string&, size_t, const std::string&, const std::string&, const std::map<BCMP::Model::Result::Type,double>& ) {}
-	virtual void plot( BCMP::Model::Result::Type, const std::string&, LQIO::GnuPlot::Format format=LQIO::GnuPlot::Format::TERMINAL ) {}
+	virtual void plot( BCMP::Model::Result::Type, const std::string&, bool, LQIO::GnuPlot::Format format=LQIO::GnuPlot::Format::TERMINAL ) {}
 
 	bool convertToLQN( LQIO::DOM::Document& ) const;
 
 	virtual std::ostream& print( std::ostream& output ) const = 0;
 	virtual std::ostream& exportModel( std::ostream& output ) const = 0;
-    
+
     private:
 	const std::string _input_file_name;
 	std::string _comment;

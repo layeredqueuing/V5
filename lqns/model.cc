@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17093 2024-03-04 11:47:34Z greg $
+ * $Id: model.cc 17158 2024-04-01 17:13:10Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -188,7 +188,7 @@ Model::solve( solve_using solve_function, const std::string& inputFileName, cons
 	LQIO::RegisterBindings(environment, document);
 
 	FILE * output = nullptr;
-	if ( !outputFileName.empty() && outputFileName != "-" && LQIO::Filename::isRegularFile(outputFileName.c_str()) ) {
+	if ( !outputFileName.empty() && outputFileName != "-" ) {
 	    output = fopen( outputFileName.c_str(), "w" );
 	    if ( !output ) {
 		LQIO::runtime_error( LQIO::ERR_CANT_OPEN_FILE, outputFileName.c_str(), strerror( errno ) );

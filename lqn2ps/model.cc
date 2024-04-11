@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 17101 2024-03-05 18:35:57Z greg $
+ * $Id: model.cc 17158 2024-04-01 17:13:10Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -482,7 +482,7 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 		    LQIO::RegisterBindings(program->getEnvironment(), document);
 	
 		    FILE * output = nullptr;
-		    if ( output_file_name.size() > 0 && output_file_name != "-" && LQIO::Filename::isRegularFile(output_file_name) ) {
+		    if ( output_file_name.size() > 0 && output_file_name != "-" ) {
 			output = fopen( output_file_name.c_str(), "w" );
 			if ( !output ) {
 			    runtime_error( LQIO::ERR_CANT_OPEN_FILE, output_file_name.c_str(), strerror( errno ) );
@@ -939,12 +939,9 @@ Model::store()
 	switch( Flags::output_format() ) {
 #if EMF_OUTPUT
 	case File_Format::EMF:
-	    if ( LQIO::Filename::isRegularFile( filename() ) == 0 ) {
-		std::ostringstream msg;
-		msg << "Cannot open output file " << filename() << " - not a regular file.";
-		throw std::runtime_error( msg.str() );
-	    } else {
-		output.open( filename().c_str(), std::ios::out|std::ios::binary );	/* NO \r's in output for windoze */
+	    output.open( filename().c_str(), std::ios::out|std::ios::binary );	/* NO \r's in output for windoze */
+	    if ( !output ) {
+		throw std::runtime_error( std::string( "Cannot open output file " ) + filename() + " - not a regular file." );
 	    }
 	    break;
 #endif

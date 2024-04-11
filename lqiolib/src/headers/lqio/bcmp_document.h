@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 17140 2024-03-22 17:48:42Z greg $
+ *  $Id: bcmp_document.h 17162 2024-04-04 17:57:07Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -41,7 +41,7 @@ namespace BCMP {
 
 	class Result {
 	public:
-	    enum class Type { QUEUE_LENGTH, RESIDENCE_TIME, RESPONSE_TIME, MEAN_SERVICE, THROUGHPUT, UTILIZATION };
+	    enum class Type { NONE, QUEUE_LENGTH, RESIDENCE_TIME, RESPONSE_TIME, MEAN_SERVICE, THROUGHPUT, UTILIZATION };
 	    typedef std::map<Type,std::string> map_t;
 	    typedef std::pair<Type,std::string> pair_t;
 

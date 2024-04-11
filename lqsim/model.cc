@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 16825 2023-11-02 15:11:12Z greg $
+ * $Id: model.cc 17158 2024-04-01 17:13:10Z greg $
  */
 
 #include "lqsim.h"
@@ -159,7 +159,7 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
 	    program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, run_function, &model));
 	    LQIO::RegisterBindings(program->getEnvironment(), document);
 	
-	    if ( !output_file_name.empty() && output_file_name != "-" && LQIO::Filename::isRegularFile(output_file_name) ) {
+	    if ( !output_file_name.empty() && output_file_name != "-" ) {
 		output = fopen( output_file_name.c_str(), "w" );
 		if ( !output ) {
 		    runtime_error( LQIO::ERR_CANT_OPEN_FILE, output_file_name.c_str(), strerror( errno ) );

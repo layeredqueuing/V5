@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 17152 2024-03-27 16:59:55Z greg $
+ *  $Id: qnap2_document.h 17169 2024-04-05 23:31:35Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -211,6 +211,7 @@ namespace QNIO {
 
 	virtual std::ostream& print( std::ostream& ) const;
 	std::ostream& exportModel( std::ostream& ) const;
+	void plot( BCMP::Model::Result::Type, const std::string&, bool, LQIO::GnuPlot::Format format=LQIO::GnuPlot::Format::TERMINAL );
 
 	const BCMP::Model::Station::map_t& stations() const { return model().stations(); }
 	const BCMP::Model::Chain::map_t& chains() const { return model().chains(); }
@@ -218,6 +219,8 @@ namespace QNIO {
 
     private:
 	bool debug() const { return _debug; }
+	bool plotOutput() const { return _plot_type != BCMP::Model::Result::Type::NONE; }
+	BCMP::Model::Result::Type plotType() const { return _plot_type; }
 
 	LQX::SyntaxTreeNode * getAllObjects( QNIO::QNAP2_Document::Type ) const;
 	LQX::SyntaxTreeNode * getArray( const Symbol& symbol, QNAP2_Document::Type ) const;
@@ -233,6 +236,8 @@ namespace QNIO {
 	bool declareAttribute( Type, Type, const Symbol& );
 	bool declareStation( const Symbol& );
 	bool defineSymbol( Symbol, Type, Type=Type::Undefined );	// Create copy of Symbol
+	const std::set<Symbol>::const_iterator findSymbol( const std::string& name ) const { return _symbolTable.find( name ); }
+	const std::set<Symbol>::const_iterator symbolTableEnd() const { return _symbolTable.end(); }
 	void constructChains();
 	bool constructStation();
 	void setDebug( bool value ) { _debug = value; }
@@ -254,6 +259,7 @@ namespace QNIO {
 	bool isDefined( const std::string& ) const;
 	static BCMP::Model::Chain& getChain( const std::string& ); /* throws if not found */
 	static BCMP::Model::Station& getStation( const std::string& );
+	BCMP::Model::Station::map_t::const_iterator findReferenceStation() const;
 	LQX::SyntaxTreeNode * getInitialValue( const Symbol& symbol, QNAP2_Document::Type type=QNAP2_Document::Type::Undefined, bool=false ) const;
 
 	bool mapTransitToVisits();
@@ -326,8 +332,8 @@ namespace QNIO {
 	    void operator()( const BCMP::Model::Chain::pair_t& chain ) const { set( chain.first ); }
 	private:
 	    void set( const std::string& class_name ) const;
-	    const std::set<Symbol>::const_iterator findSymbol( const std::string& name ) const { return _document._symbolTable.find( name ); }
-	    const std::set<Symbol>::const_iterator symbolTableEnd() const { return _document._symbolTable.end(); }
+	    const std::set<Symbol>::const_iterator findSymbol( const std::string& name ) const { return _document.findSymbol( name ); }
+	    const std::set<Symbol>::const_iterator symbolTableEnd() const { return _document.symbolTableEnd(); }
 	    LQX::SymbolAutoRef getLQXSymbol( const std::string& name ) const { return _document.getLQXSymbol( name ); }
 
 	    const QNAP2_Document& _document;
@@ -560,7 +566,10 @@ namespace QNIO {
 	    const BCMP::Model& _model;
 	};
 
-	void printResults( std::ostream& output, const std::string& prefix, const std::string& vars, const std::string& postfix  ) const;
+	void printResults( std::ostream& output, bool value, const std::string& vars ) const;
+	void printHeader( std::ostream& output, BCMP::Model::Result::Type ) const;
+	void printResults( std::ostream& output, BCMP::Model::Result::Type ) const;
+	std::string accumulateResponseTime( const std::string& ) const;
 
 	struct for_loop {
 	    for_loop( std::ostream& output, const std::map<const std::string,LQX::SyntaxTreeNode *>& input_variables ) : _output(output), _input_variables(input_variables) {}
@@ -580,6 +589,10 @@ namespace QNIO {
 	};
 
 	static std::string fold( const std::string& s1, const std::string& s2 );
+	static std::string quote_comprehension( const std::string& s1, const Comprehension& v2 );
+	static std::string fold_comprehension( const std::string& s1, const Comprehension& v2 );
+	static std::string quote_chain( const std::string& s1, const BCMP::Model::Chain::pair_t& k2 );
+	static std::string quote_station( const std::string& s1, const BCMP::Model::Station::pair_t& m2 );
 	
 	struct fold_station {
 	    fold_station( const std::string& suffix="" ) : _suffix(suffix) {}
@@ -596,6 +609,15 @@ namespace QNIO {
 	    const BCMP::Model::Chain::Type _type;
 	};
 
+	struct fold_result {
+	    fold_result( BCMP::Model::Result::Type result, const std::string& name ) : _result(result), _name(name) {}
+	    std::string operator()( const std::string& s1, const BCMP::Model::Chain::pair_t& k2 ) const;
+	    std::string operator()( const std::string& s1, const BCMP::Model::Station::pair_t& m2 ) const;
+	private:
+	    const BCMP::Model::Result::Type _result;
+	    const std::string& _name;
+	};
+	
 	struct fold_visits {
 	    fold_visits( const std::string& name ) : _name(name) {}
 	    std::string operator()( const std::string& s1, const BCMP::Model::Station::pair_t& m2 ) const;
@@ -636,6 +658,8 @@ namespace QNIO {
 	static std::map<std::string,std::string> __map;						/* Original to New		*/
 	static std::map<std::string,unsigned int> __collision;
 #endif
+	static const std::map<BCMP::Model::Result::Type,const std::string> __mfunction_name;
+	static const std::string __csv;
 	
     private:
 	std::set<Symbol> _symbolTable;
@@ -647,6 +671,10 @@ namespace QNIO {
 	LQX::Environment * _env;
 	bool _debug;
 	bool _result;										/* suppress default output.	*/
+
+	BCMP::Model::Result::Type _plot_type;
+	std::string _plot_arg;
+//	    , LQIO::GnuPlot::Format format=LQIO::GnuPlot::Format::TERMINAL );
     };
 
     inline std::ostream& operator<<( std::ostream& output, const QNAP2_Document& doc ) { return doc.print(output); }

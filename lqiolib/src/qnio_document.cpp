@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnio_document.cpp 17135 2024-03-22 00:19:31Z greg $
+ * $Id: qnio_document.cpp 17162 2024-04-04 17:57:07Z greg $
  *
  * Superclass for Queueing Network models.
  *
@@ -14,6 +14,7 @@
 
 #include <cmath>
 #include <lqx/SyntaxTree.h>
+#include "filename.h"
 #include "qnio_document.h"
 #include "dom_document.h"
 #include "bcmp_to_lqn.h"

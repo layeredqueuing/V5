@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 17140 2024-03-22 17:48:42Z greg $
+ * $Id: bcmp_document.cpp 17167 2024-04-05 19:23:40Z greg $
  *
  * Read in XML input files.
  *
@@ -28,12 +28,13 @@
 namespace BCMP {
 
     const Model::Result::map_t Model::Result::suffix = {
-        { Model::Result::Type::QUEUE_LENGTH,     "qlen" },
-        { Model::Result::Type::RESIDENCE_TIME,   "rest" },
-        { Model::Result::Type::RESPONSE_TIME,    "rspt" },
-        { Model::Result::Type::MEAN_SERVICE,     "svct" },
-        { Model::Result::Type::THROUGHPUT,       "tput" },
-        { Model::Result::Type::UTILIZATION,      "util" }
+	{ Model::Result::Type::NONE,		"" },
+        { Model::Result::Type::QUEUE_LENGTH,    "qlen" },
+        { Model::Result::Type::RESIDENCE_TIME,  "rest" },
+        { Model::Result::Type::RESPONSE_TIME,   "rspt" },
+        { Model::Result::Type::MEAN_SERVICE,    "svct" },
+        { Model::Result::Type::THROUGHPUT,      "tput" },
+        { Model::Result::Type::UTILIZATION,     "util" }
     };
 
     /* ---------------------------------------------------------------- */
@@ -105,13 +106,26 @@ namespace BCMP {
     }
 
     /*
-     * Compute reponse time for class "name" as seen from the customer station. 
+     * Compute reponse time for class "name" as seen from the customer
+     * station. If name is empty, return the per-class response time
+     * weighted by throughput.
      */
 
     double
     Model::response_time( const std::string& name ) const
     {
-	return std::accumulate( stations().begin(), stations().end(), 0.0, sum_residence_time( name ) );
+	if ( !name.empty() ) {
+	    return std::accumulate( stations().begin(), stations().end(), 0.0, sum_residence_time( name ) );
+	} else {
+	    double sum_response_time = 0.0;
+	    double sum_throughput = 0.0;
+	    for ( Chain::map_t::const_iterator chain = chains().begin(); chain != chains().end(); ++chain ) {
+		const double lambda = throughput( chain->first );
+		sum_response_time += response_time( chain->first ) * lambda;
+		sum_throughput += lambda;
+	    }
+	    return sum_response_time / sum_throughput;
+	}
     }
 
     /*

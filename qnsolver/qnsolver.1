@@ -1,6 +1,6 @@
 .\" -*- nroff -*-
 .TH qnsolver 1 ""  "5.29"
-.\" $Id: qnsolver.1 17154 2024-03-31 19:41:41Z greg $
+.\" $Id: qnsolver.1 17172 2024-04-07 11:08:12Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -21,8 +21,12 @@ results for the model are printed.
 .TP
 \fB\-b\fR, \fB\-\-bounds\fR
 Use the Bounds solver to solve the model(s).  Bounds are computed
-implicitly with \fB\-\-plot\-throughput\fR and
-\fB\-\-plot\-response\-time\fR.
+implicitly with \fB\-\-throughput\fR and
+\fB\-\-response\-time\fR.
+.TP
+\fB\-b\fR, \fB\-\-no\-bounds\fR
+Suppress bounds plotting for system throughput and system response
+time output.
 .TP
 \fB\-B\fR, \fB\-\-export-jaba\fR
 Export a model that can be used by the bounds solver from the Java
@@ -82,7 +86,7 @@ file being solved appended with the file format and with a suffix of \fI.gnuplot
 \fB\-P\fR, \fB\-\-print\-lqx\fR
 Print the LQX program generated for solving ``What-If'' models.
 .TP
-\fB\-q\fP, \fB\-\-plot\-queue\-length\fR=\fIarg\fR
+\fB\-q\fP, \fB\-\-queue\-length\fR=\fIarg\fR
 Generate gnuplot(1) output to plot the queue length (number of
 customers) for either all stations for the class named \fIarg\fP, or
 for all classes for the station named \fIarg\fP.  The independent
@@ -90,21 +94,24 @@ for all classes for the station named \fIarg\fP.  The independent
 .TP
 \fB\-Q\fP, \fB\-\-export\-qnap\fR[=\fIstrict\fR]
 Convert the input model into QNAP.  If the optional \fIstrict\fR is
-present, the conversion \Iwill\fP translate class, station and
+present, the conversion \fIwill\fP translate class, station and
 variables names into a form suitable for QNAP2 (i.e., no more than
 eight characters and no spaces for station and class names).  Spaces
-or other non-alphanumeric characters are always converted to underscores.
+or other non-alphanumeric characters are always converted to
+underscores.  The options \fBqrtuw\fP will output QNAP2 print statements to
+print out the named results as comma seperated values.
 .TP
 \fB\-s\fR, \fB\-\-bard\-schweitzer\fR
 Use Bard\-Schweitzer approximate MVA to solve the model(s).
 .TP
-\fB\-r\fP, \fB\-\-plot\-response\-time\fR
+\fB\-r\fP, \fB\-\-response\-time\fR[=\fIarg\fR]
 Generate gnuplot(1) output for plotting the response time and bounds for the
 system from the solution of a ``What-If'' model.  The response time
 does not include the residence times for the reference station.
-The independent ``What-If'' variable is used for the X-axis.  
+The independent ``What-If'' variable is used for the X-axis.  If
+\fIarg\fP is supplied, only output resutls for the class named \fIarg\fP.
 .TP
-\fB\-t\fP, \fB\-\-plot\-throughput\fR[=\fIarg\fR]
+\fB\-t\fP, \fB\-\-throughput\fR[=\fIarg\fR]
 Generate gnuplot(1) output for plotting the throughput.  If the
 optional \fIarg\fP is present, the throughput is plotted for all
 stations for the class named \fIarg\fP, or for all classes for the
@@ -118,14 +125,12 @@ If a What-If analysis of population
 mix is specified in the input file, then the throughput and bounds for the second
 class is plotted versus the throughput and bounds for the first class.
 .TP
-\fB\-u\fP, \fB\-\-plot\-utilization\fR
+\fB\-u\fP, \fB\-\-utilization\fR
 Generate gnuplot(1) output for plotting the utilization for the for either all stations
 for the class named \fIarg\fP, or for all classes for the station
 named \fIarg\fP.  The independent ``What-If'' variable is used for the X-axis.
-The independent ``What-If''
-variable is used for the X-axis.  
 .TP
-\fB\-w\fP, \fB\-\-plot\-waiting\-time\fR
+\fB\-w\fP, \fB\-\-waiting\-time\fR
 Generate gnuplot(1) output for plotting the waiting time for either all stations
 for the class named \fIarg\fP, or for all classes for the station
 named \fIarg\fP.  The independent ``What-If'' variable is used for the X-axis.

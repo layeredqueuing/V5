@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 17148 2024-03-25 21:25:02Z greg $
+ *  $Id: jmva_document.h 17169 2024-04-05 23:31:35Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -36,7 +36,19 @@ namespace QNIO {
 
     class JMVA_Document : public Document {
 	typedef std::string (JMVA_Document::*setIndependentVariable)( const std::string&, const std::string& );
-	typedef std::pair<const std::string,LQX::SyntaxTreeNode *> var_name_and_expr;
+
+	struct var_name_and_expr {
+	    var_name_and_expr( const std::string& name, BCMP::Model::Result::Type type, LQX::SyntaxTreeNode * expr ) :
+		_name(name), _type(type), _expr(expr) {}
+
+	    const std::string& name() const { return _name; }
+	    BCMP::Model::Result::Type type() const { return _type; }
+	    LQX::SyntaxTreeNode * expression() const { return _expr; }
+	private:
+	    const std::string _name;
+	    BCMP::Model::Result::Type _type;
+	    LQX::SyntaxTreeNode * _expr;
+	};
 
 	/* Used for Population Mix solutions. */
 	
@@ -171,7 +183,7 @@ namespace QNIO {
 
 	std::ostream& print( std::ostream& ) const;
 	std::ostream& exportModel( std::ostream& ) const;
-	void plot( BCMP::Model::Result::Type, const std::string&, LQIO::GnuPlot::Format format=LQIO::GnuPlot::Format::TERMINAL );
+	void plot( BCMP::Model::Result::Type, const std::string&, bool, LQIO::GnuPlot::Format format=LQIO::GnuPlot::Format::TERMINAL );
 	bool plotPopulationMix() const { return !_N1.empty() && !_N2.empty(); }
 
     private:
@@ -239,7 +251,7 @@ namespace QNIO {
 
 	void setPopulationMixN1N2( const std::string& className, const Comprehension& population );
 	void setPopulationMixK( bool, const BCMP::Model::Chain::map_t::iterator& k, Population& N );
-	void appendResultVariable( const std::string&, LQX::SyntaxTreeNode * );
+	void appendResultVariable( const std::string&, BCMP::Model::Result::Type, LQX::SyntaxTreeNode * );
 
 	/* LQX */
 	virtual LQX::Program * getLQXProgram();
@@ -477,7 +489,7 @@ namespace QNIO {
 	static std::string fold( const std::string& s1, const var_name_and_expr& v2 );
 
     private:
-	bool _strict_jmva;								/* True if outputting strict JMVA. */
+	bool _strict_jmva;							/* True if outputting strict JMVA. */
 	XML_Parser _parser;
 	std::string _text;
 	std::stack<parse_stack_t> _stack;
@@ -488,10 +500,10 @@ namespace QNIO {
 	/* LQX */
 	std::vector<LQX::SyntaxTreeNode*> _program;
 	std::vector<LQX::SyntaxTreeNode*> _whatif_body;
-	std::vector<std::string> _independent_variables;				/* x variables */
-	std::vector<var_name_and_expr> _result_variables;				/* y variables */
-	std::map<const std::string,const size_t> _result_index;				/* For plotting: maps result name to index */
-	std::map<const std::string,const std::string> _station_index;			/* For CSV: Result name, station name */
+	std::vector<std::string> _independent_variables;			/* x variables */
+	std::vector<var_name_and_expr> _result_variables;			/* y variables */
+	std::map<const std::string,const size_t> _result_index;			/* For plotting: maps result name to index */
+	std::map<const std::string,const std::string> _station_index;		/* For CSV: Result name, station name */
 
 	/* Maps for asssociating var (the string) to an object */
 	std::map<const BCMP::Model::Chain *,std::string> _think_time_vars;		/* chain, var 	*/
@@ -506,7 +518,9 @@ namespace QNIO {
 	std::map<size_t,std::pair<const std::string,size_t>> _mva_info;
 
 	/* Plotting */
-	std::vector<LQX::SyntaxTreeNode*> _gnuplot;					/* GNUPlot program		*/
+	BCMP::Model::Result::Type _plot_type;
+	bool _no_bounds;
+	std::vector<LQX::SyntaxTreeNode*> _gnuplot;				/* GNUPlot program		*/
 	Population _N1;
 	Population _N2;
 	size_t _n_labels;

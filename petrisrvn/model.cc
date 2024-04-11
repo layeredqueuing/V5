@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 17074 2024-02-28 20:35:29Z greg $
+ * $Id: model.cc 17158 2024-04-01 17:13:10Z greg $
  *
  * Load the SRVN model.
  */
@@ -152,7 +152,7 @@ Model::solve( solve_using solver_function, const std::string& inputFileName, LQI
 	    LQIO::RegisterBindings(program->getEnvironment(), document);
 
 	    FILE * output = 0;
-	    if ( outputFileName.size() > 0 && outputFileName != "-" && LQIO::Filename::isRegularFile(outputFileName) ) {
+	    if ( outputFileName.size() > 0 && outputFileName != "-" ) {
 		output = fopen( outputFileName.c_str(), "w" );
 		if ( !output ) {
 		    LQIO::runtime_error( LQIO::ERR_CANT_OPEN_FILE, outputFileName.c_str(), strerror( errno ) );
