@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 16899 2024-01-17 00:23:34Z greg $
+ *  $Id: srvn_input.cpp 17182 2024-04-24 18:02:35Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -347,7 +347,7 @@ srvn_store_coeff_of_variation (void * entry_v, unsigned n_phases, ...)
     va_start(ap, n_phases);
     for (unsigned int i = 1; i <= n_phases; i++) {
 	void * arg = va_arg(ap, void *);
-	if ( arg != 0 ) {
+	if ( arg != nullptr ) {
 	    LQIO::DOM::Phase* phase = entry->getPhase(i);
 	    phase->setCoeffOfVariationSquared(static_cast<LQIO::DOM::ExternalVariable *>(arg));
 	} else if ( entry->hasPhase(i) ) {
@@ -400,7 +400,7 @@ srvn_store_phase_service_time (void * entry_v, unsigned n_phases, ... )
     va_start(ap, n_phases);
     for (unsigned int i = 1; i <= n_phases; i++) {
 	void * arg = va_arg(ap, void *);
-	if ( arg == 0 ) continue;
+	if ( arg == nullptr ) continue;
 	LQIO::DOM::Phase* phase = entry->getPhase(i);
 	set_phase_name( entry, phase, i );
 	phase->setServiceTime(static_cast<LQIO::DOM::ExternalVariable *>(arg));
@@ -424,7 +424,7 @@ srvn_store_phase_think_time ( void * entry_v, unsigned n_phases, ... )
     va_start(ap, n_phases);
     for (unsigned int i = 1; i <= n_phases; i++) {
 	void * arg = va_arg(ap, void *);
-	if (arg == 0) continue;
+	if (arg == nullptr) continue;
 	LQIO::DOM::Phase* phase = entry->getPhase(i);
 	set_phase_name( entry, phase, i );
 	phase->setThinkTime(static_cast<LQIO::DOM::ExternalVariable *>(arg));
@@ -492,7 +492,7 @@ srvn_store_rnv_data (void * from_entry_v, void * to_entry_v, unsigned n_phases, 
     va_start(ap, n_phases);
     for (unsigned int i = 1; i <= n_phases; i++) {
 	void * arg = va_arg(ap, void *);
-	if (arg == 0) continue;
+	if (arg == nullptr) continue;
 	LQIO::DOM::Phase* phase = from_entry->getPhase(i);
 	set_phase_name( from_entry, phase, i );
 
@@ -544,7 +544,7 @@ srvn_store_snr_data ( void * from_entry_v, void * to_entry_v, unsigned n_phases,
     va_start(ap, n_phases);
     for (unsigned int i = 1; i <= n_phases; i++) {
 	void * arg = va_arg(ap, void *);
-	if (arg == 0) continue;
+	if (arg == nullptr) continue;
 	LQIO::DOM::Phase* phase = from_entry->getPhase(i);
 	set_phase_name( from_entry, phase, i );
 

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.h 16772 2023-07-06 00:56:41Z greg $
+ * $Id: glblerr.h 17182 2024-04-24 18:02:35Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -113,8 +113,8 @@ namespace LQIO {
 	WRN_SCHEDULING_NOT_SUPPORTED,
 	WRN_TASK_HAS_VISIT_PROBABILITY,
 	WRN_TASK_QUEUE_LENGTH,
-	WRN_XXXX_TIME_DEFINED_BUT_ZERO,
-	LSTGBLERRMSG=WRN_XXXX_TIME_DEFINED_BUT_ZERO		/* Define LAST! */
+	WRN_XXXX_DEFINED_BUT_ZERO,
+	LSTGBLERRMSG=WRN_XXXX_DEFINED_BUT_ZERO		/* Define LAST! */
     };
 }
 #endif

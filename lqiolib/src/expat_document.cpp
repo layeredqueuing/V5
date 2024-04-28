@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 17073 2024-02-28 19:42:11Z greg $
+ * $Id: expat_document.cpp 17182 2024-04-24 18:02:35Z greg $
  *
  * Read in XML input files.
  *
@@ -1711,9 +1711,15 @@ namespace LQIO {
 	    checkAttributes( Xactivity, attributes, activity_table );
             if ( _createObjects ) {
 		phase->setServiceTime( getVariableAttribute(attributes,Xhost_demand_mean,"0.0" ) );
-		phase->setCoeffOfVariationSquared( getOptionalAttribute(attributes,Xhost_demand_cvsq) );
-		phase->setThinkTime( getOptionalAttribute(attributes,Xthink_time) );
-                const double max_service = XML::getDoubleAttribute(attributes,Xmax_service_time,0.0);
+		LQIO::DOM::ExternalVariable * cv_sqr = getOptionalAttribute( attributes, Xhost_demand_cvsq );
+		if ( !is_default_value( cv_sqr, 1.0 ) ) {
+		    phase->setCoeffOfVariationSquared( cv_sqr );
+		}
+		LQIO::DOM::ExternalVariable * think_time = getOptionalAttribute( attributes, Xthink_time );
+		if ( !is_default_value( think_time, 0. ) ) {
+		    phase->setThinkTime( think_time );
+		}
+                const double max_service = XML::getDoubleAttribute( attributes, Xmax_service_time, 0.0 );
                 if ( max_service > 0 ) {
                     findOrAddHistogram( phase, LQIO::DOM::Histogram::Type::CONTINUOUS, 0, max_service, max_service );
                 }

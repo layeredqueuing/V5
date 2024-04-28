@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16961 2024-01-28 02:12:54Z greg $
+ * $Id: phase.cc 17182 2024-04-24 18:02:35Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -437,12 +437,7 @@ Phase::check() const
 
     /* Service time not zero? */
     if ( serviceTime() == 0 && !parent_has_think_time ) {
-	getDOM()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
-    }
-
-    /* Think time present and not zero? */
-    if ( hasThinkTime() && thinkTime() == 0 ) {
-	getDOM()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "think" );
+	getDOM()->runtime_error( LQIO::WRN_XXXX_DEFINED_BUT_ZERO, "service time" );
     }
 
     std::for_each( callList().begin(), callList().end(), std::mem_fn( &Call::check ) );

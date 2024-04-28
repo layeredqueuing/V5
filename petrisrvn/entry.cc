@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: entry.cc 17069 2024-02-27 23:16:21Z greg $
+ * $Id: entry.cc 17182 2024-04-24 18:02:35Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -234,7 +234,7 @@ Entry::initialize()
 		has_deterministic_phases = true;
 	    }
 	    if ( calls > 0 && curr_phase->s() == 0.0 && task()->think_time() == 0. ) {
-		curr_phase->get_dom()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
+		curr_phase->get_dom()->runtime_error( LQIO::WRN_XXXX_DEFINED_BUT_ZERO, "service time" );
 	    }
 	    if ( ( calls > 0 || curr_phase->s() > 0.0 ) && p > n_phases() ) {
 		set_n_phases( p );
@@ -263,7 +263,7 @@ Entry::initialize()
 	if ( task()->type() == Task::Type::REF_TASK && !has_deterministic_phases ) {
 	    LQIO::runtime_error( ERR_BOGUS_REFERENCE_TASK, name(), task()->name() );
 	} else {
-	    get_dom()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
+	    get_dom()->runtime_error( LQIO::WRN_XXXX_DEFINED_BUT_ZERO, "service time" );
 	}
     }
 

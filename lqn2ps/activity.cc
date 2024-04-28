@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 16969 2024-01-28 22:57:43Z greg $
+ * $Id: activity.cc 17182 2024-04-24 18:02:35Z greg $
  */
 
 #include "activity.h"
@@ -170,7 +170,7 @@ Activity::check() const
     } else if ( !hasServiceTime() ) {
 	std::string owner_type = owner()->getDOM()->getTypeName();
 	owner_type[0] = std::toupper( owner_type[0] );
-	getDOM()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
+	getDOM()->runtime_error( LQIO::WRN_XXXX_DEFINED_BUT_ZERO, "service time" );
     }
 
     return Phase::check();

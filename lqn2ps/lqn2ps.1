@@ -1,10 +1,10 @@
 .\" -*- nroff -*-
-.TH lqn2ps 1 "18 June 2023"  "5.29"
-.\" $Id: lqn2ps.1 16748 2023-06-18 13:18:38Z greg $
+.TH lqn2ps 1 "25 April 2024"  "5.30"
+.\" $Id: lqn2ps.1 17183 2024-04-25 19:05:46Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
-lqn2emf, lqn2fig, lqn2gif, lqn2jpeg, lqn2json, lqn2out, lqn2png, lqn2ps, lqn2lqn, lqn2sxd, lqn2xml \- format and translate layered queueing network models.
+lqn2emf, lqn2fig, lqn2json, lqn2out, lqn2ps, lqn2lqn, lqn2sxd, lqn2xml \- format and translate layered queueing network models.
 .SH "SYNOPSIS"
 .br
 .B lqn2ps
@@ -177,12 +177,6 @@ Generate Windows Enhanced Meta File (vector) output.
 \fBfig\fR
 Generate input for xfig(1).
 .TP
-\fBgif\fR
-Generate GIF (bitmap) output.
-.TP
-\fBjpeg\fR
-Generate JPEG (bitmap) output.
-.TP
 \fBjson\fR
 Generate an JSON input file.  If results are available, they are included.
 The \fB\-h\fR and \fB\-S\fR options can be used to generate new input models
@@ -222,9 +216,6 @@ Generate Encapsulated Postscript.
 \fBpstex\fR
 Generate PostScript and LaTeX (pstex).
 .TP
-\fBpng\fR
-Generate Portable Network Graphics (bitmap) output.
-.TP
 \fBsvg\fR
 Generate Scalable Vector Graphics (vector) output.
 .TP
@@ -262,7 +253,7 @@ This option has no effect for LQN input and output file generation.
 \fB\-Q\fR, \fB\-\-queueing-model=\fIqueueing-model\fR
 The \fB\-Q\fI queueing-model\fR option is used to generate a diagram of the underlying queueing
 model for the submodel number given as an argument.
-This option has no effect for LQN input and output file generation.
+This option has no effect for any input file format or LQN output file generation.
 .TP
 \fB\-R\fR, \fB\-\-replication=\fIARG\fR
 The \fB\-R\fI ARG\fR option is to expand or remove replication.
@@ -348,9 +339,6 @@ Change the scheduling for all fixed-rate processors to ?.
 \fBprune\fR
 All tasks which are infinite servers are merged into non-infinite server tasks and clients
 .TP
-\fBrename\fR
-Rename all of the icons to p\fIn\fP, t\fIn\fP, e\fIn\fP and a\fIn\fP where \fIn\fP is an integer starting from one.
-.TP
 \fBsort\fR
 Set the order of sorting of objects in a layer (ascending, descending, topological, none).
 .TP
@@ -359,9 +347,6 @@ Rename entries/activities by taking only capital letters, letters following an u
 .TP
 \fBsubmodels\fR
 For graphical output, output the submodels (though this only works for a strictly layered model).
-.TP
-\fBtasks-only\fR
-Draw the model omitting all entries.
 .TP
 \fBtask-scheduling\fR
 Change the scheduling for all fixed-rate tasks to ?.
@@ -438,6 +423,9 @@ Print maximum execution time exceeded. (The default is off).
 \fB\-\-comment\fR
 Print model comment.
 .TP
+\fB\-\-description\fR
+Print model description.
+.TP
 \fB\-\-solver-information\fR
 Print solver information.
 .TP
@@ -453,7 +441,7 @@ Print task service times (for --tasks-only).
 \fB\-\-reload-lqx\fR
 "Run" the LQX program reloading results generated earlier.
 .TP
-\fB\-\-output-lqx\fR
+\fB\-\-spex-to-lqx\fR
 Convert SPEX to LQX for XML output.
 .TP
 \fB\-\-include-only=\fIregexp\fR
@@ -482,10 +470,10 @@ Print layer numbers.
 Offset layer by value.
 .TP
 \fB\-\-rename\fR
-Rename all objects.
+Rename all of the icons to p\fIn\fP, t\fIn\fP, e\fIn\fP and a\fIn\fP where \fIn\fP is an integer starting from one.
 .TP
 \fB\-\-tasks-only\fR
-Print tasks only.
+Draw the model omitting all entries.
 .TP
 \fB\-\-bcmp\fR
 [Don't] perform BCMP model conversion.

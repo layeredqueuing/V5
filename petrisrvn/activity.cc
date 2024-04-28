@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: activity.cc 17069 2024-02-27 23:16:21Z greg $
+ * $Id: activity.cc 17182 2024-04-24 18:02:35Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -55,7 +55,7 @@ double Activity::check()
     }
     double calls = Phase::check();
     if ( calls > 0 && s() == 0.0 ) {
-	get_dom()->runtime_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "service" );
+	get_dom()->runtime_error( LQIO::WRN_XXXX_DEFINED_BUT_ZERO, "service time" );
     }
     return calls;
 }
