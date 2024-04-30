@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17158 2024-04-01 17:13:10Z greg $
+ * $Id: model.cc 17190 2024-04-30 21:06:37Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -629,9 +629,8 @@ Model::check()
 
     if ( LQIO::io_vars.anError() ) return false;	/* Don't bother */
 
-    bool rc = true;
-    rc = std::all_of( __processor.begin(), __processor.end(), std::mem_fn( &Processor::check ) ) && rc;
-    rc = std::all_of( __task.begin(), __task.end(), std::mem_fn( &Task::check ) ) && rc;
+    bool rc = std::all_of( __processor.begin(), __processor.end(), std::mem_fn( &Processor::check ) )
+	&& std::all_of( __task.begin(), __task.end(), std::mem_fn( &Task::check ) );
 
     if ( std::none_of( __task.begin(), __task.end(), std::mem_fn( &Task::isReferenceTask ) )
 	 && std::none_of( __task.begin(), __task.end(), std::mem_fn( &Task::hasOpenArrivals ) ) ) {

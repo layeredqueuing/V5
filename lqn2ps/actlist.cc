@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 16980 2024-01-30 00:59:22Z greg $
+ * $Id: actlist.cc 17187 2024-04-30 18:42:49Z greg $
  */
 
 
@@ -626,6 +626,39 @@ AndOrForkActivityList::findChildren( CallStack& callStack, const unsigned direct
 
 
 
+size_t
+AndOrForkActivityList::findActivityChildren( Activity::Ancestors& ancestors ) const
+{
+    size_t nextLevel = ancestors.depth();
+
+    ancestors.push_fork( this );
+    try { 
+	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
+	    nextLevel = std::max( (*activity)->findActivityChildren( ancestors ), nextLevel );
+	}
+    }
+    catch ( const bad_internal_join& error ) {
+	getDOM()->runtime_error( LQIO::ERR_FORK_JOIN_MISMATCH, error.getDOM()->getListTypeName().c_str(), error.getDOM()->getListTypeName().c_str(), error.what(), error.getDOM()->getLineNumber() );
+    }
+    ancestors.pop_fork();
+    return nextLevel;
+}
+
+
+
+/*
+ * Search backwards up activity list looking for a match on forkStack
+ */
+
+void
+AndOrForkActivityList::backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const
+{
+    if ( std::find( forkStack.begin(), forkStack.end(), this ) != forkStack.end() ) forkSet.insert( this );
+    prev()->backtrack( forkStack, forkSet, joinSet );
+}
+
+
+
 double
 AndOrForkActivityList::getIndex() const
 {
@@ -767,20 +800,17 @@ OrForkActivityList::add( Activity * activity )
 size_t
 OrForkActivityList::findActivityChildren( Activity::Ancestors& ancestors ) const
 {
-    size_t nextLevel = ancestors.depth();
-
+    return AndOrForkActivityList::findActivityChildren( ancestors );
+#if 0
     for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	nextLevel = std::max( (*activity)->findActivityChildren( ancestors ), nextLevel );
-//	nextLevel = std::max( (*activity)->findActivityChildren( activityStack, forkStack, anEntry, depth, p, /* prBranch(i) * */ rate ), nextLevel );
-	/* sum += prBranch(i); */
     } 
-
     // if ( fabs( 1.0 - sum ) > EPSILON ) {
     // 	ForkJoinName aName( *this );
     // 	LQIO::runtime_error( LQIO::ERR_MISSING_OR_BRANCH, aName(), owner()->name().c_str(), sum );
     // }
 
     return nextLevel;
+#endif
 }
 
 
@@ -977,41 +1007,6 @@ AndForkActivityList::add( Activity * activity )
 }
 
 
-
-size_t
-AndForkActivityList::findActivityChildren( Activity::Ancestors& ancestors ) const
-{
-    size_t nextLevel = ancestors.depth();
-
-    ancestors.push_fork( this );
-    try { 
-	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	    nextLevel = std::max( (*activity)->findActivityChildren( ancestors ), nextLevel );
-//	    nextLevel = std::max( (*activity)->findActivityChildren( activityStack, forkStack, anEntry, depth, p, /* prBranch(i) * */ rate ), nextLevel );
-	}
-    }
-    catch ( const bad_internal_join& error ) {
-	getDOM()->runtime_error( LQIO::ERR_FORK_JOIN_MISMATCH, "join", error.getDOM()->getListTypeName().c_str(), error.what(), error.getDOM()->getLineNumber() );
-    }
-    ancestors.pop_fork();
-    return nextLevel;
-}
-
-
-
-/*
- * Search backwards up activity list looking for a match on forkStack
- */
-
-void
-AndForkActivityList::backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const
-{
-    if ( std::find( forkStack.begin(), forkStack.end(), this ) != forkStack.end() ) forkSet.insert( this );
-    prev()->backtrack( forkStack, forkSet, joinSet );
-}
-
-
-
 /*
  * Return the sum of aFunc.
  */
@@ -1091,7 +1086,8 @@ AndOrJoinActivityList::findActivityChildren( Activity::Ancestors& ancestors ) co
     /* Look for the fork on the fork stack */
 
     if ( forkList() == nullptr ) {
-	std::set<const AndOrForkActivityList *> resultSet( ancestors.getForkStack().begin(), ancestors.getForkStack().end() );
+	const std::deque<const AndOrForkActivityList *>& forkStack = ancestors.getForkStack();
+	std::set<const AndOrForkActivityList *> resultSet( forkStack.begin(), forkStack.end() );
 
 	/* Go up all of the branches looking for forks found on forkStack */
 

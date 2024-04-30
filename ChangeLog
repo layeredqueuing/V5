@@ -1,3 +1,8 @@
+2024-04-30  Gregory Franks  <greg@Gregs-Retina-iMac.local>
+
+	* lqiolib
+	- stop executing spex on any solver error.
+
 2024-04-07  Gregory Franks  <greg@Gregs-ARM-MacBook-Pro.local>
 
 	* lqiolib
@@ -608,4 +613,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 17174 2024-04-07 11:26:06Z greg $
+$Id: ChangeLog 17191 2024-04-30 21:14:24Z greg $

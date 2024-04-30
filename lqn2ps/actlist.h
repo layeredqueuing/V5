@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 16980 2024-01-30 00:59:22Z greg $
+ * $Id: actlist.h 17187 2024-04-30 18:42:49Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -289,6 +289,8 @@ public:
     AndOrForkActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist );
 
     virtual size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const;
+    virtual size_t findActivityChildren( Activity::Ancestors& path ) const;
+    virtual void backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const;
     virtual double getIndex() const;
     virtual AndOrForkActivityList& reconnect( Activity *, Activity * );
 
@@ -324,7 +326,6 @@ public:
     OrForkActivityList * clone() const;
 
     virtual size_t findActivityChildren( Activity::Ancestors& path ) const;
-    virtual void backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const { if ( prev() ) prev()->backtrack( forkStack, forkSet, joinSet ); }
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
     virtual OrForkActivityList& add( Activity * anActivity );
@@ -366,8 +367,6 @@ public:
     AndForkActivityList& quorumCount (int quorumCount) { myQuorumCount = quorumCount; return *this; }
     int quorumCount () const { return myQuorumCount; }
 
-    virtual size_t findActivityChildren( Activity::Ancestors& path ) const;
-    virtual void backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const;
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
 

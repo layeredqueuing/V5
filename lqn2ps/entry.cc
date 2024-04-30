@@ -8,12 +8,11 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 17182 2024-04-24 18:02:35Z greg $
+ * $Id: entry.cc 17186 2024-04-29 21:19:09Z greg $
  * ------------------------------------------------------------------------
  */
 
 #include "lqn2ps.h"
-#include <algorithm>
 #include <algorithm>
 #include <cassert>
 #include <cmath>

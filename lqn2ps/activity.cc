@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 17182 2024-04-24 18:02:35Z greg $
+ * $Id: activity.cc 17190 2024-04-30 21:06:37Z greg $
  */
 
 #include "activity.h"
@@ -166,7 +166,7 @@ bool
 Activity::check() const
 {
     if ( !reachable() ) {
-	getDOM()->runtime_error( LQIO::WRN_NOT_USED );
+	getDOM()->runtime_error( LQIO::ERR_NOT_REACHABLE );
     } else if ( !hasServiceTime() ) {
 	std::string owner_type = owner()->getDOM()->getTypeName();
 	owner_type[0] = std::toupper( owner_type[0] );
@@ -418,7 +418,6 @@ Activity::findActivityChildren( Ancestors& ancestors ) const
 	throw cycle_error( ancestors.getActivityStack() );
     }
     unsigned int last_phase = ancestors.getPhase();	/* BUG 384 */
-    ancestors.push_activity( this );
 
     size_t max_depth = std::max( ancestors.depth()+1, level() );
     const_cast<Activity *>(this)->level( max_depth );
@@ -431,10 +430,17 @@ Activity::findActivityChildren( Ancestors& ancestors ) const
     }
 
     if ( outputTo() ) {
-	max_depth = std::max( outputTo()->findActivityChildren( ancestors ), max_depth );
+	const Activity * previous = ancestors.top_activity() != nullptr ? ancestors.top_activity() : this;
+	ancestors.push_activity( this );
+	try {
+	    max_depth = std::max( outputTo()->findActivityChildren( ancestors ), max_depth );
+	}
+	catch ( const ActivityList::bad_internal_join& error ) {
+	    previous->getDOM()->runtime_error( LQIO::ERR_FORK_JOIN_MISMATCH, error.getDOM()->getListTypeName().c_str(), error.what(), error.getDOM()->getLineNumber() );
+	}
+	ancestors.pop_activity();
     }
 
-    ancestors.pop_activity();
     ancestors.setPhase( last_phase );			/* BUG 384 */
 
     return max_depth;

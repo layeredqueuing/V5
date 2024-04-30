@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: task.cc 17190 2024-04-30 21:06:37Z greg $
  */
 
 #include "lqsim.h"
@@ -125,7 +125,7 @@ Task::configure()
 
     for ( std::vector<Activity *>::const_iterator ap = _activity.begin(); ap != _activity.end(); ++ap ) {
 	if ( !(*ap)->is_reachable() ) {
-	    (*ap)->getDOM()->runtime_error( LQIO::WRN_NOT_USED, "Activity", (*ap)->name().c_str() );
+	    (*ap)->getDOM()->runtime_error( LQIO::WRN_NOT_USED );
 	} else if ( !(*ap)->is_specified() ) {
 	    (*ap)->getDOM()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
 	}

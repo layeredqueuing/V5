@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 16956 2024-01-27 20:51:07Z greg $
+ * $Id: activity.h 17190 2024-04-30 21:06:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -269,7 +269,6 @@ public:
     virtual bool repliesTo( const Entry * ) const;
     virtual bool isActivity() const { return true; }
     bool isReachable() const { return _reachable; }
-    bool isNotReachable() const;
     Activity& isSpecified( const bool yesOrNo ) { _specified = yesOrNo; return *this; }
     bool isSpecified() const { return _specified; }
     bool isStartActivity() const { return entry() != nullptr; }

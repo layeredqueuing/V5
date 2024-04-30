@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 16940 2024-01-26 11:53:02Z greg $
+ * $Id: activity.cc 17190 2024-04-30 21:06:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -142,25 +142,15 @@ Activity::configure( const unsigned n )
 bool
 Activity::check() const
 {
-    if ( !isSpecified() ) {
+    if ( !isReachable() ) {
+	getDOM()->runtime_error( LQIO::ERR_NOT_REACHABLE );
+	return false;
+    } else if ( !isSpecified() ) {
 	getDOM()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
 	return false;
     } else {
 	return Phase::check();
     }
-}
-
-
-/*
- * Done after findChildren.  Returns true (for count_if).
- */
-
-bool
-Activity::isNotReachable() const
-{
-    if ( isReachable() ) return false;
-    getDOM()->runtime_error( LQIO::ERR_NOT_REACHABLE );
-    return true;
 }
 
 
