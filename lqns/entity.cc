@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 17100 2024-03-05 16:56:53Z greg $
+ * $Id: entity.cc 17195 2024-05-02 17:21:13Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -530,7 +530,7 @@ Entity::saveServerResults( const MVASubmodel& submodel, const Server& station, d
 #endif
 
     setUtilization( computeUtilization( submodel, station ) );
-    setIdleTime( relaxation );
+    setSubmodelThinkTime( relaxation );
 }
 
 
@@ -556,7 +556,7 @@ Entity::setUtilization( double utilization )
  */
 
 void
-Entity::setIdleTime( const double relax )
+Entity::setSubmodelThinkTime( const double relax )
 {
     if ( population() == std::numeric_limits<unsigned int>::max() ) {
 	_thinkTime = 0.0;
@@ -567,8 +567,8 @@ Entity::setIdleTime( const double relax )
     } else {
 	_thinkTime = std::numeric_limits<double>::infinity();
     }
-    if ( flags.trace_idle_time ) {
-	std::cout << "Entity(" << name() << ")::setIdleTime()   thinkTime=" << _thinkTime << std::endl;
+    if ( flags.trace_think_time ) {
+	std::cout << "Entity(" << name() << ")::setSubmodelThinkTime()   thinkTime=" << _thinkTime << std::endl;
     }
 }
 

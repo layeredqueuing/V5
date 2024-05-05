@@ -124,6 +124,7 @@ lqx/libsrc/Parser_pre.h
 lqx/libsrc/Scanner_pre.cpp
 missing
 models/bugs
+models/sysc-5101
 nets
 parasol/tests
 petrisrvn/petrisrvn

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 17107 2024-03-05 21:34:05Z greg $
+ * $Id: entity.h 17195 2024-05-02 17:21:13Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -185,7 +185,7 @@ public:
 
     void saveServerResults( const MVASubmodel&, const Server&, double );
     Entity& updateAllWaits( const Vector<Submodel *>& );
-    void setIdleTime( const double );
+    void setSubmodelThinkTime( const double );
     virtual Entity& computeVariance();
     virtual double updateWaitReplication( const Submodel&, unsigned& ) { return 0.0; }	/* NOP */
     double deltaUtilization() const;

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 17182 2024-04-24 18:02:35Z greg $
+ * $Id: expat_document.cpp 17193 2024-05-01 21:27:04Z greg $
  *
  * Read in XML input files.
  *
@@ -1673,17 +1673,19 @@ namespace LQIO {
             const XML_Char * activity_name = XML::getStringAttribute(attributes,Xname);
             Activity * activity = dynamic_cast<Task *>(task)->getActivity(activity_name, _createObjects);
             if ( activity ) {
-		if ( _createObjects && activity->isSpecified() ) {
-		    throw duplicate_symbol( activity_name );
-		}
-                activity->setIsSpecified(true);
+		if ( _createObjects ) {
+		    if ( activity->isSpecified() ) {
+			throw duplicate_symbol( activity_name );
+		    }
+		    activity->setIsSpecified(true);
 
-                const XML_Char * entry_name = XML::getStringAttribute(attributes,Xbound_to_entry,"");
-                if ( strlen(entry_name) > 0 ) {
-                    Entry* entry = _document.getEntryByName(entry_name);
-                    _document.db_check_set_entry(entry, Entry::Type::ACTIVITY);
-                    entry->setStartActivity(activity);
-                }
+		    const XML_Char * entry_name = XML::getStringAttribute(attributes,Xbound_to_entry,"");
+		    if ( strlen(entry_name) > 0 ) {
+			Entry* entry = _document.getEntryByName(entry_name);
+			_document.db_check_set_entry(entry, Entry::Type::ACTIVITY);
+			entry->setStartActivity(activity);
+		    }
+		}
 
                 handleActivity( activity, attributes );
             } else {

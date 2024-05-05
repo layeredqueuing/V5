@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 17073 2024-02-28 19:42:11Z greg $
+ * $Id: json_document.cpp 17198 2024-05-05 23:38:32Z greg $
  *
  * Read in JSON input files.
  *
@@ -470,7 +470,10 @@ namespace LQIO {
 			}
 			processor = new Processor( &_document, processor_name.c_str(), get_scheduling_attribute( obj, SCHEDULE_PS ) );
 			_document.addProcessorEntity( processor );
+		    }
 
+		    /* Handle attributes. */
+		    if ( processor != nullptr ) {
 			for (picojson::value::object::const_iterator i = obj.begin(); i != obj.end(); ++i) {
 			    const std::string& attr = i->first;
 			    const std::map<const char *,const ImportProcessor>::const_iterator j = processor_table.find(attr.c_str());
@@ -481,6 +484,7 @@ namespace LQIO {
 			    }
 			}
 
+			/* Do after other attributes */
 			const scheduling_type scheduling_flag = processor->getSchedulingType();
 			if ( !processor->hasQuantum() ) {
 			    if ( scheduling_flag == SCHEDULE_CFS 
@@ -494,10 +498,12 @@ namespace LQIO {
 				    || scheduling_flag == SCHEDULE_RAND ) {
 			    processor->runtime_error( LQIO::WRN_QUANTUM_SCHEDULING, scheduling_label.at(scheduling_flag).str.c_str() );
 			}
-		    } else if ( !processor ) {
-			LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, processor_name.c_str() );
+			if ( !_createObjects ) {
+			    handleResults( processor, obj );
+			}
+
 		    } else {
-			handleResults( processor, obj );
+			LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, processor_name.c_str() );
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
@@ -552,7 +558,10 @@ namespace LQIO {
 			group = new Group( &_document, group_name.c_str(), processor );
 			_document.addGroup( group );
 			processor->addGroup( group );
-
+		    }
+		    
+		    /* Handle attributes */
+		    if ( group != nullptr ) {
 			for (picojson::value::object::const_iterator i = obj.begin(); i != obj.end(); ++i) {
 			    const std::string& attr = i->first;
 			    const std::map<const char *,const ImportGroup>::const_iterator j = group_table.find(attr.c_str());
@@ -562,10 +571,12 @@ namespace LQIO {
 				j->second(attr,*this,*group,i->second);	/* Handle attribtue */
 			    }
 			}
-		    } else if ( !group ) {
-			LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, group_name.c_str() );
+			if ( !_createObjects ) {
+			    handleResults( group, obj );
+			}
+			    
 		    } else {
-			handleResults( group, obj );
+			LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, group_name.c_str() );
 		    }
 		}
 		catch ( const XML::missing_attribute& attr ) {
@@ -639,15 +650,6 @@ namespace LQIO {
 
 			_document.addTaskEntity(task);
 
-			for (picojson::value::object::const_iterator i = obj.begin(); i != obj.end(); ++i) {
-			    const std::string& attr = i->first;
-			    const std::map<const char *,const ImportTask>::const_iterator j = task_table.find(attr.c_str());
-			    if ( j == task_table.end() ) {
-				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xtask, attr.c_str() );
-			    } else {
-				j->second(attr,*this,*task,i->second);	/* Handle attribtue */
-			    }
-			}
 			const scheduling_type scheduling_flag = task->getSchedulingType();
 			if ( task->hasThinkTime() && scheduling_flag != SCHEDULE_CUSTOMER ) {
 			    task->runtime_error( LQIO::ERR_NON_REF_THINK_TIME );
@@ -660,11 +662,23 @@ namespace LQIO {
 			if ( has_attribute( Xprecedence, obj ) ) {
 			    handlePrecedence( task, get_value_attribute( Xprecedence, obj ) );
 			}
+		    }
 
-		    } else if ( !task ) {
-			LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, task_name.c_str() );
+		    if ( task != nullptr ) {
+			for (picojson::value::object::const_iterator i = obj.begin(); i != obj.end(); ++i) {
+			    const std::string& attr = i->first;
+			    const std::map<const char *,const ImportTask>::const_iterator j = task_table.find(attr.c_str());
+			    if ( j == task_table.end() ) {
+				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xtask, attr.c_str() );
+			    } else {
+				j->second(attr,*this,*task,i->second);	/* Handle attribtue */
+			    }
+			}
+			if ( !_createObjects ) {
+			    handleResults( task, obj );
+			} 
 		    } else {
-			handleResults( task, obj );
+			LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, task_name.c_str() );
 		    }
 		}
 		catch ( const undefined_symbol& attr ) {
@@ -778,7 +792,10 @@ namespace LQIO {
 			} else {
 			    _document.db_check_set_entry(entry, Entry::Type::STANDARD);
 			}
+		    }
 
+		    /* Handle attributes */
+		    if ( entry != nullptr ) {
 			for (picojson::value::object::const_iterator i = obj.begin(); i != obj.end(); ++i) {
 			    const std::string& attr = i->first;
 			    const std::map<const char *,const ImportEntry>::const_iterator j = entry_table.find(attr.c_str());
@@ -808,13 +825,14 @@ namespace LQIO {
 				j->second(attr,false,*this,*entry,i->second);					/* Handle attribute */
 			    }
 			}
-		    } else if ( !entry ) {
-			throw undefined_symbol( entry_name );
-		    } else {
-			if ( entry->getTask() == nullptr )  {
-			    entry->setTask(dynamic_cast<Task *>(parent));
+			if ( !_createObjects ) {
+			    if ( entry->getTask() == nullptr )  {
+				entry->setTask(dynamic_cast<Task *>(parent));
+			    }
+			    handleResults( entry, obj );
 			}
-			handleResults( entry, obj );
+		    } else {
+			throw undefined_symbol( entry_name );
 		    }
 		}
 		catch ( const undefined_symbol& attr ) {

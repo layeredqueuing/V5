@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: flags.h 16546 2023-03-18 22:32:16Z greg $
+ * $Id: flags.h 17195 2024-05-02 17:21:13Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -34,7 +34,7 @@ extern struct FLAGS {
     unsigned trace_convergence:1;		/* Print out convergence values.	*/
     unsigned trace_customers:1;			/* Print out the real number of customers and maximum number of customers*/
     unsigned trace_forks:1;			/* Print out fork stuff.		*/
-    unsigned trace_idle_time:1;			/* Print out idle times.		*/
+    unsigned trace_think_time:1;		/* Print out submodel think times.	*/
     unsigned trace_interlock:1;			/* Print out interlocking.		*/
     unsigned trace_intermediate:1;		/* Print out intermediate solutions.	*/
     unsigned trace_joins:1;			/* Print out join stuff.		*/

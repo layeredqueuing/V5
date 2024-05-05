@@ -13,10 +13,13 @@
  *     month =    feb
  *
  * ------------------------------------------------------------------------
- * $Id: testmva.cc 15985 2022-10-17 08:48:37Z greg $
+ * $Id: testmva.cc 17197 2024-05-03 20:45:00Z greg $
  * ------------------------------------------------------------------------
  */
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include "testmva.h"
 #include <cstdio>
 #include <cstdlib>
@@ -51,6 +54,8 @@ const struct option longopts[] =
     { "verbose",         no_argument,       0, 'v' },
     { 0, 0, 0, 0 }
 };
+#else
+#warning No getopt_long
 #endif
 const char opts[]	= "abdefhi:lnpst:v";
 const char * opthelp[]  = {
@@ -318,7 +323,7 @@ usage()
     std::cerr << "Options" << std::endl;
     const char ** p = opthelp;
     for ( const struct option *o = longopts; (o->name || o->val) && *p; ++o, ++p ) {
-	string s;
+	std::string s;
 	if ( o->name ) {
 	    s = "--";
 	    s += o->name;
@@ -332,8 +337,8 @@ usage()
 	} else {
 	    std::cerr << "     ";
 	}
-	std::cerr.setf( ios::left, ios::adjustfield );
-	std::cerr << setw(24) << s << *p << std::endl;
+	std::cerr.setf( std::ios::left, std::ios::adjustfield );
+	std::cerr << std::setw(24) << s << *p << std::endl;
     }
 #else
     const char * s;

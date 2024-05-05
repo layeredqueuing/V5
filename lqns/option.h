@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * option.h	-- Greg Franks
  *
- * $Id: option.h 17099 2024-03-04 22:02:11Z greg $
+ * $Id: option.h 17195 2024-05-02 17:21:13Z greg $
  */
 
 #ifndef _OPTION_H
@@ -100,7 +100,7 @@ namespace Options
 	static void convergence( const std::string& );
 	static void delta_wait( const std::string& );
 	static void forks( const std::string& );
-	static void idle_time( const std::string& );
+	static void think_time( const std::string& );
 	static void interlock( const std::string& );
 	static void intermediate( const std::string& );
 	static void joins( const std::string& );

@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 17099 2024-03-04 22:02:11Z greg $
+ * $Id: option.cc 17195 2024-05-02 17:21:13Z greg $
  */
 
 #include "lqns.h"
@@ -125,7 +125,7 @@ std::map<const std::string, const Options::Trace> Options::Trace::__table =
     { "convergence",   Trace( &Trace::convergence,    true,  &Help::traceConvergence ) },
     { "delta-wait",    Trace( &Trace::delta_wait,     false, &Help::traceDeltaWait ) },
     { "forks",	       Trace( &Trace::forks,          false, &Help::traceForks ) },
-    { "idle-time",     Trace( &Trace::idle_time,      false, &Help::traceIdleTime ) },
+    { "think-time",    Trace( &Trace::think_time,     false, &Help::traceIdleTime ) },
     { "interlock",     Trace( &Trace::interlock,      false, &Help::traceInterlock ) },
     { "intermediate",  Trace( &Trace::intermediate,   false, &Help::traceIntermediate ) },
     { "joins",	       Trace( &Trace::joins,          false, &Help::traceJoins ) },
@@ -201,9 +201,9 @@ Options::Trace::forks( const std::string& arg )
 }
 
 void
-Options::Trace::idle_time( const std::string& arg )
+Options::Trace::think_time( const std::string& arg )
 {
-    flags.trace_idle_time = true;
+    flags.trace_think_time = true;
 }
 
 void

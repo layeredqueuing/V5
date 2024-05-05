@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17190 2024-04-30 21:06:37Z greg $
+ * $Id: task.cc 17195 2024-05-02 17:21:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -926,7 +926,7 @@ Task::updateWait( const Submodel& submodel, const double relax )
 
     /* Now recompute thread idle times */
 
-    for ( Vector<Thread *>::const_iterator thread = std::next(threads().begin()); thread != threads().end(); ++thread ) (*thread)->setIdleTime( relax );
+    for ( Vector<Thread *>::const_iterator thread = std::next(threads().begin()); thread != threads().end(); ++thread ) (*thread)->setSubmodelThinkTime( relax );
     return *this;
 }
 

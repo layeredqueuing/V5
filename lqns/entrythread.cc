@@ -1,5 +1,5 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 16678 2023-04-19 13:12:23Z greg $
+ * $Id: entrythread.cc 17195 2024-05-02 17:21:13Z greg $
  *
  */
 
@@ -129,7 +129,7 @@ Thread::waitExceptChain( const unsigned submodel, const unsigned k, const unsign
  */
 
 Thread&
-Thread::setIdleTime( const double relax )
+Thread::setSubmodelThinkTime( const double relax )
 {
     if ( owner()->population() == std::numeric_limits<unsigned int>::max() ) {
 	_think_time = 0.0;
@@ -160,8 +160,8 @@ Thread::setIdleTime( const double relax )
 	_think_time = std::numeric_limits<double>::infinity();
     }
 
-    if ( flags.trace_idle_time || flags.trace_throughput  ) {
-	std::cout << "Thread::setIdleTime(): " << name() << std::endl
+    if ( flags.trace_think_time || flags.trace_throughput  ) {
+	std::cout << "Thread::setSubmodelThinkTime(): " << name() << std::endl
 		  << "  utilization=" << utilization()
 		  << ", population=" << owner()->population()
 		  << ", calculated (root Entry) throughput= " << throughput()
@@ -181,7 +181,7 @@ Thread::startTime( const unsigned submodel, const double value )
 {
     if ( submodel != 0 ) {
 	_start_time[submodel] = value;
-	if (flags.trace_throughput || flags.trace_idle_time) {
+	if (flags.trace_throughput || flags.trace_think_time) {
 	    std::cout <<"Thread::startTime():Thread " << name() << ", _start_time[submodel="<<submodel<<"]=" << value << std::endl;
 	}
     } else {

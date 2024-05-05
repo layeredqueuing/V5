@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 17078 2024-02-29 02:24:54Z greg $
+ * $Id: submodel.cc 17195 2024-05-02 17:21:13Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -1004,7 +1004,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	/* ---------- Set wait and think times for next pass. --------- */
 
-	if (flags.trace_throughput || flags.trace_idle_time) {
+	if ( flags.trace_throughput || flags.trace_think_time ) {
 	    std::cout <<"MVASubmodel::solve( ) .... completed solving the MVA model......." << std::endl;
 	}
 
