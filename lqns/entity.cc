@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 17195 2024-05-02 17:21:13Z greg $
+ * $Id: entity.cc 17208 2024-05-13 14:58:52Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -139,9 +139,6 @@ Entity::configure( const unsigned nSubmodels )
 {
     for ( auto entry : entries() ) entry->configure( nSubmodels );
     if ( std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasDeterministicPhases ) ) ) setDeterministicPhases( true );
-    if ( !Pragma::variance(Pragma::Variance::NONE)
-	 && ((nEntries() > 1 && Pragma::entry_variance())
-	     || std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasVariance ) )) ) setVarianceAttribute( true );
     _maxPhase = (*std::max_element( entries().begin(), entries().end(), Entry::max_phase ))->maxPhase();
     return *this;
 }
@@ -331,6 +328,19 @@ bool
 Entity::hasOpenArrivals() const
 {
     return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasOpenArrivals ) );
+}
+
+
+/*
+ * Return true if any entry has variance.
+ */
+
+bool
+Entity::hasVariance() const
+{    
+    return !Pragma::variance(Pragma::Variance::NONE)
+	&& ((nEntries() > 1 && Pragma::entry_variance())
+	    || std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasVariance ) ));
 }
 
 

@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 17050 2024-02-06 21:26:47Z greg $
+ * $Id: entry.cc 17209 2024-05-13 18:16:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1214,10 +1214,10 @@ TaskEntry::TaskEntry( const TaskEntry& src, unsigned int replica )
  */
 
 TaskEntry&
-TaskEntry::initProcessor()
+TaskEntry::initializeProcessor()
 {
     if ( isStandardEntry() ) {
-	std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::initProcessor ) );
+	std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Phase::initializeProcessor ) );
     }
     return *this;
 }
@@ -1546,9 +1546,9 @@ DeviceEntry::~DeviceEntry()
  */
 
 DeviceEntry&
-DeviceEntry::initProcessor()
+DeviceEntry::initializeProcessor()
 {
-    throw LQIO::should_not_implement( "DeviceEntry::initProcessor" );
+    throw LQIO::should_not_implement( "DeviceEntry::initializeProcessor" );
     return *this;
 }
 
@@ -1611,6 +1611,13 @@ DeviceEntry::setServiceTime( const double service_time )
     return *this;
 }
 
+
+double
+DeviceEntry::getCV_sqr() const
+{
+    const LQIO::DOM::Phase* phaseDom = _dom->getPhase(1);
+    return phaseDom != nullptr ? phaseDom->getCoeffOfVariationSquaredValue() : 1.0;
+}
 
 DeviceEntry&
 DeviceEntry::setCV_sqr( const double cv_square )

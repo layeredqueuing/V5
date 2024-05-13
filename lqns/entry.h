@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 16976 2024-01-29 21:25:19Z greg $
+ * $Id: entry.h 17209 2024-05-13 18:16:37Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -192,7 +192,7 @@ public:
     Entry& expandCalls();
     unsigned findChildren( Call::stack&, const bool ) const;
     Entry& initCustomers( std::deque<const Task *>& stack, unsigned int customers );
-    virtual Entry& initProcessor() = 0;
+    virtual Entry& initializeProcessor() = 0;
     Entry& initServiceTime();
 #if PAN_REPLICATION
     Entry& setSurrogateDelaySize( size_t );
@@ -397,7 +397,7 @@ protected:
 public:
     virtual Entry * clone( unsigned int replica, const AndOrForkActivityList * fork=nullptr ) const { return new TaskEntry( *this, replica ); }
 
-    virtual TaskEntry& initProcessor();
+    virtual TaskEntry& initializeProcessor();
 
     virtual TaskEntry& owner( const Entity * aTask ) { _task = aTask; return *this; }
     virtual const Entity * owner() const { return _task; }
@@ -436,7 +436,7 @@ public:
     virtual ~DeviceEntry();
     virtual Entry * clone( unsigned int replica, const AndOrForkActivityList * fork=nullptr ) const { return new DeviceEntry( *this, replica ); }
 
-    virtual DeviceEntry& initProcessor();
+    virtual DeviceEntry& initializeProcessor();
     virtual DeviceEntry& initWait();
     DeviceEntry& initVariance();
 
@@ -445,6 +445,7 @@ public:
 
     DeviceEntry& setServiceTime( const double );
     DeviceEntry& setPriority( const int );
+    double getCV_sqr() const;
     DeviceEntry& setCV_sqr( const double );
 
     virtual double processorCalls( const unsigned ) const;

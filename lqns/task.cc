@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17195 2024-05-02 17:21:13Z greg $
+ * $Id: task.cc 17209 2024-05-13 18:16:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -272,10 +272,6 @@ Task::configure( const unsigned nSubmodels )
     if ( hasOpenArrivals() ) {
 	setOpenModelServer( true );
     }
-    if ( Pragma::forceMultiserver( Pragma::ForceMultiserver::TASKS ) ) {
-	setVarianceAttribute( false );
-    }
-
     return *this;
 }
 
@@ -434,10 +430,10 @@ Task::initializeWait( const Submodel& submodel )
  */
 
 Task&
-Task::initProcessor()
+Task::initializeProcessor()
 {
-    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::initProcessor ) );
-    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::initProcessor ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::initializeProcessor ) );
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::initializeProcessor ) );
     return *this;
 }
 
@@ -1732,7 +1728,10 @@ ServerTask::hasInfinitePopulation() const
 bool
 ServerTask::hasVariance() const
 {
-    return !isInfinite() && !isMultiServer() && Entity::hasVariance();
+    return !isInfinite()
+	&& !isMultiServer()
+	&& !Pragma::forceMultiserver( Pragma::ForceMultiserver::TASKS )
+	&& Entity::hasVariance();
 }
 
 

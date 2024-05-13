@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 16961 2024-01-28 02:12:54Z greg $
+ * $Id: call.h 17209 2024-05-13 18:16:37Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -246,7 +246,7 @@ public:
 
     double rendezvousDelay() const;
 #if PAN_REPLICATION
-    double rendezvousDelay( const unsigned k );
+    double rendezvousDelay( const unsigned k ) const;
 #endif
     double residenceTime() const;
     double queueingTime() const;

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 16698 2023-04-24 00:52:30Z greg $
+ * $Id: call.cc 17209 2024-05-13 18:16:37Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -339,7 +339,7 @@ Call::rendezvousDelay() const
  */
 
 double
-Call::rendezvousDelay( const unsigned k )
+Call::rendezvousDelay( const unsigned k ) const
 {
     if ( dstTask()->hasServerChain(k) ) {
 	return rendezvous() * wait() * (fanOut() - 1);

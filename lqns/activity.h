@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 17190 2024-04-30 21:06:37Z greg $
+ * $Id: activity.h 17209 2024-05-13 18:16:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -386,7 +386,7 @@ public:
     PsuedoActivity( const Task * aTask, const std::string& aName ) : Activity( aTask, aName ) {}
     virtual ~PsuedoActivity() {}
 
-    virtual bool isPseudo() const { return true; }	/* Allow Phase::initProcessor to create proc entry. */
+    virtual bool isPseudo() const { return true; }	/* Allow Phase::initializeProcessor to create proc entry. */
 };
 
 class activity_cycle : public std::runtime_error

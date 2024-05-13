@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: json_document.h 16825 2023-11-02 15:11:12Z greg $
+ *  $Id: json_document.h 17203 2024-05-08 16:48:42Z greg $
  *
  *  Created by Greg Franks.
  */
@@ -101,6 +101,7 @@ namespace LQIO {
 	    void handleResults( DocumentObject *, const std::map<std::string, picojson::value>& );
 
 	    void connectEntry( Entry *, Task *, const std::string& name );
+	    AndJoinActivityList * getAndJoinActivityList( const Task&, const picojson::value& value ) const;
 
 	    static bool has_attribute( const char *, const std::map<std::string, picojson::value>& );
 	    static const std::string get_string_attribute( const char *, const std::map<std::string, picojson::value>& );

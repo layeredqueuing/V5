@@ -12,7 +12,7 @@
  * November, 1994
  *
  * ----------------------------------------------------------------------
- * $Id: errmsg.cc 17099 2024-03-04 22:02:11Z greg $
+ * $Id: errmsg.cc 17209 2024-05-13 18:16:37Z greg $
  * ----------------------------------------------------------------------
  */
 
@@ -28,7 +28,6 @@
 std::vector< std::pair<unsigned, LQIO::error_message_type> > local_error_messages =
 {
     {  ERR_BOGUS_COPIES,			{ LQIO::error_severity::ERROR,    "Derived population of %g for task \"%s\" is not valid." } },
-    {  WRN_COEFFICIENT_OF_VARIATION,		{ LQIO::error_severity::WARNING,  "Coefficient of variation is incompatible with phase type at %s \"%s\" %s \"%s\"." } },
     {  WRN_MULTI_PHASE_INFINITE_SERVER,		{ LQIO::error_severity::WARNING,  "Entry \"%s\" on infinite server \"%s\" has %d phases." } },
     {  ADV_BCMP_NOT_SUPPORTED,			{ LQIO::error_severity::ADVISORY, "BCMP conversion for submodel %d does not support %s." } },
     {  ADV_CONVERGENCE_VALUE,			{ LQIO::error_severity::ADVISORY, "Invalid convergence value of %g, using %g." } },

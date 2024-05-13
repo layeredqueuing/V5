@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 17182 2024-04-24 18:02:35Z greg $
+ * $Id: phase.cc 17209 2024-05-13 18:16:37Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -442,9 +442,6 @@ Phase::check() const
 
     std::for_each( callList().begin(), callList().end(), std::mem_fn( &Call::check ) );
 
-    if ( phaseTypeFlag() == LQIO::DOM::Phase::STOCHASTIC && CV_sqr() != 1.0 ) {
-	LQIO::runtime_error( WRN_COEFFICIENT_OF_VARIATION, parent_type.c_str(), parent->getName().c_str(), getDOM()->getTypeName(), name().c_str() );
-    }
     return true;
 }
 
@@ -781,12 +778,13 @@ Phase::processorEntry() const
 double
 Phase::processorCalls() const
 {
-    if ( !processorCall() ) {
+    const ProcessorCall * call = processorCall();
+    if ( call == nullptr ) {
 	return 0.0;
     } else if ( Pragma::pan_replication() ) {
-	return processorCall()->rendezvous() * processorCall()->fanOut();
+	return call->rendezvous() * call->fanOut();
     } else {
-	return processorCall()->rendezvous();
+	return call->rendezvous();
     }
 }
 
@@ -798,7 +796,8 @@ Phase::processorCalls() const
 double
 Phase::queueingTime() const
 {
-    return processorCall() ? processorCall()->rendezvous() * processorCall()->queueingTime() : 0.0;
+    const ProcessorCall * call = processorCall();
+    return call ? call->rendezvous() * call->queueingTime() : 0.0;
 }
 
 
@@ -809,7 +808,8 @@ Phase::queueingTime() const
 double
 Phase::processorWait() const
 {
-    return processorCall() ? processorCall()->wait() : 0.0;
+    const ProcessorCall * call = processorCall();
+    return call ? call->wait() : 0.0;
 }
 
 
@@ -821,7 +821,8 @@ Phase::processorWait() const
 double
 Phase::processorVariance() const
 {
-    return processorCall() ? processorCall()->variance() : 0.0;
+    const ProcessorCall * call = processorCall();
+    return call ? call->variance() : 0.0;
 }
 
 
@@ -833,11 +834,12 @@ Phase::processorVariance() const
 double
 Phase::processorUtilization() const
 {
-    if ( !processorCall() ) {
+    const ProcessorCall * call = processorCall();
+    if ( !call ) {
 	return 0.0;		/* No processor == no utilization */
     } else {
-	const double fan_out = Pragma::pan_replication() ? static_cast<double>(processorCall()->fanOut()) : 1.0;
-	const double rate = dynamic_cast<const Processor *>(processorCall()->dstTask())->rate();
+	const double fan_out = Pragma::pan_replication() ? static_cast<double>(call->fanOut()) : 1.0;
+	const double rate = dynamic_cast<const Processor *>(call->dstTask())->rate();
 	return (throughput() * serviceTime())  / (fan_out * rate);
     }
 }
@@ -863,13 +865,14 @@ double
 Phase::getProcWait( unsigned int submodel ) //tomari : quorum
 {
     double newWait   = 0.0;
+    const ProcessorCall * call = processorCall();
 
-    if ( processorCall() && processorCall()->submodel() == submodel ) {
+    if ( call && call->submodel() == submodel ) {
 		
-	newWait += processorCall()->rendezvousDelay();
+	newWait += call->rendezvousDelay();
 
 	if (flags.trace_quorum) {
-	    std::cout << "\nPhase::getProcWait(): Call " << this->name() << ", Submodel=" <<  processorCall()->submodel()
+	    std::cout << "\nPhase::getProcWait(): Call " << this->name() << ", Submodel=" <<  call->submodel()
 		 << ", newWait="<<newWait << std::endl;
 	    std::cout.flush();
 	}
@@ -1113,19 +1116,20 @@ double
 Phase::getReplicationProcWait( unsigned int submodel )
 {
     double newWait   = 0.0;
+    const ProcessorCall * call = processorCall();
 
-    if ( processorCall() && processorCall()->submodel() == submodel ) {
+    if ( call && call->submodel() == submodel ) {
 
-	int k = processorCall()->getChain();
-	if ( processorCall()->dstTask()->hasServerChain(k) ) {
+	int k = call->getChain();
+	if ( call->dstTask()->hasServerChain(k) ) {
 	    if (flags.trace_quorum) {
-		std::cout << "\nPhase::getReplicationProcWait(): Call " << this->name() << ", Submodel=" <<  processorCall()->submodel()
+		std::cout << "\nPhase::getReplicationProcWait(): Call " << this->name() << ", Submodel=" <<  call->submodel()
 			  << ", _surrogateDelay[" <<k<<"]="<<_surrogateDelay[k] << std::endl;
 		fflush(stdout);
 	    }
 	}
 
-	newWait += processorCall()->wait();// * processorCall()->fanOut();
+	newWait += call->wait();// * call->fanOut();
     }
     return newWait;
 }
@@ -1205,17 +1209,18 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 	    }
 	}
 
-	if ( processorCall() && proc_mod && processorCall()->submodel() == aSubmodel.number() ) {
+	const ProcessorCall * call = processorCall();
+	if ( call && proc_mod && call->submodel() == aSubmodel.number() ) {
 
-	    if (chainThreadIx == ownerTask->threadIndex( aSubmodel.number(), processorCall()->getChain() ) ) {
-		double temp=  processorCall()->rendezvousDelay( *k );
+	    if (chainThreadIx == ownerTask->threadIndex( aSubmodel.number(), call->getChain() ) ) {
+		double temp=  call->rendezvousDelay( *k );
 		newWait += temp;
 		if ( flags.trace_replication ) {
-		    std::cout << "\n Processor Call: CallChainNum="<<processorCall()->getChain() <<  ",Src=" << processorCall()->srcName() << ",Dst= " << processorCall()->dstName()
+		    std::cout << "\n Processor Call: CallChainNum="<<call->getChain() <<  ",Src=" << call->srcName() << ",Dst= " << call->dstName()
 			 << ",Wait=" << temp << std::endl;
 		}
-		if ( processorCall()->dstTask()->hasServerChain( *k ) ) {
-		    nr_factor = processorCall()->nrFactor( aSubmodel, *k );
+		if ( call->dstTask()->hasServerChain( *k ) ) {
+		    nr_factor = call->nrFactor( aSubmodel, *k );
 		}
 	    }
 	}
@@ -1496,7 +1501,7 @@ Phase::expandCalls()
  */
 
 Phase&
-Phase::initProcessor()
+Phase::initializeProcessor()
 {	
     if ( getProcessor() != nullptr || getDOM() == nullptr || owner()->getProcessor() == nullptr ) return *this;
 
@@ -1546,7 +1551,7 @@ Phase::DeviceInfo::DeviceInfo( const Phase& phase, const std::string& name, Type
     if ( isProcessor() ) {
 	_entry = new DeviceEntry( _entry_dom, const_cast<Processor *>( processor ) );
 	_entry->setServiceTime( service_time() / n_calls() )
-	    .setCV_sqr( cv_sqr() )
+	    .setCV_sqr( CV_sqr() )
 	    .initVariance()
 	    .setPriority( phase.owner()->priority() );
 	visits = new LQIO::DOM::ConstantExternalVariable( n_processor_calls() );
@@ -1586,11 +1591,13 @@ Phase::DeviceInfo::recalculateDynamicValues()
 {
     const double old_time = entry()->serviceTimeForPhase(1);
     if ( isProcessor() ) {
+	const double old_CV_sqr = entry()->getCV_sqr();
+	const double new_CV_sqr = CV_sqr();
 	const double new_time = n_calls() > 0. ? service_time() / n_calls() : 0.0;
-	if ( old_time == new_time && !flags.full_reinitialize ) return;
+	if ( old_time == new_time && old_CV_sqr == new_CV_sqr && !flags.full_reinitialize ) return;
 
-	_entry->setServiceTime(new_time)
-	    .setCV_sqr(cv_sqr())
+	_entry->setServiceTime( new_time )
+	    .setCV_sqr( new_CV_sqr )
 	    .initVariance()
 	    .initWait();
 

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 17195 2024-05-02 17:21:13Z greg $
+ * $Id: entity.h 17208 2024-05-13 14:58:52Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -47,14 +47,13 @@ class Entity {
     friend class Generate;
 
     struct Attributes {
-	Attributes() : closed_server(false), closed_client(false), open_server(false), pruned(false), deterministic(false), variance(false), interlocked(false) {}
+	Attributes() : closed_server(false), closed_client(false), open_server(false), pruned(false), deterministic(false), interlocked(false) {}
 
 	bool closed_server;	/* Stn is server in closed model.	*/
 	bool closed_client;	/* Stn is client in closed model.	*/
 	bool open_server;	/* Stn is server in open model.		*/
 	bool pruned;		/* Stn can be pruned			*/
 	bool deterministic;	/* an entry has det. phase.		*/
- 	bool variance;		/* an entry has Cv_sqn != 1.		*/
 	bool interlocked;	/* Server has interlocked flow.		*/
     };
 
@@ -129,7 +128,7 @@ public:
     bool hasThreads() const { return nThreads() > 1; }
     virtual bool hasSynchs() const { return false; }
 
-    virtual bool hasVariance() const { return _attributes.variance; }
+    virtual bool hasVariance() const;
     bool hasDeterministicPhases() const { return _attributes.deterministic; }
     bool isClosedModelClient() const { return _attributes.closed_client; }
     bool isClosedModelServer() const { return _attributes.closed_server; }
@@ -140,7 +139,6 @@ public:
     Entity& setDeterministicPhases( const bool yesOrNo ) { _attributes.deterministic = yesOrNo; return *this; }
     Entity& setInterlockedFlows( const bool yesOrNo )  { _attributes.interlocked = yesOrNo; return *this; }
     Entity& setOpenModelServer( const bool yesOrNo )   { _attributes.open_server = yesOrNo; return *this; }
-    Entity& setVarianceAttribute( const bool yesOrNo ) { _attributes.variance = yesOrNo; return *this; }
 
     virtual bool isTask() const          { return false; }
     virtual bool isReferenceTask() const { return false; }

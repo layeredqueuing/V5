@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17190 2024-04-30 21:06:37Z greg $
+ * $Id: model.cc 17209 2024-05-13 18:16:37Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -542,9 +542,9 @@ Model::initialize()
     if ( !_model_initialized ) {
 
 	/* Expand replicas and add think server. */
-	extend();			/* Do this before Task::initProcessor() */
+	extend();			/* Do this before Task::initializeProcessor() */
 
-	std::for_each( __task.begin(), __task.end(), std::mem_fn( &Task::initProcessor ) );	/* Set Processor Service times.	*/
+	std::for_each( __task.begin(), __task.end(), std::mem_fn( &Task::initializeProcessor ) );	/* Set Processor Service times.	*/
 
 	if ( Options::Trace::verbose() ) std::cerr << "Generate... " << std::endl;
 	if ( generate( assignSubmodel() ) ) {
