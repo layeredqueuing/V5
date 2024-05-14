@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 17206 2024-05-13 14:00:02Z greg $
+ * $Id: json_document.cpp 17213 2024-05-14 11:01:26Z greg $
  *
  * Read in JSON input files.
  *
@@ -463,7 +463,7 @@ namespace LQIO {
 		try {
 		    const std::string& processor_name = get_string_attribute( Xname, obj );
 		    Processor * processor = _document.getProcessorByName( processor_name );
-		    if ( _createObjects ) {
+		    if ( createObjects() ) {
 			if ( processor ) {
 			    throw duplicate_symbol( processor_name );
 			}
@@ -478,13 +478,13 @@ namespace LQIO {
 			    const std::map<const char *,const ImportProcessor>::const_iterator j = processor_table.find(attr.c_str());
 			    if ( j == processor_table.end() ) {
 				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprocessor, attr.c_str() );
-			    } else if ( _createObjects || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
+			    } else if ( createObjects() || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
 				j->second(attr,*this,*processor,i->second);	/* Handle attribute */
 			    }
 			}
 
 			/* Do after other attributes */
-			if ( _createObjects ) {
+			if ( createObjects() ) {
 			    const scheduling_type scheduling_flag = processor->getSchedulingType();
 			    if ( !processor->hasQuantum() ) {
 				if ( scheduling_flag == SCHEDULE_CFS 
@@ -549,7 +549,7 @@ namespace LQIO {
 		try {
 		    const std::string& group_name = get_string_attribute( Xname, obj );
 		    Group * group = _document.getGroupByName( group_name );
-		    if ( _createObjects ) {
+		    if ( createObjects() ) {
 			if ( group ) {
 			    throw duplicate_symbol( group_name );
 			}
@@ -567,11 +567,11 @@ namespace LQIO {
 			    const std::map<const char *,const ImportGroup>::const_iterator j = group_table.find(attr.c_str());
 			    if ( j == group_table.end() ) {
 				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xgroup, attr.c_str() );
-			    } else if ( _createObjects || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
+			    } else if ( createObjects() || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
 				j->second(attr,*this,*group,i->second);		/* Handle attribute */
 			    }
 			}
-			if ( !_createObjects ) {
+			if ( !createObjects() ) {
 			    handleResults( group, obj );
 			}
 			    
@@ -628,7 +628,7 @@ namespace LQIO {
 		try {
 		    const std::string& task_name = get_string_attribute( Xname, obj );
 		    Task * task = _document.getTaskByName( task_name );
-		    if ( _createObjects ) {
+		    if ( createObjects() ) {
 			if ( task ) {
 			    throw duplicate_symbol( task_name );
 			}
@@ -663,7 +663,7 @@ namespace LQIO {
 			    const std::map<const char *,const ImportTask>::const_iterator j = task_table.find(attr.c_str());
 			    if ( j == task_table.end() ) {
 				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xtask, attr.c_str() );
-			    } else if ( _createObjects || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
+			    } else if ( createObjects() || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
 				j->second(attr,*this,*task,i->second);		/* Handle attribute */
 			    }
 			}
@@ -676,7 +676,7 @@ namespace LQIO {
 			    handlePrecedence( task, get_value_attribute( Xprecedence, obj ) );
 			}
 
-			if ( !_createObjects ) {
+			if ( !createObjects() ) {
 			    handleResults( task, obj );
 			} 
 		    } else {
@@ -766,7 +766,7 @@ namespace LQIO {
 		try {
 		    const std::string& entry_name = get_string_attribute( Xname, obj );
 		    Entry * entry = _document.getEntryByName( entry_name.c_str() );
-		    if ( _createObjects ) {
+		    if ( createObjects() ) {
 			if ( !entry ) {
 			    entry = new Entry( &_document, entry_name );
 			    _document.addEntry(entry);		  /* Add to global table */
@@ -814,7 +814,7 @@ namespace LQIO {
 				for (picojson::value::array::const_iterator x = arr.begin(); x != arr.end(); ++x ) {
 				    if ( j->second.getType() == dom_type::JSON_OBJECT ) {
 					j->second(attr,true,*this,*entry,*x);					/* Handle array of attributes such as calls or phases */
-				    } else if ( _createObjects ) {
+				    } else if ( createObjects() ) {
 					p_j += 1;
 					if ( x->is<picojson::null>() || (x->is<double>() && x->get<double>() == 0) ) continue;		/* Don't create null phases */
 					Phase* phase = entry->getPhase(p_j);
@@ -823,11 +823,11 @@ namespace LQIO {
 				    }
 				}
 				if ( Document::__debugJSON ) Import::endAttribute( std::cerr, attr, i->second );
-			    } else if ( _createObjects || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
+			    } else if ( createObjects() || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
 				j->second(attr,false,*this,*entry,i->second);					/* Handle attribute */
 			    }
 			}
-			if ( !_createObjects ) {
+			if ( !createObjects() ) {
 			    if ( entry->getTask() == nullptr )  {
 				entry->setTask(dynamic_cast<Task *>(parent));
 			    }
@@ -889,7 +889,7 @@ namespace LQIO {
 		    // Need to get the phase number, and create the phase if necessary.
 		    Phase * phase = nullptr;
 		    const unsigned int p = get_opt_phase( obj );
-		    if ( _createObjects ) {
+		    if ( createObjects() ) {
 			if ( p == 0 ) throw XML::missing_attribute( Xphase );
 			phase = entry.getPhase(p);
 			/* Set a default name (for petrisrvn...) */
@@ -909,7 +909,7 @@ namespace LQIO {
 			    const std::map<const char *,const ImportPhase>::const_iterator j = phase_table.find(attr.c_str());
 			    if ( j == phase_table.end() ) {
 				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xphase, attr.c_str() );
-			    } else if ( _createObjects || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
+			    } else if ( createObjects() || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
 				if ( i->second.is<picojson::array>() ) {
 				    const picojson::value::array& arr = i->second.get<picojson::array>();
 				    for (picojson::value::array::const_iterator x = arr.begin(); x != arr.end(); ++x ) {
@@ -969,7 +969,7 @@ namespace LQIO {
 			    const std::map<const char *,const ImportTaskActivity>::const_iterator j = task_activity_table.find(attr.c_str());
 			    if ( j == task_activity_table.end() ) {
 				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xactivity, attr.c_str() );
-			    } else if ( _createObjects || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
+			    } else if ( createObjects() || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
 				j->second(attr,*this,task,i->second);		/* Handle attribute */
 			    }
 			}
@@ -1023,8 +1023,8 @@ namespace LQIO {
 		const std::map<std::string, picojson::value> obj = value.get<picojson::object>();
 		try {
 		    const std::string& activity_name = get_string_attribute( Xname, obj );
-		    Activity * activity = task.getActivity( activity_name, _createObjects );
-		    if ( _createObjects ) {
+		    Activity * activity = task.getActivity( activity_name, createObjects() );
+		    if ( createObjects() ) {
 			if ( activity->isSpecified() ) {
 			    throw duplicate_symbol( activity_name );
 			}
@@ -1036,7 +1036,7 @@ namespace LQIO {
 			    const std::map<const char *,const ImportActivity>::const_iterator j = activity_table.find(attr.c_str());
 			    if ( j == activity_table.end() ) {
 				LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xactivity, attr.c_str() );
-			    } else if ( _createObjects || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
+			    } else if ( createObjects() || j->second.getType() == dom_type::JSON_OBJECT ) {	/* Bug 469 */
 				if ( i->second.is<picojson::array>() ) {
 				    const picojson::value::array& arr = i->second.get<picojson::array>();
 				    for (picojson::value::array::const_iterator x = arr.begin(); x != arr.end(); ++x ) {
@@ -1106,7 +1106,7 @@ namespace LQIO {
 			    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, attr.c_str() );
 			} else if ( i->second.is<picojson::array>() ) {
 			    if ( Document::__debugJSON ) Import::beginAttribute( std::cerr, i->first, i->second );
-			    if ( _createObjects ) {
+			    if ( createObjects() ) {
 				ActivityList * precedence = nullptr;
 				if ( j->second.precedence_type() == ActivityList::Type::AND_JOIN ) {
 				    precedence = new AndJoinActivityList( &_document, &task, /* quorum count */ 0 );		// set by Import
@@ -1159,9 +1159,9 @@ namespace LQIO {
 		    LQIO::runtime_error( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xprecedence, deferred.begin()->first );
 		} else {
 		    for ( std::map<const char *,picojson::value>::const_iterator i = deferred.begin(); i != deferred.end(); ++i ) {
-			if ( i->first == Xquorum && i->second.is<double>() && _createObjects ) {
+			if ( i->first == Xquorum && i->second.is<double>() && createObjects() ) {
 			    dynamic_cast<AndJoinActivityList *>(pre_list)->setQuorumCountValue( static_cast<int>(i->second.get<double>()) );
-			} else if ( i->first == Xquorum && i->second.is<std::string>() && _createObjects ) {
+			} else if ( i->first == Xquorum && i->second.is<std::string>() && createObjects() ) {
 			    dynamic_cast<AndJoinActivityList *>(pre_list)->setQuorumCount( _document.db_build_parameter_variable( i->second.get<std::string>().c_str(), 0 ) );
 			} else if ( i->first == Xresults && i->second.is<picojson::object>() ) {
 			    handleResult( pre_list, i->second );	/* Result goes with join */
@@ -1173,7 +1173,7 @@ namespace LQIO {
 		    }
 		}
 
-		if ( _createObjects ) {
+		if ( createObjects() ) {
 
 		    /* Connect the pre-list (first) to the post-list (second) */
 		    if ( pre_list ) {
@@ -1213,7 +1213,7 @@ namespace LQIO {
 		    const std::string& destination_name = get_string_attribute( Xdestination, obj );
 		    Entry * destination = _document.getEntryByName( destination_name );
 		    if ( !destination ) {
-			if ( _createObjects ) {
+			if ( createObjects() ) {
 			    destination = new Entry( &_document, destination_name.c_str() );
 			    _document.db_check_set_entry( destination );
 			    _document.addEntry( destination );
@@ -1227,7 +1227,7 @@ namespace LQIO {
 		    if ( dynamic_cast<Phase *>(parent) ) {
 			Phase * source = dynamic_cast<Phase *>(parent);
 			call = source->getCallToTarget( destination );
-			if ( !call &&  _createObjects ) {		/* Skip nulls as we don't want to create things */
+			if ( !call &&  createObjects() ) {		/* Skip nulls as we don't want to create things */
 			    call = new Call( &_document, call_type, source, destination );
 			    setCallName( call, source->getName(), destination_name );
 			    source->addCall( call );
@@ -1235,7 +1235,7 @@ namespace LQIO {
 		    } else if ( dynamic_cast<Entry *>(parent) ) {
 			Entry * source = dynamic_cast<Entry *>(parent);
 			call = source->getForwardingToTarget( destination );
-			if ( !call &&  _createObjects ) {
+			if ( !call &&  createObjects() ) {
 			    call = new Call( &_document, source, destination );
 			    setCallName( call, source->getName(), destination_name );
 			    source->addForwardingCall( call );
@@ -1288,7 +1288,7 @@ namespace LQIO {
 		if ( !entry ) {
 		    throw undefined_symbol( name );
 		}
-		if ( _createObjects ) {
+		if ( createObjects() ) {
 		    activity->getReplyList().push_back(entry);
 		}
 	    } else {
