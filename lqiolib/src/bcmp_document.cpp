@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 17167 2024-04-05 19:23:40Z greg $
+ * $Id: bcmp_document.cpp 17220 2024-05-16 16:00:29Z greg $
  *
  * Read in XML input files.
  *
@@ -550,8 +550,8 @@ namespace BCMP {
 
     const char * const Model::Station::Class::__typeName = "class";
 
-    Model::Station::Class::Class( LQX::SyntaxTreeNode * visits, LQX::SyntaxTreeNode * service_time ) :
-	_visits(visits), _service_time(service_time), _results(), _result_vars()
+    Model::Station::Class::Class( LQX::SyntaxTreeNode * visits, LQX::SyntaxTreeNode * service_time, LQX::SyntaxTreeNode * service_shape ) :
+	_visits(visits), _service_time(service_time), _service_shape(service_shape), _results(), _result_vars()
     {
 	_results[Result::Type::THROUGHPUT] = 0.;
 	_results[Result::Type::QUEUE_LENGTH] = 0.;

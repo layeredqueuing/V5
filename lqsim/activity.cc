@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: activity.cc 17217 2024-05-15 16:04:04Z greg $
  */
 
 #include "lqsim.h"
@@ -970,21 +970,23 @@ rv_exponential( const double scale, const double shape )
 
 
 /*
- * Returns a RV with a hyper-exponential distribution.  See:
- *
- * Akylidiz, Ian F. and Sieber, Albrecht, "Approximate Analysis of Load
- * Dependent General Queueing Networks", IEEE Transactions on Software
- * Engineering", Vol 14, No 11, November, 1988.
+ * returns a psuedo-random variate from Morse's two-stage hyperexponential distribution.
  */
 
 static double
-rv_hyperexponential( const double scale, const double shape )
+rv_hyperexponential( const double mean, const double cv_sqr )
 {
-    if ( drand48() <= 0.5 / (shape - 0.5) ) {
-	return ps_exponential( scale * shape );
+#if 0
+    if ( drand48() <= 0.5 / (cv_sqr - 0.5) ) {
+	return ps_exponential( mean * cv_sqr );
     } else {
-	return ps_exponential( scale / 2.0 );
+	return ps_exponential( mean / 2.0 );
     }
+#else
+    const double prob = 0.5 * (1.0 - (std::sqrt((cv_sqr-1.0)/(cv_sqr+1.0))));
+    const double temp = (drand48()>prob) ? (mean/(1.0-prob)) : (mean/prob);
+    return -0.5 * temp * log(drand48());
+#endif
 }
 
 

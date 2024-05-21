@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 16861 2023-11-23 17:52:43Z greg $
+ * $Id: help.cc 17218 2024-05-15 16:26:25Z greg $
  */
 
 #include "lqn2ps.h"
@@ -151,7 +151,7 @@ man()
 	      << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 16861 2023-11-23 17:52:43Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 17218 2024-05-15 16:26:25Z greg $" << std::endl
 	      << comm << std::endl
 	      << comm << " --------------------------------" << std::endl;
 
@@ -632,11 +632,9 @@ man()
 	    std::cout << ".TP" << std::endl
 		      << "\\fB" << Options::special.at(Special::SUBMODEL_CONTENTS) << "\\fR" << std::endl
 		      << "For graphical output, output the submodels (though this only works for a strictly layered model)." << std::endl;
-#if 0
 	    std::cout << ".TP" << std::endl
 		      << "\\fB" << Options::special.at(Special::TASKS_ONLY) << "\\fR" << std::endl
 		      << "Draw the model omitting all entries." << std::endl;
-#endif
 	    std::cout << ".TP" << std::endl
 		      << "\\fB" << Options::special.at(Special::TASK_SCHEDULING) << "\\fR" << std::endl
 		      << "Change the scheduling for all fixed-rate tasks to ?." << std::endl;

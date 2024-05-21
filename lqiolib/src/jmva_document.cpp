@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 17171 2024-04-07 10:50:40Z greg $
+ * $Id: jmva_document.cpp 17224 2024-05-21 14:30:09Z greg $
  *
  * Read in XML input files.
  *
@@ -986,7 +986,7 @@ namespace QNIO {
 	}
 	const std::string name = XML::getStringAttribute( attributes, Xname );
 	LQX::SyntaxTreeNode * multiplicity = getVariableAttribute( attributes, Xservers, 1 );
-	const std::pair<BCMP::Model::Station::map_t::iterator,bool> result = model().insertStation( name, BCMP::Model::Station( type, scheduling, multiplicity ) );
+	const std::pair<BCMP::Model::Station::map_t::iterator,bool> result = model().insertStation( name, BCMP::Model::Station( type, scheduling, BCMP::Model::Station::Distribution::EXPONENTIAL, multiplicity ) );
 	if ( !result.second ) throw std::runtime_error( "Duplicate station" );
 	BCMP::Model::Station * station = &result.first->second;
 
@@ -2633,7 +2633,7 @@ namespace QNIO
 	    print_arguments.push_back( new std::vector<LQX::SyntaxTreeNode *> );
 	    print_arguments.back()->push_back( new LQX::ConstantValueExpression( ", " ) );				/* CSV. */
 	    for ( std::vector<var_name_and_expr>::const_iterator result = _result_variables.begin(); result != _result_variables.end(); ++result ) {
-		if ( result->type() != BCMP::Model::Result::Type::NONE && result->type() != _plot_type ) continue;	/* Filter dreck. */
+		if ( _plot_type != BCMP::Model::Result::Type::NONE && result->type() != BCMP::Model::Result::Type::NONE && result->type() != _plot_type ) continue;	/* Filter dreck. */
 		print_arguments.back()->push_back( new LQX::VariableExpression( result->name(), false ) );		/* Print out results */
 	    }
 	}
