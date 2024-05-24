@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 17219 2024-05-16 13:54:41Z greg $
+ * $Id: entity.cc 17225 2024-05-21 16:24:00Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -743,7 +743,7 @@ Entity::create_station::operator()( const Entity * entity )
     else if ( entity->isMultiServer() ) type = BCMP::Model::Station::Type::MULTISERVER;
     else type = BCMP::Model::Station::Type::LOAD_INDEPENDENT;
     const LQIO::DOM::ExternalVariable * copies = dynamic_cast<const LQIO::DOM::Entity *>(entity->getDOM())->getCopies();
-    BCMP::Model::Station& station = _model.insertStation( entity->name(), type, entity->scheduling(), BCMP::Model::Station::Distribution::EXPONENTIAL, getLQXVariable( copies ) ).first->second;
+    BCMP::Model::Station& station = _model.insertStation( entity->name(), type, entity->scheduling(), getLQXVariable( copies ) ).first->second;
 
     /* Add classes to station */
     typedef std::map<const std::string,BCMP::Model::Station::Class> demand_map;

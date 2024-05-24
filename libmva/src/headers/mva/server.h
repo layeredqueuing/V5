@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: server.h 17095 2024-03-04 14:39:03Z greg $
+ * $Id: server.h 17225 2024-05-21 16:24:00Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -67,6 +67,8 @@ public:
     Server& setVisits( const unsigned k, const double _v ) { return setVisits( 1, k, 1, _v ); }
     Server& addVisits( const unsigned e, const unsigned k, const unsigned p, const double );
     virtual Server& setVariance( const unsigned, const unsigned, const unsigned, const double );
+    Server& setVariance( const unsigned e, const unsigned k, const double _v ) { return setVariance( e, k, 1, _v ); }
+    Server& setVariance( const unsigned k, const double _v ) { return setVariance( 1, k, 1, _v ); }
     virtual double getVariance( const unsigned, const unsigned, const unsigned ) const { return 0.0; }
     virtual Server& setClientChain( const unsigned e, const unsigned k );
 

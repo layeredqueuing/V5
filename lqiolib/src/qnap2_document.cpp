@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 17169 2024-04-05 23:31:35Z greg $
+ * $Id: qnap2_document.cpp 17226 2024-05-21 17:35:04Z greg $
  *
  * Read in XML input files.
  *
@@ -526,6 +526,9 @@ void qnap2_set_station_service( const void * list, const void * arg2 )
     const QNIO::QNAP2_Document::ServiceDistribution* service = static_cast<const QNIO::QNAP2_Document::ServiceDistribution*>(arg2);
     try {
 	QNIO::QNAP2_Document::SetStationService set_service( *QNIO::QNAP2_Document::__document, *service );
+	if ( service->distribution() == QNIO::QNAP2_Document::Distribution::Hyperexponential ) {
+	    QNIO::QNAP2_Document::__document->setStationDistribution( BCMP::Model::Station::Distribution::HYPER_EXPONENTIAL );
+	}
 	if ( list == nullptr ) {
 	    const BCMP::Model::Chain::map_t& chains = QNIO::QNAP2_Document::__document->chains();
 	    std::for_each( chains.begin(), chains.end(), set_service );
@@ -969,6 +972,14 @@ namespace QNIO {
     }
 
 
+    bool
+    QNAP2_Document::setStationDistribution( BCMP::Model::Station::Distribution distribution )
+    {
+	BCMP::Model::Station& station = __station.second;
+	station.setDistribution( distribution );
+	return true;
+    }
+
 
     /*
      * Locate the class/chain from the name.  Throw if not found.
@@ -1331,6 +1342,7 @@ namespace QNIO {
     {
 	BCMP::Model::Station::Class& k = QNIO::QNAP2_Document::__station.second.classes().emplace( chain.first, BCMP::Model::Station::Class() ).first->second;
 	k.setServiceTime( _service.mean() );		// !!! set the template version to the variable.  ConstructStation will resolve.
+	k.setServiceShape( _service.shape() );
     }
 
 
@@ -1340,6 +1352,7 @@ namespace QNIO {
 	BCMP::Model::Station::Class& k = QNIO::QNAP2_Document::__station.second.classes().emplace( class_name, BCMP::Model::Station::Class() ).first->second;
 	if ( k.service_time() != nullptr ) throw std::domain_error( "service time previously set." );
 	k.setServiceTime( _service.mean() );		// !!! set the template version to the variable.  ConstructStation will resolve.
+	k.setServiceShape( _service.shape() );
     }
 }
 

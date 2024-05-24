@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 17219 2024-05-16 13:54:41Z greg $
+ * $Id: generate.cc 17225 2024-05-21 16:24:00Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -868,7 +868,7 @@ Generate::QNAP_Document::serialize( std::ostream& output, const std::string& fil
 
 Generate::BCMP_Model::BCMP_Model( const MVASubmodel& submodel )
     : _submodel( submodel ), K(submodel.nChains()), _model(), 
-      _reference( _model.insertStation( "Reference", BCMP::Model::Station::Type::DELAY, SCHEDULE_DELAY, BCMP::Model::Station::Distribution::EXPONENTIAL, BCMP::Model::constant( 1. ) ).first->second ),
+      _reference( _model.insertStation( "Reference", BCMP::Model::Station::Type::DELAY, SCHEDULE_DELAY, BCMP::Model::constant( 1. ) ).first->second ),
       _chains()
 {
     _reference.setReference( true );
@@ -957,7 +957,7 @@ Generate::BCMP_Model::createStation( const Entity& server )
 {
     const Server& source = *server.serverStation();
 
-    BCMP::Model::Station& destination = _model.insertStation( server.name(), stationType( server ), server.scheduling(), BCMP::Model::Station::Distribution::EXPONENTIAL, BCMP::Model::constant( server.copies() ) ).first->second;
+    BCMP::Model::Station& destination = _model.insertStation( server.name(), stationType( server ), server.scheduling(), BCMP::Model::constant( server.copies() ) ).first->second;
     for ( unsigned k = 0; k <= K; ++k ) {
 	if ( !server.hasServerChain(k) || source.S( k ) == 0. || source.V( k ) == 0. ) continue;
 	destination.insertClass( _chains.at( k ), BCMP::Model::constant( source.V( k ) ), BCMP::Model::constant( source.S( k ) ) );

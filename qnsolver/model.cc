@@ -384,18 +384,22 @@ Model::InstantiateStation::InstantiateClass::operator()( const BCMP::Model::Stat
     try {
 	const BCMP::Model::Chain& chain = chainAt(input.first);
 	const BCMP::Model::Station::Class& demand = input.second;	// From BCMP model.
+	const bool has_variance = _server.hasVariance();
 	const double service_time = getDoubleValue( demand.service_time() );
 	const double visits = getDoubleValue( demand.visits() );
+	const double variance = (has_variance ? getDoubleValue( demand.service_shape() ) : 1.0 ) * square( service_time );
 	if ( closed_model() != nullptr && chain.isClosed() ) {
 	    const size_t k = indexAt(chain.type(),input.first);
 	    _server.setService( k, service_time );
 	    _server.setVisits( k, visits );
+	    if ( has_variance ) _server.setVariance( k, variance );
 	} else if ( open_model() != nullptr && chain.isOpen() ) {
 	    static const size_t k = 0;
 	    const size_t e = indexAt(chain.type(),input.first);
 	    const double arrival_rate = getDoubleValue( chain.arrival_rate() );
 	    _server.setService( e, k, service_time );
 	    _server.setVisits( e, k, visits * arrival_rate );
+	    if ( has_variance ) _server.setVariance( e, k, variance );
 	}
     }
     catch ( const std::out_of_range& e ) {
@@ -449,8 +453,10 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
 	if ( copies != 1 ) {
 	    throw std::runtime_error( "Number of servers does not equal 1 for load independent server " + input.first );
 	} else if ( station.scheduling() == SCHEDULE_FIFO ) {
-	    if ( dynamic_cast<FCFS_Server *>(Q(m)) == nullptr ) {
+	    if ( dynamic_cast<FCFS_Server *>(Q(m)) == nullptr && station.distribution() == BCMP::Model::Station::Distribution::EXPONENTIAL ) {
 		Q(m) = replace_server( input.first, Q(m), new FCFS_Server(E,K) );
+	    } else if ( dynamic_cast<HVFCFS_Server *>(Q(m)) == nullptr && station.distribution() == BCMP::Model::Station::Distribution::HYPER_EXPONENTIAL ) {
+		Q(m) = replace_server( input.first, Q(m), new HVFCFS_Server(E,K) );
 	    }
 	} else if ( station.scheduling() == SCHEDULE_PS ) {
 	    if ( dynamic_cast<PS_Server *>(Q(m)) == nullptr ) {

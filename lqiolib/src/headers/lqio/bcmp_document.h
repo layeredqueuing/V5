@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 17220 2024-05-16 16:00:29Z greg $
+ *  $Id: bcmp_document.h 17225 2024-05-21 16:24:00Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -214,8 +214,8 @@ namespace BCMP {
 	/* ------------------------------------------------------------ */
 
 	public:
-	    Station( Type type=Type::NOT_DEFINED, scheduling_type scheduling=SCHEDULE_PS, Distribution distribution=Distribution::EXPONENTIAL, LQX::SyntaxTreeNode * copies=nullptr ) :
-		_type(type), _scheduling(scheduling), _distribution(distribution), _copies(copies), _reference(false) {}
+	    Station( Type type=Type::NOT_DEFINED, scheduling_type scheduling=SCHEDULE_PS, LQX::SyntaxTreeNode * copies=nullptr, Distribution distribution=Distribution::EXPONENTIAL ) :
+		_type(type), _scheduling(scheduling), _copies(copies), _distribution(distribution), _reference(false) {}
 	    ~Station();
 
 	    Station& operator=( const Station& );
@@ -230,6 +230,8 @@ namespace BCMP {
 	    void setType(Type type) { _type = type; }
 	    scheduling_type scheduling() const { return _scheduling; }
 	    void setScheduling( scheduling_type type ) { _scheduling = type; }
+	    Distribution distribution() const { return _distribution; }
+	    void setDistribution( Distribution distribution ) { _distribution = distribution; }
 	    LQX::SyntaxTreeNode * copies() const { return _copies; }
 	    void setCopies( LQX::SyntaxTreeNode * copies ) { _copies = copies; }
 	    bool reference() const { return _reference; }
@@ -309,8 +311,8 @@ namespace BCMP {
 	private:
 	    Type _type;
 	    scheduling_type _scheduling;
-	    Distribution _distribution;
 	    LQX::SyntaxTreeNode * _copies;
+	    Distribution _distribution;
 	    bool _reference;
 	    Class::map_t _classes;
 	    Result::map_t _result_vars;
@@ -402,7 +404,7 @@ namespace BCMP {
 	std::pair<Chain::map_t::iterator,bool> insertClosedChain( const std::string&, LQX::SyntaxTreeNode *, LQX::SyntaxTreeNode * think_time=nullptr, LQX::SyntaxTreeNode * priority=nullptr );
 	std::pair<Chain::map_t::iterator,bool> insertOpenChain( const std::string&, LQX::SyntaxTreeNode * );
 	std::pair<Station::map_t::iterator,bool> insertStation( const std::string&, const Station& );
-	std::pair<Station::map_t::iterator,bool> insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, Station::Distribution distribution=Station::Distribution::EXPONENTIAL, LQX::SyntaxTreeNode * copies=nullptr ) { return insertStation( name, Station( type, scheduling, distribution, copies ) ); }
+	std::pair<Station::map_t::iterator,bool> insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, LQX::SyntaxTreeNode * copies=nullptr, Station::Distribution distribution=Station::Distribution::EXPONENTIAL ) { return insertStation( name, Station( type, scheduling, copies, distribution ) ); }
 
 	Station::Class::map_t computeCustomerDemand( const std::string& ) const;
 

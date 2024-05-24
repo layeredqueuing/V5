@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 17224 2024-05-21 14:30:09Z greg $
+ * $Id: jmva_document.cpp 17225 2024-05-21 16:24:00Z greg $
  *
  * Read in XML input files.
  *
@@ -986,7 +986,7 @@ namespace QNIO {
 	}
 	const std::string name = XML::getStringAttribute( attributes, Xname );
 	LQX::SyntaxTreeNode * multiplicity = getVariableAttribute( attributes, Xservers, 1 );
-	const std::pair<BCMP::Model::Station::map_t::iterator,bool> result = model().insertStation( name, BCMP::Model::Station( type, scheduling, BCMP::Model::Station::Distribution::EXPONENTIAL, multiplicity ) );
+	const std::pair<BCMP::Model::Station::map_t::iterator,bool> result = model().insertStation( name, BCMP::Model::Station( type, scheduling, multiplicity ) );
 	if ( !result.second ) throw std::runtime_error( "Duplicate station" );
 	BCMP::Model::Station * station = &result.first->second;
 

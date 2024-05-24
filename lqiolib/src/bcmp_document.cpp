@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: bcmp_document.cpp 17220 2024-05-16 16:00:29Z greg $
+ * $Id: bcmp_document.cpp 17226 2024-05-21 17:35:04Z greg $
  *
  * Read in XML input files.
  *
@@ -339,6 +339,7 @@ namespace BCMP {
 	_type = src._type;
 	_scheduling = src._scheduling;
 	_copies = src._copies;
+	_distribution = src._distribution;
 	_reference = src._reference;
 	_classes.clear();
 	std::copy(src._classes.begin(), src._classes.end(), std::inserter(_classes, _classes.begin()));
@@ -352,6 +353,7 @@ namespace BCMP {
 	_type = Model::Station::Type::NOT_DEFINED;
 	_scheduling = SCHEDULE_PS;
 	_copies = nullptr;
+	_distribution = Model::Station::Distribution::EXPONENTIAL;
 	_reference = false;
 	_classes.clear();
 	_result_vars.clear();
