@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 16441 2023-02-23 21:39:47Z greg $
+ *  $Id: dom_pragma.cpp 17235 2024-05-25 21:33:00Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -196,6 +196,7 @@ namespace LQIO {
 	const char * Pragma::_default_natural_ =		"default-natural";
 	const char * Pragma::_default_output_ =			"default-output";
 	const char * Pragma::_deterministic_ =			"deterministic";	// Quorum
+	const char * Pragma::_eager_ =				"eager";		// hvfcfs BUG_471
 	const char * Pragma::_exact_ =				"exact-mva";
 	const char * Pragma::_expand_ =				"expand";
 	const char * Pragma::_experimental_ =			"experimental";		// multiserver
@@ -209,6 +210,7 @@ namespace LQIO {
 	const char * Pragma::_force_random_queueing_ =		"force-random-queueing";
 	const char * Pragma::_gamma_ =				"gamma";		// Quorum
 	const char * Pragma::_geometric_ =			"geometric";		// Quorum
+	const char * Pragma::_hvfcfs_ = 			"hvfcfs";		// hvfcfs BUG_471
 	const char * Pragma::_hwsw_ =				"hwsw";
 	const char * Pragma::_hyper_ =				"hyper";
 	const char * Pragma::_init_only_ =			"init-only";
@@ -248,7 +250,7 @@ namespace LQIO {
 	const char * Pragma::_quorum_distribution_ =		"quorum-distribution";	// Quroum
 	const char * Pragma::_quorum_idle_time_ =		"quorum-idle-time";	// Quroum
 	const char * Pragma::_quorum_reply_ =			"quorum-reply";		// Quorum
-	const char * Pragma::_reiser_ =				"reiser";		// multiserver
+	const char * Pragma::_reiser_ =				"reiser";		// multiserver, hvfcfs BUG_471
 	const char * Pragma::_reiser_ps_ =			"reiser-ps";		// multiserver
 	const char * Pragma::_replication_ =			"replication";
 	const char * Pragma::_reschedule_on_async_send_ =	"reschedule-on-async-send";
@@ -293,6 +295,7 @@ namespace LQIO {
 	const std::set<std::string> Pragma::__force_infinite_args = { _none_, _fixed_rate_, _multiservers_, _all_, "" };
 	const std::set<std::string> Pragma::__force_multiserver_args = { _none_, _processors_, _tasks_, _all_, "" };
 	const std::set<std::string> Pragma::__layering_args = { _batched_, _batched_back_, _mol_, _mol_back_, _processor_, _share_, _squashed_, _srvn_, _hwsw_ };
+	const std::set<std::string> Pragma::__hvfcfs_args = { _eager_, _reiser_ };	/* BUG_471 */
 	const std::set<std::string> Pragma::__multiserver_args = { _bruell_, _conway_, _default_, _experimental_, _reiser_, _reiser_ps_, _rolia_, _rolia_ps_, _schmidt_, _suri_, _zhou_ };
 	const std::set<std::string> Pragma::__mva_args = { _bounds_, _exact_, _linearizer_, _schweitzer_, _fast_, _one_step_, _one_step_linearizer_ };
 	const std::set<std::string> Pragma::__overtaking_args = { _markov_, _rolia_, _simple_, _special_, _none_ };
@@ -319,6 +322,7 @@ namespace LQIO {
 	    { _force_infinite_,		    &__force_infinite_args },	    /* */
 	    { _force_multiserver_, 	    &__force_multiserver_args },    /* lqns */
 	    { _force_random_queueing_,	    &__true_false_arg },	    /* petrisrvn */
+	    { _hvfcfs_,			    &__hvfcfs_args },		    /* BUG_471 */
 	    { _initial_delay_,     	    nullptr },			    /* lqsim */
 	    { _initial_loops_,     	    nullptr },			    /* lqsim */
 	    { _iteration_limit_,	    nullptr },			    /* lqns */

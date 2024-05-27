@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 16385 2023-02-01 22:21:41Z greg $ *
+ * $Id: pragma.cc 17235 2024-05-25 21:33:00Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -21,6 +21,7 @@ const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
 {
     { LQIO::DOM::Pragma::_default_output_,	&Pragma::setDefaultOutput },
     { LQIO::DOM::Pragma::_force_multiserver_,	&Pragma::setForceMultiserver },
+    { LQIO::DOM::Pragma::_hvfcfs_,		&Pragma::setHVFCFSAlgorithm },
     { LQIO::DOM::Pragma::_multiserver_,		&Pragma::setMultiserver },
     { LQIO::DOM::Pragma::_mva_,			&Pragma::setMVA }
 };
@@ -69,6 +70,22 @@ void Pragma::setForceMultiserver(const std::string& value)
 {
     _force_multiserver = LQIO::DOM::Pragma::isTrue( value );
 }
+
+void Pragma::setHVFCFSAlgorithm(const std::string& value )
+{
+    static const std::map<const std::string,const Model::HVFCFS> __hvfcfs_pragma = { 
+	{ LQIO::DOM::Pragma::_default_,		Model::HVFCFS::DEFAULT },
+	{ LQIO::DOM::Pragma::_eager_,		Model::HVFCFS::EAGER },
+	{ LQIO::DOM::Pragma::_reiser_,		Model::HVFCFS::REISER }
+   };
+    const std::map<const std::string,const Model::HVFCFS>::const_iterator pragma = __hvfcfs_pragma.find( value );
+    if ( pragma != __hvfcfs_pragma.end() ) {
+	_hvfcfs_algorithm = pragma->second;
+    } else {
+	throw std::domain_error( value );
+    }
+}
+
 
 void Pragma::setMultiserver(const std::string& value)
 {

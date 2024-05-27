@@ -9,7 +9,7 @@
  *
  * November, 2021
  *
- * $Id: pragma.h 16385 2023-02-01 22:21:41Z greg $
+ * $Id: pragma.h 17234 2024-05-25 14:29:58Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -48,6 +48,12 @@ public:
 	    return __cache->_force_multiserver;
 	}
 
+    static Model::HVFCFS hvfcfsAlgorithm()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_hvfcfs_algorithm;
+	}
+
     static Model::Multiserver multiserver()
 	{
 	    assert( __cache != nullptr );
@@ -69,8 +75,9 @@ public:
 private:
     void setDefaultOutput(const std::string&);
     void setForceMultiserver(const std::string&);
-    void setMultiserver(const std::string&);
+    void setHVFCFSAlgorithm(const std::string&);
     void setMVA(const std::string&);
+    void setMultiserver(const std::string&);
 
 public:
     static void set( const std::map<std::string,std::string>& );
@@ -79,6 +86,7 @@ public:
 
 private:
     bool _default_output;			/* True to call Model::print() */
+    Model::HVFCFS _hvfcfs_algorithm;		/* HVFCFS algorirth */
     bool _force_multiserver;			/* True to force all stations (except delay) to use the multisever algorithnm */
     Model::Multiserver _multiserver;		/* Multiserver algorithm */
     Model::Solver _mva;				/* Solver algorithm */

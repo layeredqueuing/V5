@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 17169 2024-04-05 23:31:35Z greg $
+ * $Id: qnsolver.cc 17234 2024-05-25 14:29:58Z greg $
  */
 
 #include "config.h"
@@ -40,6 +40,7 @@ const struct option longopts[] =
     { LQIO::DOM::Pragma::_linearizer_,          no_argument,            0, 'l' },
     { LQIO::DOM::Pragma::_schweitzer_,          no_argument,            0, 's' },
     { LQIO::DOM::Pragma::_force_multiserver_,   no_argument,            0, 'M' },
+    { LQIO::DOM::Pragma::_hvfcfs_,		required_argument,	0, 0x100+'v' },
     { "queue-length",                           optional_argument,      0, 'q' },
     { "response-time",                          optional_argument,      0, 'r' },
     { "throughput",                             optional_argument,      0, 't' },
@@ -91,6 +92,7 @@ const static std::map<const std::string,const std::string> opthelp  = {
     { "waiting-time",                           "Output gnuplot to plot station waiting-times.  ARG specifies a class or station." },
     { "print-lqx",                              "Print the LQX program used to solve the model." },
     { "verbose",                                "" },
+    { LQIO::DOM::Pragma::_hvfcfs_,		"Choose HVFCFS algorithm (eager,reiser,default)" },
     { LQIO::DOM::Pragma::_exact_,               "Use Exact MVA." },
     { LQIO::DOM::Pragma::_fast_,                "Use the Fast Linearizer solver." },
     { LQIO::DOM::Pragma::_force_multiserver_,   "Use the multiserver solution for load independent stations (copies=1)." },
@@ -266,6 +268,10 @@ int main (int argc, char *argv[])
 	    Model::verbose_flag = true;
 	    break;
 
+	case 0x100+'v':
+	    pragmas.insert(LQIO::DOM::Pragma::_hvfcfs_,optarg);
+	    break;
+	    
 	case 'w':
 	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
 	    plot_type = BCMP::Model::Result::Type::RESIDENCE_TIME;

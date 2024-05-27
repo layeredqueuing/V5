@@ -11,7 +11,7 @@
 #define _ENTRY_H
 
 /*
- * $Id: entry.h 17069 2024-02-27 23:16:21Z greg $
+ * $Id: entry.h 17243 2024-05-27 21:49:58Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -82,6 +82,8 @@ public:
 
     bool is_regular_entry() const { return type() == LQIO::DOM::Entry::Type::STANDARD; }
     bool is_activity_entry() const { return type() == LQIO::DOM::Entry::Type::ACTIVITY; }
+    bool has_service_time() const { return _has_service_time; }
+    bool has_deterministic_phases() const { return _has_deterministic_phases; }
     bool test_and_set( LQIO::DOM::Entry::Entry::Type );			/* Sets _type too!		*/
     bool test_and_set_recv( Requesting_Type );
 
@@ -124,6 +126,8 @@ private:
     Requesting_Type _requests;
     bool _replies;				/* true if reply generated.	*/
     bool _random_queueing;			/* true if random queueing.	*/
+    bool _has_service_time;			/* Sevice time anywhere.	*/
+    bool _has_deterministic_phases;		/* Deterministic phases anywhere*/
     double _rel_prob;				/* Release prob at entry.	*/
     unsigned int _n_phases;			/* number of phases.		*/
     std::map<const Entry *,Call> _fwd;		/* Forwarding probabilites.	*/

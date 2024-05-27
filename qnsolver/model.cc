@@ -455,6 +455,8 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
 	} else if ( station.scheduling() == SCHEDULE_FIFO ) {
 	    if ( dynamic_cast<FCFS_Server *>(Q(m)) == nullptr && station.distribution() == BCMP::Model::Station::Distribution::EXPONENTIAL ) {
 		Q(m) = replace_server( input.first, Q(m), new FCFS_Server(E,K) );
+	    } else if ( dynamic_cast<HVFCFS_Decomp_Server *>(Q(m)) == nullptr && station.distribution() == BCMP::Model::Station::Distribution::HYPER_EXPONENTIAL && Pragma::hvfcfsAlgorithm() == Model::HVFCFS::EAGER ) {
+		Q(m) = replace_server( input.first, Q(m), new HVFCFS_Decomp_Server(E,K) );
 	    } else if ( dynamic_cast<HVFCFS_Server *>(Q(m)) == nullptr && station.distribution() == BCMP::Model::Station::Distribution::HYPER_EXPONENTIAL ) {
 		Q(m) = replace_server( input.first, Q(m), new HVFCFS_Server(E,K) );
 	    }

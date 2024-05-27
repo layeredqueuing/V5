@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 17193 2024-05-01 21:27:04Z greg $
+ * $Id: expat_document.cpp 17236 2024-05-26 12:12:13Z greg $
  *
  * Read in XML input files.
  *
@@ -2928,7 +2928,7 @@ namespace LQIO {
             if ( phase.getServiceTime() ) {
                 output << XML::attribute( Xhost_demand_mean, *phase.getServiceTime() );
             }
-            if ( phase.isNonExponential() ) {
+            if ( phase.hasCoeffOfVariationSquared() ) {
                 output << XML::attribute( Xhost_demand_cvsq, *phase.getCoeffOfVariationSquared() );
             }
             if ( phase.hasThinkTime() ) {

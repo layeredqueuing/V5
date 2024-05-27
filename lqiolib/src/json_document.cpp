@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 17213 2024-05-14 11:01:26Z greg $
+ * $Id: json_document.cpp 17236 2024-05-26 12:12:13Z greg $
  *
  * Read in JSON input files.
  *
@@ -3530,7 +3530,7 @@ namespace LQIO {
 	    if ( phase.getServiceTime() ) {
 		_output << next_attribute( Xservice_time, *phase.getServiceTime() );
 	    }
-	    if ( phase.isNonExponential() ) {
+	    if ( phase.hasCoeffOfVariationSquared() ) {
 		_output << next_attribute( Xcoeff_of_var_sq, *phase.getCoeffOfVariationSquared() );
 	    }
 	    if ( phase.hasThinkTime() ) {

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: task.cc 17074 2024-02-28 20:35:29Z greg $
+ * $Id: task.cc 17243 2024-05-27 21:49:58Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -242,7 +242,9 @@ Task::initialize()
     
     if ( !entries.size() ) {
 	get_dom()->runtime_error( LQIO::ERR_TASK_HAS_NO_ENTRIES );
-    }
+    } else if ( type() == Task::Type::REF_TASK && !has_service_time() && !has_deterministic_phases()  ) {
+	LQIO::runtime_error( ERR_BOGUS_REFERENCE_TASK, name() );
+    } 
     if ( processor() != nullptr && processor()->get_scheduling() == SCHEDULE_CFS && dynamic_cast<const LQIO::DOM::Task *>(get_dom())->getGroup() == nullptr ) {
 	get_dom()->runtime_error( LQIO::ERR_NO_GROUP_SPECIFIED, processor()->name() );
     }
@@ -383,6 +385,18 @@ bool Task::is_single_place_task() const
     return type() == Task::Type::REF_TASK && (customers_flag
 				  || (n_threads() > 1 && !processor()->is_infinite()));
 }
+
+bool Task::has_service_time() const
+{
+    return std::any_of( entries.begin(), entries.end(), std::mem_fn( &Entry::has_service_time ) );
+}
+
+
+bool Task::has_deterministic_phases() const
+{
+    return std::any_of( entries.begin(), entries.end(), std::mem_fn( &Entry::has_deterministic_phases ) );
+}
+
 
 bool Task::scheduling_is_ok() const
 {

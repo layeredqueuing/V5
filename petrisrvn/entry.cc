@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: entry.cc 17182 2024-04-24 18:02:35Z greg $
+ * $Id: entry.cc 17243 2024-05-27 21:49:58Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -47,6 +47,8 @@ Entry::Entry( LQIO::DOM::Entry * dom, Task * task )
       _requests(Requesting_Type::NOT_CALLED),
       _replies(false),
       _random_queueing(false),
+      _has_service_time(false),			/* Sevice time anywhere.	*/
+      _has_deterministic_phases(false),		/* Deterministic phases anywhere*/
       _rel_prob(0.),
       _n_phases(0),
       _fwd()
@@ -215,8 +217,8 @@ Entry::initialize()
 {
     _n_phases = 0;
 
-    bool has_service_time = false;
-    bool has_deterministic_phases = false;
+    _has_service_time = false;
+    _has_deterministic_phases = false;
     for ( auto& fwd : forwards ) delete fwd;		// BUG 424
     forwards.clear();					// BUG 424
 
@@ -228,13 +230,10 @@ Entry::initialize()
 	    double calls = curr_phase->check();
 
 	    if ( curr_phase->s() > 0.0 || curr_phase->think_time() > 0.0 ) {
-		has_service_time = true;
+		_has_service_time = true;
 	    }
 	    if ( !curr_phase->has_stochastic_calls() ) {
-		has_deterministic_phases = true;
-	    }
-	    if ( calls > 0 && curr_phase->s() == 0.0 && task()->think_time() == 0. ) {
-		curr_phase->get_dom()->runtime_error( LQIO::WRN_XXXX_DEFINED_BUT_ZERO, "service time" );
+		_has_deterministic_phases = true;
 	    }
 	    if ( ( calls > 0 || curr_phase->s() > 0.0 ) && p > n_phases() ) {
 		set_n_phases( p );
@@ -244,7 +243,7 @@ Entry::initialize()
 	std::deque<Activity *> activity_stack;
 	std::deque<ActivityList *> fork_stack;
 
-	has_service_time = start_activity()->find_children( activity_stack, fork_stack, this );
+	_has_service_time = start_activity()->find_children( activity_stack, fork_stack, this );
 	double n_replies = start_activity()->count_replies( activity_stack, this, 1.0, 1, _n_phases );
 
 	if ( requests() == Requesting_Type::RENDEZVOUS ) {
@@ -259,12 +258,8 @@ Entry::initialize()
 	set_n_phases( 1 );
     }
 
-    if ( !has_service_time ) {
-	if ( task()->type() == Task::Type::REF_TASK && !has_deterministic_phases ) {
-	    LQIO::runtime_error( ERR_BOGUS_REFERENCE_TASK, name(), task()->name() );
-	} else {
-	    get_dom()->runtime_error( LQIO::WRN_XXXX_DEFINED_BUT_ZERO, "service time" );
-	}
+    if ( !_has_service_time ) {
+	get_dom()->runtime_error( LQIO::WRN_XXXX_DEFINED_BUT_ZERO, "service time" );
     }
 
     const_cast<Task *>(task())->set_n_phases( n_phases() );

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 17081 2024-03-01 22:09:31Z greg $
+ *  $Id: srvn_output.cpp 17236 2024-05-26 12:12:13Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -2855,7 +2855,7 @@ namespace LQIO {
 	    printObservationVariables( _output, activity );
 	}
         _output << std::endl;
-        if ( activity.isNonExponential() ) {
+        if ( activity.hasCoeffOfVariationSquared() ) {
             _output << "  c " << activity.getName();
             printCoefficientOfVariation( activity );
             _output << std::endl;

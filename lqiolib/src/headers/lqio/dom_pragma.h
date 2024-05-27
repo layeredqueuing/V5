@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 16441 2023-02-23 21:39:47Z greg $
+ * $Id: dom_pragma.h 17235 2024-05-25 21:33:00Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -57,6 +57,7 @@ namespace LQIO {
 	    const static std::set<std::string> __force_infinite_args;
 	    const static std::set<std::string> __force_multiserver_args;
 	    const static std::set<std::string> __layering_args;
+	    const static std::set<std::string> __hvfcfs_args;	/* BUG_471 */
 	    const static std::set<std::string> __multiserver_args;
 	    const static std::set<std::string> __mva_args;
 	    const static std::set<std::string> __overtaking_args;
@@ -93,6 +94,7 @@ namespace LQIO {
 	    static const char * _default_natural_;
 	    static const char * _default_output_;
 	    static const char * _deterministic_;	// Quorum
+	    static const char * _eager_;		// hvfcfs BUG_471
 	    static const char * _exact_;
 	    static const char * _expand_;
 	    static const char * _experimental_;		// Multiserver
@@ -106,6 +108,7 @@ namespace LQIO {
 	    static const char * _force_random_queueing_;// Petrisrvn
 	    static const char * _gamma_;		// Quorum
 	    static const char * _geometric_;		// Quorum
+	    static const char * _hvfcfs_;		// hvfcfs BUG_471
 	    static const char * _hwsw_;
 	    static const char * _hyper_;
 	    static const char * _init_only_;

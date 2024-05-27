@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: processor.cc 17069 2024-02-27 23:16:21Z greg $
+ * $Id: processor.cc 17233 2024-05-24 11:34:57Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -242,6 +242,7 @@ Processor::transmorgrify( unsigned max_count )
     const unsigned int copies = multiplicity();		/* Check for validity before is_single_place... */
 
     if ( is_single_place_processor() ) {
+	/* if no service time, nop.  !!! */
 	if ( is_infinite() ) {
 	    if ( ref_count() ) {
 		PX = create_place( x_pos, y_pos, PROC_LAYER, ref_count(), "P%s", name() );

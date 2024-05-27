@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_phase.cpp 16548 2023-03-19 12:28:28Z greg $
+ *  $Id: dom_phase.cpp 17236 2024-05-26 12:12:13Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -232,13 +232,6 @@ namespace LQIO {
 	    /* Return whether this has been set or not */
 	    double value = 1.0;
 	    return _coeffOfVariationSq && (!_coeffOfVariationSq->wasSet() || !_coeffOfVariationSq->getValue(value) || (std::isfinite(value) && value > 0. && value != 1.));
-	}
-
-	bool Phase::isNonExponential() const
-	{
-	    /* Return true is CV != 1.0 (it must be set) */
-	    double value = 1.0;
-	    return _coeffOfVariationSq != nullptr && (!_coeffOfVariationSq->getValue(value) || value != 1.0);
 	}
 
 	bool Phase::hasHistogram() const

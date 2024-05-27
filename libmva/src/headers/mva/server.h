@@ -9,19 +9,20 @@
  *
  * November, 1994
  *
- * $Id: server.h 17225 2024-05-21 16:24:00Z greg $
+ * $Id: server.h 17235 2024-05-25 21:33:00Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(SERVER_H)
-#define	SERVER_H
+#if	!defined(MVA_SERVER_H)
+#define	MVA_SERVER_H
 
 #include "pop.h"
 #include "prob.h"
 #include "vector.h"
 
 #define MAX_PHASES	3
+#define BUG_471		1
 
 class MVA;
 class Server;
@@ -372,6 +373,25 @@ private:
 };
 
 
+
+#if BUG_471
+/* ------------- High Variation Decomposition FIFO Server ------------- */
+
+class HVFCFS_Decomp_Server : public virtual Server, public HVFCFS_Server {
+public:
+    HVFCFS_Decomp_Server() : Server(), HVFCFS_Server(1,1) {}
+    HVFCFS_Decomp_Server( const unsigned k ) : Server(k), HVFCFS_Server(k) {}
+    HVFCFS_Decomp_Server( const unsigned e, const unsigned k ) : Server(e,k), HVFCFS_Server(e,k) {}
+    HVFCFS_Decomp_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), HVFCFS_Server(e,k,p) {}
+    virtual ~HVFCFS_Decomp_Server() {}
+
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+
+    virtual const std::string& typeStr() const { return __type_str; }
+
+    static const std::string __type_str;
+};
+#endif    
 
 
 /* -------------- HOL Priority High Variation FIFO Server ------------- */

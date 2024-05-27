@@ -11,13 +11,14 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 17217 2024-05-15 16:04:04Z greg $
+ * $Id: activity.cc 17238 2024-05-27 10:49:35Z greg $
  */
 
 #include "lqsim.h"
+#include <algorithm>
+#include <cmath>
 #include <cstdarg>
 #include <cstring>
-#include <algorithm>
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/dom_histogram.h>

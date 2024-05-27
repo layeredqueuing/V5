@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_extvar.cpp 17102 2024-03-05 20:39:44Z greg $
+ *  $Id: dom_extvar.cpp 17236 2024-05-26 12:12:13Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -269,7 +269,7 @@ namespace LQIO {
 	    } else if (src.getString(s)) {
 		_externalSymbol->assignString(s);
 	    } else {
-		throw std::domain_error("unassigned variable");
+		throw std::domain_error(_name + ": unassigned variable");
 	    }
 	    return *this;
 	}
@@ -313,7 +313,7 @@ namespace LQIO {
 	{
 	    /* If unregistered set the initial */
 	    if (_externalSymbol == nullptr) {
-		throw std::domain_error("unassigned variable");
+		throw std::domain_error(_name + ": unassigned variable");
 	    } else {
 		_externalSymbol->assignDouble(value);
 	    }
@@ -323,7 +323,7 @@ namespace LQIO {
 	{
 	    /* If unregistered return the initial */
 	    if (_externalSymbol == nullptr) {
-		throw std::domain_error("unassigned variable");
+		throw std::domain_error( _name + ": unassigned variable");
 	    } else if (_externalSymbol->getType() == LQX::Symbol::SYM_DOUBLE) {
 		result = _externalSymbol->getDoubleValue();
 		return true;
@@ -336,7 +336,7 @@ namespace LQIO {
 	{
 	    /* If unregistered set the initial */
 	    if (_externalSymbol == nullptr) {
-		throw std::domain_error("unassigned variable");
+		throw std::domain_error(_name + ": unassigned variable");
 	    } else {
 		_externalSymbol->assignString(value);
 	    }
@@ -346,7 +346,7 @@ namespace LQIO {
 	{
 	    /* If unregistered return the initial */
 	    if (_externalSymbol == nullptr) {
-		throw std::domain_error("unassigned variable");
+		throw std::domain_error(_name + ": unassigned variable");
 	    } else if (_externalSymbol->getType() == LQX::Symbol::SYM_STRING) {
 		result = _externalSymbol->getStringValue();
 		return true;

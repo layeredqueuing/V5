@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 17073 2024-02-28 19:42:11Z greg $
+ *  $Id: dom_entry.cpp 17236 2024-05-26 12:12:13Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -472,7 +472,7 @@ namespace LQIO {
 	    
 	const bool Entry::hasNonExponentialPhases() const
 	{
-	    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &LQIO::DOM::Phase::isNonExponential ) );
+	    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &LQIO::DOM::Phase::hasCoeffOfVariationSquared ) );
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

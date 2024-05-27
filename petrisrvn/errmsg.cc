@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: errmsg.cc 17070 2024-02-27 23:50:32Z greg $
+ * $Id: errmsg.cc 17243 2024-05-27 21:49:58Z greg $
  */
 
 #include "petrisrvn.h"
@@ -23,7 +23,7 @@
 std::vector< std::pair<unsigned, LQIO::error_message_type> > local_error_messages =
 {
     { FTL_TAG_TABLE_FULL,               { LQIO::error_severity::FATAL,      "Tag hash table overflow."} },
-    { ERR_BOGUS_REFERENCE_TASK,         { LQIO::error_severity::ERROR,      "Entry \"%s\" for reference task \"%s\" must have service time, think time, or deterministic phases."} },
+    { ERR_BOGUS_REFERENCE_TASK,         { LQIO::error_severity::ERROR,      "Reference task \"%s\" must have a service time, a think time, or deterministic phases."} },
     { ERR_MULTI_SYNC_SERVER,            { LQIO::error_severity::ERROR,      "Task \"%s\" provides external synchronization: it cannot be a multiserver."} },
     { ERR_COMMON_ENTRY_EXTERNAL_SYNC,   { LQIO::error_severity::ERROR,      "Task \"%s\": join from common entry \"%s\"."} },
     { WRN_CONVERGENCE,                  { LQIO::error_severity::WARNING,    "Convergence problems for \"%s\"; precision is %g."} },
