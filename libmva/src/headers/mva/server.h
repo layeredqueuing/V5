@@ -9,20 +9,20 @@
  *
  * November, 1994
  *
- * $Id: server.h 17235 2024-05-25 21:33:00Z greg $
+ * $Id: server.h 17242 2024-05-27 19:41:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(MVA_SERVER_H)
-#define	MVA_SERVER_H
+#pragma once
+#if	!defined(LIBMVA_SERVER_H)
+#define	LIBMVA_SERVER_H
 
 #include "pop.h"
 #include "prob.h"
 #include "vector.h"
 
 #define MAX_PHASES	3
-#define BUG_471		1
 
 class MVA;
 class Server;

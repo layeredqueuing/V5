@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 16848 2023-11-17 15:31:36Z greg $
+ * $Id: mva.cc 17242 2024-05-27 19:41:05Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -1433,6 +1433,41 @@ MVA::queueOnly( const Server& station, const unsigned k, const Population& N, co
     }
     return sum;
 }
+
+
+
+#if BUG_471
+/*
+ * Find the total residence time over all stations except at `station'.
+ */
+
+double
+MVA::responseTime( const Server& station ) const
+{
+    double sum = 0.0;
+    for ( unsigned m = 1; m <= M; ++m ) {
+	if ( Q[m] == &station ) continue;
+	sum += Q[m]->R();
+    }
+    return sum;
+}
+
+
+
+/*
+ * Find the total residence time over all stations.
+ */
+
+double
+MVA::responseTime() const
+{
+    double sum = 0.0;
+    for ( unsigned m = 1; m <= M; ++m ) {
+	sum += Q[m]->R();
+    }
+    return sum;
+}
+#endif
 
 
 

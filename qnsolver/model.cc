@@ -33,8 +33,8 @@
 #include <lqx/Program.h>
 #include <lqx/SyntaxTree.h>
 #include <mva/fpgoop.h>
-#include <mva/multserv.h>
 #include <mva/mva.h>
+#include <mva/multserv.h>
 #include "boundsmodel.h"
 #include "closedmodel.h"
 #include "model.h"

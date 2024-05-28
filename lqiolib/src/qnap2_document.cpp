@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 17226 2024-05-21 17:35:04Z greg $
+ * $Id: qnap2_document.cpp 17240 2024-05-27 14:20:14Z greg $
  *
  * Read in XML input files.
  *
@@ -246,8 +246,11 @@ qnap2_define_variable( const char * name, void * begin, void * end, void * init 
 
 void qnap2_construct_station()
 {
-    if ( !QNIO::QNAP2_Document::__document->constructStation() ) {
-	qnap2error( "station name not set." );
+    try { 
+	QNIO::QNAP2_Document::__document->constructStation();
+    }
+    catch( const std::invalid_argument& e ) {
+	qnap2error( e.what() );
     }
 }
 
@@ -1370,7 +1373,7 @@ namespace QNIO {
     {
 	for ( std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>*>::const_iterator transit = _transit.begin(); transit != _transit.end(); ++transit ) {
 	    const std::string& station_name = (*transit)->first;
-	    if ( !_document.isDefined( station_name ) ) throw std::invalid_argument( std::string( "undefined station: " ) + station_name );
+	    if ( !_document.isDefined( station_name ) ) throw std::invalid_argument( std::string( "undefined queue: " ) + station_name );
 	    const std::set<Symbol>::const_iterator station_symbol = findSymbol( station_name );
 	    assert( station_symbol != symbolTableEnd() );
 	    LQX::SyntaxTreeNode * value = (*transit)->second;
@@ -1476,8 +1479,9 @@ namespace QNIO {
 
 	/* The station may be an array, so check the symbol table and fetch the array if necessary */
 	const std::set<Symbol>::const_iterator symbol = _symbolTable.find( station_name );
-	assert( symbol != _symbolTable.end() );
-	if ( symbol->isVector() ) {
+	if ( symbol == _symbolTable.end() ) {
+	    throw std::invalid_argument( std::string( "undefined queue: " ) + station_name );
+	} else if ( symbol->isVector() ) {
 	    LQX::ArrayObject* array = dynamic_cast<LQX::ArrayObject *>(getLQXSymbol( station_name )->getObjectValue());
 	    assert( array != nullptr );
 	    std::for_each( array->begin(), array->end(), ConstructStation( *this, station_name, station ) );

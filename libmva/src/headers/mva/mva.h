@@ -9,7 +9,7 @@
  * November, 1994
  * August, 2005
  *
- * $Id: mva.h 16939 2024-01-26 02:52:57Z greg $
+ * $Id: mva.h 17242 2024-05-27 19:41:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,6 +18,7 @@
 #if	!defined(LIBMVA_MVA_H)
 #define	LIBMVA_MVA_H
 /* undef DEBUG_MVA 1 */
+#define BUG_471		1
 
 #include <vector>
 #include "pop.h"
@@ -120,6 +121,10 @@ public:
     double queueLength( const Server&, const Population& N ) const;
     double queueLength( const Server&, const unsigned k ) const;
     double queueOnly( const Server&, const unsigned k, const Population& N, const unsigned j ) const;
+#if BUG_471
+    double responseTime( const Server& ) const;
+    double responseTime() const;
+#endif
     double responseTime( const Server&, const unsigned k ) const;
     double responseTime( const unsigned k ) const;
 

@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 17234 2024-05-25 14:29:58Z greg $
+ * $Id: qnsolver.cc 17241 2024-05-27 15:05:28Z greg $
  */
 
 #include "config.h"
@@ -370,8 +370,8 @@ static bool exec( QNIO::Document& input, const std::string& output_file_name, co
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << output_file_name << "\" -- " << strerror( errno ) << std::endl;
 	    return false;
 	}
-    } else if ( print_jmva ) {
-	const std::string extension = bounds ? "jmva" : "jaba";
+    } else {
+	const std::string extension = (print_qnap2 ? "qnap2" : (bounds ? "jaba" : "jmva"));
 	LQIO::Filename filename( input.getInputFileName(), extension );
 	LQIO::Filename::backup( filename() );
 	output.open( filename(), std::ios::out );
@@ -390,16 +390,18 @@ static bool exec( QNIO::Document& input, const std::string& output_file_name, co
 	catch ( const std::invalid_argument& e ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
 	}
-	if ( output_file_name.empty() ) {
-	    LQIO::Filename filename( input.getInputFileName(), "qnap" );
-	    LQIO::Filename::backup( filename() );
-	    output.open( filename(), std::ios::out );
-	    if ( !output ) {
-		std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << input.getInputFileName() << "\" -- " << strerror( errno ) << std::endl;
-		return false;
-	    }
-	} 
 	qnap_model.exportModel( output );
+
+    } else if ( print_jmva ) {
+	if ( dynamic_cast<QNIO::JMVA_Document*>(&input) != nullptr ) {
+	    input.exportModel( output );
+	} else {
+	    Model model( input, Pragma::mva(), std::string() );
+	    model.solve();	// Resolve symbols
+	    QNIO::JMVA_Document new_model( input.model() );
+//	    new_model.comprehensions() = input.comprehensions();
+	    new_model.exportModel( output );	/* Will save all results (if !bounds) */
+	}
 
     } else {
 	try {
@@ -408,19 +410,10 @@ static bool exec( QNIO::Document& input, const std::string& output_file_name, co
 	catch ( const std::invalid_argument& e ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
 	}
-	if ( print_jmva ) {
-	    /* Since we might get QNAP in, rexport directly -- WhatIf?? */
-	    Model model( input, Pragma::mva(), std::string() );
-	    model.solve();
-//	    QNIO::JMVA_Document new_model( output_file_name, input.model() );
-//	    new_model.comprehensions() = input.comprehensions();
-//	    new_model.exportModel( output );	/* Will save all results (if !bounds) */
-	    input.exportModel( output );
-	} else {
-	    Model model( input, Pragma::mva(), output_file_name );
-	    model.solve();
-	}
+	Model model( input, Pragma::mva(), output_file_name );
+	model.solve();
     }
+
     if ( output ) {
 	output.close();
     }
