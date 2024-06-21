@@ -452,21 +452,19 @@ Model::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input
     } else if ( !Pragma::forceMultiserver() && station.type() == BCMP::Model::Station::Type::LOAD_INDEPENDENT ) {
 	if ( copies != 1 ) {
 	    throw std::runtime_error( "Number of servers does not equal 1 for load independent server " + input.first );
-	} else if ( station.scheduling() == SCHEDULE_FIFO ) {
-	    if ( dynamic_cast<FCFS_Server *>(Q(m)) == nullptr && station.distribution() == BCMP::Model::Station::Distribution::EXPONENTIAL ) {
-		Q(m) = replace_server( input.first, Q(m), new FCFS_Server(E,K) );
-	    } else if ( dynamic_cast<HVFCFS_Decomp_Server *>(Q(m)) == nullptr && station.distribution() == BCMP::Model::Station::Distribution::HYPER_EXPONENTIAL && Pragma::hvfcfsAlgorithm() == Model::HVFCFS::EAGER ) {
-		Q(m) = replace_server( input.first, Q(m), new HVFCFS_Decomp_Server(E,K) );
-	    } else if ( dynamic_cast<HVFCFS_Server *>(Q(m)) == nullptr && station.distribution() == BCMP::Model::Station::Distribution::HYPER_EXPONENTIAL ) {
-		Q(m) = replace_server( input.first, Q(m), new HVFCFS_Server(E,K) );
-	    }
-	} else if ( station.scheduling() == SCHEDULE_PS ) {
-	    if ( dynamic_cast<PS_Server *>(Q(m)) == nullptr ) {
+	} else if ( station.distribution() == BCMP::Model::Station::Distribution::EXPONENTIAL ) {
+	    if ( station.scheduling() == SCHEDULE_PS && dynamic_cast<PS_Server *>(Q(m)) == nullptr ) {
 		Q(m) = replace_server( input.first, Q(m), new PS_Server(E,K) );
+	    } else if ( station.scheduling() == SCHEDULE_FIFO && dynamic_cast<FCFS_Server *>(Q(m)) == nullptr ) {
+		Q(m) = replace_server( input.first, Q(m), new FCFS_Server(E,K) );
 	    }
 	} else {
-	    throw std::runtime_error( "Invalid scheduling for load independent server " + input.first );
-	}
+	    if ( Pragma::hvfcfsAlgorithm() == Model::HVFCFS::EAGER && dynamic_cast<HVFCFS_Decomp_Server *>(Q(m)) == nullptr ) {
+		Q(m) = replace_server( input.first, Q(m), new HVFCFS_Decomp_Server(E,K) );
+	    } else if ( dynamic_cast<HVFCFS_Server *>(Q(m)) == nullptr ) {
+		Q(m) = replace_server( input.first, Q(m), new HVFCFS_Server(E,K) );
+	    }
+	} 
 
     } else {
 	switch ( Pragma::multiserver() ) {

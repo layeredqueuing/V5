@@ -67,6 +67,7 @@ LQX::SyntaxTreeNode * GnuPlot::print_node( LQX::SyntaxTreeNode * arg1, ... )
 
 
 const std::map<const LQIO::GnuPlot::Format,const std::string> GnuPlot::output_suffix = {
+    { LQIO::GnuPlot::Format::NONE,	"csv" },
     { LQIO::GnuPlot::Format::TERMINAL,	"" },
     { LQIO::GnuPlot::Format::EMF,	"emf" },
     { LQIO::GnuPlot::Format::EPS,	"eps" },

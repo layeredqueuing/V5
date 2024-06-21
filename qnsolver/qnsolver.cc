@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 17241 2024-05-27 15:05:28Z greg $
+ * $Id: qnsolver.cc 17248 2024-06-12 20:16:04Z greg $
  */
 
 #include "config.h"
@@ -101,6 +101,7 @@ const static std::map<const std::string,const std::string> opthelp  = {
 };
 
 const static std::map<const std::string,const LQIO::GnuPlot::Format> gnuplot_output_format = {
+    { "none",	LQIO::GnuPlot::Format::NONE },	/* Suppress plotting information */
     { "emf",	LQIO::GnuPlot::Format::EMF },
     { "eps",	LQIO::GnuPlot::Format::EPS },
     { "fig",	LQIO::GnuPlot::Format::FIG },
@@ -358,19 +359,24 @@ static bool exec( QNIO::Document& input, const std::string& output_file_name, co
     Pragma::set( input.getPragmaList() );		/* load pragmas here */
 
     const bool qnap_model = input.getInputFormat() == QNIO::Document::InputFormat::QNAP;
-    
-    if ( print_gnuplot && qnap_model ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": plotting not supported with QNAP input." << std::endl;
-    }
-    std::ofstream output;
     const bool bounds = Pragma::mva() == Model::Solver::BOUNDS || input.boundsOnly();
+    
+    if ( print_gnuplot && input.comprehensions().empty() ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": no ranges to plot." << std::endl;
+	return false;
+    } else if ( print_gnuplot && qnap_model ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": plotting not supported with QNAP input." << std::endl;
+	return false;
+    }
+
+    std::ofstream output;
     if ( !output_file_name.empty() ) {
 	output.open( output_file_name, std::ios::out );
 	if ( !output ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file \"" << output_file_name << "\" -- " << strerror( errno ) << std::endl;
 	    return false;
 	}
-    } else {
+    } else if ( print_jmva || print_qnap2 ) {
 	const std::string extension = (print_qnap2 ? "qnap2" : (bounds ? "jaba" : "jmva"));
 	LQIO::Filename filename( input.getInputFileName(), extension );
 	LQIO::Filename::backup( filename() );

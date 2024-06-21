@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 17225 2024-05-21 16:24:00Z greg $
+ *  $Id: bcmp_document.h 17251 2024-06-17 17:31:44Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -141,7 +141,7 @@ namespace BCMP {
 	    typedef std::pair<const std::string,Station> pair_t;
 
 	    enum class Type { NOT_DEFINED, DELAY, LOAD_INDEPENDENT, MULTISERVER, SOURCE };
-	    enum class Distribution { EXPONENTIAL, HYPER_EXPONENTIAL };
+	    enum class Distribution { EXPONENTIAL, NON_EXPONENTIAL };
 
 	    /* -------------------------------------------------------- */
 	    /*                          Class                           */

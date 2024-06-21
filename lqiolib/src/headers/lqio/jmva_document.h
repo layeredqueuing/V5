@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: jmva_document.h 17169 2024-04-05 23:31:35Z greg $
+ *  $Id: jmva_document.h 17251 2024-06-17 17:31:44Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -214,10 +214,13 @@ namespace QNIO {
 	void startServiceTime( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void endServiceTime( Object&, const XML_Char * element );
 	void startServiceTimeList( Object& station, const XML_Char * element, const XML_Char ** attributes );	/* BUG_411 */
-	void endServiceTimeList( Object&, const XML_Char * element );	/* BUG_411 */
+	void endServiceTimeList( Object&, const XML_Char * element );						/* BUG_411 */
 	void startVisits( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void startVisit( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void endVisit( Object&, const XML_Char * element );
+	void startCoeffsOfVariation( Object&, const XML_Char * element, const XML_Char ** attributes );		/* BUG_467 */
+	void startCoeffOfVariation( Object&, const XML_Char * element, const XML_Char ** attributes );		/* BUG_467 */
+	void endCoeffOfVariation( Object&, const XML_Char * element );
 	void startReferenceStation( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void startAlgParams( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void startSolutions( Object& object, const XML_Char * element, const XML_Char ** attributes );
@@ -463,7 +466,7 @@ namespace QNIO {
 	    void operator()( const BCMP::Model::Station::Class::pair_t& d ) const;
 	};
 
-	class printServiceTimeList : private printCommon {	/*+ BUG_411 */
+	class printServiceTimeList : private printCommon {	/* BUG_411 */
 	public:
 	    printServiceTimeList( std::ostream& output, const BCMP::Model& model, LQX::SyntaxTreeNode * customers );
 	    void operator()( const BCMP::Model::Station::Class::pair_t& d ) const;
@@ -472,6 +475,12 @@ namespace QNIO {
 
 	    LQX::SyntaxTreeNode * _copies;
 	    LQX::SyntaxTreeNode * _customers;
+	};
+
+	class printCoeffOfVariation : private printCommon {	/* BUG_467 */
+	public:
+	    printCoeffOfVariation( std::ostream& output, const BCMP::Model& model, bool strict_jmva=true  ) : printCommon( output, model, strict_jmva) {}
+	    void operator()( const BCMP::Model::Station::Class::pair_t& d ) const;
 	};
 
 	struct printVisits : private printCommon {
@@ -548,6 +557,8 @@ namespace QNIO {
 	static const XML_Char * Xclass;
 	static const XML_Char * Xclasses;
 	static const XML_Char * Xclosedclass;
+	static const XML_Char * XcoeffsOfVariation;    // Bug 467
+	static const XML_Char * XcoeffOfVariation;     // Bug 467
 	static const XML_Char * XcompareAlgs;
 	static const XML_Char * Xcustomerclass;
 	static const XML_Char * Xdelaystation;

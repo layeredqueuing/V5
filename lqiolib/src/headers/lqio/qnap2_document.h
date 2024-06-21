@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 17226 2024-05-21 17:35:04Z greg $
+ *  $Id: qnap2_document.h 17248 2024-06-12 20:16:04Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -600,6 +600,11 @@ namespace QNIO {
 	    std::string operator()( const std::string& s1, const BCMP::Model::Station::pair_t& m ) const;
 	private:
 	    const std::string& _suffix;
+	};
+
+	struct fold_chain {
+	    fold_chain() {}
+	    std::string operator()( const std::string& s1, const BCMP::Model::Chain::pair_t& m ) const;
 	};
 
 	struct fold_class {

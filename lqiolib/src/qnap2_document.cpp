@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 17240 2024-05-27 14:20:14Z greg $
+ * $Id: qnap2_document.cpp 17251 2024-06-17 17:31:44Z greg $
  *
  * Read in XML input files.
  *
@@ -530,7 +530,7 @@ void qnap2_set_station_service( const void * list, const void * arg2 )
     try {
 	QNIO::QNAP2_Document::SetStationService set_service( *QNIO::QNAP2_Document::__document, *service );
 	if ( service->distribution() == QNIO::QNAP2_Document::Distribution::Hyperexponential ) {
-	    QNIO::QNAP2_Document::__document->setStationDistribution( BCMP::Model::Station::Distribution::HYPER_EXPONENTIAL );
+	    QNIO::QNAP2_Document::__document->setStationDistribution( BCMP::Model::Station::Distribution::NON_EXPONENTIAL );
 	}
 	if ( list == nullptr ) {
 	    const BCMP::Model::Chain::map_t& chains = QNIO::QNAP2_Document::__document->chains();
@@ -1982,7 +1982,7 @@ namespace QNIO {
 	    }
 	    output << qnap2_statement( "class real " + std::accumulate( stations().begin(), stations().end(), std::string(""), fold_station( "_t") ), "Station service time" ) << std::endl;
 	    /* Chains */
-	    output << qnap2_statement( "class " + std::accumulate( chains().begin(), chains().end(), std::string(""), BCMP::Model::Chain::fold() ), "Class names" ) << std::endl;
+	    output << qnap2_statement( "class " + std::accumulate( chains().begin(), chains().end(), std::string(""), fold_chain() ), "Class names" ) << std::endl;
 	}
 
 	/* 4) output the statations */
@@ -2770,6 +2770,16 @@ namespace QNIO {
 	} else {
 	    return s1 + "," + to_identifier( k2.first );
 	}
+    }
+
+    std::string
+    QNAP2_Document::fold_chain::operator()( const std::string& s1, const BCMP::Model::Chain::pair_t& k2 ) const
+    {
+	if ( s1.empty() ) {
+	    return to_identifier( k2.first );
+	} else {
+	    return s1 + "," + to_identifier( k2.first );
+	}	
     }
 
     std::string
