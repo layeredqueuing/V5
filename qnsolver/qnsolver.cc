@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 17248 2024-06-12 20:16:04Z greg $
+ * $Id: qnsolver.cc 17257 2024-07-11 00:21:27Z greg $
  */
 
 #include "config.h"
@@ -398,6 +398,7 @@ static bool exec( QNIO::Document& input, const std::string& output_file_name, co
 	}
 	qnap_model.exportModel( output );
 
+#if HAVE_EXPAT_H
     } else if ( print_jmva ) {
 	if ( dynamic_cast<QNIO::JMVA_Document*>(&input) != nullptr ) {
 	    input.exportModel( output );
@@ -408,7 +409,7 @@ static bool exec( QNIO::Document& input, const std::string& output_file_name, co
 //	    new_model.comprehensions() = input.comprehensions();
 	    new_model.exportModel( output );	/* Will save all results (if !bounds) */
 	}
-
+#endif
     } else {
 	try {
 	    if ( print_gnuplot ) input.plot( plot_type, plot_arg, no_bounds, plot_format );

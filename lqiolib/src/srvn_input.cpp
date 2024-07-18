@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 17182 2024-04-24 18:02:35Z greg $
+ *  $Id: srvn_input.cpp 17254 2024-06-24 20:49:42Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -56,6 +56,8 @@ extern "C" {
     extern yy_buffer_state * srvn_scan_string( const char * );
     extern void srvn_delete_buffer( yy_buffer_state * );
 }
+
+static std::string comment;
 
 /* Pointer to the current document and entry list map */
 namespace LQIO {
@@ -923,10 +925,9 @@ srvn_add_communication_delay (const char * from_proc, const char * to_proc, void
 }
 
 void 
-srvn_pragma (const char* pragmaText)
+srvn_pragma (const char* p)
 {
     /* Add the pragma to the list for later evaluation */
-    const char * p = pragmaText;
     while ( isspace( *p ) ) ++p;
     if ( *p++ != '#' ) return;
     while ( isspace( *p ) ) ++p;
@@ -950,6 +951,12 @@ srvn_pragma (const char* pragmaText)
 	while ( isspace( *p ) ) ++p;
 	LQIO::DOM::__document->addPragma(param,value);
     } while ( *p++ == ',' );
+}
+
+void
+srvn_comment ( const char * s )
+{
+    comment += s;
 }
 
 void * 

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_scan.l 15906 2022-09-25 12:52:43Z greg $
+ * $Id: srvn_scan.l 17254 2024-06-24 20:49:42Z greg $
  */
 %option noyywrap yylineno
 
@@ -61,7 +61,9 @@ P	[0123]?
 				srvn_pragma( &srvntext[0] );		/* Note... must copy string... */
 			}
 
-"#"(.)*                 ;
+"#"(.)*                 {
+				srvn_comment( &srvntext[0] );		/* Note... must copy string... */
+			}
 
 \"[^"]*			{
 				if ( srvntext[srvnleng-1] == '\\' ) {

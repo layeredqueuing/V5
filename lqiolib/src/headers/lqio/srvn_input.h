@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.h 15895 2022-09-23 17:21:55Z greg $
+ *  $Id: srvn_input.h 17254 2024-06-24 20:49:42Z greg $
  *  libsrvnio2
  *
  *  Created by Martin Mroz on 24/02/09.
@@ -87,7 +87,8 @@ extern "C" {
     void srvn_store_activity_think_time( void *, void * );
 
 
-    void srvn_pragma(const char* pragmaText);
+    void srvn_pragma( const char* );
+    void srvn_comment( const char* );
     void srvnerror( const char * fmt, ... );
     void srvnwarning( const char * fmt, ... );
 

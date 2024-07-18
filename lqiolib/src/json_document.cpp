@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 17236 2024-05-26 12:12:13Z greg $
+ * $Id: json_document.cpp 17253 2024-06-24 20:35:03Z greg $
  *
  * Read in JSON input files.
  *
@@ -1190,6 +1190,7 @@ namespace LQIO {
 
 	const std::map<const char*,const JSON_Document::ImportCall,JSON_Document::ImportCall> JSON_Document::call_table =
 	{
+	    { Xcomment,		ImportCall( &DocumentObject::setComment ) },
 	    { Xdestination,	ImportCall() },
 	    { Xmean_calls,	ImportCall( &Call::setCallMean ) },
 	    { Xresults,		ImportCall( &JSON_Document::handleResult ) },
@@ -1223,7 +1224,7 @@ namespace LQIO {
 		    }
 
 		    /* Get the call */
-		    Call * call = 0;
+		    Call * call = nullptr;
 		    if ( dynamic_cast<Phase *>(parent) ) {
 			Phase * source = dynamic_cast<Phase *>(parent);
 			call = source->getCallToTarget( destination );
@@ -2992,7 +2993,7 @@ namespace LQIO {
 
 	    _output << separator() << begin_object()
 		    << attribute( Xname, processor.getName() );
-	    if ( processor.getComment().size() > 0 ) {
+	    if ( !processor.getComment().empty() ) {
 		_output << next_attribute( Xcomment,  processor.getComment() );
 	    }
 
@@ -3478,8 +3479,11 @@ namespace LQIO {
 
 	    const Entry& destination = *call->getDestinationEntry();
 	    _output << separator() << begin_object()
-		    << attribute( Xdestination, destination.getName() )
-		    << next_attribute( Xmean_calls, *call->getCallMean() );
+		    << attribute( Xdestination, destination.getName() );
+	    if ( !call->getComment().empty() ) {
+		_output << next_attribute( Xcomment,  call->getComment() );
+	    }
+	    _output << next_attribute( Xmean_calls, *call->getCallMean() );
 /*+ JSON-SPEX */
 	    if ( !call->getDocument()->instantiated() ) {
 		/* Observations are stored by entry in spex, so, we have to collect them all */
