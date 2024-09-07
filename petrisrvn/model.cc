@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 17158 2024-04-01 17:13:10Z greg $
+ * $Id: model.cc 17261 2024-09-07 19:42:53Z greg $
  *
  * Load the SRVN model.
  */
@@ -872,7 +872,7 @@ Model::make_queue( double x_pos,		/* x coordinate.		*/
     for ( unsigned m = 0; m < max_m; ++m ) {
 	bool async_call = a->z(b) > 0 || a->task()->type() == Task::Type::OPEN_SRC;
 
-	if ( a->has_stochastic_calls() ) {
+	if ( !a->has_deterministic_calls() ) {
 	    k += 1;
 	    (this->*queue_func)( X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
 				 a, 0, b, a, 0, m, 0.0, k, async_call, ph2_place );

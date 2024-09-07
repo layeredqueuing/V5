@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: phase.cc 17069 2024-02-27 23:16:21Z greg $
+ * $Id: phase.cc 17261 2024-09-07 19:42:53Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -213,9 +213,9 @@ Phase::service_rate() const
 }
 
 
-bool Phase::has_stochastic_calls() const
+bool Phase::has_deterministic_calls() const
 {
-    return get_dom()->getPhaseTypeFlag() == LQIO::DOM::Phase::Type::STOCHASTIC;
+    return get_dom()->getPhaseTypeFlag() != LQIO::DOM::Phase::Type::STOCHASTIC;	/* clash with WSPNLIB DETERMINISTIC */
 }
 
 
@@ -293,13 +293,13 @@ Phase::check()
 	    zsum += call.value( this );
 	}
     }
-    if ( has_stochastic_calls() ) {
-	_n_slices = 1;
-    } else {
+    if ( has_deterministic_calls() ) {
 	_n_slices = static_cast<unsigned int>(round(ysum + zsum)) + 1;
 	if ( n_slices() >= DIMSLICE ) {
 	    LQIO::input_error( LQIO::ERR_TOO_MANY_X, "slices ", DIMSLICE );
 	}
+    } else {
+	_n_slices = 1;
     }
     _mean_processor_calls = ysum + 1;
     return ysum + zsum;
@@ -506,12 +506,12 @@ Phase::build_forwarding_list()
 {
     for ( vector<Entry *>::const_iterator d = ::__entry.begin(); d != ::__entry.end(); ++d ) {
 	if ( y(*d) == 0.0 ) continue;
-	if ( has_stochastic_calls() ) {
-	    follow_forwarding_path( 0, *d, y(*d) );
-	} else {
+	if ( has_deterministic_calls() ) {
 	    for ( unsigned int s = 0; s < y(*d); ++s ) {
 		follow_forwarding_path( s+1, *d, y(*d) );
 	    }
+	} else {
+	    follow_forwarding_path( 0, *d, y(*d) );
 	}
     }
 }
@@ -755,11 +755,11 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
     double mean_tokens  = 0.0;
     double queue_tokens = 0.0;	/* Queue_Tokens.		*/
 
-    if ( has_stochastic_calls() ) {	/*+ BUG 47 */
-	n_s = 1;
-    } else {
+    if ( has_deterministic_calls() ) {	/*+ BUG 47 */
 	n_s = static_cast<unsigned int>(y(b) + z(b));
 	off = compute_offset( b );
+    } else {
+	n_s = 1;
     }						/*- BUG 47 */
 
     /*
@@ -888,14 +888,14 @@ Phase::lambda( unsigned m, const Entry * b, const Phase * src_phase ) const
     double sum = 0.0;
     double calls = y(b) + z(b);
     if ( calls > 0.0 ) {
-	if ( has_stochastic_calls() ) {
-	    sum = get_tput( IMMEDIATE, "req%s0%s%s%d", name(), b->name(), src_phase->name(), m );
-	} else {
+	if ( has_deterministic_calls() ) {
 	    unsigned s;				/*+ BUG 47 */
 	    unsigned off = compute_offset( b );
 	    for ( s = 0; s < calls; ++s ) {
 		sum += get_tput( IMMEDIATE, "req%s%d%s%s%d", name(), s+off, b->name(), src_phase->name(), m );
 	    }					/*- BUG 47 */
+	} else {
+	    sum = get_tput( IMMEDIATE, "req%s0%s%s%d", name(), b->name(), src_phase->name(), m );
 	}
     } else if ( entry()->prob_fwd(b) > 0.0 ) {
 	sum = get_tput( IMMEDIATE, "req%s0%s%s%d", name(), b->name(), src_phase->name(), m );	/* BUG 64 */

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 17253 2024-06-24 20:35:03Z greg $
+ * $Id: expat_document.cpp 17260 2024-09-07 00:46:44Z greg $
  *
  * Read in XML input files.
  *
@@ -1929,12 +1929,6 @@ namespace LQIO {
         }
 
 
-        const std::set<const XML_Char *,Expat_Document::attribute_table_t> Expat_Document::histogram_table = {
-            Xmin,
-            Xmax,
-            Xnumber_bins,
-            Xphase
-	};
 //          Xbin_size,
 //          Xmean,
 //          Xstd_dev,
@@ -1944,6 +1938,13 @@ namespace LQIO {
         Histogram *
         Expat_Document::handleHistogram( DocumentObject * object, const XML_Char ** attributes )
         {
+	    static const std::set<const XML_Char *,Expat_Document::attribute_table_t> histogram_table = {
+		Xmin,
+		Xmax,
+		Xnumber_bins,
+		Xphase
+	    };
+	    
 	    checkAttributes( Xhistogram_bin, attributes, histogram_table );
 
 	    /* Handle entries specially */
@@ -1969,6 +1970,13 @@ namespace LQIO {
         Histogram *
         Expat_Document::handleQueueLengthDistribution( DocumentObject * object, const XML_Char ** attributes )
         {
+	    static const std::set<const XML_Char *,Expat_Document::attribute_table_t> histogram_table = {
+		Xmin,
+		Xmax,
+		Xnumber_bins,
+		Xphase
+	    };
+
 	    checkAttributes( Xhistogram_bin, attributes, histogram_table );
 
             return findOrAddHistogram( object, Histogram::Type::DISCRETE,

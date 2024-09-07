@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: entry.cc 17243 2024-05-27 21:49:58Z greg $
+ * $Id: entry.cc 17261 2024-09-07 19:42:53Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -48,7 +48,6 @@ Entry::Entry( LQIO::DOM::Entry * dom, Task * task )
       _replies(false),
       _random_queueing(false),
       _has_service_time(false),			/* Sevice time anywhere.	*/
-      _has_deterministic_phases(false),		/* Deterministic phases anywhere*/
       _rel_prob(0.),
       _n_phases(0),
       _fwd()
@@ -144,6 +143,16 @@ double Entry::zz(const Entry* entry) const
 }
 
 bool
+Entry::has_deterministic_calls() const
+{
+    if ( !is_regular_entry() ) return false;
+    for ( unsigned int p = 1; p <= n_phases(); ++p ) {
+	if ( phase[p].has_deterministic_calls() ) return true;
+    }
+    return false;
+}
+
+bool
 Entry::test_and_set( LQIO::DOM::Entry::Type type )
 {
     const bool rc = get_dom()->entryTypeOk( type );
@@ -218,7 +227,6 @@ Entry::initialize()
     _n_phases = 0;
 
     _has_service_time = false;
-    _has_deterministic_phases = false;
     for ( auto& fwd : forwards ) delete fwd;		// BUG 424
     forwards.clear();					// BUG 424
 
@@ -231,9 +239,6 @@ Entry::initialize()
 
 	    if ( curr_phase->s() > 0.0 || curr_phase->think_time() > 0.0 ) {
 		_has_service_time = true;
-	    }
-	    if ( !curr_phase->has_stochastic_calls() ) {
-		_has_deterministic_phases = true;
 	    }
 	    if ( ( calls > 0 || curr_phase->s() > 0.0 ) && p > n_phases() ) {
 		set_n_phases( p );

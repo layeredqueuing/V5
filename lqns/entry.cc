@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 17209 2024-05-13 18:16:37Z greg $
+ * $Id: entry.cc 17260 2024-09-07 00:46:44Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -875,6 +875,8 @@ Entry::prVisit() const
 	return getDOM()->getVisitProbabilityValue();
     } else if ( owner()->isReferenceTask() || owner()->throughput() == 0.0 ) {
 	return Probability( 1.0 / owner()->nEntries() );
+    } else if ( throughput() == owner()->throughput() ) {
+	return Probability( 1.0 );
     } else {
 	return Probability( throughput() / owner()->throughput() );
     }
