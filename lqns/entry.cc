@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 17260 2024-09-07 00:46:44Z greg $
+ * $Id: entry.cc 17265 2024-09-08 20:08:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -915,19 +915,22 @@ Entry::recalculateDynamicValues()
 }
 
 
+/*
+ * Save all entry results.  Note: variance must by computed before being called.
+ */
+
 
 const Entry&
 Entry::insertDOMResults(double *phaseUtils) const
 {
     if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
 
-    double totalPhaseUtil = 0.0;
-
     /* Write the results into the DOM */
     const double throughput = this->throughput();		/* Used to compute utilization at activity entries */
     _dom->setResultThroughput(throughput)
 	.setResultThroughputBound(throughputBound());
 
+    double totalPhaseUtil = 0.0;
     for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
 	const double u = phase->utilization();
 	const unsigned p = phase - _phase.begin();

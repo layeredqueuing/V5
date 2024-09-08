@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17209 2024-05-13 18:16:37Z greg $
+ * $Id: task.cc 17265 2024-09-08 20:08:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1382,7 +1382,7 @@ Task::store_activity_service_time ( const char * activity_name, const double ser
 /*----------------------------------------------------------------------*/
 
 /*
- * Count up the number of calls made by this task (regardless of phase).
+ * Save all task results.
  */
 
 const Task&
@@ -1392,9 +1392,11 @@ Task::insertDOMResults(void) const
 
     Entity::insertDOMResults();
     
-    double totalTaskUtil   = 0.0;
-    double totalThroughput = 0.0;
-    double totalProcUtil   = 0.0;
+    if ( hasActivities() ) {
+	std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::insertDOMResults ) );
+	std::for_each( precedences().begin(), precedences().end(), std::mem_fn( &ActivityList::insertDOMResults ) );
+    }
+
     double totalPhaseUtils[MAX_PHASES];
     double resultPhaseData[MAX_PHASES];
 
@@ -1403,21 +1405,14 @@ Task::insertDOMResults(void) const
 	resultPhaseData[p] = 0.0;
     }
 
-    if (hasActivities()) {
-	std::for_each( activities().begin(), activities().end(), std::mem_fn( &Phase::insertDOMResults ) );
-	std::for_each( precedences().begin(), precedences().end(), std::mem_fn( &ActivityList::insertDOMResults ) );
-    }
-
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	(*entry)->computeVariance();
-	(*entry)->insertDOMResults(&totalPhaseUtils[0]);
-
-	totalProcUtil += (*entry)->processorUtilization();
-	totalThroughput += (*entry)->throughput();
+	(*entry)->computeVariance()
+	    .insertDOMResults(&totalPhaseUtils[0]);
     }
 
     /* Store totals */
 
+    double totalTaskUtil   = 0.0;
     for ( unsigned p = 0; p < maxPhase(); ++p ) {
 	totalTaskUtil += totalPhaseUtils[p];
 	resultPhaseData[p] = totalPhaseUtils[p];
@@ -1426,8 +1421,8 @@ Task::insertDOMResults(void) const
     /* Place all of the totals into the DOM task itself */
     getDOM()->setResultPhaseUtilizations(maxPhase(), resultPhaseData);
     getDOM()->setResultUtilization(totalTaskUtil);
-    getDOM()->setResultThroughput(totalThroughput);
-    getDOM()->setResultProcessorUtilization(totalProcUtil);
+    getDOM()->setResultThroughput( throughput() );
+    getDOM()->setResultProcessorUtilization( processorUtilization() );
     getDOM()->setResultBottleneckStrength(0);
     return *this;
 }
