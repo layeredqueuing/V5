@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 17242 2024-05-27 19:41:05Z greg $
+ * $Id: mva.cc 17288 2024-09-13 17:31:24Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -392,7 +392,7 @@ MVA::reset()
 
 /*
  * Initialize the sorted priority array.  Priorities are sorted from
- * highest (= 0) to lowest (= +oo).  Duplicates are removed from the
+ * highest (= +oo) to lowest (= 0).  Duplicates are removed from the
  * list.
  */
 

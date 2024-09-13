@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 16724 2023-06-07 13:13:12Z greg $
+ * $Id: lqns.h 17275 2024-09-10 20:35:49Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -54,7 +54,7 @@ template <typename Type> inline void Delete( Type x ) { delete x; }
 double under_relax( const double old_value, const double new_value, const double relax );
 
 template <class Type> struct EqualsReplica {
-    EqualsReplica<Type>( const std::string& name, unsigned int replica=1 ) : _name(name), _replica(replica) {}
+    EqualsReplica( const std::string& name, unsigned int replica=1 ) : _name(name), _replica(replica) {}
     bool operator()( const Type * object ) const { return object->name() == _name && object->getReplicaNumber() == _replica; }
 private:
     const std::string _name;

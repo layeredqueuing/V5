@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: errmsg.cc 15957 2022-10-07 17:14:47Z greg $
+ * $Id: errmsg.cc 17287 2024-09-13 16:57:49Z greg $
  */
 
 #include <cstdio>
@@ -21,7 +21,7 @@
 #include "lqsim.h"
 
 /*
- * Error messages.
+ * Error messages.  Note:  always call LQIO::runtime_error or LQIO::input_error and never dom->runtime_error().
  */
 
 std::vector< std::pair<unsigned, LQIO::error_message_type> > local_error_messages =

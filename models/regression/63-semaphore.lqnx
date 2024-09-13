@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
-<lqn-model name="77-semaphore" description="$Id: 63-semaphore.lqnx 16465 2023-03-05 13:28:05Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id: 63-semaphore.lqnx 17288 2024-09-13 17:31:24Z greg $ -->
+<lqn-model name="77-semaphore" description="Layered Queueing Network Model" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Semaphore test case." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
-   <processor name="client" scheduling="inf">
-      <task name="client1" scheduling="ref">
+   <processor name="client" scheduling="hol">			<!-- Force order based on priority -->
+      <task name="client1" scheduling="ref" priority="1">	<!-- highest priority -->
          <entry name="client1" type="PH1PH2">
             <entry-phase-activities>
                <activity name="client1_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
@@ -11,7 +12,7 @@
             </entry-phase-activities>
          </entry>
       </task>
-      <task name="client2" scheduling="ref">
+      <task name="client2" scheduling="ref" priority="0">	<!-- lowest priority -->
          <entry name="client2" type="PH1PH2">
             <entry-phase-activities>
                <activity name="client2_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">

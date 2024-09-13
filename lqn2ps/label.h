@@ -1,6 +1,6 @@
 /* -*- c++ -*- node.h	-- Greg Franks
  *
- * $Id: label.h 16856 2023-11-20 21:35:25Z greg $
+ * $Id: label.h 17275 2024-09-10 20:35:49Z greg $
  */
 
 #ifndef _LABEL_H
@@ -425,7 +425,7 @@ template<> class DrawText<LabelGD> {
 public:
     typedef double (LabelGD::*textFPtr)( const Point& c, const std::string& s, Graphic::Font font, int fontsize,
 					 Justification justification, Graphic::Colour colour  ) const;
-    DrawText<LabelGD>( std::ostream&, const LabelGD& self, const textFPtr text, Point point, const Justification j, unsigned flags=0 ) : _self(self), _text(text), _point(point), _justification(j) {}
+    DrawText( std::ostream&, const LabelGD& self, const textFPtr text, Point point, const Justification j, unsigned flags=0 ) : _self(self), _text(text), _point(point), _justification(j) {}
     void operator()( const Label::Line& line ) {
 	const std::string& str = line.getStr();
 	if ( str.size() ) {

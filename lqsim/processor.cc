@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: processor.cc 17279 2024-09-11 21:24:27Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -468,8 +468,7 @@ Processor::insertDOMResults()
     double proc_util_mean = 0.0;
     double proc_util_var  = 0.0;
 
-    std::vector<Task *>::const_iterator next_task;
-    for ( next_task = _tasks.begin(); next_task != _tasks.end(); ++next_task ) {
+    for ( std::vector<Task *>::const_iterator next_task = _tasks.begin(); next_task != _tasks.end(); ++next_task ) {
 	Task * cp = *next_task;
 
 	for ( std::vector<Entry *>::const_iterator next_entry = cp->_entry.begin(); next_entry != cp->_entry.end(); ++next_entry ) {
@@ -479,7 +478,12 @@ Processor::insertDOMResults()
 		proc_util_var  += ep->_phase[p].r_cpu_util.variance();
 	    }
 	}
-	/* Entry utilization includes activities */
+
+	for ( std::vector<Activity *>::const_iterator next_activity = cp->_activity.begin(); next_activity != cp->_activity.end(); ++next_activity ) {
+//	    std::cerr << "debug: processor " << name() << ", task " << cp->name() << ", activity " << (*next_activity)->name() << ": utilization " << (*next_activity)->r_cpu_util.mean() << std::endl; 
+	    proc_util_mean += (*next_activity)->r_cpu_util.mean();
+	    proc_util_var  += (*next_activity)->r_cpu_util.variance();
+	}
     }
 
     getDOM()->setResultUtilization(proc_util_mean);

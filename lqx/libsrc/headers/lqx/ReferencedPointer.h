@@ -18,11 +18,11 @@ namespace LQX {
   template <typename T> class ReferencedPointer {
   public:  
     
-    ReferencedPointer<T>() : _value(NULL)
+    ReferencedPointer() : _value(NULL)
     {
     }
     
-    ReferencedPointer<T>(T* value, bool addNewReference=false) : _value(value) 
+    ReferencedPointer(T* value, bool addNewReference=false) : _value(value) 
     {
       /* Increment the reference count */
       if (addNewReference && _value != NULL) {
@@ -40,7 +40,7 @@ namespace LQX {
     
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
     
-    ReferencedPointer<T>(const ReferencedPointer<T>& other)
+    ReferencedPointer(const ReferencedPointer<T>& other)
     {
       /* Add a reference to the value */
       _value = other._value;

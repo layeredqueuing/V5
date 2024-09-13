@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: vector.h 15768 2022-07-27 13:29:17Z greg $
+ * $Id: vector.h 17275 2024-09-10 20:35:49Z greg $
  *
  * Vector.  Range checked from 1..n (and not from 0..n-1).
  * VectorMath.  Adds the operators +, -, *, /, square, sum (so only use on numbers).
@@ -252,9 +252,9 @@ template <typename Type>
 class VectorMath : public Vector<Type> {
 	
 public:
-    explicit VectorMath<Type>( size_t size=0, const Type init=Type() ) : Vector<Type>() { this->grow( size, init ); }
-    VectorMath<Type>( const Type *ar, size_t sz ) : Vector<Type>( ar, sz ) {}
-    VectorMath<Type>( const VectorMath<Type> &iA ) : Vector<Type>( iA ) {}
+    explicit VectorMath( size_t size=0, const Type init=Type() ) : Vector<Type>() { this->grow( size, init ); }
+    VectorMath( const Type *ar, size_t sz ) : Vector<Type>( ar, sz ) {}
+    VectorMath( const VectorMath<Type> &iA ) : Vector<Type>( iA ) {}
 
     VectorMath<Type>& operator=( const Vector<Type>& arg ) { Vector<Type>::operator=( arg ); return *this; }
     VectorMath<Type>& operator=( const Type& arg ) { Vector<Type>::operator=( arg ); return *this; }

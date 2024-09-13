@@ -1,7 +1,7 @@
 /* runlqx.h	-- Greg Franks
  *
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 17069 2024-02-27 23:16:21Z greg $
+ * $Id: runlqx.cc 17281 2024-09-12 15:21:59Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -74,8 +74,7 @@ namespace SolverInterface
 	    /* Run the solver and return its success as a boolean value */
 	    assert (_aModel );
 
-	    _document->setResultInvocationNumber( invocationCount )
-		.setResultDescription();
+	    _document->setResultInvocationNumber( invocationCount );
 	    const bool ok = (_aModel->*_solve)();
 	    return LQX::Symbol::encodeBoolean(ok);
 	}

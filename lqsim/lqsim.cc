@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 16437 2023-02-17 12:47:38Z greg $
+ * $Id: lqsim.cc 17287 2024-09-13 16:57:49Z greg $
  */
 
 #define STACK_TESTING
@@ -318,9 +318,10 @@ main( int argc, char * argv[] )
 
     LQIO::io_vars.init( VERSION, basename( argv[0] ), LQIO::severity_action );
     std::copy( local_error_messages.begin(), local_error_messages.end(), std::inserter( LQIO::error_messages, LQIO::error_messages.begin() ) );
+    std::copy( local_error_messages.begin(), local_error_messages.end(), std::inserter( LQIO::error_messages, LQIO::error_messages.begin() ) );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2023-02-17 07:47:38 -0500 (Fri, 17 Feb 2023) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2024-09-13 12:57:49 -0400 (Fri, 13 Sep 2024) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Handy defaults.						*/

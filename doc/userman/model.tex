@@ -7,7 +7,7 @@
 %% Created:             Tue Jul 18 2006
 %%
 %% ----------------------------------------------------------------------
-%% $Id: model.tex 10923 2012-05-27 13:25:45Z greg $
+%% $Id: model.tex 17288 2024-09-13 17:31:24Z greg $
 %% ----------------------------------------------------------------------
 
 \chapter{The Layered Queueing Network Model}
@@ -184,7 +184,7 @@ scheduled using the following queueing disciplines:
 \end{description}
 
 Priorities\index{priority!highest} range from zero to positive
-infinity, with a priority of zero being the highest.  The default
+infinity, with a priority of zero being the lowest.  The default
 priority for all tasks is zero.\index{processor|)}
 
 \subsection{Groups}
@@ -242,7 +242,7 @@ methods\index{scheduling!task}:
 \end{description}
 
 Priorities\index{priority!highest} range from zero to positive
-infinity, with a priority of zero being the highest.  The default
+infinity, with a priority of zero being the lowest.  The default
 priority for all entries is zero.
 
 The subclasses of \emph{task} are:

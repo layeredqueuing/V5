@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 17261 2024-09-07 19:42:53Z greg $
+ * $Id: model.cc 17281 2024-09-12 15:21:59Z greg $
  *
  * Load the SRVN model.
  */
@@ -118,7 +118,6 @@ Model::solve( solve_using solver_function, const std::string& inputFileName, LQI
 
     /* Make sure we got a document */
     if ( document == nullptr || LQIO::io_vars.anError() ) return FILEIO_ERROR;
-    document->setResultDescription();			/* Wipe out any description and replace with generic. */
 
     document->mergePragmas( pragmas.getList() );	/* Save pragmas -- prepare will process */
 
@@ -677,6 +676,7 @@ Model::compute()
 	    }
 	    insert_DOM_results( rc == true, stats );	/* Save results */
 
+	    _document->setResultDescription();
 	    _document->print( _output_file_name, suffix, _output_format, rtf_flag );
 
 	    if ( inservice_match_pattern != nullptr ) {

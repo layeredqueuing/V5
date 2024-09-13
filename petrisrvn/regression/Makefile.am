@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16580 2023-03-23 20:14:18Z greg $
+# $Id: Makefile.am 17285 2024-09-13 15:11:30Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -123,7 +123,7 @@ other:	$(OTHER)
 33-spex-convergence.lqxo: 33-spex-convergence.lqnx
 	$(SRVN) -w -o $*.out $<
 	@mv $*.d/$*-002.lqxo $@
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/petri-results/$@
 	@rm -rf $*.d
 
 50-replication.lqxo:	50-replication.lqnx
