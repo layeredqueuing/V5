@@ -1,7 +1,7 @@
 /*  -*- c++ -*-
  *
  * ------------------------------------------------------------------------
- * $Id: target.h 15317 2022-01-01 16:44:56Z greg $
+ * $Id: target.h 17292 2024-09-16 17:28:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -9,15 +9,17 @@
 #define _TARGET_H
 
 #include <cstdio>
+#include <deque>
 #include <vector>
 #include <assert.h>
 #include "result.h"
 #include <lqio/dom_call.h>
 #include <lqio/dom_phase.h>
 
-class Message;
-class Entry;
 class Activity;
+class Entry;
+class Message;
+class Task;
 
 class tar_t {				/* send target struct		*/
     friend class Targets;
@@ -35,7 +37,7 @@ public:
     bool dropped_messages() const;
     double mean_delay() const;		/* Result values 		*/
     double variance_delay() const;
-    double compute_minimum_service_time() const;
+    double compute_minimum_service_time( std::deque<Entry *>& ) const;
 
     void configure();
 

@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 17238 2024-05-27 10:49:35Z greg $
+ * $Id: activity.cc 17292 2024-09-16 17:28:53Z greg $
  */
 
 #include "lqsim.h"
@@ -19,6 +19,8 @@
 #include <cmath>
 #include <cstdarg>
 #include <cstring>
+#include <functional>
+#include <numeric>
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/dom_histogram.h>
@@ -111,7 +113,7 @@ Activity::set_DOM(LQIO::DOM::Phase* phaseInfo)
 bool
 Activity::has_lost_messages() const
 {
-    return std::any_of(_calls.begin(),_calls.end(), Predicate<tar_t>( &tar_t::dropped_messages ) );
+    return std::any_of(_calls.begin(),_calls.end(), std::mem_fn( &tar_t::dropped_messages ) );
 }
 
 double
@@ -303,10 +305,9 @@ double Activity::count_replies( ActivityList::Collect& data ) const
  */
 
 double
-Activity::compute_minimum_service_time() const
+Activity::compute_minimum_service_time( std::deque<Entry *>& stack ) const
 {
-    double sum = for_each( _calls.begin(), _calls.end(), ConstExecSum<const tar_t,double>( &tar_t::compute_minimum_service_time ) ).sum();
-    return service() + sum;
+    return service() + std::accumulate( _calls.begin(), _calls.end(), 0.0, [=]( double l, const tar_t& r ){ return l + r.compute_minimum_service_time(const_cast<std::deque<Entry *>&>(stack)); } );
 }
     
 
@@ -317,7 +318,8 @@ Activity::compute_minimum_service_time() const
 double
 Activity::compute_minimum_service_time( ActivityList::Collect& data ) const
 {
-    double time = compute_minimum_service_time();
+    std::deque<Entry *> stack;
+    double time = compute_minimum_service_time( stack );
     data._e->_minimum_service_time[data.phase-1] += time;
     return time;
 }

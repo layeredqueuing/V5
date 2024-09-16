@@ -10,7 +10,7 @@
 /*
  * Activities (and phases).
  *
- * $Id: activity.h 16121 2022-11-17 20:31:33Z greg $
+ * $Id: activity.h 17292 2024-09-16 17:28:53Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -85,7 +85,7 @@ public:
     void print_debug_info();
     double find_children( std::deque<Activity *>& activity_stack, std::deque<AndForkActivityList *>& fork_stack, const Entry * ep );
 
-    double compute_minimum_service_time() const;
+    double compute_minimum_service_time( std::deque<Entry *>& ) const;
     double compute_minimum_service_time( ActivityList::Collect& data ) const;
 
     Activity& reset_stats();

@@ -1,13 +1,14 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: target.cc 17292 2024-09-16 17:28:53Z greg $
  * ------------------------------------------------------------------------
  */
 
 #include "lqsim.h"
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <lqio/error.h>
 #include <lqio/input.h>
@@ -84,7 +85,8 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
     } else {
 	ps_record_stat( r_loss_prob.raw, 1 );
 	if ( Pragma::__pragmas->abort_on_dropped_message() ) {
-	    LQIO::runtime_error( FTL_MSG_POOL_EMPTY, src->name().c_str(), _entry->name().c_str() );
+	    LQIO::runtime_error( ERR_MSG_POOL_EMPTY, src->name().c_str(), _entry->name().c_str() );
+	    throw std::runtime_error( "tar_t::send_asynchronous" );
 	} else {
 	    messages_lost = true;
 	}
@@ -149,11 +151,11 @@ tar_t::variance_delay() const
  */
 
 double
-tar_t::compute_minimum_service_time() const
+tar_t::compute_minimum_service_time( std::deque<Entry *>& stack ) const
 {
     if ( reply() ) {
 	if ( entry()->_minimum_service_time[0] == 0. ) {
-	    entry()->compute_minimum_service_time();
+	    entry()->compute_minimum_service_time( stack );
 	}
 	return calls() * entry()->_minimum_service_time[0];
     } else {
@@ -390,6 +392,6 @@ Targets::print_raw_stat( FILE * output ) const
 Targets&
 Targets::insertDOMResults()
 {
-    for_each( _target.begin(), _target.end(), Exec<tar_t>( &tar_t::insertDOMResults ) );
+    std::for_each( _target.begin(), _target.end(), std::mem_fn( &tar_t::insertDOMResults ) );
     return *this;
 }

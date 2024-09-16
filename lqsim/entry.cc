@@ -10,13 +10,15 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: entry.cc 17292 2024-09-16 17:28:53Z greg $
  */
 
 #include "lqsim.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <functional>
+#include <numeric>
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include "activity.h"
@@ -274,14 +276,14 @@ Entry::is_w_lock() const
 bool
 Entry::has_lost_messages() const
 {
-    return std::any_of( _phase.begin(), _phase.end(), Predicate<Activity>( &Activity::has_lost_messages ) );
+    return std::any_of( _phase.begin(), _phase.end(), std::mem_fn( &Activity::has_lost_messages ) );
 }
 
 
 bool
 Entry::has_think_time() const
 {
-    return std::any_of( _phase.begin(), _phase.end(), Predicate<Activity>( &Activity::has_think_time ) );
+    return std::any_of( _phase.begin(), _phase.end(), std::mem_fn( &Activity::has_think_time ) );
 }
 
 
@@ -361,7 +363,7 @@ Entry&
 Entry::accumulate_data()
 {
     r_cycle.accumulate();
-    for_each( _phase.begin(), _phase.end(), Exec<Activity>( &Activity::accumulate_data ) );
+    std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Activity::accumulate_data ) );
 
     /* Forwarding */
 
@@ -375,7 +377,7 @@ Entry&
 Entry::reset_stats()
 {
     r_cycle.reset();
-    for_each( _phase.begin(), _phase.end(), Exec<Activity>( &Activity::reset_stats ) );
+    std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Activity::reset_stats ) );
 
     /* Forwarding */
 	    
@@ -483,28 +485,41 @@ Entry::insertDOMResults()
  */
 
 double
-Entry::compute_minimum_service_time()
+Entry::compute_minimum_service_time( std::deque<Entry *>& stack )
 {
-    if ( minimum_service_time() == 0. ) {
-	if ( is_regular() ) {
-	    for ( std::vector<Activity>::iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
-		const size_t p = phase - _phase.begin();
-		_minimum_service_time[p] = phase->compute_minimum_service_time();
-	    }
-	} else {
-	    std::deque<Activity *> activity_stack;
-	    ActivityList::Collect data( this, &Activity::compute_minimum_service_time );
-	    _activity->collect( activity_stack, data );
+    /* Check for cycle... */
+    try {
+	if ( std::find( stack.begin(), stack.end(), this ) != stack.end() ) {
+	    std::string msg = std::accumulate( stack.rbegin(), stack.rend(), name(), []( const std::string& l, Entry * r ) { return l + "," + r->name(); } );
+	    throw std::runtime_error( msg );
 	}
-	if ( debug_flag ) {
-	    (void) fprintf( stderr, "Entry %s: minimum service time=", name().c_str() );
-	    for ( std::vector<double>::const_iterator i = _minimum_service_time.begin(); i != _minimum_service_time.end(); ++i ) {
-		if ( i != _minimum_service_time.begin() ) (void) fputc( ',', stderr );
-		(void) fprintf( stderr, "%g", *i );
+	stack.push_back( this );
+    
+	if ( minimum_service_time() == 0. ) {
+	    if ( is_regular() ) {
+		for ( std::vector<Activity>::iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+		    const size_t p = phase - _phase.begin();
+		    _minimum_service_time[p] = phase->compute_minimum_service_time( stack );
+		}
+	    } else {
+		std::deque<Activity *> activity_stack;
+		ActivityList::Collect data( this, &Activity::compute_minimum_service_time );
+		_activity->collect( activity_stack, data );
 	    }
-	    (void) fputc( '\n', stderr );
+	    if ( debug_flag ) {
+		(void) fprintf( stderr, "Entry %s: minimum service time=", name().c_str() );
+		for ( std::vector<double>::const_iterator i = _minimum_service_time.begin(); i != _minimum_service_time.end(); ++i ) {
+		    if ( i != _minimum_service_time.begin() ) (void) fputc( ',', stderr );
+		    (void) fprintf( stderr, "%g", *i );
+		}
+		(void) fputc( '\n', stderr );
+	    }
 	}
     }
+    catch( const std::runtime_error& err ) {
+	getDOM()->runtime_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, err.what() );
+    }
+    
 
     double sum = 0.0;
     if ( task()->type() == Task::Type::CLIENT || open_arrival_rate() != 0. ) {

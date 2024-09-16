@@ -10,14 +10,16 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 17288 2024-09-13 17:31:24Z greg $
+ * $Id: task.cc 17293 2024-09-16 17:41:16Z greg $
  */
 
 #include "lqsim.h"
-#include <iostream>
+#include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <algorithm>
+#include <functional>
+#include <iostream>
+#include <numeric>
 #include <lqio/labels.h>
 #include <lqio/error.h>
 #include <lqio/dom_actlist.h>
@@ -116,9 +118,9 @@ Task::configure()
 {
     /* I need the instance variable "task" set from this point on. */
 
-    double total_calls = for_each( _activity.begin(), _activity.end(), ExecSum<Activity,double>( &Activity::configure ) ).sum();
-    for_each( _act_list.begin(), _act_list.end(), Exec<ActivityList>( &ActivityList::configure ) );
-    total_calls += for_each( _entry.begin(), _entry.end(), ExecSum<Entry,double>( &Entry::configure ) ).sum();
+    double total_calls = std::accumulate( _activity.begin(), _activity.end(), 0.0, []( double l, Activity * r ){ return l + r->configure(); } );
+    std::for_each( _act_list.begin(), _act_list.end(), std::mem_fn( &ActivityList::configure ) );
+    total_calls = std::accumulate( _entry.begin(), _entry.end(), total_calls, []( double l, Entry * r ) { return l + r->configure(); } );
 
     if ( total_calls == 0 && is_reference_task() ) {
 	getDOM()->runtime_error( LQIO::WRN_NOT_USED );
@@ -182,9 +184,9 @@ Task::create()
 Task&
 Task::initialize()
 {
-    for_each( _activity.begin(), _activity.end(), Exec<Activity>( &Activity::initialize ) );
-    for_each( _entry.begin(), _entry.end(), Exec<Entry>( &Entry::initialize ) );
-    for_each( _forks.begin(), _forks.end(), Exec<AndForkActivityList>( &AndForkActivityList::initialize ) );
+    std::for_each( _activity.begin(), _activity.end(), std::mem_fn( &Activity::initialize ) );
+    std::for_each( _entry.begin(), _entry.end(), std::mem_fn( &Entry::initialize ) );
+    std::for_each( _forks.begin(), _forks.end(), std::mem_fn( &AndForkActivityList::initialize ) );
 
     /*
      * Allocate statistics for joins.  We do it here because we
@@ -279,7 +281,7 @@ Task::build_links()
 bool
 Task::has_send_no_reply() const
 {
-    return std::any_of( _entry.begin(), _entry.end(), Predicate<Entry>( &Entry::is_send_no_reply ) );
+    return std::any_of( _entry.begin(), _entry.end(), std::mem_fn( &Entry::is_send_no_reply ) );
 }
 
 /*
@@ -395,9 +397,9 @@ Task::reset_stats()
     r_util.reset();
     r_cycle.reset();
 
-    std::for_each( _entry.begin(), _entry.end(), Exec<Entry>( &Entry::reset_stats ) );
-    std::for_each( _activity.begin(), _activity.end(), Exec<Activity>( &Activity::reset_stats ) );
-    std::for_each( _joins.begin(), _joins.end(), Exec<AndJoinActivityList>( &AndJoinActivityList::reset_stats ) );
+    std::for_each( _entry.begin(), _entry.end(), std::mem_fn( &Entry::reset_stats ) );
+    std::for_each( _activity.begin(), _activity.end(), std::mem_fn( &Activity::reset_stats ) );
+    std::for_each( _joins.begin(), _joins.end(), std::mem_fn( &AndJoinActivityList::reset_stats ) );
 
     /* Histogram stuff */
 
@@ -416,9 +418,9 @@ Task::accumulate_data()
     r_util.accumulate();
     r_cycle.accumulate();
 
-    std::for_each( _entry.begin(), _entry.end(), Exec<Entry>( &Entry::accumulate_data ) );
-    std::for_each( _activity.begin(), _activity.end(), Exec<Activity>( &Activity::accumulate_data ) );
-    std::for_each( _joins.begin(), _joins.end(), Exec<AndJoinActivityList>( &AndJoinActivityList::accumulate_data ) );
+    std::for_each( _entry.begin(), _entry.end(), std::mem_fn( &Entry::accumulate_data ) );
+    std::for_each( _activity.begin(), _activity.end(), std::mem_fn( &Activity::accumulate_data ) );
+    std::for_each( _joins.begin(), _joins.end(), std::mem_fn( &AndJoinActivityList::accumulate_data ) );
 
     /* Histogram stuff */
 
@@ -438,10 +440,10 @@ Task::print( FILE * output ) const
     for ( std::vector<Entry *>::const_iterator entry = _entry.begin(); entry != _entry.end(); ++entry ) {
 	(*entry)->r_cycle.print_raw( output, "Entry %-11.11s  - Cycle Time      ", (*entry)->name().c_str() );
 
-	for_each( (*entry)->_phase.begin(), (*entry)->_phase.end(), ConstExec1<Activity,FILE *>( &Activity::print_raw_stat, output ) );
+	std::for_each( (*entry)->_phase.begin(), (*entry)->_phase.end(), [=]( const Activity& activity ){ activity.print_raw_stat( output ); } );
     }
 
-    for_each( _activity.begin(), _activity.end(), ConstExec1<Activity,FILE *>( &Activity::print_raw_stat, output ) );
+    std::for_each( _activity.begin(), _activity.end(), [=]( const Activity* activity ){ activity->print_raw_stat( output ); } );
 
     for ( std::vector<AndJoinActivityList *>::const_iterator lp = _joins.begin(); lp != _joins.end(); ++lp ) {
 	(*lp)->r_join.print_raw( output, "%-6.6s %-11.11s - Join Delay ", type_name().c_str(), name().c_str() );
@@ -466,8 +468,8 @@ Task::insertDOMResults()
     }
 
     if ( has_activities() ) {
-	for_each( _activity.begin(), _activity.end(), Exec<Activity>( &Activity::insertDOMResults ) );
-	for_each( _joins.begin(), _joins.end(), Exec<AndJoinActivityList>( &AndJoinActivityList::insertDOMResults ) );
+	std::for_each( _activity.begin(), _activity.end(), std::mem_fn( &Activity::insertDOMResults ) );
+	std::for_each( _joins.begin(), _joins.end(), std::mem_fn( &AndJoinActivityList::insertDOMResults ) );
     }
 
     double taskProcUtil = 0.0;		/* Total processor utilization. */
@@ -554,7 +556,7 @@ Task::add( LQIO::DOM::Task* dom )
     
     Group * group = nullptr;
     if ( !domGroup && processor->discipline() == SCHEDULE_CFS ) {
-	LQIO::input_error( LQIO::ERR_NO_GROUP_SPECIFIED, task_name, processor_name.c_str() );
+	dom->input_error( LQIO::ERR_NO_GROUP_SPECIFIED, processor_name.c_str() );
     } else if ( domGroup ) {
 	group = Group::find( domGroup->getName().c_str() );
 	if ( !group ) {
@@ -695,8 +697,8 @@ Task::is_infinite() const
 bool
 Task::has_think_time() const
 {
-    return std::any_of( _entry.begin(), _entry.end(), Predicate<Entry>( &Entry::has_think_time ) )
-	|| std::any_of( _activity.begin(), _activity.end(), Predicate<Activity>( &Activity::has_think_time ) );
+    return std::any_of( _entry.begin(), _entry.end(), std::mem_fn( &Entry::has_think_time ) )
+	|| std::any_of( _activity.begin(), _activity.end(), std::mem_fn( &Activity::has_think_time ) );
 }
 
 
@@ -704,7 +706,7 @@ Task::has_think_time() const
 bool
 Task::has_lost_messages() const
 {
-    return std::any_of( _entry.begin(), _entry.end(), Predicate<Entry>( &Entry::has_lost_messages ) );
+    return std::any_of( _entry.begin(), _entry.end(), std::mem_fn( &Entry::has_lost_messages ) );
 }
 
 
@@ -786,7 +788,7 @@ Server_Task::set_synchronization_server()
 bool
 Server_Task::is_aysnc_inf_server() const
 {
-    return std::any_of( _entry.begin(), _entry.end(), Predicate<Entry>( &Entry::is_send_no_reply ) );
+    return std::any_of( _entry.begin(), _entry.end(), std::mem_fn( &Entry::is_send_no_reply ) );
 }
 
 
@@ -864,18 +866,15 @@ Semaphore_Task::create_instance()
 {
     if ( n_entries() != N_SEMAPHORE_ENTRIES ) {
 	getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), N_SEMAPHORE_ENTRIES );
-    }
-    if ( (_entry[0]->is_signal() && !_entry[1]->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::WAIT ) )
+    } else if ( (_entry[0]->is_signal() && !_entry[1]->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::WAIT ) )
 	 || ( _entry[0]->is_wait() && !_entry[1]->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::SIGNAL ) ) ) {
 	getDOM()->runtime_error( LQIO::ERR_DUPLICATE_SEMAPHORE_ENTRY_TYPES,
 				 _entry[0]->getDOM()->getName().c_str(),
 				 _entry[1]->getDOM()->getName().c_str(),
 				 _entry[0]->is_signal() ? "signal" : "wait" );
-    }
-    if ( _entry[0]->is_wait() && !_entry[0]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
+    } else if ( _entry[0]->is_wait() && !_entry[0]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
 	_entry[0]->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT );
-    }
-    if ( _entry[1]->is_wait() && !_entry[1]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
+    } else if ( _entry[1]->is_wait() && !_entry[1]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
 	_entry[1]->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT );
     }
     if ( !_hist_data && getDOM()->hasHistogram() ) {
@@ -1212,7 +1211,7 @@ Pseudo_Task::insertDOMResults()
 
     /* Waiting times for open arrivals */
 
-    for_each( _entry.begin(), _entry.end(), Exec<Entry>( &Entry::insertDOMResults ) );
+    std::for_each( _entry.begin(), _entry.end(), std::mem_fn( &Entry::insertDOMResults ) );
     return *this;
 }
 

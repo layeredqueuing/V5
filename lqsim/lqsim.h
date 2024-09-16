@@ -12,7 +12,7 @@
 /*
  * Global vars for setting up simulation.
  *
- * $Id: lqsim.h 17276 2024-09-10 20:49:33Z greg $
+ * $Id: lqsim.h 17291 2024-09-16 16:41:03Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -167,81 +167,4 @@ typedef enum
 #endif
 
 template <typename Type> inline static void Delete( Type x ) { delete x; }
-
-template <class Type> struct Exec
-{
-    typedef Type& (Type::*funcPtr)();
-    Exec( funcPtr f ) : _f(f) {};
-    void operator()( Type * object ) const { (object->*_f)(); }
-    void operator()( Type& object ) const { (object.*_f)(); }
-private:
-    funcPtr _f;
-};
-
-template <class Type> struct ConstExec
-{
-    typedef const Type& (Type::*funcPtr)() const;
-    ConstExec( const funcPtr f ) : _f(f) {};
-    void operator()( const Type * object ) const { (object->*_f)(); }
-    void operator()( const Type& object ) const { (object.*_f)(); }
-private:
-    const funcPtr _f;
-};
-
-template <class Type1, class Type2> struct Exec1
-{
-    typedef Type1& (Type1::*funcPtr)( Type2 x );
-    Exec1( funcPtr f, Type2 x ) : _f(f), _x(x) {}
-    void operator()( Type1 * object ) const { (object->*_f)( _x ); }
-    void operator()( Type1& object ) const { (object.*_f)( _x ); }
-private:
-    funcPtr _f;
-    Type2 _x;
-};
-
-template <class Type1, class Type2> struct ConstExec1
-{
-    typedef const Type1& (Type1::*funcPtr)( Type2 x ) const;
-    ConstExec1( const funcPtr f, Type2 x ) : _f(f), _x(x) {}
-    void operator()( Type1 * object ) const { (object->*_f)( _x ); }
-    void operator()( Type1& object ) const { (object.*_f)( _x ); }
-private:
-    const funcPtr _f;
-    Type2 _x;
-};
-
-template <class Type1, class Type2 > struct ExecSum
-{
-    typedef Type2 (Type1::*funcPtr)();
-    ExecSum( funcPtr f ) : _f(f), _sum(0.) {};
-    void operator()( Type1 * object ) { _sum += (object->*_f)(); }
-    void operator()( Type1& object ) { _sum += (object.*_f)(); }
-    Type2 sum() const { return _sum; }
-private:
-    const funcPtr _f;
-    Type2 _sum;
-};
-
-template <class Type1, class Type2 > struct ConstExecSum
-{
-    typedef Type2 (Type1::*funcPtr)() const;
-    ConstExecSum( funcPtr f ) : _f(f), _sum(0.) {};
-    void operator()( Type1 * object ) { _sum += (object->*_f)(); }
-    void operator()( Type1& object ) { _sum += (object.*_f)(); }
-    Type2 sum() const { return _sum; }
-private:
-    const funcPtr _f;
-    Type2 _sum;
-};
-
-template <class Type> struct Predicate
-{
-    typedef bool (Type::*predicate)() const;
-    Predicate( const predicate p ) : _p(p) {};
-
-    bool operator()( const Type * object ) const { return (object->*_p)(); }
-    bool operator()( const Type& object ) const { return (object.*_p)(); }
-private:
-    const predicate _p;
-};
 #endif
