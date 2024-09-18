@@ -1,7 +1,7 @@
 /* histogram.cc	-- Greg Franks Mon Jun 15 2009
  *
  * ------------------------------------------------------------------------
- * $Id: histogram.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: histogram.cc 17302 2024-09-18 18:02:44Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -9,7 +9,7 @@
 #include "lqsim.h"
 #include <cmath>
 #include <cstdlib>
-#include <funtional>
+#include <functional>
 #include <lqio/error.h>
 #include "histogram.h"
 #include "errmsg.h"
