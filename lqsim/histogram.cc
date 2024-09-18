@@ -9,6 +9,7 @@
 #include "lqsim.h"
 #include <cmath>
 #include <cstdlib>
+#include <funtional>
 #include <lqio/error.h>
 #include "histogram.h"
 #include "errmsg.h"
