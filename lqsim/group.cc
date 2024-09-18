@@ -9,7 +9,7 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 16736 2023-06-08 16:11:47Z greg $
+ * $Id: group.cc 17298 2024-09-17 19:01:02Z greg $
  */
 
 #include "lqsim.h"
@@ -58,7 +58,7 @@ Group::create()
     if ( _task_list.size() == 0 ) {
 	const std::set<LQIO::DOM::Task *>& dom_list = _domGroup->getTaskList();
 	for ( std::set<LQIO::DOM::Task *>::const_iterator t = dom_list.begin(); t != dom_list.end(); ++t ) {
-	    Task * cp = Task::find( (*t)->getName().c_str() );
+	    Task * cp = Task::find( (*t)->getName() );
 	    assert( cp );
 	    _task_list.insert(cp);
 	    cp->set_group_id(-1);
@@ -115,7 +115,7 @@ Group *
 Group::find( const std::string& group_name  )
 {
     if ( group_name.empty() ) return nullptr;
-    std::set<Group *>::const_iterator group = find_if( Group::__groups.begin(), Group::__groups.end(), eqGroupStr( group_name ) );
+    std::set<Group *>::const_iterator group = find_if( Group::__groups.begin(), Group::__groups.end(), [=]( const Group * group ){ return group->name() ==  group_name; } );
     if ( group == Group::__groups.end() ) {
 	return nullptr;
     } else {

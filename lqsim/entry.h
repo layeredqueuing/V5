@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol entry interface.
  *
- * $Id: entry.h 17292 2024-09-16 17:28:53Z greg $
+ * $Id: entry.h 17298 2024-09-17 19:01:02Z greg $
  */
 
 #ifndef ENTRY_H
@@ -43,27 +43,13 @@ class Entry {				/* task entry struct	        */
     };
 	
     /*
-     * Compare to entrys by their name.  Used by the set class to
+     * Compare two entrys by their name.  Used by the set class to
      * insert items
      */
 
     struct ltEntry
     {
 	bool operator()(const Entry * p1, const Entry * p2) const { return p1->name() < p2->name(); }
-    };
-
-    /*
-     * Compare a entry name to a string.  Used by the find_if (and
-     * other algorithm type things).
-     */
-
-    struct eqEntryStr 
-    {
-	eqEntryStr( const std::string& s ) : _s(s) {}
-	bool operator()(const Entry * p1 ) const { return p1->name() == _s; }
-
-    private:
-	const std::string& _s;
     };
 
 private:
@@ -77,8 +63,7 @@ public:
 	SEND_NO_REPLY
     };
 
-    static Entry * find( const char * entry_name );
-    static bool find( const char * from_entry_name, Entry *&from_entry, const char * to_entry_name, Entry *&to_entry );
+    static Entry * find( const std::string& );
 
     static std::set<Entry *, ltEntry> __entries;	/* Entry table.	*/
 

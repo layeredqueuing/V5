@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.h 16121 2022-11-17 20:31:33Z greg $
+ * $Id: processor.h 17298 2024-09-17 19:01:02Z greg $
  */
 
 #ifndef	PROCESSOR_H
@@ -37,21 +37,6 @@ public:
     struct ltProcessor
     {
 	bool operator()(const Processor * p1, const Processor * p2) const { return p1->name() < p2->name(); }
-    };
-
-
-    /*
-     * Compare a processor name to a string.  Used by the find_if (and
-     * other algorithm type things.
-     */
-
-    struct eqProcStr 
-    {
-    eqProcStr( const std::string& s ) : _s(s) {}
-	bool operator()(const Processor * p1 ) const { return _s == p1->name(); }
-
-    private:
-	const std::string _s;
     };
 
     static std::set<Processor *, ltProcessor> __processors;	/* Processor table.	*/

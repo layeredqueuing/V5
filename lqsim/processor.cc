@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 17279 2024-09-11 21:24:27Z greg $
+ * $Id: processor.cc 17298 2024-09-17 19:01:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -55,11 +55,11 @@ Processor *
 Processor::find( const std::string& processor_name  )
 {
     if ( processor_name.empty() ) return nullptr;
-    std::set<Processor *>::const_iterator processor = find_if( Processor::__processors.begin(), Processor::__processors.end(), eqProcStr( processor_name ) );
-    if ( processor == Processor::__processors.end() ) {
-	return nullptr;
-    } else {
+    std::set<Processor *>::const_iterator processor = find_if( Processor::__processors.begin(), Processor::__processors.end(), [=]( const Processor * processor ){ return processor->name() == processor_name; } );
+    if ( processor != Processor::__processors.end() ) {
 	return *processor;
+    } else {
+	return nullptr;
     }
 }
 

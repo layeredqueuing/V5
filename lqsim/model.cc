@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 17293 2024-09-16 17:41:16Z greg $
+ * $Id: model.cc 17298 2024-09-17 19:01:02Z greg $
  */
 
 #include "lqsim.h"
@@ -281,7 +281,7 @@ Model::prepare()
     const std::map<std::string,LQIO::DOM::Entry*>& allEntries = _document->getEntries();
     for ( std::map<std::string,LQIO::DOM::Entry*>::const_iterator nextEntry = allEntries.begin(); nextEntry != allEntries.end(); ++nextEntry ) {
 	LQIO::DOM::Entry* entry = nextEntry->second;
-	Entry* newEntry = Entry::find(entry->getName().c_str());
+	Entry* newEntry = Entry::find(entry->getName());
 	if ( newEntry == nullptr ) continue;
 
 	/* Go over all of the entry's phases and add the calls */
@@ -301,7 +301,7 @@ Model::prepare()
 	const std::vector<LQIO::DOM::Call*>& forwarding = entry->getForwarding();
 	std::vector<LQIO::DOM::Call*>::const_iterator nextFwd;
 	for ( nextFwd = forwarding.begin(); nextFwd != forwarding.end(); ++nextFwd ) {
-	    Entry* targetEntry = Entry::find((*nextFwd)->getDestinationEntry()->getName().c_str());
+	    Entry* targetEntry = Entry::find((*nextFwd)->getDestinationEntry()->getName());
 	    newEntry->add_forwarding(targetEntry, *nextFwd );
 	}
 

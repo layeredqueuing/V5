@@ -10,7 +10,7 @@
 /*
  * Activities (and phases).
  *
- * $Id: activity.h 17292 2024-09-16 17:28:53Z greg $
+ * $Id: activity.h 17298 2024-09-17 19:01:02Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -151,17 +151,4 @@ public:
 };
 
 void act_print_raw_stat( FILE * output, Activity * ap );
-
-/*
- * Compare a entry name to a string.  Used by the find_if (and other algorithm type things).
- */
-
-struct eqActivityStr 
-{
-    eqActivityStr( const std::string& s ) : _s(s) {}
-    bool operator()(const Activity * p1 ) const { return p1->name() == _s; }
-
-private:
-    const std::string& _s;
-};
 #endif

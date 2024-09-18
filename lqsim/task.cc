@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 17293 2024-09-16 17:41:16Z greg $
+ * $Id: task.cc 17298 2024-09-17 19:01:02Z greg $
  */
 
 #include "lqsim.h"
@@ -221,8 +221,7 @@ Task::node_id() const
 void
 Task::set_start_activity( LQIO::DOM::Entry* dom )
 {
-    const char * entry_name = dom->getName().c_str();
-    Entry * ep = Entry::find( entry_name );
+    Entry * ep = Entry::find( dom->getName() );
 
     if ( !ep ) return;
     if ( !ep->test_and_set( LQIO::DOM::Entry::Type::ACTIVITY ) ) return;
@@ -309,9 +308,9 @@ Task::add_activity( LQIO::DOM::Activity * dom_activity )
  */
 
 Activity *
-Task::find_activity( const char * activity_name ) const
+Task::find_activity( const std::string& name ) const
 {
-    std::vector<Activity *>::const_iterator ap = find_if( _activity.begin(), _activity.end(), eqActivityStr( activity_name ) );
+    std::vector<Activity *>::const_iterator ap = std::find_if( _activity.begin(), _activity.end(), [=]( const Activity * activity ){ return activity->name() == name; } );
     if ( ap != _activity.end() ) {
 	return *ap;
     } else {
@@ -523,11 +522,8 @@ Task *
 Task::add( LQIO::DOM::Task* dom )
 {
     /* Recover the old parameter information that used to be passed in */
-    const char* task_name = dom->getName().c_str();
 
-    if ( !task_name || strlen( task_name ) == 0 ) abort();
-
-    if ( Task::find( task_name ) ) {
+    if ( Task::find( dom->getName() ) ) {
 	dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL );
     }
     if ( dom->hasReplicas() ) {
@@ -538,7 +534,7 @@ Task::add( LQIO::DOM::Task* dom )
     const scheduling_type sched_type = dom->getSchedulingType();
 
     Task * cp = nullptr;
-    const std::string& processor_name = dom->getProcessor()->getName().c_str();
+    const std::string& processor_name = dom->getProcessor()->getName();
     Processor * processor = Processor::find( processor_name );
 
     if ( !LQIO::DOM::Common_IO::is_default_value( dom->getPriority(), 0 ) && ( processor->discipline() == SCHEDULE_FIFO
@@ -650,9 +646,9 @@ Task::add( LQIO::DOM::Task* dom )
  */
 
 Task *
-Task::find( const char * task_name )
+Task::find( const std::string& task_name )
 {
-    std::set<Task *>::const_iterator nextTask = find_if( Task::__tasks.begin(), Task::__tasks.end(), eqTaskStr( task_name ) );
+    std::set<Task *>::const_iterator nextTask = std::find_if( Task::__tasks.begin(), Task::__tasks.end(), [=]( const Task * task ){ return task->name() == task_name; } );
     if ( nextTask == Task::__tasks.end() ) {
 	return nullptr;
     } else {

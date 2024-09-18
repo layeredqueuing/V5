@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 17292 2024-09-16 17:28:53Z greg $
+ * $Id: entry.cc 17298 2024-09-17 19:01:02Z greg $
  */
 
 #include "lqsim.h"
@@ -620,21 +620,20 @@ Pseudo_Entry::insertDOMResults()
 Entry *
 Entry::add( LQIO::DOM::Entry* dom, Task * task )
 {
-    Entry * ep = 0;	
+    Entry * entry = nullptr;
     if ( Entry::__entries.size() >= MAX_PORTS ) {
 	LQIO::input_error( LQIO::ERR_TOO_MANY_X, "entries", MAX_PORTS );
     } else {
-	const char* entry_name = dom->getName().c_str();
-	std::set<Entry *>::const_iterator entry = find_if( Entry::__entries.begin(), Entry::__entries.end(), eqEntryStr( entry_name ) );
-	if ( entry != Entry::__entries.end() ) {
+	const std::string& name = dom->getName();;
+	if ( std::find_if( Entry::__entries.begin(), Entry::__entries.end(), [=]( const Entry * entry ){ return entry->name() == name; } ) != Entry::__entries.end() ) {
 	    dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	} else {
-	    ep = new Entry( dom, task );
-	    Entry::__entries.insert( ep );
-	    ep->add_open_arrival_task();
+	    entry = new Entry( dom, task );
+	    Entry::__entries.insert( entry );
+	    entry->add_open_arrival_task();
 	}
     }
-    return ep;
+    return entry;
 }
 
 
@@ -688,8 +687,7 @@ Entry::add_call( const unsigned int p, LQIO::DOM::Call* domCall )
     }
 	
     /* Internal Entry references */
-    const char* to_entry_name = toDOMEntry->getName().c_str();
-    Entry * to_entry = Entry::find( to_entry_name );
+    Entry * to_entry = Entry::find( toDOMEntry->getName() );
     if ( !to_entry ) return;
     if ( !test_and_set( LQIO::DOM::Entry::Type::STANDARD ) ) return;
     if ( domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS && !to_entry->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) return;
@@ -703,40 +701,15 @@ Entry::add_call( const unsigned int p, LQIO::DOM::Call* domCall )
  */
 
 Entry *
-Entry::find( const char * entry_name )
+Entry::find( const std::string& name )
 {
-    std::set<Entry *>::const_iterator entry = find_if( Entry::__entries.begin(), Entry::__entries.end(), eqEntryStr( entry_name ) );
-    if ( entry == Entry::__entries.end() ) {
-	LQIO::input_error( LQIO::ERR_NOT_DEFINED, entry_name );
-	return nullptr;
-    } else {
+    std::set<Entry *>::const_iterator entry = std::find_if( Entry::__entries.begin(), Entry::__entries.end(), [=]( const Entry * entry ){ return entry->name() == name; } );
+    if ( entry != Entry::__entries.end() ) {
 	return *entry;
+    } else {
+	LQIO::input_error( LQIO::ERR_NOT_DEFINED, name.c_str() );
+	return nullptr;
     }
-}
-
-
-/*
- * Locate both entries.  return false on error.
- */
-
-bool
-Entry::find( const char * from_entry_name, Entry * & from_entry, const char * to_entry_name, Entry * & to_entry )
-{
-    bool rc    = true;
-    from_entry = find( from_entry_name );
-    to_entry   = find( to_entry_name );
-
-    if ( !to_entry ) {
-	rc = false;
-    }
-
-    if ( !from_entry ) {
-	rc = false;
-    } else if ( from_entry == to_entry ) {
-	LQIO::input_error( LQIO::ERR_SRC_EQUALS_DST, to_entry_name, from_entry_name );
-	rc = false;
-    }
-    return rc;
 }
 
 

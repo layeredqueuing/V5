@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 17292 2024-09-16 17:28:53Z greg $
+ * $Id: activity.cc 17298 2024-09-17 19:01:02Z greg $
  */
 
 #include "lqsim.h"
@@ -410,7 +410,7 @@ Activity::add_calls()
     for (iter = callList.begin(); iter != callList.end(); ++iter) {
 	LQIO::DOM::Call* domCall = *iter;
 	LQIO::DOM::Entry* toDOMEntry = const_cast<LQIO::DOM::Entry*>(domCall->getDestinationEntry());
-	Entry* destEntry = Entry::find(toDOMEntry->getName().c_str());
+	Entry* destEntry = Entry::find(toDOMEntry->getName());
 		
 	/* Make sure all is well */
 	if (!destEntry) {
@@ -442,11 +442,11 @@ Activity::add_reply_list()
     std::vector<LQIO::DOM::Entry*>::const_iterator iter;
     for (iter = domReplyList.begin(); iter != domReplyList.end(); ++iter) {
 	const LQIO::DOM::Entry* domEntry = *iter;
-	const char * entry_name = domEntry->getName().c_str();
+	const std::string& entry_name = domEntry->getName();
 	Entry * ep = Entry::find( entry_name );
 	
 	if ( !ep ) {
-	    LQIO::input_error( LQIO::ERR_NOT_DEFINED, entry_name );
+	    LQIO::input_error( LQIO::ERR_NOT_DEFINED, entry_name.c_str() );
 	} else if ( ep->task() != task() ) {
 	    getDOM()->input_error( LQIO::ERR_WRONG_TASK_FOR_ENTRY, task()->name().c_str() );
 	} else {
