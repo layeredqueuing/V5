@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 17260 2024-09-07 00:46:44Z greg $
+ * $Id: expat_document.cpp 17320 2024-10-01 18:50:19Z greg $
  *
  * Read in XML input files.
  *
@@ -676,8 +676,15 @@ namespace LQIO {
                 _stack.push( parse_stack_t(element,&Expat_Document::startEntryType,entry) );
 
             } else if ( strcasecmp( element, Xservice_time_distribution ) == 0 ) {
-                Histogram * histogram = handleHistogram( task, attributes );
-                _stack.push( parse_stack_t(element,&Expat_Document::startOutputDistributionType,histogram) );
+		try {
+		    Histogram * histogram = handleHistogram( task, attributes );
+		    _stack.push( parse_stack_t(element,&Expat_Document::startOutputDistributionType,histogram) );
+		}
+		catch ( const LQIO::should_implement& e ) {
+		    /* Any task object not supporting a histogram will throw should_implment. */
+		    XML::throw_element_error( element, attributes );
+
+		}
 
             } else if ( strcasecmp( element, Xservice ) == 0 ) {
                 _stack.push( parse_stack_t(element,&Expat_Document::startNOP,nullptr) );              // Not implemented.
@@ -2116,14 +2123,14 @@ namespace LQIO {
 	}
 
         Histogram *
-        Expat_Document::findOrAddHistogram( DocumentObject * object, Histogram::Type  type, unsigned int n_bins, double min, double max )
+        Expat_Document::findOrAddHistogram( DocumentObject * object, Histogram::Type type, unsigned int n_bins, double min, double max )
         {
             Histogram * histogram = nullptr;
             if ( _createObjects ) {
                 if ( object->hasHistogram() ) throw duplicate_symbol( object->getName() );
 
-                histogram = new Histogram( &_document, type, n_bins, min, max );
-                object->setHistogram( histogram );
+		histogram = new Histogram( &_document, type, n_bins, min, max );
+		object->setHistogram( histogram );
             } else if ( !object->hasHistogram() ) {
 		throw std::runtime_error( object->getName() );
 	    } else {

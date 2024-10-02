@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 17281 2024-09-12 15:21:59Z greg $
+ * $Id: model.cc 17317 2024-09-30 17:08:37Z greg $
  *
  * Load the SRVN model.
  */
@@ -872,18 +872,21 @@ Model::make_queue( double x_pos,		/* x coordinate.		*/
     for ( unsigned m = 0; m < max_m; ++m ) {
 	bool async_call = a->z(b) > 0 || a->task()->type() == Task::Type::OPEN_SRC;
 
-	if ( !a->has_deterministic_calls() ) {
-	    k += 1;
-	    (this->*queue_func)( X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
-				 a, 0, b, a, 0, m, 0.0, k, async_call, ph2_place );
-	} else {
-	    unsigned s;
+	if ( a->has_deterministic_calls() ) {
 	    unsigned off = a->compute_offset( b );			/* Compute offset */
-	    for ( s = 0; s < calls; ++s ) {
+	    for ( unsigned int s = 0; s < calls; ++s ) {
 		k += 1;
 		(this->*queue_func)( X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
 				     a, s+off, b, a, s+off+1, m, 0.0, k, async_call, ph2_place );
 	    }
+	} else if ( a->is_special_reference_phase() ) {
+	    k += 1;
+	    (this->*queue_func)( X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
+				 a, 0, b, a, 1, m, 0.0, k, async_call, ph2_place );
+	} else {
+	    k += 1;
+	    (this->*queue_func)( X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
+				 a, 0, b, a, 0, m, 0.0, k, async_call, ph2_place );
 	}
 
     }

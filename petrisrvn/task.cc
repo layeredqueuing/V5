@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: task.cc 17261 2024-09-07 19:42:53Z greg $
+ * $Id: task.cc 17319 2024-10-01 18:09:38Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -242,26 +242,15 @@ Task::initialize()
     
     if ( !entries.size() ) {
 	get_dom()->runtime_error( LQIO::ERR_TASK_HAS_NO_ENTRIES );
-    } else if ( type() == Task::Type::REF_TASK && !has_service_time() && !has_deterministic_phases()  ) {
-	LQIO::runtime_error( ERR_BOGUS_REFERENCE_TASK, name() );
     } 
     if ( processor() != nullptr && processor()->get_scheduling() == SCHEDULE_CFS && dynamic_cast<const LQIO::DOM::Task *>(get_dom())->getGroup() == nullptr ) {
 	get_dom()->runtime_error( LQIO::ERR_NO_GROUP_SPECIFIED, processor()->name() );
     }
     if ( n_activities() ) {
-	bool hasActivityEntry = false;
-	for ( vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
-	    if ( (*e)->start_activity() ) {
-		hasActivityEntry = true;
-	    }
-	}
-	for ( vector<Activity *>::const_iterator a = activities.begin(); a != activities.end(); ++a ) {
-	    (*a)->check();
-	}
-
-	if ( !hasActivityEntry ) {
+	if( std::all_of( entries.begin(), entries.end(), []( const Entry * entry ){ return entry->start_activity() == nullptr; } ) ) {
 	    get_dom()->runtime_error( LQIO::ERR_NO_START_ACTIVITIES );
 	}
+	std::for_each( activities.begin(), activities.end(), std::mem_fn( &Activity::initialize ) );
     }
 
     if ( type() == Task::Type::SEMAPHORE ) {
@@ -386,6 +375,13 @@ bool Task::is_single_place_task() const
 				  || (n_threads() > 1 && !processor()->is_infinite()));
 }
 
+
+bool Task::is_dummy_task() const
+{
+    return type() == Task::Type::REF_TASK && !has_service_time(); // && !has_deterministic_phases();
+}
+
+
 bool Task::has_service_time() const
 {
     return std::any_of( entries.begin(), entries.end(), std::mem_fn( &Entry::has_service_time ) );
@@ -401,12 +397,15 @@ bool Task::has_deterministic_phases() const
 
 bool Task::scheduling_is_ok() const
 {
-    return is_infinite() && get_scheduling() == SCHEDULE_DELAY
-	|| !is_infinite() && get_scheduling() == SCHEDULE_CUSTOMER
-	|| multiplicity() != 1 && ( get_scheduling() == SCHEDULE_HOL
-				 || get_scheduling() == SCHEDULE_SEMAPHORE )
-	|| get_scheduling() == SCHEDULE_FIFO
-	|| get_scheduling() == SCHEDULE_RAND;
+    switch ( get_scheduling() ) {
+    case SCHEDULE_CUSTOMER: return !is_infinite();
+    case SCHEDULE_DELAY: return is_infinite();
+    case SCHEDULE_FIFO:
+    case SCHEDULE_HOL:
+    case SCHEDULE_RAND:
+    case SCHEDULE_SEMAPHORE: return true;
+    default: return false;
+    }
 }
 
 

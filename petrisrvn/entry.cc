@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: entry.cc 17261 2024-09-07 19:42:53Z greg $
+ * $Id: entry.cc 17315 2024-09-27 18:03:15Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -235,12 +235,12 @@ Entry::initialize()
 	    Phase * curr_phase = &phase[p];
 	    if ( !curr_phase->get_dom() ) continue;
 
-	    double calls = curr_phase->check();
+	    curr_phase->initialize();
 
-	    if ( curr_phase->s() > 0.0 || curr_phase->think_time() > 0.0 ) {
+	    if ( curr_phase->has_service_time() || curr_phase->think_time() > 0.0 ) {
 		_has_service_time = true;
 	    }
-	    if ( ( calls > 0 || curr_phase->s() > 0.0 ) && p > n_phases() ) {
+	    if ( ( curr_phase->has_calls() || curr_phase->has_service_time() ) && p > n_phases() ) {
 		set_n_phases( p );
 	    }
 	}
@@ -304,7 +304,7 @@ Entry::transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struc
     double x_pos = base_x_pos + ix_e * 0.5;
     double y_pos = base_y_pos;
     double task_y_offset = Y_OFFSET(1.0);
-    struct place_object * start_place = 0;
+    struct place_object * start_place = nullptr;
     double next_pos;
     const LAYER layer_mask = ENTRY_LAYER(entry_id())|(m == 0 ? PRIMARY_LAYER : 0);
 
@@ -327,7 +327,9 @@ Entry::transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struc
 
 	if ( !task()->inservice_flag() || task()->is_client() ) {
 	    for ( p = 1; p < n_phases(); ++p ) {
-		create_arc( layer_mask, TO_PLACE, phase[p].doneX[m], phase[p+1].ZX[m] );
+		if ( phase[p].doneX[m] != nullptr ) {
+		    create_arc( layer_mask, TO_PLACE, phase[p].doneX[m], phase[p+1].ZX[m] );
+		}
 	    }
 	    /*+ BUG_164 */
 	    if ( d_place ) {
@@ -339,7 +341,10 @@ Entry::transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struc
 	    }
 	    /*- BUG_164 */
 	}
-	start_place = phase[1].ZX[m];
+
+	for ( p = 1; start_place == nullptr && p <= n_phases(); ++p ) {
+	    start_place = phase[p].ZX[m];	/* First one, starting at 1 */
+	}
 	next_pos = X_OFFSET(p_pos+1,0.0);
 
     } else {

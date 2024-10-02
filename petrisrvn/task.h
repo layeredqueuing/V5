@@ -17,7 +17,7 @@
 #include "call.h"
 
 /*
- * $Id: task.h 17243 2024-05-27 21:49:58Z greg $
+ * $Id: task.h 17310 2024-09-26 21:02:21Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -87,6 +87,7 @@ public:
     virtual bool is_server() const;
     virtual bool is_infinite() const { return type() == Type::OPEN_SRC || Place::is_infinite(); }
     bool is_single_place_task() const;
+    bool is_dummy_task() const;
     virtual bool is_sync_server() const { return _sync_server; }
     virtual bool inservice_flag() const { return _inservice_flag; }
     virtual bool has_main_thread() const { return _has_main_thread; }

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 17187 2024-04-30 18:42:49Z greg $
+ * $Id: actlist.h 17313 2024-09-27 14:36:41Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -304,12 +304,13 @@ public:
 protected:
     virtual ActivityList * prev() const { return _prev; }	/* Link to join list 		*/
     virtual AndOrForkActivityList& prev( ActivityList * list) { _prev = list; return *this; }
+    virtual const AndOrJoinActivityList * joins() const { return _joins; }
 
 private:
-    void setJoinList( const AndOrJoinActivityList * joins ) { _joinList = joins; }
+    void setJoinList( const AndOrJoinActivityList * joins ) { _joins = joins; }
 
 protected:
-    const AndOrJoinActivityList * _joinList;
+    const AndOrJoinActivityList * _joins;
     
 private:
     ActivityList * _prev;
@@ -357,7 +358,7 @@ class AndForkActivityList : public AndOrForkActivityList
 
 public:
     AndForkActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist  ) 
-	: AndOrForkActivityList( owner, dom_activitylist ), myJoinList(0), myQuorumCount(0) 
+	: AndOrForkActivityList( owner, dom_activitylist ), myQuorumCount(0) 
 	{}
 
     AndForkActivityList * clone() const;
@@ -375,7 +376,6 @@ protected:
     virtual const char * typeStr() const { return "&"; }
 
 private:
-    const AndJoinActivityList * myJoinList;
     int myQuorumCount;
 };
 

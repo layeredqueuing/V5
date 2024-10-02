@@ -1,3 +1,19 @@
+* Bugs fixed in 5.31
+468 	lqiolib 	bug-467.xlqn:48: error: Entry "WebServer" has a start activity defined. Activity "analyze" is a duplicate.
+469 	lqiolib 	Reload json results from spex model fails. 
+472 	lqiolib 	hexp(m,cv^2) not implemented.
+466 	lqn2xxx 	terminating due to uncaught exception of type ActivityList::bad_internal_join: 
+465 	lqn2xxx 	Generating .svg and .emf output is borked.
+478 	lqns 		LQNS 6.2.28 handles correctly this model while 6.2.29 throws a lqns: domain error
+222 	lqsim	 	V5 lqsim: faulty models causing aborts
+264 	lqsim 		V6: lqsim regression.
+453 	lqsim 		lqsim (V5) 63-semaphore failing. Priorities inverted in parasol.
+481 	lqsim 		Processor utilization is NOT saved if the processor sharing is used.
+476 	lqx 		C++20 [-Wtemplate-id-cdtor] 21 | ReferencedPointer<T>()
+480 	miscella 	template-id not allowed for constructor in C++20 [-Wtemplate-id-cdtor]
+470 	petrisrv 	The 'c' parameter has no effect.
+423 	petrisrv 	Petrisrvn quorum borked.
+
 * Bugs fixes in 5.30
 208 	lqiolib 	Add --gnuplot output. 
 448 	lqiolib 	Faults in open models.

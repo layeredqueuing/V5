@@ -11,7 +11,7 @@
 #define _ACTIVITY_H
 
 /*
- * $Id: activity.h 17069 2024-02-27 23:16:21Z greg $
+ * $Id: activity.h 17315 2024-09-27 18:03:15Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -42,7 +42,7 @@ public:
     virtual bool is_activity() const { return true; }
     unsigned int n_replies() const { return _replies.size(); }
 
-    virtual double check();
+    virtual bool check() const;
 
     bool find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * e );
     double count_replies( std::deque<Activity *>& activity_stack, const Entry * e, const double rate, const unsigned curr_phase, unsigned& next_phase  );

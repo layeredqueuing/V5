@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 17187 2024-04-30 18:42:49Z greg $
+ * $Id: actlist.cc 17313 2024-09-27 14:36:41Z greg $
  */
 
 
@@ -1024,8 +1024,8 @@ AndForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned
 
     /* Now follow the activities after the join */
 
-    if ( myJoinList && myJoinList->next() ) {
-	sum += myJoinList->next()->aggregate( anEntry, next_p, next_p, rate, activityStack, aFunc );
+    if ( joins() && joins()->next() ) {
+	sum += joins()->next()->aggregate( anEntry, next_p, next_p, rate, activityStack, aFunc );
     }
     return sum;
 }
@@ -1047,8 +1047,8 @@ AndForkActivityList::setChain( std::deque<const Activity *>& activityStack, unsi
 
     /* Now follow the activities after the join */
 
-    if ( myJoinList && myJoinList->next() ) {
-	next_k = myJoinList->next()->setChain( activityStack, curr_k, next_k, aServer, aFunc );
+    if ( joins() && joins()->next() ) {
+	next_k = joins()->next()->setChain( activityStack, curr_k, next_k, aServer, aFunc );
     }
 
     return next_k;

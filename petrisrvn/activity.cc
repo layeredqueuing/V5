@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: activity.cc 17182 2024-04-24 18:02:35Z greg $
+ * $Id: activity.cc 17318 2024-10-01 11:11:55Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -33,8 +33,8 @@ std::map<LQIO::DOM::ActivityList*, ActivityList *> Activity::domToNative;
 
 Activity::Activity( LQIO::DOM::Activity * dom, Task * task )
     : Phase( dom, task ),
-      _input(0),
-      _output(0),
+      _input(nullptr),
+      _output(nullptr),
       _replies(),
       _is_start_activity(false),
       _is_reachable(false),
@@ -45,19 +45,22 @@ Activity::Activity( LQIO::DOM::Activity * dom, Task * task )
     }
 }
 
-double Activity::check()
+bool
+Activity::check() const
 {
+    bool rc = true;
     if ( !is_specified() ) {
 	get_dom()->runtime_error( LQIO::ERR_NOT_SPECIFIED );
+	rc = false;
     }
     if ( !is_reachable() ) {
 	get_dom()->runtime_error( LQIO::ERR_NOT_REACHABLE );
+	rc = false;
     }
-    double calls = Phase::check();
-    if ( calls > 0 && s() == 0.0 ) {
+    if ( !has_calls() && !has_service_time() ) {
 	get_dom()->runtime_error( LQIO::WRN_XXXX_DEFINED_BUT_ZERO, "service time" );
     }
-    return calls;
+    return rc;
 }
 
 /*
@@ -129,7 +132,7 @@ Activity::find_children( std::deque<Activity *>& activity_stack, std::deque<Acti
 
     /* tag phase */
 
-    if ( _entry == 0 ) {
+    if ( _entry == nullptr ) {
 	_entry = e;
     }
 
@@ -149,7 +152,6 @@ Activity::find_children( std::deque<Activity *>& activity_stack, std::deque<Acti
 void Activity::activity_cycle_error( const std::deque<Activity *>& activity_stack )
 {
     std::string buf;
-
     for ( const auto& ap : activity_stack ) {
 	if ( ap != activity_stack.front() ) buf += ", ";
 	buf += ap->name();
@@ -331,8 +333,7 @@ Activity& Activity::add_activity_lists()
 bool
 Activity::replies_to( const Entry * e ) const
 {
-    std::set<Entry *>::const_iterator r = _replies.find( const_cast<Entry *>(e) );
-    return r != _replies.end();
+    return _replies.find( const_cast<Entry *>(e) ) != _replies.end();
 }
 
 

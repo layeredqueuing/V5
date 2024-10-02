@@ -1,3 +1,8 @@
+2024-09-19  Greg Franks  <greg@merlin.sce.carleton.ca>
+
+	* documentation
+	- priorities start from zero and go up.
+
 2024-04-30  Gregory Franks  <greg@Gregs-Retina-iMac.local>
 
 	* lqiolib
@@ -613,4 +618,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 17191 2024-04-30 21:14:24Z greg $
+$Id: ChangeLog 17304 2024-09-19 13:54:02Z greg $

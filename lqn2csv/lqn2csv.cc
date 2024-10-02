@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 17064 2024-02-09 16:16:44Z greg $
+ * $Id: lqn2csv.cc 17320 2024-10-01 18:50:19Z greg $
  *
  * Command line processing.
  *
@@ -43,6 +43,7 @@
 
 int gnuplot_flag    = 0;
 int no_header       = 0;
+int debug_xml	    = 0;
 size_t limit	    = 0;
 int precision	    = 0;
 int width	    = 0;
@@ -57,6 +58,7 @@ const std::vector<struct option> longopts = {
     { "entry-throughput",      required_argument, nullptr, 'f' }, 
     { "activity-throughput",   required_argument, nullptr, 'F' }, 
     { "hold-times",            required_argument, nullptr, 'h' }, 
+    { "solver-information",    no_argument,	  nullptr, 'i' },
     { "join-delays",           required_argument, nullptr, 'j' }, 
     { "loss-probability",      required_argument, nullptr, 'l' },
     { "processor-multiplicity",required_argument, nullptr, 'm' },
@@ -84,11 +86,11 @@ const std::vector<struct option> longopts = {
     { "help",		       no_argument,	  nullptr, 0x100+'h' },
     { "mva-steps",	       no_argument,	  nullptr, 0x100+'s' },
     { "precision",	       required_argument, nullptr, 0x100+'p' },
-    { "solver-information",    no_argument,	  nullptr, 'i' },
     { "limit",		       required_argument, nullptr, 0x100+'l' },
     { "no-header",             no_argument,       &no_header,    1 },
     { "width",		       required_argument, nullptr, 0x100+'w' },
     { "version",	       no_argument,	  nullptr, 0x100+'v' },
+    { "debug-xml",	       no_argument,	  &debug_xml,	 1 },
     { nullptr,                 0,                 nullptr, 0 }
 };
 std::string opts;
@@ -233,7 +235,7 @@ main( int argc, char *argv[] )
     extern int optind;
     static char copyrightDate[20];
 
-    sscanf( "$Date: 2024-02-09 11:16:44 -0500 (Fri, 09 Feb 2024) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2024-10-01 14:50:19 -0400 (Tue, 01 Oct 2024) $", "%*s %s %*s", copyrightDate );
 
     toolname = basename( argv[0] );
     opts = makeopts( longopts );	/* Convert to regular options */
@@ -294,6 +296,8 @@ main( int argc, char *argv[] )
     if ( gnuplot_flag ) {
 	width = 0;
     }
+    
+    LQIO::DOM::Document::__debugXML = static_cast<bool>(debug_xml);
     
     if ( optind == argc ) {
 	std::cerr << toolname << ": arg count" << std::endl;
@@ -600,6 +604,8 @@ usage()
 	    std::cerr << "generate gnuplot ouptut.";
 	} else if ( strcmp( opt->name, "no-header" ) == 0 ) {
 	    std::cerr << "do not output header information.";
+	} else if ( strcmp( opt->name, "debug-xml" ) == 0 ) {
+	    std::cerr << "debug XML input.";
 	}
 
 	std::cerr << std::endl;

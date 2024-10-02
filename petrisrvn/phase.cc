@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: phase.cc 17261 2024-09-07 19:42:53Z greg $
+ * $Id: phase.cc 17317 2024-09-30 17:08:37Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -43,12 +43,12 @@ slice_info_t::slice_info_t()
     for ( unsigned int m = 0; m < MAX_MULT; ++m ) {
 	WX_xpos[m] = 0;
 	WX_ypos[m] = 0;
-	WX[m] = 0;	/* Wait for proc		*/
-	ChX[m] = 0;	/* Choose next action.		*/
-	PrX[m] = 0;	/* Processor request.		*/
-	PgX[m] = 0;	/* Processor grant.		*/
+	WX[m] = nullptr;	/* Wait for proc		*/
+	ChX[m] = nullptr;	/* Choose next action.		*/
+	PrX[m] = nullptr;	/* Processor request.		*/
+	PgX[m] = nullptr;	/* Processor grant.		*/
 	for ( unsigned int s = 0; s <= MAX_STAGE; ++s ) {
-	    SX[m][s] = 0;	/* Service		*/
+	    SX[m][s] = nullptr;	/* Service		*/
 	}
     }
 }
@@ -198,7 +198,7 @@ std::vector<double>* Phase::get_histogram( const Entry * entry ) const
 double
 Phase::service_rate() const
 {
-    if ( s() == 0.0 ) {
+    if ( !has_service_time() ) {
 	return 1.0;
     } else {
 	double sum = 1.0;
@@ -223,7 +223,7 @@ bool
 Phase::has_deterministic_service() const
 {
     return coeff_of_var() == 0.0
-	&& s() > 0.0
+	&& has_service_time()
 	&& task()->type() != Task::Type::OPEN_SRC;
 }
 
@@ -232,8 +232,15 @@ bool
 Phase::is_hyperexponential() const
 {
     return coeff_of_var() > 1.0
-	&& s() > 0.0
+	&& has_service_time()
 	&& task()->type() != Task::Type::OPEN_SRC;
+}
+
+
+bool
+Phase::is_special_reference_phase() const
+{
+    return task()->is_client() && entry()->n_phases() == 1 && !has_service_time() && has_calls();
 }
 
 
@@ -274,17 +281,26 @@ Phase::add_call( LQIO::DOM::Call * call )
  * Check phase (slice) and update counts.
  */
 
-double
-Phase::check()
+bool
+Phase::check() const
 {
+    bool rc = true;
+    const Processor * curr_proc = task()->processor();
+    if ( has_service_time() && coeff_of_var() != 1.0 && curr_proc->get_scheduling() == SCHEDULE_PPR ) {
+	LQIO::runtime_error( WRN_PREEMPTIVE_SCHEDULING, curr_proc->name(), name() );
+	rc = false;
+    }
+    return rc;
+}
+
+
+void
+Phase::initialize() 
+{
+    check();
+    
     double ysum = 0;
     double zsum = 0;
-    const Processor * curr_proc = task()->processor();
-    if ( s() > 0.0 && coeff_of_var() != 1.0 && curr_proc->get_scheduling() == SCHEDULE_PPR ) {
-	LQIO::runtime_error( WRN_PREEMPTIVE_SCHEDULING, curr_proc->name(), name() );
-//	curr_proc->scheduling = SCHEDULE_FIFO;
-    }
-
     for ( std::map<const Entry *,Call>::const_iterator c = _call.begin(); c != _call.end(); ++c ) {
 	const Call& call = c->second;
 	if ( call.is_rendezvous() ) {
@@ -293,16 +309,18 @@ Phase::check()
 	    zsum += call.value( this );
 	}
     }
+
     if ( has_deterministic_calls() ) {
 	_n_slices = static_cast<unsigned int>(round(ysum + zsum)) + 1;
 	if ( n_slices() >= DIMSLICE ) {
 	    LQIO::input_error( LQIO::ERR_TOO_MANY_X, "slices ", DIMSLICE );
 	}
+    } else if ( is_special_reference_phase() ) {
+	_n_slices = 2;
     } else {
 	_n_slices = 1;
     }
     _mean_processor_calls = ysum + 1;
-    return ysum + zsum;
 }
 
 
@@ -325,7 +343,7 @@ double
 Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 		      const LAYER layer_mask, const double p_pos, const short enabling )
 {
-    const unsigned ne    = task()->n_entries();
+    const unsigned ne = task()->n_entries();
     struct trans_object * c_trans;
     assert( n_slices() >= 1 );
 
@@ -334,24 +352,37 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 	const double s_pos = p_pos+s*3;
 	unsigned int n = n_stages();
 
-	curr_slice->SX[m][1] = move_place_tag( create_place( X_OFFSET(s_pos+1,0.25), y_pos, layer_mask, 0, "S%s%d%d", name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
-	curr_slice->WX_xpos[m] = X_OFFSET(1+s,0.25);
-	curr_slice->WX_ypos[m] = y_pos;
-	if ( !simplify_phase() ) {
-	    curr_slice->WX[m] = move_place_tag( create_place( X_OFFSET(s_pos,  0.25), y_pos, layer_mask, 0, "W%s%d%d", name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	if ( is_special_reference_phase() ) {
+	    /* Special case for zero service time reference tasks */
+	    curr_slice->SX[m][1] = nullptr;
+	    if ( s == 0 ) {
+		curr_slice->ChX[m] = move_place_tag( create_place( X_OFFSET(s_pos, 0.25), y_pos, layer_mask, 0, "Ch%s%d%d", name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+		curr_slice->WX[m] = curr_slice->ChX[m];
+	    } else {
+		curr_slice->WX[m] = move_place_tag( create_place( X_OFFSET(s_pos,  0.25), y_pos, layer_mask, 0, "W%s%d%d", name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+		curr_slice->ChX[m] = curr_slice->WX[m];
+	    }
 	} else {
-	    curr_slice->WX[m] = curr_slice->SX[m][1];
-	}
+	    curr_slice->SX[m][1] = move_place_tag( create_place( X_OFFSET(s_pos+1,0.25), y_pos, layer_mask, 0, "S%s%d%d", name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	    curr_slice->WX_xpos[m] = X_OFFSET(1+s,0.25);
+	    curr_slice->WX_ypos[m] = y_pos;
+	    if ( !simplify_phase() ) {
+		curr_slice->WX[m] = move_place_tag( create_place( X_OFFSET(s_pos,  0.25), y_pos, layer_mask, 0, "W%s%d%d", name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	    } else {
+		curr_slice->WX[m] = curr_slice->SX[m][1];
+	    }
 
-	/* Make places for erland/hyperexponential distributions */
+	    /* Make places for erland/hyperexponential distributions */
 
-	for ( unsigned int i = 2; i <= n; ++i ) {
-	    curr_slice->SX[m][i] = move_place_tag( create_place( X_OFFSET(s_pos+1,0.25), y_pos+(i-1), layer_mask, 0, "S%d%s%d%d", i, name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
-	}
-	if ( !simplify_phase() || has_calls() ) {
-	    curr_slice->ChX[m] = move_place_tag( create_place( X_OFFSET(s_pos+2,0.25), y_pos, layer_mask, 0, "Ch%s%d%d", name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
-	} else {
-	    curr_slice->ChX[m] = curr_slice->SX[m][1];
+	    for ( unsigned int i = 2; i <= n; ++i ) {
+		curr_slice->SX[m][i] = move_place_tag( create_place( X_OFFSET(s_pos+1,0.25), y_pos+(i-1), layer_mask, 0, "S%d%s%d%d", i, name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	    }
+	    
+	    if ( !simplify_phase() || has_calls() ) {
+		curr_slice->ChX[m] = move_place_tag( create_place( X_OFFSET(s_pos+2,0.25), y_pos, layer_mask, 0, "Ch%s%d%d", name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	    } else {
+		curr_slice->ChX[m] = curr_slice->SX[m][1];
+	    }
 	}
     }
 
@@ -366,7 +397,7 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 
     done_xpos[m] = X_OFFSET(p_pos+n_slices()*3,0);
     done_ypos[m] = y_pos-0.5;
-    if ( (!simplify_phase() && !task()->inservice_flag()) || task()->is_client() ) {
+    if ( ((!simplify_phase() && !task()->inservice_flag()) || task()->is_client()) && _slice[n_slices()-1].ChX[m]!= nullptr ) {
 	c_trans = create_trans( done_xpos[m], done_ypos[m], layer_mask, 1.0, 1, IMMEDIATE, "done%s%d", name(), m );
 	create_arc( layer_mask, TO_TRANS, c_trans, _slice[n_slices()-1].ChX[m] );
 	doneX[m] = c_trans;
@@ -376,63 +407,68 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 	slice_info_t * curr_slice = &_slice[s];
 	const double s_pos = p_pos+s*3;
 
-	if ( !simplify_phase() ) {
-	    c_trans = create_trans( X_OFFSET(s_pos+1,0), y_pos - 0.5, layer_mask,
-				    _prob_a, 1, IMMEDIATE, "w%s%d%d", name(), m, s );
-	    if ( this->s() > 0.0 ) {
-	        if ( task()->type() == Task::Type::OPEN_SRC ) {
-		    create_arc( layer_mask, INHIBITOR, c_trans, curr_slice->SX[m][1] );
-		} else {
-		    request_processor( c_trans, m, s );
+	if ( is_special_reference_phase() ) {
+	    /* Optimized this part of the net out. */
+	} else {
+	    if ( !simplify_phase() ) {
+		c_trans = create_trans( X_OFFSET(s_pos+1,0), y_pos - 0.5, layer_mask, _prob_a, 1, IMMEDIATE, "w%s%d%d", name(), m, s );
+		if ( has_service_time() ) {
+		    if ( task()->type() == Task::Type::OPEN_SRC ) {
+			create_arc( layer_mask, INHIBITOR, c_trans, curr_slice->SX[m][1] );
+		    } else {
+			request_processor( c_trans, m, s );
+		    }
+		}
+		create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->WX[m] );
+		create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->SX[m][1] );
+	    }
+
+	    if ( is_hyperexponential() )  {
+		c_trans = create_trans( X_OFFSET(s_pos+1,0), y_pos + 0.5, layer_mask, 1.0 - _prob_a, 1, IMMEDIATE, "w2%s%d%d", name(), m, s );
+		request_processor( c_trans, m, s );
+		create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->WX[m] );
+		create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->SX[m][2] );
+	    }
+
+	    if ( !has_service_time() ) {
+		c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask,  1.0, 1, IMMEDIATE, "s%s%d%d", name(), m, s );
+	    } else if ( has_deterministic_service() ) {
+		c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -_rpar_s[0], 1, DETERMINISTIC, "s%s%d%d", name(), m, s );
+	    } else if ( task()->type() != Task::Type::OPEN_SRC ) {	/* Infinite server! */
+		c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -_rpar_s[0], enabling, EXPONENTIAL, "s%s%d%d", name(), m, s );
+	    } else {
+		c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -_rpar_s[0], 1, EXPONENTIAL, "s%s%d%d", name(), m, s );
+	    }
+
+	    if ( has_service_time() && task()->type() != Task::Type::OPEN_SRC ) {
+		processor_acquired( c_trans, m, s );
+	    }
+
+	    /* Create transitions for Erlang/Exponential */
+
+	    create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->SX[m][1] );
+	    if ( !is_hyperexponential() ) {
+		unsigned int n = n_stages();
+		for ( unsigned i = 2; i <= n; ++i ) {
+		    create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->SX[m][i] );
+		    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos + 0.5 + (i-2), layer_mask, -_rpar_s[0], enabling, EXPONENTIAL, "s%d%s%d%d", i, name(), m, s );
+		    create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->SX[m][i] );
 		}
 	    }
-	    create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->WX[m] );
-	    create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->SX[m][1] );
-	}
-
-	if ( is_hyperexponential() )  {
-	    c_trans = create_trans( X_OFFSET(s_pos+1,0), y_pos + 0.5, layer_mask, 1.0 - _prob_a, 1, IMMEDIATE, "w2%s%d%d", name(), m, s );
-	    request_processor( c_trans, m, s );
-	    create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->WX[m] );
-	    create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->SX[m][2] );
-	}
-	if ( this->s() == 0 ) {
-	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask,  1.0, 1, IMMEDIATE, "s%s%d%d", name(), m, s );
-	} else if ( has_deterministic_service() ) {
-	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -_rpar_s[0], 1, DETERMINISTIC, "s%s%d%d", name(), m, s );
-	} else if ( task()->type() != Task::Type::OPEN_SRC ) {	/* Infinite server! */
-	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -_rpar_s[0], enabling, EXPONENTIAL, "s%s%d%d", name(), m, s );
-	} else {
-	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -_rpar_s[0], 1, EXPONENTIAL, "s%s%d%d", name(), m, s );
-	}
-	if ( this->s() > 0.0 && task()->type() != Task::Type::OPEN_SRC ) {
-	    processor_acquired( c_trans, m, s );
-	}
-
-	/* Create transitions for Erlang/Exponential */
-
-	create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->SX[m][1] );
-	if ( !is_hyperexponential() ) {
-	    unsigned int n = n_stages();
-	    for ( unsigned i = 2; i <= n; ++i ) {
-		create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->SX[m][i] );
-		c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos + 0.5 + (i-2), layer_mask, -_rpar_s[0], enabling, EXPONENTIAL, "s%d%s%d%d", i, name(), m, s );
-		create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->SX[m][i] );
+	    if ( !simplify_phase() || has_calls() ) {
+		create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->ChX[m] );
+	    } else {
+		doneX[m] = c_trans;
 	    }
-	}
-	if ( !simplify_phase() || has_calls() ) {
-	    create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->ChX[m] );
-	} else {
-	    doneX[m] = c_trans;
-	}
-	if ( this->s() > 0.0 && task()->type() != Task::Type::OPEN_SRC ) {
-	    release_processor( c_trans, m, s );
-	}
-	if ( is_hyperexponential() ) {
-	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos + 0.5, layer_mask, -_rpar_s[1], enabling, EXPONENTIAL, "s2%s%d%d", name(), m, s );
-	    create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->SX[m][2] );
-	    create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->ChX[m] );
-	    release_processor( c_trans, m, s );
+	    if ( has_service_time() && task()->type() != Task::Type::OPEN_SRC ) {
+		release_processor( c_trans, m, s );
+	    }
+	    if ( is_hyperexponential() ) {
+		c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos + 0.5, layer_mask, -_rpar_s[1], enabling, EXPONENTIAL, "s2%s%d%d", name(), m, s );
+		create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->SX[m][2] );
+		create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->ChX[m] );
+		release_processor( c_trans, m, s );
+	    }
 	}
     }
 
@@ -554,7 +590,7 @@ Phase::follow_forwarding_path( const unsigned slice_no, Entry * a, double rate )
 void
 Phase::create_spar()
 {
-    if ( s() == 0 ) return;	/* Ignore phases with zero service times. */
+    if ( !has_service_time() ) return;	/* Ignore phases with zero service times. */
 
     const double mu = service_rate();
     if ( is_hyperexponential() ) {
@@ -609,7 +645,7 @@ Phase::remove_netobj()
 {
     for ( unsigned int m = 0; m < MAX_MULT; ++m ) {
         XX[m] = 0;		/* Service Time result		*/
-	ZX[m] = 0;		/* Think Time.			*/
+	ZX[m] = nullptr;	/* Think Time.			*/
 	doneX[m] = 0;		/* Phase is done.		*/
     }
 }
@@ -655,13 +691,15 @@ Phase::get_utilization( unsigned m  )
 
     assert( 0 < n_slices() && n_slices() < DIMSLICE );
 
-    for ( s = 0; s < n_slices(); ++s ) {
-        if ( !simplify_phase() ) {
-	    mean_tokens += get_pmmean( "W%s%d%d", name(), m, s );	/* Processor wait.	*/
-	}
-	mean_tokens += get_pmmean( "S%s%d%d", name(), m, s );	/* Entry service.	*/
-	for ( unsigned int i = 2; i <= n; ++i ) {
-	    mean_tokens += get_pmmean( "S%d%s%d%d", i, name(), m, s );	/* Entry service.	*/
+    if ( has_service_time() ) {
+	for ( s = 0; s < n_slices(); ++s ) {
+	    if ( !simplify_phase() ) {
+		mean_tokens += get_pmmean( "W%s%d%d", name(), m, s );	/* Processor wait.	*/
+	    }
+	    mean_tokens += get_pmmean( "S%s%d%d", name(), m, s );	/* Entry service.	*/
+	    for ( unsigned int i = 2; i <= n; ++i ) {
+		mean_tokens += get_pmmean( "S%d%s%d%d", i, name(), m, s );	/* Entry service.	*/
+	    }
 	}
     }
 
@@ -722,7 +760,7 @@ Phase::get_processor_utilization ( unsigned m )
     assert( 0 < n_slices() && n_slices() < DIMSLICE );
 
     for ( unsigned int s = 0; s < n_slices(); ++s ) {
-	if ( this->s() == 0.0 ) continue;
+	if ( !has_service_time() ) continue;
 
 	if ( h->is_single_place_processor() ) {
 	    mean_tokens += get_pmmean( "S%s%d%d", name(), m, s );			/* Entry service.	*/

@@ -8,13 +8,14 @@
 /************************************************************************/
 
 /*
- * $Id: processor.cc 17233 2024-05-24 11:34:57Z greg $
+ * $Id: processor.cc 17310 2024-09-26 21:02:21Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
  */
 
 #include <algorithm>
+#include <functional>
 #include <lqio/glblerr.h>
 #include <lqio/dom_activity.h>
 #include <lqio/dom_processor.h>
@@ -155,6 +156,12 @@ bool Processor::is_single_place_processor() const
 }
 
 
+bool Processor::is_not_used() const
+{
+    return std::all_of( _tasks.begin(), _tasks.end(), std::mem_fn( &Task::is_dummy_task ) );
+}
+
+
 bool Processor::is_ps_processor() const
 {
     return get_scheduling() == SCHEDULE_PS;
@@ -241,7 +248,12 @@ Processor::transmorgrify( unsigned max_count )
     double y_pos = get_y_pos();
     const unsigned int copies = multiplicity();		/* Check for validity before is_single_place... */
 
-    if ( is_single_place_processor() ) {
+    if ( is_not_used() ) {
+	/* Not used at all */
+	std::cerr << "Procssor " << name() << " is not used." << std::endl;
+	
+    } else if ( is_single_place_processor() ) {
+
 	/* if no service time, nop.  !!! */
 	if ( is_infinite() ) {
 	    if ( ref_count() ) {
