@@ -11,7 +11,7 @@
 #define _ACTIVITY_H
 
 /*
- * $Id: activity.h 17315 2024-09-27 18:03:15Z greg $
+ * $Id: activity.h 17326 2024-10-02 16:01:28Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -93,14 +93,5 @@ private:
 public:
     static std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> actConnections;
     static std::map<LQIO::DOM::ActivityList*, ActivityList *> domToNative;
-};
-
-struct eqActivityStr
-{
-    eqActivityStr( const std::string& s ) : _s(s) {}
-    bool operator()(const Activity * p1 ) const { return _s == p1->name(); }
-
-private:
-    const std::string& _s;
 };
 #endif

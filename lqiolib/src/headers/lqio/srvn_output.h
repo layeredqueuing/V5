@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 17073 2024-02-28 19:42:11Z greg $
+ * $Id: srvn_output.h 17329 2024-10-02 20:57:11Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -16,17 +16,18 @@
 #ifndef __SRVN_OUTPUT_H
 #define __SRVN_OUTPUT_H
 
-#include <vector>
-#include <set>
+#include <algorithm>
+#include <cassert>
 #include <map>
 #include <ostream>
-#include <cassert>
+#include <set>
+#include <vector>
 #include <sys/time.h>
+#include "dom_call.h"
+#include "dom_entry.h"
+#include "dom_phase.h"
 #include "dom_processor.h"
 #include "dom_task.h"
-#include "dom_phase.h"
-#include "dom_entry.h"
-#include "dom_call.h"
 #include "input.h"
 #include "common_io.h"
 #include "confidence_intervals.h"
@@ -37,7 +38,6 @@ namespace LQX {
 
 namespace LQIO {
     namespace DOM {
-	class Call;
 	class Document;
 	class Entity;
 	class Entry;
@@ -251,15 +251,54 @@ namespace LQIO {
 	    friend std::ostream& operator<<(std::ostream & os, const ExtvarPrintingManip& m ) { return m._f(os,m._v,m._d); }
 	};
 
-	class Predicate {
-	public:
+	class for_each_entry_count_if {
+ 	public:
 	    typedef bool (DOM::Entry::*test)() const;
-	    Predicate( test f ) : _f(f) {}
+	    for_each_entry_count_if( test f ) : _f(f) {}
+ 
+	    int operator()( const std::pair<unsigned int,DOM::Entity *>& ) const;
+ 	private:
+	    const test _f;
+ 	};
 
+	class for_each_entry_any_of {
+ 	public:
+	    typedef bool (DOM::Entry::*test)() const;
+	    for_each_entry_any_of( test f ) : _f(f) {}
+ 
 	    bool operator()( const std::pair<unsigned int,DOM::Entity *>& ) const;
+ 	private:
+	    const test _f;
+ 	};
+
+	class ForPhase {
+	public:
+	    ForPhase();
+	    const DOM::Call*& operator[](const unsigned ix) { assert( ix && ix <= DOM::Phase::MAX_PHASE ); return ia[ix-1]; }
+	    const DOM::Call* operator[](const unsigned ix) const { assert( ix && ix <= DOM::Phase::MAX_PHASE ); return ia[ix-1]; }
+		
+	    ForPhase& setMaxPhase( const unsigned mp ) { _maxPhase = mp; return *this; }
+	    const unsigned getMaxPhase() const { return _maxPhase; }
+	    ForPhase& setType( const DOM::Call::Type type ) { _type = type; return *this; }
+	    const DOM::Call::Type getType() const { return _type; }
 
 	private:
-	    const test _f;
+	    const DOM::Call * ia[DOM::Phase::MAX_PHASE];
+	    unsigned _maxPhase;
+	    DOM::Call::Type _type;
+	};
+
+	/*
+	 * Collects all calls to a given destination by phase.
+	 */
+
+	struct CollectCalls {
+	    CollectCalls( std::map<const DOM::Entry *, ForPhase>& calls, DOM::Call::boolCallFunc test=nullptr ) : _calls(calls), _test(test) {}
+	    void operator()( const std::pair<unsigned, DOM::Phase*>& p );
+	    
+	private:
+	    std::map<const DOM::Entry *, ForPhase>& _calls;
+	    const DOM::Call::boolCallFunc _test;
 	};
 
 	/* ------------------------------------------------------------------------ */
@@ -823,17 +862,17 @@ namespace LQIO {
 
 	    class CallResultsManip {
 	    public:
-		CallResultsManip( std::ostream& (*f)(std::ostream&, const CallOutput&, const DOM::ForPhase&, const callConfFPtr, const ConfidenceIntervals* ), const CallOutput & c, const DOM::ForPhase& p, const callConfFPtr x, const ConfidenceIntervals* l=0 ) : _f(f), _c(c), _p(p), _x(x), _conf(l) {}
+		CallResultsManip( std::ostream& (*f)(std::ostream&, const CallOutput&, const ForPhase&, const callConfFPtr, const ConfidenceIntervals* ), const CallOutput & c, const ForPhase& p, const callConfFPtr x, const ConfidenceIntervals* l=0 ) : _f(f), _c(c), _p(p), _x(x), _conf(l) {}
 	    private:
-		std::ostream& (*_f)( std::ostream&, const CallOutput&, const DOM::ForPhase&, const callConfFPtr, const ConfidenceIntervals* );
+		std::ostream& (*_f)( std::ostream&, const CallOutput&, const ForPhase&, const callConfFPtr, const ConfidenceIntervals* );
 		const CallOutput& _c; 
-		const DOM::ForPhase& _p;
+		const ForPhase& _p;
 		const callConfFPtr _x;
 		const ConfidenceIntervals* _conf;
 		friend std::ostream& operator<<(std::ostream & os, const CallResultsManip& m ) { return m._f(os,m._c,m._p,m._x,m._conf); }
 	    };
 
-	    static CallResultsManip print_calls( const CallOutput& c, const DOM::ForPhase& p, const callConfFPtr f, const ConfidenceIntervals* l=0 ) { return CallResultsManip( &CallOutput::printCalls, c, p, f, l ); }
+	    static CallResultsManip print_calls( const CallOutput& c, const ForPhase& p, const callConfFPtr f, const ConfidenceIntervals* l=0 ) { return CallResultsManip( &CallOutput::printCalls, c, p, f, l ); }
 
 	public:
 	    CallOutput( std::ostream& output, const DOM::Call::boolCallFunc t, const callConfFPtr m=NULL, const callConfFPtr v=NULL ) : ObjectOutput(output), _testFunc(t), _meanFunc(m), _confFunc(v), _count(0) {}
@@ -850,7 +889,7 @@ namespace LQIO {
 	    void printDropProbabilityConfidence( const DOM::Call * call, const ConfidenceIntervals* conf ) const;
 
 	private:
-	    static std::ostream& printCalls( std::ostream&, const CallOutput&c, const DOM::ForPhase& p, const callConfFPtr f, const ConfidenceIntervals* l );
+	    static std::ostream& printCalls( std::ostream&, const CallOutput&c, const ForPhase& p, const callConfFPtr f, const ConfidenceIntervals* l );
 
 	private:
 	    const DOM::Call::boolCallFunc _testFunc;

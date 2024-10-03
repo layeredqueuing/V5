@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: processor.cc 17310 2024-09-26 21:02:21Z greg $
+ * $Id: processor.cc 17327 2024-10-02 19:54:29Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -111,12 +111,12 @@ Processor::initialize()
 Processor *
 Processor::find( const std::string& name  )
 {
-    if ( name.size() == 0 ) return 0;
-    vector<Processor *>::const_iterator nextProcessor = find_if( ::__processor.begin(), ::__processor.end(), eqProcStr( name ) );
-    if ( nextProcessor == __processor.end() ) {
+    if ( name.empty() ) return nullptr;
+    vector<Processor *>::const_iterator processor = std::find_if( ::__processor.begin(), ::__processor.end(), [&]( const Processor * processor ){ return processor->name() == name; } );
+    if ( processor == __processor.end() ) {
 	return 0;
     } else {
-	return *nextProcessor;
+	return *processor;
     }
 }
 
@@ -542,10 +542,14 @@ Processor::get_waiting( const Phase& phase ) const
 	tput = get_tput( IMMEDIATE, "preq%s%s00", name(), phase.name() );
     }
 
+    double wait = 0.0;
+    if ( tput > 0. ) {
+	wait = tokens * (phase.mean_processor_calls()) / tput;
+    }
     if ( debug_flag && tput > 0 ) {
-	(void) fprintf( stddbg, "Proc %s entry %s: tokens=%g, tput=%g\n",
-			name(), phase.name(), tokens, tput );
+	(void) fprintf( stddbg, "Proc %s entry %s: tokens=%g, calls=%g, tput=%g, wait=%g\n",
+			name(), phase.name(), tokens, phase.mean_processor_calls(), tput, wait );
     }
 
-    return tput ? (tokens * (phase.mean_processor_calls()) / tput) : 0.0;
+    return wait;
 }

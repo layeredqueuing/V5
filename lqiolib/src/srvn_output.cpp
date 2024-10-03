@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 17236 2024-05-26 12:12:13Z greg $
+ *  $Id: srvn_output.cpp 17329 2024-10-02 20:57:11Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -46,6 +46,49 @@ namespace LQIO {
     unsigned int SRVN::ObjectInput::__maxInpLen = 1;
 
     static inline void throw_bad_parameter() { throw std::domain_error( "invalid parameter" ); }
+
+    bool
+    SRVN::for_each_entry_any_of::operator()( const std::pair<unsigned int,DOM::Entity *>& ep ) const
+    {
+	const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
+	if ( task == nullptr ) return false;
+
+	const std::vector<DOM::Entry *> & entries = task->getEntryList();
+	return std::any_of( entries.begin(), entries.end(), std::mem_fn( _f ) );
+    }
+
+    int
+    SRVN::for_each_entry_count_if::operator()( const std::pair<unsigned int,DOM::Entity *>& ep ) const
+    {
+	const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
+	if ( task == nullptr ) return 0;
+
+	const std::vector<DOM::Entry *> & entries = task->getEntryList();
+	return std::count_if( entries.begin(), entries.end(), std::mem_fn( _f ) );
+    }
+
+    SRVN::ForPhase::ForPhase()
+	: _maxPhase(DOM::Phase::MAX_PHASE), _type(DOM::Call::Type::NULL_CALL)
+    {
+	for ( unsigned p = 0; p < DOM::Phase::MAX_PHASE; ++p ) {
+	    ia[p] = 0;
+	}
+    }
+
+    void
+    SRVN::CollectCalls::operator()( const std::pair<unsigned, DOM::Phase*>& p )
+    {
+	const unsigned n = p.first;
+	const std::vector<DOM::Call*>& calls = p.second->getCalls();
+	for ( std::vector<DOM::Call*>::const_iterator c = calls.begin(); c != calls.end(); ++c ) {
+	    const DOM::Call* call = *c;
+	    if ( !_test || (call->*_test)() ) {
+		ForPhase& y = _calls[call->getDestinationEntry()];
+		y.setType( call->getCallType() );
+		y[n] = call;
+	    }
+	}
+    }
 
     SRVN::Output::Output( const DOM::Document& document, const std::map<unsigned, DOM::Entity *>& entities,
                           bool print_confidence_intervals, bool print_variances, bool print_histograms )
@@ -404,7 +447,7 @@ namespace LQIO {
             output << task_header( open_wait_str ) << std::setw(ObjectOutput::__maxDblLen) << "Lambda" << std::setw(ObjectOutput::__maxDblLen) << "Waiting time" << newline;
             std::for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printOpenQueueWait ) );
 
-	    if ( std::any_of( _entities.begin(), _entities.end(), Predicate( &DOM::Entry::hasResultDropProbability ) ) ) {
+	    if ( std::any_of( _entities.begin(), _entities.end(), for_each_entry_any_of( &DOM::Entry::hasResultDropProbability ) ) ) {
 		output << task_header( loss_probability_str ) << std::setw(ObjectOutput::__maxDblLen) << "Drop Probability" << newline;
 		std::for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printOpenQueueDropProbability ) );
 	    }
@@ -908,17 +951,10 @@ namespace LQIO {
 	/* Open Arrivals */
 
         if ( getDOM().entryHasOpenWait() ) {
-	    unsigned int count = std::count_if( _entities.begin(), _entities.end(), Predicate( &DOM::Entry::hasOpenArrivalRate ) );
+	    unsigned int count = std::count_if( _entities.begin(), _entities.end(), for_each_entry_count_if( &DOM::Entry::hasOpenArrivalRate ) );
             output << "R " << count << std::endl;
             std::for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printOpenQueueWait ) );
             output << "-1"  << std::endl << std::endl;
-
-	    count = std::count_if( _entities.begin(), _entities.end(), Predicate( &DOM::Entry::hasResultDropProbability ) );
-#if 0
-            output << "R " << count << std::endl;
-            std::for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printOpenQueueWait ) );
-            output << "-1"  << std::endl << std::endl;
-#endif
         }
 
         /* Processor utilization and waiting */
@@ -2733,16 +2769,16 @@ namespace LQIO {
     {
         /* Gather up all the call info over all phases and store in new map<to_entry,call*[3]>. */
 
-        std::map<const DOM::Entry *, DOM::ForPhase> callsByPhase;
+        std::map<const DOM::Entry *, ForPhase> callsByPhase;
         const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
         assert( phases.size() <= DOM::Phase::MAX_PHASE );
-	std::for_each( phases.begin(), phases.end(), DOM::CollectCalls( callsByPhase ) );		/* Don't care about type of call here */
+	std::for_each( phases.begin(), phases.end(), CollectCalls( callsByPhase ) );		/* Don't care about type of call here */
 
         /* Now iterate over the collection of calls */
 
-        for ( std::map<const DOM::Entry *, DOM::ForPhase>::const_iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
+        for ( std::map<const DOM::Entry *, ForPhase>::const_iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
 	    const DOM::Entry * dst = next_y->first;
-            const DOM::ForPhase& calls_by_phase = next_y->second;
+            const ForPhase& calls_by_phase = next_y->second;
             _output << "  ";
             switch ( calls_by_phase.getType() ) {
             case DOM::Call::Type::RENDEZVOUS: _output << "y"; break;
@@ -3022,15 +3058,15 @@ namespace LQIO {
             const DOM::Entry * entry = *nextEntry;
 
             /* Gather up all the call info over all phases and store in new map<to_entry,call*[3]>. */
-            std::map<const DOM::Entry *, DOM::ForPhase> callsByPhase;
+            std::map<const DOM::Entry *, ForPhase> callsByPhase;
             const std::map<unsigned, DOM::Phase*>& phases = entry->getPhaseList();
             assert( phases.size() <= DOM::Phase::MAX_PHASE );
-	    std::for_each( phases.begin(), phases.end(), DOM::CollectCalls( callsByPhase, _testFunc ) );
+	    std::for_each( phases.begin(), phases.end(), CollectCalls( callsByPhase, _testFunc ) );
 
             /* Now iterate over the collection of calls */
 	    if ( _meanFunc ) {
-		for ( std::map<const DOM::Entry *, DOM::ForPhase>::iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
-		    DOM::ForPhase& calls_by_phase = next_y->second;
+		for ( std::map<const DOM::Entry *, ForPhase>::iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
+		    ForPhase& calls_by_phase = next_y->second;
 		    calls_by_phase.setMaxPhase( __parseable ? __maxPhase : entry->getMaximumPhase() );
 		    _output << entity_name( *(ep.second), print_task_name )
 			    << entry_name( *entry )
@@ -3167,7 +3203,7 @@ namespace LQIO {
     }
 
     std::ostream&
-    SRVN::CallOutput::printCalls( std::ostream& output, const CallOutput& info, const DOM::ForPhase& phases, const callConfFPtr func, const ConfidenceIntervals* conf )
+    SRVN::CallOutput::printCalls( std::ostream& output, const CallOutput& info, const ForPhase& phases, const callConfFPtr func, const ConfidenceIntervals* conf )
     {
         for ( unsigned p = 1; p <= phases.getMaxPhase(); ++p ) {
             output << std::setw(__maxDblLen-1);
@@ -3340,16 +3376,4 @@ namespace LQIO {
         }
         _output << newline;
     }
-
-    bool
-    SRVN::Predicate::operator()( const std::pair<unsigned int,DOM::Entity *>& ep ) const
-    {
-	const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
-	if ( task == nullptr ) return false;
-
-	const std::vector<DOM::Entry *> & entries = task->getEntryList();
-
-	return std::count_if( entries.begin(), entries.end(), std::mem_fn( _f ) );
-    }
-
 }

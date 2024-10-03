@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 16438 2023-02-22 23:57:49Z greg $
+ * $Id: srvn_spex.h 17330 2024-10-02 21:00:46Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -29,17 +29,18 @@ namespace LQX {
 }
 namespace LQIO {
     namespace DOM {
-	class ExternalVariable;
-	class SymbolExternalVariable;
-	class Document;
-	class Processor;
-	class Group;
-	class Task;
 	class Activity;
-	class DocumentObject;
-	class JSON_Document;
-	class Expat_Document;
 	class BCMP_to_LQN;
+	class Document;
+	class DocumentObject;
+	class Entry;
+	class Expat_Document;
+	class ExternalVariable;
+	class Group;
+	class JSON_Document;
+	class Processor;
+	class SymbolExternalVariable;
+	class Task;
     }
 }
 namespace QNIO {

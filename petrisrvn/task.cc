@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: task.cc 17319 2024-10-01 18:09:38Z greg $
+ * $Id: task.cc 17326 2024-10-02 16:01:28Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -461,7 +461,7 @@ Task::add_activity( LQIO::DOM::Activity * dom )
 Activity *
 Task::find_activity( const std::string& name ) const
 {
-    vector<Activity *>::const_iterator ap = find_if( activities.begin(), activities.end(), eqActivityStr( name ) );
+    vector<Activity *>::const_iterator ap = std::find_if( activities.begin(), activities.end(), [&]( Activity * activity ){ return name == activity->name(); } );
     if ( ap != activities.end() ) {
 	return *ap;
     } else {

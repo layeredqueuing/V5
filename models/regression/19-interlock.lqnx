@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
-<lqn-model name="13-interlock" description="$Id: 19-interlock.lqnx 17322 2024-10-01 23:34:26Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="13-interlock" description="$Id: 19-interlock.lqnx 17323 2024-10-02 14:39:22Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Send Interlock on Processor" conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
    <processor name="p0" multiplicity="1" scheduling="fcfs">
-      <task name="t0" multiplicity="2" scheduling="ref">
+      <task name="t0" multiplicity="1" scheduling="ref">
          <entry name="e0" type="PH1PH2">
             <entry-phase-activities>
                <activity name="e0_1" phase="1" host-demand-mean="1">

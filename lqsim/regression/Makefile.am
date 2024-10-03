@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 17285 2024-09-13 15:11:30Z greg $
+# $Id: Makefile.am 17327 2024-10-02 19:54:29Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -17,12 +17,18 @@ SANITY=	01-sanity.lqxo \
 	05-sanity.lqxo \
 	06-sanity.lqxo \
 	07-sanity.lqxo \
+	08-sanity.lqxo \
 	09-sanity.lqxo \
 	31-overtaking.lqxo
 INTER=	10-interlock.lqxo \
 	11-interlock.lqxo \
 	12-interlock.lqxo \
-	13-interlock.lqxo 
+	13-interlock.lqxo \
+        14-interlock.lqxo \
+        15-split-interlock.lqxo \
+        16-split-interlock.lqxo \
+        18-interlock.lqxo \
+        19-interlock.lqxo
 MULTI=	20-multiserver.lqxo \
 	21-multiserver.lqxo \
 	22-multiserver.lqxo \
@@ -118,6 +124,9 @@ distclean:	clean
 
 sanity:	$(SANITY)
 	echo $(SANITY) | tr -s " " "\n" | srvndiff -S0.01 -Q -@- . ../../models/regression/sim-results
+
+interlock: $(INTER)
+	echo $(INTER) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/sim-results
 
 multi:	$(MULTI)
 	echo $(MULTI) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/sim-results

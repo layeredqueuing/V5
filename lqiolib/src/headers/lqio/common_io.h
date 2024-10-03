@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: common_io.h 16817 2023-11-01 19:40:11Z greg $
+ *  $Id: common_io.h 17329 2024-10-02 20:57:11Z greg $
  *
  *  Greg Franks
  */
@@ -14,8 +14,6 @@
 #include <cassert>
 #include <time.h>
 #include "confidence_intervals.h"
-#include "dom_phase.h"
-#include "dom_call.h"
 #include "input.h"
 
 namespace LQIO {
@@ -164,36 +162,6 @@ namespace LQIO {
 	    double _system;
 	};
 	
-	class ForPhase {
-	public:
-	    ForPhase();
-	    const Call*& operator[](const unsigned ix) { assert( ix && ix <= Phase::MAX_PHASE ); return ia[ix-1]; }
-	    const Call* operator[](const unsigned ix) const { assert( ix && ix <= Phase::MAX_PHASE ); return ia[ix-1]; }
-		
-	    ForPhase& setMaxPhase( const unsigned mp ) { _maxPhase = mp; return *this; }
-	    const unsigned getMaxPhase() const { return _maxPhase; }
-	    ForPhase& setType( const Call::Type type ) { _type = type; return *this; }
-	    const Call::Type getType() const { return _type; }
-
-	private:
-	    const Call * ia[Phase::MAX_PHASE];
-	    unsigned _maxPhase;
-	    Call::Type _type;
-	};
-
-	/*
-	 * Collects all calls to a given destination by phase.
-	 */
-
-	struct CollectCalls {
-	    CollectCalls( std::map<const Entry *, ForPhase>& calls, Call::boolCallFunc test=0 ) : _calls(calls), _test(test) {}
-	    void operator()( const std::pair<unsigned, Phase*>& p );
-	    
-	private:
-	    std::map<const Entry *, ForPhase>& _calls;
-	    const Call::boolCallFunc _test;
-	};
-
 	class GetLogin {
 	public:
 	    GetLogin() {}

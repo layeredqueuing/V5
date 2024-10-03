@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: entry.cc 17315 2024-09-27 18:03:15Z greg $
+ * $Id: entry.cc 17326 2024-10-02 16:01:28Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -73,14 +73,14 @@ Entry::clear()
 Entry *
 Entry::create( LQIO::DOM::Entry * dom, Task * task )
 {
-    std::vector<Entry *>::const_iterator nextEntry = find_if( __entry.begin(), __entry.end(), eqEntryStr( dom->getName() ) );
-    if ( nextEntry != __entry.end() ) {
+    const std::string& name = dom->getName();
+    if ( std::find_if( __entry.begin(), __entry.end(), [&]( const Entry * entry ){ return name == entry->name(); } ) != __entry.end() ) {
 	dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL );
 	return nullptr;
     } else {
-	Entry * ep = new Entry( dom, task );
-	::__entry.push_back( ep );
-	return ep;
+	Entry * entry = new Entry( dom, task );
+	::__entry.push_back( entry );
+	return entry;
     }
 }
 
@@ -535,11 +535,11 @@ double Entry::queueing_time( const Entry * entry ) const
 
 /* static */ Entry * Entry::find( const std::string& name)
 {
-    std::vector<Entry *>::const_iterator nextEntry = find_if( __entry.begin(), __entry.end(), eqEntryStr( name ) );
-    if ( nextEntry == __entry.end() ) {
-	return 0;
+    std::vector<Entry *>::const_iterator entry = find_if( __entry.begin(), __entry.end(), [&]( const Entry * entry ){ return entry->name() == name; } );
+    if ( entry == __entry.end() ) {
+	return nullptr;
     } else {
-	return *nextEntry;
+	return *entry;
     }
 }
 
