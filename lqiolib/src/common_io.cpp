@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: common_io.cpp 17329 2024-10-02 20:57:11Z greg $
+ * $Id: common_io.cpp 17332 2024-10-03 15:25:44Z greg $
  *
  * Read in XML input files.
  *
@@ -74,17 +74,6 @@ namespace LQIO {
 	    return _conf_95.invert( arg );
 	}
 
-	/* Hoops to find the phase number */
-	unsigned int
-	Common_IO::get_phase( const LQIO::DOM::Phase * phase )
-	{
-	    const LQIO::DOM::Entry * entry = phase->getSourceEntry();
-	    const std::map<unsigned, Phase*>& phases = entry->getPhaseList();
-	    std::map<unsigned,Phase *>::const_iterator iter = find_if( phases.begin(), phases.end(), LQIO::DOM::Phase::eqPhase( phase ) );
-	    if ( iter == phases.end() ) abort();
-	    return iter->first;
-	}
-	
 	/* 
 	 * This function is used to ignore default values in the
 	 * input.  

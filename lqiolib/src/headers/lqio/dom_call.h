@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_call.h 15813 2022-08-11 19:18:33Z greg $
+ *  $Id: dom_call.h 17332 2024-10-03 15:25:44Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -22,19 +22,6 @@ namespace LQIO {
 
 	class Call : public DocumentObject {
 	public:
-
-	    /*
-	     * Compare a entry name to a string.  Used by the find_if (and other algorithm type things).
-	     */
-
-	    struct eqDestEntry {
-	        eqDestEntry( const DOM::Entry * entry ) : _entry(entry) {}
-		bool operator()(const DOM::Call * call ) const { return call->getDestinationEntry() == _entry; }
-
-	    private:
-		const DOM::Entry * _entry;
-	    };
-
 	    /* Different types of calls */
 	    enum class Type {
 		NULL_CALL,

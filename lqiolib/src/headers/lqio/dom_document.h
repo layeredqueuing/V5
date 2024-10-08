@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 16879 2023-12-04 18:08:54Z greg $
+ *  $Id: dom_document.h 17339 2024-10-07 16:28:29Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -56,9 +56,6 @@ namespace LQIO {
 	public:
 	    enum class OutputFormat { DEFAULT, LQN, XML, JABA, JMVA, JSON, RTF, PARSEABLE, QNAP2, TXT };
 	    enum class InputFormat  { AUTOMATIC, LQN, XML, JABA, JMVA, JSON, QNAP2 };
-
-	private:
-	    enum class cached { SET_FALSE, SET_TRUE, NOT_SET };
 
 	private:
 	    Document& operator=( const Document& ) = delete;
@@ -246,12 +243,6 @@ namespace LQIO {
 	    Document& set( const std::string&, const ExternalVariable * );
 	    const ExternalVariable * get( const std::string& ) const;
 	    static inline bool wasSet(const std::pair<std::string,SymbolExternalVariable*>& var ) { return var.second->wasSet(); }
-	    struct notSet {
-		notSet(std::vector<std::string>& list) : _list(list) {}
-		void operator()( const std::pair<std::string,SymbolExternalVariable*>& var ) { if (!var.second->wasSet()) _list.push_back(var.first); }
-	    private:
-		std::vector<std::string>& _list;
-	    };
 
 	public:
 	    /* Names of document attributes */
@@ -302,12 +293,6 @@ namespace LQIO {
 
 	    unsigned  _maximumPhase;
 	    bool _hasResults;
-
-	    /* Cached values */
-
-	    mutable cached _hasRendezvous;
-	    mutable cached _hasSendNoReply;
-	    mutable cached _taskHasAndJoin;
 
 	    /* Solution results from LQNS/LQSim */
 

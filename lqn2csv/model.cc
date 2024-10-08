@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 16264 2023-01-04 19:59:18Z greg $
+ * $Id: model.cc 17338 2024-10-07 16:05:02Z greg $
  *
  * Command line processing.
  *
@@ -58,7 +58,8 @@ const std::map<Model::Result::Type,Model::Result::result_fields> Model::Result::
     { Model::Result::Type::JOIN_DELAYS,                { Model::Object::Type::JOIN,          "Join Delay",  "join", &LQIO::DOM::DocumentObject::getResultJoinDelay           } },
     { Model::Result::Type::MARGINAL_PROBABILITIES,     { Model::Object::Type::ENTITY,        "Probability", "prob", nullptr } },
     { Model::Result::Type::MVA_STEPS,                  { Model::Object::Type::DOCUMENT,      "step()",      "step", nullptr } },
-    { Model::Result::Type::OPEN_WAIT,                  { Model::Object::Type::ENTRY,         "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultWaitingTime         } },
+    { Model::Result::Type::OPEN_ARRIVAL_RATE,          { Model::Object::Type::ENTRY,         "Rate",        "rate", &LQIO::DOM::DocumentObject::getOpenArrivalRateValue      } },
+    { Model::Result::Type::OPEN_ARRIVAL_WAIT,          { Model::Object::Type::ENTRY,         "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultWaitingTime         } },
     { Model::Result::Type::PHASE_DEMAND,               { Model::Object::Type::PHASE,         "Demand",      "demd", &LQIO::DOM::DocumentObject::getServiceTimeValue          } },
     { Model::Result::Type::PHASE_PROCESSOR_WAITING,    { Model::Object::Type::PHASE,         "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultProcessorWaiting    } },
     { Model::Result::Type::PHASE_PR_RQST_LOST,         { Model::Object::Type::PHASE_CALL,    "Drop Prob",   "pdrp", &LQIO::DOM::DocumentObject::getResultDropProbability     } },
@@ -110,13 +111,14 @@ bool Model::Output::operator!=( const Output& dst ) const
 bool Model::Result::isIndependentVariable( Model::Result::Type type )
 {
     static const std::set<Result::Type> independent = {
-	Type::PHASE_DEMAND,
-	Type::PHASE_REQUEST_RATE,
 	Type::ACTIVITY_DEMAND,
 	Type::ACTIVITY_REQUEST_RATE,
+	Type::OPEN_ARRIVAL_RATE,
+	Type::PHASE_DEMAND,
+	Type::PHASE_REQUEST_RATE,
+	Type::PROCESSOR_MULTIPLICITY,
 	Type::TASK_MULTIPLICITY,
-	Type::TASK_THINK_TIME,
-	Type::PROCESSOR_MULTIPLICITY };
+	Type::TASK_THINK_TIME };
 
     return independent.find( type ) != independent.end();
 }

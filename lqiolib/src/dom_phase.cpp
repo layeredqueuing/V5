@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_phase.cpp 17236 2024-05-26 12:12:13Z greg $
+ *  $Id: dom_phase.cpp 17332 2024-10-03 15:25:44Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -116,6 +116,17 @@ namespace LQIO {
 	    return _phaseTypeFlag;
 	}
 
+	/* Hoops to find the phase number */
+	unsigned int
+	Phase::getPhaseNumber() const
+	{
+	    const LQIO::DOM::Entry * entry = getSourceEntry();
+	    const std::map<unsigned, Phase*>& phases = entry->getPhaseList();
+	    std::map<unsigned,Phase *>::const_iterator iter = std::find_if( phases.begin(), phases.end(), [this]( const auto& phase ){ return phase.second == this; } );
+	    if ( iter == phases.end() ) abort();
+	    return iter->first;
+	}
+	
 	void Phase::setPhaseTypeFlag(const Phase::Type phaseTypeFlag)
 	{
 	    /* Stores the given PhaseTypeFlags of the Phase */
@@ -274,7 +285,7 @@ namespace LQIO {
 	Call* Phase::getCallToTarget(const Entry* entry) const
 	{
 	    /* Go through our list of calls for the one to the entry */
-	    std::vector<Call*>::const_iterator iter = std::find_if( _calls.begin(), _calls.end(), Call::eqDestEntry(entry) );
+	    std::vector<Call*>::const_iterator iter = std::find_if( _calls.begin(), _calls.end(), [=]( const Call * call ){ return call->getDestinationEntry() == entry; } );
 	    if ( iter != _calls.end() ) return *iter;
 
 	    return nullptr;

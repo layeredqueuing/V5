@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: model.h 16253 2023-01-03 19:37:15Z greg $
+ * $Id: model.h 17335 2024-10-04 18:00:09Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -106,7 +106,8 @@ namespace Model {
 	    JOIN_DELAYS, 
 	    MARGINAL_PROBABILITIES,
 	    MVA_STEPS, 
-	    OPEN_WAIT, 
+	    OPEN_ARRIVAL_WAIT,
+	    OPEN_ARRIVAL_RATE,
 	    PHASE_DEMAND,
 	    PHASE_PROCESSOR_WAITING,
 	    PHASE_PR_RQST_LOST, 
@@ -166,7 +167,7 @@ namespace Model {
 	static bool throughput( Type type ) { return type == Type::ACTIVITY_THROUGHPUT || type == Type::ENTRY_THROUGHPUT || type == Type::TASK_THROUGHPUT || type == Type::THROUGHPUT_BOUND; }
 	static bool utilization( Type type ) { return type == Type::TASK_UTILIZATION || type == Type::ENTRY_UTILIZATION || type == Type::PHASE_UTILIZATION || type == Type::PROCESSOR_UTILIZATION; }
 	static bool service_time( Type type ) { return type == Type::ACTIVITY_SERVICE || type == Type::PHASE_SERVICE; }
-	static bool waiting( Type type ) { return type == Type::ACTIVITY_WAITING || type == Type::PHASE_WAITING || type == Type::PHASE_PROCESSOR_WAITING || type == Type::OPEN_WAIT; }
+	static bool waiting( Type type ) { return type == Type::ACTIVITY_WAITING || type == Type::PHASE_WAITING || type == Type::PHASE_PROCESSOR_WAITING || type == Type::OPEN_ARRIVAL_WAIT; }
 	static bool variance( Type type ) { return type == Type::PHASE_VARIANCE || type == Type::ACTIVITY_VARIANCE; }
 
     public:

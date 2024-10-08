@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_actlist.cpp 17059 2024-02-08 15:43:01Z greg $
+ *  $Id: dom_actlist.cpp 17332 2024-10-03 15:25:44Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -88,8 +88,7 @@ namespace LQIO {
     
 	const std::string ActivityList::getListName() const
 	{
-	    std::string listName;
-	    return std::accumulate( std::next( _list.begin() ), _list.end(), _list.front()->getName(), fold( __op.at(_type) ) );
+	    return std::accumulate( std::next( _list.begin() ), _list.end(), _list.front()->getName(), [&]( const std::string& l, const Activity * r ){ return l + " " + __op.at(_type) + " " + r->getName(); } );
 	}
 	
 	bool ActivityList::isJoinList() const

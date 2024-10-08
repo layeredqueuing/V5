@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 17253 2024-06-24 20:35:03Z greg $
+ * $Id: json_document.cpp 17332 2024-10-03 15:25:44Z greg $
  *
  * Read in JSON input files.
  *
@@ -2647,7 +2647,7 @@ namespace LQIO {
 		/* A bit more complicated because phases are referenced via entries. */
 		const Phase * phase = dynamic_cast<Phase *>(object);
 		const Entry * entry = phase->getSourceEntry();
-		LQIO::spex.observation( entry, LQIO::Spex::ObservationInfo( key, get_phase( phase ), var1, conf, var2 ) );
+		LQIO::spex.observation( entry, LQIO::Spex::ObservationInfo( key, phase->getPhaseNumber(), var1, conf, var2 ) );
 	    } else if ( dynamic_cast<Call *>(object) ) {
 		/* Even more complicated becauses I need to get to the entry to find the call in LQX */
 		const LQIO::DOM::Call * call = dynamic_cast<LQIO::DOM::Call *>(object);
@@ -2660,7 +2660,7 @@ namespace LQIO {
 		} else if ( dynamic_cast<const Phase *>(source) ) {
 		    const Phase * phase = dynamic_cast<const Phase *>(source);
 		    const Entry * entry = phase->getSourceEntry();
-		    const unsigned int p = get_phase( phase );
+		    const unsigned int p = phase->getPhaseNumber();
 		    LQIO::spex.observation( entry, p, destination, LQIO::Spex::ObservationInfo( key, p, var1, conf, var2 ) );
 		} else {	/* forwarding */
 		    const Entry * entry = dynamic_cast<const Entry *>(source);

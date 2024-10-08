@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_processor.cpp 15895 2022-09-23 17:21:55Z greg $
+ *  $Id: dom_processor.cpp 17332 2024-10-03 15:25:44Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -146,8 +146,8 @@ namespace LQIO {
 	double Processor::computeResultUtilization()
 	{
 	    if ( getResultUtilization() == 0 || _taskList.size() == 1 ) {
-		setResultUtilization( std::accumulate( _taskList.begin(), _taskList.end(), 0.0, add_using<Task>( &Task::computeResultProcessorUtilization ) ) );
-		setResultUtilizationVariance( std::accumulate( _taskList.begin(), _taskList.end(), 0., add_using_const<Task>( &Task::getResultProcessorUtilizationVariance ) ) );
+		setResultUtilization( std::accumulate( _taskList.begin(), _taskList.end(), 0.0, []( double l, Task* r ){ return l + r->computeResultProcessorUtilization(); } ) );
+		setResultUtilizationVariance( std::accumulate( _taskList.begin(), _taskList.end(), 0., []( double l, const Task* r ){ return l + r->getResultProcessorUtilizationVariance(); } ) );
 	    }
 	    return getResultUtilization();
 	}

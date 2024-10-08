@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 17236 2024-05-26 12:12:13Z greg $
+ *  $Id: dom_document.cpp 17339 2024-10-07 16:28:29Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -120,7 +120,6 @@ namespace LQIO {
 	      _format(format),
 	      _lqxProgram(""), _lqxProgramLineNumber(0), _parsedLQXProgram(nullptr), _instantiated(false), _pragmas(),
 	      _maximumPhase(0), _hasResults(false),
-	      _hasRendezvous(cached::NOT_SET), _hasSendNoReply(cached::NOT_SET), _taskHasAndJoin(cached::NOT_SET),		/* Cached valuess */
 	      _resultValid(false), _hasConfidenceIntervals(false), _hasBottleneckStrength(false),
 	      _resultInvocationNumber(0),
 	      _resultConvergenceValue(0.0),
@@ -386,7 +385,7 @@ namespace LQIO {
 	std::vector<std::string> Document::getUndefinedExternalVariables() const
 	{
 	    std::vector<std::string> names;
-	    std::for_each( _variables.begin(), _variables.end(), notSet(names) );
+	    std::for_each( _variables.begin(), _variables.end(), [&]( const auto& var ){ if (!var.second->wasSet()) names.push_back(var.first); } );
 	    return names;
 	}
 
@@ -606,25 +605,17 @@ namespace LQIO {
 
 	bool Document::hasRendezvous() const
 	{
-	    /* This is a property of phases and activities, so count_if can't be used here */
-	    if ( _hasRendezvous == cached::NOT_SET ) {
-		_hasRendezvous = std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasRendezvous ) ) ? cached::SET_TRUE : cached::SET_FALSE;
-	    }
-	    return _hasRendezvous == cached::SET_TRUE;
+	    return std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasRendezvous ) );
 	}
 
 	bool Document::hasSendNoReply() const
 	{
-	    if ( _hasSendNoReply == cached::NOT_SET ) {
-		_hasSendNoReply = std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasSendNoReply ) ) ? cached::SET_TRUE : cached::SET_FALSE;
-	    }
-	    return _hasSendNoReply == cached::SET_TRUE;
+	    return std::any_of( _tasks.begin(), _tasks.end(), Task::any_of( &Phase::hasSendNoReply ) );
 	}
 
 	bool Document::hasForwarding() const
 	{
-	    return std::any_of( _entries.begin(), _entries.end(), Entry::Predicate<Entry>( &Entry::hasForwarding ) );
-//	    return std::any_of( _entries.begin(), _entries.end(), std::mem_fn( &Entry::hasForwarding ) );	/* Can't use mem_fn because entries is a map */
+	    return std::any_of( _entries.begin(), _entries.end(), []( const auto& entry ){ return entry.second->hasForwarding(); } );
 	}
 
 	bool Document::hasNonExponentialPhase() const
@@ -664,21 +655,18 @@ namespace LQIO {
 
 	bool Document::processorHasRate() const
 	{
-	    return std::any_of( _processors.begin(), _processors.end(), Entity::Predicate<Processor>( &Processor::hasRate ) );
+	    return std::any_of( _processors.begin(), _processors.end(), []( const auto& processor ){ return processor.second->hasRate(); } );
 	}
 
 	bool Document::taskHasAndJoin() const
 	{
-	    if ( _taskHasAndJoin == cached::NOT_SET ) {
-		_taskHasAndJoin = std::any_of( _tasks.begin(), _tasks.end(), Entity::Predicate<Task>( &Task::hasAndJoinActivityList ) ) ? cached::SET_TRUE : cached::SET_FALSE;
-	    }
-	    return _taskHasAndJoin == cached::SET_TRUE;
+	    return std::any_of( _tasks.begin(), _tasks.end(), []( const auto& task ){ return task.second->hasAndJoinActivityList(); } );
 	}
 
 	bool Document::taskHasThinkTime() const
 	{
 	    /* This is a property of tasks only */
-	    return std::any_of( _tasks.begin(), _tasks.end(), Entity::Predicate<Task>( &Task::hasThinkTime ) );
+	    return std::any_of( _tasks.begin(), _tasks.end(), []( const auto& task ){ return task.second->hasThinkTime(); } );
 	}
 
 	bool Document::hasSemaphoreWait() const
@@ -698,17 +686,17 @@ namespace LQIO {
 
 	bool Document::hasOpenArrivals() const
 	{
-	    return std::any_of( _entries.begin(), _entries.end(), Entry::Predicate<Entry>( &Entry::hasOpenArrivalRate ) );
+	    return std::any_of( _entries.begin(), _entries.end(), []( const auto& entry ){ return entry.second->hasOpenArrivalRate(); } );
 	}
 
 	bool Document::entryHasThroughputBound() const
 	{
-	    return std::any_of( _entries.begin(), _entries.end(), Entry::Predicate<Entry>( &Entry::hasResultsForThroughputBound ) );
+	    return std::any_of( _entries.begin(), _entries.end(), []( const auto& entry ){ return entry.second->hasResultsForThroughputBound(); } );
 	}
 
 	bool Document::entryHasOpenWait() const
 	{
-	    return std::any_of( _entries.begin(), _entries.end(), Entry::Predicate<Entry>( &Entry::hasResultsForOpenWait ) );
+	    return std::any_of( _entries.begin(), _entries.end(), []( const auto& entry ){ return entry.second->hasResultsForOpenWait(); } );
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Dom builder ] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

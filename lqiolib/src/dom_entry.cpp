@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 17236 2024-05-26 12:12:13Z greg $
+ *  $Id: dom_entry.cpp 17333 2024-10-03 19:51:55Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -349,8 +349,8 @@ namespace LQIO {
     
 	bool Entry::hasHistogram() const 
 	{
-	    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &LQIO::DOM::Phase::hasHistogram ) )
-		|| std::any_of( _histograms.begin(),  _histograms.end(), Predicate<Histogram>( &LQIO::DOM::Histogram::isHistogram ) );
+	    return std::any_of( _phases.begin(), _phases.end(), []( const auto& phase ){ return phase.second->hasHistogram(); } )
+		|| std::any_of( _histograms.begin(),  _histograms.end(), []( const auto& histogram ){ return histogram.second->isHistogram(); } );
 	}
 
 	bool Entry::hasHistogramForPhase( unsigned p) const
@@ -390,8 +390,8 @@ namespace LQIO {
 
 	bool Entry::hasMaxServiceTimeExceeded() const 
  	{
-	    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &LQIO::DOM::Phase::hasMaxServiceTimeExceeded ) )
-		|| std::any_of( _histograms.begin(),  _histograms.end(), Predicate<Histogram>( &LQIO::DOM::Histogram::isTimeExceeded ) );
+	    return std::any_of( _phases.begin(), _phases.end(), []( const auto& phase ){ return phase.second->hasMaxServiceTimeExceeded(); } )
+		|| std::any_of( _histograms.begin(),  _histograms.end(), []( const auto& histogram ){ return histogram.second->isTimeExceeded(); } );
  	}
 
 
@@ -429,7 +429,7 @@ namespace LQIO {
 	Call* Entry::getForwardingToTarget(const Entry* entry) const
 	{
 	    /* Go through our list of forwardings for the one to the entry */
-	    std::vector<Call*>::const_iterator iter = std::find_if( _forwarding.begin(), _forwarding.end(), Call::eqDestEntry(entry) );
+	    std::vector<Call*>::const_iterator iter = std::find_if( _forwarding.begin(), _forwarding.end(), [=]( const Call * call ){ return call->getDestinationEntry() == entry; } );
 	    if ( iter != _forwarding.end() ) return *iter;
 
 	    return nullptr;
@@ -462,17 +462,17 @@ namespace LQIO {
     
 	const bool Entry::hasThinkTime() const
 	{
- 	    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &LQIO::DOM::Phase::hasThinkTime ) );
+ 	    return std::any_of( _phases.begin(), _phases.end(), []( const auto& phase ){ return phase.second->hasThinkTime(); } );
 	}
 
 	const bool Entry::hasDeterministicPhases() const
 	{
-	    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &LQIO::DOM::Phase::hasDeterministicCalls ) );
+	    return std::any_of( _phases.begin(), _phases.end(), []( const auto& phase ){ return phase.second->hasDeterministicCalls(); } );
 	}
 	    
 	const bool Entry::hasNonExponentialPhases() const
 	{
-	    return std::any_of( _phases.begin(), _phases.end(), Predicate<Phase>( &LQIO::DOM::Phase::hasCoeffOfVariationSquared ) );
+	    return std::any_of( _phases.begin(), _phases.end(), []( const auto& phase ){ return phase.second->hasCoeffOfVariationSquared(); } );
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -964,18 +964,6 @@ namespace LQIO {
 	bool Entry::hasResultsForThroughputBound() const
 	{
 	    return _hasThroughputBound;
-	}
- 
-	/* ------------------------------------------------------------------------ */
-
-	/* 
-	 * Return true if any phase satisfies the predicate _f.
-	 */
-	
-	bool Entry::any_of::operator()( const LQIO::DOM::Entry * e ) const
-	{
-	    const std::map<unsigned, Phase*>& phases = e->getPhaseList();
-	    return std::any_of( phases.begin(), phases.end(), Predicate<Phase>( _f ) );
 	}
     }
 }

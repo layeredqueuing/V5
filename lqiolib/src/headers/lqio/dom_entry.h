@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_entry.h 17073 2024-02-28 19:42:11Z greg $
+ *  $Id: dom_entry.h 17332 2024-10-03 15:25:44Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -10,6 +10,7 @@
 #define __LQIO_DOM_ENTRY__
 
 #include <map>
+#include <algorithm>
 #include "dom_object.h"
 #include "dom_entity.h"
 #include "dom_call.h"
@@ -24,6 +25,7 @@ namespace LQIO {
 
 	class Entry : public DocumentObject {
 	public:
+	    /* Run _f over all phases of an entry. */
 	    class any_of {
 	    protected:
 		typedef bool (LQIO::DOM::Phase::*test_fn)() const;
@@ -31,19 +33,14 @@ namespace LQIO {
 	    public:
 		any_of( test_fn f ) : _f(f) {}
 		
-		bool operator()( const LQIO::DOM::Entry * ) const;
+		bool operator()( const LQIO::DOM::Entry * entry ) const
+		    {
+			const std::map<unsigned, Phase*>& phases = entry->getPhaseList();
+			return std::any_of( phases.begin(), phases.end(), [&]( const auto& phase ){ return (phase.second->*_f)(); } );
+		    }
 
 	    private:
 		const test_fn _f;
-	    };
-
-	    struct add_phase_using {
-		typedef double (Entry::*fp)( unsigned int p ) const;
-		add_phase_using( fp f, unsigned int p ) : _f(f), _p(p) {}
-		double operator()( double sum, const Entry * object ) { return sum + (object->*_f)(_p); }
-	    private:
-		const fp _f;
-		const unsigned int _p;
 	    };
 
 	private:

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 17320 2024-10-01 18:50:19Z greg $
+ * $Id: expat_document.cpp 17332 2024-10-03 15:25:44Z greg $
  *
  * Read in XML input files.
  *
@@ -1207,7 +1207,7 @@ namespace LQIO {
 			} else if ( dynamic_cast<const LQIO::DOM::Phase *>(source) ) {
 			    const LQIO::DOM::Phase * phase = dynamic_cast<const Phase *>(source);
 			    const LQIO::DOM::Entry * entry = phase->getSourceEntry();
-			    LQIO::spex.observation( entry, get_phase( phase ), destination, *observation );
+			    LQIO::spex.observation( entry, phase->getPhaseNumber(), destination, *observation );
 			} else {    /* forwarding */
 			    const LQIO::DOM::Entry * entry = dynamic_cast<const Entry *>(source);
 			    assert( entry != nullptr );
@@ -2090,14 +2090,14 @@ namespace LQIO {
                 if ( item != observation_table.end() ) {
 		    const int key = item->second.key;
 		    /* Find the phase for the observation */
-		    int p = 0;
+		    unsigned int p = 0;
 		    if ( dynamic_cast<LQIO::DOM::Phase *>( object ) != nullptr && dynamic_cast<LQIO::DOM::Activity *>( object ) == nullptr ) {
-			p = get_phase( dynamic_cast<LQIO::DOM::Phase *>( object ) );
+			p = dynamic_cast<LQIO::DOM::Phase *>( object )->getPhaseNumber();
 		    } else if ( dynamic_cast<LQIO::DOM::Call *>( object ) != nullptr ) {
 			const LQIO::DOM::Call * call = dynamic_cast<const LQIO::DOM::Call *>(object);
 			const DocumentObject * source = call->getSourceObject();
 			if ( dynamic_cast<const LQIO::DOM::Phase *>(source) && dynamic_cast<LQIO::DOM::Activity *>( object ) == nullptr ) {
-			    p = get_phase( dynamic_cast<const LQIO::DOM::Phase *>(source) );
+			    p = dynamic_cast<const LQIO::DOM::Phase *>(source)->getPhaseNumber();
 			}
 		    } else if ( dynamic_cast<LQIO::DOM::Entry *>( object ) == nullptr ) {
 			p = item->second.phase;		/* Any else not an entry */

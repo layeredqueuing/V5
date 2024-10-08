@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: common_io.h 17329 2024-10-02 20:57:11Z greg $
+ *  $Id: common_io.h 17332 2024-10-03 15:25:44Z greg $
  *
  *  Greg Franks
  */
@@ -20,7 +20,6 @@ namespace LQIO {
     namespace DOM {
 	class ExternalVariable;
 	class Document;
-	class Phase;
 
 	class SimpleManip {
 	public:
@@ -124,7 +123,6 @@ namespace LQIO {
 
 	protected:
 	    double invert( const double ) const;
-	    static unsigned int get_phase( const LQIO::DOM::Phase * );
 
 	protected:
 	    const ConfidenceIntervals _conf_95;

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_task.cpp 16548 2023-03-19 12:28:28Z greg $
+ *  $Id: dom_task.cpp 17333 2024-10-03 19:51:55Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -441,12 +441,12 @@ namespace LQIO {
 	double Task::computeResultUtilization()
 	{
 	    if ( getResultUtilization() == 0 || _entryList.size() == 1 ) {
-		setResultUtilization( std::accumulate( _entryList.begin(), _entryList.end(), 0.0, add_using_const<Entry>( &Entry::getResultUtilization ) ) );
-		setResultUtilizationVariance( std::accumulate( _entryList.begin(), _entryList.end(), 0.0, add_using_const<Entry>( &Entry::getResultUtilizationVariance ) ) );
+		setResultUtilization( std::accumulate( _entryList.begin(), _entryList.end(), 0.0, []( double l, const Entry* r ){ return l + r->getResultUtilization(); } ) );
+		setResultUtilizationVariance( std::accumulate( _entryList.begin(), _entryList.end(), 0.0, []( double l, const Entry* r ){ return l + r->getResultUtilizationVariance(); } ) );
 
 		for ( unsigned int p = 1; p <= Phase::MAX_PHASE; ++p ) {
-		    setResultPhasePUtilization( p, std::accumulate( _entryList.begin(), _entryList.end(), 0.0, Entry::add_phase_using( &Entry::getResultPhasePUtilization, p ) ) );
-		    setResultPhasePUtilizationVariance( p, std::accumulate( _entryList.begin(), _entryList.end(), 0.0, Entry::add_phase_using( &Entry::getResultPhasePUtilizationVariance, p ) ) );
+		    setResultPhasePUtilization( p, std::accumulate( _entryList.begin(), _entryList.end(), 0.0, [=]( double l, const Entry* r ){ return l + r->getResultPhasePUtilization( p ); } ) );
+		    setResultPhasePUtilizationVariance( p, std::accumulate( _entryList.begin(), _entryList.end(), 0.0, [=]( double l, const Entry* r ){ return l + r->getResultPhasePUtilizationVariance( p ); } ) );
 		}
 	    }
 	    return getResultUtilization();
@@ -492,8 +492,8 @@ namespace LQIO {
 	double Task::computeResultThroughput()
 	{
 	    if ( getResultThroughput() == 0 || _entryList.size() == 1 ) {
-		setResultThroughput( std::accumulate( _entryList.begin(),_entryList.end(), 0.0, add_using_const<Entry>( &Entry::getResultThroughput ) ) );
-		setResultThroughputVariance( std::accumulate( _entryList.begin(),_entryList.end(), 0.0, add_using_const<Entry>( &Entry::getResultThroughputVariance ) ) );
+		setResultThroughput( std::accumulate( _entryList.begin(),_entryList.end(), 0.0, []( double l, const Entry* r ){ return l + r->getResultThroughput(); } ) );
+		setResultThroughputVariance( std::accumulate( _entryList.begin(),_entryList.end(), 0.0, []( double l, const Entry* r ){ return l + r->getResultThroughputVariance(); } ) );
 	    }
 	    return getResultThroughput();
 	}
@@ -524,9 +524,9 @@ namespace LQIO {
 	double Task::computeResultProcessorUtilization()
 	{
 	    if ( getResultProcessorUtilization() == 0.0 || _entryList.size() == 1 ) {
-		setResultProcessorUtilization( std::accumulate( _entryList.begin(), _entryList.end(), 0.0, add_using_const<Entry>( &Entry::getResultProcessorUtilization ) )
-					       + std::accumulate( _activities.begin(), _activities.end(), 0.0, add_using_const<Activity>( &Activity::getResultProcessorUtilization ) ) );
-		setResultProcessorUtilizationVariance( std::accumulate( _entryList.begin(), _entryList.end(), 0.0, add_using_const<Entry>( &Entry::getResultProcessorUtilizationVariance ) ) );
+		setResultProcessorUtilization( std::accumulate( _entryList.begin(), _entryList.end(), 0.0, []( double l, const Entry* r ){ return l + r->getResultProcessorUtilization(); } )
+					       + std::accumulate( _activities.begin(), _activities.end(), 0.0, []( double l, const auto& r ){ return l + r.second->getResultProcessorUtilization(); } ) );
+		setResultProcessorUtilizationVariance( std::accumulate( _entryList.begin(), _entryList.end(), 0.0, []( double l, const Entry* r ){ return l + r->getResultProcessorUtilizationVariance(); } ) );
 	    }
 	    return getResultProcessorUtilization();
 	}
@@ -580,7 +580,7 @@ namespace LQIO {
 	    const std::vector<Entry*>& entries = t.second->getEntryList();
 	    const std::map<std::string,Activity*>&  activities = t.second->getActivities();
 	    return std::any_of( entries.begin(), entries.end(), LQIO::DOM::Entry::any_of( _f ) )
-		|| std::any_of( activities.begin(), activities.end(), Predicate<LQIO::DOM::Activity>(_f) );
+		|| std::any_of( activities.begin(), activities.end(), [&]( const auto& activity ){ return (activity.second->*_f)(); } );
 	}
 
 	/* ------------------------------------------------------------------------ */

@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 17275 2024-09-10 20:35:49Z greg $
+ *  $Id: dom_object.h 17337 2024-10-06 01:16:12Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -19,21 +19,6 @@ namespace LQIO {
 	class ExternalVariable;
 
 	class DocumentObject {
-
-	public:
-	    template <class Type> class Predicate {
-		typedef bool (Type::*test_fn)() const;
-
-	    public:
-		Predicate( const test_fn f ) : _f(f) {}
-		bool operator()( const Type* object ) const { return (object->*_f)(); }
-		bool operator()( const std::pair<std::string, Type *>& object ) const { return (object.second->*_f)(); }
-		bool operator()( const std::pair<unsigned int, Type *>& object ) const { return (object.second->*_f)(); }
-	    
-	    private:
-		const test_fn _f;
-	    };
-		
 	protected:
 	    DocumentObject();
 	    DocumentObject(const Document * document, const std::string& name );
@@ -78,6 +63,7 @@ namespace LQIO {
 
 	    /* Input values -- overriden by subclasses */
 	    
+	    virtual double getOpenArrivalRateValue() const { subclass(); return 0.; }
 	    virtual double getServiceTimeValue() const { subclass(); return 0.; }
 	    virtual double getThinkTimeValue() const { subclass(); return 0.; }
 	    virtual double getCallMeanValue() const { subclass(); return 0.; }

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_entity.h 17275 2024-09-10 20:35:49Z greg $
+ *  $Id: dom_entity.h 17332 2024-10-03 15:25:44Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -22,25 +22,6 @@ namespace LQIO {
 	class ExternalVariable;
 
 	class Entity : public DocumentObject {
-	protected:
-	    template <class Type> struct add_using {
-		typedef double (Type::*fp)();
-		add_using( fp f ) : _f(f) {}
-		double operator()( double sum, Type * object ) { return sum + (object->*_f)(); }
-		double operator()( double sum, const std::pair<std::string,Type *>& object ) { return sum + (object.second->*_f)(); }
-	    private:
-		const fp _f;
-	    };
-
-	    template <class Type> struct add_using_const {
-		typedef double (Type::*fp)() const;
-		add_using_const( fp f ) : _f(f) {}
-		double operator()( double sum, const Type * object ) { return sum + (object->*_f)(); }
-		double operator()( double sum, const std::pair<std::string,Type *>& object ) { return sum + (object.second->*_f)(); }
-	    private:
-		const fp _f;
-	    };
-
 	protected:
 	    Entity(const Entity&);
 

@@ -19,17 +19,15 @@ model solution to extract and print.  The results are output in the
 order that the options are given, separated by commas. Unlike
 \fBsrvndiff(1)\fP, the model files do \fInot\fP have to be the same;
 \fBlqn2csv\fP simply searches for results that match the arguments.
-and, unlike SPEX or LQX model files, results can be extracted from
-any entity listed below; not just those with result variables.
 If no match is found (or if an argument is not specified correctly),
 the string ``NULL'' is output. 
 
 The arguments to \fBlqn2csv\fR are a list of file names. If a
 directory is supplied as an argument, the directory is searched for
-all files the end in \fI\-*.lqxo\fP, \fI*.lqxo~*~\fP, \fI\-*.lqjo\fP, 
+all files that end in \fI\-*.lqxo\fP, \fI*.lqxo~*~\fP, \fI\-*.lqjo\fP, 
 or \fI.lqjo~*~\fP, in that order (i.e., the results from SPEX or LQX
 runs, or the results from using \fB\-\-print-interval\fR with
-\fBlqns(1)\fP or \fBlqsim(1)\fB).  The name of the directory up to any
+\fBlqns(1)\fP or \fBlqsim(1)\fP).  The name of the directory up to any
 suffix must match the name of result files,
 e.g. \fIfoo.d/foo-001.lqxo\fP.
 Parseable output, \fI*.p\fR, is not supported for the directory
@@ -44,8 +42,11 @@ except for \fB\-\-arguments\fP, \fB\-\-output\fP, \fB\-\-help\fP, and
 \fB\-\-version\fP.  Options can appear on both the command line and in
 one or more occurances of \fB\-\-arguments\fR.
 .TP 8
-\fB\-a\fP, \fB\-\-open\-wait=\fIentry\fR
+\fB\-a\fP, \fB\-\-open\-arrival\-wait=\fIentry\fR
 Print open the arrival waiting time for \fIentry\fP.
+\fB\-A\fP, \fB\-\-open\-arrival\-rate=\fIentry\fR
+Print open the arrival waiting rate for \fIentry\fP.  This is an
+independent variable for plotting.
 .TP 8
 \fB\-b\fP, \fB\-\-bounds=\fIentry\fR
 Print the throughput bound for \fIentry\fP.
@@ -110,6 +111,14 @@ the result is used with others.
 \fB\-q\fP, \fB\-\-processor\-waiting=\fIentry\fP,\fIn\fR
 Print the waiting time at the processor for \fIentry\fP, phase \fIn\fP.
 .TP 8
+\fB\-r\fP, \fB\-\-requests=\fIentry\fP,\fIn\fR,\fIdest\fP
+Print the number of requests from \fIentry\fP, phase \fIn\fP to the
+entry \fIdest\fP.  This is an independent variable for plotting.
+.TP 8
+\fB\-R\fP, \fB\-\-activity\-requests=\fItask\fR,\fIactivity\fP,\fIdest\fP
+Print the number of requests from \fItask\fP, \fIactivity\fP to the
+entry \fIdest\fP.  This is an independent variable for plotting.
+.TP 8
 \fB\-s\fP, \fB\-\-service=\fIentry\fP,\fIn\fR
 Print the service time for \fIentry\fP, phase \fIn\fP.
 .TP 8
@@ -140,7 +149,7 @@ Print the waiting time for a call from \fItask\fP, \fIactivity\fP to
 Print the probability the service time was exceeded for \fIentry\fP,
 phase \fIn\fP.
 .TP 8
-\fB\-x\fP, \fB\-\-service\-exceeded=\fIentry\fP,\fIn\fR
+\fB\-X\fP, \fB\-\-activity\-service\-exceeded=\fItask\fP,\fIactivity\fR
 Print the probability the service time was exceeded for \fItask\fP,
 \fIactivity\fP.
 .TP 8
@@ -152,7 +161,7 @@ times.  This is an independent variable for plotting.
 \fB\-#\fP, \fB\-\-comment=\fIn\fR
 Print out the model comment field.
 .TP 8
-\fB\fB\-\-mva-step\fIn\fR
+\fB\fB\-\-mva-step\fR
 Print out the number of times the MVA step() function was called when
 solving the model.
 .TP 8

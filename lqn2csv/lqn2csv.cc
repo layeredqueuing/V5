@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 17320 2024-10-01 18:50:19Z greg $
+ * $Id: lqn2csv.cc 17335 2024-10-04 18:00:09Z greg $
  *
  * Command line processing.
  *
@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -35,7 +36,6 @@
 #include <libgen.h>
 #endif
 #include <unistd.h>
-#include <sys/stat.h>
 #include <lqio/dom_document.h>
 #include <lqio/dom_task.h>
 #include "model.h"
@@ -50,54 +50,57 @@ int width	    = 0;
 
 const std::vector<struct option> longopts = {
     /* name */ /* has arg */ /*flag */ /* val */
-    { "open-wait",             required_argument, nullptr, 'a' }, 
-    { "bounds",                required_argument, nullptr, 'b' }, 
-    { "demand",		       required_argument, nullptr, 'd' },
-    { "activity-demand",       required_argument, nullptr, 'D' },
-    { "entry-utilization",     required_argument, nullptr, 'e' }, 
-    { "entry-throughput",      required_argument, nullptr, 'f' }, 
-    { "activity-throughput",   required_argument, nullptr, 'F' }, 
-    { "hold-times",            required_argument, nullptr, 'h' }, 
-    { "solver-information",    no_argument,	  nullptr, 'i' },
-    { "join-delays",           required_argument, nullptr, 'j' }, 
-    { "loss-probability",      required_argument, nullptr, 'l' },
-    { "processor-multiplicity",required_argument, nullptr, 'm' },
-    { "marginal-probabilities",required_argument, nullptr, 'P' },
-    { "task-multiplicity",     required_argument, nullptr, 'n' },
-    { "output",                required_argument, nullptr, 'o' },
-    { "processor-utilization", required_argument, nullptr, 'p' }, 
-    { "marginal-probability",  required_argument, nullptr, 'P' }, 
-    { "processor-waiting",     required_argument, nullptr, 'q' }, 
-    { "request-rate",	       required_argument, nullptr, 'r' },
-    { "activity-request-rate", required_argument, nullptr, 'R' },
-    { "service",               required_argument, nullptr, 's' }, 
-    { "activity-service",      required_argument, nullptr, 'S' }, 
-    { "task-throughput",       required_argument, nullptr, 't' }, 
-    { "task-utilization",      required_argument, nullptr, 'u' }, 
-    { "variance",              required_argument, nullptr, 'v' }, 
-    { "activity-variance",     required_argument, nullptr, 'V' }, 
-    { "waiting",               required_argument, nullptr, 'w' }, 
-    { "activity-waiting",      required_argument, nullptr, 'W' }, 
-    { "service-exceeded",      required_argument, nullptr, 'x' },
-    { "think-time",	       required_argument, nullptr, 'z' },
-    { "comment",	       no_argument,	  nullptr, '#' },
-    { "arguments",	       required_argument, nullptr, '@' },
-    { "gnuplot",               no_argument,       &gnuplot_flag, 1 },
-    { "help",		       no_argument,	  nullptr, 0x100+'h' },
-    { "mva-steps",	       no_argument,	  nullptr, 0x100+'s' },
-    { "precision",	       required_argument, nullptr, 0x100+'p' },
-    { "limit",		       required_argument, nullptr, 0x100+'l' },
-    { "no-header",             no_argument,       &no_header,    1 },
-    { "width",		       required_argument, nullptr, 0x100+'w' },
-    { "version",	       no_argument,	  nullptr, 0x100+'v' },
-    { "debug-xml",	       no_argument,	  &debug_xml,	 1 },
-    { nullptr,                 0,                 nullptr, 0 }
+    { "open-wait",                  required_argument, nullptr, 'a' }, 
+    { "bounds",                     required_argument, nullptr, 'b' }, 
+    { "demand",		            required_argument, nullptr, 'd' },
+    { "activity-demand",            required_argument, nullptr, 'D' },
+    { "entry-utilization",          required_argument, nullptr, 'e' }, 
+    { "entry-throughput",           required_argument, nullptr, 'f' }, 
+    { "activity-throughput",        required_argument, nullptr, 'F' }, 
+    { "hold-times",                 required_argument, nullptr, 'h' }, 
+    { "solver-information",         no_argument,       nullptr, 'i' },
+    { "join-delays",                required_argument, nullptr, 'j' }, 
+    { "loss-probability",           required_argument, nullptr, 'l' },
+    { "processor-multiplicity",     required_argument, nullptr, 'm' },
+    { "marginal-probabilities",     required_argument, nullptr, 'P' },
+    { "task-multiplicity",          required_argument, nullptr, 'n' },
+    { "output",                     required_argument, nullptr, 'o' },
+    { "processor-utilization",      required_argument, nullptr, 'p' }, 
+    { "marginal-probability",       required_argument, nullptr, 'P' }, 
+    { "processor-waiting",          required_argument, nullptr, 'q' }, 
+    { "activity-processor-waiting", required_argument, nullptr, 'Q' }, 
+    { "requests",	            required_argument, nullptr, 'r' },
+    { "activity-requests",          required_argument, nullptr, 'R' },
+    { "service",                    required_argument, nullptr, 's' }, 
+    { "activity-service",           required_argument, nullptr, 'S' }, 
+    { "task-throughput",            required_argument, nullptr, 't' }, 
+    { "task-utilization",           required_argument, nullptr, 'u' }, 
+    { "variance",                   required_argument, nullptr, 'v' }, 
+    { "activity-variance",          required_argument, nullptr, 'V' }, 
+    { "waiting",                    required_argument, nullptr, 'w' }, 
+    { "activity-waiting",           required_argument, nullptr, 'W' }, 
+    { "service-exceeded",           required_argument, nullptr, 'x' },
+    { "activity-service-exceeded",  required_argument, nullptr, 'X' },
+    { "think-time",	            required_argument, nullptr, 'z' },
+    { "comment",	            no_argument,       nullptr, '#' },
+    { "arguments",	            required_argument, nullptr, '@' },
+    { "gnuplot",                    no_argument,       &gnuplot_flag, 1 },
+    { "help",		            no_argument,       nullptr, 0x100+'h' },
+    { "mva-steps",	            no_argument,       nullptr, 0x100+'s' },
+    { "precision",	            required_argument, nullptr, 0x100+'p' },
+    { "limit",		            required_argument, nullptr, 0x100+'l' },
+    { "no-header",                  no_argument,       &no_header, 1 },
+    { "width",		            required_argument, nullptr, 0x100+'w' },
+    { "version",	            no_argument,       nullptr, 0x100+'v' },
+    { "debug-xml",	            no_argument,       &debug_xml, 1 },
+    { nullptr,                      0,                 nullptr, 0 }
 };
 std::string opts;
 
 const static std::map<int,const std::string> help_str
 {
     { 'a', "print open arrival waiting time for <entry>." }, 
+    { 'A', "print open arrival rate for <entry> (independent variable)." },
     { 'b', "print throughput bound for <entry>." }, 
     { 'd', "print demand for <entry>, phase <n> (independent variable)." },
     { 'D', "print demand for <task>, <activity> (independent variable)." },
@@ -115,9 +118,9 @@ const static std::map<int,const std::string> help_str
     { 'p', "print utilization for <processor>." }, 
     { 'P', "print out the marginal queue probabilities for the processor or task <entity>." },
     { 'q', "print waiting time at the processor for <entry>, phase <n>." }, 
-    { 'q', "print waiting time at the processor for <task>, <activity>." }, 
-    { 'r', "print request rate from source <entry>, phase <n> to destination <entry> (independent variable)." }, 
-    { 'R', "print request rate from source <task>, <activity> to destination <entry> (independent variable)." }, 
+    { 'Q', "print waiting time at the processor for <task>, <activity>." }, 
+    { 'r', "print the number of requests from source <entry>, phase <n> to destination <entry> (independent variable)." }, 
+    { 'R', "print the number of requests from source <task>, <activity> to destination <entry> (independent variable)." }, 
     { 's', "print service time for <entry>, phase <n>." }, 
     { 'S', "print service time for <task>, <activity>." }, 
     { 't', "print throughput for <task>." }, 
@@ -141,7 +144,8 @@ const static std::map<int,const std::string> help_str
 
 const static std::map<int,Model::Result::Type> result_type
 {
-    { 'a', Model::Result::Type::OPEN_WAIT              }, 
+    { 'a', Model::Result::Type::OPEN_ARRIVAL_WAIT      }, 
+    { 'A', Model::Result::Type::OPEN_ARRIVAL_RATE      }, 
     { 'b', Model::Result::Type::THROUGHPUT_BOUND       }, 
     { 'd', Model::Result::Type::PHASE_DEMAND	       }, 
     { 'D', Model::Result::Type::ACTIVITY_DEMAND	       }, 
@@ -178,46 +182,39 @@ enum class Disposition { handle, ignore, fault };
 
 struct max_strlen {
     max_strlen( Model::Mode mode ) : _mode(mode) {}
-    size_t operator()( size_t l, const std::string& s ) {
-	if ( s.empty() ) return l;
-	size_t n;
+    size_t operator()( size_t l, std::filesystem::path name ) {
+	if ( name.empty() ) return l;
 	switch ( _mode ) {
-	case Model::Mode::DIRECTORY_STRIP: n = s.find_last_of( "/" ); if ( n != std::string::npos ) return std::max( l, s.size() - (n + 1) ); break;
-	case Model::Mode::FILENAME_STRIP:  n = s.find_last_of( "/" ); if ( n != std::string::npos ) return std::max( l, n ); break;
+	case Model::Mode::DIRECTORY_STRIP: name = name.filename(); break;
+	case Model::Mode::FILENAME_STRIP:  name.remove_filename(); break;
 	default: break;
 	}
-	return std::max( l, s.size() );
+	return std::max( l, name.native().size() );
     }
 private:
     const Model::Mode _mode;
 };
 
 struct filename_match {
-    filename_match( const std::string& filename ) : _filename( get_filename( filename ) ) {}
-    bool operator()( const std::string& filename ) { return _filename == get_filename( filename ); }
+    filename_match( const std::filesystem::path& filename ) : _filename(filename.filename()) {}
+    bool operator()( const std::filesystem::path& filename ) { return _filename == filename.filename(); }
 private:
-    static const std::string get_filename( const std::string& filename ) {
-	size_t n = filename.find_last_of( "/" );
-	if ( n != std::string::npos ) return filename.substr( n + 1 );
-	else return filename;
-    }
-    const std::string _filename;
+    const std::filesystem::path _filename;
 };
     
 struct directory_match {
-    directory_match( const std::string& directory ) : _directory( directory.substr( 0, directory.find_last_of( "/" ) ) ) {}
-    bool operator()( const std::string& directory ) { return _directory == directory.substr( 0, directory.find_last_of( "/" ) ); }
+    directory_match( const std::filesystem::path& directory ) : _directory(directory) { _directory.remove_filename(); }
+    bool operator()( std::filesystem::path directory ) { directory.remove_filename(); return directory == _directory; }
 private:
-    const std::string _directory;
+    std::filesystem::path _directory;
 };
     
 std::vector<Model::Result::result_t> results;
 
 static void process( std::ostream& output, int argc, char **argv, const std::vector<Model::Result::result_t>& results, size_t limit );
-static bool is_directory( const char * filename );
 static void process_directory( std::ostream& output, const std::string& dirname, const Model::Process& );
 static Model::Mode get_mode( int argc, char **argv, int optind );
-static void fetch_arguments( const std::string& filename, std::vector<Model::Result::result_t>& results );
+static void fetch_arguments( const std::filesystem::path& filename, std::vector<Model::Result::result_t>& results );
 static void handle_arguments( int argc, char * argv[], Disposition, std::vector<Model::Result::result_t>& results );
 static void usage();
 static std::string makeopts( const std::vector<struct option>& );
@@ -235,7 +232,7 @@ main( int argc, char *argv[] )
     extern int optind;
     static char copyrightDate[20];
 
-    sscanf( "$Date: 2024-10-01 14:50:19 -0400 (Tue, 01 Oct 2024) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2024-10-04 14:00:09 -0400 (Fri, 04 Oct 2024) $", "%*s %s %*s", copyrightDate );
 
     toolname = basename( argv[0] );
     opts = makeopts( longopts );	/* Convert to regular options */
@@ -399,31 +396,13 @@ process_directory( std::ostream& output, const std::string& dirname, const Model
 
 
 /*
- * query where filename is a directory or not.
- */
-
-static bool
-is_directory( const char * filename )
-{
-    struct stat stat_buf;
-    if ( stat( filename, &stat_buf ) < 0 ) {
-	std::cerr << toolname << ": cannot stat " << filename << ", " << strerror( errno ) << std::endl;
-	return false;
-    } else {
-	return S_ISDIR( stat_buf.st_mode );
-    }
-}
-
-
-
-/*
  * Return the mode to be used.  If there are a set of filenames, and they are all the same, then strip them on output.
  */
  
 static Model::Mode
 get_mode( int argc, char **argv, int optind )
 {
-    if ( argc - optind == 1 && is_directory( argv[optind] ) ) return Model::Mode::DIRECTORY;
+    if ( argc - optind == 1 && std::filesystem::is_directory( argv[optind] ) ) return Model::Mode::DIRECTORY;
     else if ( std::all_of( &argv[optind+1], &argv[argc], directory_match( argv[optind] ) ) ) return Model::Mode::DIRECTORY_STRIP;
     else if ( std::all_of( &argv[optind+1], &argv[argc], filename_match( argv[optind] ) ) ) return Model::Mode::FILENAME_STRIP;
     else return Model::Mode::PATHNAME;
@@ -436,7 +415,7 @@ get_mode( int argc, char **argv, int optind )
  */
 
 static void
-fetch_arguments( const std::string& filename, std::vector<Model::Result::result_t>& results )
+fetch_arguments( const std::filesystem::path& filename, std::vector<Model::Result::result_t>& results )
 {
     std::ifstream input;
     input.open( filename, std::ios::in );

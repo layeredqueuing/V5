@@ -3,7 +3,7 @@
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
- *  $Id: dom_actlist.h 15753 2022-07-22 10:59:11Z greg $
+ *  $Id: dom_actlist.h 17332 2024-10-03 15:25:44Z greg $
  */
 
 #ifndef __LQIO_DOM_ACTLIST__
@@ -90,15 +90,6 @@ namespace LQIO {
 	    static const char * __typeName;
 	    static const std::map<const Type, const std::string> __op;
 	    static const std::map<const Type, const std::string> __listTypeName;
-
-	private:
-	    /* Used to concatentate activity list names into a string */
-	    struct fold {
-		fold( const std::string& op ) : _op(op) {}
-		std::string operator()( const std::string& s1, const Activity * a2 ) const { return s1 + " " + _op + " " + a2->getName(); }
-	    private:
-		const std::string& _op;
-	    };
 	};
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
