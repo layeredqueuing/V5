@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.h 17069 2024-02-27 23:16:21Z greg $
+ * $Id: model.h 17348 2024-10-09 18:54:22Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -23,7 +23,6 @@
 #if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
-#include <lqio/filename.h>
 #include <lqio/dom_document.h>
 #include <lqio/common_io.h>
 

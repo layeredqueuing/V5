@@ -17,7 +17,7 @@
 #include "call.h"
 
 /*
- * $Id: task.h 17310 2024-09-26 21:02:21Z greg $
+ * $Id: task.h 17347 2024-10-09 17:49:35Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -200,7 +200,6 @@ protected:
     virtual void get_results_for( unsigned int m );
 
 private:
-    LQIO::DOM::Document * _document;
     const std::string _name;
     const Entry * _dst;
 };

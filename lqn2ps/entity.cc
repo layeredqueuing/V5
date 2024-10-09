@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 17225 2024-05-21 16:24:00Z greg $
+ * $Id: entity.cc 17347 2024-10-09 17:49:35Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -23,9 +23,10 @@
 #include <ieeefp.h>
 #endif
 #include <lqx/SyntaxTree.h>
-#include <lqio/error.h>
+#include <lqio/dom_document.h>
 #include <lqio/dom_entity.h>
 #include <lqio/dom_task.h>
+#include <lqio/error.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
 #include <lqio/../../srvn_gram.h>

@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 17195 2024-05-02 17:21:13Z greg $
+ * $Id: submodel.cc 17342 2024-10-09 13:30:17Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -54,7 +54,6 @@
 #include <mva/mva.h>
 #include <mva/open.h>
 #include <mva/prob.h>
-#include <mva/server.h>
 #include "activity.h"
 #include "call.h"
 #include "entry.h"
@@ -933,19 +932,19 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 #endif
 
 	if ( trace ) {
-	    if ( _openModel != nullptr ) {
-		if ( _closedModel != nullptr ) std::cout << print_trace_header( "Open Model" );
+	    if ( hasOpenModel() ) {
+		if ( hasClosedModel() ) std::cout << print_trace_header( "Open Model" );
 		printOpenModel( std::cout );
 	    }
-	    if ( _closedModel != nullptr ) {
-		if ( _openModel != nullptr ) std::cout << print_trace_header( "Closed Model" );
+	    if ( hasClosedModel() ) {
+		if ( hasOpenModel() ) std::cout << print_trace_header( "Closed Model" );
 		printClosedModel( std::cout );
 	    }
 	}
 
 	/* ----------------- Solve the model. ----------------- */
 
-	if ( _closedModel ) {
+	if ( hasClosedModel() ) {
 
 	    if ( _openModel ) {
 
@@ -976,7 +975,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	if ( _openModel ) {
 	    try {
-		if ( _closedModel ) {
+		if ( hasClosedModel() ) {
 		    _openModel->solve( *_closedModel, _customers );	/* Calculate L[0] queue lengths. */
 		} else {
 		    _openModel->solve();
@@ -991,12 +990,12 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	if ( trace ) {
 	    std::ios_base::fmtflags oldFlags = std::cout.setf( std::ios::right, std::ios::adjustfield );
-	    if ( _openModel != nullptr  ) {
-		if ( _closedModel != nullptr ) std::cout << print_trace_header( "Open Model" );
+	    if ( hasOpenModel()  ) {
+		if ( hasClosedModel() ) std::cout << print_trace_header( "Open Model" );
 		std::cout << *_openModel << std::endl << std::endl;
 	    }
-	    if ( _closedModel != nullptr ) {
-		if ( _openModel != nullptr ) std::cout << print_trace_header( "Closed Model" );
+	    if ( hasClosedModel() ) {
+		if ( hasOpenModel() ) std::cout << print_trace_header( "Closed Model" );
 		std::cout << *_closedModel << std::endl << std::endl;
 	    }
 	    std::cout.flags( oldFlags );
@@ -1123,46 +1122,46 @@ MVASubmodel::SaveServerResults::operator()( Entity * server ) const
 double
 MVASubmodel::openModelThroughput( const Server& station, unsigned int e ) const
 {
-    return _openModel != nullptr ? _openModel->entryThroughput( station, e ) : 0.0;
+    return isInOpenModel( station ) ? _openModel->entryThroughput( station, e ) : 0.0;
 }
 
 double
 MVASubmodel::closedModelThroughput( const Server& station, unsigned int e ) const
 {
-    return _closedModel != nullptr ? _closedModel->entryThroughput( station, e ) : 0.0;
+    return isInClosedModel( station ) ? _closedModel->entryThroughput( station, e ) : 0.0;
 }
 
 double
 MVASubmodel::closedModelThroughput( const Server& station, unsigned int e, unsigned int k ) const
 {
-    return _closedModel != nullptr ? _closedModel->throughput( station, e, k ) : 0.0;
+    return isInClosedModel( station ) ? _closedModel->throughput( station, e, k ) : 0.0;
 }
 
 #if PAN_REPLICATION
 double
 MVASubmodel::closedModelNormalizedThroughput( const Server& station, unsigned int e, unsigned int k ) const
 {
-    return _closedModel != nullptr ? _closedModel->normalizedThroughput( station, e, k ) : 0.0;
+    return isInClosedModel( station ) ? _closedModel->normalizedThroughput( station, e, k ) : 0.0;
 }
 #endif
 
 double
 MVASubmodel::closedModelUtilization( const Server& station ) const
 {
-    return _closedModel != nullptr ? _closedModel->utilization( station ) : 0.0;
+    return isInClosedModel( station ) ? _closedModel->utilization( station ) : 0.0;
 }
 
 double
 MVASubmodel::openModelUtilization( const Server& station ) const
 {
-    return _openModel != nullptr ? _openModel->utilization( station ) : 0.0;
+    return isInOpenModel( station ) ? _openModel->utilization( station ) : 0.0;
 }
 
 #if BUG_393
 double
 MVASubmodel::closedModelMarginalQueueProbability( const Server& station, unsigned int i ) const
 {
-    return _closedModel != nullptr ? static_cast<double>(_closedModel->marginalQueueProbability( station, i ) ) : 0.0;
+    return isInClosedModel( station ) ? static_cast<double>(_closedModel->marginalQueueProbability( station, i ) ) : 0.0;
 }
 #endif
 
@@ -1178,7 +1177,7 @@ double
 MVASubmodel::nrFactor( const Server * aStation, const unsigned e, const unsigned k ) const
 {
     const double s = aStation->S( e, k, 1 );
-    if ( std::isfinite( s ) && _closedModel ) {  //tomari
+    if ( std::isfinite( s ) && hasClosedModel() ) {  //tomari
 	//Solution for replicated models with open arrivals.
 	// See bug # 87.
 

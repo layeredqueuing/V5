@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 17186 2024-04-29 21:19:09Z greg $
+ * $Id: entry.cc 17343 2024-10-09 13:47:52Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1375,8 +1375,9 @@ Entry::check() const
 
 	std::deque<const Activity *> activityStack;
 	unsigned next_p = 1;
-	double replies = startActivity()->aggregate( const_cast<Entry *>(this), 1, next_p, 1.0, activityStack, &Activity::aggregateReplies );
-	if ( requestType() == request_type::RENDEZVOUS ) {
+	const double replies = startActivity()->aggregate( const_cast<Entry *>(this), 1, next_p, 1.0, activityStack, &Activity::aggregateReplies );
+	switch ( requestType() ) {
+	case request_type::RENDEZVOUS:
 	    if ( replies == 0.0 ) {
 		getDOM()->runtime_error( LQIO::ERR_REPLY_NOT_GENERATED );
 		rc = false;
@@ -1385,9 +1386,14 @@ Entry::check() const
 		rc = false;
 	    }
 	    max_phases = std::max( maxPhase(), max_phases );		/* Set global value.	*/
-	} else if ( requestType() == request_type::SEND_NO_REPLY || requestType() == request_type::OPEN_ARRIVAL ) {
-	    getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, name().c_str() );
-	    rc = false;
+	    break;
+	case request_type::SEND_NO_REPLY:
+	case request_type::OPEN_ARRIVAL:
+	    if ( replies != 0 ) {
+		getDOM()->runtime_error( LQIO::ERR_INVALID_REPLY_FOR_SNR_ENTRY, name().c_str() );
+		rc = false;
+	    }
+	    break;
 	}
 
     } else if ( isStandardEntry() ) {

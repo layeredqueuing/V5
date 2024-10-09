@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 17339 2024-10-07 16:28:29Z greg $
+ *  $Id: dom_document.cpp 17348 2024-10-09 18:54:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -981,7 +981,7 @@ namespace LQIO {
 	Document::print( const std::string& output_file_name, const std::string& suffix, OutputFormat output_format, bool rtf_output, unsigned int iteration ) const
 	{
 	    const bool lqx_output = getResultInvocationNumber() > 0;
-	    const std::string directory_name = LQIO::Filename::createDirectory( Filename::isFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
+	    const std::filesystem::path directory_name = LQIO::Filename::createDirectory( Filename::isFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
 	    const std::map<const Document::OutputFormat,const std::string>::const_iterator format_iterator = __output_extensions.find( output_format );
 
 	    LQIO::Filename filename;

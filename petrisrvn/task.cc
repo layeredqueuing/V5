@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: task.cc 17326 2024-10-02 16:01:28Z greg $
+ * $Id: task.cc 17348 2024-10-09 18:54:22Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -1070,7 +1070,7 @@ Task::insert_DOM_results() const
 /* -------------------------------------------------------------------- */
 
 OpenTask::OpenTask( LQIO::DOM::Document * document, const std::string& name, const Entry * dst )
-    : Task( 0, Type::OPEN_SRC, 0 ), _document(document), _name(name), _dst(dst)
+    : Task( 0, Type::OPEN_SRC, 0 ), _name(name), _dst(dst)
 {
 }
 

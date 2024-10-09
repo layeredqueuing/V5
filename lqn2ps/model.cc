@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 17281 2024-09-12 15:21:59Z greg $
+ * $Id: model.cc 17348 2024-10-09 18:54:22Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -27,6 +27,7 @@
 #endif
 #include <lqio/dom_document.h>
 #include <lqio/dom_activity.h>
+#include <lqio/filename.h>
 #include <lqio/srvn_results.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
@@ -898,7 +899,12 @@ Model::store()
 	/* Default mapping */
 
 	std::string suffix = "";
-	std::string directory_name = LQIO::Filename::createDirectory( hasOutputFileName() ? _outputFileName : _inputFileName, _document->getResultInvocationNumber() > 0 );
+#if REP2FLAT
+	if ( Flags::replication() == Replication::EXPAND ) {
+	    suffix = "-flat";
+	}
+#endif
+	std::filesystem::path directory_name = LQIO::Filename::createDirectory( hasOutputFileName() ? _outputFileName : _inputFileName, _document->getResultInvocationNumber() > 0 );
 	LQIO::Filename filename;
 	const std::string extension = getExtension();
 	if ( !hasOutputFileName() || !directory_name.empty() ) {
@@ -907,34 +913,9 @@ Model::store()
 	    filename = _outputFileName;
 	}
 
-	if ( _inputFileName == filename() && input_output() ) {
-#if REP2FLAT
-	    if ( Flags::replication() == Replication::EXPAND ) {
-		std::string ext = ".";		// look for .ext
-		ext += extension;
-		const size_t pos = filename.rfind( ext );
-		if ( pos != std::string::npos ) {
-		    filename.insert( pos, "-flat" );	// change filename.ext to filename-flat.ext
-		} else {
-		    std::ostringstream msg;
-		    msg << "Cannot overwrite input file " << filename() << " with a subset of original model.";
-		    throw std::runtime_error( msg.str() );
-		}
-	    } else if ( partial_output()
-			|| Flags::aggregation() != Aggregate::NONE
-			|| Flags::replication() != Replication::NONE ) {
-		std::ostringstream msg;
-		msg << "Cannot overwrite input file " << filename() << " with a subset of original model.";
-		throw std::runtime_error( msg.str() );
-	    }
-#else
-	    if ( partial_output()
-		 || Flags::aggregation() != Aggregate::NONE ) {
-		ostringstream msg;
-		msg << "Cannot overwrite input file " << filename() << " with a subset of original model.";
-		throw runtime_error( msg.str() );
-	    }
-#endif
+	if ( _inputFileName == filename() && input_output() && ( partial_output() || Flags::aggregation() != Aggregate::NONE ) ) {
+	    const std::string msg = "Cannot overwrite input file " + filename.str() + " with a subset of original model.";
+	    throw std::runtime_error( msg );
 	}
 
 	filename.backup();
@@ -943,9 +924,9 @@ Model::store()
 	switch( Flags::output_format() ) {
 #if EMF_OUTPUT
 	case File_Format::EMF:
-	    output.open( filename().c_str(), std::ios::out|std::ios::binary );	/* NO \r's in output for windoze */
+	    output.open( filename(), std::ios::out|std::ios::binary );	/* NO \r's in output for windoze */
 	    if ( !output ) {
-		throw std::runtime_error( std::string( "Cannot open output file " ) + filename() + " - not a regular file." );
+		throw std::runtime_error( std::string( "Cannot open output file " ) + filename.str() + " - not a regular file." );
 	    }
 	    break;
 #endif
@@ -959,19 +940,17 @@ Model::store()
 #if HAVE_LIBPNG
 	case File_Format::PNG:
 #endif
-	    output.open( filename().c_str(), std::ios::out|std::ios::binary );	/* NO \r's in output for windoze */
+	    output.open( filename(), std::ios::out|std::ios::binary );	/* NO \r's in output for windoze */
 	    break;
 #endif /* HAVE_LIBGD */
 
 	default:
-	    output.open( filename().c_str(), std::ios::out );
+	    output.open( filename(), std::ios::out );
 	    break;
 	}
 
 	if ( !output ) {
-	    std::ostringstream msg;
-	    msg << "Cannot open output file " << filename() << " - " << strerror( errno );
-	    throw std::runtime_error( msg.str() );
+	    throw std::runtime_error( std::string( "Cannot open output file ") + filename().string() + " - " + strerror( errno ) );
 	} else {
 	    output.exceptions ( std::ios::failbit | std::ios::badbit );
 	    output << *this;

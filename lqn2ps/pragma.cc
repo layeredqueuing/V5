@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 16501 2023-03-09 20:40:13Z greg $ *
+ * $Id: pragma.cc 17347 2024-10-09 17:49:35Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -15,6 +15,7 @@
 #include <cstring>
 #include <algorithm>
 #include <iomanip>
+#include <lqio/dom_document.h>
 #include <lqio/srvn_spex.h>
 #include <lqio/glblerr.h>
 #include "pragma.h"

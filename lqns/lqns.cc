@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 17197 2024-05-03 20:45:00Z greg $
+ * $Id: lqns.cc 17351 2024-10-09 22:15:00Z greg $
  *
  * Command line processing.
  *
@@ -144,7 +144,7 @@ int main (int argc, char *argv[])
     
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2024-05-03 16:45:00 -0400 (Fri, 03 May 2024) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2024-10-09 18:15:00 -0400 (Wed, 09 Oct 2024) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = fp_exception_reporting::DEFERRED_ABORT;
 
@@ -463,7 +463,7 @@ int main (int argc, char *argv[])
         const int file_count = argc - optind;           /* Number of files on cmd line  */
 
         if ( file_count > 1 ) {
-            if ( LQIO::Filename::isFileName( outputFileName ) && LQIO::Filename::isDirectory( outputFileName ) == 0 ) {
+            if ( LQIO::Filename::isFileName( outputFileName ) && !std::filesystem::is_directory( outputFileName ) ) {
                 std::cerr << LQIO::io_vars.lq_toolname << ": Too many input files specified with the option: -o"
                      << outputFileName
                      << std::endl;

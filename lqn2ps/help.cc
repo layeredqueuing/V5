@@ -1,11 +1,12 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 17218 2024-05-15 16:26:25Z greg $
+ * $Id: help.cc 17347 2024-10-09 17:49:35Z greg $
  */
 
 #include "lqn2ps.h"
 #include <cstring>
 #include <cctype>
+#include <lqio/dom_document.h>
 #include <algorithm>
 #include <numeric>
 
@@ -27,7 +28,6 @@ static HelpManip current_flag( unsigned int i );
 static HelpManip current_option( unsigned int i );
 static HelpManip default_setting( unsigned int i );
 static HelpManip print_args( unsigned int i );
-
 
 /*
  * Print out usage string.
@@ -151,7 +151,7 @@ man()
 	      << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 17218 2024-05-15 16:26:25Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 17347 2024-10-09 17:49:35Z greg $" << std::endl
 	      << comm << std::endl
 	      << comm << " --------------------------------" << std::endl;
 

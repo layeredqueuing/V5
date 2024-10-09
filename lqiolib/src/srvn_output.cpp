@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 17329 2024-10-02 20:57:11Z greg $
+ *  $Id: srvn_output.cpp 17346 2024-10-09 16:19:04Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -2306,22 +2306,20 @@ namespace LQIO {
         _output << std::endl << "A " << task.getName() << std::endl;
         std::for_each( activities.begin(), activities.end(), ActivityInput( _output, &ActivityInput::print ) );
 
-	const DOM::Activity * deferredReplyActivity = nullptr;		/* Deferred activity for replies */
+	/* Find all activties that reply */
+	std::set<const DOM::Activity *> deferredReplyActivities;
+	std::for_each( activities.begin(), activities.end(), [&]( const auto& activity ){ if ( !activity.second->getReplyList().empty() ) deferredReplyActivities.insert( activity.second ); } );
+
+	/* Print out all defined precedence lists. */
         const std::set<DOM::ActivityList*>& precedences = task.getActivityLists();
-        if ( precedences.size() ) {
-            _output << " :" << std::endl;
-            deferredReplyActivity = std::for_each( precedences.begin(), precedences.end(), ActivityListInput( _output, &ActivityListInput::print, precedences.size() ) ).getPendingReplyActivity();
-        } else if ( activities.size() ) {
-            const std::map<std::string,DOM::Activity*>::const_iterator i = activities.begin();
-            const DOM::Activity * activity = i->second;
-            if ( activity->getReplyList().size() > 0 ) {
-		deferredReplyActivity = activity;
-                _output << " :" << std::endl;
-	    }
-        }
-	if ( deferredReplyActivity != nullptr ) {
-	    _output << "  " << deferredReplyActivity->getName();
-	    printReplyList( deferredReplyActivity->getReplyList() );
+	if ( !precedences.empty() || !deferredReplyActivities.empty() ) _output << " :" << std::endl;
+	std::for_each( precedences.begin(), precedences.end(), ActivityListInput( _output, &ActivityListInput::print, precedences.size(), deferredReplyActivities ) );
+
+	/* BUG 377 Any activities that reply and were not in a pre-precedence list are output here */
+	for ( std::set<const DOM::Activity *>::const_iterator activity = deferredReplyActivities.begin(); activity != deferredReplyActivities.end(); ++activity ) {
+	    _output << "  " << (*activity)->getName();
+	    printReplyList( (*activity)->getReplyList() );
+	    if ( std::next( activity ) != deferredReplyActivities.end() ) _output << ";";
 	    _output << std::endl;
 	}
 
@@ -2921,7 +2919,7 @@ namespace LQIO {
 
 
     void
-    SRVN::ActivityListInput::operator()( const DOM::ActivityList * precedence ) const
+    SRVN::ActivityListInput::operator()( const DOM::ActivityList * precedence )
     {
         std::ios_base::fmtflags oldFlags = _output.setf( std::ios::left, std::ios::adjustfield );
         (this->*_func)( *precedence );
@@ -2929,12 +2927,11 @@ namespace LQIO {
     }
 
     void
-    SRVN::ActivityListInput::print( const DOM::ActivityList& precedence ) const
+    SRVN::ActivityListInput::print( const DOM::ActivityList& precedence )
     {
         if ( precedence.isForkList() ) return;
 
         _output << " ";
-	_pending_reply_activity = nullptr;
         printPreList( precedence );
         if ( precedence.getNext() ) {
             _output << " -> ";
@@ -2943,14 +2940,14 @@ namespace LQIO {
         } else {
             _count += 1;
         }
-        if ( _count < _size || _pending_reply_activity != nullptr ) {
+        if ( _count < _size || !_pending_reply_activities.empty() ) {
             _output << ";";
         }
         _output << std::endl;
     }
 
     void
-    SRVN::ActivityListInput::printPreList( const DOM::ActivityList& precedence ) const          /* joins */
+    SRVN::ActivityListInput::printPreList( const DOM::ActivityList& precedence )          /* joins */
     {
         const std::vector<const DOM::Activity*>& list = precedence.getList();
         for ( std::vector<const DOM::Activity*>::const_iterator next_activity = list.begin(); next_activity != list.end(); ++next_activity ) {
@@ -2977,14 +2974,15 @@ namespace LQIO {
 
             _output << " " << activity->getName();
             const std::vector<DOM::Entry*>& replies = activity->getReplyList();
-            if ( replies.size() ) {
+            if ( !replies.empty() ) {
                 printReplyList( replies );
+		_pending_reply_activities.erase( activity );	// No longer pending.
             }
         }
     }
 
     void
-    SRVN::ActivityListInput::printPostList( const DOM::ActivityList& precedence ) const         /* forks */
+    SRVN::ActivityListInput::printPostList( const DOM::ActivityList& precedence )         /* forks */
     {
         const DOM::Activity * end_activity = 0;
         bool first = true;
@@ -2992,8 +2990,8 @@ namespace LQIO {
         const std::vector<const DOM::Activity*>& list = precedence.getList();
         for ( std::vector<const DOM::Activity*>::const_iterator next_activity = list.begin(); next_activity != list.end(); ++next_activity ) {
             const DOM::Activity * activity = *next_activity;
-	    if ( activity->getReplyList().size() > 0 ) {
-		_pending_reply_activity = activity;
+	    if ( !activity->getReplyList().empty() ) {
+		_pending_reply_activities.insert( activity );
 	    }
             switch ( precedence.getListType() ) {
             case DOM::ActivityList::Type::AND_FORK:

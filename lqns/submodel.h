@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 17275 2024-09-10 20:35:49Z greg $
+ * $Id: submodel.h 17342 2024-10-09 13:30:17Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -15,8 +15,9 @@
 
 
 #include <set>
-#include <mva/vector.h>
 #include <mva/pop.h>
+#include <mva/server.h>
+#include <mva/vector.h>
 
 class Entry;
 class Entity;
@@ -25,7 +26,6 @@ class MVA;
 class MVACount;
 class Model;
 class Open;
-class Server;
 class SubModelManip;
 class Task;
 
@@ -255,9 +255,13 @@ public:
     virtual std::ostream& print( std::ostream& ) const;
 
 private:
+    bool hasClosedModel() const { return _closedModel != nullptr; }
+    bool hasOpenModel() const { return _closedModel != nullptr; }
     bool hasThreads() const { return _hasThreads; }
     bool hasSynchs() const { return _hasSynchs; }
     bool hasReplicas() const { return _hasReplicas; }
+    bool isInClosedModel( const Server& station ) const { return _closedModel != nullptr && station.closedIndex != 0; }
+    bool isInOpenModel( const Server& station ) const { return _openModel != nullptr && station.openIndex != 0; }
 
     void initializeChains( Task* client ) const;
 

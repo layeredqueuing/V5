@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 17190 2024-04-30 21:06:37Z greg $
+ *  $Id: srvn_spex.cpp 17347 2024-10-09 17:49:35Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -623,7 +623,7 @@ namespace LQIO {
 
 	_gnuplot.push_back( GnuPlot::print_node( "set datafile separator \",\"" ) );		/* Use CSV. */
 	_gnuplot.push_back( GnuPlot::print_node( "set title \"" + DOM::__document->getModelComment() + "\"" ) );
-	_gnuplot.push_back( GnuPlot::print_node( "#set output \"" + LQIO::Filename( DOM::__document->__input_file_name, "svg", "", "" )() + "\"" ) );
+	_gnuplot.push_back( GnuPlot::print_node( "#set output \"" + LQIO::Filename( DOM::__document->__input_file_name, "svg" ).str() + "\"" ) );
 	_gnuplot.push_back( GnuPlot::print_node( "#set terminal svg" ) );
 
 	/* Go through the args, (x, y11, y12..., y21, y22...). */

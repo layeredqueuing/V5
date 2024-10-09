@@ -1,14 +1,13 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 16870 2023-11-29 00:25:02Z greg $
+ * $Id: model.h 17348 2024-10-09 18:54:22Z greg $
  */
 
 #ifndef _MODEL_H
 #define _MODEL_H
 
 #include "lqn2ps.h"
-#include <lqio/filename.h>
 #include <lqio/common_io.h>
 #include <vector>
 #include "layer.h"

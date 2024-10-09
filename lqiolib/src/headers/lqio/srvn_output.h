@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 17329 2024-10-02 20:57:11Z greg $
+ * $Id: srvn_output.h 17345 2024-10-09 16:02:00Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -834,25 +834,23 @@ namespace LQIO {
 
 	class ActivityListInput : public ObjectInput {
 	protected:
-	    typedef void (ActivityListInput::*voidActivityListFunc)( const LQIO::DOM::ActivityList& ) const;
+	    typedef void (ActivityListInput::*voidActivityListFunc)( const LQIO::DOM::ActivityList& );
 
 	public:
+	    ActivityListInput( std::ostream& output, voidActivityListFunc f, const unsigned int n, std::set<const DOM::Activity *>& pending_reply_activities ) : ObjectInput(output), _func(f), _size(n), _count(0), _pending_reply_activities(pending_reply_activities) {}
+	    virtual void operator()( const DOM::ActivityList * );
 
-	    ActivityListInput( std::ostream& output, voidActivityListFunc f, const unsigned int n ) : ObjectInput(output), _func(f), _size(n), _count(0), _pending_reply_activity(nullptr) {}
-	    virtual void operator()( const DOM::ActivityList * ) const;
-
-	    void print( const DOM::ActivityList& a ) const;
-	    const DOM::Activity * getPendingReplyActivity() const { return _pending_reply_activity; }
+	    void print( const DOM::ActivityList& );
 
 	private:
-	    void printPreList( const DOM::ActivityList& precedence ) const;
-	    void printPostList( const DOM::ActivityList& precedence ) const;
+	    void printPreList( const DOM::ActivityList& precedence );
+	    void printPostList( const DOM::ActivityList& precedence );
 
 	private:
 	    const voidActivityListFunc _func;
 	    const unsigned int _size;
-	    mutable unsigned int _count;
-	    mutable const DOM::Activity * _pending_reply_activity;	/* In case we have to tack on an extra list item */
+	    unsigned int _count;
+	    std::set<const DOM::Activity *>& _pending_reply_activities;	/* In case we have to tack on an extra list item */
 	};
 
 	class CallOutput : public ObjectOutput  {

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 17317 2024-09-30 17:08:37Z greg $
+ * $Id: model.cc 17348 2024-10-09 18:54:22Z greg $
  *
  * Load the SRVN model.
  */
@@ -36,6 +36,7 @@
 #include <lqio/dom_bindings.h>
 #include <lqio/dom_entry.h>
 #include <lqio/error.h>
+#include <lqio/filename.h>
 #include <lqio/glblerr.h>
 #include <lqio/input.h>
 #include <lqio/srvn_output.h>

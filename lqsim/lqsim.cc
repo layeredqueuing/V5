@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 17287 2024-09-13 16:57:49Z greg $
+ * $Id: lqsim.cc 17351 2024-10-09 22:15:00Z greg $
  */
 
 #define STACK_TESTING
@@ -321,7 +321,7 @@ main( int argc, char * argv[] )
     std::copy( local_error_messages.begin(), local_error_messages.end(), std::inserter( LQIO::error_messages, LQIO::error_messages.begin() ) );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2024-09-13 12:57:49 -0400 (Fri, 13 Sep 2024) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2024-10-09 18:15:00 -0400 (Wed, 09 Oct 2024) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Handy defaults.						*/
@@ -665,7 +665,7 @@ main( int argc, char * argv[] )
   
 	int file_count = argc - optind;
 		
-	if ( file_count > 1 && LQIO::Filename::isFileName( output_file ) && LQIO::Filename::isDirectory( output_file ) == 0 ) {
+	if ( file_count > 1 && LQIO::Filename::isFileName( output_file ) && !std::filesystem::is_directory( output_file ) ) {
 	    (void) fprintf( stderr, "%s: Too many input files specified with -o <file> option.\n", LQIO::io_vars.toolname() );
 	    exit( INVALID_ARGUMENT );
 	}

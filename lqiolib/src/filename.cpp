@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: filename.cpp 17158 2024-04-01 17:13:10Z greg $
+ * $Id: filename.cpp 17351 2024-10-09 22:15:00Z greg $
  *
  * File name generation.
  *
@@ -13,10 +13,10 @@
  */
 
 #include <config.h>
-#include <filesystem>
-#include <iostream>
 #include <cstdio>
 #include <cstring>
+#include <iostream>
+#include <sstream>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "filename.h"
@@ -30,94 +30,56 @@ namespace LQIO {
     }
 
 
-    Filename::Filename( const Filename& aFilename )
+    Filename::Filename( const Filename& filename )
     {
-	_filename = aFilename._filename;
+	_path = filename._path;
     }
 
 
-    const std::string&
-    Filename::generate( const std::string& base, const std::string& extension, const std::string& directory, const std::string& suffix )
+    const std::filesystem::path&
+    Filename::generate( const std::filesystem::path& base, const std::string& extension, const std::string& directory, const std::string& suffix )
     {
 	/* prepend directory */
-
-	const size_t dir = base.rfind( '/' );		/* Locate directory	*/
-
-	/*
-	 * special cases:
-	 *   No extension:         eg 'foo'     --> foo.out.
-	 *   'dot' file:           eg '.foo'    --> .foo.out
-	 *  // input ending in .out: eg 'foo.out' --> foo.out.out
-	 */
-		
-	size_t dot = base.rfind( '.' );
-	if ( (dir != std::string::npos && dot != std::string::npos && dot <= dir + 1) || dot == 0 ) {
-	    dot = std::string::npos;		/* Dot is in a directory name - ignore, or base is a 'dot' file */
-	} 
-//	if ( directory.size() == 0 && dot != std::string::npos && base.substr( dot + 1 ) == extension ) {
-//	    dot = std::string::npos;		/* Extension of base is the same as extension */
-//	}
-
-	/* Stick in base file name (and directory part if directory.size() == 0 ) */
-
-	if ( dir == std::string::npos || directory.size() == 0  ) {
-	    _filename = base.substr( 0, dot );
+	if ( !directory.empty() ) {
+	    _path = directory / base;
 	} else {
-	    _filename = base.substr( dir + 1, dot - (dir + 1) );
+	    _path = base;
 	}
 
-	/* Prepend directory */
-
-	if ( directory.size() > 0 ) {
-	    _filename.insert( 0, "/" );
-	    _filename.insert( 0, directory );
-	} 
-
-	_filename += suffix;	/* Usually the iteration count */
-
-	if ( extension.size() ) {
-	    _filename += '.';
-	    _filename += extension;
+	if ( !suffix.empty() ) {
+	    _path.replace_extension();
+	    _path += suffix;	/* Usually the iteration count */
 	}
 
-	return _filename;
+	_path.replace_extension( extension );	/* Put in the new extension */
+
+	return _path;
     }
 
 
 
     Filename&
-    Filename::operator=( const Filename& aFilename )
+    Filename::operator=( const Filename& filename )
     {
-	if ( this != &aFilename ) {
-	    _filename = aFilename._filename;
+	if ( this != &filename ) {
+	    _path = filename._path;
 	}
 	return *this;
     }
 
 
     Filename&
-    Filename::operator=( const std::string& aFilename )
+    Filename::operator=( const std::string& path )
     {
-	_filename = aFilename;
+	_path = path;
 	return *this;
     }
 
 
-    /* 
-     * Return the filename.
-     */
-
-    const std::string& 
-    Filename::operator()() const
-    {
-	return _filename;
-    }
-
-
     Filename&
-    Filename::operator<<( const char * aStr )
+    Filename::operator<<( const std::string& s )
     {
-	_filename += aStr;
+	_path += s;
 	return *this;
     }
 
@@ -125,24 +87,10 @@ namespace LQIO {
     Filename&
     Filename::operator<<( const unsigned n )
     {
-	const size_t size = 8;
-	char buf[size];
-	snprintf( buf, size, "%03d", n );
-
-	_filename += buf;
+	std::stringstream ss;
+	ss << std::setfill( '0' ) << std::setw(3) << n;
+	_path += ss.str();
 	return *this;
-    }
-
-
-    /*
-     * Return non-zero if fileName is a directory, -1 if the file cannot
-     * be accessed using stat(1), and zero otherwise.
-     */
-
-    bool
-    Filename::isDirectory( const std::string& fileName )
-    {
-	return std::filesystem::is_directory( fileName );
     }
 
 
@@ -160,41 +108,23 @@ namespace LQIO {
 	if ( stat( filename.c_str(), &dst ) < 0 ) {
 	    throw std::invalid_argument( "Cannot stat: " + filename );
 	} else if ( stat( (*this)().c_str(), &src ) < 0 ) {
-	    throw std::invalid_argument( "Cannot stat: " + (*this)() );
+	    throw std::invalid_argument( "Cannot stat: " + str() );
 	} else {
 	    return src.st_mtime - dst.st_mtime;
 	}
     }
 
 
-    unsigned 
-    Filename::rfind( const std::string& s ) const
-    {
-	return _filename.rfind( s );
-    }
-
-    unsigned 
-    Filename::find( const std::string& s ) const
-    {
-	return _filename.find( s );
-    }
-
-    Filename& 
-    Filename::insert( unsigned pos, const char * s )
-    {
-	_filename.insert( pos, s );
-	return *this;
-    }
-
     /*
      * Create a backup file if necessary
      */
 
     void
-    Filename::backup( const std::string& filename )
+    Filename::backup( const std::filesystem::path& filename )
     {
 	if ( std::filesystem::is_regular_file( filename ) ) {
-	    const std::filesystem::path backup = filename + "~";
+	    std::filesystem::path backup = filename;
+	    backup += "~";
 	    std::filesystem::rename( filename, backup );
 	}
     }
@@ -203,17 +133,17 @@ namespace LQIO {
      * Create a directory (if needed)
      */
 
-    std::string
-    Filename::createDirectory( const std::string& file_name, bool lqx_output ) 
+    std::filesystem::path
+    Filename::createDirectory( const std::filesystem::path& path, bool lqx_output ) 
     {
-	if ( std::filesystem::is_directory( file_name ) ) {
-	    return file_name;
+	if ( std::filesystem::is_directory( path ) ) {
+	    return path;
 	}
 
-	std::string directory_name;
+	std::filesystem::path directory_name;
 	if ( lqx_output ) {
 	    /* We need to create a directory to store output. */
-	    directory_name = LQIO::Filename( file_name, "d" )();		/* Get the base file name */
+	    directory_name = LQIO::Filename( path, "d" )();		/* Get the base file name */
 
 	    try {
 		std::filesystem::create_directory( directory_name );
