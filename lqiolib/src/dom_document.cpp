@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 17348 2024-10-09 18:54:22Z greg $
+ *  $Id: dom_document.cpp 17353 2024-10-10 00:05:51Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -53,7 +53,7 @@ namespace LQIO {
 	Document* __document = nullptr;
 	bool Document::__debugXML = false;
 	bool Document::__debugJSON = false;
-	std::string Document::__input_file_name = "";
+	std::filesystem::path Document::__input_file_name = "";
 	const char * Document::XConvergence = "conv_val";			/* Matches schema. 	*/
 	const char * Document::XIterationLimit = "it_limit";			/* Matched schema.	*/
 	const char * Document::XPrintInterval = "print_int";			/* Matches schema.	*/
@@ -91,24 +91,24 @@ namespace LQIO {
 	    { InputFormat::QNAP2,	OutputFormat::TXT }
 	};
 	const std::map<const std::string,const Document::InputFormat> Document::__extensions_input = {
-	    { "in",			InputFormat::LQN },
-	    { "jaba",			InputFormat::JABA },
-	    { "jmva",			InputFormat::JMVA },
-	    { "json",			InputFormat::JSON },
-	    { "lqj",			InputFormat::JSON },
-	    { "lqjo",			InputFormat::JSON },
-	    { "lqn",			InputFormat::LQN },
-	    { "lqnj",			InputFormat::JSON },
-	    { "lqnx",			InputFormat::XML },
-	    { "lqx",			InputFormat::XML },
-	    { "lqxo",			InputFormat::XML },
-	    { "qnp",			InputFormat::QNAP2 },
-	    { "qnap",			InputFormat::QNAP2 },
-	    { "qnap2",			InputFormat::QNAP2 },
-	    { "spex",			InputFormat::LQN },
-	    { "txt",			InputFormat::LQN },
-	    { "xlqn",			InputFormat::LQN },
-	    { "xml",			InputFormat::XML }
+	    { ".in",			InputFormat::LQN },
+	    { ".jaba",			InputFormat::JABA },
+	    { ".jmva",			InputFormat::JMVA },
+	    { ".json",			InputFormat::JSON },
+	    { ".lqj",			InputFormat::JSON },
+	    { ".lqjo",			InputFormat::JSON },
+	    { ".lqn",			InputFormat::LQN },
+	    { ".lqnj",			InputFormat::JSON },
+	    { ".lqnx",			InputFormat::XML },
+	    { ".lqx",			InputFormat::XML },
+	    { ".lqxo",			InputFormat::XML },
+	    { ".qnp",			InputFormat::QNAP2 },
+	    { ".qnap",			InputFormat::QNAP2 },
+	    { ".qnap2",			InputFormat::QNAP2 },
+	    { ".spex",			InputFormat::LQN },
+	    { ".txt",			InputFormat::LQN },
+	    { ".xlqn",			InputFormat::LQN },
+	    { ".xml",			InputFormat::XML }
 	};
 	
 
@@ -494,7 +494,7 @@ namespace LQIO {
 
 	Document& Document::setResultDescription()
 	{
-	    _resultDescription = LQIO::io_vars.lq_toolname + " " + LQIO::io_vars.lq_version + " solution for " + __input_file_name;
+	    _resultDescription = LQIO::io_vars.lq_toolname + " " + LQIO::io_vars.lq_version + " solution for " + __input_file_name.string();
 	    if ( getSymbolExternalVariableCount() > 0 ) {
 		_resultDescription += ": ";
 		std::ostringstream ss;
@@ -752,7 +752,7 @@ namespace LQIO {
 	 */
 
 	/* static */ Document*
-	Document::load(const std::string& input_filename, InputFormat format, unsigned& errorCode, bool load_results )
+	Document::load(const std::filesystem::path& input_filename, InputFormat format, unsigned& errorCode, bool load_results )
 	{
 	    __input_file_name = input_filename;
             io_vars.reset();                   /* See error.c */
@@ -824,7 +824,7 @@ namespace LQIO {
 	 */
 	
 	bool
-	Document::loadResults(const std::string& directory_name, const std::string& file_name, const std::string& extension, OutputFormat output_format, unsigned& errorCode )
+	Document::loadResults(const std::filesystem::path& directory_name, const std::filesystem::path& file_name, const std::string& extension, OutputFormat output_format, unsigned& errorCode )
 	{
 	    if ( output_format == OutputFormat::DEFAULT && (getInputFormat() != InputFormat::LQN || getLQXProgram() != nullptr) ) {
 		output_format = __input_to_output_format.at( getInputFormat() );
@@ -855,16 +855,14 @@ namespace LQIO {
 	 */
 	 
 	/* static */ Document::InputFormat
-	Document::getInputFormatFromFilename( const std::string& filename, const InputFormat default_format )
+	Document::getInputFormatFromFilename( const std::filesystem::path& filename, const InputFormat default_format )
 	{
-	    const unsigned long pos = filename.find_last_of( '.' );
-	    if ( pos == std::string::npos ) {
+	    if ( !filename.has_extension() ) {
 		return default_format;
 	    }
 	    
-	    std::string suffix = filename.substr( pos+1 );
-	    std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
-	    const std::map<const std::string,const Document::InputFormat>::const_iterator ext = __extensions_input.find( suffix );
+	    std::filesystem::path extension = filename.extension();
+	    const std::map<const std::string,const Document::InputFormat>::const_iterator ext = __extensions_input.find( extension );
 	    if ( ext != __extensions_input.end() ) {
 		return ext->second;
 	    } else {
@@ -877,18 +875,15 @@ namespace LQIO {
 	 */
 
 	void
-	Document::print( const std::string& output_file_name, const std::string& suffix, OutputFormat output_format, bool rtf_output ) const
+	Document::print( const std::filesystem::path& output_file_name, const std::string& suffix, OutputFormat output_format, bool rtf_output ) const
 	{
 	    const bool lqx_output = getResultInvocationNumber() > 0;
-	    const std::string directory_name = LQIO::Filename::createDirectory( Filename::isFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
+	    const std::filesystem::path directory_name = LQIO::Filename::createDirectory( Filename::isFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );
 
 	    /* Set output format from input, or if LQN and LQX then force to XML. */
 
-	    if ( output_format == OutputFormat::DEFAULT ) {
-		size_t pos = output_file_name.find_last_of( "." );
-		if ( getLQXProgram() != nullptr || (getInputFormat() != InputFormat::LQN && (output_file_name.empty() || (pos != std::string::npos && output_file_name.substr( pos ) != ".out")) ) ) {
-		    output_format = __input_to_output_format.at( getInputFormat() );
-		}
+	    if ( output_format == OutputFormat::DEFAULT && ( getLQXProgram() != nullptr || (getInputFormat() != InputFormat::LQN && (output_file_name.empty() || output_file_name.extension() != ".out") ) ) ) {
+		output_format = __input_to_output_format.at( getInputFormat() );
 	    }
 
 	    /* override is true for '-p -o filename.out when filename.in' == '-p filename.in' */
@@ -978,7 +973,7 @@ namespace LQIO {
 	 */
 
 	void
-	Document::print( const std::string& output_file_name, const std::string& suffix, OutputFormat output_format, bool rtf_output, unsigned int iteration ) const
+	Document::print( const std::filesystem::path& output_file_name, const std::string& suffix, OutputFormat output_format, bool rtf_output, unsigned int iteration ) const
 	{
 	    const bool lqx_output = getResultInvocationNumber() > 0;
 	    const std::filesystem::path directory_name = LQIO::Filename::createDirectory( Filename::isFileName( output_file_name ) ? output_file_name : __input_file_name, lqx_output );

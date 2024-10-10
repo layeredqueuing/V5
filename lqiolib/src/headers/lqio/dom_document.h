@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 17339 2024-10-07 16:28:29Z greg $
+ *  $Id: dom_document.h 17353 2024-10-10 00:05:51Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -11,6 +11,7 @@
 
 #include <map>
 #include <string>
+#include <filesystem>
 #include "dom_pragma.h"
 #include "dom_entry.h"
 #include "dom_extvar.h"
@@ -220,11 +221,11 @@ namespace LQIO {
 
 
 	    /* I/O */
-	    static InputFormat getInputFormatFromFilename( const std::string&, const InputFormat=InputFormat::AUTOMATIC );
-	    static Document* load(const std::string&, InputFormat format, unsigned& errorCode, bool load_results );
-	    virtual bool loadResults( const std::string& directory_name, const std::string& file_name, const std::string& extension, OutputFormat format, unsigned& errorCode );
-	    void print( const std::string& output_file_name, const std::string& suffix, OutputFormat format, bool rtf_output ) const;
-	    void print( const std::string& output_file_name, const std::string& suffix, OutputFormat format, bool rtf_output, unsigned int iteration ) const;
+	    static InputFormat getInputFormatFromFilename( const std::filesystem::path&, const InputFormat=InputFormat::AUTOMATIC );
+	    static Document* load(const std::filesystem::path&, InputFormat format, unsigned& errorCode, bool load_results );
+	    virtual bool loadResults( const std::filesystem::path& directory_name, const std::filesystem::path& file_name, const std::string& extension, OutputFormat format, unsigned& errorCode );
+	    void print( const std::filesystem::path& output_file_name, const std::string& suffix, OutputFormat format, bool rtf_output ) const;
+	    void print( const std::filesystem::path& output_file_name, const std::string& suffix, OutputFormat format, bool rtf_output, unsigned int iteration ) const;
 	    std::ostream& print( std::ostream& ouptut, const OutputFormat format=OutputFormat::LQN ) const;
 	    std::ostream& printExternalVariables( std::ostream& ouptut ) const;
 
@@ -233,7 +234,7 @@ namespace LQIO {
 	    static void db_check_set_entry(DOM::Entry* entry, DOM::Entry::Type requisiteType = DOM::Entry::Type::NOT_DEFINED );
 	    ExternalVariable* db_build_parameter_variable(const std::string& input, bool* isSymbol);
 	    static void lqx_parser_trace( FILE * );
-	    static std::string __input_file_name;
+	    static std::filesystem::path __input_file_name;
 
 	    static bool __debugXML;
 	    static bool __debugJSON;

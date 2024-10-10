@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_actlist.cpp 17332 2024-10-03 15:25:44Z greg $
+ *  $Id: dom_actlist.cpp 17353 2024-10-10 00:05:51Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -62,7 +62,7 @@ namespace LQIO {
 	std::string ActivityList::inputErrorPreamble( unsigned int code ) const
 	{
 	    const error_message_type& error = DocumentObject::__error_messages.at(code);
-	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(srvnlineno)
+	    std::string buf = LQIO::DOM::Document::__input_file_name.string() + ":" + std::to_string(srvnlineno)
 		+ ": " + severity_table.at(error.severity)
 		+ ": Task \"" + getTask()->getName() + "\", "
 		+ getListTypeName() + " \"" + getListName() + "\", "
@@ -77,7 +77,7 @@ namespace LQIO {
 	std::string ActivityList::runtimeErrorPreamble( unsigned int code ) const
 	{
 	    const error_message_type& error = __error_messages.at(code);
-	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(getLineNumber())
+	    std::string buf = LQIO::DOM::Document::__input_file_name.string() + ":" + std::to_string(getLineNumber())
 		+ ": " + severity_table.at(error.severity)
 		+ ": Task \"" + getTask()->getName() + "\", "
 		+ getListTypeName() + " \"" + getListName() + "\", "

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_call.cpp 16244 2023-01-02 17:26:57Z greg $
+ *  $Id: dom_call.cpp 17353 2024-10-10 00:05:51Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -77,7 +77,7 @@ namespace LQIO {
 	    
 	    const DocumentObject * src = getSourceObject();	/* Entry, phase or activity	*/
 	    const DocumentObject * dst = getDestinationEntry();	/* Should be an entry :-)	*/
-	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(getLineNumber())
+	    std::string buf = LQIO::DOM::Document::__input_file_name.string() + ":" + std::to_string(getLineNumber())
 		+ ": " + severity_table.at(error.severity) + ": ";
 	    if ( dynamic_cast<const Entry *>(src) ) {
 		buf += "Forwarding from \"" + getName() + "\"";

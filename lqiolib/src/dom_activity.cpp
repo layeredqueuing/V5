@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_activity.cpp 15880 2022-09-21 12:52:01Z greg $
+ *  $Id: dom_activity.cpp 17353 2024-10-10 00:05:51Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -59,7 +59,7 @@ namespace LQIO {
 	    }
 
 	    const error_message_type& error = DocumentObject::__error_messages.at(code);
-	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(srvnlineno)
+	    std::string buf = LQIO::DOM::Document::__input_file_name.string() + ":" + std::to_string(srvnlineno)
 		+ ": " + severity_table.at(error.severity)
 		+ ": " + object_name + " \"" + getTask()->getName() + "\", activity \"" + getName() + "\" " + error.message;
 	    if ( code == LQIO::ERR_DUPLICATE_SYMBOL && getLineNumber() != static_cast<size_t>(srvnlineno) ) {
@@ -84,7 +84,7 @@ namespace LQIO {
 	    }
 
 	    const error_message_type& error = __error_messages.at(code);
-	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(getLineNumber())
+	    std::string buf = LQIO::DOM::Document::__input_file_name.string() + ":" + std::to_string(getLineNumber())
 		+ ": " + severity_table.at(error.severity)
 		+ ": " + object_name + " \"" + getTask()->getName() + "\", activity \"" + getName() + "\" " + error.message + ".\n";
 	    return buf;

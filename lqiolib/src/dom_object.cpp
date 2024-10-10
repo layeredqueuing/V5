@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 17182 2024-04-24 18:02:35Z greg $
+ *  $Id: dom_object.cpp 17353 2024-10-10 00:05:51Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -154,7 +154,7 @@ namespace LQIO {
 	    } else {
 		object_name[0] = std::toupper( object_name[0] );
 	    }
-	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(srvnlineno)
+	    std::string buf = LQIO::DOM::Document::__input_file_name.string() + ":" + std::to_string(srvnlineno)
 		+ ": " + severity_table.at(error.severity) 
 		+ ": " + object_name + " \"" + getName() + "\" " + error.message;
 	    if ( code == LQIO::ERR_DUPLICATE_SYMBOL && getLineNumber() != static_cast<size_t>(srvnlineno) ) {
@@ -174,7 +174,7 @@ namespace LQIO {
 	    } else {
 		object_name[0] = std::toupper( object_name[0] );
 	    }
-	    std::string buf = LQIO::DOM::Document::__input_file_name + ":" + std::to_string(getLineNumber())
+	    std::string buf = LQIO::DOM::Document::__input_file_name.string() + ":" + std::to_string(getLineNumber())
 		+ ": " + severity_table.at(error.severity)
 		+ ": " + object_name + " \"" + getName() + "\" " + error.message + ".\n";
 	    return buf;

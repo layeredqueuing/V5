@@ -2984,24 +2984,23 @@ namespace LQIO {
     void
     SRVN::ActivityListInput::printPostList( const DOM::ActivityList& precedence )         /* forks */
     {
-        const DOM::Activity * end_activity = 0;
-        bool first = true;
+        const DOM::Activity * end_activity = nullptr;
 
         const std::vector<const DOM::Activity*>& list = precedence.getList();
-        for ( std::vector<const DOM::Activity*>::const_iterator next_activity = list.begin(); next_activity != list.end(); ++next_activity ) {
-            const DOM::Activity * activity = *next_activity;
+        for ( std::vector<const DOM::Activity*>::const_iterator next = list.begin(); next != list.end(); ++next ) {
+            const DOM::Activity * activity = *next;
 	    if ( !activity->getReplyList().empty() ) {
 		_pending_reply_activities.insert( activity );
 	    }
             switch ( precedence.getListType() ) {
             case DOM::ActivityList::Type::AND_FORK:
-                if ( !first ) {
+                if ( next != list.begin() ) {
                     _output << " & ";
                 }
                 break;
 
             case DOM::ActivityList::Type::OR_FORK:
-                if ( !first ) {
+                if ( next != list.begin() ) {
                     _output << " + ";
                 }
                 _output << "(" << precedence.getParameterValue( activity ) << ") ";
@@ -3015,7 +3014,7 @@ namespace LQIO {
                     end_activity = activity;
                     continue;
                 }
-                if ( !first ) {
+                if ( next != list.begin() ) {
                     _output << " , ";
                 }
                 _output << precedence.getParameterValue( activity ) << " * ";
@@ -3025,7 +3024,6 @@ namespace LQIO {
                 abort();
             }
             _output << activity->getName();
-            first = false;
         }
         if ( end_activity ) {
             _output << ", " << end_activity->getName();
