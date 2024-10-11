@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: filename.cpp 17351 2024-10-09 22:15:00Z greg $
+ * $Id: filename.cpp 17358 2024-10-11 11:15:09Z greg $
  *
  * File name generation.
  *
@@ -24,9 +24,9 @@
 
 namespace LQIO {
 
-    Filename::Filename( const std::string& base, const std::string& extension, const std::string& directory, const std::string& suffix )
+    Filename::Filename( const std::filesystem::path& base, const std::string& extension, const std::filesystem::path& directory, const std::string& suffix )
     {
-	generate( base, extension, directory, suffix );
+	generate( directory, base, suffix, extension );
     }
 
 
@@ -37,13 +37,13 @@ namespace LQIO {
 
 
     const std::filesystem::path&
-    Filename::generate( const std::filesystem::path& base, const std::string& extension, const std::string& directory, const std::string& suffix )
+    Filename::generate( const std::filesystem::path& directory, const std::filesystem::path& path, const std::string& extension, const std::string& suffix )
     {
 	/* prepend directory */
 	if ( !directory.empty() ) {
-	    _path = directory / base;
+	    _path = directory / path;
 	} else {
-	    _path = base;
+	    _path = path;
 	}
 
 	if ( !suffix.empty() ) {
@@ -70,6 +70,14 @@ namespace LQIO {
 
     Filename&
     Filename::operator=( const std::string& path )
+    {
+	_path = path;
+	return *this;
+    }
+
+
+    Filename&
+    Filename::operator=( const std::filesystem::path& path )
     {
 	_path = path;
 	return *this;

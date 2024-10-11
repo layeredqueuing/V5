@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 17348 2024-10-09 18:54:22Z greg $
+ * $Id: model.cc 17358 2024-10-11 11:15:09Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -908,7 +908,7 @@ Model::store()
 	LQIO::Filename filename;
 	const std::string extension = getExtension();
 	if ( !hasOutputFileName() || !directory_name.empty() ) {
-	    filename.generate( _inputFileName, extension, directory_name, suffix );
+	    filename.generate( directory_name, _inputFileName, suffix, extension );
 	} else {
 	    filename = _outputFileName;
 	}
