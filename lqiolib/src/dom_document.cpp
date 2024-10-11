@@ -862,7 +862,7 @@ namespace LQIO {
 	    }
 	    
 	    std::filesystem::path extension = filename.extension();
-	    const std::map<const std::string,const Document::InputFormat>::const_iterator ext = __extensions_input.find( extension );
+	    const std::map<const std::string,const Document::InputFormat>::const_iterator ext = __extensions_input.find( extension.string() );
 	    if ( ext != __extensions_input.end() ) {
 		return ext->second;
 	    } else {
@@ -986,7 +986,7 @@ namespace LQIO {
 
 	    } else if ( Filename::isFileName( __input_file_name ) ) {
 		/* Otherwise, construct one from the input file name */
-		std::string extension;
+	        std::string extension;
 		if ( format_iterator != __output_extensions.end() ) {
 		    extension = format_iterator->second;
 		} else if ( rtf_output ) {
@@ -994,7 +994,7 @@ namespace LQIO {
 		} else {
 		    extension = "out";
 		}
-		filename.generate( __input_file_name, extension, directory_name, lqx_output ? suffix : std::string("") );
+		filename.generate( directory_name, __input_file_name, lqx_output ? suffix : std::string(), extension );
 
 	    } else {
 		/* Don't output to stdout. */

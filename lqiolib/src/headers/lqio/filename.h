@@ -44,7 +44,7 @@ namespace LQIO {
 
 	static void backup( const std::filesystem::path& file_name );
 	static std::filesystem::path createDirectory( const std::filesystem::path& name, bool lqx_output );
-	static inline bool isFileName( const std::string& name ) { return !name.empty() && name != "-"; }
+        static inline bool isFileName( const std::filesystem::path& name ) { return !name.empty() && name != "-"; }
 
     private:
 	std::filesystem::path _path;
