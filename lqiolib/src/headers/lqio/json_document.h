@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: json_document.h 17253 2024-06-24 20:35:03Z greg $
+ *  $Id: json_document.h 17355 2024-10-10 22:52:30Z greg $
  *
  *  Created by Greg Franks.
  */
@@ -42,11 +42,11 @@ namespace LQIO {
 	private:
 	    friend class LQIO::DOM::Document;
 	  
-	    JSON_Document( Document& document, const std::string&, bool create_objects=true, bool load_results=false );
+	    JSON_Document( Document& document, const std::filesystem::path&, bool create_objects=true, bool load_results=false );
 
 	public:
-	    static bool load( Document&, const std::string& filename, unsigned int & errorCode, const bool load_results  );		// Factory.
-	    static bool loadResults( Document& document, const std::string& filename );
+	    static bool load( Document&, const std::filesystem::path& filename, unsigned int & errorCode, const bool load_results  );		// Factory.
+	    static bool loadResults( Document& document, const std::filesystem::path& filename );
 
 
 	    /* ---------------------------------------------------------------- */
@@ -215,7 +215,7 @@ namespace LQIO {
 	    };
 
 	    class Import {
-		friend JSON_Document::JSON_Document( Document&, const std::string&, bool, bool );
+		friend JSON_Document::JSON_Document( Document&, const std::filesystem::path&, bool, bool );
 
 	    private:
 		class AttributeManip {
@@ -565,7 +565,7 @@ namespace LQIO {
 
 	private:
 	    class Export {
-		friend JSON_Document::JSON_Document( Document&, const std::string&, bool, bool );
+		friend JSON_Document::JSON_Document( Document&, const std::filesystem::path&, bool, bool );
 
 		class ResultManip {
 		public:
@@ -973,7 +973,7 @@ namespace LQIO {
 	private:
 	    picojson::value _dom;
 	    Document& _document;
-	    const std::string& _input_file_name;
+	    const std::filesystem::path& _input_file_name;
 	    bool _createObjects;
 	    bool _loadResults;
 	    static const std::map<const int,const char *> __key_lqx_function_map;			/* Maps srvn_gram.h KEY_XXX to lqx function name */

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_results.cpp 16253 2023-01-03 19:37:15Z greg $
+ *  $Id: srvn_results.cpp 17355 2024-10-10 22:52:30Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -1203,7 +1203,7 @@ add_join_confidence(const char * task_name, const char *first, const char *last,
 namespace LQIO {
     namespace SRVN {
 	bool
-	loadResults( const std::string& filename )
+	loadResults( const std::filesystem::path& filename )
 	{
 	    srvn_max_phases = LQIO::DOM::Phase::MAX_PHASE;	/* for phase lists in resultparse() */
 	    

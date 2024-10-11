@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 17260 2024-09-07 00:46:44Z greg $
+ *  $Id: expat_document.h 17355 2024-10-10 22:52:30Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -214,7 +214,7 @@ namespace LQIO {
 	    friend class LQIO::DOM::Document;
 	    friend class LQIO::DOM::ExportObservation;
 
-	    Expat_Document( Document&, const std::string&, bool=true, bool=false );
+	    Expat_Document( Document&, const std::filesystem::path&, bool=true, bool=false );
 
 	public:
 	    virtual ~Expat_Document();
@@ -224,8 +224,8 @@ namespace LQIO {
 
 	    void serializeDOM( std::ostream& output ) const;
 	    
-	    static bool load( Document&, const std::string&, const bool load_results );		// Factory.
-	    static bool loadResults( Document&, const std::string& );
+	    static bool load( Document&, const std::filesystem::path&, const bool load_results );		// Factory.
+	    static bool loadResults( Document&, const std::filesystem::path& );
 
 	private:
 	    Expat_Document( const Expat_Document& ) = delete;
@@ -346,7 +346,7 @@ namespace LQIO {
 	private:
 	    Document& _document;
 	    XML_Parser _parser;
-	    const std::string& _input_file_name;
+	    const std::filesystem::path& _input_file_name;
 	    bool _createObjects;
 	    bool _loadResults;
 	    std::stack<parse_stack_t> _stack;

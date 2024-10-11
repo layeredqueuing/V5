@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: jmva_document.cpp 17347 2024-10-09 17:49:35Z greg $
+ * $Id: jmva_document.cpp 17355 2024-10-10 22:52:30Z greg $
  *
  * Read in XML input files.
  *
@@ -79,7 +79,7 @@ namespace QNIO {
     /* DOM input.                                                       */
     /* ---------------------------------------------------------------- */
 
-    JMVA_Document::JMVA_Document( const std::string& input_file_name ) :
+    JMVA_Document::JMVA_Document( const std::filesystem::path& input_file_name ) :
 	Document( input_file_name, BCMP::Model() ),
 	_strict_jmva(true), _parser(nullptr), _stack(),
 	_lqx_program_text(), _lqx_program_line_number(0), _lqx(nullptr), _program(),
@@ -130,7 +130,7 @@ namespace QNIO {
      */
 
     bool
-    JMVA_Document::load( LQIO::DOM::Document& lqn, const std::string& input_file_name )
+    JMVA_Document::load( LQIO::DOM::Document& lqn, const std::filesystem::path& input_file_name )
     {
 	JMVA_Document * jmva = new JMVA_Document( input_file_name );
 	if ( !jmva->parse() ) return false;

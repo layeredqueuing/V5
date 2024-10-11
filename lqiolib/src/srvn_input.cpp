@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 17254 2024-06-24 20:49:42Z greg $
+ *  $Id: srvn_input.cpp 17355 2024-10-10 22:52:30Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -1155,7 +1155,7 @@ namespace LQIO {
 }
 
 
-bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_file_name, bool load_results )
+bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::filesystem::path& input_file_name, bool load_results )
 {
     unsigned errorCode = 0;
     if ( !Filename::isFileName( input_file_name ) ) {

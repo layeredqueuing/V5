@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 17332 2024-10-03 15:25:44Z greg $
+ * $Id: json_document.cpp 17355 2024-10-10 22:52:30Z greg $
  *
  * Read in JSON input files.
  *
@@ -114,7 +114,7 @@ namespace LQIO {
 namespace LQIO {
     namespace DOM {
 
-	JSON_Document::JSON_Document( Document& document, const std::string& input_file_name, bool createObjects, bool loadResults )
+	JSON_Document::JSON_Document( Document& document, const std::filesystem::path& input_file_name, bool createObjects, bool loadResults )
 	    : _dom(), _document( document ), _input_file_name(input_file_name), _createObjects(createObjects), _loadResults(loadResults)
 	{
 	    Import::__indent = 0;
@@ -128,7 +128,7 @@ namespace LQIO {
 
 
 	bool
-	JSON_Document::load( Document& document, const std::string& input_file_name, unsigned& errorCode, const bool load_results )
+	JSON_Document::load( Document& document, const std::filesystem::path& input_file_name, unsigned& errorCode, const bool load_results )
 	{
 	    JSON_Document input( document, input_file_name, true, load_results );
 
@@ -154,9 +154,9 @@ namespace LQIO {
 	 */
 
 	bool
-	JSON_Document::loadResults( Document& document, const std::string& input_file_name )
+	JSON_Document::loadResults( Document& document, const std::filesystem::path& path )
 	{
-	    JSON_Document input( document, input_file_name, false, true );
+	    JSON_Document input( document, path, false, true );
 	    return input.parse();
 	}
 

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 17248 2024-06-12 20:16:04Z greg $
+ *  $Id: qnap2_document.h 17355 2024-10-10 22:52:30Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -197,7 +197,7 @@ namespace QNIO {
 	virtual ~QNAP2_Document();
 
 	virtual bool load();
-	static bool load( LQIO::DOM::Document&, const std::string& );		// Factory.
+	static bool load( LQIO::DOM::Document&, const std::filesystem::path& );		// Factory.
 	virtual InputFormat getInputFormat() const { return InputFormat::QNAP; }
 
 	virtual bool disableDefaultOutputWithLQX() const { return !_result; }

@@ -9,7 +9,7 @@
  *
  * November 2022
  *
- * $Id: qnio_document.h 17241 2024-05-27 15:05:28Z greg $
+ * $Id: qnio_document.h 17355 2024-10-10 22:52:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,6 +17,7 @@
 #ifndef QNIO_DOCUMENT_H
 #define QNIO_DOCUMENT_H
 #include <deque>
+#include <filesystem>
 #include <iostream>
 #include <map>
 #include <string>
@@ -87,7 +88,7 @@ namespace QNIO {
     public:
 	enum class InputFormat { JMVA, QNAP };
 	
-	Document( const std::string& input_file_name, const BCMP::Model& model );
+	Document( const std::filesystem::path& input_file_name, const BCMP::Model& model );
 	Document( const BCMP::Model& model );
 	Document( const Document& );
 	virtual ~Document();
@@ -100,7 +101,7 @@ namespace QNIO {
 	void setComment( const std::string& comment ) { _comment = comment; }
 	bool boundsOnly() const { return _bounds_only; }
 	void setBoundsOnly( bool value ) { _bounds_only = value; }
-	const std::string& getInputFileName() const { return _input_file_name; }
+	const std::filesystem::path& getInputFileName() const { return _input_file_name; }
 	virtual InputFormat getInputFormat() const = 0;
 	std::deque<Comprehension>& comprehensions() { return _comprehensions; }		/* For loops from WhatIf */
 	const std::deque<Comprehension>& comprehensions() const { return _comprehensions; }		/* For loops from WhatIf */
@@ -136,7 +137,7 @@ namespace QNIO {
 	virtual std::ostream& exportModel( std::ostream& output ) const = 0;
 
     private:
-	const std::string _input_file_name;
+	const std::filesystem::path _input_file_name;
 	std::string _comment;
 	LQIO::DOM::Pragma _pragmas;
 	bool _bounds_only;

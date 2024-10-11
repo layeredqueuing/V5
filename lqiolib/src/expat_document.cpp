@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 17332 2024-10-03 15:25:44Z greg $
+ * $Id: expat_document.cpp 17355 2024-10-10 22:52:30Z greg $
  *
  * Read in XML input files.
  *
@@ -75,7 +75,7 @@ namespace LQIO {
         /* DOM input.                                                       */
         /* ---------------------------------------------------------------- */
 
-        Expat_Document::Expat_Document( Document& document, const std::string& input_file_name, bool createObjects, bool loadResults )
+        Expat_Document::Expat_Document( Document& document, const std::filesystem::path& input_file_name, bool createObjects, bool loadResults )
             : _document( document ), _parser(), _input_file_name(input_file_name), _createObjects(createObjects), _loadResults(loadResults), _stack(), _text(),
 	      _has_spex(false), _spex_observation()
         {
@@ -87,7 +87,7 @@ namespace LQIO {
         }
 
 	bool
-        Expat_Document::load( Document& document, const std::string& input_filename, const bool load_results )
+        Expat_Document::load( Document& document, const std::filesystem::path& input_filename, const bool load_results )
         {
 	    Expat_Document input( document, input_filename, true, load_results );
 
@@ -124,9 +124,9 @@ namespace LQIO {
          */
 
         /* static */ bool
-        Expat_Document::loadResults( Document& document, const std::string& input_file_name )
+        Expat_Document::loadResults( Document& document, const std::filesystem::path& path )
         {
-	    Expat_Document input( document, input_file_name, false, true );
+	    Expat_Document input( document, path, false, true );
 	    return input.parse();
         }
 

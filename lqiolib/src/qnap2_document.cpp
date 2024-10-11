@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 17251 2024-06-17 17:31:44Z greg $
+ * $Id: qnap2_document.cpp 17355 2024-10-10 22:52:30Z greg $
  *
  * Read in XML input files.
  *
@@ -872,7 +872,7 @@ namespace QNIO {
      */
 
     bool
-    QNAP2_Document::load( LQIO::DOM::Document& lqn, const std::string& input_file_name )
+    QNAP2_Document::load( LQIO::DOM::Document& lqn, const std::filesystem::path& input_file_name )
     {
 	QNAP2_Document * input = new QNAP2_Document( input_file_name );
 	if ( !input->load() ) return false;
