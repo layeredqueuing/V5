@@ -8,8 +8,9 @@
 #define _MODEL_H
 
 #include "lqn2ps.h"
-#include <lqio/common_io.h>
+#include <filesystem>
 #include <vector>
+#include <lqio/common_io.h>
 #include "layer.h"
 #include "point.h"
 #include "element.h"
@@ -249,7 +250,7 @@ private:
     std::ostream& printSVG( std::ostream& output ) const;
 #endif
 #if defined(SXD_OUTPUT)
-    const Model& printSXD( const std::string&, const std::string&, const char *, const printSXDFunc ) const;
+  const Model& printSXD( const std::string&, const std::filesystem::path&, const std::string&, const printSXDFunc ) const;
     std::ostream& printSXD( std::ostream& output ) const;
     std::ostream& printSXDMeta( std::ostream& output ) const;
     std::ostream& printSXDMimeType( std::ostream& output ) const;

@@ -1160,7 +1160,7 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::filesystem::path
     unsigned errorCode = 0;
     if ( !Filename::isFileName( input_file_name ) ) {
 	srvnin = stdin;
-    } else if (!( srvnin = fopen( input_file_name.c_str(), "r" ) ) ) {
+    } else if (!( srvnin = fopen( input_file_name.string().c_str(), "r" ) ) ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << input_file_name << " - " << strerror( errno ) << std::endl;
 	return false;
     } 
@@ -1258,7 +1258,7 @@ srvnerror( const char * fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
-    LQIO::verrprintf( stderr, LQIO::error_severity::ERROR, LQIO::DOM::Document::__input_file_name.c_str(), srvnlineno, 0, fmt, args );
+    LQIO::verrprintf( stderr, LQIO::error_severity::ERROR, LQIO::DOM::Document::__input_file_name.string().c_str(), srvnlineno, 0, fmt, args );
     va_end( args );
 }
 
@@ -1274,6 +1274,6 @@ srvnwarning( const char * fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
-    LQIO::verrprintf( stderr, LQIO::error_severity::WARNING, LQIO::DOM::Document::__input_file_name.c_str(), srvnlineno, 0, fmt, args );
+    LQIO::verrprintf( stderr, LQIO::error_severity::WARNING, LQIO::DOM::Document::__input_file_name.string().c_str(), srvnlineno, 0, fmt, args );
     va_end( args );
 }

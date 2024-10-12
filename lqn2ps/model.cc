@@ -973,8 +973,8 @@ Model::reload()
 
     LQIO::Filename directory_name( hasOutputFileName() ? _outputFileName : _inputFileName, "d" );		/* Get the base file name */
 
-    if ( access( directory_name().c_str(), R_OK|X_OK ) < 0 ) {
-	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );
+    if ( access( directory_name.c_str(), R_OK|X_OK ) < 0 ) {
+	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
@@ -2248,12 +2248,11 @@ Model::printSXD( const char * file_name ) const
 	std::filesystem::create_directory( dir_name() );
     }
     catch ( std::filesystem::filesystem_error& e ) {
-	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, dir_name().c_str(), e.what() );
+	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, dir_name.c_str(), e.what() );
 	throw;
     } 
 
-    std::string meta_name = dir_name();
-    meta_name += "/META-INF";
+    const std::filesystem::path meta_name = dir_name() / "META-INF";
     try {
 	std::filesystem::create_directory( meta_name );
 	printSXD( file_name, dir_name(), "META-INF/manifest.xml", &Model::printSXDManifest );
@@ -2264,8 +2263,8 @@ Model::printSXD( const char * file_name ) const
 	printSXD( file_name, dir_name(), "mimetype", &Model::printSXDMimeType );
     }
     catch ( const std::runtime_error &error ) {
-	rmdir( meta_name.c_str() );
-	rmdir( dir_name().c_str() );
+        rmdir( meta_name.string().c_str() );
+	rmdir( dir_name.c_str() );
 	throw;
     }
 
@@ -2273,37 +2272,32 @@ Model::printSXD( const char * file_name ) const
 }
 
 const Model&
-Model::printSXD( const std::string& dst_name, const std::string& dir_name, const char * file_name, const printSXDFunc aFunc ) const
+Model::printSXD( const std::string& dst_name, const std::filesystem::path& dir_name, const std::string& file_name, const printSXDFunc aFunc ) const
 {
-    std::string pathname = dir_name;
-    pathname += "/";
-    pathname += file_name;
+  const std::filesystem::path pathname = dir_name / file_name;
 
     std::ofstream output;
     output.open( pathname.c_str(), std::ios::out );
     if ( !output ) {
-	std::ostringstream msg;
-	msg << "Cannot open output file \"" << pathname << "\" - " << strerror( errno );
-	throw std::runtime_error( msg.str() );
+        const std::string msg = "Cannot open output file \"" + pathname.string() + "\" - " + strerror( errno );
+	throw std::runtime_error( msg );
     } else {
 	/* Write out all other XML goop needed */
 	(this->*aFunc)( output );
 	output.close();
 
 #if !defined(__WINNT__)
-	std::ostringstream command;
-	command << "cd " << dir_name << "; zip -r ../" << dst_name << " " << file_name;
-	int rc = system( command.str().c_str() );
+	const std::string command = "cd " + dir_name + "; zip -r ../" + dst_name << " " + file_name;
+	int rc = system( command.c_str() );
 	unlink( pathname.c_str() );	/* Delete now. */
 	if ( rc != 0 ) {
-	    std::ostringstream msg;
-	    msg << "Cannot execute \"" << command.str() << "\" - ";
+	    const std::string msg = "Cannot execute \"" + command + "\" - ";
 	    if ( rc < 0 ) {
-		msg << strerror( errno );
+		msg += strerror( errno );
 	    } else {
-		msg << "status=0x" << std::hex << rc;
-	    }
-	    throw std::runtime_error( msg.str() );
+	        msg += "status=" + std::to_string( rc );
+	    } 
+	    throw std::runtime_error( msg );
 	}
 #endif
     }

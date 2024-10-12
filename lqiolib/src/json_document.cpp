@@ -138,9 +138,9 @@ namespace LQIO {
 		const std::string& program_text = document.getLQXProgramText();
 		if ( program_text.size() ) {
 		    /* If we have an LQX program, then we need to compute */
-		    LQX::Program* program = LQX::Program::loadFromText(input_file_name.c_str(), document.getLQXProgramLineNumber(), program_text.c_str());
+		    LQX::Program* program = LQX::Program::loadFromText(input_file_name.string().c_str(), document.getLQXProgramLineNumber(), program_text.c_str());
 		    if (program == nullptr) {
-			LQIO::runtime_error( LQIO::ERR_LQX_COMPILATION, input_file_name.c_str() );
+		        LQIO::runtime_error( LQIO::ERR_LQX_COMPILATION, input_file_name.string().c_str() );
 		    }
 		    document.setLQXProgram( program );
 		}
@@ -175,7 +175,7 @@ namespace LQIO {
 
 	    if ( !Filename::isFileName( _input_file_name ) ) {
 		input_fd = fileno( stdin );
-	    } else if ( ( input_fd = open( _input_file_name.c_str(), O_RDONLY ) ) < 0 ) {
+	    } else if ( ( input_fd = open( _input_file_name.string().c_str(), O_RDONLY ) ) < 0 ) {
 		std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << _input_file_name << " - " << strerror( errno ) << std::endl;
 		return false;
 	    }
@@ -198,7 +198,7 @@ namespace LQIO {
 #if HAVE_MMAP
 	    char *buffer = static_cast<char *>(mmap( 0, statbuf.st_size, PROT_READ, MAP_PRIVATE|MAP_FILE, input_fd, 0 ));
 	    if ( buffer != MAP_FAILED ) {
-		std::string err = picojson::parse( _dom, buffer, buffer + statbuf.st_size );
+	        const std::string err = picojson::parse( _dom, buffer, buffer + statbuf.st_size );
 		if ( err.empty() ) {
 		    try {
 			handleModel();
@@ -256,7 +256,7 @@ namespace LQIO {
 	{
 	    va_list args;
 	    va_start( args, fmt );
-	    verrprintf( stderr, LQIO::error_severity::ERROR, _input_file_name.c_str(),	0, 0, fmt, args );
+	    verrprintf( stderr, LQIO::error_severity::ERROR, _input_file_name.string().c_str(),	0, 0, fmt, args );
 	    va_end( args );
 	}
  
@@ -2885,7 +2885,7 @@ namespace LQIO {
 
 	    _output << begin_object( Xheader );
 	    ExportComment( _output, _conf_95 ).print( document );
-	    _output << attribute( Xname, base_name() )
+	    _output << attribute( Xname, base_name().string() )
 		    << next_attribute( Xdescription, document.getResultDescription() );
 	    _output << end_object();
 	}

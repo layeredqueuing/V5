@@ -101,8 +101,8 @@ namespace LQIO {
 		    if ( Spex::__parameter_list != nullptr ) {
 			runtime_error( LQIO::ERR_LQX_SPEX, input_filename.c_str() );
 			return false;
-		    } else if ( (program = LQX::Program::loadFromText(input_filename.c_str(), document.getLQXProgramLineNumber(), program_text.c_str())) == nullptr ) {
-			runtime_error( LQIO::ERR_LQX_COMPILATION, input_filename.c_str() );
+		    } else if ( (program = LQX::Program::loadFromText(input_filename.string().c_str(), document.getLQXProgramLineNumber(), program_text.c_str())) == nullptr ) {
+			runtime_error( LQIO::ERR_LQX_COMPILATION, input_filename.string().c_str() );
 			return false;
 		    } else {
 			document.setLQXProgram( program );
@@ -145,7 +145,7 @@ namespace LQIO {
 
             if ( !Filename::isFileName( _input_file_name ) ) {
                 input_fd = fileno( stdin );
-            } else if ( ( input_fd = open( _input_file_name.c_str(), O_RDONLY ) ) < 0 ) {
+            } else if ( ( input_fd = open( _input_file_name.string().c_str(), O_RDONLY ) ) < 0 ) {
                 std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << _input_file_name << " - " << strerror( errno ) << std::endl;
                 return false;
             }
@@ -239,7 +239,7 @@ namespace LQIO {
         {
             va_list args;
             va_start( args, fmt );
-            verrprintf( stderr, LQIO::error_severity::ERROR, _input_file_name.c_str(),  XML_GetCurrentLineNumber(_parser), 0, fmt, args );
+            verrprintf( stderr, LQIO::error_severity::ERROR, _input_file_name.string().c_str(),  XML_GetCurrentLineNumber(_parser), 0, fmt, args );
             va_end( args );
         }
 
@@ -2307,7 +2307,7 @@ namespace LQIO {
 	    if ( !LQIO::io_vars.lq_command_line.empty() ) {
 		output << XML::comment( LQIO::io_vars.lq_command_line );
 	    }
-            output << XML::start_element( Xlqn_model ) << XML::attribute( Xname, base_name() )
+            output << XML::start_element( Xlqn_model ) << XML::attribute( Xname, base_name().string() )
 		   << XML::attribute( Xdescription, _document.getResultDescription() )
 		   << " xmlns:xsi=\"" << XMLSchema_instance << "\" xsi:noNamespaceSchemaLocation=\"";
 	

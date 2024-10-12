@@ -35,7 +35,7 @@
 #include "srvn_input.h"
 #include "srvn_results.h"
 
-static const char * results_file_name;	/* Filename for the parser's input file */
+static std::filesystem::path results_file_name;	/* Filename for the parser's input file */
 static unsigned int n_phases = 0;
 
 static void results_error2( unsigned err, ... );
@@ -1213,8 +1213,8 @@ namespace LQIO {
 	    if ( !Filename::isFileName( filename ) ) {
 		resultin = stdin;
 		resultparse();
-	    } else if ( ( resultin = fopen( filename.c_str(), "r" ) ) != nullptr ) {
-		results_file_name = filename.c_str();
+	    } else if ( ( resultin = fopen( filename.string().c_str(), "r" ) ) != nullptr ) {
+		results_file_name = filename;
 		resultlineno = 1;
 #if HAVE_MMAP
 		struct stat statbuf;
@@ -1260,7 +1260,7 @@ results_error( const char * fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
-    (void) LQIO::verrprintf( stderr, LQIO::error_severity::ADVISORY, results_file_name, resultlineno, 0, fmt, args );
+    (void) LQIO::verrprintf( stderr, LQIO::error_severity::ADVISORY, results_file_name.string().c_str(), resultlineno, 0, fmt, args );
     va_end( args );
 }
 
@@ -1269,7 +1269,7 @@ results_error2( unsigned err, ... )
 {
     va_list args;
     va_start( args, err );
-    LQIO::verrprintf( stderr, LQIO::error_messages.at(err).severity, results_file_name, resultlineno, 0,
+    LQIO::verrprintf( stderr, LQIO::error_messages.at(err).severity, results_file_name.string().c_str(), resultlineno, 0,
 		      LQIO::error_messages.at(err).message, args );
     va_end( args );
 }

@@ -117,7 +117,7 @@ namespace QNIO {
 	/* LQX present? */
 	const std::string& program_text = getLQXProgramText();
 	if ( !program_text.empty() ) {
-	    _lqx = LQX::Program::loadFromText(getInputFileName().c_str(), getLQXProgramLineNumber(), program_text.c_str());
+	  _lqx = LQX::Program::loadFromText(getInputFileName().string().c_str(), getLQXProgramLineNumber(), program_text.c_str());
 	}
 	return true;
     }
@@ -147,7 +147,7 @@ namespace QNIO {
 
 	if ( !LQIO::Filename::isFileName( getInputFileName() ) ) {
 	    input_fd = fileno( stdin );
-	} else if ( ( input_fd = open( getInputFileName().c_str(), O_RDONLY ) ) < 0 ) {
+	} else if ( ( input_fd = open( getInputFileName().string().c_str(), O_RDONLY ) ) < 0 ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << getInputFileName() << " - " << strerror( errno ) << std::endl;
 	    return false;
 	}

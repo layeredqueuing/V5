@@ -191,7 +191,7 @@ namespace QNIO {
 	};
 
     public:
-	QNAP2_Document( const std::string& input_file_name );			/* For input */
+        QNAP2_Document( const std::filesystem::path& input_file_name );		/* For input */
 	QNAP2_Document( const BCMP::Model& model );				/* For output */
 	QNAP2_Document( const QNIO::Document& );
 	virtual ~QNAP2_Document();

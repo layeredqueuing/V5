@@ -32,6 +32,7 @@ namespace LQIO {
 
 	const std::filesystem::path& operator()() const { return _path; }
 	std::string str() const { return _path.string(); }
+        const char * c_str() const { return _path.string().c_str(); }
 	Filename& operator<<( const std::string& );
 	Filename& operator<<( const unsigned );
 
@@ -40,7 +41,7 @@ namespace LQIO {
 
 	Filename& backup() { Filename::backup( (*this)() ); return *this; }
 
-	int mtimeCmp( const std::string& file_name );
+        int mtimeCmp( const std::filesystem::path& file_name );
 
 	static void backup( const std::filesystem::path& file_name );
 	static std::filesystem::path createDirectory( const std::filesystem::path& name, bool lqx_output );

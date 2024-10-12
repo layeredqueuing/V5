@@ -593,8 +593,8 @@ Model::reload()
 
     LQIO::Filename directory_name( getOutputFileName(), "d" );		/* Get the base file name */
 
-    if ( access( directory_name().c_str(), R_OK|W_OK|X_OK ) < 0 ) {
-	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );
+    if ( access( directory_name.c_str(), R_OK|W_OK|X_OK ) < 0 ) {
+	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 

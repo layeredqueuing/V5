@@ -108,14 +108,14 @@ namespace LQIO {
      */
 
     int
-    Filename::mtimeCmp( const std::string& filename )
+    Filename::mtimeCmp( const std::filesystem::path& filename )
     {
 	struct stat dst;
 	struct stat src;
 
-	if ( stat( filename.c_str(), &dst ) < 0 ) {
-	    throw std::invalid_argument( "Cannot stat: " + filename );
-	} else if ( stat( (*this)().c_str(), &src ) < 0 ) {
+	if ( stat( filename.string().c_str(), &dst ) < 0 ) {
+	    throw std::invalid_argument( "Cannot stat: " + filename.string() );
+	} else if ( stat( str().c_str(), &src ) < 0 ) {
 	    throw std::invalid_argument( "Cannot stat: " + str() );
 	} else {
 	    return src.st_mtime - dst.st_mtime;

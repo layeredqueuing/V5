@@ -87,7 +87,7 @@ LQIO::runtime_error( unsigned err, ... )
     va_start( args, err );
     verrprintf( stderr, 
 		error_messages.at(err).severity, 
-		LQIO::DOM::Document::__input_file_name.c_str(), 0, 0,
+		LQIO::DOM::Document::__input_file_name.string().c_str(), 0, 0,
 		error_messages.at(err).message, 
 		args );
     va_end( args );
@@ -114,7 +114,7 @@ LQIO::input_error( unsigned err, ... )
 {
     va_list args;
     va_start( args, err );
-    verrprintf( stderr, error_messages.at(err).severity, LQIO::DOM::Document::__input_file_name.c_str(), srvnlineno, 0,
+    verrprintf( stderr, error_messages.at(err).severity, LQIO::DOM::Document::__input_file_name.string().c_str(), srvnlineno, 0,
 		error_messages.at(err).message, args );
     va_end( args );
 }

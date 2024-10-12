@@ -743,7 +743,7 @@ qnap2error( const char * fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
-    LQIO::verrprintf( stderr, LQIO::error_severity::ERROR, QNIO::QNAP2_Document::__document->getInputFileName().c_str(), qnap2lineno, 0, fmt, args );
+    LQIO::verrprintf( stderr, LQIO::error_severity::ERROR, QNIO::QNAP2_Document::__document->getInputFileName().string().c_str(), qnap2lineno, 0, fmt, args );
     va_end( args );
 }
 
@@ -752,7 +752,7 @@ namespace QNIO {
     /*                                  Input                                   */
     /* ------------------------------------------------------------------------ */
 
-    QNAP2_Document::QNAP2_Document( const std::string& input_file_name ) :
+  QNAP2_Document::QNAP2_Document( const std::filesystem::path& input_file_name ) :
 	Document(input_file_name, BCMP::Model()),
  	_symbolTable(), _transit(), _entry(), _main(), _exit(), _lqx(LQX::Program::loadRawProgram( &_main )), _env(_lqx->getEnvironment()),
 	_debug(false), _result(true),
@@ -799,7 +799,7 @@ namespace QNIO {
 	unsigned errorCode = 0;
 	if ( !LQIO::Filename::isFileName( getInputFileName() ) ) {
 	    qnap2in = stdin;
-	} else if (!( qnap2in = fopen( getInputFileName().c_str(), "r" ) ) ) {
+	} else if (!( qnap2in = fopen( getInputFileName().string().c_str(), "r" ) ) ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << getInputFileName() << " - " << strerror( errno ) << std::endl;
 	    return false;
 	}
