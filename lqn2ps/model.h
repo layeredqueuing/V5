@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 17348 2024-10-09 18:54:22Z greg $
+ * $Id: model.h 17361 2024-10-12 22:05:49Z greg $
  */
 
 #ifndef _MODEL_H
@@ -34,7 +34,7 @@ namespace LQIO {
 class Model
 {
     typedef std::ostream& (*outputFuncPtr)( std::ostream& );
-    typedef Model * (*create_func)( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers );
+    typedef Model * (*create_func)( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers );
 
     /* Statistics collected.  Output is ordered by the order here. */
 
@@ -122,7 +122,7 @@ protected:
     friend std::ostream& operator<<( std::ostream& output, const Model::Stats& self ) { return self.print( output ); }
 
 public:
-    Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers );
+    Model( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers );
 
     virtual ~Model();
     static bool prepare( const LQIO::DOM::Document * document );
@@ -200,7 +200,7 @@ private:
     Model& operator*=( const double s );
     Model& translateScale( const double s );
     Model& moveBy( const double, const double );
-    bool hasOutputFileName() const { return _outputFileName.size() > 0 && _outputFileName != "-"; }
+    bool hasOutputFileName() const { return !_outputFileName.empty() && _outputFileName != "-"; }
 
     bool check() const;
 #if REP2FLAT
@@ -217,7 +217,7 @@ private:
     unsigned nMultiServers() const;
     unsigned nInfiniteServers() const;
 
-    std::string getExtension();
+    std::filesystem::path getExtension();
     Model const& accumulateTaskStats( const std::string& ) const;	/* Does not count ref. tasks. */
     Model const& accumulateEntryStats( const std::string& ) const;	/* Does not count ref. tasks. */
     std::map<unsigned, LQIO::DOM::Entity *>& remapEntities() const;
@@ -301,8 +301,8 @@ private:
     static Stats stats[];
 
     LQIO::DOM::Document * _document;
-    const std::string _inputFileName;
-    const std::string _outputFileName;
+    const std::filesystem::path _inputFileName;
+    const std::filesystem::path _outputFileName;
     const LQIO::DOM::GetLogin _login;
 
     unsigned int _modelNumber;
@@ -320,11 +320,11 @@ public:
 class Batch_Model : virtual public Model
 {
 protected:
-    Batch_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
+    Batch_Model( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 public:
-    static Model * create( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers )
+    static Model * create( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers )
 	{ return new Batch_Model( document, input_file_name, output_file_name, number_of_layers ); }
 
 protected:
@@ -334,12 +334,12 @@ protected:
 class ProcessorTask_Model : virtual public Model, public Batch_Model
 {
 private:
-    ProcessorTask_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
+    ProcessorTask_Model( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ),
 	Batch_Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 public:
-    static Model * create( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers )
+    static Model * create( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers )
 	{ return new ProcessorTask_Model( document, input_file_name, output_file_name, number_of_layers ); }
 
     virtual Model& layerize() { return Batch_Model::layerize(); }
@@ -354,11 +354,11 @@ private:
 class HWSW_Model : public Model
 {
 private:
-    HWSW_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
+    HWSW_Model( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 public:
-    static Model * create( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers )
+    static Model * create( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers )
 	{ return new HWSW_Model( document, input_file_name, output_file_name, number_of_layers ); }
 
 
@@ -371,11 +371,11 @@ protected:
 class MOL_Model : public Model
 {
 private:
-    MOL_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
+    MOL_Model( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 public:
-    static Model * create( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers )
+    static Model * create( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers )
 	{ return new MOL_Model( document, input_file_name, output_file_name, number_of_layers ); }
 
 protected:
@@ -396,7 +396,7 @@ protected:
     };
     
 protected:
-    Group_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
+    Group_Model( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 protected:
@@ -407,13 +407,13 @@ protected:
 class BatchProcessor_Model : virtual public Model, public Batch_Model, public Group_Model
 {
 private:
-    BatchProcessor_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
+    BatchProcessor_Model( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ),
 	Batch_Model( document, input_file_name, output_file_name, number_of_layers ),
 	Group_Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 public:
-    static Model * create( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers )
+    static Model * create( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers )
 	{ return new BatchProcessor_Model( document, input_file_name, output_file_name, number_of_layers ); }
 
 protected:
@@ -424,13 +424,13 @@ protected:
 class BatchGroup_Model : virtual public Model, public Batch_Model, public Group_Model
 {
 private:
-    BatchGroup_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
+    BatchGroup_Model( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ),
 	Batch_Model( document, input_file_name, output_file_name, number_of_layers ),
 	Group_Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 public:
-    static Model * create( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers )
+    static Model * create( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers )
 	{ return new BatchGroup_Model( document, input_file_name, output_file_name, number_of_layers ); }
 
 protected:
@@ -443,12 +443,12 @@ protected:
 class SRVN_Model : virtual public Model, public Batch_Model
 {
 private:
-    SRVN_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
+    SRVN_Model( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ),
 	Batch_Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 public:
-    static Model * create( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers )
+    static Model * create( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers )
 	{ return new SRVN_Model( document, input_file_name, output_file_name, number_of_layers ); }
 
 protected:
@@ -469,7 +469,7 @@ private:
 	Batch_Model( document, input_file_name, output_file_name, PROCESSOR_LEVEL ) {}
 
 public:
-    static Model * create( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers )
+    static Model * create( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers )
 	{ return new Squashed_Model( document, input_file_name, output_file_name ); }
 
     virtual bool generate();

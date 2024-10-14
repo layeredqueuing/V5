@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 17348 2024-10-09 18:54:22Z greg $
+ * $Id: model.cc 17359 2024-10-12 01:32:27Z greg $
  *
  * Load the SRVN model.
  */
@@ -642,17 +642,17 @@ Model::compute()
 	    std::cerr << "Solve: " << _input_file_name << "..." << std::endl;
 	}
 
-	save_net_files( LQIO::io_vars.toolname(), netname.c_str() );
+	save_net_files( LQIO::io_vars.toolname(), netname.str().c_str() );
 
 	if ( no_execute_flag ) {
 	    return true;
 	} else if ( trace_flag ) {
-	    if ( !solve2( netname.c_str(), 2, SOLVE_STEADY_STATE ) ) {	/* output to stderr */
+	    if ( !solve2( netname.str().c_str(), 2, SOLVE_STEADY_STATE ) ) {	/* output to stderr */
 		rc = false;
 	    }
 	} else {
 	    int null_fd = open( "/dev/null", O_RDWR );
-	    if ( !solve2( netname.c_str(), null_fd, SOLVE_STEADY_STATE ) ) {
+	    if ( !solve2( netname.str().c_str(), null_fd, SOLVE_STEADY_STATE ) ) {
 		rc = false;
 	    }
 	    close( null_fd );
@@ -667,7 +667,7 @@ Model::compute()
 	solution_stats_t stats;
 	if ( !solution_stats( &stats.tangible, &stats.vanishing, &stats.precision )
 	     || !collect_res( FALSE, LQIO::io_vars.toolname() ) ) {
-	    (void) fprintf( stderr, "%s: Cannot read results for %s\n", LQIO::io_vars.toolname(), netname.c_str() );
+	    (void) fprintf( stderr, "%s: Cannot read results for %s\n", LQIO::io_vars.toolname(), netname.str().c_str() );
 	    rc = false;
 	} else {
 	    std::for_each( ::__task.begin(), __task.end(), std::mem_fn( &Task::get_results ) );	/* Read net to get tokens. */
@@ -692,7 +692,7 @@ Model::compute()
     /* Clean up in preparation for another run.	*/
 
     if ( !keep_flag ) {
-	remove_result_files( netname.c_str() );
+	remove_result_files( netname.str().c_str() );
     }
 
     remove_netobj();
@@ -712,8 +712,8 @@ Model::reload()
 
     LQIO::Filename directory_name( has_output_file_name() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
 
-    if ( access( directory_name.c_str(), R_OK|W_OK|X_OK ) < 0 ) {
-	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
+    if ( access( directory_name.str().c_str(), R_OK|W_OK|X_OK ) < 0 ) {
+	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.str().c_str(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 

@@ -10,7 +10,7 @@
  * Error processing for srvn program.
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: error.cpp 16886 2023-12-07 17:32:51Z greg $
+ * $Id: error.cpp 17359 2024-10-12 01:32:27Z greg $
  * ------------------------------------------------------------------------
  */
 

@@ -3,7 +3,7 @@
  * If invoked as lqngen, generate a model.
  * In invoked as lqn2lqx, convert model to lqx.
  *
- * $Id: lqngen.cc 17082 2024-03-01 22:31:21Z greg $
+ * $Id: lqngen.cc 17361 2024-10-12 22:05:49Z greg $
  */
 
 #include "lqngen.h"
@@ -154,10 +154,10 @@ static RV::RandomVariable * total_customers;
 
 static bool some_randomness = false;
 static const std::map<LQIO::DOM::Document::InputFormat,const std::string> output_suffix = {
-    { LQIO::DOM::Document::InputFormat::AUTOMATIC,  "xlqn" },
-    { LQIO::DOM::Document::InputFormat::LQN,	    "xlqn" },
-    { LQIO::DOM::Document::InputFormat::XML,	    "lqnx" },
-    { LQIO::DOM::Document::InputFormat::JSON,	    "lqnj" }
+    { LQIO::DOM::Document::InputFormat::AUTOMATIC,  ".xlqn" },
+    { LQIO::DOM::Document::InputFormat::LQN,	    ".xlqn" },
+    { LQIO::DOM::Document::InputFormat::XML,	    ".lqnx" },
+    { LQIO::DOM::Document::InputFormat::JSON,	    ".lqnj" }
 };
 static std::string output_file_name;
 

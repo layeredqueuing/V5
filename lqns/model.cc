@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17281 2024-09-12 15:21:59Z greg $
+ * $Id: model.cc 17359 2024-10-12 01:32:27Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -852,8 +852,8 @@ Model::reload()
 
     LQIO::Filename directory_name( hasOutputFileName() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
 
-    if ( access( directory_name.c_str(), R_OK|X_OK ) < 0 ) {
-	LQIO::runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
+    if ( access( directory_name.str().c_str(), R_OK|X_OK ) < 0 ) {
+	LQIO::runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.str().c_str(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 

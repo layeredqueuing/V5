@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 17358 2024-10-11 11:15:09Z greg $
+ * $Id: model.cc 17361 2024-10-12 22:05:49Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -16,7 +16,6 @@
 #include <fstream>
 #include <functional>
 #include <limits>
-#include <sstream>
 #include <stdexcept>
 #include <time.h>
 #if HAVE_SYS_TIMES_H
@@ -106,7 +105,7 @@ struct lt_submodel
 
 /* ------------------------ Constructors etc. ------------------------- */
 
-Model::Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int numberOfLayers )
+Model::Model( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int numberOfLayers )
     : _layers(numberOfLayers+1),
       _key(nullptr),
       _label(nullptr),
@@ -312,9 +311,8 @@ void
 Model::group_by_submodel()
 {
     for ( unsigned i = SERVER_LEVEL; i < nLayers(); i += 1 ) {
-	std::ostringstream s;
-	s << "Submodel " << i;
-	Group * aGroup = new GroupSquashed( nLayers(), s.str(), _layers.at(i-1), _layers.at(i) );
+	const std::string s = "Submodel " + std::to_string(i);
+	Group * aGroup = new GroupSquashed( nLayers(), s, _layers.at(i-1), _layers.at(i) );
 	aGroup->format().label().resizeBox().positionLabel();
 	Group::__groups.push_back( aGroup );
     }
@@ -906,7 +904,7 @@ Model::store()
 #endif
 	std::filesystem::path directory_name = LQIO::Filename::createDirectory( hasOutputFileName() ? _outputFileName : _inputFileName, _document->getResultInvocationNumber() > 0 );
 	LQIO::Filename filename;
-	const std::string extension = getExtension();
+	const std::filesystem::path extension = getExtension();
 	if ( !hasOutputFileName() || !directory_name.empty() ) {
 	    filename.generate( directory_name, _inputFileName, suffix, extension );
 	} else {
@@ -973,8 +971,8 @@ Model::reload()
 
     LQIO::Filename directory_name( hasOutputFileName() ? _outputFileName : _inputFileName, "d" );		/* Get the base file name */
 
-    if ( access( directory_name.c_str(), R_OK|X_OK ) < 0 ) {
-	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
+    if ( access( directory_name.str().c_str(), R_OK|X_OK ) < 0 ) {
+	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.str().c_str(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
@@ -1006,53 +1004,52 @@ Model::reload()
 
 
 
-std::string
+std::filesystem::path
 Model::getExtension()
 {
     /* Extension exceptions (except SRVN) */
-    static const std::map<const File_Format,const std::string> exceptions = {
-	{ File_Format::EEPIC,	    "tex" },
-	{ File_Format::PSTEX,       "fig" },
-	{ File_Format::PARSEABLE,   "p" },
-	{ File_Format::LQX, 	    "lqx" },
-	{ File_Format::XML, 	    "lqnx" }
+    static const std::map<const File_Format,const std::filesystem::path> exceptions = {
+	{ File_Format::EEPIC,	    ".tex" },
+	{ File_Format::PSTEX,       ".fig" },
+	{ File_Format::PARSEABLE,   ".p" },
+	{ File_Format::LQX, 	    ".lqx" },
+	{ File_Format::XML, 	    ".lqnx" }
     };
 
     /* Map any of source extensions to lqn */
-    static const std::set<std::string> source_extensions = {
-	"lqnx",
-	"xlqn",
-	"xml",
-	"json",
-	"lqxo",
-	"lqjo",
-	"jmva",
-	"qnap2",
-	"qnap",
-	"qnp"
+    static const std::set<std::filesystem::path> source_extensions = {
+	".lqnx",
+	".xlqn",
+	".xml",
+	".json",
+	".lqxo",
+	".lqjo",
+	".jmva",
+	".qnap2",
+	".qnap",
+	".qnp"
     };
 
-    std::map<const File_Format,const std::string>::const_iterator i;
+    std::map<const File_Format,const std::filesystem::path>::const_iterator i;
+    std::map<const File_Format,const std::string>::const_iterator j;
     const File_Format o = Flags::output_format();
 
     if ( Flags::output_format() == File_Format::SRVN ) {
 	/* Non standard files names are retained (in theory) */
-	std::size_t n = _inputFileName.find_last_of( '.' );
-	if ( n != std::string::npos ) {
-	    std::string ext = _inputFileName.substr( n+1 );
-	    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-	    if ( source_extensions.find( ext ) == source_extensions.end() ) {
-		return ext;	/* Not in the list above, so overwrite file. */
-	    }
-	} 
-	return "lqn";
+	const std::filesystem::path ext = _inputFileName.extension();
+	if ( source_extensions.find( ext ) == source_extensions.end() ) {
+	    return ext;	/* Not in the list above, so overwrite file. */
+	}
+	return std::filesystem::path(".lqn");
     } else if ( (i = exceptions.find(o)) != exceptions.end() ) {
 	return i->second;
-    } else if ( (i = Options::file_format.find(o)) != Options::file_format.end() ) {
-	return i->second;
+    } else if ( (j = Options::file_format.find(o)) != Options::file_format.end() ) {
+	std::filesystem::path path(".");
+	path += j->second;
+	return path;
     } else {
 	std::runtime_error( "Unknown output format." );
-	return std::string("");
+	return std::filesystem::path();
     }
 }
 
@@ -2248,7 +2245,7 @@ Model::printSXD( const char * file_name ) const
 	std::filesystem::create_directory( dir_name() );
     }
     catch ( std::filesystem::filesystem_error& e ) {
-	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, dir_name.c_str(), e.what() );
+	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, dir_name.str().c_str(), e.what() );
 	throw;
     } 
 
@@ -2264,7 +2261,7 @@ Model::printSXD( const char * file_name ) const
     }
     catch ( const std::runtime_error &error ) {
         rmdir( meta_name.string().c_str() );
-	rmdir( dir_name.c_str() );
+	rmdir( dir_name.str().c_str() );
 	throw;
     }
 
@@ -2277,7 +2274,7 @@ Model::printSXD( const std::string& dst_name, const std::filesystem::path& dir_n
   const std::filesystem::path pathname = dir_name / file_name;
 
     std::ofstream output;
-    output.open( pathname.c_str(), std::ios::out );
+    output.open( pathname.string().c_str(), std::ios::out );
     if ( !output ) {
         const std::string msg = "Cannot open output file \"" + pathname.string() + "\" - " + strerror( errno );
 	throw std::runtime_error( msg );
@@ -2287,11 +2284,11 @@ Model::printSXD( const std::string& dst_name, const std::filesystem::path& dir_n
 	output.close();
 
 #if !defined(__WINNT__)
-	const std::string command = "cd " + dir_name + "; zip -r ../" + dst_name << " " + file_name;
+	const std::string command = "cd " + dir_name.string() + "; zip -r ../" + dst_name + " " + file_name;
 	int rc = system( command.c_str() );
-	unlink( pathname.c_str() );	/* Delete now. */
+	unlink( pathname.string().c_str() );	/* Delete now. */
 	if ( rc != 0 ) {
-	    const std::string msg = "Cannot execute \"" + command + "\" - ";
+	    std::string msg = "Cannot execute \"" + command + "\" - ";
 	    if ( rc < 0 ) {
 		msg += strerror( errno );
 	    } else {
@@ -2492,7 +2489,7 @@ Model::printOverallStatistics( std::ostream& output )
 std::ostream&
 Model::printSummary( std::ostream& output ) const
 {
-    if ( _inputFileName.size() ) {
+    if ( !_inputFileName.empty() ) {
 	output << _inputFileName << ":";
     }
     if ( graphical_output() ) {

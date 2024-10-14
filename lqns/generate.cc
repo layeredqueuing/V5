@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 17257 2024-07-11 00:21:27Z greg $
+ * $Id: generate.cc 17359 2024-10-12 01:32:27Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.

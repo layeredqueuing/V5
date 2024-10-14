@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 17298 2024-09-17 19:01:02Z greg $
+ * $Id: model.cc 17359 2024-10-12 01:32:27Z greg $
  */
 
 #include "lqsim.h"
@@ -593,8 +593,8 @@ Model::reload()
 
     LQIO::Filename directory_name( getOutputFileName(), "d" );		/* Get the base file name */
 
-    if ( access( directory_name.c_str(), R_OK|W_OK|X_OK ) < 0 ) {
-	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
+    if ( access( directory_name.str().c_str(), R_OK|W_OK|X_OK ) < 0 ) {
+	runtime_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.str().c_str(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: filename.h 17358 2024-10-11 11:15:09Z greg $
+ * $Id: filename.h 17359 2024-10-12 01:32:27Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -32,7 +32,6 @@ namespace LQIO {
 
 	const std::filesystem::path& operator()() const { return _path; }
 	std::string str() const { return _path.string(); }
-        const char * c_str() const { return _path.string().c_str(); }
 	Filename& operator<<( const std::string& );
 	Filename& operator<<( const unsigned );
 

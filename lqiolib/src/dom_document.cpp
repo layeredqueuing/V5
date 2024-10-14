@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 17353 2024-10-10 00:05:51Z greg $
+ *  $Id: dom_document.cpp 17361 2024-10-12 22:05:49Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -73,10 +73,12 @@ namespace LQIO {
 	};
 	
 	const std::map<const Document::OutputFormat,const std::string> Document::__output_extensions = {
-	    { OutputFormat::XML,	"lqxo" },
-	    { OutputFormat::JSON,	"lqjo" },
-	    { OutputFormat::PARSEABLE,	"p" },
-	    { OutputFormat::QNAP2,	"qnap" }
+	    { OutputFormat::XML,	".lqxo" },
+	    { OutputFormat::JSON,	".lqjo" },
+	    { OutputFormat::PARSEABLE,	".p" },
+	    { OutputFormat::QNAP2,	".qnap" },
+	    { OutputFormat::TXT,	".out" },
+	    { OutputFormat::RTF,	".rtf" }
 	};
 	const std::map<const Document::InputFormat,const Document::OutputFormat> Document::__input_to_output_format = {
 	    { InputFormat::XML,		OutputFormat::XML },
@@ -833,16 +835,16 @@ namespace LQIO {
 	    switch ( output_format ) {
 	    case OutputFormat::DEFAULT:
 	    case OutputFormat::LQN:
-		return LQIO::SRVN::loadResults( LQIO::Filename( file_name, "p", directory_name, extension )() );
+		return LQIO::SRVN::loadResults( LQIO::Filename( file_name, __output_extensions.at(OutputFormat::PARSEABLE), directory_name, extension )() );
 
 	    case OutputFormat::XML:
 #if HAVE_LIBEXPAT
-		return Expat_Document::loadResults( *this, LQIO::Filename( file_name, "lqxo", directory_name, extension )() );
+		return Expat_Document::loadResults( *this, LQIO::Filename( file_name, __output_extensions.at(OutputFormat::XML), directory_name, extension )() );
 #else
 		return false;
 #endif
 	    case OutputFormat::JSON:
-		return JSON_Document::loadResults( *this, LQIO::Filename( file_name, "lqjo", directory_name, extension )() );
+		return JSON_Document::loadResults( *this, LQIO::Filename( file_name, __output_extensions.at(OutputFormat::JSON), directory_name, extension )() );
 		return false;
 
 	    default:
@@ -882,7 +884,7 @@ namespace LQIO {
 
 	    /* Set output format from input, or if LQN and LQX then force to XML. */
 
-	    if ( output_format == OutputFormat::DEFAULT && ( getLQXProgram() != nullptr || (getInputFormat() != InputFormat::LQN && (output_file_name.empty() || output_file_name.extension() != ".out") ) ) ) {
+	    if ( output_format == OutputFormat::DEFAULT && ( getLQXProgram() != nullptr || (getInputFormat() != InputFormat::LQN && (output_file_name.empty() || output_file_name.extension() != __output_extensions.at(OutputFormat::TXT)) ) ) ) {
 		output_format = __input_to_output_format.at( getInputFormat() );
 	    }
 
@@ -890,7 +892,7 @@ namespace LQIO {
 
 	    bool override = false;
 	    if ( Filename::isFileName( output_file_name ) ) {
-		LQIO::Filename filename( __input_file_name, rtf_output ? "rtf" : "out" );
+		LQIO::Filename filename( __input_file_name, rtf_output ? __output_extensions.at(OutputFormat::RTF) : __output_extensions.at(OutputFormat::TXT) );
 		override = filename() == output_file_name;
 	    }
 
@@ -918,13 +920,13 @@ namespace LQIO {
 		/* Regular output */
 
 		if ( !__document->hasPragma( Pragma::_default_output_ ) || Pragma::isTrue(__document->getPragma( Pragma::_default_output_ )) ) {
-		    LQIO::Filename filename( __input_file_name, rtf_output ? "rtf" : "out", directory_name, suffix );
+		    LQIO::Filename filename( __input_file_name, rtf_output ? __output_extensions.at(Document::OutputFormat::RTF) : __output_extensions.at(OutputFormat::TXT), directory_name, suffix );
 
 		    output.open( filename(), std::ios::out );
 		    if ( !output ) {
 			runtime_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 		    } else if ( rtf_output ) {
-			print( output, Document::OutputFormat::RTF );
+			print( output, OutputFormat::RTF );
 		    } else {
 			print( output );
 		    }
@@ -990,9 +992,9 @@ namespace LQIO {
 		if ( format_iterator != __output_extensions.end() ) {
 		    extension = format_iterator->second;
 		} else if ( rtf_output ) {
-		    extension = "rtf";
+		    extension = __output_extensions.at(OutputFormat::RTF);
 		} else {
-		    extension = "out";
+		    extension = __output_extensions.at(OutputFormat::TXT);
 		}
 		filename.generate( directory_name, __input_file_name, lqx_output ? suffix : std::string(), extension );
 
