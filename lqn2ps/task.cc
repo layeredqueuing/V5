@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17059 2024-02-08 15:43:01Z greg $
+ * $Id: task.cc 17368 2024-10-15 21:03:38Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -110,9 +110,9 @@ Task::Task( const LQIO::DOM::Task* dom, const Processor * processor, const Share
 
 Task::~Task()
 {
-    std::for_each( calls().begin(), calls().end(), Delete<EntityCall *> );
-    std::for_each( activities().begin(), activities().end(), Delete<Activity *> );
-    std::for_each( precedences().begin(), precedences().end(), Delete<ActivityList *> );
+    std::for_each( calls().begin(), calls().end(), []( EntityCall * entitycall ){ delete entitycall; } );
+    std::for_each( activities().begin(), activities().end(), []( Activity * activity ){ delete activity; } );
+    std::for_each( precedences().begin(), precedences().end(), []( ActivityList * activitylist ){ delete activitylist; } );
 }
 
 
@@ -427,17 +427,17 @@ Task::setServerChain( unsigned k )
  */
 
 Task&
-Task::addEntry( Entry * anEntry )
+Task::addEntry( Entry * entry )
 {
-    _entries.push_back(anEntry);
+    _entries.push_back(entry);
     return *this;
 }
 
 
 Task&
-Task::removeEntry( Entry * anEntry )
+Task::removeEntry( Entry * entry )
 {
-    std::vector<Entry *>::iterator pos = find_if( _entries.begin(), _entries.end(), EQ<Element>(anEntry) );
+    std::vector<Entry *>::iterator pos = std::find_if( _entries.begin(), _entries.end(), [=]( const Element * match ){ return match == entry; } );
     if ( pos != _entries.end() ) {
 	_entries.erase(pos);
     }
@@ -972,7 +972,7 @@ Task::servers( std::vector<Entity *> &servers ) const
 	for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
 	    if ( !(*call)->hasForwardingLevel() && (*call)->isSelected() ) {
 		const Task * task = (*call)->dstTask();;
-		if ( std::none_of( servers.begin(), servers.end(), EQ<Element>( task ) ) ) {
+		if ( std::none_of( servers.begin(), servers.end(), [=]( const Element* server ){ return server == task; } ) ) {
 		    servers.push_back( const_cast<Task *>(task) );
 		}
 	    }
@@ -982,8 +982,8 @@ Task::servers( std::vector<Entity *> &servers ) const
     for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
 	for ( std::vector<Call *>::const_iterator call = (*activity)->calls().begin(); call != (*activity)->calls().end(); ++call ) {
 	    if ( !(*call)->hasForwarding() && (*call)->isSelected() ) {
-		const Task * task = (*call)->dstTask();;
-		if ( std::none_of( servers.begin(), servers.end(), EQ<Element>( task ) ) ) {
+		const Task * task = (*call)->dstTask();
+		if ( std::none_of( servers.begin(), servers.end(), [=]( const Element* server ){ return server == task; } ) ) {
 		    servers.push_back( const_cast<Task *>(task) );
 		}
 	    }
@@ -992,7 +992,7 @@ Task::servers( std::vector<Entity *> &servers ) const
 
     for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	const Processor * processor = dynamic_cast<const Processor *>((*call)->dstEntity());
-	if ( processor && processor->isSelected() && processor->isInteresting() && std::none_of( servers.begin(), servers.end(), EQ<Element>(processor)) ) {
+	if ( processor && processor->isSelected() && processor->isInteresting() && std::none_of( servers.begin(), servers.end(), [=]( const Element * server ){ return server == processor; } ) ) {
 	    servers.push_back( const_cast<Processor *>(processor) );
 	}
     }
@@ -1007,12 +1007,12 @@ Task::isInOpenModel( const std::vector<Entity *>& servers ) const
 {
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
-	    if ( (*call)->hasSendNoReply() && std::any_of( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) ) return true;
+	    if ( (*call)->hasSendNoReply() && std::any_of( servers.begin(), servers.end(), [=]( const Element* server ){ return server == (*call)->dstTask(); } ) ) return true;
 	}
     }
     for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
 	for ( std::vector<Call *>::const_iterator call = (*activity)->calls().begin(); call != (*activity)->calls().end(); ++call ) {
-	    if ( (*call)->hasSendNoReply() && std::any_of( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) ) return true;
+	    if ( (*call)->hasSendNoReply() && std::any_of( servers.begin(), servers.end(), [=]( const Element* server ){ return server == (*call)->dstTask(); } ) ) return true;
 	}
     }
     return false;
@@ -1025,23 +1025,23 @@ Task::isInClosedModel( const std::vector<Entity *>& servers ) const
     for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	const Processor * processor = dynamic_cast<const Processor *>((*call)->dstEntity());
 	if ( processor ) {
-	    if ( processor->isInteresting() && std::any_of( servers.begin(), servers.end(), EQ<Element>(processor) ) ) return true;
+	    if ( processor->isInteresting() && std::any_of( servers.begin(), servers.end(), [=]( const Element* server ){ return server == processor; } ) ) return true;
 	    continue;
 	}
 	const Task * task = dynamic_cast<const Task *>((*call)->dstEntity());
 	if ( task ) {
-	    if ( std::any_of( servers.begin(), servers.end(), EQ<Element>((*call)->dstEntity()) ) ) return true;
+	    if ( std::any_of( servers.begin(), servers.end(), [=]( const Element* server ){ return server == (*call)->dstEntity(); } ) ) return true;
 	}
     }
 
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
-	    if ( (*call)->hasRendezvous() && std::any_of( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) ) return true;
+	    if ( (*call)->hasRendezvous() && std::any_of( servers.begin(), servers.end(), [=]( const Element* server ){ return server == (*call)->dstTask(); } ) ) return true;
 	}
     }
     for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
 	for ( std::vector<Call *>::const_iterator call = (*activity)->calls().begin(); call != (*activity)->calls().end(); ++call ) {
-	    if ( (*call)->hasRendezvous() && std::any_of( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) ) return true;
+	    if ( (*call)->hasRendezvous() && std::any_of( servers.begin(), servers.end(), [=]( const Element* server ){ return server == (*call)->dstTask(); } ) ) return true;
 	}
     }
     return false;
@@ -1131,11 +1131,11 @@ Task::countThreads() const
 
 
 std::vector<Activity *>
-Task::repliesTo( Entry * anEntry ) const
+Task::repliesTo( Entry * entry ) const
 {
     std::vector<Activity *> aCltn;
     for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
-	if ( (*activity)->repliesTo( anEntry ) ) {
+	if ( (*activity)->repliesTo( entry ) ) {
 	    aCltn.push_back( (*activity));
 	}
     }

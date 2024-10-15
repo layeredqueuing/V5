@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 17347 2024-10-09 17:49:35Z greg $
+ * $Id: entity.cc 17368 2024-10-15 21:03:38Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -151,33 +151,33 @@ Entity::replicasValue() const
 }
 
 const LQIO::DOM::ExternalVariable&
-Entity::fanIn( const Entity * aClient ) const
+Entity::fanIn( const Entity * client ) const
 {
-    return *dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanIn( aClient->name() );
+    return *dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanIn( client->name() );
 }
 
 const LQIO::DOM::ExternalVariable&
-Entity::fanOut( const Entity * aServer ) const
+Entity::fanOut( const Entity * server ) const
 {
-    return *dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanOut( aServer->name() );
+    return *dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanOut( server->name() );
 }
 
 unsigned
-Entity::fanInValue( const Entity * aClient ) const
+Entity::fanInValue( const Entity * client ) const
 {
-    return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanInValue( aClient->name() );
+    return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanInValue( client->name() );
 }
 
 unsigned
-Entity::fanOutValue( const Entity * aServer ) const
+Entity::fanOutValue( const Entity * server ) const
 {
-    return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanOutValue( aServer->name() );
+    return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanOutValue( server->name() );
 }
 
 void
-Entity::removeDstCall( GenericCall * aCall)
+Entity::removeDstCall( GenericCall * dst )
 {
-    std::vector<GenericCall *>::iterator pos = find_if( _callers.begin(), _callers.end(), EQ<GenericCall>( aCall ) );
+    std::vector<GenericCall *>::iterator pos = std::find_if( _callers.begin(), _callers.end(), [=]( GenericCall * call ){ return call == dst; } );
     if ( pos != _callers.end() ) {
 	_callers.erase( pos );
     }
@@ -517,7 +517,7 @@ Entity::drawServer( std::ostream& output ) const
  */
 
 std::ostream&
-Entity::drawServerToClient( std::ostream& output, const double max_x, const double min_y, const Entity * aClient, std::vector<bool> &chain, const unsigned k ) const
+Entity::drawServerToClient( std::ostream& output, const double max_x, const double min_y, const Entity * client, std::vector<bool> &chain, const unsigned k ) const
 {
     const unsigned int max_k = chain.size() - 1;
     if ( !hasServerChain( k ) ) return output;
@@ -527,7 +527,7 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
     const double direction = static_cast<double>(_node->direction());
     const double spacing = Flags::y_spacing() * Model::scaling();
 
-    if ( aClient->hasClientClosedChain(k) ) {
+    if ( client->hasClientClosedChain(k) ) {
 	const double offset = radius() / 2.5;
 	double x = bottomCenter().x() - radius() + offsetOf( _serverChains, k ) * 2.0 * radius() / ( 1.0 + _serverChains.size() );
 	double y = min_y - (radius() + offset * (max_k - k)) * direction;
@@ -548,20 +548,20 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
 	    x = max_x + offset * (max_k - k);
 	    outArc->pointAt(2).moveTo( x, y );
 
-	    if ( Flags::flatten_submodel || aClient->isReferenceTask() ) {
-		y = aClient->top() + (radius() + (offset * (max_k - k))) * direction;
+	    if ( Flags::flatten_submodel || client->isReferenceTask() ) {
+		y = client->top() + (radius() + (offset * (max_k - k))) * direction;
 	    } else {
-		y = aClient->top() + (spacing / 4.0 - (offset * (k-1))) * direction;
+		y = client->top() + (spacing / 4.0 - (offset * (k-1))) * direction;
 	    }
 	    outArc->pointAt(3).moveTo( x, y );
-	    if ( aClient->_clientOpenChains.size() ) {
-		x = aClient->topCenter().moveBy( aClient->radius() * -3.0, 0 ).x();
+	    if ( client->_clientOpenChains.size() ) {
+		x = client->topCenter().moveBy( client->radius() * -3.0, 0 ).x();
 	    } else {
-		x = aClient->topCenter().x();
+		x = client->topCenter().x();
 	    }
-	    outArc->pointAt(4).moveTo( x - radius() + offsetOf( aClient->_clientClosedChains, k ) * 2.0 * radius() / ( 1.0 + aClient->_clientClosedChains.size() ), y );
+	    outArc->pointAt(4).moveTo( x - radius() + offsetOf( client->_clientClosedChains, k ) * 2.0 * radius() / ( 1.0 + client->_clientClosedChains.size() ), y );
 		
-	    y = aClient->bottomCenter().y() + (2.0 * radius()) * direction;
+	    y = client->bottomCenter().y() + (2.0 * radius()) * direction;
 	    outArc->moveDst( x, y );
 
 	    aLabel = Label::newLabel();
@@ -583,7 +583,7 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
 	    delete aLabel;
 	}
     } 
-    if ( aClient->hasClientOpenChain(k) ) {
+    if ( client->hasClientOpenChain(k) ) {
 	double x = bottomCenter().x() - radius() + offsetOf( _serverChains, k ) * 2.0 * radius() / ( 1.0 + _serverChains.size() );
 	double y = min_y - radius() * direction;
 	outArc->pointAt(1).moveTo( x, y );
@@ -616,7 +616,7 @@ Entity::drawServerToClient( std::ostream& output, const double max_x, const doub
  */
 
 std::ostream&
-Entity::drawClientToServer( std::ostream& output, const Entity * aClient, std::vector<bool> &chain, const unsigned k, std::vector<Arc *>& lastArc ) const
+Entity::drawClientToServer( std::ostream& output, const Entity * client, std::vector<bool> &chain, const unsigned k, std::vector<Arc *>& lastArc ) const
 {
     const unsigned N_POINTS = 5;
     Arc * inArc  = Arc::newArc( N_POINTS );
@@ -626,24 +626,24 @@ Entity::drawClientToServer( std::ostream& output, const Entity * aClient, std::v
     const double direction = static_cast<double>(_node->direction());
     const double offset = radius() / 2.0;
 
-    double x = aClient->bottomCenter().x();
-    double y = aClient->bottomCenter().y();
+    double x = client->bottomCenter().x();
+    double y = client->bottomCenter().y();
 
-    if ( aClient->_clientOpenChains.size() && aClient->_clientClosedChains.size() ) {
-	if ( aClient->_clientOpenChains.find( k ) != aClient->_clientOpenChains.end() ) {
-	    x += aClient->radius() * 1.5;
+    if ( client->_clientOpenChains.size() && client->_clientClosedChains.size() ) {
+	if ( client->_clientOpenChains.find( k ) != client->_clientOpenChains.end() ) {
+	    x += client->radius() * 1.5;
 	} else {
-	    x -= aClient->radius() * 3.0;
+	    x -= client->radius() * 3.0;
 	}
     }
     inArc->pointAt(0).moveTo( x, y );
 
     /* Adjust for chains */
 
-    if ( aClient->_clientOpenChains.find( k ) != aClient->_clientOpenChains.end() ) {
-	x = x - radius() + offsetOf( aClient->_clientOpenChains, k ) * 2.0 * radius() / ( 1.0 + aClient->_clientOpenChains.size() );
+    if ( client->_clientOpenChains.find( k ) != client->_clientOpenChains.end() ) {
+	x = x - radius() + offsetOf( client->_clientOpenChains, k ) * 2.0 * radius() / ( 1.0 + client->_clientOpenChains.size() );
     } else {
-	x = x - radius() + offsetOf( aClient->_clientClosedChains, k ) * 2.0 * radius() / ( 1.0 + aClient->_clientClosedChains.size() );
+	x = x - radius() + offsetOf( client->_clientClosedChains, k ) * 2.0 * radius() / ( 1.0 + client->_clientClosedChains.size() );
     }
     y -= static_cast<double>(k+1) * offset * direction;
     inArc->pointAt(1).moveTo( x, y );

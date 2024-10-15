@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * open.h	-- Greg Franks
  *
- * $Id: open.h 16901 2024-01-18 01:35:49Z greg $
+ * $Id: open.h 17368 2024-10-15 21:03:38Z greg $
  */
 
 #ifndef _OPEN_H
@@ -66,7 +66,7 @@ public:
     virtual std::ostream& print( std::ostream& output ) const;
 
 private:
-    const Entry& myEntry() const { return *_entries.at(0); }
+    const Entry& entry() const { return *_entries.at(0); }
 
 public:
     static std::vector<OpenArrivalSource *> __source;

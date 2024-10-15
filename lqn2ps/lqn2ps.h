@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 17347 2024-10-09 17:49:35Z greg $
+ * $Id: lqn2ps.h 17368 2024-10-15 21:03:38Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -427,7 +427,6 @@ private:
  */
 
 template <typename Type> inline Type square( Type a ) { return a * a; }
-template <typename Type> inline void Delete( Type x ) { delete x; }
 
 class Task;
 class Entity;
@@ -498,16 +497,6 @@ template <class Type1, class Type2> struct Collect
     std::vector<Type1> operator()( const std::vector<Type1>& in, const Type2& object ) const { std::vector<Type1> out(in); out.push_back((object.*_f)());  return out; }
 private:
     const function _f;
-};
-
-inline std::string fold( const std::string& s1, const std::string& s2 ) { return s1 + "," + s2; }
-
-template <class Type> struct EQ
-{
-    EQ( const Type * const a ) : _a(a) {}
-    bool operator()( const Type * const b ) const { return _a == b; }
-private:
-    const Type * const _a;
 };
 
 template <class Type> struct LT

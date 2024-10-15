@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 17074 2024-02-28 20:35:29Z greg $
+ * $Id: call.cc 17368 2024-10-15 21:03:38Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -953,7 +953,7 @@ Call::moveDst( const Point& aPoint )
 	if ( p1.y() > p2.y() ) {
 	    offset = delta_y * even;
 	    if ( hasForwardingLevel() ) {
-		std::vector<GenericCall *>::const_iterator pos = find_if( dstEntry()->callers().begin(), dstEntry()->callers().end(), EQ<GenericCall>( this ) );
+		std::vector<GenericCall *>::const_iterator pos = find_if( dstEntry()->callers().begin(), dstEntry()->callers().end(), [=]( GenericCall * call ){ return this == call; } );
 		if ( pos != dstEntry()->callers().end() && (pos - dstEntry()->callers().begin()) % 2 ) {
 		    offset = delta_y * 2;
 		}
@@ -1161,19 +1161,15 @@ Call::dump() const
 /* ------------------------ Exception Handling ------------------------ */
 
 Call::cycle_error::cycle_error( const CallStack& callStack )
-    : std::runtime_error( std::accumulate( callStack.rbegin(), callStack.rend(), callStack.back()->dstName(), Call::cycle_error::fold ) ),
-      _depth(callStack.size())
+    : std::runtime_error( std::accumulate( callStack.rbegin(), callStack.rend(), callStack.back()->dstName(), []( const std::string& s1, const Call * c2 )
+	{
+	    if ( c2 != nullptr ) {		/* Top of stack may be null */
+		return s1 + ", " + c2->srcName();
+	    } else {
+		return s1;
+	    }
+	} ) ), _depth(callStack.size())
 {
-}
-
-std::string
-Call::cycle_error::fold( const std::string& s1, const Call * c2 )
-{
-    if ( c2 != nullptr ) {		/* Top of stack may be null */
-	return s1 + ", " + c2->srcName();
-    } else {
-	return s1;
-    }
 }
 
 /* ------------------------ Exception Handling ------------------------ */

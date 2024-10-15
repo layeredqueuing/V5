@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 16969 2024-01-28 22:57:43Z greg $
+ * $Id: processor.cc 17368 2024-10-15 21:03:38Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -267,8 +267,8 @@ unsigned
 Processor::clients( std::vector<Task *>& clients, const callPredicate aFunc ) const
 {
     for ( std::set<Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
-	if ( std::none_of( clients.begin(), clients.end(), EQ<Element>((*task)) ) ) {
-	    clients.push_back((*task));
+	if ( std::none_of( clients.begin(), clients.end(), [=]( const Element * client ){ return client == *task; } ) ) {
+	    clients.push_back( *task );
 	}
     }
     return clients.size();

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 17353 2024-10-10 00:05:51Z greg $
+ *  $Id: dom_document.h 17367 2024-10-15 19:36:32Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -223,7 +223,7 @@ namespace LQIO {
 	    /* I/O */
 	    static InputFormat getInputFormatFromFilename( const std::filesystem::path&, const InputFormat=InputFormat::AUTOMATIC );
 	    static Document* load(const std::filesystem::path&, InputFormat format, unsigned& errorCode, bool load_results );
-	    virtual bool loadResults( const std::filesystem::path& directory_name, const std::filesystem::path& file_name, const std::string& extension, OutputFormat format, unsigned& errorCode );
+	    virtual bool loadResults( const std::filesystem::path& directory_name, const std::filesystem::path& file_name, const std::string& suffix, OutputFormat format, unsigned& errorCode );
 	    void print( const std::filesystem::path& output_file_name, const std::string& suffix, OutputFormat format, bool rtf_output ) const;
 	    void print( const std::filesystem::path& output_file_name, const std::string& suffix, OutputFormat format, bool rtf_output, unsigned int iteration ) const;
 	    std::ostream& print( std::ostream& ouptut, const OutputFormat format=OutputFormat::LQN ) const;
@@ -257,7 +257,7 @@ namespace LQIO {
 	    static const char * XUnderrelaxationCoefficient;
 
 	    /* Input/Output extensions */
-	    static const std::map<const LQIO::DOM::Document::OutputFormat,const std::string> __output_extensions;
+	    static const std::map<const LQIO::DOM::Document::OutputFormat,const std::filesystem::path> __output_extensions;
 	    static const std::map<const std::string,const LQIO::DOM::Document::InputFormat> __extensions_input;
 
 	private:

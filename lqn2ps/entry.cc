@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 17343 2024-10-09 13:47:52Z greg $
+ * $Id: entry.cc 17368 2024-10-15 21:03:38Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -155,7 +155,7 @@ Entry::~Entry()
 {
     /* Release forward links */
 
-    std::for_each( _calls.begin(), _calls.end(), Delete<Call *> );
+    std::for_each( _calls.begin(), _calls.end(), []( Call * call ){ delete call; } );
     delete _node;
     delete _label;
 
@@ -528,9 +528,9 @@ Entry::removeSrcCall( Call * call )
 }
 
 void
-Entry::deleteActivityReplyArc( Reply * aReply )
+Entry::deleteActivityReplyArc( Reply * reply )
 {
-    std::vector<Reply *>::iterator pos = find_if( _activityCallers.begin(), _activityCallers.end(), EQ<GenericCall>( aReply ) );
+    std::vector<Reply *>::iterator pos = std::find_if( _activityCallers.begin(), _activityCallers.end(), [=]( GenericCall * call ){ return call == reply; } );
     if ( pos != _activityCallers.end() ) {
 	_activityCallers.erase( pos );
     }
@@ -1583,7 +1583,7 @@ Entry::referenceTasks( std::vector<Entity *> &clients, Element * dst ) const
 {
     if ( owner()->isReferenceTask() ) {
 //!!! Check for phase 2, except reference task.
-	if ( std::none_of( clients.begin(), clients.end(), EQ<Element>(owner()) ) ) {
+	if ( std::none_of( clients.begin(), clients.end(), [=]( const Element * client ){ return client == owner(); } ) ) {
 	    clients.push_back(const_cast<Task *>(owner()));
 	}
 //!!! Need to create the pseudo arc to the task.
@@ -1613,11 +1613,11 @@ Entry::referenceTasks( std::vector<Entity *> &clients, Element * dst ) const
  */
 
 unsigned
-Entry::clients( std::vector<Task *> &clients, const callPredicate aFunc ) const
+Entry::clients( std::vector<Task *> &clients, const callPredicate f ) const
 {
     for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
 	const Task * task = (*call)->srcTask();
-	if ( (*call)->isSelected() && (!aFunc || ((*call)->*aFunc)()) && task->pathTest() && std::none_of( clients.begin(), clients.end(), EQ<Element>(task) ) ) {
+	if ( (*call)->isSelected() && (!f || ((*call)->*f)()) && task->pathTest() && std::none_of( clients.begin(), clients.end(), [=]( const Task * client ){ return client == task; } ) ) {
 	    clients.push_back( const_cast<Task *>(task) );
 	}
     }

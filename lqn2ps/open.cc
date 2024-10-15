@@ -1,6 +1,6 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 16970 2024-01-28 23:12:30Z greg $
+ * $Id: open.cc 17368 2024-10-15 21:03:38Z greg $
  */
 
 #include "lqn2ps.h"
@@ -41,7 +41,7 @@ OpenArrivalSource::OpenArrivalSource( Entry * source )
 
 OpenArrivalSource::~OpenArrivalSource()
 {
-    std::for_each( _calls.begin(), _calls.end(), Delete<OpenArrival *> );
+    std::for_each( _calls.begin(), _calls.end(), []( OpenArrival * openArrival ){ delete openArrival; } );
 }
 
 /* ------------------------ Instance Methods -------------------------- */
@@ -57,7 +57,7 @@ OpenArrivalSource::isSelectedIndirectly() const
     if ( Entity::isSelectedIndirectly() ) {
 	return true;
     } else {
-	return myEntry().owner()->isSelected();
+	return entry().owner()->isSelected();
     }
 }
 
@@ -70,9 +70,8 @@ OpenArrivalSource::isSelectedIndirectly() const
 unsigned
 OpenArrivalSource::servers( std::vector<Entity *> &servers ) const
 {
-    std::vector<Entity *>::iterator pos = find_if( servers.begin(), servers.end(), EQ<Element>(myEntry().owner()) );
-    if ( pos == servers.end() ) {
-	servers.push_back( const_cast<Task *>(myEntry().owner()) );
+    if ( std::find_if( servers.begin(), servers.end(), [=]( Element * server ){ return server == entry().owner(); } ) == servers.end() ) {
+	servers.push_back( const_cast<Task *>(entry().owner()) );
     }
     return servers.size();
 }
@@ -102,7 +101,7 @@ OpenArrivalSource::removeSrcCall( OpenArrival * call )
 bool
 OpenArrivalSource::isInOpenModel( const std::vector<Entity *>& servers ) const
 {
-    return std::any_of( servers.begin(), servers.end(), EQ<Element>(myEntry().owner()) );
+    return std::any_of( servers.begin(), servers.end(), [=]( const Element * server ){ return server == entry().owner(); } );
 }
 
 
@@ -229,14 +228,14 @@ OpenArrivalSource::label()
 Graphic::Colour 
 OpenArrivalSource::colour() const
 {
-    return myEntry().colour();
+    return entry().colour();
 }
 
 
 const std::string& 
 OpenArrivalSource::name() const
 { 
-    return myEntry().name(); 
+    return entry().name(); 
 }
 
 

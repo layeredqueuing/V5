@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 17073 2024-02-28 19:42:11Z greg $
+ * $Id: actlist.cc 17363 2024-10-14 11:18:52Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -651,10 +651,10 @@ AndOrForkActivityList::find_children::operator()( unsigned arg1, const Activity 
     Activity::Ancestors ancestors( _ancestors );
     if ( dynamic_cast<const OrForkActivityList *>(&_self) != nullptr ) {
 	try {
-	    ancestors.setRate(dynamic_cast<const OrForkActivityList *>(&_self)->prBranch( arg2 ) );
+	    ancestors.setRate( dynamic_cast<const OrForkActivityList *>(&_self)->prBranch( arg2 ) );
 	}
 	catch ( const std::domain_error& e ) {
-	    _self.getDOM()->runtime_error( LQIO::ERR_INVALID_PARAMETER, e.what() );
+	    _self.getDOM()->runtime_error( LQIO::ERR_INVALID_OR_BRANCH_PROBABILITY, arg2->name().c_str(), std::atof( e.what() ) );
 	}
     }
     return std::max( arg1, arg2->findChildren(ancestors) );

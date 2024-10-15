@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 17190 2024-04-30 21:06:37Z greg $
+ * $Id: activity.cc 17368 2024-10-15 21:03:38Z greg $
  */
 
 #include "activity.h"
@@ -80,11 +80,8 @@ Activity::~Activity()
 {
     _inputFrom = nullptr;
     _outputTo = nullptr;
-    std::for_each( calls().begin(), calls().end(), Delete<Call *> );
-    for ( std::map<Entry *,Reply *>::const_iterator reply = replyArcs().begin(); reply != replyArcs().end(); ++reply ){
-	delete reply->second;
-    }
-
+    std::for_each( calls().begin(), calls().end(), []( Call * call){ delete call; } );
+    std::for_each( replyArcs().begin(), replyArcs().end(), []( auto &reply ){ delete reply.second; } );
     delete _node;
     delete _label;
 }
@@ -305,9 +302,7 @@ Activity::replies( const std::vector<Entry *>& reply_list )
 {
     _replies.clear();
     /* Delete reply arcs */
-    for ( std::map<Entry *,Reply *>::const_iterator reply = replyArcs().begin(); reply != replyArcs().end(); ++reply ){
-	delete reply->second;
-    }
+    std::for_each( replyArcs().begin(), replyArcs().end(), []( auto& reply ){ delete reply.second; } );
     _replyArcs.clear();
     if ( !reply_list.empty() && owner()->isReferenceTask() ) {
 	getDOM()->input_error( LQIO::ERR_REFERENCE_TASK_REPLIES, reply_list.front()->name().c_str() );
@@ -333,9 +328,7 @@ Activity::appendReplyList( const Activity& src )
     _replies.insert( _replies.end(), src.replies().begin(), src.replies().end() );
 
     /* Delete reply arcs */
-    for ( std::map<Entry *,Reply *>::const_iterator reply = replyArcs().begin(); reply != replyArcs().end(); ++reply ){
-	delete reply->second;
-    }
+    std::for_each( replyArcs().begin(), replyArcs().end(), []( auto& reply ){ delete reply.second; } );
     _replyArcs.clear();
     for ( std::vector<Entry *>::const_iterator entry = replies().begin(); entry != replies().end(); ++entry ) {
 	_replyArcs[*entry] = new Reply( this, *entry );
@@ -1225,15 +1218,9 @@ Activity::compareCoord( const Activity * a1, const Activity * a2 )
 /* ------------------------ Exception Handling ------------------------ */
 
 Activity::cycle_error::cycle_error( const std::deque<const Activity *>& activityStack )
-    : std::runtime_error( std::accumulate( std::next( activityStack.rbegin() ), activityStack.rend(), activityStack.back()->name(), fold  ) ),
+    : std::runtime_error( std::accumulate( std::next( activityStack.rbegin() ), activityStack.rend(), activityStack.back()->name(), []( const std::string& s1, const Activity * a2 ){ return s1 + ", " + a2->name(); } ) ),
       _depth( activityStack.size() )
 {
-}
-
-std::string
-Activity::cycle_error::fold( const std::string& s1, const Activity * a2 )
-{
-    return s1 + ", " + a2->name();
 }
 
 /************************************************************************/

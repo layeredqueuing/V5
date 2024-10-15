@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 17361 2024-10-12 22:05:49Z greg $
+ * $Id: model.h 17368 2024-10-15 21:03:38Z greg $
  */
 
 #ifndef _MODEL_H
@@ -156,7 +156,7 @@ public:
     std::ostream& printStatistics( std::ostream&, const char * = 0 ) const;
     std::ostream& printSummary( std::ostream& ) const;
 #if defined(SXD_OUTPUT)
-    Model const& printSXD( const char * ) const;
+//    Model const& printSXD( const char * ) const;
 #endif
 
     static std::ostream& printEEPICprologue( std::ostream& output );
@@ -250,7 +250,7 @@ private:
     std::ostream& printSVG( std::ostream& output ) const;
 #endif
 #if defined(SXD_OUTPUT)
-  const Model& printSXD( const std::string&, const std::filesystem::path&, const std::string&, const printSXDFunc ) const;
+    const Model& printSXD( const std::string&, const std::filesystem::path&, const std::string&, const printSXDFunc ) const;
     std::ostream& printSXD( std::ostream& output ) const;
     std::ostream& printSXDMeta( std::ostream& output ) const;
     std::ostream& printSXDMimeType( std::ostream& output ) const;
@@ -464,7 +464,7 @@ class Squashed_Model : virtual public Model, public Batch_Model
     };
     
 private:
-    Squashed_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name ) :
+    Squashed_Model( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name ) :
 	Model( document, input_file_name, output_file_name, PROCESSOR_LEVEL ),
 	Batch_Model( document, input_file_name, output_file_name, PROCESSOR_LEVEL ) {}
 

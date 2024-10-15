@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 16972 2024-01-29 19:23:49Z greg $
+ * $Id: layer.cc 17368 2024-10-15 21:03:38Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -66,8 +66,7 @@ Layer::labelWidth() const
 Layer&
 Layer::append( Entity * entity )
 {
-    std::vector<Entity *>::iterator pos = find_if( _entities.begin(), _entities.end(), EQ<Element>(entity) );
-    if ( pos == _entities.end() ) {
+    if ( std::find_if( _entities.begin(), _entities.end(), [=]( Entity * match ){ return match == entity; } ) == _entities.end() ) {
 	_entities.push_back( entity );
     }
     return *this;
@@ -508,7 +507,7 @@ Layer::aggregate()
 		if ( !call ) continue;
 		Task * client = const_cast<Task *>(call->srcTask());
 		Task * server = const_cast<Task *>(call->dstTask());
-		if ( std::none_of( _clients.begin(), _clients.end(), EQ<Element>(client) ) ) {
+		if ( std::none_of( _clients.begin(), _clients.end(), [=]( const Element * match ){ return match == client; } ) ) {
 		    _clients.push_back( client );				/* add the client to my clients */
 		}
 		callPredicate predicate = nullptr;
@@ -836,7 +835,7 @@ Layer::createBCMPModel()
 	std::vector<const Entity *> tasks = std::accumulate( entities().begin(), entities().end(), std::vector<const Entity *>(), Select<const Entity>( &Entity::isTask ) );
 	if ( !tasks.empty() ) {
 	    std::vector<std::string> names = std::accumulate( tasks.begin(), tasks.end(), std::vector<std::string>(), Collect<std::string,const Entity>( &Entity::name ) );
-	    LQIO::runtime_error( ERR_BCMP_CONVERSION_FAILURE, std::accumulate( std::next(names.begin()), names.end(), names.front(), &fold ).c_str() );
+	    LQIO::runtime_error( ERR_BCMP_CONVERSION_FAILURE, std::accumulate( std::next(names.begin()), names.end(), names.front(), []( const std::string& s1, const std::string& s2 ){ return s1 + "," + s2; } ).c_str() );
 	    return false;
 	}
     }

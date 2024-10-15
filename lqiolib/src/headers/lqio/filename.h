@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: filename.h 17359 2024-10-12 01:32:27Z greg $
+ * $Id: filename.h 17365 2024-10-15 18:52:15Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -24,7 +24,7 @@ namespace LQIO {
     {
     public:
 	Filename() {};
-	Filename( const std::filesystem::path& base, const std::string& extension = "", const std::filesystem::path& directory = "", const std::string& suffix = "");
+	Filename( const std::filesystem::path& base, const std::filesystem::path& extension = "", const std::filesystem::path& directory = "", const std::string& suffix = "");
 	Filename( const Filename& );
 	Filename& operator=( const Filename& );
 	Filename& operator=( const std::string& );
@@ -35,7 +35,7 @@ namespace LQIO {
 	Filename& operator<<( const std::string& );
 	Filename& operator<<( const unsigned );
 
-	const std::filesystem::path& generate( const std::filesystem::path& directory, const std::filesystem::path& path, const std::string& suffix, const std::string& extension );
+	const std::filesystem::path& generate( const std::filesystem::path& directory, const std::filesystem::path& path, const std::string& suffix, const std::filesystem::path& extension );
 	const std::filesystem::path& generate( const std::filesystem::path& path, const std::string& extension ) { return generate( std::filesystem::path(), path, extension, std::string() ); } // 
 
 	Filename& backup() { Filename::backup( (*this)() ); return *this; }
