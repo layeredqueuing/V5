@@ -1,8 +1,8 @@
-# $Id: err_open_and_closed_classes.lqn 15706 2022-06-23 17:02:35Z greg $
+# $Id: err_open_and_closed_classes.lqn 17371 2024-10-16 14:05:22Z greg $
 # Fri Oct 28 10:54:19 2005
 # ------------------------------------------------------------------------
 
-G "ERR_OPEN_AND_CLOSED_CLASSES" 1e-05 50 10 0.9 -1
+G "ERR_OPEN_AND_CLOSED_CLASSES: lqsim,lqns,petrisrvn,lqiolib,lqn2ps," 1e-05 50 10 0.9 -1
 
 P 3
   p p1 f

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
+<!-- $Id: err_range_error.lqnx 17371 2024-10-16 14:05:22Z greg $ -->
 <!-- lqn2xml -oerr_range_error.lqnx -->
 <lqn-model name="x" description="lqn2xml 5.27 solution for model from: x.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="ERR_RANGE_ERROR" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>

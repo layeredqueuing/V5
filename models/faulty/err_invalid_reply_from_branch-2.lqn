@@ -1,7 +1,7 @@
-# $Id: err_invalid_reply_from_branch-2.lqn 15728 2022-06-28 22:50:21Z greg $
+# $Id: err_invalid_reply_from_branch-2.lqn 17371 2024-10-16 14:05:22Z greg $
 # ------------------------------------------------------------------------
 
-G "ERR_INVALID_REPLY_FROM_BRANCH" 1e-06 50 5 0.9 -1
+G "ERR_INVALID_REPLY_FROM_BRANCH: lqsim,lqns,lqiolib,lqn2ps," 1e-06 50 5 0.9 -1
 
 P 2
   p p1 f i

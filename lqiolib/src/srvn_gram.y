@@ -359,17 +359,17 @@ task_id			: symbol		/*  task identifier			*/
 			;
 
 
-task_sched_flag		: 'P'	{ $$ = SCHEDULE_POLL; }			/* Polled scheduling at entries.	*/
-			| 'S'	{ $$ = SCHEDULE_SEMAPHORE; }		/* Semaphore task.			*/
-			| 'b'	{ $$ = SCHEDULE_BURST; }		/* Bursty Reference task		*/
-			| 'f'	{ $$ = SCHEDULE_FIFO; }			/* FIFO Scheduling.			*/
-			| 'h'	{ $$ = SCHEDULE_HOL; }			/* Head of line.			*/
-			| 'i'	{ $$ = SCHEDULE_DELAY; }		/* Infinite Server			*/
-			| 'n'	{ $$ = SCHEDULE_FIFO; }			/* NON Reference task, FIFO Scheduling	*/
-			| 'p'	{ $$ = SCHEDULE_PPR; }			/* Priority scheduling at entries.	*/
+task_sched_flag		: 'b'	{ $$ = SCHEDULE_BURST; }		/* Bursty Reference task		*/
 			| 'r'	{ $$ = SCHEDULE_CUSTOMER; }		/* Reference task (customer)		*/
-			| 'u'	{ $$ = SCHEDULE_UNIFORM; }		/* Reference task uniform distrib.	*/
+			| 'i'	{ $$ = SCHEDULE_DELAY; }		/* Infinite Server			*/
+			| 'f'	{ $$ = SCHEDULE_FIFO; }			/* FIFO Scheduling.			*/
+			| 'n'	{ $$ = SCHEDULE_FIFO; }			/* NON Reference task, FIFO Scheduling	*/
+			| 'h'	{ $$ = SCHEDULE_HOL; }			/* Head of line.			*/
+			| 'P'	{ $$ = SCHEDULE_POLL; }			/* Polled scheduling at entries.	*/
+			| 'p'	{ $$ = SCHEDULE_PPR; }			/* Priority scheduling at entries.	*/
 			| 'W'	{ $$ = SCHEDULE_RWLOCK; }		/* Reader_Writer Lock task      	*/
+			| 'S'	{ $$ = SCHEDULE_SEMAPHORE; }		/* Semaphore task.			*/
+			| 'u'	{ $$ = SCHEDULE_UNIFORM; }		/* Reference task uniform distrib.	*/
 			;
 
 entry_list		: entry_id 		{ $$ = srvn_add_entry( $1, NULL ); (void) free( $1 ); }

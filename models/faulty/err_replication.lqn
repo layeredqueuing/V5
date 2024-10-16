@@ -1,8 +1,7 @@
-# $Id: err_replication.lqn 15706 2022-06-23 17:02:35Z greg $
-# Sat May 23 20:56:20 2009
+# $Id: err_replication.lqn 17371 2024-10-16 14:05:22Z greg $
 # ------------------------------------------------------------------------
 
-G "ERR_REPLICATION" 1e-05 500 10 0.9 -1
+G "ERR_REPLICATION: lqns,lqiolib,lqn2ps," 1e-05 500 10 0.9 -1
 
 P 4
   p A1 f r 2

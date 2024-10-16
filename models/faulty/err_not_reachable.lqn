@@ -1,8 +1,7 @@
-# $Id: err_activity_not_reachable.lqn 15734 2022-06-30 02:19:44Z greg $
-# Thu Jun 23 21:14:58 2022
+# $Id: err_not_reachable.lqn 17371 2024-10-16 14:05:22Z greg $
 # ------------------------------------------------------------------------
 
-G "ERR_ACTIVITY_NOT_REACHABLE" 1e-05 50 10 0.9 -1
+G "ERR_NOT_REACHABLE: lqns,petrisrvn,lqiolib,lqn2ps," 1e-05 50 10 0.9 -1
 
 P 2
   p c0 i

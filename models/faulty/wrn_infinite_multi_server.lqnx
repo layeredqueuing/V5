@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
+<!-- $Id: wrn_infinite_multi_server.lqnx 17371 2024-10-16 14:05:22Z greg $ -->
 <!-- lqn2xml -->
 <lqn-model name="wrn_infinite_multi_server" description="lqn2xml 5.27 solution for model from: wrn_infinite_multi_server.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="WRN_INFINITE_MULTI_SERVER" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>

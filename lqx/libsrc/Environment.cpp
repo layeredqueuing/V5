@@ -7,11 +7,11 @@
  *
  */
 
+#include <cstdarg>
 #include "Environment.h"
 #include "Intrinsics.h"
 #include "LQXStrings.h"
 #include "Array.h"
-#include <stdarg.h>
 
 namespace LQX {
   

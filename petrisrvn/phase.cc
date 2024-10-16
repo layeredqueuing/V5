@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: phase.cc 17317 2024-09-30 17:08:37Z greg $
+ * $Id: phase.cc 17372 2024-10-16 14:33:42Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -238,9 +238,9 @@ Phase::is_hyperexponential() const
 
 
 bool
-Phase::is_special_reference_phase() const
+Phase::is_special_reference_phase() const	// entry() == nullptr means phase is an activity, so return false
 {
-    return task()->is_client() && entry()->n_phases() == 1 && !has_service_time() && has_calls();
+    return task()->is_client() && entry() != nullptr && entry()->n_phases() == 1 && !has_service_time() && has_calls();
 }
 
 

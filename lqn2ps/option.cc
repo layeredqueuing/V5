@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: option.cc 17347 2024-10-09 17:49:35Z greg $
+ * $Id: option.cc 17378 2024-10-16 23:25:26Z greg $
  */
 
 #include "lqn2ps.h"
@@ -103,7 +103,7 @@ const std::map<const File_Format,const std::string> Options::file_format =
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_GDIMAGEGIFPTR
     { File_Format::GIF,		"gif" },
 #endif
-#if JMVA_OUTPUT && HAVE_EXPAT_H
+#if JMVA_OUTPUT && HAVE_LIBEXPAT
     { File_Format::JMVA,	"jmva" },
 #endif
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG
@@ -497,7 +497,7 @@ bool
 graphical_output()
 {
     static const std::set<File_Format> reject = {
-#if JMVA_OUTPUT && HAVE_EXPAT_H
+#if JMVA_OUTPUT && HAVE_LIBEXPAT
 	File_Format::JMVA,
 #endif
 	File_Format::JSON,
@@ -556,7 +556,7 @@ bool
 bcmp_output()
 {
     return Flags::output_format() == File_Format::QNAP2
-#if JMVA_OUTPUT && HAVE_EXPAT_H
+#if JMVA_OUTPUT && HAVE_LIBEXPAT
 	|| Flags::output_format() == File_Format::JMVA
 #endif
 	;

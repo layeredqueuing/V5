@@ -1,21 +1,22 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 16810 2023-09-26 15:13:53Z greg $
+# $Id: Makefile 17377 2024-10-16 21:06:39Z greg $
 # ------------------------------------------------------------------------
 
-SRCS=	err_activity_not_reachable.lqn \
-	err_arrival_rate.lqn \
+SRCS=	err_arrival_rate.lqn \
+	err_async_request_to_wait.lqnx \
+	err_bad_path_to_join.lqn \
 	err_cycle_in_activity_graph.lqn \
 	err_cycle_in_call_graph.lqn \
 	err_duplicate_activity_lvalue.lqn \
 	err_duplicate_activity_rvalue.lqn \
+	err_duplicate_semaphore_entry_types.lqnx \
 	err_duplicate_start_activity.lqn \
 	err_duplicate_symbol-entry.lqn \
 	err_duplicate_symbol-processor.lqn \
 	err_duplicate_symbol-task.lqn \
 	err_entry_count_for_task.lqn \
-	err_entry_not_specified.lqn \
 	err_external_sync-1.lqn \
 	err_external_sync-2.lqn \
 	err_external_sync-3.lqn \
@@ -34,7 +35,6 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_is_start_activity-2.lqn \
 	err_is_start_activity.lqn \
 	err_join_bad_path-repeat.lqn \
-	err_join_bad_path.lqn \
 	err_mixed_entry_types.lqn \
 	err_mixed_entry_types.lqnx \
 	err_no_group_specified.lqn \
@@ -46,12 +46,14 @@ SRCS=	err_activity_not_reachable.lqn \
 	err_non_unity_replies-or.lqn \
 	err_not_defined-activity.lqn \
 	err_not_defined-activity.lqnx \
+	err_not_reachable.lqn \
+	err_not_specified-entry.lqn \
 	err_open_and_closed_classes.lqn \
 	err_or_branch_probabilities-2.lqn \
 	err_or_branch_probabilities.lqn \
 	err_range_error.lqn \
 	err_range_error.lqnx \
-	err_ref_task_forwarding.lqn \
+	err_reference_task_forwarding.lqn \
 	err_reference_task_is_infinite.lqn \
 	err_reference_task_is_receiver.lqn \
 	err_reference_task_is_receiver.lqnx \

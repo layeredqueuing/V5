@@ -1,7 +1,7 @@
-# $Id: err_no_group_specified.lqn 15714 2022-06-24 02:03:13Z greg $
+# $Id: err_no_group_specified.lqn 17371 2024-10-16 14:05:22Z greg $
 # ------------------------------------------------------------------------
 
-G "ERR_NO_GROUP_SPECIFIED" 1e-05 50 10 0.9 -1
+G "ERR_NO_GROUP_SPECIFIED: lqsim,lqns,petrisrvn,lqiolib,lqn2ps," 1e-05 50 10 0.9 -1
 
 P 2
   p client f i

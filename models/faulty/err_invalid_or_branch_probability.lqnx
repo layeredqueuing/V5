@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
+<!-- $Id: err_invalid_or_branch_probability.lqnx 17371 2024-10-16 14:05:22Z greg $ -->
 <!-- lqn2xml -->
 <lqn-model name="err_invalid_probability" description="lqn2xml 5.27 solution for model from: err_invalid_probability.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="ERR_INVALID_OR_BRANCH_PROBABILTIY" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>

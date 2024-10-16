@@ -1,8 +1,7 @@
-# $Id: err_reference_task_is_infinite.lqn 15706 2022-06-23 17:02:35Z greg $
-# Fri Oct 28 10:50:02 2005
+# $Id: err_reference_task_is_infinite.lqn 17371 2024-10-16 14:05:22Z greg $
 # ------------------------------------------------------------------------
 
-G "ERR_INFINITE_REF_TASK" 1e-05 50 10 0.9 -1
+G "ERR_REFERENCE_TASK_IS_INFINITE: lqsim,petrisrvn,lqiolib," 1e-05 50 10 0.9 -1
 
 P 2
   p p1 f 

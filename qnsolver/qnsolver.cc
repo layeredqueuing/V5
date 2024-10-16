@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 17257 2024-07-11 00:21:27Z greg $
+ * $Id: qnsolver.cc 17378 2024-10-16 23:25:26Z greg $
  */
 
 #include "config.h"
@@ -315,7 +315,7 @@ int main (int argc, char *argv[])
     /* input is assumed to come in from stdin.                          */
 
     int rc = 0;
-#if HAVE_EXPAT_H
+#if HAVE_LIBEXPAT
     if ( optind == argc ) {
 	rc = exec( "-", output_file_name, plot_arg, no_bounds, gnuplot_format ) ? 0 : 1;
     } else {
@@ -398,7 +398,7 @@ static bool exec( QNIO::Document& input, const std::string& output_file_name, co
 	}
 	qnap_model.exportModel( output );
 
-#if HAVE_EXPAT_H
+#if HAVE_LIBEXPAT
     } else if ( print_jmva ) {
 	if ( dynamic_cast<QNIO::JMVA_Document*>(&input) != nullptr ) {
 	    input.exportModel( output );

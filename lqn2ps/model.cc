@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 17368 2024-10-15 21:03:38Z greg $
+ * $Id: model.cc 17378 2024-10-16 23:25:26Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -433,7 +433,7 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 
 #if BUG_270
     if ( !queueing_output() && (
-#if JMVA_OUTPUT && HAVE_EXPAT_H
+#if JMVA_OUTPUT && HAVE_LIBEXPAT
 	     Flags::output_format() == File_Format::JMVA ||
 #endif
 	     Flags::output_format() == File_Format::QNAP2) ) {
@@ -1625,7 +1625,7 @@ Model::print( std::ostream& output ) const
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG
 	{ File_Format::JPEG,	    &Model::printJPG },
 #endif
-#if JMVA_OUTPUT && HAVE_EXPAT_H
+#if JMVA_OUTPUT && HAVE_LIBEXPAT
 	{ File_Format::JMVA,	    &Model::printJMVA },
 #endif
 	{ File_Format::JSON,	    &Model::printJSON },
@@ -2104,7 +2104,7 @@ Model::printXML( std::ostream& output ) const
 
 
 
-#if JMVA_OUTPUT && HAVE_EXPAT_H
+#if JMVA_OUTPUT && HAVE_LIBEXPAT
 /*
  * It has to be a submodel...
  */

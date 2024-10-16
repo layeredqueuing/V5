@@ -1,8 +1,7 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
-<!-- lqn2xml -oerr_mixed_entry_types.lqnx -->
+<!-- $Id: err_mixed_entry_types.lqnx 17371 2024-10-16 14:05:22Z greg $ -->
 <lqn-model name="x" description="lqn2xml 5.27 solution for model from: x.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="ERR_MIXED_ENTRY_TYPES" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
+   <solver-params comment="ERR_MIXED_ENTRY_TYPES: lqsim,lqns,petrisrvn,lqiolib,lqn2ps," conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
    <processor name="p1" scheduling="inf">
       <task name="t1" scheduling="ref">
          <entry name="e1" type="PH1PH2">

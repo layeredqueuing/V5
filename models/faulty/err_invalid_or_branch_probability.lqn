@@ -1,7 +1,7 @@
-# $Id$
+# $Id: err_invalid_or_branch_probability.lqn 17371 2024-10-16 14:05:22Z greg $
 # ------------------------------------------------------------------------
 
-G "ERR_INVALID_OR_BRANCH_PROBABILTIY" 1e-05 50 10 0.9 -1
+G "ERR_INVALID_OR_BRANCH_PROBABILTIY: lqns,petrisrvn,lqiolib,lqn2ps," 1e-05 50 10 0.9 -1
 
 P 2
   p c0 i

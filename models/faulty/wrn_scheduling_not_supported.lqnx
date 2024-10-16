@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
+<!-- $Id: wrn_scheduling_not_supported.lqnx 17371 2024-10-16 14:05:22Z greg $ -->
 <!-- lqngen -no-annotate -->
 <lqn-model name="wrn_scheduling_not_supported-task" description="lqngen 5.27 solution for model from: wrn_scheduling_not_supported-task.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="WRN_SCHEDULING_NOT_SUPPORTED" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>

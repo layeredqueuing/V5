@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 17183 2024-04-25 19:05:46Z greg $
+ * $Id: lqn2ps.cc 17378 2024-10-16 23:25:26Z greg $
  *
  * Command line processing.
  *
@@ -220,7 +220,7 @@ main(int argc, char *argv[])
     char * options;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2024-04-25 15:05:46 -0400 (Thu, 25 Apr 2024) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2024-10-16 19:25:26 -0400 (Wed, 16 Oct 2024) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -716,7 +716,7 @@ main(int argc, char *argv[])
     }
 
     if ( Flags::output_format() == File_Format::QNAP2 
-#if JMVA_OUTPUT && HAVE_EXPAT_H
+#if JMVA_OUTPUT && HAVE_LIBEXPAT
 	  || Flags::output_format() == File_Format::JMVA
 #endif
 	) {
@@ -768,7 +768,7 @@ main(int argc, char *argv[])
 #if QNAP2_OUTPUT
 		    && Flags::output_format() != File_Format::QNAP2
 #endif
-#if JMVA_OUTPUT && HAVE_EXPAT_H
+#if JMVA_OUTPUT && HAVE_LIBEXPAT
 		    && Flags::output_format() != File_Format::JMVA
 #endif
 		    && Flags::output_format() != File_Format::LQX
@@ -983,7 +983,7 @@ setOutputFormat( const File_Format f )
     case File_Format::NO_OUTPUT:
 	break;
 
-#if JMVA_OUTPUT && HAVE_EXPAT_H
+#if JMVA_OUTPUT && HAVE_LIBEXPAT
     case File_Format::JMVA:
 	Flags::set_aggregation( Aggregate::ENTRIES );			/* No entries. */
 	break;

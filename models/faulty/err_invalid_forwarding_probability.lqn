@@ -1,8 +1,7 @@
-# $Id: err_invalid_forwarding_probability.lqn 15705 2022-06-23 16:18:56Z greg $
-# Mon Oct 10 07:43:25 2005
+# $Id: err_invalid_forwarding_probability.lqn 17371 2024-10-16 14:05:22Z greg $
 # ------------------------------------------------------------------------
 
-G "ERR_INVALID_FORWARDING_PROBABILITY" 1e-05 50 10 0.5 -1
+G "ERR_INVALID_FORWARDING_PROBABILITY: lqns,petrisrvn,lqiolib,lqn2ps," 1e-05 50 10 0.5 -1
 
 P 4
   p p0 f i

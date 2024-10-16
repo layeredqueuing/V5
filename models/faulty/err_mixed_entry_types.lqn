@@ -1,8 +1,8 @@
-# $Id: err_mixed_entry_types.lqn 15705 2022-06-23 16:18:56Z greg $
+# $Id: err_mixed_entry_types.lqn 17371 2024-10-16 14:05:22Z greg $
 # Fri Oct 28 10:50:02 2005
 # ------------------------------------------------------------------------
 
-G "ERR_MIXED_ENTRY_TYPES" 1e-05 50 10 0.9 -1
+G "ERR_MIXED_ENTRY_TYPES: lqsim,lqns,petrisrvn,lqiolib,lqn2ps," 1e-05 50 10 0.9 -1
 
 P 2
   p p1 f i

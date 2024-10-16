@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17368 2024-10-15 21:03:38Z greg $
+ * $Id: task.cc 17375 2024-10-16 18:17:28Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2388,6 +2388,7 @@ Task::draw( std::ostream& output ) const
 	{ SCHEDULE_PPR,	        'p' },
 	{ SCHEDULE_RAND,	'r' },
 	{ SCHEDULE_RWLOCK,      'W' },
+	{ SCHEDULE_SEMAPHORE,   'S' },
 	{ SCHEDULE_UNIFORM,     'u' }
     };
 

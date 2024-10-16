@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: entry.cc 17326 2024-10-02 16:01:28Z greg $
+ * $Id: entry.cc 17377 2024-10-16 21:06:39Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -269,8 +269,19 @@ Entry::initialize()
 
     const_cast<Task *>(task())->set_n_phases( n_phases() );
 
-    if ( task()->type() != Task::Type::SEMAPHORE && semaphore_type() != LQIO::DOM::Entry::Semaphore::NONE ) {
-	task()->get_dom()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, (semaphore_type() == LQIO::DOM::Entry::Semaphore::SIGNAL ? "signal" : "wait"), name() );
+    switch ( semaphore_type() ) {
+    case LQIO::DOM::Entry::Semaphore::WAIT:
+	if ( requests() == Requesting_Type::SEND_NO_REPLY ) {
+	    get_dom()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT );
+	}
+	/* fall through */
+    case LQIO::DOM::Entry::Semaphore::SIGNAL:
+	if ( task()->type() != Task::Type::SEMAPHORE ) {
+	    task()->get_dom()->runtime_error( LQIO::ERR_NOT_SEMAPHORE_TASK, (semaphore_type() == LQIO::DOM::Entry::Semaphore::SIGNAL ? "signal" : "wait"), name() );
+	}
+	break;
+    case LQIO::DOM::Entry::Semaphore::NONE:
+	break;
     }
 
     /* Deal with forwarding. */

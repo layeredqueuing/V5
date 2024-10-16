@@ -1,7 +1,7 @@
-# $Id: err_invalid_reply_for_snr_entry.lqn 15727 2022-06-28 22:47:39Z greg $
+# $Id: err_invalid_reply_for_snr_entry.lqn 17371 2024-10-16 14:05:22Z greg $
 # ------------------------------------------------------------------------
 
-G "ERR_INVALID_REPLY_FOR_SNR_ENTRY" 1e-06 50 5 0.9 -1
+G "ERR_INVALID_REPLY_FOR_SNR_ENTRY: lqsim,lqns,petrisrvn,lqiolib,lqn2ps," 1e-06 50 5 0.9 -1
 
 P 2
   p p1 f i

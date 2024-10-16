@@ -1,8 +1,8 @@
-# $Id: err_or_branch_probabilities.lqn 15705 2022-06-23 16:18:56Z greg $
+# $Id: err_or_branch_probabilities.lqn 17371 2024-10-16 14:05:22Z greg $
 # Sun Oct  9 08:23:19 2005
 # ------------------------------------------------------------------------
 
-G "ERR_OR_BRANCH_PROBABILITIES" 1e-06 50 5 0.9 -1
+G "ERR_OR_BRANCH_PROBABILITIES: lqsim,lqns,petrisrvn,lqiolib," 1e-06 50 5 0.9 -1
 
 P 3
   p p1 f

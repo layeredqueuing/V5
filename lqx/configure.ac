@@ -1,5 +1,5 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 14567 2021-03-18 12:18:49Z greg $
+# $Id: configure.ac 17376 2024-10-16 18:39:20Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
@@ -19,9 +19,10 @@ AC_PROG_YACC
 
 # Checks for libraries.
 LT_INIT
+AC_CHECK_LIB([m], [fmod])
 
 # Checks for header files.
-AC_CHECK_HEADERS([fcntl.h stdlib.h string.h sys/time.h])
+AC_CHECK_HEADERS([fcntl.h sys/time.h])
 
 if test "`flex --version`" = 'flex version 2.5.4'; then
   YYLINENO='-l'

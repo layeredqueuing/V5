@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 17359 2024-10-12 01:32:27Z greg $
+ *  $Id: srvn_input.cpp 17372 2024-10-16 14:33:42Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -1192,7 +1192,7 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::filesystem::path
 	    srvnstart_token = SRVN_INPUT;
 	    errorCode = srvnparse();
 	}
-	catch ( const std::domain_error& e ) {
+	catch ( const std::logic_error& e ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
 	    errorCode = 1;
 	}
@@ -1209,7 +1209,7 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::filesystem::path
 	    srvnstart_token = SRVN_INPUT;
 	    errorCode = srvnparse();
 	}
-	catch ( const std::domain_error& e ) {
+	catch ( const std::logic_error& e ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
 	    errorCode = 1;
 	}

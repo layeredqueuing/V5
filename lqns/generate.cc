@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 17359 2024-10-12 01:32:27Z greg $
+ * $Id: generate.cc 17378 2024-10-16 23:25:26Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -58,7 +58,9 @@ Generate::output( const Vector<Submodel *>& submodels )
     static std::map<Generate::Output,fptr> f = {
 	{ Generate::Output::NONE,   nullptr },
 	{ Generate::Output::LIBMVA, &Generate::LibMVA::program },
+#if HAVE_LIBEXPAT
 	{ Generate::Output::JMVA,   &Generate::BCMP_Model::serialize_JMVA },
+#endif
 	{ Generate::Output::QNAP,   &Generate::BCMP_Model::serialize_QNAP },
     };
     
@@ -803,11 +805,13 @@ Generate::LibMVA::print_overtaking_args( std::ostream& output, const unsigned e,
  * a regular MVA solver.
  */
 
+#if HAVE_LIBEXPAT
 void
 Generate::BCMP_Model::serialize_JMVA( const Submodel * submodel )
 {
     serialize( submodel, &Generate::JMVA_Document::serialize );
 }
+#endif
 
 void
 Generate::BCMP_Model::serialize_QNAP( const Submodel * submodel )
@@ -820,8 +824,10 @@ void
 Generate::BCMP_Model::serialize( const Submodel * submodel, serialize_fptr f )
 {
     std::map<serialize_fptr, const std::string> extension = {
+#if HAVE_LIBEXPAT
 	{ JMVA_Document::serialize, "jmva" },
-	{ QNAP_Document::serialize, "qnap" },
+#endif
+	{ QNAP_Document::serialize, "qnap" }
     };
     
     if ( dynamic_cast<const MVASubmodel *>(submodel) == nullptr ) return;
@@ -847,14 +853,14 @@ Generate::BCMP_Model::serialize( const Submodel * submodel, serialize_fptr f )
 }
 
 
+#if HAVE_LIBEXPAT
 void
 Generate::JMVA_Document::serialize( std::ostream& output, const std::string& filename, const BCMP::Model& model )
 {
-#if HAVE_EXPAT_H
     QNIO::JMVA_Document jmva( model );
     jmva.print( output );
-#endif
 }
+#endif
 
 
 void

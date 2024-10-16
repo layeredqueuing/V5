@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
-<!-- $Id: 63-semaphore.lqnx 17375 2024-10-16 18:17:28Z greg $ -->
-<lqn-model name="63-semaphore" description="Layered Queueing Network Model" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="Semaphore test case." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
+<!-- $Id: err_async_request_to_wait.lqnx 17377 2024-10-16 21:06:39Z greg $ -->
+<lqn-model name="err_async_request_to_wait" description="Layered Queueing Network Model" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="ERR_ASYNC_REQUEST_TO_WAIT: lqsim,,lqiolib" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
    <processor name="clients" scheduling="hol">			<!-- Force order based on priority -->
-      <task name="wait" scheduling="ref" priority="1">		<!-- highest priority -->
+      <task name="wait" scheduling="ref" priority="1">	<!-- highest priority -->
          <entry name="call_wait" type="PH1PH2">
             <entry-phase-activities>
                <activity name="wait" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
-                  <synch-call dest="wait" calls-mean="1"/>
+                  <asynch-call dest="wait" calls-mean="1"/>
                </activity>
             </entry-phase-activities>
          </entry>

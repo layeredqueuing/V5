@@ -1,11 +1,10 @@
-# $Id: err_fork_join_mismatch.lqn 15734 2022-06-30 02:19:44Z greg $
+# $Id: err_fork_join_mismatch.lqn 17371 2024-10-16 14:05:22Z greg $
 # ------------------------------------------------------------------------
 
-G "ERR_FORK_JOIN_MISMATCH" 	# Model comment 
-1e-05			# Convergence test value.
-50			# Maximum number of iterations.
-10			# Print intermediate results (see manual pages)
-0.9			# Model under-relaxation ( 0.0 < x <= 1.0)
+G "ERR_FORK_JOIN_MISMATCH: lqns,petrisrvn,lqiolib,lqn2ps," 1e-05
+50
+10
+0.9
 -1
 
 P 2
