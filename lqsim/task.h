@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * Lqsim-parasol task interface.
  *
- * $Id: task.h 17298 2024-09-17 19:01:02Z greg $
+ * $Id: task.h 17395 2024-10-28 12:38:12Z greg $
  */
 
 /************************************************************************/
@@ -11,6 +11,7 @@
 /* 									*/
 /* May 1996.								*/
 /* Nov 2005.								*/
+/* Nov 2024.								*/
 /************************************************************************/
 
 #ifndef	LQSIM_TASK_H
@@ -25,9 +26,9 @@
 #include <lqio/dom_task.h>
 #include <parasol/parasol.h>
 
-#include "result.h"
 #include "entry.h"
 #include "message.h"
+#include "result.h"
 
 class Task;
 class Processor;
@@ -41,8 +42,7 @@ class srn_client;
 #define	PRIORITY_OFFSET	10
 
 typedef SYSCALL (*syscall_func_ptr)( double );
-typedef void (*void_func_ptr)( void );
-typedef double (*join_delay_func_ptr)( const result_t * );
+typedef double (*join_delay_func_ptr)( const Result * );
 typedef void * processor_class;
 
 typedef double (*hold_func_ptr)( const Task *, const unsigned );
@@ -157,7 +157,7 @@ public:
     virtual Task& reset_stats();
     virtual Task& accumulate_data();
     virtual Task& insertDOMResults();
-    virtual FILE * print( FILE * ) const;
+    virtual std::ostream& print( std::ostream& ) const;
 
 protected:
     virtual void create_instance() = 0;
@@ -199,10 +199,9 @@ public:
     bool trace_flag;				/* True if task is to be traced	*/
 
     Histogram * _hist_data;            		/* Structure which stores histogram data for this task */
-    result_t r_cycle;				/* Cycle time.		        */
-    result_t r_util;				/* Utilization.		        */
-    result_t r_group_util;			/* group Utilization.		*/
-    result_t r_loss_prob;			/* Asynch message loss prob.	*/
+    SampleResult r_cycle;			/* Cycle time.		        */
+    VariableResult r_util;			/* Utilization.		        */
+    VariableResult r_group_util;		/* group Utilization.		*/
 
     unsigned _hold_active;			/* Number of active instances.	*/
 };
@@ -270,15 +269,15 @@ public:
     virtual Semaphore_Task& accumulate_data();
     virtual Semaphore_Task& insertDOMResults();
 
-    virtual FILE * print( FILE * ) const;
+    virtual std::ostream& print( std::ostream& ) const;
 
 protected:
     virtual void create_instance();
 
 public:
-    result_t r_hold;				/* Service time.		*/
-    result_t r_hold_sqr;			/* Service time.		*/
-    result_t r_hold_util;
+    SampleResult r_hold;			/* Service time.		*/
+    SampleResult r_hold_sqr;			/* Service time.		*/
+    VariableResult r_hold_util;
 
 protected:
     Instance * _signal_task;			/* 				*/
@@ -305,23 +304,23 @@ public:
     virtual ReadWriteLock_Task& accumulate_data();
     virtual ReadWriteLock_Task& insertDOMResults();
 
-    virtual FILE * print( FILE * ) const;
+    virtual std::ostream& print( std::ostream& ) const;
 
 protected:
     virtual void create_instance();
 
 public:
-    result_t r_reader_hold;			/* Reader holding time		*/
-    result_t r_reader_hold_sqr;
-    result_t r_reader_wait;			/* Reader blocked time		*/
-    result_t r_reader_wait_sqr;
-    result_t r_reader_hold_util;
+    SampleResult r_reader_hold;			/* Reader holding time		*/
+    SampleResult r_reader_hold_sqr;
+    SampleResult r_reader_wait;			/* Reader blocked time		*/
+    SampleResult r_reader_wait_sqr;
+    VariableResult r_reader_hold_util;
 
-    result_t r_writer_hold;			/* writer holding time		*/
-    result_t r_writer_hold_sqr;
-    result_t r_writer_wait;			/* writer blocked time		*/
-    result_t r_writer_wait_sqr;
-    result_t r_writer_hold_util;
+    SampleResult r_writer_hold;			/* writer holding time		*/
+    SampleResult r_writer_hold_sqr;
+    SampleResult r_writer_wait;			/* writer blocked time		*/
+    SampleResult r_writer_wait_sqr;
+    VariableResult r_writer_hold_util;
 
 private:
     Instance * _reader;				/* task id for readers' queue   */

@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 17359 2024-10-12 01:32:27Z greg $
+ * $Id: model.cc 17403 2024-10-30 01:30:01Z greg $
  */
 
 #include "lqsim.h"
@@ -23,17 +23,8 @@
 #include <sstream>
 #include <errno.h>
 #include <unistd.h>
-#if HAVE_SYS_UTSNAME_H
-#include <sys/utsname.h>
-#endif
-#include <sys/stat.h>
-#if HAVE_SYS_WAIT_H
-#endif
 #if HAVE_MCHECK_H
 #include <mcheck.h>
-#endif
-#if HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
 #endif
 #include <lqio/dom_bindings.h>
 #include <lqio/error.h>
@@ -90,16 +81,16 @@ Model::Model( LQIO::DOM::Document* document, const std::string& input_file_name,
 
 Model::~Model()
 {
-    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), Delete<Processor*> );
+    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), []( Processor * processor ){ delete processor; } );
     Processor::__processors.clear();
 
-    std::for_each( Group::__groups.begin(), Group::__groups.end(), Delete<Group *> );
+    std::for_each( Group::__groups.begin(), Group::__groups.end(), []( Group * group ){ delete group; } );
     Group::__groups.clear();
 
-    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), Delete<Task *> );
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), []( Task * task ){ delete task; } );
     Task::__tasks.clear();
 
-    std::for_each( Entry::__entries.begin(), Entry::__entries.end(), Delete<Entry *> );
+    std::for_each( Entry::__entries.begin(), Entry::__entries.end(), []( Entry * entry ){ delete entry; } );
     Entry::__entries.clear();
 
     Activity::actConnections.clear();
@@ -294,7 +285,6 @@ Model::prepare()
 		newEntry->add_call( p, *call );			/* Add the call to the system */
 	    }
 
-	    newEntry->set_DOM(p, phase);    	/* Set the phase information for the entry */
 	}
 
 	/* Add in all of the P(frwd) calls */
@@ -418,12 +408,11 @@ Model::print_intermediate()
  * Human format statistics.
  */
 
-void
-Model::print_raw_stats( FILE * output ) const
+std::ostream&
+Model::print( std::ostream& output ) const
 {
     static const unsigned int long_width = 99;
     static const unsigned int short_width = 69;
-    static const char * dashes = "--------------------------------------------------------------------------------------------";
 
 /*
   123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_
@@ -433,27 +422,23 @@ Model::print_raw_stats( FILE * output ) const
   Name                                     Type       Mean     #Obs|Int
 */
     if ( number_blocks > 2 ) {
-	(void) fprintf( output, "Blocked simulation statistics for %s\n\tTime = %G.  Period = %G\n\n", _input_file_name.c_str(), ps_now, _parameters._block_period );
-	(void) fprintf( output, "Name                                     Type       Mean        95%% +/-      99%% +/-   #Obs/Int\n");
-	(void) fprintf( output, "%.*s\n", long_width, dashes );
+	output << "Blocked simulation statistics for " << _input_file_name << std::endl
+	       << "\tTime = " << ps_now << ".  Period = " << _parameters._block_period << std::endl << std::endl
+	       << "Name                                     Type       Mean        95%% +/-      99%% +/-   #Obs/Int" << std::endl
+	       << std::setw( long_width ) << std::setfill( '-' ) << "-" << std::endl;
     } else {
-	(void) fprintf( output, "Simulation statistics for %s\n\ttime = %G.\n\n", _input_file_name.c_str(), ps_now );
-	(void) fprintf( output, "Name                                     Type       Mean     #Obs/Int\n");
-	(void) fprintf( output, "%.*s\n", short_width, dashes );
+	output << "Simulation statistics for " << _input_file_name << std::endl
+	       << "\ttime = " << ps_now << std::endl << std::endl
+	       << "Name                                     Type       Mean     #Obs/Int" << std::endl
+	       << std::setw( short_width ) << std::setfill( '-' ) << "-" << std::endl;
     }
 
-    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-    	const Task * cp = *task;
-    	cp->print( output );
-    }
-//    std::for_each ( task.begin(), task.end(), ConstExec1<Task,FILE *>( &Task::print ) );
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), [&]( const Task * task ){ task->print( output ); } );
 
-    (void) fprintf( output, "\n%.*s Processor Information %.*s\n",
-		    (((number_blocks > 2) ? long_width : short_width) - 23) / 2, dashes,
-		    (((number_blocks > 2) ? long_width : short_width) - 23) / 2, dashes );
-    for ( std::set<Processor *>::const_iterator processor = Processor::__processors.begin(); processor != Processor::__processors.end(); ++processor ) {
-	(*processor)->r_util.print_raw( output, "Processor %-11.11s - Utilization", (*processor)->name().c_str() );
-    }
+    const int fill = (((number_blocks > 2) ? long_width : short_width) - 23) / 2;
+    output << std::setw( fill ) << std::setfill( '-' ) << " Processor Information " << std::setw( fill ) << std::setfill( '-' ) << "-" << std::endl;
+
+    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), [&]( const Processor * processor ){ processor->print( output ); } );
 
 #ifdef	NOTDEF
     if ( ps_used_links ) {
@@ -465,7 +450,8 @@ Model::print_raw_stats( FILE * output ) const
 	}
     }
 #endif
-    (void) fprintf( output, "\n\n");
+    output << std::endl << std::endl;
+    return output;
 }
 
 
@@ -540,7 +526,8 @@ Model::start()
     /* Parasol statistics if desired */
 
     if ( raw_stat_flag ) {
-	print_raw_stats( stddbg );
+	print( std::cout );
+//	print_raw_stats( stddbg );
     }
 
     if ( !deferred_exception && LQIO::io_vars.anError() == 0 ) {
@@ -818,11 +805,11 @@ Model::rms_confidence()
 }
 
 double
-Model::normalized_conf95( const result_t& stat )
+Model::normalized_conf95( const Result& stat )
 {
     double temp = stat.mean();
     if ( temp ) {
-	return sqrt(stat.variance()) * result_t::conf95( number_blocks ) * 100.0 / temp;
+	return sqrt(stat.variance()) * Result::conf95( number_blocks ) * 100.0 / temp;
     }
     return -1.0;
 }

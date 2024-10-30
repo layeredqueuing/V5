@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 17323 2024-10-02 14:39:22Z greg $
+# $Id: Makefile.am 17394 2024-10-28 11:31:19Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -10,7 +10,8 @@ SRVN=	../petrisrvn
 OPTS=	-w
 DIFFOPTS= -Q -S0.1
 
-SANITY=	01-sanity.lqxo \
+SANITY=	00-sanity.lqxo \
+	01-sanity.lqxo \
 	02-sanity.lqxo \
 	03-sanity.lqxo \
 	04-sanity.lqxo \

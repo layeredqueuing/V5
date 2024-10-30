@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 17327 2024-10-02 19:54:29Z greg $
+# $Id: Makefile.am 17394 2024-10-28 11:31:19Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -10,7 +10,8 @@ OPTS=	-C1.0,1000 -S1049217653
 #OPTS=	-B3,10000,1000 -M -S1049217653
 EPSILON = '-S1.0'
 
-SANITY=	01-sanity.lqxo \
+SANITY=	00-sanity.lqxo \
+	01-sanity.lqxo \
 	02-sanity.lqxo \
 	03-sanity.lqxo \
 	04-sanity.lqxo \

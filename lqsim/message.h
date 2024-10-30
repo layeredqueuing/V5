@@ -11,7 +11,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: message.h 15317 2022-01-01 16:44:56Z greg $
+ * $Id: message.h 17403 2024-10-30 01:30:01Z greg $
  */
 
 #ifndef MESSAGE_H
@@ -19,12 +19,11 @@
 
 class Activity;
 class Entry;
-class Task;
 class tar_t;
 
 class Message {
 public:
-    Message( const Entry * e=nullptr, tar_t  * tp=nullptr ) { init( e, tp ); }
+    Message( const Entry * e=nullptr, tar_t * tp=nullptr ) { init( e, tp ); }
     Message * init( const Entry * e, tar_t * tp );
     
     Activity * activity;		/* Activity to run.		*/

@@ -9,7 +9,7 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 17298 2024-09-17 19:01:02Z greg $
+ * $Id: group.cc 17396 2024-10-28 14:18:18Z greg $
  */
 
 #include "lqsim.h"
@@ -28,11 +28,12 @@
 std::set<Group *, Group::ltGroup> Group::__groups;
 
 
-Group::Group( LQIO::DOM::Group * group, const Processor& processor ) 
+Group::Group( LQIO::DOM::Group * dom, const Processor& processor ) 
     : _tasks(),
-      _domGroup( group ),
+      _domGroup(dom),
       _processor(processor), 
-      _total_tasks(group->getTaskList().size())
+      _total_tasks(dom->getTaskList().size()),
+      r_util("Utilization",dom)
 {
 }
 
@@ -102,8 +103,7 @@ Group::create()
 	cp->set_group_id(group_id);
     }
 
-    r_util.init( VARIABLE, "Group  %-11.11s - Utilization     ", name() );
-
+    r_util.init();
     return *this;
 }
 

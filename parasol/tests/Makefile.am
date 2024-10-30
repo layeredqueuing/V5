@@ -1,7 +1,7 @@
 # Make file for Parasol test files
 #
 # ------------------------------------------------------------------------
-# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/parasol/tests/Makefile.am $
+# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk/parasol/tests/Makefile.am $
 # ------------------------------------------------------------------------
 
 AM_CPPFLAGS	= -I../include

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/entry.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk/lqns/entry.cc $
  *
  * Everything you wanted to know about an entry, but were afraid to ask.
  *
@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 17265 2024-09-08 20:08:36Z greg $
+ * $Id: entry.cc 17399 2024-10-28 20:10:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -542,13 +542,13 @@ Entry::hasVariance() const
  */
 
 bool
-Entry::entryTypeOk( const LQIO::DOM::Entry::Type aType )
+Entry::entryTypeOk( const LQIO::DOM::Entry::Type type )
 {
     if ( _entryType == LQIO::DOM::Entry::Type::NOT_DEFINED ) {
-	_entryType = aType;
+	_entryType = type;
 	return true;
     } else {
-	return _entryType == aType;
+	return _entryType == type;
     }
 }
 
@@ -560,12 +560,11 @@ Entry::entryTypeOk( const LQIO::DOM::Entry::Type aType )
  */
 
 bool
-Entry::entrySemaphoreTypeOk( const LQIO::DOM::Entry::Semaphore aType )
+Entry::entrySemaphoreTypeOk( const LQIO::DOM::Entry::Semaphore type )
 {
     if ( _semaphoreType == LQIO::DOM::Entry::Semaphore::NONE ) {
-	_semaphoreType = aType;
-    } else if ( _semaphoreType != aType ) {
-	LQIO::input_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name().c_str() );
+	_semaphoreType = type;
+    } else if ( _semaphoreType != type ) {
 	return false;
     }
     return true;

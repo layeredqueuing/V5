@@ -1,13 +1,15 @@
 /* result.cc	-- Greg Franks Fri Jun  5 2009
  *
  * ------------------------------------------------------------------------
- * $Id: result.cc 16541 2023-03-16 23:48:04Z greg $
+ * $Id: result.cc 17398 2024-10-28 15:19:22Z greg $
  * ------------------------------------------------------------------------
  */
 
 
 #include "lqsim.h"
 #include <cstdarg>
+#include <sstream>
+#include <iomanip>
 #include "result.h"
 #include "model.h"
 
@@ -58,42 +60,70 @@ inline static double conf_value( const unsigned i, const unsigned n )
 }
 
 double
-result_t::conf95( const unsigned n )
+Result::conf95( const unsigned n )
 {
     return conf_value( 0, n );
 }
 
 
 double
-result_t::conf99( const unsigned n )
+Result::conf99( const unsigned n )
 {	
     return conf_value( 1, n );
 }
 
-void
-result_t::init( int type, const char * format, ... )
+Result::Result( int type, const std::string& name, LQIO::DOM::DocumentObject * dom ) : _type( type ), _dom(dom), _name(getName(name))
 {
-    va_list args;
-    char buf[128];
+}
 
-    buf[0] = 0;
 
-    _type = type;
+std::string Result::getName( const std::string& name ) const
+{
+    if ( _dom == nullptr ) return name;
+    
+    std::ostringstream s;
+    s << std::left << std::setw( 6 ) << _dom->getTypeName() << " " << std::left << std::setw( 11 ) << _dom->getName() << " - " << std::left << std::setw( 18 ) << name;
+    return s.str();
+}
 
-    va_start( args, format );
-    (void) vsnprintf( buf, 128, format, args );
-    va_end( args );
 
-    raw = ps_open_stat( buf, _type );
+/* Can't be done in constructor (for parasol) */
+void Result::init()
+{
+    _raw = ps_open_stat( _name.c_str(), _type );
     clear_results();
 }
 
 
-void
-result_t::init( const long stat_id ) 
+void Result::init( const long stat_id ) 	// Old interface for processors.
 {
-    raw = stat_id;		/* We already have a stat.  just set it up. */
+    _raw = stat_id;		/* We already have a stat.  just set it up. */
     clear_results();
+}
+
+
+const Result& Result::insertDOMResults( Result::set_fn set_mean, Result::set_fn set_variance ) const
+{
+    (_dom->*set_mean)( mean() );
+    if ( number_blocks > 1 && set_variance != nullptr ) {
+	(_dom->*set_variance)( variance() );
+    }
+    return *this;
+}
+
+
+std::ostream& Result::print( std::ostream& output ) const
+{
+    char buf[1024];
+    (void) snprintf( buf, 1024, "%-38.38s %-8s ", _name.c_str(), _type == VARIABLE ? "VARIABLE" : "SAMPLE" );
+    output << buf;
+    if ( number_blocks > 1 ) {
+	(void) snprintf( buf, 1024, "%12.7g %12.7g %12.7g %8.0f\n", mean(), conf95( number_blocks ), conf99( number_blocks ), mean_count() );
+    } else {
+	(void) snprintf( buf, 1024, "%12.7g %8.0f\n", mean(), mean_count() );	// _n == 1
+    }
+    output << buf;
+    return output;
 }
 
 
@@ -102,7 +132,7 @@ result_t::init( const long stat_id )
  */
 
 void
-result_t::clear_results ()
+Result::clear_results ()
 {
     _sum        = 0;
     _sum_sqr    = 0;
@@ -115,9 +145,9 @@ result_t::clear_results ()
 
 
 void
-result_t::reset()
+Result::reset()
 {
-    ps_reset_stat( raw );	
+    ps_reset_stat( _raw );	
 }
 
 
@@ -127,12 +157,12 @@ result_t::reset()
  */
 
 double
-result_t::accumulate()
+Result::accumulate()
 {
     double value;
     double count;
 
-    ps_get_stat( raw, &value, &count );
+    ps_get_stat( _raw, &value, &count );
 
 #ifdef	NOTDEF
     if ( debug_flag && stddbg ) {
@@ -145,7 +175,7 @@ result_t::accumulate()
     _sum_sqr   += square( value );
     _count_sqr += square( count );
 
-    ps_reset_stat( raw );	
+    ps_reset_stat( _raw );	
 
     return value;		/* For variance. */
 }
@@ -153,12 +183,12 @@ result_t::accumulate()
 
 
 void
-result_t::accumulate_variance ( const double mean )
+Result::accumulate_variance ( const double mean )
 {
     double mean_squares;
     double count;
 
-    ps_get_stat( raw, &mean_squares, &count );
+    ps_get_stat( _raw, &mean_squares, &count );
 
     double value = mean_squares - square(mean);
     if ( value < 0. ) value = 0.0;
@@ -168,7 +198,7 @@ result_t::accumulate_variance ( const double mean )
     _n	       += 1;
     _sum_sqr   += square( value );
     _count_sqr += square( count );
-    ps_reset_stat( raw );
+    ps_reset_stat( _raw );
 }
 
 
@@ -180,15 +210,15 @@ result_t::accumulate_variance ( const double mean )
  */
 
 void
-result_t::accumulate_service( const result_t& r_cycle )
+Result::accumulate_service( const Result& r_cycle )
 {
     double value;
     double n_cycles;
     double n_slices;
     double junk;
 
-    ps_get_stat( r_cycle.raw, &junk, &n_cycles );
-    ps_get_stat( raw, &value, &n_slices );
+    ps_get_stat( r_cycle._raw, &junk, &n_cycles );
+    ps_get_stat( _raw, &value, &n_slices );
 
     if ( n_cycles ) {
 	value *= n_slices / n_cycles;
@@ -201,7 +231,7 @@ result_t::accumulate_service( const result_t& r_cycle )
     _n	       += 1;
     _sum_sqr   += square( value );
     _count_sqr += square( n_cycles );
-    ps_reset_stat( raw );
+    ps_reset_stat( _raw );
 }
 
 
@@ -213,11 +243,11 @@ result_t::accumulate_service( const result_t& r_cycle )
 
 
 void
-result_t::accumulate_utilization( const result_t& r_cycle, const double service_time )
+Result::accumulate_utilization( const Result& r_cycle, const double service_time )
 {
     double n_cycles;
     double junk;
-    ps_get_stat( r_cycle.raw, &junk, &n_cycles );
+    ps_get_stat( r_cycle._raw, &junk, &n_cycles );
     const double utilization = service_time * (n_cycles / Model::block_period());	/* service_time * throughput. */
     _sum       += utilization;
     _sum_sqr   += square( utilization );
@@ -225,7 +255,7 @@ result_t::accumulate_utilization( const result_t& r_cycle, const double service_
     _n         += 1;
     _count_sqr += 1;
     
-    ps_reset_stat( raw );
+    ps_reset_stat( _raw );
 }
 
 
@@ -234,7 +264,7 @@ result_t::accumulate_utilization( const result_t& r_cycle, const double service_
  */
 
 double
-result_t::mean() const
+Result::mean() const
 {
     if ( _n > 0 ) {
 	return _sum / static_cast<double>(_n);
@@ -250,7 +280,7 @@ result_t::mean() const
  */
 
 double
-result_t::variance() const
+Result::variance() const
 {
     if ( _n >= 2 ) {
 	double temp = _sum_sqr - square(_sum) / static_cast<double>(_n);
@@ -265,7 +295,7 @@ result_t::variance() const
 
 
 double
-result_t::mean_count() const
+Result::mean_count() const
 {
     if ( _n > 0 ) {
 	return _count / static_cast<double>(_n);
@@ -279,7 +309,7 @@ result_t::mean_count() const
  */
 
 double
-result_t::variance_count() const
+Result::variance_count() const
 {
     if ( _n >= 2 ) {
 	const double temp = _count_sqr - square(_count) / static_cast<double>(_n);
@@ -291,28 +321,19 @@ result_t::variance_count() const
     }
     return 0.0;
 }
-
-
-/*
- * Output a line of the raw report.  Fold mutilate and spindle as
- * required.
- */
-
-FILE *
-result_t::print_raw( FILE * output, const char * format,... ) const
+
+void SampleResult::record( double value )
 {
-    va_list args;
-    char buf[128];
+    ps_record_stat( _raw, value );
+}
 
-    va_start( args, format );
-    (void) vsprintf( buf, format, args );
-    va_end( args );
 
-    (void) fprintf( output, "%-38.38s %-8s ", buf, _type == VARIABLE ? "VARIABLE" : "SAMPLE" );
-    if ( number_blocks > 1 ) {
-	(void) fprintf( output, "%12.7g %12.7g %12.7g %8.0f\n", mean(), conf95( number_blocks ), conf99( number_blocks ), _count / _n );
-    } else {
-	(void) fprintf( output, "%12.7g %8.0f\n", _sum, _count );
-    }
-    return output;
+void SampleResult::add( double value )
+{
+    ps_add_stat( _raw, value );
+}
+
+void VariableResult::record( double value )
+{
+    ps_record_stat( _raw, value );
 }

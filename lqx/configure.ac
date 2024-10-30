@@ -1,5 +1,5 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 17376 2024-10-16 18:39:20Z greg $
+# $Id: configure.ac 17397 2024-10-28 14:19:31Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
@@ -11,11 +11,11 @@ AC_CONFIG_SRCDIR([drvsrc/main.cpp])
 AC_CONFIG_HEADERS([config.h])
 AC_SUBST(YYLINENO)
 # Checks for programs.
-AC_LANG(C++)
 AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_LEX([noyywrap])
 AC_PROG_YACC
+AC_LANG(C++)
 
 # Checks for libraries.
 LT_INIT

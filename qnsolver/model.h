@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/model.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk/qnsolver/model.h $
  *
  * Composite Class for models (There might be a closed and/or an open model).  Stations are
  * shared between the closed and open models.  Output is common.

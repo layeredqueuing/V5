@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.h 17298 2024-09-17 19:01:02Z greg $
+ * $Id: processor.h 17390 2024-10-25 00:30:03Z greg $
  */
 
 #ifndef	PROCESSOR_H
@@ -87,9 +87,11 @@ public:
     virtual Processor& accumulate_data() { r_util.accumulate(); return *this; }
     virtual Processor& insertDOMResults();
 
+    std::ostream& print( std::ostream& ) const;
+
 public:
     bool trace_flag;			/* For tracing.			*/
-    result_t r_util;			/* Utilization.			*/
+    VariableResult r_util;		/* Utilization.			*/
     Group * _group;			/*				*/
 
 protected:

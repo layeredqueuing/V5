@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 17235 2024-05-25 21:33:00Z greg $
+ * $Id: dom_pragma.h 17400 2024-10-28 20:52:36Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -94,6 +94,7 @@ namespace LQIO {
 	    static const char * _default_natural_;
 	    static const char * _default_output_;
 	    static const char * _deterministic_;	// Quorum
+	    static const char * _disjoint_customers_;	// Petrisrvn
 	    static const char * _eager_;		// hvfcfs BUG_471
 	    static const char * _exact_;
 	    static const char * _expand_;

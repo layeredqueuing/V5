@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 17235 2024-05-25 21:33:00Z greg $
+ *  $Id: dom_pragma.cpp 17400 2024-10-28 20:52:36Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -196,6 +196,7 @@ namespace LQIO {
 	const char * Pragma::_default_natural_ =		"default-natural";
 	const char * Pragma::_default_output_ =			"default-output";
 	const char * Pragma::_deterministic_ =			"deterministic";	// Quorum
+	const char * Pragma::_disjoint_customers_ =		"disjoint-customers";	// Petrisrvn
 	const char * Pragma::_eager_ =				"eager";		// hvfcfs BUG_471
 	const char * Pragma::_exact_ =				"exact-mva";
 	const char * Pragma::_expand_ =				"expand";
@@ -319,6 +320,7 @@ namespace LQIO {
 	    { _convergence_value_,	    nullptr },			    /* lqns */
 	    { _cycles_,  	    	    &__true_false_arg },	    /* lqns */
 	    { _default_output_,		    &__true_false_arg },	    /* all */
+	    { _disjoint_customers_,	    &__true_false_arg },	    /* petrisrvn */
 	    { _force_infinite_,		    &__force_infinite_args },	    /* */
 	    { _force_multiserver_, 	    &__force_multiserver_args },    /* lqns */
 	    { _force_random_queueing_,	    &__true_false_arg },	    /* petrisrvn */

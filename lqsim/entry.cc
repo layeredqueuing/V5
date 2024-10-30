@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 17298 2024-09-17 19:01:02Z greg $
+ * $Id: entry.cc 17403 2024-10-30 01:30:01Z greg $
  */
 
 #include "lqsim.h"
@@ -38,13 +38,13 @@ unsigned int open_arrival_count = 0;
  */
 
 std::set<Entry *, Entry::ltEntry> Entry::__entries;	/* Entry table.		*/
-Entry * Entry::entry_table[MAX_PORTS+1];	/* Reverse map		*/
+Entry * Entry::entry_table[MAX_PORTS+1];		/* Reverse map		*/
 
 Entry::Entry( LQIO::DOM::Entry* dom, Task * task )
-    : _phase(MAX_PHASES),
-      _active(MAX_PHASES),
-      r_cycle(),
-      _minimum_service_time(MAX_PHASES),
+    : _phase(),
+      _active(0),
+      r_cycle("Cycle Time",dom),
+      _minimum_service_time(0),
       _dom(dom),
       _entry_id(Entry::__entries.size() + 1),
       _local_id(task->n_entries()),
@@ -57,12 +57,17 @@ Entry::Entry( LQIO::DOM::Entry* dom, Task * task )
 {
     entry_table[_entry_id] = this;
 
-    for ( unsigned p = 0; p < MAX_PHASES; ++p ) {
-	std::string activity_name = "Entry ";
-	activity_name += this->name();
-	activity_name += " - Ph ";
-	activity_name += "123"[p];
-	_phase[p].rename( activity_name );
+    const unsigned int n_phases = MAX_PHASES;
+    _active.resize(n_phases);
+    _minimum_service_time.resize(n_phases);
+    for ( unsigned p = 0; p < n_phases; ++p ) {
+	if ( dom->hasPhase( p+1 ) ) {	// Phases start from 1
+	    _phase.emplace_back( task, dom->getPhase( p+1 ) );
+	    std::string activity_name = "Entry " + dom->getName() + " - Ph " + "123"[p];
+	    _phase[p].rename( activity_name );
+	} else {
+	    _phase.emplace_back( nullptr, nullptr );
+	}
 	_minimum_service_time[p] = 0.0;
     }
 }
@@ -93,7 +98,7 @@ Entry::configure()
 	std::deque<Activity *> activity_stack;
 	std::deque<AndForkActivityList *> fork_stack;
 	double n_replies = 0.0;
-	    
+
 	if ( _activity ) {
 	    _activity->find_children( activity_stack, fork_stack, this );
 	    ActivityList::Collect data( this, &Activity::count_replies );
@@ -179,9 +184,8 @@ Entry::initialize()
     }
 		
     _join_list = nullptr;		/* Reset */
+    r_cycle.init();
     
-    r_cycle.init( SAMPLE, "Entry %-11.11s  - Cycle Time      ", name().c_str() );
-
     switch ( task()->type() ) {
     case Task::Type::CLIENT:
 	_port = -1;
@@ -333,15 +337,6 @@ Entry::test_and_set_rwlock( LQIO::DOM::Entry::RWLock rw )
     return rc;
 }
 
-Entry& 
-Entry::set_DOM( unsigned p, LQIO::DOM::Phase* phaseInfo )
-{
-    if (phaseInfo == nullptr) return *this;
-    assert( 0 < p && p <= _phase.size() );
-    _phase[p-1].set_DOM(phaseInfo);
-    return *this;
-}
-
 
 Entry& 
 Entry::add_forwarding( Entry* to_entry, LQIO::DOM::Call * call )
@@ -479,6 +474,14 @@ Entry::insertDOMResults()
 }
 
 
+std::ostream&
+Entry::print( std::ostream& output ) const
+{
+    output << r_cycle;
+    std::for_each( _phase.begin(), _phase.end(), [&]( const Activity& activity ){ activity.print( output ); } );
+    return output;
+}
+
 /*
  * Minimum service time for an entry is the time bewtween the receive and reply (phase 1).
  * For Reference tasks, it's the total time.
@@ -582,7 +585,7 @@ Pseudo_Entry::configure()
     catch ( const std::domain_error& e ) {
 	getDOM()->throw_invalid_parameter( "arrival rate", e.what() );
     }
-    _phase[0].set_arrival_rate( 1.0 / arrival_rate );
+    _phase.front().set_service_time( 1.0 / arrival_rate );
 
     return Entry::configure();
 }
@@ -620,18 +623,14 @@ Pseudo_Entry::insertDOMResults()
 Entry *
 Entry::add( LQIO::DOM::Entry* dom, Task * task )
 {
+    const std::string& name = dom->getName();;
     Entry * entry = nullptr;
-    if ( Entry::__entries.size() >= MAX_PORTS ) {
-	LQIO::input_error( LQIO::ERR_TOO_MANY_X, "entries", MAX_PORTS );
+    if ( std::find_if( Entry::__entries.begin(), Entry::__entries.end(), [=]( const Entry * entry ){ return entry->name() == name; } ) != Entry::__entries.end() ) {
+	dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL );
     } else {
-	const std::string& name = dom->getName();;
-	if ( std::find_if( Entry::__entries.begin(), Entry::__entries.end(), [=]( const Entry * entry ){ return entry->name() == name; } ) != Entry::__entries.end() ) {
-	    dom->runtime_error( LQIO::ERR_DUPLICATE_SYMBOL );
-	} else {
-	    entry = new Entry( dom, task );
-	    Entry::__entries.insert( entry );
-	    entry->add_open_arrival_task();
-	}
+	entry = new Entry( dom, task );
+	Entry::__entries.insert( entry );
+	entry->add_open_arrival_task();
     }
     return entry;
 }

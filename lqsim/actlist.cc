@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: actlist.cc 16121 2022-11-17 20:31:33Z greg $
+ * $Id: actlist.cc 17404 2024-10-30 01:38:06Z greg $
  */
 
 #include "lqsim.h"
@@ -69,6 +69,8 @@ AndJoinActivityList::AndJoinActivityList( ActivityList::Type type, LQIO::DOM::Ac
       _source(),
       _join_type(AndJoinActivityList::Join::UNDEFINED),
       _quorum_count(0),
+      r_join("Join delay",dom),
+      r_join_sqr("Join delay squared",dom),
       _hist_data(nullptr)
 {
     if ( getDOM()->hasHistogram() ) {
@@ -132,6 +134,15 @@ AndForkActivityList::initialize()
 	    _visits += 1;
 	}
     }
+    return *this;
+}
+
+
+AndJoinActivityList&
+AndJoinActivityList::initialize()
+{
+    r_join.init();
+    r_join_sqr.init();
     return *this;
 }
 
@@ -593,6 +604,16 @@ AndJoinActivityList::accumulate_data()
 	_hist_data->accumulate_data();
     }
     return *this;
+}
+
+
+
+std::ostream&
+AndJoinActivityList::print( std::ostream& output ) const
+{
+    output << r_join
+	   << r_join_sqr;
+    return output;
 }
 
 AndJoinActivityList&

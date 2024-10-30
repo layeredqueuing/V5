@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/task.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk/lqns/task.cc $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17265 2024-09-08 20:08:36Z greg $
+ * $Id: task.cc 17399 2024-10-28 20:10:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1608,7 +1608,7 @@ ReferenceTask::check() const
     if ( getDOM()->hasQueueLength() ) {
 	getDOM()->runtime_error( LQIO::ERR_NOT_SUPPORTED, "queue length" );
     }
-    double sum = std::accumulate( entries().begin(), entries().end(), 0.0, Entry::add_visit_probability );
+    double sum = std::accumulate( entries().begin(), entries().end(), 0.0, []( double l, const Entry * r ){ return l + r->prVisit(); } );
     if ( sum < 1.0 - EPSILON || 1.0 + EPSILON < sum ) {
 	getDOM()->runtime_error( LQIO::ERR_INVALID_VISIT_PROBABILITY, sum );
     }

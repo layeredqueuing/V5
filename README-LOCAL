@@ -1,4 +1,4 @@
-$Id: README-LOCAL 17118 2024-03-07 20:23:07Z greg $
+$Id: README-LOCAL 17403 2024-10-30 01:30:01Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -57,12 +57,21 @@ Then follow the instructions for the tarball.
 BUILD INSTRUCTIONS (Ubuntu 64 bit)
 ----------------------------------
 
-The simulator does not execute on a 64 bit environment, so it is
-necessary to build a 32 bit version:
+The simulator does not execute on a 64 bit environment using gcc, so
+it is necessary to build a 32 bit version, or use clang (preferred).
 
 sudo apt install gcc-multilib g++-multilib
 autoreconf -i		      # optional
 ./.configure-m32	      # to use -m32
+make
+make install
+
+On ubuntu, you must add -stdlib=libc++ as a clang++ option in order to
+find the Standard Template Library.
+
+sudo apt install clang
+autoreconf -i		      # optional
+./.configure-llvm-ubuntu      # Adds -stdlib=libc++
 make
 make install
 

@@ -1,12 +1,13 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 17002 2024-01-31 21:13:45Z greg $
+# $Id: Makefile 17394 2024-10-28 11:31:19Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	petrisrvn
 OPTS=	
-SANITY=	01-sanity.lqxo \
+SANITY=	00-sanity.lqxo \
+	01-sanity.lqxo \
 	02-sanity.lqxo \
 	03-sanity.lqxo \
 	04-sanity.lqxo \

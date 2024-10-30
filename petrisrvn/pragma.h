@@ -1,7 +1,7 @@
 /* pragma.h	-- Greg Franks
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.h 17069 2024-02-27 23:16:21Z greg $
+ * $Id: pragma.h 17400 2024-10-28 20:52:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -25,6 +25,7 @@ public:
 
     static void set( const std::map<std::string,std::string>& );
 
+    bool disjoint_customers() const { return _disjoint_customers; }
     scheduling_type processor_scheduling() const { return _processor_scheduling; }
     bool reschedule_on_async_send() const { return _reschedule_on_async_send; }
     bool save_marginal_probabilities() const { return _save_marginal_probabilities; }
@@ -41,6 +42,9 @@ public:
     bool default_task_scheduling() const { return _default_task_scheduling; }
 
     static void usage( std::ostream& output );
+
+public:
+    void set_disjoint_customers( const std::string& );
 
 private:
     void set_force_random_queueing( const std::string& );
@@ -60,6 +64,7 @@ private:
     static scheduling_type str_to_scheduling_type( const std::string& s );
 
 private:
+    bool _disjoint_customers;
     scheduling_type _processor_scheduling;
     bool _reschedule_on_async_send;
     bool _save_marginal_probabilities;

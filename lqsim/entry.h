@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol entry interface.
  *
- * $Id: entry.h 17298 2024-09-17 19:01:02Z greg $
+ * $Id: entry.h 17402 2024-10-29 23:28:52Z greg $
  */
 
 #ifndef ENTRY_H
@@ -19,11 +19,10 @@
 /* #include "task.h" */
 #include <string>
 #include <set>
-#include <list>
 #include <lqio/dom_task.h>
 #include <lqio/dom_entry.h>
-#include "model.h"
 #include "activity.h"
+#include "model.h"
 
 class Task;
 
@@ -110,13 +109,14 @@ public:
     bool test_and_set_semaphore( LQIO::DOM::Entry::Semaphore );
     bool test_and_set_rwlock( LQIO::DOM::Entry::RWLock );
 
-    Entry& set_DOM( unsigned ph, LQIO::DOM::Phase* phaseInfo );
     LQIO::DOM::Entry * getDOM() const { return _dom; }
     Entry& add_forwarding( Entry* toEntry, LQIO::DOM::Call * value );
 
     Entry& reset_stats();
     Entry& accumulate_data();
     virtual Entry& insertDOMResults();
+
+    std::ostream& print( std::ostream& ) const;
 
     double compute_minimum_service_time( std::deque<Entry *>& );
 
@@ -132,7 +132,7 @@ private:
 public:
     std::vector<Activity> _phase;	/* phase info. Dim starts at 1 	*/
     std::vector<unsigned> _active;	/* Number of active instances.	*/
-    result_t r_cycle;			/* cycle time for entry.	*/
+    SampleResult r_cycle;		/* cycle time for entry.	*/
     mutable std::vector<double> _minimum_service_time;	/* Computed. 	*/
 
     static Entry * entry_table[MAX_PORTS+1];
@@ -182,11 +182,7 @@ private:
     const std::string _name;
 };
 
-typedef double (*double_func_ptr)( const tar_t * );
-
 extern unsigned open_arrival_count;	/* non-zero if any open arrivals*/
-
-typedef double (*entry_func_ptr)( const Entry * ep );
 
 void build_links( class Task * cp, unsigned link_tab[] );
 #endif

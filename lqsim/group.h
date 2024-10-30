@@ -2,7 +2,7 @@
  *
  * Processor Group handling.
  *
- * $Id: group.h 17298 2024-09-17 19:01:02Z greg $
+ * $Id: group.h 17395 2024-10-28 12:38:12Z greg $
  */
 
 /************************************************************************/
@@ -54,13 +54,13 @@ public:
     Group& insertDOMResults();
 
 public:
-    std::map<Task *,int> _tasks;	/* Maps task to group 		*/
+    std::map<Task *,int> _tasks;		/* Maps task to group 		*/
 
 private:
     LQIO::DOM::Group * _domGroup;
     const Processor &_processor;
     const unsigned int _total_tasks;
-    result_t r_util;			/* Utilization.			*/
+    VariableResult r_util;			/* Utilization.			*/
 
     std::set<Task*> _task_list;
 };

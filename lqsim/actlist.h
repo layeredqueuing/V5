@@ -10,7 +10,7 @@
  * November 2020.
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.h 15726 2022-06-28 17:04:56Z greg $
+ * $Id: actlist.h 17390 2024-10-25 00:30:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -251,6 +251,7 @@ public:
     virtual ~AndJoinActivityList();
 
     virtual AndJoinActivityList& configure();
+    AndJoinActivityList& initialize();
     virtual AndJoinActivityList& push_back( Activity * activity );
 
     bool set_join_type( Join type );
@@ -265,6 +266,7 @@ public:
     AndJoinActivityList& reset_stats();
     AndJoinActivityList& accumulate_data();
     AndJoinActivityList& insertDOMResults();
+    std::ostream& print( std::ostream& ) const;
 
 private:
     const AndForkActivityList * _fork;		/* Link to join from fork.	*/
@@ -273,8 +275,8 @@ private:
     unsigned int _quorum_count; 		/* tomari quorum		*/
 
 public:
-    result_t r_join;				/* results for join delays	*/
-    result_t r_join_sqr;			/* results for delays.		*/
+    SampleResult r_join;			/* results for join delays	*/
+    SampleResult r_join_sqr;			/* results for delays.		*/
     Histogram * _hist_data;
 };
 

@@ -1,5 +1,5 @@
 /* activity.c	-- Greg Franks Thu Feb 20 1997
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/activity.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk/lqns/activity.cc $
  *
  * Everything you wanted to know about an activity, but were afraid to ask.
  *

@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 16121 2022-11-17 20:31:33Z greg $
+ * $Id: instance.cc 17403 2024-10-30 01:30:01Z greg $
  */
 
 /*
@@ -28,14 +28,14 @@
 #include <sstream>
 #include <lqio/input.h>
 #include <lqio/error.h>
-#include "processor.h"
-#include "group.h"
-#include "errmsg.h"
-#include "task.h"
-#include "instance.h"
 #include "activity.h"
+#include "errmsg.h"
+#include "group.h"
+#include "instance.h"
 #include "message.h"
 #include "pragma.h"
+#include "processor.h"
+#include "task.h"
 
 /* see parainout.h */
 
@@ -139,7 +139,7 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
     if ( _cp->_join_start_time == 0.0 ) {
 	_cp->_active += 1;
     }
-    ps_record_stat2( _cp->r_util.raw, _cp->_active, start_time );
+    ps_record_stat2( _cp->r_util._raw, _cp->_active, start_time );
 
     _entry[ep->index()] = msg;
 
@@ -153,8 +153,8 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
 
 	tar_t * tp = msg->target;
 	delta = ps_my_schedule_time - msg->time_stamp;
-	ps_record_stat( tp->r_delay.raw, delta );
-	ps_record_stat( tp->r_delay_sqr.raw, square( delta ) );
+	tp->r_delay.record( delta );
+	tp->r_delay_sqr.record( square( delta ) );
 	timeline_trace( SYNC_INTERACTION_ESTABLISHED, msg->client, msg->intermediate, ep, msg->time_stamp );
     }
 
@@ -163,7 +163,7 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
 	_phase_start_time = start_time;
 	ep->_active[0] += 1;
 
-	ps_record_stat2( ep->_phase[0].r_util.raw, ep->_active[0], start_time ); 
+	ps_record_stat2( ep->_phase[0].r_util._raw, ep->_active[0], start_time ); 
 
 	run_activities(  ep, ep->_activity, reschedule );
 
@@ -177,9 +177,9 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
 	p = _current_phase;
 	Activity * phase = &ep->_phase[p];
 	ep->_active[p] -= 1;
-	ps_record_stat( phase->r_util.raw, ep->_active[p] );
-	ps_record_stat( phase->r_cycle.raw, delta );
-	ps_record_stat( phase->r_cycle_sqr.raw, square(delta) );
+	phase->r_util.record( ep->_active[p] );
+	phase->r_cycle.record( delta );
+	phase->r_cycle_sqr.record( square(delta) );
 	if ( phase->_hist_data ) {
 	    phase->_hist_data->insert(delta);
 	}
@@ -210,8 +210,8 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
     }
 
     delta = ps_now - start_time;
-    ps_record_stat( ep->r_cycle.raw, delta );		/* Entry cycle time.	*/
-    ps_record_stat( _cp->r_cycle.raw, delta );		/* Task cycle time.	*/
+    ep->r_cycle.record( delta );		/* Entry cycle time.	*/
+    _cp->r_cycle.record( delta );		/* Task cycle time.	*/
 
     end_msg = _entry[ep->index()];
     if ( end_msg ) {
@@ -225,7 +225,7 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
     if ( _cp->_join_start_time == 0.0 ) {
 	_cp->_active -= 1;
     }
-    ps_record_stat( _cp->r_util.raw, _cp->_active );
+    _cp->r_util.record( _cp->_active );
 
     ps_my_schedule_time = ps_now;		/* In case we don't block...	*/
 }
@@ -586,7 +586,7 @@ srn_worker::run()
     for ( ;; ) {
 	double time_stamp;	/* time message sent.		*/
 	long entry_id;		/* entry id			*/
-	long reply_port;		/* reply port			*/
+	long reply_port;	/* reply port			*/
 	Message * msg;		/* Time stamp info from client	*/
 	double start_time = ps_now;
 
@@ -655,15 +655,15 @@ srn_token::run()
 	
 	    if(time_stamp!=ps_now){
 		const double delta = ps_now - time_stamp;
-		ps_record_stat( dynamic_cast<ReadWriteLock_Task *>(_cp)->r_reader_wait.raw, delta );
-		ps_record_stat( dynamic_cast<ReadWriteLock_Task *>(_cp)->r_reader_wait_sqr.raw, square( delta ) );
+		dynamic_cast<ReadWriteLock_Task *>(_cp)->r_reader_wait.record( delta );
+		dynamic_cast<ReadWriteLock_Task *>(_cp)->r_reader_wait_sqr.record( square( delta ) );
 	    }
 
 	}
 
 	_hold_start_time = ps_now;			/* Time we were "waited". */
 	cp->_hold_active += 1;
-	ps_record_stat( cp->r_hold_util.raw, cp->_hold_active );
+	cp->r_hold_util.record( cp->_hold_active );
 
 	/* Send to the signal task next and do the signal processing. */
 
@@ -698,15 +698,15 @@ srn_token::run()
 
 	if(cp->discipline()==SCHEDULE_RWLOCK){
 
-	    ps_record_stat( dynamic_cast<ReadWriteLock_Task *>(_cp)->r_reader_hold.raw, delta );
-	    ps_record_stat( dynamic_cast<ReadWriteLock_Task *>(_cp)->r_reader_hold_util.raw, cp->_hold_active );
-	    ps_record_stat( dynamic_cast<ReadWriteLock_Task *>(_cp)->r_reader_hold_sqr.raw, square( delta ) );
+	    dynamic_cast<ReadWriteLock_Task *>(_cp)->r_reader_hold.record( delta );
+	    dynamic_cast<ReadWriteLock_Task *>(_cp)->r_reader_hold_util.record( cp->_hold_active );
+	    dynamic_cast<ReadWriteLock_Task *>(_cp)->r_reader_hold_sqr.record( square( delta ) );
 
 	}else{
 			
-	    ps_record_stat( cp->r_hold_util.raw, cp->_hold_active );
-	    ps_record_stat( cp->r_hold.raw, delta );
-	    ps_record_stat( cp->r_hold_sqr.raw, square( delta ) );
+	    cp->r_hold_util.record( cp->_hold_active );
+	    cp->r_hold.record( delta );
+	    cp->r_hold_sqr.record( square( delta ) );
 	}
 
 	if ( cp->_hist_data ) {
@@ -757,9 +757,9 @@ srn_token_r::run()
 
 	cp->_hold_active -= 1;
 	double delta = ps_now - _hold_start_time;
-	ps_record_stat( cp->r_hold.raw, delta );
-	ps_record_stat( cp->r_hold_sqr.raw, square( delta ) );
-	ps_record_stat( cp->r_hold_util.raw, cp->_hold_active );
+	cp->r_hold.record( delta );
+	cp->r_hold_sqr.record( square( delta ) );
+	cp->r_hold_util.record( cp->_hold_active );
 	if ( cp->_hist_data ) {
 	    cp->_hist_data->insert( delta );
 	}
@@ -787,7 +787,7 @@ srn_token_r::run()
 
 	cp->_hold_active += 1;
 	_hold_start_time = ps_now;
-	ps_record_stat( cp->r_hold_util.raw, cp->_hold_active );
+	cp->r_hold_util.record( cp->_hold_active );
 
 	/* Wait processing */
 
@@ -866,8 +866,8 @@ srn_rwlock_server::run()
 		timeline_trace( DEQUEUE_WRITER, 1 );
 		/*
 		  delta = ps_now - time_stamp;
-		  ps_record_stat( cp->r_writer_wait.raw, delta );
-		  ps_record_stat( cp->r_writer_wait_sqr.raw, square( delta ) );
+		  cp->r_writer_wait.record( delta );
+		  cp->r_writer_wait_sqr.record( square( delta ) );
 		*/
 	    }
 	}else if (ep->is_w_lock() ) {
@@ -912,8 +912,8 @@ srn_rwlock_server::run()
 		timeline_trace( DEQUEUE_WRITER, 1 );
 
 		/*	delta = ps_now - time_stamp;
-			ps_record_stat( cp->r_writer_wait.raw, delta );
-			ps_record_stat( cp->r_writer_wait_sqr.raw, square( delta ) );*/
+			cp->r_writer_wait.record( delta );
+			cp->r_writer_wait_sqr.record( square( delta ) );*/
 	    }
 	    else if (readers>0){
 		/* some readers are waiting in the queue. */
@@ -927,8 +927,8 @@ srn_rwlock_server::run()
 		    timeline_trace( DEQUEUE_READER, 1 );
 		    /*
 		      delta = ps_now - time_stamp;
-		      ps_record_stat( cp->r_reader_wait.raw, delta );
-		      ps_record_stat( cp->r_reader_wait_sqr.raw, square( delta ) );
+		      cp->r_reader_wait.record( delta );
+		      cp->r_reader_wait_sqr.record( square( delta ) );
 		    */
 		} 
 	    }
@@ -972,13 +972,13 @@ srn_writer_token::run()
 	
 	if(time_stamp!=ps_now){
 	    const double delta = ps_now - time_stamp;
-	    ps_record_stat( cp->r_writer_wait.raw, delta );
-	    ps_record_stat( cp->r_writer_wait_sqr.raw, square( delta ) );
+	    cp->r_writer_wait.record( delta );
+	    cp->r_writer_wait_sqr.record( square( delta ) );
 	}
 	
         _hold_start_time = ps_now;			/* Time we were "waited". */
 	cp->_hold_active += 1;
-	ps_record_stat( cp->r_writer_hold_util.raw, cp->_hold_active );
+	cp->r_writer_hold_util.record( cp->_hold_active );
 
 	/* Send to the signal task next and do the signal processing. */
 
@@ -1009,11 +1009,10 @@ srn_writer_token::run()
 	/* All done, wait for "wait" */
 
 	cp->_hold_active -= 1;
-	ps_record_stat( cp->r_writer_hold_util.raw, cp->_hold_active );
-
 	const double delta = ps_now - _hold_start_time;
-	ps_record_stat( cp->r_writer_hold.raw, delta );
-	ps_record_stat( cp->r_writer_hold_sqr.raw, square( delta ) );
+	cp->r_writer_hold_util.record( cp->_hold_active );
+	cp->r_writer_hold.record( delta );
+	cp->r_writer_hold_sqr.record( square( delta ) );
 
 	timeline_trace( WORKER_IDLE );
     }
@@ -1151,23 +1150,23 @@ Instance::compute ( Activity * ap, Activity * pp )
 	time = ap->get_slice_time();
 	timeline_trace( TASK_IS_COMPUTING, time );
 
-	r_a_execute = ap->r_cpu_util.raw;
+	r_a_execute = ap->r_cpu_util._raw;
 
 	ap->_cpu_active += 1;
-	ps_record_stat( ap->r_cpu_util.raw,  ap->_cpu_active );	/* Phase P execution.	*/
+	ap->r_cpu_util.record(  ap->_cpu_active );	/* Phase P execution.	*/
 	if ( ap != pp ) {
-	    r_e_execute = pp->r_cpu_util.raw;
+	    r_e_execute = pp->r_cpu_util._raw;
 	    pp->_cpu_active += 1;
-	    ps_record_stat( pp->r_cpu_util.raw, pp->_cpu_active );	/* CPU util by phase */
+	    pp->r_cpu_util.record( pp->_cpu_active );	/* CPU util by phase */
 	}
 
 	(*_cp->_compute_func)( time );
 
 	ap->_cpu_active -= 1;
-	ps_record_stat( ap->r_cpu_util.raw,  pp->_cpu_active );	/* Phase P execution.	*/
+	ap->r_cpu_util.record(  pp->_cpu_active );	/* Phase P execution.	*/
 	if ( ap != pp ) {
 	    pp->_cpu_active -= 1;
-	    ps_record_stat( pp->r_cpu_util.raw, pp->_cpu_active );
+	    pp->r_cpu_util.record( pp->_cpu_active );
 	}
 	r_a_execute = -1;
 	r_e_execute = -1;
@@ -1178,7 +1177,7 @@ Instance::compute ( Activity * ap, Activity * pp )
 	ps_my_end_compute_time = ps_now;	/* Won't call the end_compute handler, ergo, set here */
     }
     ps_my_schedule_time = ps_now;
-    ps_record_stat( ap->r_service.raw, time );
+    ap->r_service.record( time );
 
     return time;
 }
@@ -1288,7 +1287,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
     timeline_trace( ACTIVITY_START, ap );
 
     ap->_active += count;
-    ps_record_stat2( ap->r_util.raw, ap->_active, start_time );		/* Activity utilization.*/
+    ps_record_stat2( ap->r_util._raw, ap->_active, start_time );		/* Activity utilization.*/
 
     /*
      * Delay for "think time".  
@@ -1314,14 +1313,14 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 	}
 
 	delta = ps_now - ps_my_schedule_time;
-	ps_record_stat( ap->r_proc_delay.raw, delta );			/* Delay for schedul.	*/
-	ps_record_stat( ap->r_proc_delay_sqr.raw, delta * delta );	/* Delay for schedul.	*/
+	ap->r_proc_delay.record( delta );		/* Delay for schedul.	*/
+	ap->r_proc_delay_sqr.record( square( delta ) );	/* Delay for schedul.	*/
 	ap->_prewaiting = delta;			/*Added by Tao*/
 
 	if ( ap != phase ) {
-	    ps_record_stat( phase->r_proc_delay.raw, delta );
-	    ps_record_stat( phase->r_proc_delay_sqr.raw, delta * delta );
-	    phase->_prewaiting = delta;	/*Added by Tao*/
+	    phase->r_proc_delay.record( delta );
+	    phase->r_proc_delay_sqr.record( square( delta ) );
+	    phase->_prewaiting = delta;			/*Added by Tao*/
 	}
 
 	timeline_trace( ACTIVITY_EXECUTE, ap );
@@ -1340,12 +1339,12 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 		tp->send_synchronous( ep, _cp->priority(), reply_port() );
 		delta = ps_now - ps_my_schedule_time;
 
-		ps_add_stat( ap->r_proc_delay.raw, delta );
-		ps_add_stat( ap->r_proc_delay_sqr.raw, (delta + ap->_prewaiting) * (delta + ap->_prewaiting) -  ap->_prewaiting * ap->_prewaiting);
+		ap->r_proc_delay.add( delta );
+		ap->r_proc_delay_sqr.add( square(delta + ap->_prewaiting) -  square(ap->_prewaiting) );
 		ap->_prewaiting += delta;
 		if ( ap != phase ) {
-		    ps_add_stat( phase->r_proc_delay.raw, delta );
-		    ps_add_stat( phase->r_proc_delay_sqr.raw, (delta + phase->_prewaiting) * (delta + phase->_prewaiting) -  phase->_prewaiting * phase->_prewaiting);
+		    phase->r_proc_delay.add( delta );
+		    phase->r_proc_delay_sqr.add( square(delta + phase->_prewaiting) -  square(phase->_prewaiting * phase->_prewaiting) );
 		    phase->_prewaiting += delta;
 		}
 		/*End here*/
@@ -1358,11 +1357,11 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 	    }
 	} /* end for loop */
 
-	ps_record_stat( ap->r_sends.raw, sends );
-	ps_record_stat( ap->r_slices.raw, slices );
+	ap->r_sends.record( sends );
+	ap->r_slices.record( slices );
 	if ( ap != phase ) {
-	    ps_record_stat( phase->r_sends.raw, sends );
-	    ps_record_stat( phase->r_slices.raw, slices );
+	    phase->r_sends.record( sends );
+	    phase->r_slices.record( slices );
 	}
 
 	reschedule = true;
@@ -1371,8 +1370,8 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
     if ( count ) {
 	delta = ps_now - start_time;				/* Bug 232 */
 
-	ps_record_stat( ap->r_cycle.raw, delta );		/* Entry cycle time.	*/
-	ps_record_stat( ap->r_cycle_sqr.raw, square(delta) );	/* Entry cycle time.	*/
+	ap->r_cycle.record( delta );		/* Entry cycle time.	*/
+	ap->r_cycle_sqr.record( square(delta) );	/* Entry cycle time.	*/
 	if ( ap->_hist_data ) {
 	    ap->_hist_data->insert( delta );
 	}
@@ -1418,16 +1417,16 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 		if ( p == 0 && ap != &reply_ep->_phase[p] && ep == reply_ep ) {
 		    assert( ep->_active[0] );
 		    delta = ps_now - root_ptr()->_phase_start_time;
-		    ps_record_stat( ep->_phase[0].r_cycle.raw, delta );
-		    ps_record_stat( ep->_phase[0].r_cycle_sqr.raw, square(delta) );
+		    ep->_phase[0].r_cycle.record( delta );
+		    ep->_phase[0].r_cycle_sqr.record( square(delta) );
 		    if ( ep->_phase[0]._hist_data ) {
 			ep->_phase[0]._hist_data->insert( delta );
 		    }
 
 		    ep->_active[0] -= 1;
-		    ps_record_stat( ep->_phase[0].r_util.raw, ep->_active[0] );
+		    ep->_phase[0].r_util.record( ep->_active[0] );
 		    ep->_active[1] += 1;
-		    ps_record_stat( ep->_phase[1].r_util.raw, ep->_active[1] );
+		    ep->_phase[1].r_util.record( ep->_active[1] );
 
 		    root_ptr()->_phase_start_time = ps_now;
 		    root_ptr()->_current_phase = 1;
@@ -1442,19 +1441,18 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
     }
 
     ap->_active -= count;
-    ps_record_stat( ap->r_util.raw, ap->_active );
+    ap->r_util.record( ap->_active );
 
     /*Add the preemption time to the waiting time if available. Tao*/
 
     if (ps_preempted_time (task_id()) > 0.0) {   
-	ps_add_stat( ap->r_proc_delay.raw, ps_preempted_time (task_id()) );
-	ps_add_stat( ap->r_proc_delay_sqr.raw, (ps_preempted_time (task_id()) + ap->_prewaiting) * (ps_preempted_time (task_id()) + ap->_prewaiting) -  ap->_prewaiting * ap->_prewaiting);
+	ap->r_proc_delay.add( ps_preempted_time(task_id()) );
+	ap->r_proc_delay_sqr.add( (ps_preempted_time(task_id()) + ap->_prewaiting) * (ps_preempted_time (task_id()) + ap->_prewaiting) -  square(ap->_prewaiting) );
 
 #if 0
 	if ( ap != &ep->phase[phase] ) {
-	    ps_add_stat( phase->r_proc_delay.raw, ps_preempted_time (task_id()) );
-	    ps_add_stat( phase->r_proc_delay_sqr.raw, (ps_preempted_time (task_id()) + phase->_prewaiting) * (ps_preempted_time (task_id()) + phase->_prewaiting) -  phase->_prewaiting * phase->_prewaiting);
-
+	    phase->r_proc_delay.add( ps_preempted_time (task_id()) );
+	    phase->r_proc_delay_sqr.add( (ps_preempted_time (task_id()) + phase->_prewaiting) * (ps_preempted_time (task_id()) + phase->_prewaiting) -  square(phase->_prewaiting) );
 	}
 #endif
 
@@ -1491,8 +1489,8 @@ Instance::next_activity( Entry * ep, Activity * ap_in, bool reschedule )
 	    if ( _cp->is_sync_server() && join_list->join_type_is( AndJoinActivityList::Join::SYNCHRONIZATION ) ) {
 		if ( root_ptr()->all_activities_done( ap_in ) ) {
 		    double delta = ps_now - _cp->_join_start_time;
-		    ps_record_stat( join_list->r_join.raw, delta );
-		    ps_record_stat( join_list->r_join_sqr.raw, square( delta ) );
+		    join_list->r_join.record( delta );
+		    join_list->r_join_sqr.record( square( delta ) );
 					  
 		    _cp->_join_start_time = 0.0;
 
@@ -1549,8 +1547,8 @@ again_1:
 	    if ( join_list ) {
 		const double delta = thread_K_outOf_N_end_compute_time - fork_start; 
 
-		ps_record_stat( join_list->r_join.raw, delta );
-		ps_record_stat( join_list->r_join_sqr.raw, square( delta ) );
+		join_list->r_join.record( delta );
+		join_list->r_join_sqr.record( square( delta ) );
 		if ( join_list->_hist_data ) {
 		    join_list->_hist_data->insert( delta );
 		}
@@ -1704,7 +1702,7 @@ Instance::thread_wait( double time_out, char ** msg, const bool flush, double * 
 
 	if ( flush ) { /* flush_thread() call */
 	    Activity * replyMsg = (Activity *)(*msg);
-	    ps_record_stat( replyMsg->r_afterQuorumThreadWait.raw, *thread_end_compute_time - lastQuorumEndTime);
+	    replyMsg->r_afterQuorumThreadWait.record(*thread_end_compute_time - lastQuorumEndTime);
 	}
     }
 

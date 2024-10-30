@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 15353 2022-01-04 22:06:34Z greg $
+ * $Id: model.h 17402 2024-10-29 23:28:52Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -21,13 +21,6 @@
 #include <lqio/common_io.h>
 #include <regex>
 #include "result.h"
-#if HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-#if HAVE_SYS_TIMES_H
-#include <sys/times.h>
-#endif
-#include <time.h>
 
 namespace LQIO {
     namespace DOM {
@@ -130,13 +123,13 @@ private:
     const std::string& getOutputFileName() const { return (_output_file_name.size() > 0 && _output_file_name != "-") ? _output_file_name : _input_file_name; }
     
     void print_intermediate();
-    void print_raw_stats( FILE * output ) const;
+    std::ostream& print( std::ostream& output ) const;
     
     bool run( int );
     static void start_task( Task * );
 
     static double rms_confidence();
-    static double normalized_conf95( const result_t& stat );
+    static double normalized_conf95( const Result& stat );
 
 private:
     LQIO::DOM::Document* _document;

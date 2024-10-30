@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 17069 2024-02-27 23:16:21Z greg $
+ * $Id: pragma.cc 17400 2024-10-28 20:52:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,6 +24,7 @@
 
 Pragma * Pragma::__pragmas = nullptr;
 const std::map<const std::string,Pragma::fptr> Pragma::__set_pragma = {
+    { LQIO::DOM::Pragma::_disjoint_customers_,		&Pragma::set_disjoint_customers },
     { LQIO::DOM::Pragma::_force_random_queueing_, 	&Pragma::set_force_random_queueing },
     { LQIO::DOM::Pragma::_processor_scheduling_,	&Pragma::set_processor_scheduling },
     { LQIO::DOM::Pragma::_queue_size_,			&Pragma::set_queue_size },
@@ -40,6 +41,7 @@ const std::map<const std::string,Pragma::fptr> Pragma::__set_pragma = {
 };
 
 Pragma::Pragma() :
+    _disjoint_customers(false),
     _processor_scheduling(SCHEDULE_FIFO),
     _reschedule_on_async_send(false),
     _save_marginal_probabilities(false),
@@ -78,6 +80,13 @@ Pragma::set( const std::map<std::string,std::string>& list )
 }
 
 /* ------------------------------------------------------------------------ */
+
+void
+Pragma::set_disjoint_customers( const std::string& value )
+{
+    _disjoint_customers =LQIO::DOM::Pragma::isTrue( value );
+}
+
 
 void
 Pragma::set_force_random_queueing( const std::string& value )

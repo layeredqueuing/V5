@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: task.cc 17348 2024-10-09 18:54:22Z greg $
+ * $Id: task.cc 17400 2024-10-28 20:52:36Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -371,7 +371,7 @@ bool Task::is_client() const
 
 bool Task::is_single_place_task() const
 {
-    return type() == Task::Type::REF_TASK && (customers_flag
+    return type() == Task::Type::REF_TASK && (!Pragma::__pragmas->disjoint_customers()
 				  || (n_threads() > 1 && !processor()->is_infinite()));
 }
 
@@ -422,7 +422,7 @@ unsigned int Task::ref_count() const
 /*
  * Return the number of "customers" to generate.  Open arrival sources
  * alway generate one copy. Reference tasks generate one copy if the
- * customers_flag is set.
+ * disjoint_customers flag is set.
  */
 
 unsigned Task::n_customers() const

@@ -2592,7 +2592,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
     output << __comment << "  -*- mode: latex; mode: outline-minor; fill-column: 108 -*- " << std::endl
 	   << __comment << " Title:  lqns" << std::endl
 	   << __comment << "" << std::endl
-	   << __comment << " $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/help.cc $" << std::endl
+	   << __comment << " $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk/lqns/help.cc $" << std::endl
 	   << __comment << " Original Author:     Greg Franks <greg@sce.carleton.ca>" << std::endl
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl

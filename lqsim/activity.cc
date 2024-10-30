@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 17298 2024-09-17 19:01:02Z greg $
+ * $Id: activity.cc 17403 2024-10-30 01:30:01Z greg $
  */
 
 #include "lqsim.h"
@@ -59,7 +59,7 @@ std::map<LQIO::DOM::ActivityList*, ActivityList *> Activity::domToNative;
 Activity::Activity( Task * cp, LQIO::DOM::Phase * dom )
     : _dom(dom),
       _name(dom ? dom->getName() : ""),     
-      _arrival_rate(0.0),
+      _service_time(0.0),
       _cv_sqr(0.0),
       _think_time(0.0),
       _task(cp),
@@ -76,7 +76,17 @@ Activity::Activity( Task * cp, LQIO::DOM::Phase * dom )
       _output(nullptr),
       _active(0),
       _cpu_active(0),
-      _hist_data(nullptr)
+      _hist_data(nullptr),
+      r_util("Utilization",dom),
+      r_cpu_util("Execution",dom),
+      r_service("Service",dom),
+      r_slices("Slices",dom),
+      r_sends("Sends",dom),
+      r_proc_delay("Proc delay",dom),
+      r_proc_delay_sqr("Pr dly Sqr",dom),
+      r_cycle("Cycle Time",dom),
+      r_cycle_sqr("Cycle Sqred",dom),
+      r_afterQuorumThreadWait("afterQuorumThreadWait Raw Data",dom)
 {
     if ( dom && (dom->hasHistogram() || dom->hasMaxServiceTimeExceeded()) ) {
 //	    _hist_data = new Histogram( _dom->getHistogram() );
@@ -103,12 +113,6 @@ Activity::rename( const std::string& s )
     return *this;
 }
 
-Activity& 
-Activity::set_DOM(LQIO::DOM::Phase* phaseInfo)
-{
-    _dom = phaseInfo;
-    return *this;
-}
 
 bool
 Activity::has_lost_messages() const
@@ -119,12 +123,17 @@ Activity::has_lost_messages() const
 double
 Activity::service() const
 {
-    if (_dom == nullptr) return _arrival_rate;		/* Psuedo entry sets this for open arrival */
-    try {
-	return getDOM()->getServiceTimeValue();
-    }
-    catch ( const std::domain_error& e ) {
-	getDOM()->throw_invalid_parameter( "service time", e.what() );
+    if ( getDOM() == nullptr ) {
+	return 0;
+    } else if ( task()->type() ==  Task::Type::OPEN_ARRIVAL_SOURCE ) {
+	return _service_time;	// Set in entry.cc
+    } else {
+	try {
+	    return getDOM()->getServiceTimeValue();
+	}
+	catch ( const std::domain_error& e ) {
+	    getDOM()->throw_invalid_parameter( "service time", e.what() );
+	}
     }
     return 0.;
 }
@@ -212,18 +221,20 @@ Activity::configure()
 Activity&
 Activity::initialize()
 {
-    r_util.init( VARIABLE, "%30.30s Utilization", name().c_str() );
-    r_cpu_util.init( VARIABLE, "%30.30s Execution  ", name().c_str() );
-    r_service.init( SAMPLE,   "%30.30s Service    ", name().c_str() );
-    r_slices.init( SAMPLE,   "%30.30s Slices     ", name().c_str() );
-    r_sends.init( SAMPLE,   "%30.30s Sends      ", name().c_str() );
-    r_proc_delay.init( SAMPLE,   "%30.30s Proc delay ", name().c_str() );
-    r_proc_delay_sqr.init( SAMPLE,   "%30.30s Pr dly Sqr ", name().c_str() );
-    r_cycle.init( SAMPLE,   "%30.30s Cycle Time ", name().c_str() );
-    r_cycle_sqr.init( SAMPLE,   "%30.30s Cycle Sqred", name().c_str() );
-    r_afterQuorumThreadWait.init( SAMPLE,   "%30.30s afterQuorumThreadWait Raw Data", name().c_str() );	/* tomari quorum */
+    r_util.init();
+    r_cpu_util.init();
+    r_service.init();
+    r_slices.init();
+    r_sends.init();
+    r_proc_delay.init();
+    r_proc_delay_sqr.init();
+    r_cycle.init();
+    r_cycle_sqr.init();
+    r_afterQuorumThreadWait.init();
 
-    _calls.initialize( name().c_str() );
+    if ( getDOM() != nullptr) {
+	_calls.initialize( name().c_str() );
+    }
     return *this;
 }
 
@@ -837,24 +848,24 @@ Activity::find_reply( const Entry * ep ) const
  * Print out raw data.
  */
 
-const Activity&
-Activity::print_raw_stat( FILE * output ) const
+std::ostream&
+Activity::print( std::ostream& output ) const
 {
     if ( r_cycle.has_results() ) {
-	r_util.print_raw( output,           "%-24.24s Utilization", name().c_str() );
-	r_service.print_raw( output,        "%-24.24s Service    ", name().c_str() );
-	r_slices.print_raw( output,         "%-24.24s Slices     ", name().c_str() );
-	r_sends.print_raw( output,          "%-24.24s Sends      ", name().c_str() );
-	r_cpu_util.print_raw( output,       "%-24.24s Proc. Util.", name().c_str() );
-	r_proc_delay.print_raw( output,     "%-24.24s Proc. delay", name().c_str() );
-	r_proc_delay_sqr.print_raw( output, "%-24.24s Prc dly sqr", name().c_str() );
-	r_cycle.print_raw( output,          "%-24.24s Cycle Time ", name().c_str() );
-	r_cycle_sqr.print_raw( output,      "%-24.24s Cycle Sqred", name().c_str() );
-	r_afterQuorumThreadWait.print_raw( output, "%-24.24s afterQuorumThreadWait Raw Data", name().c_str() );	/* tomari quorum */
+	output << r_util
+	       << r_service
+	       << r_slices
+	       << r_sends
+	       << r_cpu_util
+	       << r_proc_delay
+	       << r_proc_delay_sqr
+	       << r_cycle
+	       << r_cycle_sqr
+	       << r_afterQuorumThreadWait;
     }
 
-    _calls.print_raw_stat( output );
-    return *this;
+    _calls.print( output );
+    return output;
 }
 
 

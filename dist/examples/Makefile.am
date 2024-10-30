@@ -1,4 +1,4 @@
-# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/dist/examples/Makefile.am $
+# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk/dist/examples/Makefile.am $
 # $Id: Makefile.am 10904 2012-05-23 17:36:00Z greg $
 # Used for make dist.
 # ------------------------------------------------------------------------

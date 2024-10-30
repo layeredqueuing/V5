@@ -2,14 +2,15 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 17322 2024-10-01 23:34:26Z greg $
+# $Id: Makefile.am 17394 2024-10-28 11:31:19Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
 OPTS=	-Pvariance=mol,threads=hyper -w
 DIFFOPTS= -Q -S0.001  +p
 
-SANITY=	01-sanity.lqxo \
+SANITY=	00-sanity.lqxo \
+	01-sanity.lqxo \
 	02-sanity.lqxo \
 	03-sanity.lqxo \
 	04-sanity.lqxo \

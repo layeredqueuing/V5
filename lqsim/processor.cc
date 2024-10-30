@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 17298 2024-09-17 19:01:02Z greg $
+ * $Id: processor.cc 17395 2024-10-28 12:38:12Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -64,12 +64,12 @@ Processor::find( const std::string& processor_name  )
 }
 
 
-Processor::Processor( LQIO::DOM::Processor* domProcessor )
+Processor::Processor( LQIO::DOM::Processor* dom )
     : trace_flag(false),
-      r_util(),
+      r_util("Utilization",dom),
       _group(nullptr),
       _node_id(0),
-      _dom( domProcessor )
+      _dom( dom )
 {
     trace_flag = std::regex_match( name(), processor_match_pattern );
 }
@@ -90,7 +90,7 @@ Processor::create()
 	LQIO::input_error( ERR_CANNOT_CREATE_X, "processor", name().c_str() );
     } else {
 	processor_table[_node_id] = this;
-	r_util.init( ps_get_node_stat_index( _node_id ) );
+	r_util.init( ps_get_node_stat_index( _node_id ) );	// defined by Parasol
     }
     return *this;
 }
@@ -271,7 +271,7 @@ Custom_Processor::main()
 
 		_active -= 1;
 		_active_task[ps_my_host] = nullptr;
-		ps_record_stat( r_util.raw, _active );
+		r_util.record( _active );
 		ps_schedule( NULL_TASK, ps_my_host );
 	    }
 	    break;
@@ -289,7 +289,7 @@ Custom_Processor::main()
 		/* No tasks.			*/
 
 		_active += 1;
-		ps_record_stat( r_util.raw, _active );
+		r_util.record( _active );
 		quantum = run_task( task_id );
 	    } else if ( discipline() == SCHEDULE_PPR
 			&& ps_ready_queue( ps_my_node, MAX_TASKS, rtrq ) > 0
@@ -491,6 +491,14 @@ Processor::insertDOMResults()
 	getDOM()->setResultUtilizationVariance(proc_util_var);
     }
     return *this;
+}
+
+
+std::ostream&
+Processor::print( std::ostream& output ) const
+{
+    output << r_util;
+    return output;
 }
 
 /*----------------------------------------------------------------------*/

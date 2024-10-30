@@ -1,7 +1,7 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 17292 2024-09-16 17:28:53Z greg $
+ * $Id: target.cc 17403 2024-10-30 01:30:01Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -11,15 +11,36 @@
 #include <functional>
 #include <limits>
 #include <lqio/error.h>
-#include <lqio/input.h>
-#include "target.h"
-#include "task.h"
+#include "entry.h"
 #include "entry.h"
 #include "errmsg.h"
-#include "entry.h"
-#include "message.h"
 #include "instance.h"
+#include "message.h"
 #include "pragma.h"
+#include "target.h"
+#include "task.h"
+
+tar_t::tar_t( Entry * entry, LQIO::DOM::Call * dom ) 
+    : r_delay("Wait",dom),
+      r_delay_sqr("Wait sq",dom),
+      r_loss_prob("Loss",dom),
+      _entry(entry), _link(-1), _tprob(0.0), _calls(0.0), _reply(false), _call(dom)
+{
+    _reply = (dom->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS || dom->getCallType() == LQIO::DOM::Call::Type::FORWARD);
+}
+
+/*
+ * Special constructor for open arrivals.
+ */
+
+tar_t::tar_t( Entry * entry, double calls )
+    : r_delay("Wait",nullptr),
+      r_delay_sqr("Wait sqr",nullptr),
+      r_loss_prob("Loss",nullptr),
+      _entry(entry), _link(-1), _tprob(0.0), _calls(calls), _reply(false), _call(nullptr)
+{
+}
+
 
 /*
  * Rendezvous message.  Recycle message.
@@ -70,7 +91,7 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
     if ( msg != nullptr ) {
 	msg->init( src, this );
 
-	ps_record_stat( r_loss_prob.raw, 0 );
+	r_loss_prob.record( 0 );
 	Instance * ip = object_tab[ps_myself];
 	ip->timeline_trace( ASYNC_INTERACTION_INITIATED, src, _entry );
 
@@ -83,7 +104,7 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
 	    throw std::runtime_error( "tar_t::send_asynchronous" );
 	}
     } else {
-	ps_record_stat( r_loss_prob.raw, 1 );
+	r_loss_prob.record( 1 );
 	if ( Pragma::__pragmas->abort_on_dropped_message() ) {
 	    LQIO::runtime_error( ERR_MSG_POOL_EMPTY, src->name().c_str(), _entry->name().c_str() );
 	    throw std::runtime_error( "tar_t::send_asynchronous" );
@@ -98,21 +119,18 @@ tar_t::configure()
 {
     if ( _entry->task()->is_reference_task() ) {
 	_entry->task()->getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, _entry->name().c_str() );
-    } else if ( _type == Type::call ) {
-	_reply = (_dom._call->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS || _dom._call->getCallType() == LQIO::DOM::Call::Type::FORWARD);
+    } else if ( _call != nullptr ) {
 	try { 
-	    _calls = _dom._call->getCallMeanValue();
-	    if ( _dom._call->getCallType() != LQIO::DOM::Call::Type::FORWARD && dynamic_cast<const LQIO::DOM::Phase *>(_dom._call->getSourceObject())->getPhaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && _calls != std::rint( _calls ) ) {
+	    _calls = _call->getCallMeanValue();
+	    if ( _call->getCallType() != LQIO::DOM::Call::Type::FORWARD && dynamic_cast<const LQIO::DOM::Phase *>(_call->getSourceObject())->getPhaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && _calls != std::rint( _calls ) ) {
 		throw std::domain_error( "invalid integer" );
-	    } else if ( _dom._call->getCallType() == LQIO::DOM::Call::Type::FORWARD && _calls > 1.0 ) {
+	    } else if ( _call->getCallType() == LQIO::DOM::Call::Type::FORWARD && _calls > 1.0 ) {
 		throw std::domain_error( "invalid probability" );
 	    }
 	}
 	catch ( const std::domain_error &e ) {
-	    _dom._call->throw_invalid_parameter( "mean value", e.what() );
+	    _call->throw_invalid_parameter( "mean value", e.what() );
 	}
-    } else if ( _type != Type::constant ) {
-	abort();
     }
 }
 
@@ -175,7 +193,7 @@ tar_t::print( FILE * output ) const
 tar_t&
 tar_t::insertDOMResults()
 {
-    if ( _type != Type::call ) return *this;
+    if ( _call == nullptr ) return *this;
 
     double meanDelay, meanDelayVariance;
     const double meanLossProbability = r_loss_prob.mean();
@@ -187,10 +205,10 @@ tar_t::insertDOMResults()
 	meanDelay = std::numeric_limits<double>::infinity();
 	meanDelayVariance = std::numeric_limits<double>::infinity();
     }
-    _dom._call->setResultWaitingTime(meanDelay)
+    _call->setResultWaitingTime(meanDelay)
 	.setResultVarianceWaitingTime(meanDelayVariance);
     if ( !reply() ) {
-	_dom._call->setResultDropProbability( meanLossProbability );
+	_call->setResultDropProbability( meanLossProbability );
     }
 
     if ( number_blocks > 1 ) {
@@ -206,13 +224,25 @@ tar_t::insertDOMResults()
 	    varDelayVariance = std::numeric_limits<double>::infinity();
 	}
 
-	_dom._call->setResultWaitingTimeVariance(varDelay)
+	_call->setResultWaitingTimeVariance(varDelay)
 	    .setResultVarianceWaitingTimeVariance(varDelayVariance);
 	if ( !reply() ) {
-	    _dom._call->setResultDropProbabilityVariance( meanLossVariance );
+	    _call->setResultDropProbabilityVariance( meanLossVariance );
 	}
     }
     return *this;
+}
+
+
+std::ostream&
+tar_t::print( std::ostream& output ) const
+{
+    output << r_delay
+	   << r_delay_sqr;
+    if ( !reply() ) {
+	output << r_loss_prob;
+    }
+    return output;
 }
 
 /*
@@ -220,11 +250,12 @@ tar_t::insertDOMResults()
  */
 
 void
-Targets::store_target_info (  Entry * to_entry, LQIO::DOM::Call* a_call  )
+Targets::store_target_info( Entry * to_entry, LQIO::DOM::Call* call  )
 {
-    const size_t offset = _target.size();
-    if ( a_call && alloc_target_info( to_entry ) ) {
-	_target[offset].initialize( to_entry, a_call );
+    if ( std::any_of( _target.begin(), _target.end(), [=]( const tar_t& target ){ return target.entry() == to_entry; } ) ) {
+	call->input_error( LQIO::WRN_MULTIPLE_SPECIFICATION );
+    } else {
+	_target.emplace_back( tar_t( to_entry, call ) );
     }
 }
 
@@ -234,30 +265,13 @@ Targets::store_target_info (  Entry * to_entry, LQIO::DOM::Call* a_call  )
  */
 
 void
-Targets::store_target_info ( Entry * to_entry, double a_const )
+Targets::store_target_info( Entry * to_entry, double value )
 {
-    const size_t offset = _target.size();
-    if ( a_const > 0.0 &&  alloc_target_info( to_entry ) ) {
-	_target[offset].initialize( to_entry, a_const );
+    if ( std::any_of( _target.begin(), _target.end(), [=]( const tar_t& target ){ return target.entry() == to_entry; } ) ) {
+//	call->input_error( LQIO::WRN_MULTIPLE_SPECIFICATION );
+    } else if ( value > 0 ) {
+	_target.emplace_back( tar_t( to_entry, value ) );
     }
-}
-
-
-
-bool
-Targets::alloc_target_info( Entry * to_entry ) 
-{
-    /* Check for duplicate call. */
-	
-    for ( unsigned t = 0; t < size(); ++t ) {
-	if ( _target[t]._entry == to_entry ) {
-	    LQIO::input_error( LQIO::WRN_MULTIPLE_SPECIFICATION );
-	    return false;
-	}
-    }
-    const size_t size = _target.size();
-    _target.resize(size+1);
-    return true;
 }
 
 
@@ -296,11 +310,9 @@ void
 Targets::initialize( const char * srcName )
 {
     for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
-	const char * dstName = tp->entry()->name().c_str();
-    
-	tp->r_delay.init( SAMPLE,     "Wait %-11.11s %-11.11s          ", srcName, dstName );
-	tp->r_delay_sqr.init( SAMPLE, "Wait %-11.11s %-11.11s          ", srcName, dstName );
-	tp->r_loss_prob.init( SAMPLE, "Loss %-11.11s %-11.11s          ", srcName, dstName );
+	tp->r_delay.init();
+	tp->r_delay_sqr.init();
+	tp->r_loss_prob.init();
     }
 }
 
@@ -374,18 +386,12 @@ Targets::reset_stats()
 }
 
 
-const Targets&
-Targets::print_raw_stat( FILE * output ) const
+
+std::ostream&
+Targets::print( std::ostream& output ) const
 {
-    for ( std::vector<tar_t>::const_iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
-	Entry * ep = tp->entry();
-	tp->r_delay.print_raw( output,      "Calling %-11.11s- delay", ep->name().c_str() );
-	tp->r_delay_sqr.print_raw( output,  "Calling %-11.11s- delay sqr", ep->name().c_str() );
-	if ( !tp->reply() ) {
-	    tp->r_loss_prob.print_raw( output, "Calling %-11.11s- loss prob", ep->name().c_str() );
-	}
-    }
-    return *this;
+    std::for_each( _target.begin(), _target.end(), [&]( const tar_t& target ){ target.print( output ); } );
+    return output;
 }
 
 

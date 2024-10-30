@@ -10,7 +10,7 @@
 /*
  * Activities (and phases).
  *
- * $Id: activity.h 17298 2024-09-17 19:01:02Z greg $
+ * $Id: activity.h 17403 2024-10-30 01:30:01Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -33,12 +33,8 @@ typedef double (*distribution_func_ptr)( double, double );
 class Activity {
     friend class Instance;
 
-private:
-    Activity( const Activity& ) = delete;
-    Activity& operator=( const Activity& ) = delete;
-    
 public:
-    Activity( Task * cp=nullptr, LQIO::DOM::Phase * dom=nullptr );
+    Activity( Task * cp, LQIO::DOM::Phase * dom );
     virtual ~Activity();
 
     const std::string& name() const { return _name; }
@@ -47,6 +43,7 @@ public:
     
     Activity& set_task( Task * cp ) { _task = cp; return *this; }
     Activity& set_phase( unsigned int p ) { _phase = p; return *this; }
+    Activity& set_service_time( double s ) { _service_time = s; return *this; }	/* for open arrival sources */
 
     double cv_sqr() const { return (_dom && _dom->hasCoeffOfVariationSquared()) ? _dom->getCoeffOfVariationSquaredValue() : 1.0; }
     double service() const;
@@ -63,9 +60,7 @@ public:
     bool has_think_time() const { return _think_time > 0.; }
     bool has_lost_messages() const;
     
-    void set_arrival_rate( const double r ) { _arrival_rate = r; }
     double get_slice_time() { return (*_distribution)( _scale, _shape ); }
-    Activity& set_DOM( LQIO::DOM::Phase* phaseInfo );
     LQIO::DOM::Phase* getDOM() const { return _dom; }
     const std::vector<LQIO::DOM::Call*>& get_calls() const { return _dom->getCalls(); }
     
@@ -81,7 +76,7 @@ public:
     Activity& add_activity_lists();
     Activity& act_add_reply( Entry * );
 
-    const Activity& print_raw_stat( FILE * output ) const;
+    std::ostream& print( std::ostream& output ) const;
     void print_debug_info();
     double find_children( std::deque<Activity *>& activity_stack, std::deque<AndForkActivityList *>& fork_stack, const Entry * ep );
 
@@ -112,7 +107,7 @@ private:
      * here.
      */
     const std::string _name;		/* Name of activity.		*/
-    double _arrival_rate;		/* service time			*/
+    double _service_time;		/* service time			*/
     double _cv_sqr;			/* cv_sqr			*/
     double _think_time;			/* Cached think time.	        */
     
@@ -135,20 +130,18 @@ public:
     unsigned _active;			/* Number of active instances.	*/
     unsigned _cpu_active;		/* Number of active instances.	*/
     Histogram * _hist_data;            	/* histogram data.		*/
-    result_t r_util;			/* Phase utilization.	        */
-    result_t r_cpu_util;		/* Execution time.		*/
-    result_t r_service;			/* Service time.		*/
-    result_t r_slices;			/* Number of slices. 		*/
-    result_t r_sends;			/* Actual # of sends.		*/
-    result_t r_proc_delay; 		/* Delay to getting processor	*/
-    result_t r_proc_delay_sqr; 		/* Delay to getting processor	*/
-    result_t r_cycle;			/* Entry cycle time.	        */
-    result_t r_cycle_sqr;  		/* Entry cycle time.	        */
-    result_t r_afterQuorumThreadWait;	/* start tomari quorum 		*/
+    VariableResult r_util;		/* Phase utilization.	        */
+    VariableResult r_cpu_util;		/* Execution time.		*/
+    SampleResult r_service;		/* Service time.		*/
+    SampleResult r_slices;		/* Number of slices. 		*/
+    SampleResult r_sends;		/* Actual # of sends.		*/
+    SampleResult r_proc_delay; 		/* Delay to getting processor	*/
+    SampleResult r_proc_delay_sqr;	/* Delay to getting processor	*/
+    SampleResult r_cycle;		/* Entry cycle time.	        */
+    SampleResult r_cycle_sqr;  		/* Entry cycle time.	        */
+    SampleResult r_afterQuorumThreadWait;	/* start tomari quorum 		*/
 
     static std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> actConnections;
     static std::map<LQIO::DOM::ActivityList*, ActivityList *> domToNative;
 };
-
-void act_print_raw_stat( FILE * output, Activity * ap );
 #endif

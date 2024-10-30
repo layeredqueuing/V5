@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/runlqx.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk/lqn2ps/runlqx.cc $
  *
  * ------------------------------------------------------------------------
  * $Id: runlqx.cc 16407 2023-02-08 02:21:27Z greg $

@@ -1,7 +1,7 @@
 # -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 # $id$
-# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/parasol/configure.ac $
+# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk/parasol/configure.ac $
 
 AC_PREREQ([2.69])
 AC_INIT([parsol],[3.2],[greg@sce.carleton.ca])

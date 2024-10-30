@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/entry.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk/lqns/entry.h $
  *
  * Everything you wanted to know about an entry, but were afraid to ask.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 17209 2024-05-13 18:16:37Z greg $
+ * $Id: entry.h 17399 2024-10-28 20:10:13Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -170,7 +170,6 @@ public:
     static Entry * find( const std::string&, unsigned int=1 );
     static Entry * create( LQIO::DOM::Entry* domEntry, unsigned int );
     static bool max_phase( const Entry * e1, const Entry * e2 ) { return e1->maxPhase() < e2->maxPhase(); }
-    static double add_visit_probability( double sum, const Entry* entry ) { return sum + entry->prVisit(); }
 
 protected:
     /* Instance creation */

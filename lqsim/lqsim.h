@@ -12,7 +12,7 @@
 /*
  * Global vars for setting up simulation.
  *
- * $Id: lqsim.h 17291 2024-09-16 16:41:03Z greg $
+ * $Id: lqsim.h 17388 2024-10-24 11:39:41Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -165,6 +165,4 @@ typedef enum
 #if defined(__cplusplus)
 }
 #endif
-
-template <typename Type> inline static void Delete( Type x ) { delete x; }
 #endif
