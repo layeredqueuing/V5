@@ -69,7 +69,8 @@ private:
 class Gamma : public Random
 {
 public:
-    Gamma( double shape, double scale ) : Random(), _f(shape,scale) {}
+    /* alpha = k, beta = scale (1/lambda) */
+    Gamma( double alpha, double beta ) : Random(), _f(alpha,beta) {}
     virtual ~Gamma() {}
 
     double operator()() { return _f(__generator); }
@@ -99,14 +100,14 @@ private:
 class Pareto : public Random
 {
 public:
-    Pareto( double scale, double shape ) : Random(), _shape(shape), _scale(scale), _f(0.,1.) {}
+    Pareto( double scale, double shape ) : Random(), _scale(scale), _shape(shape), _f(0.,1.) {}
     virtual ~Pareto() {}
 
     double operator()();
     
 private:
-    const double _shape;
     const double _scale;
+    const double _shape;
     std::uniform_real_distribution<double> _f;
 };
 

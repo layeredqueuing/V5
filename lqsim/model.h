@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 17423 2024-11-04 01:58:07Z greg $
+ * $Id: model.h 17436 2024-11-05 23:16:25Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -101,7 +101,7 @@ public:
     typedef bool (Model::*solve_using)();
     virtual ~Model();
     
-    static int solve( solve_using, const std::string&, LQIO::DOM::Document::InputFormat, const std::string&, LQIO::DOM::Document::OutputFormat, const LQIO::DOM::Pragma& );
+    static int solve( solve_using, const std::filesystem::path&, LQIO::DOM::Document::InputFormat, const std::filesystem::path&, LQIO::DOM::Document::OutputFormat, const LQIO::DOM::Pragma& );
 
     bool operator!() const { return _document == nullptr; }
 

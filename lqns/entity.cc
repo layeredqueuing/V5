@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 17408 2024-10-30 17:40:57Z greg $
+ * $Id: entity.cc 17435 2024-11-05 22:11:46Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -259,7 +259,7 @@ Entity::isInfinite() const
 bool
 Entity::isCalledBy( const Task* task ) const
 {
-    return std::find( tasks().begin(), tasks().end(), task ) != tasks().end();
+    return tasks().find( task ) != tasks().end();
 }
 
 

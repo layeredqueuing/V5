@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 17411 2024-10-31 21:18:36Z greg $
+ *  $Id: dom_object.cpp 17434 2024-11-05 15:37:43Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -148,9 +148,8 @@ namespace LQIO {
 	std::string DocumentObject::inputErrorPreamble( unsigned int code ) const
 	{
 	    const error_message_type& error = __error_messages.at(code);
-
 	    std::string object_name = getTypeName();
-	    if ( dynamic_cast<const Task *>(this) && dynamic_cast<const Task *>(this)->getSchedulingType() == SCHEDULE_CUSTOMER ) {
+	    if ( dynamic_cast<const Task *>(this) != nullptr && dynamic_cast<const Task *>(this)->isReferenceTask() ) {
 		object_name.insert( 0, "Reference " );
 	    } else {
 		object_name[0] = std::toupper( object_name[0] );

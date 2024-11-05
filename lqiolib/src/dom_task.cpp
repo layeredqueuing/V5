@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_task.cpp 17333 2024-10-03 19:51:55Z greg $
+ *  $Id: dom_task.cpp 17434 2024-11-05 15:37:43Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -89,6 +89,17 @@ namespace LQIO {
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
+	bool Task::isReferenceTask() const
+	{
+	    static const std::set<scheduling_type> reference_task_types = {
+		SCHEDULE_CUSTOMER,
+		SCHEDULE_UNIFORM,
+		SCHEDULE_BURST
+	    };
+
+	    return reference_task_types.find( getSchedulingType() ) != reference_task_types.end();
+	}
+	
 	const std::vector<Entry*>& Task::getEntryList() const
 	{
 	    /* Return the top entry */

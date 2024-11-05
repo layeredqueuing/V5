@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 17427 2024-11-04 23:19:53Z greg $
+ * $Id: activity.cc 17434 2024-11-05 15:37:43Z greg $
  */
 
 #include "lqsim.h"
@@ -160,7 +160,7 @@ Activity::configure()
     }
 
     if ( slice_time == 0. ) {
-	_slice_time = new Constant( slice_time );
+	_slice_time = nullptr;
     } else if ( task()->discipline() == SCHEDULE_BURST ) {
 	const double shape = sqrt( 1.0 / cv_sqr() + 1.0 ) + 1.0;
 	const double scale = slice_time * ( shape - 1.0 ) / shape;

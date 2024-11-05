@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
-<lqn-model name="70-priority" description="$Id: 34-priority.lqnx 16474 2023-03-05 18:37:10Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="Priority Premptive Resume" conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
+<lqn-model name="70-priority" description="$Id: 34-priority.lqnx 17434 2024-11-05 15:37:43Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Priority Premptive Resume" conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9">
+      <pragma param="severity-level" value="run-time"/>
+   </solver-params>
    <processor name="p0" scheduling="pri">
       <task name="t0" scheduling="ref" think-time="4" priority="4">
          <entry name="e0" type="PH1PH2">

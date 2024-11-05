@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 17423 2024-11-04 01:58:07Z greg $
+ * $Id: model.cc 17436 2024-11-05 23:16:25Z greg $
  */
 
 #include "lqsim.h"
@@ -113,7 +113,7 @@ Model::~Model()
  */
 
 int
-Model::solve( solve_using run_function, const std::string& input_file_name, LQIO::DOM::Document::InputFormat input_format, const std::string& output_file_name, LQIO::DOM::Document::OutputFormat output_format, const LQIO::DOM::Pragma& pragmas )
+Model::solve( solve_using run_function, const std::filesystem::path& input_file_name, LQIO::DOM::Document::InputFormat input_format, const std::filesystem::path& output_file_name, LQIO::DOM::Document::OutputFormat output_format, const LQIO::DOM::Pragma& pragmas )
 {
     LQIO::io_vars.reset();
 

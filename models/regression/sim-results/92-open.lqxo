@@ -1,166 +1,165 @@
 <?xml version="1.0"?>
-<!-- $Id: 92-open.lqxo 13766 2020-08-18 02:54:45Z greg $ -->
-<!-- lqsim -confidence=1.0,1000 -xml -seed=1049217653 -output=92-open.lqxo -->
-<lqn-model name="92-open" description="lqsim 5.16 solution for model from: 92-open.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
-      <pragma param="initial-loops" value="1000"/>
-      <pragma param="precision" value="1.0"/>
-      <pragma param="seed-value" value="1049217653"/>
-      <pragma param="stop-on-message-loss" value="false"/>
-      <result-general solver-info="lqsim 5.16" valid="YES" conv-val="0.697076" iterations="3" platform-info="Gregs-MacBookPro-2.local Darwin 19.6.0" user-cpu-time=" 1:05:40.000" system-cpu-time=" 0:24:36.000" elapsed-time=" 1:31:30.000"/>
-   </solver-params>
-   <processor name="choose" scheduling="inf">
-      <result-processor utilization="9.96552e-08">
-         <result-conf-95 utilization="6.13016e-10"/>
-         <result-conf-99 utilization="1.41394e-09"/>
-      </result-processor>
-      <task name="choose" scheduling="inf">
-         <result-task throughput="0.00999156" utilization="0.522815" phase1-utilization="0.522815" proc-utilization="9.96552e-08">
-            <result-conf-95 throughput="5.12249e-05" utilization="0.00317133" phase1-utilization="0.00317133" proc-utilization="6.13016e-10"/>
-            <result-conf-99 throughput="0.000118152" utilization="0.00731477" phase1-utilization="0.00731477" proc-utilization="1.41394e-09"/>
-         </result-task>
-         <entry name="choose" type="PH1PH2" open-arrival-rate="0.01">
-            <result-entry utilization="0.522815" throughput="0.00999156" squared-coeff-variation="1.61236" proc-utilization="9.96552e-08" throughput-bound="0.021777" open-wait-time="52.3258">
-               <result-conf-95 utilization="0.00317133" throughput="5.12249e-05" squared-coeff-variation="0" proc-utilization="6.13016e-10" open-wait-time="0.391815"/>
-               <result-conf-99 utilization="0.00731477" throughput="0.000118152" squared-coeff-variation="0" proc-utilization="1.41394e-09" open-wait-time="0.903733"/>
-            </result-entry>
-            <entry-phase-activities>
-               <activity name="choose_ph1" phase="1" host-demand-mean="1e-05">
-                  <result-activity proc-waiting="0" service-time="52.3258" utilization="0.522815" service-time-variance="4414.62">
-                     <result-conf-95 proc-waiting="0" service-time="0.391815" utilization="0.00317133" service-time-variance="55.9433"/>
-                     <result-conf-99 proc-waiting="0" service-time="0.903733" utilization="0.00731477" service-time-variance="129.035"/>
-                  </result-activity>
-                  <synch-call dest="DBD" calls-mean="1">
-                     <result-call waiting="1.22159" waiting-variance="26.877">
-                        <result-conf-95 waiting="0.079666" waiting-variance="1.87099"/>
-                        <result-conf-99 waiting="0.183752" waiting-variance="4.31548"/>
-                     </result-call>
-                  </synch-call>
-                  <synch-call dest="DBP" calls-mean="1">
-                     <result-call waiting="1.28965" waiting-variance="29.2201">
-                        <result-conf-95 waiting="0.118027" waiting-variance="3.26554"/>
-                        <result-conf-99 waiting="0.272232" waiting-variance="7.53207"/>
-                     </result-call>
-                  </synch-call>
-                  <synch-call dest="WSD" calls-mean="1">
-                     <result-call waiting="0.608601" waiting-variance="9.4066">
-                        <result-conf-95 waiting="0.0445948" waiting-variance="1.21985"/>
-                        <result-conf-99 waiting="0.102859" waiting-variance="2.81361"/>
-                     </result-call>
-                  </synch-call>
-                  <synch-call dest="WSP" calls-mean="1">
-                     <result-call waiting="3.50641" waiting-variance="133.453">
-                        <result-conf-95 waiting="0.0487839" waiting-variance="5.11595"/>
-                        <result-conf-99 waiting="0.112521" waiting-variance="11.8001"/>
-                     </result-call>
-                  </synch-call>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-   <processor name="DBD" scheduling="fcfs">
-      <result-processor utilization="0.104982">
-         <result-conf-95 utilization="0.0015697"/>
-         <result-conf-99 utilization="0.00362056"/>
-      </result-processor>
-      <task name="DBD" scheduling="fcfs">
-         <result-task throughput="0.00997677" utilization="0.104982" phase1-utilization="0.104982" proc-utilization="0.104982">
-            <result-conf-95 throughput="0.000121957" utilization="0.0015697" phase1-utilization="0.0015697" proc-utilization="0.0015697"/>
-            <result-conf-99 throughput="0.000281297" utilization="0.00362056" phase1-utilization="0.00362056" proc-utilization="0.00362056"/>
-         </result-task>
-         <entry name="DBD" type="PH1PH2">
-            <result-entry utilization="0.104982" throughput="0.00997677" squared-coeff-variation="0.995726" proc-utilization="0.104982" throughput-bound="0.095057">
-               <result-conf-95 utilization="0.0015697" throughput="0.000121957" squared-coeff-variation="0" proc-utilization="0.0015697"/>
-               <result-conf-99 utilization="0.00362056" throughput="0.000281297" squared-coeff-variation="0" proc-utilization="0.00362056"/>
-            </result-entry>
-            <entry-phase-activities>
-               <activity name="DBD_ph1" phase="1" host-demand-mean="10.52">
-                  <result-activity proc-waiting="0" service-time="10.5226" utilization="0.104982" service-time-variance="110.252">
-                     <result-conf-95 proc-waiting="0" service-time="0.044207" utilization="0.0015697" service-time-variance="1.26618"/>
-                     <result-conf-99 proc-waiting="0" service-time="0.101965" utilization="0.00362056" service-time-variance="2.92049"/>
-                  </result-activity>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-   <processor name="DBP" scheduling="fcfs">
-      <result-processor utilization="0.106641">
-         <result-conf-95 utilization="0.000684094"/>
-         <result-conf-99 utilization="0.00157788"/>
-      </result-processor>
-      <task name="DBP" scheduling="fcfs">
-         <result-task throughput="0.00996546" utilization="0.106641" phase1-utilization="0.106641" proc-utilization="0.106641">
-            <result-conf-95 throughput="0.00011045" utilization="0.000684094" phase1-utilization="0.000684094" proc-utilization="0.000684094"/>
-            <result-conf-99 throughput="0.000254757" utilization="0.00157788" phase1-utilization="0.00157788" proc-utilization="0.00157788"/>
-         </result-task>
-         <entry name="DBP" type="PH1PH2">
-            <result-entry utilization="0.106641" throughput="0.00996546" squared-coeff-variation="1.00071" proc-utilization="0.106641" throughput-bound="0.0931966">
-               <result-conf-95 utilization="0.000684094" throughput="0.00011045" squared-coeff-variation="0" proc-utilization="0.000684094"/>
-               <result-conf-99 utilization="0.00157788" throughput="0.000254757" squared-coeff-variation="0" proc-utilization="0.00157788"/>
-            </result-entry>
-            <entry-phase-activities>
-               <activity name="DBP_ph1" phase="1" host-demand-mean="10.73">
-                  <result-activity proc-waiting="0" service-time="10.7011" utilization="0.106641" service-time-variance="114.594">
-                     <result-conf-95 proc-waiting="0" service-time="0.0759182" utilization="0.000684094" service-time-variance="2.41112"/>
-                     <result-conf-99 proc-waiting="0" service-time="0.175108" utilization="0.00157788" service-time-variance="5.56133"/>
-                  </result-activity>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-   <processor name="WSD" scheduling="fcfs">
-      <result-processor utilization="0.0751782">
-         <result-conf-95 utilization="0.000448657"/>
-         <result-conf-99 utilization="0.00103484"/>
-      </result-processor>
-      <task name="WSD" scheduling="fcfs">
-         <result-task throughput="0.00995597" utilization="0.0751782" phase1-utilization="0.0751782" proc-utilization="0.0751782">
-            <result-conf-95 throughput="6.26338e-05" utilization="0.000448657" phase1-utilization="0.000448657" proc-utilization="0.000448657"/>
-            <result-conf-99 throughput="0.000144467" utilization="0.00103484" phase1-utilization="0.00103484" proc-utilization="0.00103484"/>
-         </result-task>
-         <entry name="WSD" type="PH1PH2">
-            <result-entry utilization="0.0751782" throughput="0.00995597" squared-coeff-variation="0.9957" proc-utilization="0.0751782" throughput-bound="0.13245">
-               <result-conf-95 utilization="0.000448657" throughput="6.26338e-05" squared-coeff-variation="0" proc-utilization="0.000448657"/>
-               <result-conf-99 utilization="0.00103484" throughput="0.000144467" squared-coeff-variation="0" proc-utilization="0.00103484"/>
-            </result-entry>
-            <entry-phase-activities>
-               <activity name="WSD_ph1" phase="1" host-demand-mean="7.55">
-                  <result-activity proc-waiting="0" service-time="7.55108" utilization="0.0751782" service-time-variance="56.7737">
-                     <result-conf-95 proc-waiting="0" service-time="0.0742289" utilization="0.000448657" service-time-variance="2.09618"/>
-                     <result-conf-99 proc-waiting="0" service-time="0.171211" utilization="0.00103484" service-time-variance="4.83489"/>
-                  </result-activity>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-   <processor name="WSP" scheduling="fcfs">
-      <result-processor utilization="0.170043">
-         <result-conf-95 utilization="0.00293597"/>
-         <result-conf-99 utilization="0.00677191"/>
-      </result-processor>
-      <task name="WSP" scheduling="fcfs">
-         <result-task throughput="0.00994515" utilization="0.170043" phase1-utilization="0.170043" proc-utilization="0.170043">
-            <result-conf-95 throughput="0.00012479" utilization="0.00293597" phase1-utilization="0.00293597" proc-utilization="0.00293597"/>
-            <result-conf-99 throughput="0.000287832" utilization="0.00677191" phase1-utilization="0.00677191" proc-utilization="0.00677191"/>
-         </result-task>
-         <entry name="WSP" type="PH1PH2">
-            <result-entry utilization="0.170043" throughput="0.00994515" squared-coeff-variation="1.00339" proc-utilization="0.170043" throughput-bound="0.0584112">
-               <result-conf-95 utilization="0.00293597" throughput="0.00012479" squared-coeff-variation="0" proc-utilization="0.00293597"/>
-               <result-conf-99 utilization="0.00677191" throughput="0.000287832" squared-coeff-variation="0" proc-utilization="0.00677191"/>
-            </result-entry>
-            <entry-phase-activities>
-               <activity name="WSP_ph1" phase="1" host-demand-mean="17.12">
-                  <result-activity proc-waiting="0" service-time="17.0981" utilization="0.170043" service-time-variance="293.334">
-                     <result-conf-95 proc-waiting="0" service-time="0.0806932" utilization="0.00293597" service-time-variance="6.85307"/>
-                     <result-conf-99 proc-waiting="0" service-time="0.186121" utilization="0.00677191" service-time-variance="15.8068"/>
-                  </result-activity>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
+<!-- lqsim -confidence=1.0,1000 -seed=1049217653 -->
+<lqn-model name="92-open" description="lqsim 5.31 solution for 92-open.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+  <solver-params comment="" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+    <pragma param="initial-loops" value="1000"/>
+    <pragma param="precision" value="1.0"/>
+    <pragma param="seed-value" value="1049217653"/>
+    <pragma param="stop-on-message-loss" value="false"/>
+    <result-general solver-info="lqsim 5.31" valid="true" conv-val="0.729581" iterations="3" platform-info="greg-VirtualBox Linux 6.8.0-48-generic" user-cpu-time=" 0:00:08.414" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:08.820" max-rss="14336"/>
+  </solver-params>
+  <processor name="choose" scheduling="inf">
+    <result-processor utilization="9.99591e-08">
+      <result-conf-95 utilization="6.50977e-10"/>
+      <result-conf-99 utilization="1.5015e-09"/>
+    </result-processor>
+    <task name="choose" scheduling="inf">
+      <result-task throughput="0.00999348" utilization="0.527093" phase1-utilization="0.527093" proc-utilization="9.99591e-08">
+        <result-conf-95 throughput="0.000128434" utilization="0.00761978" phase1-utilization="0.00761978" proc-utilization="6.50977e-10"/>
+        <result-conf-99 throughput="0.000296236" utilization="0.0175753" phase1-utilization="0.0175753" proc-utilization="1.5015e-09"/>
+      </result-task>
+      <entry name="choose" type="PH1PH2" open-arrival-rate="0.01">
+        <result-entry utilization="0.527093" throughput="0.00999348" proc-utilization="9.99591e-08" squared-coeff-variation="1.60101" throughput-bound="0.021777" open-wait-time="52.7439">
+          <result-conf-95 utilization="0.00761978" throughput="0.000128434" proc-utilization="6.50977e-10" squared-coeff-variation="0" open-wait-time="0.971893"/>
+          <result-conf-99 utilization="0.0175753" throughput="0.000296236" proc-utilization="1.5015e-09" squared-coeff-variation="0" open-wait-time="2.2417"/>
+        </result-entry>
+        <entry-phase-activities>
+          <activity name="choose_ph1" phase="1" host-demand-mean="1e-05">
+            <result-activity proc-waiting="0" service-time="52.7439" utilization="0.527093" service-time-variance="4453.87">
+              <result-conf-95 proc-waiting="0" service-time="0.971893" utilization="0.00761978" service-time-variance="194.333"/>
+              <result-conf-99 proc-waiting="0" service-time="2.2417" utilization="0.0175753" service-time-variance="448.234"/>
+            </result-activity>
+            <synch-call dest="DBD" calls-mean="1">
+              <result-call waiting="1.23078" waiting-variance="27.3862">
+                <result-conf-95 waiting="0.0914846" waiting-variance="2.68417"/>
+                <result-conf-99 waiting="0.211012" waiting-variance="6.19112"/>
+              </result-call>
+            </synch-call>
+            <synch-call dest="DBP" calls-mean="1">
+              <result-call waiting="1.29654" waiting-variance="29.4297">
+                <result-conf-95 waiting="0.0275756" waiting-variance="1.11678"/>
+                <result-conf-99 waiting="0.063604" waiting-variance="2.57589"/>
+              </result-call>
+            </synch-call>
+            <synch-call dest="WSD" calls-mean="1">
+              <result-call waiting="0.610177" waiting-variance="9.4916">
+                <result-conf-95 waiting="0.00932418" waiting-variance="0.164979"/>
+                <result-conf-99 waiting="0.0215065" waiting-variance="0.380529"/>
+              </result-call>
+            </synch-call>
+            <synch-call dest="WSP" calls-mean="1">
+              <result-call waiting="3.56598" waiting-variance="135.561">
+                <result-conf-95 waiting="0.158625" waiting-variance="5.86124"/>
+                <result-conf-99 waiting="0.365872" waiting-variance="13.5191"/>
+              </result-call>
+            </synch-call>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="DBD" scheduling="fcfs">
+    <result-processor utilization="0.105334">
+      <result-conf-95 utilization="0.0024121"/>
+      <result-conf-99 utilization="0.00556358"/>
+    </result-processor>
+    <task name="DBD" scheduling="fcfs">
+      <result-task throughput="0.0100028" utilization="0.105334" phase1-utilization="0.105334" proc-utilization="0.105334">
+        <result-conf-95 throughput="0.000132415" utilization="0.0024121" phase1-utilization="0.0024121" proc-utilization="0.0024121"/>
+        <result-conf-99 throughput="0.00030542" utilization="0.00556358" phase1-utilization="0.00556358" proc-utilization="0.00556358"/>
+      </result-task>
+      <entry name="DBD" type="PH1PH2">
+        <result-entry utilization="0.105334" throughput="0.0100028" proc-utilization="0.105334" squared-coeff-variation="1.00121" throughput-bound="0.095057">
+          <result-conf-95 utilization="0.0024121" throughput="0.000132415" proc-utilization="0.0024121" squared-coeff-variation="0"/>
+          <result-conf-99 utilization="0.00556358" throughput="0.00030542" proc-utilization="0.00556358" squared-coeff-variation="0"/>
+        </result-entry>
+        <entry-phase-activities>
+          <activity name="DBD_ph1" phase="1" host-demand-mean="10.52">
+            <result-activity proc-waiting="0" service-time="10.5304" utilization="0.105334" service-time-variance="111.024">
+              <result-conf-95 proc-waiting="0" service-time="0.102675" utilization="0.0024121" service-time-variance="1.61416"/>
+              <result-conf-99 proc-waiting="0" service-time="0.236823" utilization="0.00556358" service-time-variance="3.7231"/>
+            </result-activity>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="DBP" scheduling="fcfs">
+    <result-processor utilization="0.107776">
+      <result-conf-95 utilization="0.00226992"/>
+      <result-conf-99 utilization="0.00523563"/>
+    </result-processor>
+    <task name="DBP" scheduling="fcfs">
+      <result-task throughput="0.0100268" utilization="0.107776" phase1-utilization="0.107776" proc-utilization="0.107776">
+        <result-conf-95 throughput="0.000170128" utilization="0.00226992" phase1-utilization="0.00226992" proc-utilization="0.00226992"/>
+        <result-conf-99 throughput="0.000392406" utilization="0.00523563" phase1-utilization="0.00523563" proc-utilization="0.00523563"/>
+      </result-task>
+      <entry name="DBP" type="PH1PH2">
+        <result-entry utilization="0.107776" throughput="0.0100268" proc-utilization="0.107776" squared-coeff-variation="1.00006" throughput-bound="0.0931966">
+          <result-conf-95 utilization="0.00226992" throughput="0.000170128" proc-utilization="0.00226992" squared-coeff-variation="0"/>
+          <result-conf-99 utilization="0.00523563" throughput="0.000392406" proc-utilization="0.00523563" squared-coeff-variation="0"/>
+        </result-entry>
+        <entry-phase-activities>
+          <activity name="DBP_ph1" phase="1" host-demand-mean="10.73">
+            <result-activity proc-waiting="0" service-time="10.7487" utilization="0.107776" service-time-variance="115.542">
+              <result-conf-95 proc-waiting="0" service-time="0.0438945" utilization="0.00226992" service-time-variance="2.6076"/>
+              <result-conf-99 proc-waiting="0" service-time="0.101244" utilization="0.00523563" service-time-variance="6.0145"/>
+            </result-activity>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="WSD" scheduling="fcfs">
+    <result-processor utilization="0.075524">
+      <result-conf-95 utilization="0.00155272"/>
+      <result-conf-99 utilization="0.0035814"/>
+    </result-processor>
+    <task name="WSD" scheduling="fcfs">
+      <result-task throughput="0.0100004" utilization="0.075524" phase1-utilization="0.075524" proc-utilization="0.075524">
+        <result-conf-95 throughput="0.000158187" utilization="0.00155272" phase1-utilization="0.00155272" proc-utilization="0.00155272"/>
+        <result-conf-99 throughput="0.000364864" utilization="0.0035814" phase1-utilization="0.0035814" proc-utilization="0.0035814"/>
+      </result-task>
+      <entry name="WSD" type="PH1PH2">
+        <result-entry utilization="0.075524" throughput="0.0100004" proc-utilization="0.075524" squared-coeff-variation="1.00233" throughput-bound="0.13245">
+          <result-conf-95 utilization="0.00155272" throughput="0.000158187" proc-utilization="0.00155272" squared-coeff-variation="0"/>
+          <result-conf-99 utilization="0.0035814" throughput="0.000364864" proc-utilization="0.0035814" squared-coeff-variation="0"/>
+        </result-entry>
+        <entry-phase-activities>
+          <activity name="WSD_ph1" phase="1" host-demand-mean="7.55">
+            <result-activity proc-waiting="0" service-time="7.55207" utilization="0.075524" service-time-variance="57.1668">
+              <result-conf-95 proc-waiting="0" service-time="0.061995" utilization="0.00155272" service-time-variance="1.09017"/>
+              <result-conf-99 proc-waiting="0" service-time="0.142993" utilization="0.0035814" service-time-variance="2.51451"/>
+            </result-activity>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="WSP" scheduling="fcfs">
+    <result-processor utilization="0.171441">
+      <result-conf-95 utilization="0.000560656"/>
+      <result-conf-99 utilization="0.00129317"/>
+    </result-processor>
+    <task name="WSP" scheduling="fcfs">
+      <result-task throughput="0.00998464" utilization="0.171441" phase1-utilization="0.171441" proc-utilization="0.171441">
+        <result-conf-95 throughput="3.12655e-05" utilization="0.000560656" phase1-utilization="0.000560656" proc-utilization="0.000560656"/>
+        <result-conf-99 throughput="7.21148e-05" utilization="0.00129317" phase1-utilization="0.00129317" proc-utilization="0.00129317"/>
+      </result-task>
+      <entry name="WSP" type="PH1PH2">
+        <result-entry utilization="0.171441" throughput="0.00998464" proc-utilization="0.171441" squared-coeff-variation="0.99982" throughput-bound="0.0584112">
+          <result-conf-95 utilization="0.000560656" throughput="3.12655e-05" proc-utilization="0.000560656" squared-coeff-variation="0"/>
+          <result-conf-99 utilization="0.00129317" throughput="7.21148e-05" proc-utilization="0.00129317" squared-coeff-variation="0"/>
+        </result-entry>
+        <entry-phase-activities>
+          <activity name="WSP_ph1" phase="1" host-demand-mean="17.12">
+            <result-activity proc-waiting="0" service-time="17.1705" utilization="0.171441" service-time-variance="294.771">
+              <result-conf-95 proc-waiting="0" service-time="0.0997988" utilization="0.000560656" service-time-variance="3.52676"/>
+              <result-conf-99 proc-waiting="0" service-time="0.230189" utilization="0.00129317" service-time-variance="8.13458"/>
+            </result-activity>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
 </lqn-model>

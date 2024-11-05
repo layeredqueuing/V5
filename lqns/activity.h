@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 17209 2024-05-13 18:16:37Z greg $
+ * $Id: activity.h 17435 2024-11-05 22:11:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -84,8 +84,8 @@ public:
 	    State& operator=( const State& src ) = delete;
 	public:
 	    const std::deque<const Activity *>& getActivityStack() const { return _activityStack; }	// For error handling only.
-	    bool find_fork( const AndOrForkActivityList * fork ) const { return std::find( _forkSet.begin(), _forkSet.end(), fork ) != _forkSet.end(); }
-	    bool find_join( const AndOrJoinActivityList * join ) const { return std::find( _joinSet.begin(), _joinSet.end(), join ) != _joinSet.end(); }
+	    bool find_fork( const AndOrForkActivityList * fork ) const { return _forkSet.find( fork ) != _forkSet.end(); }
+	    bool find_join( const AndOrJoinActivityList * join ) const { return _joinSet.find( join ) != _joinSet.end(); }
 	    void insert_fork( const AndOrForkActivityList * fork ) { if ( std::find( _forkStack.begin(), _forkStack.end(), fork ) != _forkStack.end() ) _forkSet.insert( fork ); }
 	    void insert_join( const AndOrJoinActivityList * join ) { _joinSet.insert( join ); }
 	private:
