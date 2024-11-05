@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <iostream>
 #include <limits>
+#include <random>
 #include <sstream>
 #include "Intrinsics.h"
 #include "SymbolTable.h"
@@ -24,12 +25,6 @@
 #include <cstring>
 
 namespace LQX {
-
-#if !HAVE_DRAND48
-    static double erand48( unsigned short xsubi[3] );
-#endif
-    
-    static unsigned short xsubi[3] = { 0x0123, 0x4567, 0x89ab };
 
     namespace Helpers {
 
@@ -67,18 +62,31 @@ namespace LQX {
 
     }
 
+    struct Random {
+    private:
+	static std::random_device __random_device;
+	static std::mt19937 __generator;
+	static std::uniform_real_distribution<double> __f;
+    public:
+	static double number() { return __f(__generator); }	/* effectively drand48() */
+    };
+
+    std::random_device Random::__random_device;
+    std::mt19937 Random::__generator(__random_device());
+    std::uniform_real_distribution<double> Random::__f(0.,1.);
+	
     namespace Intrinsics {
 
 	static double exp_rv( double a )
 	{
-	    return -a * log( erand48( xsubi ) );
+	    return -a * log( Random::number() );
 	}
 
 	static double erlang_rv( double a, unsigned int b )
 	{
 	    double prod = 1.0;
 	    for ( unsigned int i = 0; i < b; ++i ) {
-		prod *= erand48( xsubi );
+		prod *= Random::number();
 	    }
 	    return -a * log( prod );
 	}
@@ -91,8 +99,8 @@ namespace LQX {
 		throw InvalidArgumentException("beta(a,b)","b >= 1");
 	    }
 	    for (;;) {
-		const double x = pow( erand48( xsubi ), 1/a );
-		const double y = pow( erand48( xsubi ), 1/b );
+		const double x = pow( Random::number(), 1/a );
+		const double y = pow( Random::number(), 1/b );
 		if ( x + y <= 1 ) return x / (x + y);
 	    }
 	}
@@ -183,7 +191,7 @@ namespace LQX {
     
 	SymbolAutoRef Rand::invoke(Environment* , std::vector<SymbolAutoRef >& )
 	{
-	    return Symbol::encodeDouble(erand48(xsubi));		/* We use this because others may use drand48() */
+	    return Symbol::encodeDouble(Random::number());		/* We use this because others may use drand48() */
 	}
 
 	SymbolAutoRef Exp::invoke(Environment* , std::vector<SymbolAutoRef >& args)
@@ -244,7 +252,7 @@ namespace LQX {
 	    
 	    double sum = 0.0;
 	    for ( unsigned int i = 0; i < 12; ++i ) {
-		sum += erand48(xsubi);
+		sum += Random::number();
 	    }
 
 	    return Symbol::encodeDouble( mean + stddev * (sum - 6) );
@@ -268,7 +276,7 @@ namespace LQX {
 	    const double low = decodeDouble( args, 0 );
 	    const double high = decodeDouble( args, 1 );	// shape 
 	    if ( low >= high ) throw InvalidArgumentException("uniform(a,b)", "a >= b" );
-	    return Symbol::encodeDouble( erand48( xsubi ) *  ( high - low ) + low );
+	    return Symbol::encodeDouble( Random::number() *  ( high - low ) + low );
 	}
 
 	SymbolAutoRef Poisson::invoke( Environment *, std::vector<SymbolAutoRef>& args )
@@ -278,7 +286,7 @@ namespace LQX {
 	    double prod = 1;
 	    unsigned int i = 0;
 	    while ( prod >= limit ) {
-		prod *= erand48(xsubi);
+		prod *= Random::number();
 		i += 1;
 	    }
 	    return Symbol::encodeDouble( static_cast<double>(i) );
@@ -440,10 +448,6 @@ namespace LQX {
 
     void RegisterIntrinsics(MethodTable* table)
     {
-	xsubi[0] = 0x0123;
-	xsubi[1] = 0x4567;
-	xsubi[2] = 0x89ab;
-
 	/* Register all of the intrinsic methods in the table */
 	table->registerMethod(new Intrinsics::Copyright());
 	table->registerMethod(new Intrinsics::PrintSymbolTable());
@@ -492,80 +496,4 @@ namespace LQX {
 	/* Register the Infinity Constant */
 	registerConstantDouble(symbolTable, "@infinity", std::numeric_limits<double>::infinity());
     }
-
-#if !HAVE_DRAND48
-    /* Windows doesn't have this... So stolen from Parasol drand48.c */
-
-/*
- *	drand48, etc. pseudo-random number generator
- *	This implementation assumes unsigned short integers of at least
- *	16 bits, long integers of at least 32 bits, and ignores
- *	overflows on adding or multiplying two unsigned integers.
- *	Two's-complement representation is assumed in a few places.
- *	Some extra masking is done if unsigneds are exactly 16 bits
- *	or longs are exactly 32 bits, but so what?
- *	An assembly-language implementation would run significantly faster.
- */
-
-#define N	16
-#define MASK	((unsigned)(1 << (N - 1)) + (1 << (N - 1)) - 1)
-#define LOW(x)	((unsigned)(x) & MASK)
-#define HIGH(x)	LOW((x) >> N)
-#define MUL(x, y, z)	{ long l = (long)(x) * (long)(y); (z)[0] = LOW(l); (z)[1] = HIGH(l); }
-#define CARRY(x, y)	((long)(x) + (long)(y) > MASK)
-#define ADDEQU(x, y, z)	(z = CARRY(x, (y)), x = LOW(x + (y)))
-#define X0	0x330E
-#define X1	0xABCD
-#define X2	0x1234
-#define A0	0xE66D
-#define A1	0xDEEC
-#define A2	0x5
-#define C	0xB
-#define SET3(x, x0, x1, x2)	((x)[0] = (x0), (x)[1] = (x1), (x)[2] = (x2))
-#define SETLOW(x, y, n) SET3(x, LOW((y)[n]), LOW((y)[(n)+1]), LOW((y)[(n)+2]))
-#define SEED(x0, x1, x2) (SET3(x, x0, x1, x2), SET3(a, A0, A1, A2), c = C)
-#define NEST(TYPE, f, F)	TYPE f( unsigned short xsubi[3] ) { \
-	register TYPE v; unsigned temp[3]; \
-	for (unsigned int i = 0; i < 3; i++) { temp[i] = x[i]; x[i] = LOW(xsubi[i]); }  \
-	v = F(); for (unsigned int i = 0; i < 3; i++) { xsubi[i] = x[i]; x[i] = temp[i]; } return v; }
-#define HI_BIT	(1L << (2 * N - 1))
-
-    static unsigned x[3] = { X0, X1, X2 }, a[3] = { A0, A1, A2 }, c = C;
-    static unsigned short lastx[3];
-    static void next();
-
-    static double
-    drand48()
-    {
-	static double two16m = 1.0 / (1L << N);
-	next();
-	return (two16m * (two16m * (two16m * x[0] + x[1]) + x[2]));
-    }
-
-    NEST(double, erand48, drand48);
-
-    static void
-    next()
-    {
-	unsigned p[2], q[2], r[2], carry0, carry1;
-
-	MUL(a[0], x[0], p);
-	ADDEQU(p[0], c, carry0);
-	ADDEQU(p[1], carry0, carry1);
-	MUL(a[0], x[1], q);
-	ADDEQU(p[1], q[0], carry0);
-	MUL(a[1], x[0], r);
-	x[2] = LOW(carry0 + carry1 + CARRY(p[1], r[0]) + q[1] + r[1] + a[0] * x[2] + a[1] * x[1] + a[2] * x[0]);
-	x[1] = LOW(p[1] + r[0]);
-	x[0] = LOW(p[0]);
-    }
-
-    static void
-    srand48( long seedval )
-    {
-	SEED(X0, LOW(seedval), HIGH(seedval));
-    }
-
-#endif
-  
 }

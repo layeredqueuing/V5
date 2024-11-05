@@ -11,7 +11,7 @@
 #define _ENTRY_H
 
 /*
- * $Id: entry.h 17326 2024-10-02 16:01:28Z greg $
+ * $Id: entry.h 17430 2024-11-05 01:09:06Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -83,6 +83,7 @@ public:
     bool is_regular_entry() const { return type() == LQIO::DOM::Entry::Type::STANDARD; }
     bool is_activity_entry() const { return type() == LQIO::DOM::Entry::Type::ACTIVITY; }
     bool has_service_time() const { return _has_service_time; }
+    bool has_calls() const;
     bool has_deterministic_calls() const;
     bool test_and_set( LQIO::DOM::Entry::Entry::Type );			/* Sets _type too!		*/
     bool test_and_set_recv( Requesting_Type );
@@ -107,7 +108,7 @@ public:
     bool messages_lost() const;
 
 public:
-    Phase phase[DIMPH+1];			/* Phases			*/
+    std::vector<Phase> phase;			/* Phases			*/
     std::vector<Forwarding *> forwards; 	/* For fowarding.		*/
 
     struct place_object * DX[MAX_MULT];		/* done				*/

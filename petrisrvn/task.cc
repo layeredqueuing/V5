@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: task.cc 17400 2024-10-28 20:52:36Z greg $
+ * $Id: task.cc 17430 2024-11-05 01:09:06Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -263,6 +263,11 @@ Task::initialize()
 				      entries[0]->get_dom()->getName().c_str(),
 				      entries[1]->get_dom()->getName().c_str(),
 				      entries[0]->semaphore_type() == LQIO::DOM::Entry::Semaphore::SIGNAL ? "signal" : "wait" );
+	}
+    } else if ( type() == Task::Type::REF_TASK ) {
+	if ( std::none_of( entries.begin(), entries.end(), std::mem_fn( &Entry::has_calls ) )
+	     && std::none_of( activities.begin(), activities.end(), std::mem_fn( &Phase::has_calls ) ) ) {
+	    get_dom()->runtime_error( LQIO::WRN_NOT_USED );
 	}
     }
 
@@ -836,10 +841,7 @@ Task::get_results()
     for ( unsigned int m = 0; m < max_m; ++m ) {
 	get_results_for( m );
     }
-    if ( std::any_of( entries.begin(), entries.end(), std::mem_fn( &Entry::messages_lost ) ) ) {
-	get_dom()->runtime_error( LQIO::ADV_MESSAGES_DROPPED );
-	Model::__open_class_error = true;
-    }
+    std::for_each( entries.begin(), entries.end(), []( const Entry * entry ){ if ( entry->messages_lost() ) { entry->get_dom()->runtime_error( LQIO::ADV_MESSAGES_DROPPED ); } } );
 }
 
 

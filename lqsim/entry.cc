@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 17403 2024-10-30 01:30:01Z greg $
+ * $Id: entry.cc 17427 2024-11-04 23:19:53Z greg $
  */
 
 #include "lqsim.h"
@@ -134,7 +134,7 @@ Entry::configure()
 
 	for ( std::vector<Activity>::iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
 	    const size_t p = phase - _phase.begin() + 1;
-	    if ( (phase->service() + phase->think_time()) > 0. || phase->_calls.size() > 0 ) {
+	    if ( phase->has_service_time() || phase->has_think_time() || phase->has_calls() ) {
 		task()->max_phases( p );
 	    } else if ( phase->_hist_data ) {
 		LQIO::runtime_error( WRN_NO_PHASE_FOR_HISTOGRAM, name().c_str(), p );
@@ -165,7 +165,7 @@ Entry::configure()
     /* forwarding component */
 			
     if ( is_rendezvous() ) {
-	_fwd.configure( getDOM(), false );
+	_fwd.configure( LQIO::DOM::Phase::STOCHASTIC, false );		// don't normalize.
     }
 
     return total_calls;
@@ -213,7 +213,7 @@ Entry::initialize()
     /* forwarding component */
 			
     if ( is_rendezvous() ) {
-	_fwd.initialize( name().c_str() );
+	_fwd.initialize();
     }
 
     return *this;
@@ -322,7 +322,7 @@ Entry::test_and_set_semaphore( LQIO::DOM::Entry::Semaphore sema )
 {
     const bool rc = getDOM()->entrySemaphoreTypeOk( sema );
     if ( !rc ) {
-	input_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name().c_str() );
+	getDOM()->input_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES );
     } 
     return rc;
 }

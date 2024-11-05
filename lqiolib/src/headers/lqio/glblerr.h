@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.h 17182 2024-04-24 18:02:35Z greg $
+ * $Id: glblerr.h 17411 2024-10-31 21:18:36Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -96,7 +96,7 @@ namespace LQIO {
 	ADV_SPEX_UNUSED_RESULT_VARIABLE,
 	ADV_TOO_MANY_GNUPLOT_VARIABLES,
 	WRN_ENTRY_HAS_NO_REQUESTS,
-	WRN_ENTRY_TYPE_MISMATCH,
+	WRN_MIXED_ENTRY_TYPES,
 	WRN_INFINITE_MULTI_SERVER,
 	WRN_INFINITE_SERVER_OPEN_ARRIVALS,
 	WRN_INVALID_SPEX_RESULT_PHASE,

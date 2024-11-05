@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 17208 2024-05-13 14:58:52Z greg $
+ * $Id: entity.cc 17408 2024-10-30 17:40:57Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -451,7 +451,7 @@ Entity::openModelInfinity() const
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	const unsigned e = (*entry)->index();
 	if ( !std::isfinite( station->R(e,0) ) && station->V(e,0) != 0 && station->S(e,0) != 0 ) {
-	    LQIO::runtime_error( LQIO::ERR_ARRIVAL_RATE, station->V(e,0), station->mu()/station->S(e,0), (*entry)->name().c_str() );
+	    (*entry)->getDOM()->runtime_error( LQIO::ERR_ARRIVAL_RATE, station->V(e,0), station->mu()/station->S(e,0) );
 	    rc = true;
 	}
     }

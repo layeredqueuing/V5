@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 17396 2024-10-28 14:18:18Z greg $
+ * $Id: task.cc 17427 2024-11-04 23:19:53Z greg $
  */
 
 #include "lqsim.h"
@@ -168,10 +168,6 @@ Task::create()
     create_instance();
     initialize();
 
-    /* Create "links" where necessary. */
-
-    build_links();
-
     if ( has_send_no_reply() ) {
 	alloc_pool();
     }
@@ -231,43 +227,6 @@ Task::set_start_activity( LQIO::DOM::Entry* dom )
 	ap->set_is_start_activity(true);
     }
 }
-
-/*
- * add links between tasks to simulate communication delays.
- */
-
-void
-Task::build_links()
-{
-    for ( unsigned j = 0; j < n_entries(); ++j ) {
-	for ( std::vector<Activity>::iterator phase = _entry[j]->_phase.begin(); phase != _entry[j]->_phase.end(); ++phase ) {
-	    for ( Targets::const_iterator tp = phase->_calls.begin(); tp != phase->_calls.end(); ++tp ) {
-		Processor * proc = tp->entry()->task()->processor();
-		if ( proc != processor() && inter_proc_delay > 0.0 ) {
-		    const int h = proc->node_id();
-		    if ( static_cast<int>(link_tab[h]) == -1 ) {
-			const std::string link_name = name() + "." + proc->name();
-
-			/*
-			 * !!!DANGER!!!!
-			 * Stupid parasol insists on massaging the transmission rate,
-			 * we have to fudge it here.
-			 */
-
-			link_tab[h] = ps_build_link( link_name.c_str(),
-						     processor()->node_id(),
-						     h,
-						     (double)LINKS_MESSAGE_SIZE * 2 / inter_proc_delay,
-						     TRUE );
-		    }
-		    tar_t& target = const_cast<tar_t&>(*tp);
-		    target.set_link( link_tab[h] );
-		}
-	    }
-	}
-    }
-}
-
 
 
 bool
@@ -678,7 +637,8 @@ bool
 Task::has_think_time() const
 {
     return std::any_of( _entry.begin(), _entry.end(), std::mem_fn( &Entry::has_think_time ) )
-	|| std::any_of( _activity.begin(), _activity.end(), std::mem_fn( &Activity::has_think_time ) );
+	|| std::any_of( _activity.begin(), _activity.end(), std::mem_fn( &Activity::has_think_time ) )
+	|| getDOM() != nullptr && getDOM()->hasThinkTime();
 }
 
 
@@ -718,7 +678,7 @@ Reference_Task::create_instance()
     }
     _task_list.clear();
     for ( unsigned i = 0; i < multiplicity(); ++i ) {
-	_task_list.push_back( new srn_client( this, name().c_str() ) );
+	_task_list.push_back( new srn_client( this, name() ) );
     }
 }
 

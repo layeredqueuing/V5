@@ -1,10 +1,10 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 17377 2024-10-16 21:06:39Z greg $
+# $Id: Makefile 17429 2024-11-05 00:52:21Z greg $
 # ------------------------------------------------------------------------
 
-SRCS=	err_arrival_rate.lqn \
+ERR=	err_arrival_rate.lqn \
 	err_async_request_to_wait.lqnx \
 	err_bad_path_to_join.lqn \
 	err_cycle_in_activity_graph.lqn \
@@ -65,28 +65,36 @@ SRCS=	err_arrival_rate.lqn \
 	err_src_equals_dst.lqn \
 	err_src_equals_dst.lqnx \
 	err_task_has_no_entries.lqnx \
-	err_wrong_task_for_entry.lqn \
-	wrn_entry_has_no_requests.lqn \
+	err_wrong_task_for_entry.lqn
+
+
+ADV=	adv_messages_dropped.lqnx
+
+WRN=	wrn_entry_has_no_requests.lqn \
 	wrn_infinite_multi_server.lqn \
 	wrn_infinite_multi_server.lqnx \
+	wrn_not_used.lqnx \
 	wrn_scheduling_not_supported.lqnx
 
 lqns:	
-	for i in $(SRCS); do (lqns $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+	@for i in $(ERR); do (lqns $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+	@for i in $(ADV); do (lqns $$i 2>&1 | grep -q "advisory:"); j=$$?; if test $$j -eq 1; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+	@for i in $(WRN); do (lqns $$i 2>&1 | grep -q "warning:"); j=$$?; if test $$j -eq 1; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
 
 lqns-verbose:
-	for i in $(SRCS); do (lqns $$i > /dev/null); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+	for i in $(ERR); do (lqns $$i > /dev/null); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
 
 lqsim:	
-	for i in $(SRCS); do (lqsim $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
-#	for i in $(SRCS); do (lqsim $$i > /dev/null 2>&1); echo $$?; done
+	@for i in $(ERR); do (lqsim $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+	@for i in $(ADV); do (lqsim $$i 2>&1 | grep -q "advisory:"); j=$$?; if test $$j -eq 1; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+	@for i in $(WRN); do (lqsim $$i 2>&1 | grep -q "warning:"); j=$$?; if test $$j -eq 1; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
 
 
 petrisrvn:
-	for i in $(SRCS); do (petrisrvn $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+	for i in $(ERR); do (petrisrvn $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
 
 lqn2ps:
-	for i in $(SRCS); do (lqn2ps -Onull -o/dev/null $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+	for i in $(ERR); do (lqn2ps -Onull -o/dev/null $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
 
 clean:
 	rm -rf *.out *.lqxo *.ps *.d nets empty

@@ -10,7 +10,7 @@
  * November 2020.
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.h 17390 2024-10-25 00:30:03Z greg $
+ * $Id: actlist.h 17433 2024-11-05 13:59:00Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -33,15 +33,6 @@ class AndJoinActivityList;
 
 
 class ActivityList {
-private:
-    /* Used to concatentate activity list names into a string */
-    struct fold {
-	fold( const std::string& op ) : _op(op) {}
-	std::string operator()( const std::string& s1, const Activity * a2 ) const;
-    private:
-	const std::string& _op;
-    };
-
 private:
     ActivityList( const ActivityList& ) = delete;
     ActivityList& operator=( const ActivityList& ) = delete;
@@ -256,7 +247,6 @@ public:
 
     bool set_join_type( Join type );
     bool join_type_is( Join type ) const { return type == _join_type; }
-    bool add_to_join_list( unsigned i, Activity * activity );
     unsigned int get_quorum_count() const { return _quorum_count; }
 
     virtual double find_children( std::deque<Activity *>& activity_stack, std::deque<AndForkActivityList *>& fork_stack, const Entry * ep );

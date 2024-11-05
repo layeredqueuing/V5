@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 17359 2024-10-12 01:32:27Z greg $
+ * $Id: model.cc 17408 2024-10-30 17:40:57Z greg $
  *
  * Load the SRVN model.
  */
@@ -62,7 +62,6 @@ typedef double tms_t;
 #endif
 
 bool Model::__forwarding_present;
-bool Model::__open_class_error;
 LQIO::DOM::CPUTime Model::__start_time;
 
 /* define	UNCONDITIONAL_PROBS */
@@ -221,7 +220,6 @@ Model::load( const std::string& input_filename, LQIO::DOM::Document::InputFormat
     LQIO::io_vars.reset();
 
     __forwarding_present     = false;
-    __open_class_error	     = false;
 
     /*
      * Initialize everything that needs it before parsing
@@ -457,7 +455,6 @@ void Model::setModelParameters( const LQIO::DOM::Document * document )
 void Model::clear()
 {
     Model::__forwarding_present = false;
-    Model::__open_class_error = false;
     Phase::__parameter_x   = 0.5;
     Phase::__parameter_y   = 0.5;
     Task::__server_x_offset = 1;
@@ -672,7 +669,7 @@ Model::compute()
 	} else {
 	    std::for_each( ::__task.begin(), __task.end(), std::mem_fn( &Task::get_results ) );	/* Read net to get tokens. */
 
-	    if ( stats.precision >= 0.01 || __open_class_error || LQIO::io_vars.anError() ) {
+	    if ( stats.precision >= 0.01 || LQIO::io_vars.anError() ) {
 		rc = false;
 	    }
 	    insert_DOM_results( rc == true, stats );	/* Save results */

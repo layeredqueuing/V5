@@ -1,7 +1,7 @@
 /* result.cc	-- Greg Franks Fri Jun  5 2009
  *
  * ------------------------------------------------------------------------
- * $Id: result.cc 17398 2024-10-28 15:19:22Z greg $
+ * $Id: result.cc 17422 2024-11-04 00:36:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -117,7 +117,7 @@ std::ostream& Result::print( std::ostream& output ) const
     char buf[1024];
     (void) snprintf( buf, 1024, "%-38.38s %-8s ", _name.c_str(), _type == VARIABLE ? "VARIABLE" : "SAMPLE" );
     output << buf;
-    if ( number_blocks > 1 ) {
+    if ( number_blocks > 2 ) {
 	(void) snprintf( buf, 1024, "%12.7g %12.7g %12.7g %8.0f\n", mean(), conf95( number_blocks ), conf99( number_blocks ), mean_count() );
     } else {
 	(void) snprintf( buf, 1024, "%12.7g %8.0f\n", mean(), mean_count() );	// _n == 1
@@ -337,3 +337,10 @@ void VariableResult::record( double value )
 {
     ps_record_stat( _raw, value );
 }
+
+void
+VariableResult:: record_offset( double value, double offset )
+{
+    ps_record_stat2( _raw, value, offset );
+}
+

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  *
  * ------------------------------------------------------------------------
- * $Id: result.h 17396 2024-10-28 14:18:18Z greg $
+ * $Id: result.h 17405 2024-10-30 09:45:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -84,6 +84,7 @@ public:
     VariableResult( const std::string& name, LQIO::DOM::DocumentObject * dom ) : Result( VARIABLE, name, dom ) {}
 
     virtual void record( double );		/* record a sample.		*/
+    void record_offset( double, double );
 };
 
 inline std::ostream& operator<<( std::ostream& output, const Result& self ){ return self.print( output ); }

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * Lqsim-parasol task interface.
  *
- * $Id: task.h 17395 2024-10-28 12:38:12Z greg $
+ * $Id: task.h 17433 2024-11-05 13:59:00Z greg $
  */
 
 /************************************************************************/
@@ -42,10 +42,6 @@ class srn_client;
 #define	PRIORITY_OFFSET	10
 
 typedef SYSCALL (*syscall_func_ptr)( double );
-typedef double (*join_delay_func_ptr)( const Result * );
-typedef void * processor_class;
-
-typedef double (*hold_func_ptr)( const Task *, const unsigned );
 
 class Task {
     friend class Instance;
@@ -165,7 +161,6 @@ protected:
 private:
     bool has_send_no_reply() const;
 
-    void build_links();
     void alloc_pool();
 
     double throughput() const;
@@ -359,8 +354,6 @@ private:
     Instance * _task;			/* task id of main inst	        */
 };
 
-
-typedef double (*hold_func_ptr)( const Task *, const unsigned );
 
 extern unsigned total_tasks;
 #endif

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 17209 2024-05-13 18:16:37Z greg $
+ * $Id: phase.h 17428 2024-11-05 00:47:59Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -259,8 +259,8 @@ public:
     virtual double throughput() const;
     double utilization() const;
     double processorUtilization() const;
-    bool isUsed() const { return _calls.size() > 0.0 || serviceTime() > 0.0; }
     bool hasVariance() const;
+    bool hasCalls() const { return !_calls.empty(); }
     virtual bool isPseudo() const { return false; }		// quorum
     
     /* computation */

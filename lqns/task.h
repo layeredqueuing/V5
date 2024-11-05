@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 17209 2024-05-13 18:16:37Z greg $
+ * $Id: task.h 17428 2024-11-05 00:47:59Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -142,6 +142,7 @@ public:
 
     virtual bool isTask() const { return true; }
     bool isCalled() const;
+    bool hasCalls() const;
     virtual bool hasActivities() const { return _activities.size() != 0 ? true : false; }
     bool hasClientChain( unsigned int n, unsigned int k ) const;
     bool hasForks() const { return _has_forks; }

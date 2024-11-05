@@ -1,7 +1,7 @@
 /*  -*- c++ -*-
  *
  * ------------------------------------------------------------------------
- * $Id: target.h 17403 2024-10-30 01:30:01Z greg $
+ * $Id: target.h 17427 2024-11-04 23:19:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -33,6 +33,7 @@ public:
     int link() const { return _link; }
     tar_t& set_link( int link ) { assert( link < MAX_NODES ); _link = link; return *this; }
 
+    void initialize();
     bool dropped_messages() const;
     double mean_delay() const;		/* Result values 		*/
     double variance_delay() const;
@@ -64,7 +65,7 @@ class Targets {				/* send table struct		*/
 public:
     typedef std::vector<tar_t>::const_iterator const_iterator;
 
-    Targets() {}
+    Targets() : _type(LQIO::DOM::Phase::STOCHASTIC), _target() {}
     ~Targets() {}
 
     const tar_t& operator[]( size_t ix ) const { return _target[ix]; }
@@ -74,8 +75,8 @@ public:
 
     void store_target_info( Entry * to_entry, LQIO::DOM::Call* a_call );
     void store_target_info( Entry * to_entry, double );
-    double configure( const LQIO::DOM::DocumentObject * dom, bool normalize );
-    void initialize( const char * );
+    double configure( LQIO::DOM::Phase::Type, bool=true );
+    void initialize();
     tar_t * entry_to_send_to( unsigned int& i, unsigned int& j ) const;
     std::ostream& print( std::ostream& ) const;
 
@@ -84,11 +85,9 @@ public:
     Targets& insertDOMResults();
 
 private:
+    LQIO::DOM::Phase::Type _type;	/* 				*/
     std::vector<tar_t> _target;		/* target array			*/
-
-    bool alloc_target_info( Entry * to_entry ) ;
-
-private:
-    LQIO::DOM::Phase::Type _type;			/* 				*/
 };
 #endif
+
+

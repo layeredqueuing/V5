@@ -1,7 +1,7 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 17403 2024-10-30 01:30:01Z greg $
+ * $Id: target.cc 17427 2024-11-04 23:19:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -40,6 +40,16 @@ tar_t::tar_t( Entry * entry, double calls )
       _entry(entry), _link(-1), _tprob(0.0), _calls(calls), _reply(false), _call(nullptr)
 {
 }
+
+
+void
+tar_t::initialize()
+{
+    r_delay.init();
+    r_delay_sqr.init();
+    r_loss_prob.init();
+}
+
 
 
 /*
@@ -108,8 +118,6 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
 	if ( Pragma::__pragmas->abort_on_dropped_message() ) {
 	    LQIO::runtime_error( ERR_MSG_POOL_EMPTY, src->name().c_str(), _entry->name().c_str() );
 	    throw std::runtime_error( "tar_t::send_asynchronous" );
-	} else {
-	    messages_lost = true;
 	}
     }
 }
@@ -139,7 +147,7 @@ tar_t::configure()
 bool 
 tar_t::dropped_messages() const
 { 
-    return !reply() &&  r_loss_prob.mean() > 0.005; 
+    return !reply() && r_loss_prob.mean() > 0.005; 
 }
 
 
@@ -284,36 +292,26 @@ Targets::store_target_info( Entry * to_entry, double value )
  */
 
 double
-Targets::configure( const LQIO::DOM::DocumentObject * dom, bool normalize )
+Targets::configure( LQIO::DOM::Phase::Type type, bool normalize )
 {
-    double sum	= 0.0;
-    _type = (dynamic_cast<const LQIO::DOM::Phase *>(dom) != nullptr) ? dynamic_cast<const LQIO::DOM::Phase *>(dom)->getPhaseTypeFlag() : LQIO::DOM::Phase::Type::STOCHASTIC;
+    _type = type;
     
-    for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
-	tp->configure();
-	sum += tp->calls();
-	tp->_tprob = sum;
-    }
+    std::for_each( _target.begin(), _target.end(), std::mem_fn( &tar_t::configure ) );
+    const double sum = std::accumulate( _target.begin(), _target.end(), static_cast<double>(0.0),
+				  []( double sum, tar_t& target ){ target._tprob = sum + target.calls(); return target._tprob; } );
 
-    if ( _type != LQIO::DOM::Phase::Type::DETERMINISTIC && normalize ) {
-	sum += 1.0;
-	for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
-	    tp->_tprob /= sum;
-	}
+    if ( _type != LQIO::DOM::Phase::Type::DETERMINISTIC && normalize ) {	// STOCHASTIC conflicts with Parasol.
+	/* Normalize STOCHASTIC, but not forwarding. */
+	std::for_each( _target.begin(), _target.end(), [=]( tar_t& target ){ target._tprob /= (sum + 1); } );
     }
-
     return sum;
 }
 
 
 void
-Targets::initialize( const char * srcName )
+Targets::initialize()
 {
-    for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
-	tp->r_delay.init();
-	tp->r_delay_sqr.init();
-	tp->r_loss_prob.init();
-    }
+    std::for_each( _target.begin(), _target.end(), std::mem_fn( &tar_t::initialize ) );
 }
 
 
@@ -333,7 +331,7 @@ Targets::entry_to_send_to ( unsigned int&i, unsigned int& j ) const
 	switch ( _type ) {
 
 	case LQIO::DOM::Phase::Type::STOCHASTIC:
-	    p = ps_random;
+	    p = Random::number();
 	    for ( i = 0; i < size() && p >= _target[i]._tprob; i = i + 1 );
 	    break;
 
@@ -353,7 +351,7 @@ Targets::entry_to_send_to ( unsigned int&i, unsigned int& j ) const
 	}
     }
 
-    return 0;
+    return nullptr;
 }
 
 

@@ -8,17 +8,18 @@
 /************************************************************************/
 
 /*
- * $Id: entry.cc 17377 2024-10-16 21:06:39Z greg $
+ * $Id: entry.cc 17430 2024-11-05 01:09:06Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
  */
 
 #include "petrisrvn.h"
-#include <cmath>
 #include <algorithm>
-#include <vector>
+#include <cmath>
+#include <numeric>
 #include <sstream>
+#include <vector>
 #include <lqio/glblerr.h>
 #include <lqio/dom_entry.h>
 #include "makeobj.h"
@@ -35,7 +36,8 @@ std::vector<Entry *> __entry;
 unsigned int Entry::__next_entry_id = 1;
 
 Entry::Entry( LQIO::DOM::Entry * dom, Task * task )
-    : forwards(),
+    : phase(DIMPH+1),
+      forwards(),
 #if defined(BUFFER_BY_ENTRY)
       ZZ(0),
 #endif
@@ -126,30 +128,26 @@ double Entry::prob_fwd( const Entry * entry ) const
 
 double Entry::yy(const Entry* entry) const
 {
-    double ysum = 0;
-    for ( unsigned int p = 1; p <= DIMPH; ++p ) {
-	ysum += phase[p].y(entry);
-    }
-    return ysum;
+    return std::accumulate( std::next(phase.begin()), phase.end(), 0.0, [=]( double sum, const Phase& phase ){ return sum + phase.y(entry); } );
 }
 
 double Entry::zz(const Entry* entry) const
 {
-    double zsum = 0;
-    for ( unsigned int p = 1; p <= DIMPH; ++p ) {
-	zsum += phase[p].z(entry);
-    }
-    return zsum;
+    return std::accumulate( std::next(phase.begin()), phase.end(), 0.0, [=]( double sum, const Phase& phase ){ return sum + phase.z(entry); } );
+}
+
+bool
+Entry::has_calls() const
+{
+    if ( !is_regular_entry() ) return false;
+    return std::any_of( std::next(phase.begin()), phase.end(), std::mem_fn( &Phase::has_calls ) );
 }
 
 bool
 Entry::has_deterministic_calls() const
 {
     if ( !is_regular_entry() ) return false;
-    for ( unsigned int p = 1; p <= n_phases(); ++p ) {
-	if ( phase[p].has_deterministic_calls() ) return true;
-    }
-    return false;
+    return std::any_of( std::next(phase.begin()), phase.end(), std::mem_fn( &Phase::has_deterministic_calls ) );
 }
 
 bool
@@ -578,4 +576,3 @@ Entry::find( const std::string& from_entry_name, Entry * & from_entry, const std
     }
     return rc;
 }
-

@@ -3,7 +3,7 @@
  * If invoked as lqngen, generate a model.
  * In invoked as lqn2lqx, convert model to lqx.
  *
- * $Id: lqngen.cc 17361 2024-10-12 22:05:49Z greg $
+ * $Id: lqngen.cc 17431 2024-11-05 10:08:21Z greg $
  */
 
 #include "lqngen.h"
@@ -20,9 +20,7 @@
 #include <lqio/filename.h>
 #include "generate.h"
 #include "help.h"
-#if !HAVE_DRAND48
 #include "randomvar.h"
-#endif
 
 #if HAVE_GETOPT_H
 void makeopts( std::string& opts, std::vector<struct option>& longopts, int * );
@@ -275,7 +273,7 @@ main( int argc, char *argv[] )
 		break;
 
 	    case 0x100+'4':
-		srand48( strtol( optarg, &endptr, 10 ) );
+		RV::RandomVariable::seed( strtol( optarg, &endptr, 10 ) );
 		break;
 
 	    case 0x200+'a':
@@ -1173,7 +1171,7 @@ LQIO::severity_action (error_severity severity)
 static void
 initialize()
 {
-    srand48( 12345678L );					/* Init now, may be reset with --seed */
+    RV::RandomVariable::seed( 12345678L );					/* Init now, may be reset with --seed */
     continuous_default = new RV::Gamma( 0.5, 2.0 );		/* scale,shape. Mean is one E[x] = k x gamma */
 //    discreet_default = new RV::Binomial( 1, 3 );		/* Mean is (arg2 - arg1) / 2 + arg1 */
     discreet_default = new RV::Poisson( 2, 1 );			/* Mean is (arg1 - arg2) / 2 + arg1 */

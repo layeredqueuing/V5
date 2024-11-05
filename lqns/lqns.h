@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 17275 2024-09-10 20:35:49Z greg $
+ * $Id: lqns.h 17433 2024-11-05 13:59:00Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,10 +21,6 @@
 #include <config.h>
 #endif
 
-#include <algorithm>
-#include <cassert>
-#include <cstring>
-#include <stdexcept>
 #include <string>
 
 
@@ -44,7 +40,6 @@ const double EPSILON = 0.000001;		/* For testing against 1 or 0 */
  */
 
 template <typename Type> inline Type square( Type a ) { return a * a; }
-template <typename Type> inline void Delete( Type x ) { delete x; }
 
 /* 
  * Common under-relaxation code.  Adapted to include newton-raphson

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: xml_output.cpp 16330 2023-01-15 22:04:57Z greg $
+ * $Id: xml_output.cpp 17405 2024-10-30 09:45:40Z greg $
  *
  * Read in XML input files.
  *
@@ -95,19 +95,17 @@ namespace XML {
     
     static std::ostream& printAttribute( std::ostream& output, const std::string& a, const std::string& value )
     {
-	static std::map<const char,const char *> escape_table;
-
-	if ( escape_table.empty() ) {
-	    escape_table['&']  = "&amp;";
-	    escape_table['\''] = "&apos;";
-	    escape_table['>']  = "&gt;";
-	    escape_table['<']  = "&lt;";
-	    escape_table['"']  = "&qout;";
-	}
+	const static std::map<const char,const std::string> escape_table = {
+	    { '&',  "&amp;" },
+	    { '\'', "&apos;" },
+	    { '>',  "&gt;" },
+	    { '<',  "&lt;" },
+	    { '"',  "&qout;" }
+	};
 
 	output << " " << a << "=\"";
 	for ( const char * v = value.c_str(); *v != 0; ++v ) {
-	    std::map<const char,const char *>::const_iterator item = escape_table.find(*v);
+	    std::map<const char,const std::string>::const_iterator item = escape_table.find(*v);
 	    if ( item == escape_table.end() ) {
 		output << *v;
 	    } else if ( item->first != '&' ) {
@@ -122,7 +120,7 @@ namespace XML {
 		    valid = ( v[i] == ';' );
 		}
 		if ( valid ) {
-		    output << *v;	/* Found valid escape... ignore processing here */
+		    output << *v;		/* Found valid escape... ignore processing here */
 		} else {
 		    output << item->second;	/* No match in table so must escape ampresand */
 		}

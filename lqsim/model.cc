@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 17403 2024-10-30 01:30:01Z greg $
+ * $Id: model.cc 17423 2024-11-04 01:58:07Z greg $
  */
 
 #include "lqsim.h"
@@ -20,6 +20,7 @@
 #include <fstream>
 #include <functional>
 #include <numeric>
+#include <random>
 #include <sstream>
 #include <errno.h>
 #include <unistd.h>
@@ -49,13 +50,16 @@ extern "C" {
     extern void test_all_stacks();
 }
 
+#if defined(_PARASOL)
 int Model::__genesis_task_id = 0;
+#endif
 Model * Model::__model = nullptr;
 bool Model::__enable_print_interval = false;
 unsigned int Model::__print_interval = 0;
 double Model::max_service = 0.0;
 const double Model::simulation_parameters::DEFAULT_TIME = 1e5;
 bool deferred_exception = false;	/* domain error detected during run.. throw after parasol stops. */
+bool print_lqx = false;
 
 /*----------------------------------------------------------------------*/
 /*   Input processing.  Read input, extend and validate.                */
@@ -65,7 +69,7 @@ bool deferred_exception = false;	/* domain error detected during run.. throw aft
  * Initialize input parser parameters.
  */
 
-Model::Model( LQIO::DOM::Document* document, const std::string& input_file_name, const std::string& output_file_name, LQIO::DOM::Document::OutputFormat output_format )
+Model::Model( LQIO::DOM::Document* document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, LQIO::DOM::Document::OutputFormat output_format )
     : _document(document), _input_file_name(input_file_name), _output_file_name(output_file_name), _output_format(output_format), _parameters(), _confidence(0.0)
 {
     __model = this;
@@ -148,8 +152,14 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
 	if ( program ) {
 	    /* Attempt to run the program */
 	    document->registerExternalSymbolsWithProgram(program);
-	    program->getEnvironment()->getMethodTable()->registerMethod(new SolverInterface::Solve(document, run_function, &model));
-	    LQIO::RegisterBindings(program->getEnvironment(), document);
+
+	    if ( print_lqx ) {
+		program->print( std::cerr );
+	    }
+	    
+	    LQX::Environment * environment = program->getEnvironment();
+	    environment->getMethodTable()->registerMethod(new SolverInterface::Solve(document, run_function, &model));
+	    LQIO::RegisterBindings(environment, document);
 	
 	    if ( !output_file_name.empty() && output_file_name != "-" ) {
 		output = fopen( output_file_name.c_str(), "w" );
@@ -157,7 +167,7 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
 		    runtime_error( LQIO::ERR_CANT_OPEN_FILE, output_file_name.c_str(), strerror( errno ) );
 		    status = FILEIO_ERROR;
 		} else {
-		    program->getEnvironment()->setDefaultOutput( output );	/* Default is stdout */
+		    environment->setDefaultOutput( output );	/* Default is stdout */
 		}
 	    }
 
@@ -171,7 +181,7 @@ Model::solve( solve_using run_function, const std::string& input_file_name, LQIO
 		    LQIO::runtime_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, input_file_name.c_str() );
 		    std::vector<LQX::SymbolAutoRef> args;
 		    SolverInterface::Solve::implicitSolve = true;
-		    program->getEnvironment()->invokeGlobalMethod("solve", &args);
+		    environment->invokeGlobalMethod("solve", &args);
 		}
 	    }
 	
@@ -357,10 +367,6 @@ Model::extend()
 bool
 Model::create()
 {
-    for ( unsigned j = 0; j < MAX_NODES; ++j ) {
-	link_tab[j] = -1;		/* Reset link table.	*/
-    }
-
     std::for_each( Processor::__processors.begin(), Processor::__processors.end(), std::mem_fn( &Processor::create ) );
     std::for_each( Group::__groups.begin(), Group::__groups.end(), std::mem_fn( &Group::create ) );
     std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::create ) );
@@ -436,20 +442,10 @@ Model::print( std::ostream& output ) const
     std::for_each( Task::__tasks.begin(), Task::__tasks.end(), [&]( const Task * task ){ task->print( output ); } );
 
     const int fill = (((number_blocks > 2) ? long_width : short_width) - 23) / 2;
-    output << std::setw( fill ) << std::setfill( '-' ) << " Processor Information " << std::setw( fill ) << std::setfill( '-' ) << "-" << std::endl;
+    output << std::setw( fill ) << std::setfill( '-' ) << "-" << " Processor Information " << std::setw( fill ) << std::setfill( '-' ) << "-" << std::endl;
 
     std::for_each( Processor::__processors.begin(), Processor::__processors.end(), [&]( const Processor * processor ){ processor->print( output ); } );
 
-#ifdef	NOTDEF
-    if ( ps_used_links ) {
-	(void) fprintf( output, "\n%.*s Link Information %*.s\n",
-			(((number_blocks > 2) ? long_width : short_width) - 18) / 2, dashes,
-			(((number_blocks > 2) ? long_width : short_width) - 18) / 2, dashes );
-	for ( l = 0; l < ps_used_links; ++l ) {
-	    link_utilization[l].print_raw_stat( output, "Link %-16.16s - Utilization", ps_link_tab[l].name );
-	}
-    }
-#endif
     output << std::endl << std::endl;
     return output;
 }
@@ -516,6 +512,7 @@ Model::start()
     }
 
     deferred_exception = false;
+    Random::seed( _parameters._seed );
     ps_run_parasol( _parameters._run_time+1.0, _parameters._seed, simulation_flags );	/* Calls ps_genesis */
 
     /*
@@ -537,12 +534,9 @@ Model::start()
 	if ( _confidence > _parameters._precision && _parameters._precision > 0.0 ) {
 	    LQIO::runtime_error( ADV_PRECISION, _parameters._precision, _parameters._block_period * number_blocks + _parameters._initial_delay, _confidence );
 	}
-	if ( messages_lost ) {
-	    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-		if ( (*task)->has_lost_messages() )  {
-		    (*task)->getDOM()->runtime_error( LQIO::ADV_MESSAGES_DROPPED );
-		}
-	    }
+	for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	    const auto entries = (*task)->_entry;
+	    std::for_each( entries.begin(), entries.end(), []( const Entry * entry ){ if ( entry->has_lost_messages() ) { entry->getDOM()->runtime_error( LQIO::ADV_MESSAGES_DROPPED ); } } );
 	}
     }
 
@@ -558,7 +552,7 @@ Model::start()
 	Instance * ip = object_tab.at(i);
 	if ( !ip ) continue;
 	delete ip;
-	object_tab[i] = 0;
+	object_tab[i] = nullptr;
     }
 
     if ( deferred_exception ) {
@@ -745,14 +739,6 @@ Model::accumulate_data()
     std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::accumulate_data ) );
     std::for_each( Group::__groups.begin(), Group::__groups.end(), std::mem_fn( &Group::accumulate_data ) );
     std::for_each( Processor::__processors.begin(), Processor::__processors.end(), std::mem_fn( &Processor::accumulate_data ) );
-
-#ifdef	NOTDEF
-    /* Link utilization. */
-
-    for ( l = 0; l < ps_used_links; ++l ) {
-	accumulate( ps_link_tab[l].sp, &link_utilization[l] );
-    }
-#endif
 }
 
 
@@ -767,14 +753,6 @@ Model::reset_stats()
     std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::reset_stats ) );
     std::for_each( Group::__groups.begin(), Group::__groups.end(), std::mem_fn( &Group::reset_stats ) );
     std::for_each( Processor::__processors.begin(), Processor::__processors.end(), std::mem_fn( &Processor::reset_stats ) );
-
-#ifdef	NOTDEF
-    /* Link utilization. */
-
-    for ( l = 0; l < ps_used_links; ++l ) {
-	ps_link_tab[l].sp.reset();
-    }
-#endif
 }
 
 

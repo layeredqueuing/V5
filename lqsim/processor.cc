@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 17395 2024-10-28 12:38:12Z greg $
+ * $Id: processor.cc 17422 2024-11-04 00:36:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -581,12 +581,6 @@ add_communication_delay( const char * from_proc_name, const char * to_proc_name,
 	LQIO::input_error( LQIO::ERR_NOT_DEFINED, from_proc_name );
     } else if ( !to_proc ) {
 	LQIO::input_error( LQIO::ERR_NOT_DEFINED, to_proc_name );
-#ifdef	NOTDEF
-    } else if ( comm_delay[from_proc][to_proc] != inter_proc_delay ) {
-	LQIO::input_error( LQIO::ERR_DELAY_MULTIPLY_DEFINED, from_proc_name, to_proc_name );
-    } else {
-	comm_delay[from_proc][to_proc] = delay;
-#endif
     }
 }
 

@@ -7,7 +7,7 @@
  * However, to eliminate code here, the spex construction functions will have to save the
  * LQX expressions and then construct the program.
  * ------------------------------------------------------------------------
- * $Id: generate.cc 16850 2023-11-18 13:07:39Z greg $
+ * $Id: generate.cc 17431 2024-11-05 10:08:21Z greg $
  */
 
 #include "lqngen.h"
@@ -220,7 +220,7 @@ Generate::generate()
 	    } else if ( k <  _number_of_processors ) {
 		p = k;				/* Assign first set of processors deterministically */
 	    } else {
-		p = static_cast<unsigned int>(floor( drand48() * _number_of_processors) );
+		p = static_cast<unsigned int>(floor( RV::RandomVariable::number() * _number_of_processors) );
 	    }
 
 	    std::ostringstream task_name;
@@ -245,7 +245,7 @@ Generate::generate()
 		LQIO::DOM::Entry * dst = *ep;
 		if ( ep == entries.begin() ) {
 		    const unsigned int k = __task_layering == RANDOM_LAYERING
-			? static_cast<unsigned int>(number_of_clients * drand48())	/* Picks any immediate client task.	*/
+			? static_cast<unsigned int>(number_of_clients * RV::RandomVariable::number())	/* Picks any immediate client task.	*/
 			: i;								/* Pick the immediate client. 		*/
 		    if ( _task[j-1].size() > 0 ) {
 			LQIO::DOM::Entry * src = _task[j-1][k]->getEntryList().front();
@@ -255,7 +255,7 @@ Generate::generate()
 		    }
 		} else {
 		    /* Choose randomly. */
-		    const unsigned int e = static_cast<unsigned int>(stride[j-1] * drand48());	/* Picks a higher layer task. 	*/
+		    const unsigned int e = static_cast<unsigned int>(stride[j-1] * RV::RandomVariable::number());	/* Picks a higher layer task. 	*/
 		    LQIO::DOM::Entry * src = _entry.at(e);
 		    for ( unsigned int retry = 0; retry < 3; ++retry ) {
 			LQIO::DOM::Call * call = addCall( src, dst, __probability_second_phase );
@@ -276,13 +276,13 @@ Generate::generate()
 	const unsigned int extra_calls = _call.size() *  (multiplier - 1.0);
 	const unsigned n_entries = _entry.size();
 	for ( unsigned int i = 0; i < extra_calls; ++i ) {
-	    const unsigned int server_entry = static_cast<unsigned int>((n_entries - stride[REF_LAYER]) * drand48()) + stride[REF_LAYER];
+	    const unsigned int server_entry = static_cast<unsigned int>((n_entries - stride[REF_LAYER]) * RV::RandomVariable::number()) + stride[REF_LAYER];
 	    /* Find layer with server entry */
 	    unsigned int server_layer = SERVER_LAYER;
 	    while ( server_layer < _number_of_layers && stride[server_layer+1] < server_entry ) {
 		server_layer += 1;
 	    }
-	    const unsigned int client_entry = static_cast<unsigned int>(stride[server_layer-1] * drand48());
+	    const unsigned int client_entry = static_cast<unsigned int>(stride[server_layer-1] * RV::RandomVariable::number());
 	    /* Find layer with client entry */
 	    unsigned int client_layer = REF_LAYER;
 	    while ( client_layer < _number_of_layers && stride[client_layer+1] < client_entry ) {
@@ -313,7 +313,7 @@ Generate::generate()
 	LQIO::DOM::Phase * phase = src->getPhase(1);
 	if ( !phase->hasRendezvous() ) {
 	    const unsigned int n_entries = _entry.size() - n_clients;
-	    const unsigned int e = static_cast<unsigned int>(static_cast<double>(n_entries) * drand48() ) + n_clients;	/* Skip ref task */
+	    const unsigned int e = static_cast<unsigned int>(static_cast<double>(n_entries) * RV::RandomVariable::number() ) + n_clients;	/* Skip ref task */
 	    LQIO::DOM::Call * call = addCall( src, _entry.at(e), RV::Probability(0.) );		/* Ref tasks don't have second phase */
 	    _call.push_back( call );
 	}
@@ -342,7 +342,7 @@ Generate::populateLayers()
 	    count += 1;
 	}
 	for ( ; count < _number_of_tasks; ++count ) {
-	    unsigned int i = (drand48() * _number_of_layers) + 1;
+	    unsigned int i = (RV::RandomVariable::number() * _number_of_layers) + 1;
 	    _number_of_tasks_for_layer[i] += 1;		/* Now stick the rest in anywhere */
 	}
 	break;
@@ -672,7 +672,7 @@ Generate::populate()
 	count += 1;
     }
     for ( ; count < _number_of_customers; ++count ) {
-	customers[static_cast<unsigned int>(drand48() * n_clients)] += 1;
+	customers[static_cast<unsigned int>(RV::RandomVariable::number() * n_clients)] += 1;
     }
     for ( unsigned int i = 0; i < n_clients; ++i ) {
 	task[i]->setCopiesValue( customers[i] );

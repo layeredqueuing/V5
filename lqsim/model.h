@@ -10,16 +10,16 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 17402 2024-10-29 23:28:52Z greg $
+ * $Id: model.h 17423 2024-11-04 01:58:07Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
 #define LQSIM_MODEL_H
 
-#include <lqsim.h>
+#include "lqsim.h"
+#include <regex>
 #include <lqio/dom_document.h>
 #include <lqio/common_io.h>
-#include <regex>
 #include "result.h"
 
 namespace LQIO {
@@ -40,14 +40,18 @@ extern std::regex task_match_pattern;		/* Pattern to match.	    */
 
 extern bool abort_on_dropped_message;
 extern bool reschedule_on_async_send;
-extern bool messages_lost;
+extern bool print_lqx;
 
+#if defined(_PARASOL)
 extern "C" void ps_genesis(void *);
+#endif
 
 class Task;
 
 class Model {
+#if defined(_PARASOL)
     friend void ps_genesis(void *);
+#endif
 
 public:
     struct simulation_parameters {
@@ -89,7 +93,7 @@ public:
     };
 
 private:
-    Model( LQIO::DOM::Document* document, const std::string&, const std::string&, LQIO::DOM::Document::OutputFormat );
+    Model( LQIO::DOM::Document* document, const std::filesystem::path&, const std::filesystem::path&, LQIO::DOM::Document::OutputFormat );
     Model( const Model& );
     Model& operator=( const Model& );
 
@@ -120,7 +124,7 @@ private:
     void accumulate_data();
     void insertDOMResults();
 
-    const std::string& getOutputFileName() const { return (_output_file_name.size() > 0 && _output_file_name != "-") ? _output_file_name : _input_file_name; }
+    const std::filesystem::path& getOutputFileName() const { return (!_output_file_name.empty() && _output_file_name != "-") ? _output_file_name : _input_file_name; }
     
     void print_intermediate();
     std::ostream& print( std::ostream& output ) const;
@@ -133,13 +137,15 @@ private:
 
 private:
     LQIO::DOM::Document* _document;
-    std::string _input_file_name;
-    std::string _output_file_name;
+    const std::filesystem::path _input_file_name;
+    const std::filesystem::path _output_file_name;
     const LQIO::DOM::Document::OutputFormat _output_format;
     LQIO::DOM::CPUTime _start_time;
     simulation_parameters _parameters;
     double _confidence;
+#if defined(_PARASOL)
     static int __genesis_task_id;
+#endif
     static Model * __model;
     static const std::map<const LQIO::DOM::Document::OutputFormat,const std::string> __parseable_output;
 

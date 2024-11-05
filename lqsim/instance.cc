@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 17403 2024-10-30 01:30:01Z greg $
+ * $Id: instance.cc 17432 2024-11-05 10:26:54Z greg $
  */
 
 /*
@@ -101,12 +101,13 @@ Instance::start( void * )
  */
 
 void
-Instance::client_cycle( const double think_time )
+Instance::client_cycle( Random * distribution )
 {
-    if ( think_time > 0.0 ) {
-	const double delay = ps_exponential( think_time );
-	ps_my_schedule_time = ps_now + delay;
-	ps_sleep( delay );
+    double think_time = 0;
+    if ( distribution != nullptr ) {
+	think_time = (*distribution)();
+	ps_my_schedule_time = ps_now + think_time;
+	ps_sleep( think_time );
     }
 
     /* Force a reschedule IFF we don't sleep */
@@ -129,7 +130,7 @@ Instance::client_cycle( const double think_time )
  */
 
 void
-Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
+Instance::server_cycle( Entry * ep, Message * msg, bool reschedule )
 {
     double start_time 	= ps_my_schedule_time;
     double delta;
@@ -139,7 +140,7 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
     if ( _cp->_join_start_time == 0.0 ) {
 	_cp->_active += 1;
     }
-    ps_record_stat2( _cp->r_util._raw, _cp->_active, start_time );
+    _cp->r_util.record_offset( _cp->_active, start_time );
 
     _entry[ep->index()] = msg;
 
@@ -163,7 +164,7 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
 	_phase_start_time = start_time;
 	ep->_active[0] += 1;
 
-	ps_record_stat2( ep->_phase[0].r_util._raw, ep->_active[0], start_time ); 
+	ep->_phase[0].r_util.record_offset( ep->_active[0], start_time ); 
 
 	run_activities(  ep, ep->_activity, reschedule );
 
@@ -337,9 +338,18 @@ srn_sync_server::run()
  */
 
 srn_client::srn_client( Task * cp, const std::string& task_name  )
-    : Real_Instance( cp, task_name ) 
+    : Real_Instance( cp, task_name ), _think_time( nullptr )
 {
     client_init_count += 1;		/* For -C auto init. 			*/
+    if ( cp->think_time() > 0.0 ) {
+	_think_time = new Exponential( _cp->think_time() );
+    }
+}
+
+
+srn_client::~srn_client()
+{
+    if ( _think_time ) delete _think_time;
 }
 
 
@@ -349,12 +359,10 @@ srn_client::run()
 {
     timeline_trace( TASK_CREATED );
 
-    const double think_time = _cp->think_time();
-
     /* ---------------------- Main loop --------------------------- */
 
     for ( ;; ) {				/* Start Client Cycle	*/
-	client_cycle( think_time );
+	client_cycle( _think_time );
     }
 }
 
@@ -1193,7 +1201,7 @@ Instance::compute ( Activity * ap, Activity * pp )
  */
 
 void
-Instance::do_forwarding ( Message * msg, const Entry * ep )
+Instance::do_forwarding( Message * msg, const Entry * ep )
 {
     if ( !msg ) {
 	return;				/* No operation.	*/
@@ -1241,7 +1249,7 @@ Instance::random_shuffle_reply( std::vector<const Entry *>& array )
 {
     const size_t n = array.size();
     for ( size_t i = n; i >= 1; --i ) {
-	const size_t k = static_cast<size_t>(drand48() * i);
+	const size_t k = static_cast<size_t>(Random::number() * i);
 	if ( i-1 != k ) {
 	    const Entry * temp = array[k];
 	    array[k] = array[i-1];
@@ -1280,30 +1288,30 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
     double start_time = ps_my_schedule_time;
     double slices = 0.0;
     unsigned int p = _current_phase;
-    int count = ap->_calls.size() > 0 || ap->has_service_time() || ap->think_time(); /* !!! warning !!! */
+    int count = ap->is_specified();
     double delta;
     Activity * phase = &ep->_phase.at(p);
 
     timeline_trace( ACTIVITY_START, ap );
 
     ap->_active += count;
-    ps_record_stat2( ap->r_util._raw, ap->_active, start_time );		/* Activity utilization.*/
+    ap->r_util.record_offset( ap->_active, start_time );		/* Activity utilization.*/
 
     /*
      * Delay for "think time".  
      */
 
-    if ( ap->think_time() > 0.0 ) {
-	double think_time = ps_exponential( ap->think_time() );
+    if ( ap->has_think_time() ) {
+	const double think_time = ap->get_think_time();
 	ps_my_schedule_time = ps_now + think_time;
 	ps_sleep( think_time );
-    } 
+    }
 
     /*
      * Now do service.
      */
 
-    if ( ap->_calls.size() > 0 || ap->has_service_time() ) {
+    if ( ap->has_calls() > 0 || ap->has_service_time() ) {
 	double sends = 0.0;
 	unsigned int i = 0;		/* loop index			*/
 	unsigned int j = 0;		/* loop index (det ph.)		*/
@@ -1401,7 +1409,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 
 		if ( msg->reply_port != -1 ) {
 		    Instance * dest_ip = object_tab[ps_owner(msg->reply_port)];
-		    if ( dest_ip && node_id() == dest_ip->node_id() && ps_random >= 0.5 ) {
+		    if ( dest_ip && node_id() == dest_ip->node_id() && Random::number() >= 0.5 ) {
 		        reschedule = false;
 		    }
 		}
@@ -1565,7 +1573,7 @@ again_1:
 	} else if ( fork_list->get_type() == ActivityList::Type::OR_FORK_LIST ) {
 
 	    assert ( fork_list->size() > 0 );
-	    const double exit_value = ps_random;
+	    const double exit_value = Random::number();
 	    double sum = 0.0;
 	    size_t i = 0;
 	    for ( i = 0; i < fork_list->size(); ++i ) {
@@ -1584,7 +1592,7 @@ again_1:
 	again_2:
 	    LoopActivityList * loop_list = dynamic_cast<LoopActivityList *>(fork_list);
 	    ps_my_end_compute_time = ps_now;	/* BUG 321 */
-	    const double exit_value = ps_random * (loop_list->get_total() + 1.0);
+	    const double exit_value = Random::number() * (loop_list->get_total() + 1.0);
 	    double sum = 0;
 	    for ( ActivityList::const_iterator i  = loop_list->begin(); i < loop_list->end(); ++i ) {
 		sum += loop_list->get_count_at(i-loop_list->begin());

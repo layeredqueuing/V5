@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * generate.h	-- Greg Franks
  *
- * $Id: randomvar.h 14341 2021-01-05 19:54:55Z greg $
+ * $Id: randomvar.h 17431 2024-11-05 10:08:21Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -17,11 +17,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <ostream>
-
-#if !HAVE_DRAND48
-double drand48();
-void srand48( long seedval );
-#endif
+#include <random>
 
 namespace RV {
     class RandomVariable
@@ -45,8 +41,15 @@ namespace RV {
 	RandomVariable& setMean( const std::string& );
 	virtual distribution_t getType() const { return _type; }
 
+	static double number() { return __f(__generator); }
+	static void seed( unsigned int value ) { __generator.seed( value ); }
+
     private:
 	const distribution_t _type;
+
+	static std::random_device __random_device;
+	static std::uniform_real_distribution<double> __f;	/* uniform from 0 to 1 */
+	static std::mt19937 __generator;
     };
 
     class Exponential : public RandomVariable
@@ -55,7 +58,7 @@ namespace RV {
 	Exponential( double a ) : RandomVariable(CONTINUOUS), _a(a) {}
 	virtual Exponential * clone() const { return new Exponential( getArg( 1 ) ); }
 
-	virtual double operator()() const { return  -_a * log( drand48() ); }
+	virtual double operator()() const { return  -_a * log( number() ); }
 
 	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 1; }
@@ -77,7 +80,7 @@ namespace RV {
 	Pareto( double a ) : RandomVariable(CONTINUOUS), _a(a) {}
 	virtual Pareto * clone() const { return new Pareto( _a ); }
 
-	virtual double operator()() const { return 1.0 / pow( drand48(), 1.0 / _a ); }
+	virtual double operator()() const { return 1.0 / pow( number(), 1.0 / _a ); }
 
 	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 1; }
@@ -99,7 +102,7 @@ namespace RV {
 	Uniform( double low, double high ) : RandomVariable(BOTH), _low(low), _high(high) {}
 	virtual Uniform * clone() const { return new Uniform( _low, _high ); }
 
-	virtual double operator()() const { return _low + (_high - _low) * drand48(); }
+	virtual double operator()() const { return _low + (_high - _low) * number(); }
 
 	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 2; }
@@ -125,7 +128,7 @@ namespace RV {
 	virtual double operator()() const 
 	    { 
 		const double log_low = log(_low);
-		return exp( log_low + (log(_high) - log(_low)) * drand48() ); 
+		return exp( log_low + (log(_high) - log(_low)) * number() ); 
 	    }
 
 	virtual const char * name() const { return __name; }
@@ -179,7 +182,7 @@ namespace RV {
 	    {
 		double sum = 0.0;
 		for ( unsigned int i = 0; i < 12; ++i ) {
-		    sum += drand48();
+		    sum += number();
 		}
 		return _mean + _stddev * (sum - 6);
 	    }
@@ -269,7 +272,7 @@ namespace RV {
 	    double p = 1.0;
 	    do {
 		x += 1;
-		p *= drand48();
+		p *= number();
 	    } while ( p > L );
 #endif
 	    return x - 1;
@@ -301,7 +304,7 @@ namespace RV {
 
 	    unsigned int x = 0;
 	    for ( unsigned int i = 0; i < _high; i += 1 ) {
-		if ( drand48() < 0.5 ) x++;
+		if ( number() < 0.5 ) x++;
 	    }
 	    return x + _low;
 	}
@@ -329,7 +332,7 @@ namespace RV {
 	Probability& operator=( double prob ) { return setMean( prob ); }
 	virtual Probability * clone() const { return new Probability( _mean ); }
 
-	virtual double operator()() const { return drand48() < _mean ? 1.0 : 0.0; }
+	virtual double operator()() const { return number() < _mean ? 1.0 : 0.0; }
 
 	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 1; }

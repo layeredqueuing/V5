@@ -1,9 +1,8 @@
 <?xml version="1.0"?>
 <!-- lqn2xml -->
 <lqn-model name="00-sanity" description="Layered Queuening Network Model." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-  <solver-params comment="Simplest model, no calls." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+  <solver-params comment="WRN_NOT_USED" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
     <pragma param="disjoint-customers" value="true"/>
-    <pragma param="severity-level" value="run-time"/>
   </solver-params>
   <processor name="c0" scheduling="fcfs">
     <task name="c0" scheduling="ref" multiplicity="2">

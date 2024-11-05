@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 17363 2024-10-14 11:18:52Z greg $
+ * $Id: actlist.cc 17428 2024-11-05 00:47:59Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -499,7 +499,7 @@ AndOrForkActivityList::cloneVirtualEntry( const Entry * src, const Task * owner,
 
 AndOrForkActivityList::~AndOrForkActivityList()
 {
-    std::for_each( entries().begin(), entries().end(), Delete<Entry *> );
+    std::for_each( entries().begin(), entries().end(), []( Entry * entry ){ delete entry; } );
 }
 
 
@@ -1929,7 +1929,7 @@ RepeatActivityList::RepeatActivityList( const RepeatActivityList& src, const Tas
 
 RepeatActivityList::~RepeatActivityList()
 {
-    std::for_each( entries().begin(), entries().end(), Delete<Entry *> );
+    std::for_each( entries().begin(), entries().end(), []( Entry * entry ){ delete entry; } );
 }
 
 

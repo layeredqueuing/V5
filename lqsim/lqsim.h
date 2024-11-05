@@ -12,7 +12,7 @@
 /*
  * Global vars for setting up simulation.
  *
- * $Id: lqsim.h 17388 2024-10-24 11:39:41Z greg $
+ * $Id: lqsim.h 17422 2024-11-04 00:36:47Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -69,8 +69,6 @@ extern int trace_driver;		/* trace sim. drriver.		*/
 
 extern int scheduling_model;		/* Slice/Natural scheduling.	*/
 
-extern double inter_proc_delay;		/* Inter-processor delay.	*/
-
 extern char * histogram_output_file;	/* File name for histogram data	*/
 
 void * my_malloc( size_t size );
@@ -79,8 +77,6 @@ void report_matherr( FILE * output );
 
 extern int nice_value;
 extern bool deferred_exception;		/* Fault detected in thread	*/
-
-extern unsigned link_tab[MAX_NODES];	/* Link table.			*/
 
 /*
  * These items are used with bit-tests.

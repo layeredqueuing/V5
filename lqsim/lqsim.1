@@ -1,5 +1,5 @@
 .TH LQSIM 1 "$Date::2013-01-30 $"
-.\" $Id: lqsim.1 16443 2023-02-25 00:56:26Z greg $
+.\" $Id: lqsim.1 17423 2024-11-04 01:58:07Z greg $
 .SH NAME
 lqsim \- simulate layered queueing networks. 
 .SH SYNOPSIS
@@ -222,10 +222,6 @@ Generate XML output regardless of input format.
 Set the printing interval to \fInn\fP.  Results are printed after
 \fInn\fP blocks have run.  The default value is 10.
 .TP
-\fB\-\-global-delay=\fInn.n\fP
-Set the interprocessor delay to \fInn.n\fP for all tasks.  Delays
-specified in the input file will override the global value.
-.TP
 \fB\-\-reload-lqx\fR
 Re-run the LQX program without re-solving the models.  Results must exist from a previous solution run.
 This option is useful if LQX print statements are changed.
@@ -244,6 +240,9 @@ the line causing the problem.
 \fB\-\-debug-lqx\fR
 Enable the debugging code for the LQX parser.  This will output the
 results of the parse, not of the execution of the lqx program.
+.TP
+\fB\-\-print-lqx\fR
+Output the LQX progam corresponding to SPEX input.
 .PP
 \fBLqsim\fR exits with 0 on success, 1 if the model failed to meet the
 convergence criteria, 2 if the input was invalid, 4 if a command line

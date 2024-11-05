@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.h 17348 2024-10-09 18:54:22Z greg $
+ * $Id: model.h 17408 2024-10-30 17:40:57Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -194,7 +194,6 @@ private:
 
 public:
     static bool __forwarding_present;
-    static bool __open_class_error;
 
 private:
     static LQIO::DOM::CPUTime __start_time;

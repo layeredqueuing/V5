@@ -10,7 +10,7 @@
  * November, 1994
  * December, 2020
  *
- * $Id: pragma.h 16581 2023-03-23 20:14:56Z greg $
+ * $Id: pragma.h 17433 2024-11-05 13:59:00Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -19,6 +19,7 @@
 #define	LQNS_PRAGMA_H
 
 #include <map>
+#include <cassert>
 #include <lqio/input.h>
 #include <lqio/dom_pragma.h>
 #include "help.h"

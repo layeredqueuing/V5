@@ -11,7 +11,7 @@
  *
  * January 2005.
  *
- * $Id: randomvar.cc 15331 2022-01-02 21:51:30Z greg $
+ * $Id: randomvar.cc 17428 2024-11-05 00:47:59Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1639,6 +1639,6 @@ DiscreteCDFs::addCDF( DiscretePoints& aCDF)
 
 DiscreteCDFs::~DiscreteCDFs()
 {
-    std::for_each( myCDFsCltn.begin(), myCDFsCltn.end(), Delete<DiscretePoints *> );
+    std::for_each( myCDFsCltn.begin(), myCDFsCltn.end(), []( DiscretePoints * points ){ delete points; } );
 }
 

@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 17399 2024-10-28 20:10:13Z greg $
+ * $Id: entry.cc 17428 2024-11-05 00:47:59Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -531,6 +531,18 @@ Entry::hasVariance() const
 	return std::any_of( _phase.begin(), _phase.end(), std::mem_fn( &Phase::hasVariance ) );
     } else {
 	return true;
+    }
+}
+
+
+
+bool
+Entry::hasCalls() const
+{
+    if ( isStandardEntry() ) {
+	return std::any_of( _phase.begin(), _phase.end(), std::mem_fn( &Phase::hasCalls ) );
+    } else {
+	return false;
     }
 }
 

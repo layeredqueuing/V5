@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17359 2024-10-12 01:32:27Z greg $
+ * $Id: model.cc 17428 2024-11-05 00:47:59Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -505,12 +505,12 @@ Model::Model( const LQIO::DOM::Document * document, const std::string& inputFile
 
 Model::~Model()
 {
-    std::for_each( _submodels.begin(), _submodels.end(), Delete<Submodel *> );
+    std::for_each( _submodels.begin(), _submodels.end(), []( Submodel * submodel ){ delete submodel; } );
 
-    std::for_each( __processor.begin(), __processor.end(), Delete<Processor *> );
+    std::for_each( __processor.begin(), __processor.end(), []( Processor * processor ){ delete processor; } );
     __processor.clear();		/* Global, so get rid of them */
 
-    std::for_each( __group.begin(), __group.end(), Delete<Group *> );
+    std::for_each( __group.begin(), __group.end(), []( Group * group ){ delete group; } );
     __group.clear();
 
     if ( __think_server ) {
@@ -518,10 +518,10 @@ Model::~Model()
 	__think_server = nullptr;
     }
 
-    std::for_each( __task.begin(), __task.end(), Delete<Task *> );
+    std::for_each( __task.begin(), __task.end(), []( Task * task ){ delete task; } );
     __task.clear();
 
-    std::for_each( __entry.begin(), __entry.end(), Delete<Entry *> );
+    std::for_each( __entry.begin(), __entry.end(), []( Entry * entry ){ delete entry; } );
     __entry.clear();
 }
 

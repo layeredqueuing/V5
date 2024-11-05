@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 17355 2024-10-10 22:52:30Z greg $
+ *  $Id: srvn_output.cpp 17424 2024-11-04 02:01:46Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -380,7 +380,7 @@ namespace LQIO {
 		std::for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwardingVarianceWaiting ) );
 	    }
 
-	    if ( getDOM().hasRendezvous() ) {
+	    if ( getDOM().hasSendNoReply() ) {
 		output << call_header( snr_waiting_time_variance_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
 		std::for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
 	    }

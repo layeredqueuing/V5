@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 17399 2024-10-28 20:10:13Z greg $
+ * $Id: entry.h 17428 2024-11-05 00:47:59Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -270,6 +270,7 @@ public:
     bool hasNonExponentialPhases() const { return getDOM()->hasNonExponentialPhases(); }
     bool hasThinkTime() const { return getDOM()->hasThinkTime(); }
     bool hasVariance() const;
+    bool hasCalls() const;
     bool hasStartActivity() const { return _startActivity != nullptr; }
     bool hasOpenArrivals() const { return getDOM()->hasOpenArrivalRate(); }
     bool hasVisitProbability() const { return getDOM()->hasVisitProbability(); }

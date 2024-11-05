@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol entry interface.
  *
- * $Id: entry.h 17402 2024-10-29 23:28:52Z greg $
+ * $Id: entry.h 17410 2024-10-31 13:54:12Z greg $
  */
 
 #ifndef ENTRY_H
@@ -183,6 +183,4 @@ private:
 };
 
 extern unsigned open_arrival_count;	/* non-zero if any open arrivals*/
-
-void build_links( class Task * cp, unsigned link_tab[] );
 #endif

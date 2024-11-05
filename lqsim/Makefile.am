@@ -1,14 +1,14 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 16989 2024-01-31 11:40:29Z greg $
+# $Id: Makefile.am 17413 2024-11-01 13:05:01Z greg $
 #----------------------------------------------------------------------
 SUBDIRS		= regression
 
 AM_CPPFLAGS	= -I../lqx/libsrc/headers/ -I../lqiolib/src/headers -I../parasol/include
 bin_PROGRAMS	= lqsim
 lqsim_SOURCES	= activity.cc actlist.cc entry.cc errmsg.cc group.cc histogram.cc instance.cc model.cc lqsim.cc \
-		  message.cc pragma.cc processor.cc result.cc runlqx.cc target.cc task.cc
+		  message.cc pragma.cc processor.cc random.cc result.cc runlqx.cc target.cc task.cc
 noinst_HEADERS 	= activity.h actlist.h entry.h errmsg.h group.h histogram.h instance.h model.h lqsim.h \
-		  message.h pragma.h processor.h result.h runlqx.h target.h task.h
+		  message.h pragma.h processor.h random.h result.h runlqx.h target.h task.h
 EXTRA_DIST	= lqsim.1
 
 lqsim_CXXFLAGS	= -std=c++17 -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-switch -Wno-overloaded-virtual

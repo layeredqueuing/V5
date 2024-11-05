@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 17351 2024-10-09 22:15:00Z greg $
+ * $Id: lqsim.cc 17423 2024-11-04 01:58:07Z greg $
  */
 
 #define STACK_TESTING
@@ -16,11 +16,12 @@
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
+#include <filesystem>
+#include <stdexcept>
 #include <unistd.h>
 #include <time.h>
 #include <errno.h>
 #include <libgen.h>
-#include <stdexcept>
 #if HAVE_FENV_H
 #include <fenv.h>
 #endif
@@ -88,17 +89,13 @@ unsigned long watched_events = 0xffffffff;	/* trace everything	*/
 matherr_type matherr_disposition;	/* What to do on FPE error.	*/
 
 int trace_driver	= 0;		/* Trace driver.		*/
-double inter_proc_delay	= 0.0;		/* Inter-processor delay.	*/
 
-bool messages_lost	= false;	/* will be set true if nec.	*/
 int nice_value		= 10;		/* For nicing. 			*/
 
 char copyright_date[20];
 char * histogram_output_file = 0;
 
 FILE * stddbg;				/* debugging output goes here.	*/
-
-unsigned link_tab[MAX_NODES];		/* Link table.			*/
 
 /*
  * Options for getopt.
@@ -134,17 +131,17 @@ static const struct option longopts[] =
     { "no-warnings",      no_argument,	     0, 'w' },
     { "xml",		  no_argument,	     0, 'x' },
     { "print-interval",   optional_argument, 0, 256+'p' },
-    { "global-delay",	  required_argument, 0, 256+'z' },
     { "no-stop-on-message-loss", no_argument,0, 256+'o' },
     { "reload-lqx",	  no_argument,       0, 256+'r' },
     { "restart",	  no_argument,	     0, 256+'R' },
     { "no-header",	  no_argument,	     0, 256+'h' },
     { "print-comment",	  no_argument,	     0, 256+'c' },
+    { "debug-json",	  no_argument,	     0, 256+'j' },
     { "debug-lqx",        no_argument,       0, 256+'l' },
     { "debug-xml",        no_argument,       0, 256+'x' },
-    { "debug-json",	  no_argument,	     0, 256+'j' },
+    { "print-lqx",	  no_argument,	     0, 256+'s' },
 #if defined(STACK_TESTING)
-    { "check-stacks",	  no_argument,	     0, 256+'s' },
+    { "check-stacks",	  no_argument,	     0, 256+'S' },
 #endif
     { nullptr, 0, 0, 0 }
 };
@@ -190,6 +187,7 @@ static const std::map<const std::string,const std::string> opthelp  = {
     { "debug-lqx",	    "Output debugging information while parsing LQX input." },
     { "debug-xml",	    "Output debugging information while parsing XML input." },
     { "debug-json", 	    "Output debugging information while parsing JSON input." },
+    { "print-lqx",	    "Output the LQX progam corresponding to SPEX input." },
     { "check-stacks", 	    "Check stack size after simulation run." }
 };
 
@@ -299,7 +297,7 @@ int
 main( int argc, char * argv[] )
 {   				
     int global_error_flag	= 0;
-    std::string output_file;		/* Command line filename?   	*/
+    std::filesystem::path output_file;		/* Command line filename?   	*/
     LQIO::DOM::Document::InputFormat input_format = LQIO::DOM::Document::InputFormat::AUTOMATIC;
     LQIO::DOM::Document::OutputFormat output_format = LQIO::DOM::Document::OutputFormat::DEFAULT;
     Model::solve_using solve_function = &Model::start;
@@ -321,7 +319,7 @@ main( int argc, char * argv[] )
     std::copy( local_error_messages.begin(), local_error_messages.end(), std::inserter( LQIO::error_messages, LQIO::error_messages.begin() ) );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2024-10-09 18:15:00 -0400 (Wed, 09 Oct 2024) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2024-11-03 20:58:07 -0500 (Sun, 03 Nov 2024) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Handy defaults.						*/
@@ -541,8 +539,12 @@ main( int argc, char * argv[] )
 		fprintf(stdout, "\ndebug interactive stepping option is turned on\n" ) ; 
 		break;
 			
-#if defined(STACK_TESTING)
 	    case 256+'s':
+		print_lqx = true;
+		break;
+		
+#if defined(STACK_TESTING)
+	    case 256+'S':
 		check_stacks = true;
 		break;
 #endif
@@ -610,13 +612,7 @@ main( int argc, char * argv[] )
 		LQIO::DOM::Document::__debugXML = true;
 		break;
 
-	    case 256+'z':
-		inter_proc_delay = strtod( optarg, &value );
-		if ( inter_proc_delay < 0. || *value != '\0' ) throw std::invalid_argument( optarg );
-		break;
-
 	    default:
-		
 		break;
 	    }
 	}
