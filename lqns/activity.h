@@ -18,12 +18,13 @@
 #ifndef _ACTIVITY_H
 #define _ACTIVITY_H
 
-#include <set>
-#include <map>
+#include <algorithm>
 #include <deque>
-#include <stack>
-#include <numeric>
 #include <lqio/dom_activity.h>
+#include <map>
+#include <numeric>
+#include <set>
+#include <stack>
 #include "phase.h"
 #if HAVE_LIBGSL
 #include "randomvar.h"

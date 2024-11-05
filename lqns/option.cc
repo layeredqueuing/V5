@@ -4,10 +4,11 @@
  */
 
 #include "lqns.h"
-#include <fstream>
-#include <sstream>
 #include <cctype>
 #include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <sstream>
 #include <errno.h>
 #include <lqio/error.h>
 #include <lqio/srvn_spex.h>

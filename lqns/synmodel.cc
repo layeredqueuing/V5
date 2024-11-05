@@ -9,9 +9,10 @@
 
 
 #include "lqns.h"
+#include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <functional>
-#include <cmath>
 #include <mva/fpgoop.h>
 #include "flags.h"
 #include "option.h"

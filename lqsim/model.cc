@@ -162,7 +162,7 @@ Model::solve( solve_using run_function, const std::filesystem::path& input_file_
 	    LQIO::RegisterBindings(environment, document);
 	
 	    if ( !output_file_name.empty() && output_file_name != "-" ) {
-		output = fopen( output_file_name.c_str(), "w" );
+	        output = fopen( output_file_name.string().c_str(), "w" );
 		if ( !output ) {
 		    runtime_error( LQIO::ERR_CANT_OPEN_FILE, output_file_name.c_str(), strerror( errno ) );
 		    status = FILEIO_ERROR;
@@ -544,7 +544,7 @@ Model::start()
 #if HAVE_MCHECK
 	mcheck_check_all();
 #endif
-	fprintf( stderr, "%s: ", _input_file_name.c_str() );
+	fprintf( stderr, "%s: ", _input_file_name.string().c_str() );
 	test_all_stacks();
     }
 

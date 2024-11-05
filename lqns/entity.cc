@@ -16,6 +16,7 @@
 
 #include "lqns.h"
 #include <cmath>
+#include <cstring>
 #include <functional>
 #include <numeric>
 #include <sstream>

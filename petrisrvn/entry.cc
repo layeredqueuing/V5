@@ -17,6 +17,7 @@
 #include "petrisrvn.h"
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <numeric>
 #include <sstream>
 #include <vector>
