@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: entry.cc 17430 2024-11-05 01:09:06Z greg $
+ * $Id: entry.cc 17437 2024-11-05 23:51:15Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *

@@ -1,6 +1,6 @@
 /*  -*- c++ -*-
  * synmodel.C	-- Greg Franks Fri Aug  7 1998
- * $Id: synmodel.cc 16947 2024-01-26 14:22:35Z greg $
+ * $Id: synmodel.cc 17437 2024-11-05 23:51:15Z greg $
  *
  * Special submodel to handle synchronization.  These delays are added into
  * the waiting time arrays in the usual fashion (I hope...)

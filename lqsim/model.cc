@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 17436 2024-11-05 23:16:25Z greg $
+ * $Id: model.cc 17440 2024-11-06 01:09:27Z greg $
  */
 
 #include "lqsim.h"
@@ -50,9 +50,9 @@ extern "C" {
     extern void test_all_stacks();
 }
 
-#if defined(_PARASOL)
+//#if defined(_PARASOL)
 int Model::__genesis_task_id = 0;
-#endif
+//#endif
 Model * Model::__model = nullptr;
 bool Model::__enable_print_interval = false;
 unsigned int Model::__print_interval = 0;
