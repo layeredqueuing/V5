@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 17432 2024-11-05 10:26:54Z greg $
+ * $Id: instance.cc 17442 2024-11-06 13:56:04Z greg $
  */
 
 /*
@@ -1153,7 +1153,7 @@ Instance::compute ( Activity * ap, Activity * pp )
 {
     double time = 0.0;
 
-    if ( ap->has_service_time() ) {
+    if ( ap->_slice_time != nullptr ) {
 
 	time = ap->get_slice_time();
 	timeline_trace( TASK_IS_COMPUTING, time );
@@ -1311,7 +1311,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
      * Now do service.
      */
 
-    if ( ap->has_calls() > 0 || ap->has_service_time() ) {
+    if ( ap->has_calls() > 0 || ap->_slice_time != nullptr ) {
 	double sends = 0.0;
 	unsigned int i = 0;		/* loop index			*/
 	unsigned int j = 0;		/* loop index (det ph.)		*/
