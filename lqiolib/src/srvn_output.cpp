@@ -2368,7 +2368,7 @@ namespace LQIO {
         if ( !task ) return;
 
         const std::vector<DOM::Entry *>& entries = task->getEntryList();
-	std::for_each( entries.begin(), entries.end(), []( const DOM::Entry * entry ){ _count += entry->getForwarding().size(); } );
+	std::for_each( entries.begin(), entries.end(), [&]( const DOM::Entry * entry ){ _count += entry->getForwarding().size(); } );
     }
 
     /* ---------- Entry parameters ---------- */
