@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17428 2024-11-05 00:47:59Z greg $
+ * $Id: model.cc 17443 2024-11-06 15:10:38Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -35,6 +35,7 @@
 #include "lqns.h"
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <errno.h>
 #include <fstream>
 #include <functional>

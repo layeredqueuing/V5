@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 17424 2024-11-04 02:01:46Z greg $
+ *  $Id: srvn_output.cpp 17445 2024-11-07 11:26:57Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -554,8 +554,7 @@ namespace LQIO {
     {
         const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
         assert( phases.size() <= DOM::Phase::MAX_PHASE );
-        std::map<unsigned, DOM::Phase*>::const_iterator p;
-        for (p = phases.begin(); p != phases.end(); ++p) {
+        for ( std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p ) {
             const DOM::Phase* phase = p->second;
             if ( phase ) {
                 output << std::setw(__maxDblLen-1) << Input::print_double_parameter( (phase->*func)(), 0. ) << ' ';
@@ -571,8 +570,7 @@ namespace LQIO {
     {
         const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
         assert( phases.size() <= DOM::Phase::MAX_PHASE );
-        std::map<unsigned, DOM::Phase*>::const_iterator p;
-        for (p = phases.begin(); p != phases.end(); ++p) {
+        for ( std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
             const DOM::Phase* phase = p->second;
             switch ( phase->getPhaseTypeFlag() ) {
             case DOM::Phase::Type::DETERMINISTIC: output << std::setw(__maxDblLen) << "determin"; break;
@@ -696,11 +694,11 @@ namespace LQIO {
     SRVN::ObjectInput::printReplyList( const std::vector<DOM::Entry*>& replies ) const
     {
         _output << "[";
-        for ( std::vector<DOM::Entry *>::const_iterator next_entry = replies.begin(); next_entry != replies.end(); ++next_entry ) {
-            if ( next_entry != replies.begin() ) {
+        for ( std::vector<DOM::Entry *>::const_iterator entry = replies.begin(); entry != replies.end(); ++entry ) {
+            if ( entry != replies.begin() ) {
                 _output << ",";
             }
-            _output << (*next_entry)->getName();
+            _output << (*entry)->getName();
         }
         _output << "]";
     }
@@ -2338,11 +2336,8 @@ namespace LQIO {
 
         std::ios_base::fmtflags oldFlags = _output.setf( std::ios::left, std::ios::adjustfield );
         const std::vector<DOM::Entry *>& entries = task->getEntryList();
-        std::vector<DOM::Entry *>::const_iterator nextEntry;
         bool print_task_name = true;
-        for ( nextEntry = entries.begin(); nextEntry != entries.end(); ++nextEntry ) {
-            (this->*_entryFunc)( **nextEntry, *(ep.second), print_task_name );
-        }
+	std::for_each( entries.begin(), entries.end(), [&]( DOM::Entry * entry ){ (this->*_entryFunc)( *entry, *(ep.second), print_task_name ); } );
 
         const std::map<std::string,DOM::Activity*>& activities = task->getActivities();
         if ( activities.size() > 0 && _activityFunc != nullptr ) {
@@ -2358,9 +2353,7 @@ namespace LQIO {
             }
             if ( found ) {
                 _output << entity_name( *(ep.second), print_task_name ) << activity_separator(0) << newline;
-                for ( nextActivity = activities.begin(); nextActivity != activities.end(); ++nextActivity ) {
-                    (this->*_activityFunc)( *nextActivity->second );
-                }
+		std::for_each( activities.begin(), activities.end(), [&]( const std::pair<std::string,DOM::Activity*>& activity ){ (this->*_activityFunc)( *activity.second ); } );
             }
         }
         if ( _activityFunc != nullptr && print_task_name == false && __parseable ) {
@@ -2375,9 +2368,7 @@ namespace LQIO {
         if ( !task ) return;
 
         const std::vector<DOM::Entry *>& entries = task->getEntryList();
-        for ( std::vector<DOM::Entry *>::const_iterator nextEntry = entries.begin(); nextEntry != entries.end(); ++nextEntry ) {
-	    _count += (*nextEntry)->getForwarding().size();
-	}
+	std::for_each( entries.begin(), entries.end(), []( const DOM::Entry * entry ){ _count += entry->getForwarding().size(); } );
     }
 
     /* ---------- Entry parameters ---------- */

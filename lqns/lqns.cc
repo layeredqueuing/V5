@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 17351 2024-10-09 22:15:00Z greg $
+ * $Id: lqns.cc 17443 2024-11-06 15:10:38Z greg $
  *
  * Command line processing.
  *
@@ -13,11 +13,12 @@
  */
 
 #include "lqns.h"
-#include <sstream>
-#include <fstream>
+#include <cmath>
+#include <cstring>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
+#include <fstream>
+#include <sstream>
 #include <errno.h>
 #include <fcntl.h>           /* Definition of AT_* constants */
 #if HAVE_GETOPT_H
@@ -144,7 +145,7 @@ int main (int argc, char *argv[])
     
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2024-10-09 18:15:00 -0400 (Wed, 09 Oct 2024) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2024-11-06 10:10:38 -0500 (Wed, 06 Nov 2024) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = fp_exception_reporting::DEFERRED_ABORT;
 

@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 17442 2024-11-06 13:56:04Z greg $
+ * $Id: instance.cc 17445 2024-11-07 11:26:57Z greg $
  */
 
 /*
@@ -114,7 +114,7 @@ Instance::client_cycle( Random * distribution )
     if ( _cp->n_entries() == 1 ) {
 	server_cycle( _cp->_entry[0], 0, think_time == 0. );
     } else {
-	server_cycle( _cp->_entry[ps_choice( _cp->n_entries() )], 0, think_time == 0. );
+	server_cycle( _cp->_entry[static_cast<size_t>(_cp->n_entries()*Random::number())], 0, think_time == 0. );
     }
 }
 
