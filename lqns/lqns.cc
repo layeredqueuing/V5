@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 17443 2024-11-06 15:10:38Z greg $
+ * $Id: lqns.cc 17451 2024-11-09 12:06:44Z greg $
  *
  * Command line processing.
  *
@@ -17,6 +17,7 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <errno.h>
@@ -128,7 +129,7 @@ extern "C" int getsubopt (char **, char * const *, char **);
 
 int main (int argc, char *argv[])
 {
-    std::string outputFileName = "";
+    std::filesystem::path outputFileName = "";
     LQIO::DOM::Document::OutputFormat output_format = LQIO::DOM::Document::OutputFormat::DEFAULT;
     LQIO::CommandLine command_line( longopts );
     Options::Debug::initialize();
@@ -145,7 +146,7 @@ int main (int argc, char *argv[])
     
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2024-11-06 10:10:38 -0500 (Wed, 06 Nov 2024) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2024-11-09 07:06:44 -0500 (Sat, 09 Nov 2024) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = fp_exception_reporting::DEFERRED_ABORT;
 

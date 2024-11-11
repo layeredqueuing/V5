@@ -1,4 +1,4 @@
-// $Id: statistic.h 15456 2022-03-09 15:06:35Z greg $
+// $Id: statistic.h 17453 2024-11-10 12:08:26Z greg $
 //=======================================================================
 //	statistic.h - PS_AbstractStatistic, PS_RateStatistic, 
 //		     PS_VariableStatistic and PS_SampleStatistic class

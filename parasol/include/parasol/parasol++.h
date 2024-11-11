@@ -1,4 +1,4 @@
-// $Id: parasol++.h 15456 2022-03-09 15:06:35Z greg $
+// $Id: parasol++.h 17453 2024-11-10 12:08:26Z greg $
 //=======================================================================
 // File:	parasol++.h 
 // Description:	Header file for Parasol C++ library.

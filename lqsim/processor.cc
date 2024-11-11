@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 17422 2024-11-04 00:36:47Z greg $
+ * $Id: processor.cc 17450 2024-11-08 18:40:45Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -243,11 +243,11 @@ Custom_Processor::main()
 		       && ps_task_priority(rtrq[0]) >= ip->priority() ))
 		 && ps_ready_queue( ps_my_node, MAX_TASKS, rtrq ) > 0 ) {
 		ps_schedule_time(ip->task_id()) = ps_now;
-		if ( ip->r_a_execute >= 0 ) {
-		    ps_record_stat( ip->r_a_execute, 0.0 );
+		if ( ip->r_a_execute != nullptr ) {
+		    ip->r_a_execute->record( 0.0 );
 		}
-		if ( ip->r_e_execute >= 0 ) {
-		    ps_record_stat( ip->r_e_execute, 0.0 );
+		if ( ip->r_e_execute != nullptr ) {
+		    ip->r_e_execute->record( 0.0 );
 		}
 		trace( PROC_PREEMPTING_TASK, ip, quantum );
 		quantum = run_task( rtrq[0] );
@@ -295,11 +295,11 @@ Custom_Processor::main()
 			&& ps_ready_queue( ps_my_node, MAX_TASKS, rtrq ) > 0
 			&& ps_task_priority(rtrq[0]) > ip->priority() ) {
 		ps_schedule_time(ip->task_id()) = ps_now;
-		if ( ip->r_a_execute >= 0 ) {
-		    ps_record_stat( ip->r_a_execute, 0.0 );
+		if ( ip->r_a_execute != nullptr ) {
+		    ip->r_a_execute->record( 0.0 );
 		}
-		if ( ip->r_e_execute >= 0 ) {
-		    ps_record_stat( ip->r_e_execute, 0.0 );
+		if ( ip->r_e_execute != nullptr ) {
+		    ip->r_e_execute->record( 0.0 );
 		}
 		trace( PROC_PRIO_PREEMPTING_TASK, object_tab[rtrq[0]], ip );
 		quantum = run_task( rtrq[0] );
@@ -330,11 +330,11 @@ Custom_Processor::run_task( long task_id )
 
     _active_task[ps_my_host] = ip;
     if ( ip ) {
-	if ( ip->r_a_execute >= 0 ) {
-	    ps_record_stat( ip->r_a_execute, 1.0 );
+	if ( ip->r_a_execute != nullptr ) {
+	    ip->r_a_execute->record( 1.0 );
 	}
-	if ( ip->r_e_execute >= 0 ) {
-	    ps_record_stat( ip->r_e_execute, 1.0 );
+	if ( ip->r_e_execute != nullptr ) {
+	    ip->r_e_execute->record( 1.0 );
 	}
     }
 

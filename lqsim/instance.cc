@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 17445 2024-11-07 11:26:57Z greg $
+ * $Id: instance.cc 17450 2024-11-08 18:40:45Z greg $
  */
 
 /*
@@ -44,8 +44,8 @@ volatile int client_init_count = 0;	/* Semaphore for -C...*/
 std::vector<Instance *> object_tab(MAX_TASKS+1);	/* object table		*/
 
 Instance::Instance( Task * cp, const std::string& task_name, long task_id )
-    : r_e_execute(-1),
-      r_a_execute(-1),
+    : r_e_execute(nullptr),
+      r_a_execute(nullptr),
       _cp(cp),
       _hold_start_time(0.0),
       _entry(),
@@ -1158,12 +1158,12 @@ Instance::compute ( Activity * ap, Activity * pp )
 	time = ap->get_slice_time();
 	timeline_trace( TASK_IS_COMPUTING, time );
 
-	r_a_execute = ap->r_cpu_util._raw;
+	r_a_execute = &ap->r_cpu_util;
 
 	ap->_cpu_active += 1;
-	ap->r_cpu_util.record(  ap->_cpu_active );	/* Phase P execution.	*/
+	ap->r_cpu_util.record( ap->_cpu_active );	/* Phase P execution.	*/
 	if ( ap != pp ) {
-	    r_e_execute = pp->r_cpu_util._raw;
+	    r_e_execute = &pp->r_cpu_util;
 	    pp->_cpu_active += 1;
 	    pp->r_cpu_util.record( pp->_cpu_active );	/* CPU util by phase */
 	}
@@ -1176,8 +1176,8 @@ Instance::compute ( Activity * ap, Activity * pp )
 	    pp->_cpu_active -= 1;
 	    pp->r_cpu_util.record( pp->_cpu_active );
 	}
-	r_a_execute = -1;
-	r_e_execute = -1;
+	r_a_execute = nullptr;
+	r_e_execute = nullptr;
 
     }
 

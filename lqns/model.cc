@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17443 2024-11-06 15:10:38Z greg $
+ * $Id: model.cc 17451 2024-11-09 12:06:44Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -95,7 +95,7 @@ std::set<Entry *,Model::lt_replica<Entry>> Model::__entry;
  */
 
 int
-Model::solve( solve_using solve_function, const std::string& inputFileName, const std::string& outputFileName, LQIO::DOM::Document::OutputFormat outputFormat )
+Model::solve( solve_using solve_function, const std::filesystem::path& inputFileName, const std::filesystem::path& outputFileName, LQIO::DOM::Document::OutputFormat outputFormat )
 {
     /* Loading the model */
     LQIO::DOM::Document* document = Model::load(inputFileName,outputFileName);
@@ -230,7 +230,7 @@ Model::solve( solve_using solve_function, const std::string& inputFileName, cons
  */
 
 LQIO::DOM::Document*
-Model::load( const std::string& input_filename, const std::string& output_filename )
+Model::load( const std::filesystem::path& input_filename, const std::filesystem::path& output_filename )
 {
     if ( Options::Trace::verbose() ) std::cerr << "Load: " << input_filename << "..." << std::endl;
 
@@ -276,8 +276,8 @@ Model::prepare(const LQIO::DOM::Document* document)
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
 
-    const std::map<std::string,LQIO::DOM::Processor *>& procList = document->getProcessors();
-    std::for_each( procList.begin(), procList.end(), Processor::create );
+    const std::map<std::string,LQIO::DOM::Processor *>& processors = document->getProcessors();
+    std::for_each( processors.begin(), processors.end(), Processor::create );
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1.5: Add Groups] */
 
@@ -287,11 +287,11 @@ Model::prepare(const LQIO::DOM::Document* document)
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 2: Add Tasks/Entries] */
 
     /* In the DOM, tasks have entries, but here entries need to go first */
-    const std::map<std::string,LQIO::DOM::Task*>& taskList = document->getTasks();
+    const std::map<std::string,LQIO::DOM::Task*>& tasks = document->getTasks();
     std::vector<Activity*> activityList;
 
     /* Add all of the processors we will be needing */
-    for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator nextTask = taskList.begin(); nextTask != taskList.end(); ++nextTask ) {
+    for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator nextTask = tasks.begin(); nextTask != tasks.end(); ++nextTask ) {
 	LQIO::DOM::Task* task = nextTask->second;
 
 	/* Prepare to iterate over all of the entries */
@@ -394,7 +394,7 @@ Model::recalculateDynamicValues()
  */
 
 Model *
-Model::create( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName, LQIO::DOM::Document::OutputFormat outputFormat )
+Model::create( const LQIO::DOM::Document * document, const std::filesystem::path& inputFileName, const std::filesystem::path& outputFileName, LQIO::DOM::Document::OutputFormat outputFormat )
 {
     static const std::map<const Pragma::Layering, create_func> create_funcs = {
 	{ Pragma::Layering::BATCHED,  			    &Batch_Model::create },
@@ -491,7 +491,7 @@ Model::setModelParameters()
  * Constructor.
  */
 
-Model::Model( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName, LQIO::DOM::Document::OutputFormat outputFormat )
+Model::Model( const LQIO::DOM::Document * document, const std::filesystem::path& inputFileName, const std::filesystem::path& outputFileName, LQIO::DOM::Document::OutputFormat outputFormat )
     : _submodels(), _converged(false), _iterations(0), _MVAStats(),
       _convergence_value(0), _iteration_limit(0), _underrelaxation(0),
       _step_count(0), _model_initialized(false), _document(document),

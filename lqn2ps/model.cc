@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 17378 2024-10-16 23:25:26Z greg $
+ * $Id: model.cc 17452 2024-11-10 12:04:53Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -323,7 +323,7 @@ Model::group_by_submodel()
  */
 
 int
-Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& pragmas, const std::string& output_file_name, const std::string& parse_file_name, int model_no )
+Model::create( const std::filesystem::path& input_file_name, const LQIO::DOM::Pragma& pragmas, const std::filesystem::path& output_file_name, const std::filesystem::path& parse_file_name, int model_no )
 {
     /* Maps for type conversion */
     static const std::map<const File_Format,const LQIO::DOM::Document::InputFormat> lqn2xxx_to_dom = {
@@ -481,7 +481,7 @@ Model::create( const std::string& input_file_name, const LQIO::DOM::Pragma& prag
 		    LQIO::RegisterBindings(program->getEnvironment(), document);
 
 		    FILE * output = nullptr;
-		    if ( output_file_name.size() > 0 && output_file_name != "-" ) {
+		    if ( !output_file_name.empty() && output_file_name != "-" ) {
 			output = fopen( output_file_name.c_str(), "w" );
 			if ( !output ) {
 			    runtime_error( LQIO::ERR_CANT_OPEN_FILE, output_file_name.c_str(), strerror( errno ) );
@@ -1506,7 +1506,7 @@ Model::nInfiniteServers() const
 
 
 Model&
-Model::accumulateStatistics( const std::string& filename )
+Model::accumulateStatistics( const std::filesystem::path& filename )
 {
     stats[TOTAL_LAYERS].accumulate( this, filename );
     stats[TOTAL_TASKS].accumulate( this, filename );
@@ -1523,7 +1523,7 @@ Model::accumulateStatistics( const std::string& filename )
 
 
 const Model&
-Model::accumulateTaskStats( const std::string& filename ) const
+Model::accumulateTaskStats( const std::filesystem::path& filename ) const
 {
     /* Does not count ref. tasks. */
 
@@ -1541,7 +1541,7 @@ Model::accumulateTaskStats( const std::string& filename ) const
 
 
 const Model&
-Model::accumulateEntryStats( const std::string& filename ) const
+Model::accumulateEntryStats( const std::filesystem::path& filename ) const
 {
     for ( std::vector<Layer>::const_iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
 	for ( std::vector<Entity *>::const_iterator entity = layer->entities().begin(); entity != layer->entities().end(); ++entity ) {

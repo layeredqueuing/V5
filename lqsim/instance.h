@@ -2,7 +2,7 @@
  * 
  * Logic executed for task behaviour in simulation.
  *
- * $Id: instance.h 17417 2024-11-03 01:16:32Z greg $
+ * $Id: instance.h 17450 2024-11-08 18:40:45Z greg $
  */
 
 /************************************************************************/
@@ -87,8 +87,8 @@ private:
     void do_forwarding ( Message * msg, const Entry * ep );
 
 public:
-    int r_e_execute;			/* For preemption (state).	*/
-    int r_a_execute;			/* For preemption (state).	*/
+    Result * r_e_execute;		/* For preemption (state).	*/
+    Result * r_a_execute;		/* For preemption (state).	*/
 
 protected:
     Task * _cp;				/* Pointer to class.	        */
