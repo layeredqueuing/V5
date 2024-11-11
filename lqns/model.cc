@@ -189,7 +189,7 @@ Model::solve( solve_using solve_function, const std::filesystem::path& inputFile
 
 	FILE * output = nullptr;
 	if ( !outputFileName.empty() && outputFileName != "-" ) {
-	    output = fopen( outputFileName.c_str(), "w" );
+	  output = fopen( outputFileName.string().c_str(), "w" );
 	    if ( !output ) {
 		LQIO::runtime_error( LQIO::ERR_CANT_OPEN_FILE, outputFileName.c_str(), strerror( errno ) );
 		status = FILEIO_ERROR;

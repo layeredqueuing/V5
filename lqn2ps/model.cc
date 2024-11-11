@@ -482,7 +482,7 @@ Model::create( const std::filesystem::path& input_file_name, const LQIO::DOM::Pr
 
 		    FILE * output = nullptr;
 		    if ( !output_file_name.empty() && output_file_name != "-" ) {
-			output = fopen( output_file_name.c_str(), "w" );
+		        output = fopen( output_file_name.string().c_str(), "w" );
 			if ( !output ) {
 			    runtime_error( LQIO::ERR_CANT_OPEN_FILE, output_file_name.c_str(), strerror( errno ) );
 			    status = FILEIO_ERROR;
@@ -2526,7 +2526,7 @@ Model::Stats::Stats()
 
 
 Model::Stats&
-Model::Stats::accumulate( double value, const std::string& filename )
+Model::Stats::accumulate( double value, const std::filesystem::path& filename )
 {
     n += 1;
     x += value;

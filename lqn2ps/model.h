@@ -98,8 +98,8 @@ protected:
 	Stats();
 	std::ostream& operator<<( std::ostream& output ) const { return print( output ); }
 
-	Stats & accumulate( double value, const std::string& );
-	Stats & accumulate( const Model *, const std::string& );
+        Stats & accumulate( double value, const std::filesystem::path& );
+        Stats & accumulate( const Model *, const std::filesystem::path& );
 	Stats & accumulate( const modelFunc func ) { f = func; return *this; }
 	Stats & name( const std::string& aName ) { _name = aName; return *this; }
 	double sum() const { return x; }
@@ -114,8 +114,8 @@ protected:
 	double one_x;
 	double min;
 	double max;
-	std::string min_filename;
-	std::string max_filename;
+	std::filesystem::path min_filename;
+	std::filesystem::path max_filename;
 	modelFunc f;
     };
 

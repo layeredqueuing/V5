@@ -317,7 +317,7 @@ main(int argc, char *argv[])
 		/* Fall through... */
 	    case 0x200+'p':
 		parse_file_name = optarg;
-		if ( parse_file_name != "-" && access( parse_file_name.c_str(), R_OK ) != 0 ) {
+		if ( parse_file_name != "-" && access( parse_file_name.string().c_str(), R_OK ) != 0 ) {
 		    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open parseable output file " << parse_file_name.string() << " - "
 			      << strerror( errno ) << std::endl;
 		    exit( 1 );
