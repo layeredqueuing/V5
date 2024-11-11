@@ -143,3 +143,5 @@ srvn_result_gram.output
 srvn_result_scan.c
 srvndiff/srvndiff
 stamp-h1
+models/faulty/ERRORS
+models/faulty/Find-ERRORS.sh
