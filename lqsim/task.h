@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * Lqsim-parasol task interface.
  *
- * $Id: task.h 17463 2024-11-12 22:14:26Z greg $
+ * $Id: task.h 17466 2024-11-13 14:17:16Z greg $
  */
 
 /************************************************************************/
@@ -40,7 +40,12 @@ class srn_client;
 
 #define	PRIORITY_OFFSET	10
 
+#if !BUG_289
 typedef SYSCALL (*syscall_func_ptr)( double );
+#else
+#define MAX_PRIORITY 100
+#define MIN_PRIORITY 0
+#endif
 
 class Task {
     friend class Instance;
@@ -150,8 +155,10 @@ public:
     virtual Task& configure();		/* Called after recalulateDynamicVariables but before create */
     virtual Task& create();
     Task& initialize();			/* Called after create() and start()	*/
+#if !BUG_289
     virtual bool start() = 0;
     virtual Task& kill() = 0;
+#endif
 
     virtual Task& reset_stats();
     virtual Task& accumulate_data();
@@ -175,7 +182,9 @@ private:
 
     Processor * _processor;			/* node			        */
     int _group_id;				/* group  			*/
+#if !BUG_289
     syscall_func_ptr _compute_func;		/* function to use to "compute"	*/
+#endif
     unsigned _active;				/* Number of active instances.	*/
     unsigned _max_phases;			/* Max # phases, this task.	*/
 
@@ -217,8 +226,8 @@ public:
 
 #if !BUG_289
     virtual bool start();
-#endif
     virtual Reference_Task& kill();
+#endif
 
 protected:
     virtual void create_instance();
@@ -240,8 +249,10 @@ public:
     virtual bool is_aysnc_inf_server() const;
     virtual int worker_port() const { return _worker_port; }
 
+#if !BUG_289
     virtual bool start();
     virtual Server_Task& kill();
+#endif
 
 protected:
     virtual void create_instance();
@@ -260,8 +271,10 @@ public:
     int signal_port() const { return _signal_port; }
     Instance * signal_task() const { return _signal_task; }
 
+#if !BUG_289
     virtual bool start();
     virtual Semaphore_Task& kill();
+#endif
 
     virtual Semaphore_Task& reset_stats();
     virtual Semaphore_Task& accumulate_data();
@@ -294,8 +307,10 @@ public:
     int readerQ_port() const { return _readerQ_port; }
     int signal_port2() const { return _signal_port2; }
 
+#if !BUG_289
     virtual bool start();
     virtual ReadWriteLock_Task& kill();
+#endif
 
     virtual ReadWriteLock_Task& reset_stats();
     virtual ReadWriteLock_Task& accumulate_data();
@@ -345,8 +360,10 @@ public:
 
     virtual Pseudo_Task& insertDOMResults();
 
+#if !BUG_289
     virtual bool start();
     virtual Pseudo_Task& kill();
+#endif
 
 protected:
     virtual void create_instance();

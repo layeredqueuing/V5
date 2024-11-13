@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  *
  * ------------------------------------------------------------------------
- * $Id: result.h 17459 2024-11-12 12:17:46Z greg $
+ * $Id: result.h 17466 2024-11-13 14:17:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -21,7 +21,7 @@ class Result {
     friend class Instance; 		// Old interface for processors.
 
 protected:
-    Result( int type, const std::string& name, LQIO::DOM::DocumentObject * dom ) :  _dom(dom), _name(getName(name)), _sum(0.), _sum_sqr(0.), _count(0.), _count_sqr(0.), _avg_count(0.), _n(0), _resid(0.) {}
+    Result( const std::string& name, LQIO::DOM::DocumentObject * dom ) :  _dom(dom), _name(getName(name)), _sum(0.), _sum_sqr(0.), _count(0.), _count_sqr(0.), _avg_count(0.), _n(0), _resid(0.) {}
 
 public:
     virtual ~Result() {}
@@ -52,6 +52,7 @@ protected:
     virtual double getMean() const = 0;
     virtual double getOther() const = 0;
     virtual const std::string& getTypeName() const = 0;
+    double now() const;
     
 private:
     std::string getName( const std::string& ) const;
@@ -74,7 +75,7 @@ protected:
 class SampleResult : public Result
 {
 public:
-    SampleResult( const std::string& name, LQIO::DOM::DocumentObject * dom ) : Result( SAMPLE, name, dom ), _count(0), _sum(0.) {}
+    SampleResult( const std::string& name, LQIO::DOM::DocumentObject * dom ) : Result( name, dom ), _count(0), _sum(0.) {}
 
     virtual void record( double );	/* record a sample.		*/
     void add( double );			/* Add preemption time		*/
@@ -95,7 +96,7 @@ private:
 class VariableResult : public Result
 {
 public:
-    VariableResult( const std::string& name, LQIO::DOM::DocumentObject * dom ) : Result( VARIABLE, name, dom ), _start(0.), _old_value(0.), _old_time(0.), _integral(0.) {}
+    VariableResult( const std::string& name, LQIO::DOM::DocumentObject * dom ) : Result( name, dom ), _start(0.), _old_value(0.), _old_time(0.), _integral(0.) {}
 
     virtual void record( double );	/* record a sample.		*/
     void record_offset( double, double );
@@ -103,9 +104,9 @@ public:
 
 protected:
     virtual double getMean() const;
-    virtual double getOther() const { return ps_now - _start; }
+    virtual double getOther() const;
     virtual const std::string& getTypeName() const { return __type_name; }
-    
+
 private:
     static std::string __type_name;
 
@@ -115,6 +116,7 @@ private:
     mutable double _integral;		/* variable integral		*/
 };
 
+#if !BUG_289
 class ParasolResult : public VariableResult
 {
 public:
@@ -131,5 +133,7 @@ protected:
 private:
     long _raw;				/* index to raw value.		*/
 };
+#endif
+
 inline std::ostream& operator<<( std::ostream& output, const Result& self ){ return self.print( output ); }
 #endif

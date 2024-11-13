@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: actlist.cc 17459 2024-11-12 12:17:46Z greg $
+ * $Id: actlist.cc 17468 2024-11-13 15:07:05Z greg $
  */
 
 #include "lqsim.h"
@@ -318,12 +318,7 @@ AndForkActivityList::find_children( std::deque<Activity *>& activity_stack, std:
 double
 ForkActivityList::find_children( std::deque<Activity *>& activity_stack, std::deque<AndForkActivityList *>& fork_stack, const Entry * ep )
 {
-    double sum = 0.0;
-
-    for ( std::vector<Activity *>::iterator i = _list.begin(); i != _list.end(); ++i ) {
-	sum += (*i)->find_children( activity_stack, fork_stack, ep );
-    }
-    return sum;
+    return std::accumulate( _list.begin(), _list.end(), 0.0, [&]( double sum, Activity * activity ){ return sum + activity->find_children( activity_stack, fork_stack, ep ); } );
 }
 
 
@@ -367,10 +362,7 @@ LoopActivityList::find_children( std::deque<Activity *>& activity_stack, std::de
 void
 OutputActivityList::join_backtrack( std::deque<AndForkActivityList *>& fork_stack, std::deque<AndJoinActivityList *>& join_stack, std::set<AndForkActivityList *>& result_set ) 
 {
-    for ( std::vector<Activity *>::iterator i = _list.begin(); i != _list.end(); ++i ) {
-	if ( (*i)->_input == nullptr ) continue;
-	(*i)->_input->fork_backtrack( fork_stack, join_stack, result_set );
-    }
+    std::for_each( _list.begin(), _list.end(), [&]( Activity * activity ){ if ( activity->_input != nullptr ) activity->_input->fork_backtrack( fork_stack, join_stack, result_set ); } );
 }
 
 void
@@ -646,15 +638,8 @@ print_activity_connectivity( FILE * output, Activity * ap )
 static void
 activity_cycle_error( std::deque<Activity *>& activity_stack )
 {
-    std::string buf;
-    Activity * ap = activity_stack.back();
-
-    for ( std::deque<Activity *>::const_reverse_iterator i = activity_stack.rbegin(); i != activity_stack.rend(); ++i ) {
-	if ( i != activity_stack.rbegin() ) {
-	    buf += ", ";
-	}
-	buf += (*i)->name();
-    }
+    const Activity * ap = activity_stack.back();
+    const std::string buf = std::accumulate( std::next(activity_stack.rbegin()), activity_stack.rend(), activity_stack.back()->name(), []( std::string buf, const Activity * activity ){ return buf + "," + activity->name();} );
     ap->task()->getDOM()->runtime_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, buf.c_str() );
 }
 

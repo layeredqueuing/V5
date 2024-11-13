@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 17461 2024-11-12 15:08:49Z greg $
+ * $Id: model.h 17466 2024-11-13 14:17:16Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -94,7 +94,9 @@ public:
 
     bool operator!() const { return _document == nullptr; }
 
+#if !BUG_289
     static int genesis_task_id() { return __genesis_task_id; }
+#endif
     static double block_period() { return __model->_parameters._block_period; }
     static void set_block_period( double block_period ) { __model->_parameters._block_period = block_period; }
 

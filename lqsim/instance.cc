@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 17462 2024-11-12 21:55:04Z greg $
+ * $Id: instance.cc 17466 2024-11-13 14:17:16Z greg $
  */
 
 /*
@@ -53,11 +53,13 @@ Instance::Instance( Task * cp, const std::string& task_name, long task_id )
       _hold_start_time(0.0),
       _entry(),
       _task_id(task_id),
+#if !BUG_289
       _node_id(cp->node_id()),
       _std_port( ps_std_port(task_id) ),
       _reply_port( ps_allocate_port( task_name.c_str(), task_id ) ),	/* reply port id	*/
       _thread_port( ps_allocate_port( cp->name().c_str(), task_id ) ),
       _start_port( cp->has_threads() ? ps_allocate_shared_port( _cp->name().c_str() ) : -1 ),
+#endif
       active_threads(0),	/* no threads -- initialize */
       idle_threads(0),
       _phase_start_time(0),
@@ -65,7 +67,9 @@ Instance::Instance( Task * cp, const std::string& task_name, long task_id )
       lastQuorumEndTime(0),
       _join_done()
 {
+#if !BUG_289
     assert ( _std_port < MAX_PORTS );
+#endif
 
     _entry.assign( cp->n_entries(), nullptr );
     _join_done.assign( cp->max_activities(), false );
@@ -78,12 +82,15 @@ Instance::Instance( Task * cp, const std::string& task_name, long task_id )
 
 Instance::~Instance() 
 {
+#if !BUG_289
     if ( _start_port >= 0 ) {
 	ps_release_shared_port( _start_port );		/* Buggy */
     }
+#endif
 }
 
 
+#if !BUG_289
 void
 Instance::start( void * )
 {
@@ -97,6 +104,7 @@ Instance::start( void * )
 	ps_suspend( ps_myself );
     }
 }
+#endif
 
 
 /*
@@ -109,8 +117,10 @@ Instance::client_cycle( Random * distribution )
     double think_time = 0;
     if ( distribution != nullptr ) {
 	think_time = (*distribution)();
-	ps_my_schedule_time = ps_now + think_time;
+#if !BUG_289
+	ps_my_schedule_time = now() + think_time;
 	ps_sleep( think_time );
+#endif
     }
 
     /* Force a reschedule IFF we don't sleep */
@@ -135,7 +145,11 @@ Instance::client_cycle( Random * distribution )
 void
 Instance::server_cycle( Entry * ep, Message * msg, bool reschedule )
 {
+#if BUG_289
+    double start_time = 0.0;
+#else
     double start_time 	= ps_my_schedule_time;
+#endif
     double delta;
     unsigned p;
     Message * end_msg;
@@ -143,7 +157,11 @@ Instance::server_cycle( Entry * ep, Message * msg, bool reschedule )
     if ( _cp->_join_start_time == 0.0 ) {
 	_cp->_active += 1;
     }
+#if !BUG_289
     _cp->r_util.record_offset( _cp->_active, start_time );
+#else
+    _cp->r_util.record( _cp->_active );
+#endif
 
     _entry[ep->index()] = msg;
 
@@ -156,7 +174,11 @@ Instance::server_cycle( Entry * ep, Message * msg, bool reschedule )
 	/* Synchronous message -- accumulate queueing time only */
 
 	tar_t * tp = msg->target;
+#if BUG_289
+	delta = 0.0;
+#else
 	delta = ps_my_schedule_time - msg->time_stamp;
+#endif
 	tp->r_delay.record( delta );
 	tp->r_delay_sqr.record( square( delta ) );
 	timeline_trace( SYNC_INTERACTION_ESTABLISHED, msg->client, msg->intermediate, ep, msg->time_stamp );
@@ -177,7 +199,7 @@ Instance::server_cycle( Entry * ep, Message * msg, bool reschedule )
 
 	/* Funky stat recording. */
 
-	delta = ps_now - _phase_start_time;  
+	delta = now() - _phase_start_time;  
 	p = _current_phase;
 	Activity * phase = &ep->_phase[p];
 	ep->_active[p] -= 1;
@@ -198,7 +220,9 @@ Instance::server_cycle( Entry * ep, Message * msg, bool reschedule )
 		   msg->reply_port);
 	    fflush(stdout);
 #endif
+#if !BUG_289
 	    ps_send( msg->reply_port , 0, (char *)msg, std_port() );
+#endif
 	}
 
     } else if ( ep->is_regular() ) {
@@ -210,10 +234,12 @@ Instance::server_cycle( Entry * ep, Message * msg, bool reschedule )
 	}
 
     } else {
+#if !BUG_289
 	ps_kill( task_id() );				/* nothing to do, so abort */
+#endif
     }
 
-    delta = ps_now - start_time;
+    delta = now() - start_time;
     ep->r_cycle.record( delta );		/* Entry cycle time.	*/
     _cp->r_cycle.record( delta );		/* Task cycle time.	*/
 
@@ -231,7 +257,9 @@ Instance::server_cycle( Entry * ep, Message * msg, bool reschedule )
     }
     _cp->r_util.record( _cp->_active );
 
-    ps_my_schedule_time = ps_now;		/* In case we don't block...	*/
+#if !BUG_289
+    ps_my_schedule_time = now();		/* In case we don't block...	*/
+#endif
 }
 
 
@@ -252,11 +280,15 @@ Real_Instance::Real_Instance( Task * cp, const std::string& task_name )
 int
 Real_Instance::create_task( Task * cp, const std::string& task_name )
 {
+#if BUG_289
+    return 0.0;
+#else
     if ( cp->group_id() != -1 ) {
 	return ps_create_group( task_name.c_str(), cp->node_id(), ANY_HOST, Instance::start, cp->priority(), cp->group_id() );
     } else {
 	return ps_create( task_name.c_str(), cp->node_id(), ANY_HOST, Instance::start, cp->priority() );
     }
+#endif
 }
 
 
@@ -280,6 +312,9 @@ Virtual_Instance::create_task( Task * cp, const std::string& task_name )
      * group, we still create a fcfs node for it.  
      */
 
+#if BUG_289
+    return 0;
+#else
     const int local_node_id = ps_build_node( task_name.c_str(), 1, 1.0, 0.0, 0, true );
     if ( local_node_id < 0 ) {
 	LQIO::runtime_error( ERR_CANNOT_CREATE_X, "processor for task", task_name.c_str() );
@@ -287,6 +322,7 @@ Virtual_Instance::create_task( Task * cp, const std::string& task_name )
     } else {
 	return ps_create( task_name.c_str(), local_node_id, 0, Instance::start, cp->priority() );
     }
+#endif
 }
 
 /*----------------------------------------------------------------------*/
@@ -385,14 +421,14 @@ srn_server::run()
     /* ---------------------- Main loop --------------------------- */
 
     for ( ;; ) {
-	double start_time = ps_now;
+	double start_time = now();
 
 	Message * msg = wait_for_message( entry_id );
 
-	/* If start_time == ps_now, then we continued right through */
+	/* If start_time == now(), then we continued right through */
 	/* the receive, hence we will want to force a reschedule.   */ 
 
-	server_cycle( Entry::entry_table[entry_id], msg, start_time == ps_now );
+	server_cycle( Entry::entry_table[entry_id], msg, start_time == now() );
     }
 }
 
@@ -445,6 +481,7 @@ srn_multiserver::run()
 
 	/* get worker */
 
+#if !BUG_289
 	const double time_out = (n_workers < _max_workers) ? IMMEDIATE : NEVER;
 	rc = ps_receive( _cp->worker_port(), time_out, &worker_id, &worker_time, (char **)&worker_msg, &worker_port );
 
@@ -466,6 +503,7 @@ srn_multiserver::run()
 	/* dispatch */
 
 	ps_send( worker_port, entry_id, (char *)msg, msg->reply_port );
+#endif
     }
 }
 
@@ -492,7 +530,9 @@ srn_semaphore::run()
 	} else {
 	    task = new srn_token_r( cp, name() );
 	}
+#if !BUG_289
 	ps_resume( task->task_id() );
+#endif
     }
 
 
@@ -517,6 +557,7 @@ srn_semaphore::run()
 
 	/* get worker */
 
+#if !BUG_289
 	if ( ps_receive( cp->worker_port(), NEVER, &worker_id, &worker_time,
 			 (char **)&worker_msg, &worker_port ) == SYSERR ) {
 	    abort();
@@ -531,6 +572,7 @@ srn_semaphore::run()
 	} else {
 	    ps_send( worker_port, entry_id, (char *)msg, msg->reply_port );
 	}
+#endif
     }
 }
 
@@ -561,6 +603,7 @@ srn_signal::run()
 	/* ---- Wait for request ---- */
 
 	Message * msg = wait_for_message2( entry_id );
+#if !BUG_289
 	ps_sleep(0);		/* Force context switch */
 
 	/* ---- get worker (should be queued) --- */
@@ -578,6 +621,7 @@ srn_signal::run()
 	/* dispatch */
 
 	ps_send( worker_port, entry_id, (char *)msg, msg->reply_port );
+#endif
     }
 }
 
@@ -599,25 +643,26 @@ srn_worker::run()
 	long entry_id;		/* entry id			*/
 	long reply_port;	/* reply port			*/
 	Message * msg;		/* Time stamp info from client	*/
-	double start_time = ps_now;
+	double start_time = now();
 
+#if !BUG_289
 	if ( ps_send( _cp->worker_port(), -1, (char *)0, ps_my_std_port ) != OK ) {
 	    abort();
 	}
-
 	timeline_trace( TASK_IS_WAITING, 1 );
 
 	ps_receive( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
 	timeline_trace( TASK_IS_READY, 1 );
+#endif
 
 	if ( msg ) {
 	    msg->reply_port = reply_port;
 	}
 
-	/* If start_time == ps_now, then we continued right through */
+	/* If start_time == now(), then we continued right through */
 	/* the receive, hence we will want to force a reschedule.   */
 
-	server_cycle( Entry::entry_table[entry_id], msg, start_time == ps_now );
+	server_cycle( Entry::entry_table[entry_id], msg, start_time == now() );
 
 	timeline_trace( WORKER_IDLE );
     }
@@ -645,10 +690,11 @@ srn_token::run()
     for ( ;; ) {
 	double time_stamp;	/* time message sent.		*/
 	long reply_port;	/* reply port			*/
-	double start_time = ps_now;
+	double start_time = now();
 
 	/* Send to the wait task first and do the wait processing. */
 
+#if !BUG_289
 	if ( ps_send( cp->worker_port(), -1, (char *)0, ps_my_std_port ) != OK ) {
 	    abort();
 	}
@@ -664,15 +710,15 @@ srn_token::run()
 
 	if(cp->discipline()==SCHEDULE_RWLOCK){
 	
-	    if(time_stamp!=ps_now){
-		const double delta = ps_now - time_stamp;
+	    if(time_stamp!=now()){
+		const double delta = now() - time_stamp;
 		dynamic_cast<ReadWriteLock_Task *>(_cp)->r_reader_wait.record( delta );
 		dynamic_cast<ReadWriteLock_Task *>(_cp)->r_reader_wait_sqr.record( square( delta ) );
 	    }
 
 	}
 
-	_hold_start_time = ps_now;			/* Time we were "waited". */
+	_hold_start_time = now();			/* Time we were "waited". */
 	cp->_hold_active += 1;
 	cp->r_hold_util.record( cp->_hold_active );
 
@@ -684,7 +730,7 @@ srn_token::run()
 
 	/* Wait procesing */
 
-	server_cycle( Entry::entry_table[entry_id], msg, start_time == ps_now );
+	server_cycle( Entry::entry_table[entry_id], msg, start_time == now() );
 
 	timeline_trace( TASK_IS_WAITING, 1 );
 
@@ -692,7 +738,7 @@ srn_token::run()
 
 	ps_receive( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
 	timeline_trace( TASK_IS_READY, 1 );
-
+#endif
 
 	if ( msg ) {
 	    msg->reply_port = reply_port;		/* reply to original client */
@@ -700,12 +746,12 @@ srn_token::run()
 
 	/* Signal processing */
 
-	server_cycle( Entry::entry_table[entry_id], msg, start_time == ps_now );
+	server_cycle( Entry::entry_table[entry_id], msg, start_time == now() );
 
 	/* All done, wait for "wait" */
 
 	cp->_hold_active -= 1;
-	const double delta = ps_now - _hold_start_time;
+	const double delta = now() - _hold_start_time;
 
 	if(cp->discipline()==SCHEDULE_RWLOCK){
 
@@ -742,17 +788,18 @@ srn_token_r::run()
     long entry_id;		/* entry id			*/
     Semaphore_Task * cp = dynamic_cast<Semaphore_Task *>(_cp);
 
-    _hold_start_time = ps_now;		/* Time we were "waited". */
+    _hold_start_time = now();		/* Time we were "waited". */
     cp->_hold_active += 1;
     timeline_trace( TASK_CREATED );
 
     for ( ;; ) {
 	double time_stamp;	/* time message sent.		*/
 	long reply_port;	/* reply port			*/
-	double start_time = ps_now;
+	double start_time = now();
 
 	/* Send to the signal task first */
 
+#if !BUG_289
 	if ( ps_send( cp->signal_port(), -1, (char *)0, ps_my_std_port ) != OK ) {
 	    abort();
 	}
@@ -767,7 +814,7 @@ srn_token_r::run()
 	}
 
 	cp->_hold_active -= 1;
-	double delta = ps_now - _hold_start_time;
+	double delta = now() - _hold_start_time;
 	cp->r_hold.record( delta );
 	cp->r_hold_sqr.record( square( delta ) );
 	cp->r_hold_util.record( cp->_hold_active );
@@ -780,16 +827,18 @@ srn_token_r::run()
 	if ( ps_send( cp->worker_port(), -1, (char *)0, ps_my_std_port ) != OK ) {
 	    abort();
 	}
-
+#endif
 	/* Signal procesing */
 
-	server_cycle( Entry::entry_table[entry_id], msg, start_time == ps_now );
+	server_cycle( Entry::entry_table[entry_id], msg, start_time == now() );
 
 	timeline_trace( TASK_IS_WAITING, 1 );
 
 	/* Now wait for wait */
 
+#if !BUG_289
 	ps_receive( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
+#endif
 	timeline_trace( TASK_IS_READY, 1 );
 
 	if ( msg ) {
@@ -797,12 +846,12 @@ srn_token_r::run()
 	}
 
 	cp->_hold_active += 1;
-	_hold_start_time = ps_now;
+	_hold_start_time = now();
 	cp->r_hold_util.record( cp->_hold_active );
 
 	/* Wait processing */
 
-	server_cycle( Entry::entry_table[entry_id], msg, start_time == ps_now );
+	server_cycle( Entry::entry_table[entry_id], msg, start_time == now() );
 
 	/* All done, wait for "signal" */
 
@@ -837,7 +886,7 @@ srn_rwlock_server::run()
     /* ---------------------- Main loop --------------------------- */
 
     for ( ;; ) {
-	//double start_time = ps_now;
+	//double start_time = now();
 
 	Message * msg = wait_for_message( entry_id );
 
@@ -845,6 +894,7 @@ srn_rwlock_server::run()
 
 	ep = Entry::entry_table[entry_id]; 
 
+#if !BUG_289
 	if (ep->is_r_lock() ) {
 	    /*	lock reader request*/
 	    readers++;
@@ -876,7 +926,7 @@ srn_rwlock_server::run()
 		if ( ps_resend( cp->writer()->std_port(), entry_id1, time_stamp, (char *)msg1, reply_port ) != OK ) { abort();	}
 		timeline_trace( DEQUEUE_WRITER, 1 );
 		/*
-		  delta = ps_now - time_stamp;
+		  delta = now() - time_stamp;
 		  cp->r_writer_wait.record( delta );
 		  cp->r_writer_wait_sqr.record( square( delta ) );
 		*/
@@ -922,7 +972,7 @@ srn_rwlock_server::run()
 		if ( ps_resend( cp->writer()->std_port(), entry_id1, time_stamp, (char *)msg1, reply_port ) != OK ) {  	abort();	}
 		timeline_trace( DEQUEUE_WRITER, 1 );
 
-		/*	delta = ps_now - time_stamp;
+		/*	delta = now() - time_stamp;
 			cp->r_writer_wait.record( delta );
 			cp->r_writer_wait_sqr.record( square( delta ) );*/
 	    }
@@ -937,14 +987,14 @@ srn_rwlock_server::run()
 		    activeReaders++;
 		    timeline_trace( DEQUEUE_READER, 1 );
 		    /*
-		      delta = ps_now - time_stamp;
+		      delta = now() - time_stamp;
 		      cp->r_reader_wait.record( delta );
 		      cp->r_reader_wait_sqr.record( square( delta ) );
 		    */
 		} 
 	    }
-
 	}
+#endif
     }
 }
 
@@ -968,12 +1018,13 @@ srn_writer_token::run()
 
 	double time_stamp;	/* time message sent.		*/
 	long reply_port;	/* reply port			*/
-	double start_time = ps_now;
+	double start_time = now();
 
 	/* Send to the wait task first and do the wait processing. */
 
 	timeline_trace( TASK_IS_WAITING, 1 );
 
+#if !BUG_289
 	ps_receive( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port );
 	timeline_trace( TASK_IS_READY, 1 );
 
@@ -981,13 +1032,13 @@ srn_writer_token::run()
 	    msg->reply_port = reply_port;		/* reply to original client */
 	}
 	
-	if(time_stamp!=ps_now){
-	    const double delta = ps_now - time_stamp;
+	if(time_stamp!=now()){
+	    const double delta = now() - time_stamp;
 	    cp->r_writer_wait.record( delta );
 	    cp->r_writer_wait_sqr.record( square( delta ) );
 	}
 	
-        _hold_start_time = ps_now;			/* Time we were "waited". */
+        _hold_start_time = now();			/* Time we were "waited". */
 	cp->_hold_active += 1;
 	cp->r_writer_hold_util.record( cp->_hold_active );
 
@@ -999,7 +1050,7 @@ srn_writer_token::run()
 
 	/* writer procesing */
 
-	server_cycle( Entry::entry_table[entry_id], msg, start_time == ps_now );
+	server_cycle( Entry::entry_table[entry_id], msg, start_time == now() );
 
 	timeline_trace( TASK_IS_WAITING, 1 );
 
@@ -1015,17 +1066,18 @@ srn_writer_token::run()
 
 	/* Signal processing */
 
-	server_cycle( Entry::entry_table[entry_id], msg, start_time == ps_now );
+	server_cycle( Entry::entry_table[entry_id], msg, start_time == now() );
 
 	/* All done, wait for "wait" */
 
 	cp->_hold_active -= 1;
-	const double delta = ps_now - _hold_start_time;
+	const double delta = now() - _hold_start_time;
 	cp->r_writer_hold_util.record( cp->_hold_active );
 	cp->r_writer_hold.record( delta );
 	cp->r_writer_hold_sqr.record( square( delta ) );
 
 	timeline_trace( WORKER_IDLE );
+#endif
     }
 }    
 /*  -RWLOCK  */
@@ -1039,7 +1091,9 @@ void
 srn_thread::run()
 {
     Activity * ap 	= 0;
+#if !BUG_289
     Instance * pp 	= object_tab[ps_task_parent(ps_myself)];
+#endif
 
     timeline_trace( TASK_CREATED );
 
@@ -1049,6 +1103,7 @@ srn_thread::run()
 	long reply_port;		/* reply port		*/
 	Entry * ep;
 
+#if !BUG_289
 	if ( ps_send( pp->thread_port(), -1, (char *)ap, ps_my_std_port ) != OK ) {
 	    abort();
 	}
@@ -1057,6 +1112,7 @@ srn_thread::run()
 
 	ps_receive_shared( pp->start_port(), NEVER, &entry_id, &time_stamp, (char **)&ap, &reply_port );
 
+#endif
 	timeline_trace( TASK_IS_READY, 1 );
 	timeline_trace( THREAD_START, ap );
 
@@ -1081,7 +1137,9 @@ Instance::wait_for_message( long& entry_id )
 {
     Message *msg = nullptr;
 
-    ps_my_schedule_time = ps_now;		/* In case we don't block...	*/
+#if !BUG_289
+    ps_my_schedule_time = now();		/* In case we don't block...	*/
+#endif
 
     /* Handle any pending messages if possible */
     
@@ -1102,6 +1160,7 @@ Instance::wait_for_message( long& entry_id )
 	double time_stamp;		/* time message sent.		*/
 	long reply_port;		/* reply port			*/
 
+#if !BUG_289
 	if ( _cp->discipline() == SCHEDULE_HOL ) {
 	    assert( ps_receive_priority( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port ) != SYSERR );
 	} else {
@@ -1110,6 +1169,7 @@ Instance::wait_for_message( long& entry_id )
 	    }
 	    assert( ps_receive( ps_my_std_port, NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port ) != SYSERR );
 	}
+#endif
 	msg->reply_port = reply_port;
 	msg->time_stamp = time_stamp;
 
@@ -1132,9 +1192,11 @@ Instance::wait_for_message2( long& entry_id )
     long reply_port;		/* reply port			*/
 
     timeline_trace( TASK_IS_WAITING, 1 );
-    ps_my_schedule_time = ps_now;		/* In case we don't block...	*/
+#if !BUG_289
+    ps_my_schedule_time = now();		/* In case we don't block...	*/
 
     assert( ps_receive( std_port(), NEVER, &entry_id, &time_stamp, (char **)&msg, &reply_port ) != SYSERR );
+#endif
 	
     if ( msg ) {
 	msg->reply_port = reply_port;
@@ -1171,7 +1233,9 @@ Instance::compute ( Activity * ap, Activity * pp )
 	    pp->r_cpu_util.record( pp->_cpu_active );	/* CPU util by phase */
 	}
 
+#if !BUG_289
 	(*_cp->_compute_func)( time );
+#endif
 
 	ap->_cpu_active -= 1;
 	ap->r_cpu_util.record(  pp->_cpu_active );	/* Phase P execution.	*/
@@ -1184,10 +1248,12 @@ Instance::compute ( Activity * ap, Activity * pp )
 
     }
 
+#if !BUG_289
     if ( _cp->_compute_func == ps_sleep || !ap->has_service_time() ) {
-	ps_my_end_compute_time = ps_now;	/* Won't call the end_compute handler, ergo, set here */
+	ps_my_end_compute_time = now();	/* Won't call the end_compute handler, ergo, set here */
     }
-    ps_my_schedule_time = ps_now;
+    ps_my_schedule_time = now();
+#endif
     ap->r_service.record( time );
 
     return time;
@@ -1219,6 +1285,7 @@ Instance::do_forwarding( Message * msg, const Entry * ep )
 	unsigned int j = 0;		/* loop index (det ph.)	*/
 	tar_t * tp = fwd.entry_to_send_to( i, j );
 
+#if !BUG_289
 	if ( !tp ) {
 
 	    /* Reply to sender	*/
@@ -1232,13 +1299,14 @@ Instance::do_forwarding( Message * msg, const Entry * ep )
 				
 	    timeline_trace( SYNC_INTERACTION_FORWARDED, ep, msg->client, tp->entry() );
 
-	    msg->time_stamp   = ps_now; 		/* Tag send time.	*/
+	    msg->time_stamp   = now(); 		/* Tag send time.	*/
 	    msg->intermediate = ep;
 	    msg->target       = tp;
 
 	    ps_send( fwd[i].entry()->get_port(),	/* Forward request.	*/
 		     fwd[i].entry()->entry_id(), (char *)msg, msg->reply_port );
 	}
+#endif
     }
 }
 
@@ -1288,7 +1356,11 @@ Instance::run_activities( Entry * ep, Activity * ap, bool reschedule )
 void
 Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 {
+#if BUG_289
+    double start_time = 0.;
+#else
     double start_time = ps_my_schedule_time;
+#endif
     double slices = 0.0;
     unsigned int p = _current_phase;
     int count = ap->is_specified();
@@ -1304,11 +1376,13 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
      * Delay for "think time".  
      */
 
+#if !BUG_289
     if ( ap->has_think_time() ) {
 	const double think_time = ap->get_think_time();
-	ps_my_schedule_time = ps_now + think_time;
+	ps_my_schedule_time = now() + think_time;
 	ps_sleep( think_time );
     }
+#endif
 
     /*
      * Now do service.
@@ -1323,7 +1397,9 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 	    Processor::reschedule( this );
 	}
 
-	delta = ps_now - ps_my_schedule_time;
+#if !BUG_289
+	delta = now() - ps_my_schedule_time;
+#endif
 	ap->r_proc_delay.record( delta );		/* Delay for schedul.	*/
 	ap->r_proc_delay_sqr.record( square( delta ) );	/* Delay for schedul.	*/
 	ap->_prewaiting = delta;			/*Added by Tao*/
@@ -1345,10 +1421,11 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 	    if ( !tp ) break;
 
 	    sends += 1.0;
+#if !BUG_289
 	    if ( tp->reply() ) {
 	      //if(ep->name()=="retrievePage") printf("reply port=%ld\n", reply_port());
 		tp->send_synchronous( ep, _cp->priority(), reply_port() );
-		delta = ps_now - ps_my_schedule_time;
+		delta = now() - ps_my_schedule_time;
 
 		ap->r_proc_delay.add( delta );
 		ap->r_proc_delay_sqr.add( square(delta + ap->_prewaiting) -  square(ap->_prewaiting) );
@@ -1366,6 +1443,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 		    Processor::reschedule( this );
 		}
 	    }
+#endif
 	} /* end for loop */
 
 	ap->r_sends.record( sends );
@@ -1379,7 +1457,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
     }
 
     if ( count ) {
-	delta = ps_now - start_time;				/* Bug 232 */
+	delta = now() - start_time;				/* Bug 232 */
 
 	ap->r_cycle.record( delta );		/* Entry cycle time.	*/
 	ap->r_cycle_sqr.record( square(delta) );	/* Entry cycle time.	*/
@@ -1410,13 +1488,14 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 		 * phase/activity, so clear it half the time.
 		 */
 
+#if !BUG_289
 		if ( msg->reply_port != -1 ) {
 		    Instance * dest_ip = object_tab[ps_owner(msg->reply_port)];
 		    if ( dest_ip && node_id() == dest_ip->node_id() && Random::number() >= 0.5 ) {
 		        reschedule = false;
 		    }
 		}
-
+#endif
 		/* ---------- */
 
 		do_forwarding( msg, reply_ep );	/* Clears msg! */
@@ -1427,7 +1506,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 
 		if ( p == 0 && ap != &reply_ep->_phase[p] && ep == reply_ep ) {
 		    assert( ep->_active[0] );
-		    delta = ps_now - root_ptr()->_phase_start_time;
+		    delta = now() - root_ptr()->_phase_start_time;
 		    ep->_phase[0].r_cycle.record( delta );
 		    ep->_phase[0].r_cycle_sqr.record( square(delta) );
 		    if ( ep->_phase[0]._hist_data ) {
@@ -1439,7 +1518,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 		    ep->_active[1] += 1;
 		    ep->_phase[1].r_util.record( ep->_active[1] );
 
-		    root_ptr()->_phase_start_time = ps_now;
+		    root_ptr()->_phase_start_time = now();
 		    root_ptr()->_current_phase = 1;
 		    p = 1;
 		}
@@ -1456,6 +1535,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 
     /*Add the preemption time to the waiting time if available. Tao*/
 
+#if !BUG_289
     if (ps_preempted_time (task_id()) > 0.0) {   
 	ap->r_proc_delay.add( ps_preempted_time(task_id()) );
 	ap->r_proc_delay_sqr.add( (ps_preempted_time(task_id()) + ap->_prewaiting) * (ps_preempted_time (task_id()) + ap->_prewaiting) -  square(ap->_prewaiting) );
@@ -1472,6 +1552,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 	ps_task_ptr(task_id())->pt_last = 0.0;
 
     }
+#endif
 }
 
 
@@ -1499,7 +1580,7 @@ Instance::next_activity( Entry * ep, Activity * ap_in, bool reschedule )
 	if ( join_list != nullptr ) {
 	    if ( _cp->is_sync_server() && join_list->join_type_is( AndJoinActivityList::Join::SYNCHRONIZATION ) ) {
 		if ( root_ptr()->all_activities_done( ap_in ) ) {
-		    double delta = ps_now - _cp->_join_start_time;
+		    double delta = now() - _cp->_join_start_time;
 		    join_list->r_join.record( delta );
 		    join_list->r_join_sqr.record( square( delta ) );
 					  
@@ -1512,7 +1593,7 @@ Instance::next_activity( Entry * ep, Activity * ap_in, bool reschedule )
 		} else {
 		    /* Mark entry busy */
 		    ep->_join_list = join_list;
-		    _cp->_join_start_time = ps_now;
+		    _cp->_join_start_time = now();
 		    return nullptr;	/* Do not execute output list. */
 		}
 	    } else {
@@ -1532,7 +1613,7 @@ again_1:
     if ( fork_list ) {
 	if ( fork_list->get_type() == ActivityList::Type::AND_FORK_LIST ) {
 	    AndForkActivityList * and_fork_list = dynamic_cast<AndForkActivityList *>(fork_list);
-	    const double fork_start = ps_now;
+	    const double fork_start = now();
 	    double thread_K_outOf_N_end_compute_time = 0;
 
 	    /* launch threads */
@@ -1565,8 +1646,10 @@ again_1:
 	    } else {
 		fork_list = nullptr;
 	    }
-	    ps_my_end_compute_time = ps_now;				/* BUG 321 */
-	    ps_my_schedule_time    = ps_now;				/* BUG 259 */
+#if !BUG_289
+	    ps_my_end_compute_time = now();				/* BUG 321 */
+	    ps_my_schedule_time    = now();				/* BUG 259 */
+#endif
 	    goto again_1;
 
 	} else if ( fork_list->get_type() == ActivityList::Type::OR_FORK_LIST ) {
@@ -1590,7 +1673,9 @@ again_1:
 	} else {
 	again_2:
 	    LoopActivityList * loop_list = dynamic_cast<LoopActivityList *>(fork_list);
-	    ps_my_end_compute_time = ps_now;	/* BUG 321 */
+#if !BUG_289
+	    ps_my_end_compute_time = now();	/* BUG 321 */
+#endif
 	    const double exit_value = Random::number() * (loop_list->get_total() + 1.0);
 	    double sum = 0;
 	    for ( ActivityList::const_iterator i  = loop_list->begin(); i < loop_list->end(); ++i ) {
@@ -1620,7 +1705,9 @@ again_1:
 void
 Instance::spawn_activities( const long entry_id, ActivityList * fork_list )
 {
-    ps_my_schedule_time = ps_now;		/* In case we don't block...	*/
+#if !BUG_289
+    ps_my_schedule_time = now();		/* In case we don't block...	*/
+#endif
 
     for ( ActivityList::const_iterator i = fork_list->begin(); i != fork_list->end(); ++i ) {
 	char * msg = 0;
@@ -1633,9 +1720,11 @@ Instance::spawn_activities( const long entry_id, ActivityList * fork_list )
 
 	/* Reap any pending threads if possible */
 
+#if !BUG_289
 	while ( thread_wait( IMMEDIATE, (char **)&msg, false, nullptr ) ) {
 	    timeline_trace( THREAD_REAP, msg );
 	}
+#endif
 
 	/*  Think about if there is overflow then more and more theads will be created. */
 
@@ -1647,18 +1736,22 @@ Instance::spawn_activities( const long entry_id, ActivityList * fork_list )
 	    Instance * task = new srn_thread( _cp, nextThreadName, root_ptr() );
 	    const int id = task->task_id();
 	    timeline_trace( THREAD_CREATE, id );
+#if !BUG_289
 	    ps_resume( id  );
 	    active_threads += 1;
 	    thread_wait( NEVER, &msg, false, nullptr );
+#endif
 
 	}
 
 	active_threads += 1;		 
 	idle_threads   -= 1;
 
+#if !BUG_289
 	if ( ps_send( start_port(), entry_id, (char *)ap, std_port() ) != OK ) {
 	    abort();
 	}
+#endif
     }
 }
 
@@ -1672,11 +1765,13 @@ Instance::spawn_activities( const long entry_id, ActivityList * fork_list )
 void
 Instance::flush_threads()
 {
+#if !BUG_289
     while ( active_threads > 0  ) {
 	Activity * ap;
 
 	thread_wait( NEVER, (char **)&ap, true, nullptr );
     }
+#endif
 }
 
 
@@ -1695,8 +1790,8 @@ Instance::thread_wait( double time_out, char ** msg, const bool flush, double * 
 
     /* tomari quorum */
 
+#if !BUG_289
     rc = ps_receive( thread_port(), time_out, &entry_id, &time_stamp, msg, &reply_port );
-
     if ( rc == SYSERR ) {
 	abort();
     } else if ( rc != 0 ) {
@@ -1712,6 +1807,7 @@ Instance::thread_wait( double time_out, char ** msg, const bool flush, double * 
 	    replyMsg->r_afterQuorumThreadWait.record(*thread_end_compute_time - lastQuorumEndTime);
 	}
     }
+#endif
 
     return rc;
 }
@@ -1758,7 +1854,8 @@ Instance::wait_for_threads( AndForkActivityList * fork_list, double* thread_K_ou
 
     timeline_trace( TASK_IS_WAITING, 1 );
 
-    ps_my_schedule_time = ps_now;	/* In case we don't block...	*/
+#if !BUG_289
+    ps_my_schedule_time = now();	/* In case we don't block...	*/
 
     while ( count > (N - K) ) {
 
@@ -1773,7 +1870,7 @@ Instance::wait_for_threads( AndForkActivityList * fork_list, double* thread_K_ou
 	    }
 	}
     }
-
+#endif
     timeline_trace( TASK_IS_READY, 1 );
 }
 
@@ -1807,9 +1904,9 @@ Instance::timeline_trace( const trace_events event, ... )
 	}
 
 	if ( trace_driver ) {
-	    (void) fprintf( stddbg, "\nTime* %8g T %s(%ld): ", ps_now, _cp->name().c_str(), task_id() );
+	    (void) fprintf( stddbg, "\nTime* %8g T %s(%ld): ", now(), _cp->name().c_str(), task_id() );
 	} else {
-	    (void) fprintf( stddbg, "%8g %8s %8s(%2ld): ", ps_now, type_name().c_str(), _cp->name().c_str(), task_id() );
+	    (void) fprintf( stddbg, "%8g %8s %8s(%2ld): ", now(), type_name().c_str(), _cp->name().c_str(), task_id() );
 	}
 
 	switch ( event ) {
@@ -2021,12 +2118,13 @@ Instance::timeline_trace( const trace_events event, ... )
 	} 
 
     } else if ( timeline_flag ) {
+#if !BUG_289
 	switch ( event ) {
 
 	case TASK_CREATED:
 	    (void) fprintf( stddbg, "%d %12.3f %s(%02ld) %#04x %#04lx\n",
 			    event,
-			    ps_now * 1000,
+			    now() * 1000,
 			    _cp->name().c_str(),
 			    ps_myself,
 			    0,
@@ -2034,28 +2132,29 @@ Instance::timeline_trace( const trace_events event, ... )
 	    break;
 
 	case TASK_IS_WAITING:
-	    (void) fprintf( stddbg, "%d %12.3f %#04lx %d\n", event, ps_now * 1000, ps_myself, va_arg( args, int ) );
+	    (void) fprintf( stddbg, "%d %12.3f %#04lx %d\n", event, now() * 1000, ps_myself, va_arg( args, int ) );
 	    break;
 
 	case TASK_IS_READY:
 	case TASK_IS_RUNNING:
-	    (void) fprintf( stddbg, "%d %12.3f %#04lx %d\n", event, ps_now * 1000, ps_myself, va_arg( args, int ) );
+	    (void) fprintf( stddbg, "%d %12.3f %#04lx %d\n", event, now() * 1000, ps_myself, va_arg( args, int ) );
 	    break;
 
 	case SYNC_INTERACTION_INITIATED:
-	    (void) fprintf( stddbg, "%d %12.3f %#04lx %#04lx\n", event, ps_now * 1000, ps_myself, va_arg( args, long ) );
+	    (void) fprintf( stddbg, "%d %12.3f %#04lx %#04lx\n", event, now() * 1000, ps_myself, va_arg( args, long ) );
 	    break;
 
 	    /*	case SYNC_INTERACTION_FAILED: */
 	case SYNC_INTERACTION_COMPLETED:
-	    (void) fprintf( stddbg, "%d %12.3f %#04lx %#04lx\n", event, ps_now * 1000, ps_myself, reinterpret_cast<size_t>(va_arg( args, long *)) );
+	    (void) fprintf( stddbg, "%d %12.3f %#04lx %#04lx\n", event, now() * 1000, ps_myself, reinterpret_cast<size_t>(va_arg( args, long *)) );
 	    timeline_trace( TASK_IS_READY,   1 );
 	    break;
 
 	case SYNC_INTERACTION_ESTABLISHED:
-	    (void) fprintf( stddbg, "%d %12.3f %#04lx %#04lx\n", event, ps_now * 1000, va_arg( args, long ), ps_myself );
+	    (void) fprintf( stddbg, "%d %12.3f %#04lx %#04lx\n", event, now() * 1000, va_arg( args, long ), ps_myself );
 	    break;
 	}
+#endif
     }
     va_end( args );
 }
@@ -2069,7 +2168,7 @@ void
 Instance::timeline_quit ()
 {
 #ifdef	NOTDEF
-    (void) fprintf( stddbg, "%d %12.3f\n", QUIT_DISPLAY, ps_now * 1000 );
+    (void) fprintf( stddbg, "%d %12.3f\n", QUIT_DISPLAY, now() * 1000 );
 #endif
 }
 

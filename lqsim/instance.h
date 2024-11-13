@@ -2,7 +2,7 @@
  * 
  * Logic executed for task behaviour in simulation.
  *
- * $Id: instance.h 17450 2024-11-08 18:40:45Z greg $
+ * $Id: instance.h 17466 2024-11-13 14:17:16Z greg $
  */
 
 /************************************************************************/
@@ -32,11 +32,20 @@ extern volatile int client_init_count;		/* Semaphore for -C...*/
 class  Instance
 {
 private:
-    Instance( const Instance& );
-    Instance& operator=( const Instance& );
+    Instance( const Instance& ) = delete;
+    Instance& operator=( const Instance& ) = delete;
+
+public:
+#if BUG_289
+    static inline double now() { return 0.0; }
+#else
+    static inline double now() { return ps_now; }
+#endif
 
 protected:
+#if !BUG_289
     static void start( void * );
+#endif
     static void random_shuffle_reply( std::vector<const Entry *>& array );
     static void random_shuffle_activity( std::vector<Activity *>& array );
 
@@ -47,11 +56,13 @@ public:
     virtual ~Instance() = 0;
     
     long task_id() const { return _task_id; }
+#if !BUG_289
     long node_id() const { return _node_id; }
     long std_port() const { return _std_port; }
     long reply_port() const { return _reply_port; }
     long start_port() const { return _start_port; }
     long thread_port() const { return _thread_port; }
+#endif
 
     const std::string& name() const { return _cp->name(); }
     int priority() const { return _cp->priority(); }
@@ -98,11 +109,13 @@ private:
     std::vector<Message *> _entry;	/* Msg at local entry i		*/
 
     const long _task_id;		/* Parasol Task id.		*/
+#if !BUG_289
     const long _node_id;		/* Parasol Node id.		*/
     const long _std_port;		/* Main port.			*/
     const long _reply_port;		/* reply port id		*/
     const long _thread_port;		/* Messages from threads.	*/
     long _start_port;			/* Messages to threads.		*/
+#endif
 
     int active_threads;			/* Threads that are running.	*/
     int idle_threads;			/* Threads that are waiting.	*/

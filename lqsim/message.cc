@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: message.cc 15456 2022-03-09 15:06:35Z greg $
+ * $Id: message.cc 17466 2024-11-13 14:17:16Z greg $
  */
 
 #include <iostream>
@@ -33,7 +33,7 @@
 Message * 
 Message::init( const Entry * ep, tar_t * src )
 {
-    time_stamp   = ps_now; /* Tag send time.	*/
+    time_stamp   = Instance::now(); /* Tag send time.	*/
     client       = ep;
     reply_port   = -1;
     intermediate = nullptr;

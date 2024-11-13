@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 17463 2024-11-12 22:14:26Z greg $
+ * $Id: task.cc 17466 2024-11-13 14:17:16Z greg $
  */
 
 #include "lqsim.h"
@@ -72,7 +72,9 @@ Task::Task( const Task::Type type, int priority, LQIO::DOM::Task* dom, Processor
       _priority(priority),
       _processor(processor),
       _group_id(-1),
+#if !BUG_289
       _compute_func(nullptr),
+#endif
       _active(0),
       _max_phases(1),
       _entries(),
@@ -151,7 +153,9 @@ Task::create()
      * tasks compute by "sleeping".
      */
 
+#if !BUG_289
     _compute_func = (!processor() || processor()->is_infinite()) ? ps_sleep : ps_compute;
+#endif
 
     /* JOIN Stuff -- All entries are free. */
 
@@ -159,9 +163,11 @@ Task::create()
 
     if ( debug_flag ){
 	(void) fprintf( stddbg, "\n-+++++---- %s task %s", type_name().c_str(), name().c_str() );
+#if !BUG_289
 	if ( _compute_func == ps_sleep ) {
 	    (void) fprintf( stddbg, " [delay]" );
 	}
+#endif
 	(void) fprintf( stddbg, " ----+++++-\n" );
     }
 
@@ -308,7 +314,7 @@ Task::free_message( Message * msg )
 {
     /* Async message -- acummulate queuing + service (M/G/m model) */
 
-    double delta = ps_now - msg->time_stamp;
+    double delta = Instance::now() - msg->time_stamp;
     tar_t *tp = msg->target;
     tp->r_delay.record( delta );
     tp->r_delay_sqr.record( square( delta ) );
@@ -694,6 +700,7 @@ Reference_Task::start()
 #endif
 
 
+#if !BUG_289
 Reference_Task&
 Reference_Task::kill()
 {
@@ -702,6 +709,7 @@ Reference_Task::kill()
     }
     return *this;
 }
+#endif
 
 /* ------------------------------------------------------------------------ */
 
@@ -716,7 +724,11 @@ Server_Task::Server_Task( const Task::Type type, int priority, LQIO::DOM::Task* 
 int
 Server_Task::std_port() const
 {
+#if BUG_289
+    return 0;
+#else
     return ps_std_port(_task->task_id());
+#endif
 }
 
 void
@@ -742,6 +754,7 @@ Server_Task::is_aysnc_inf_server() const
 void
 Server_Task::create_instance()
 {
+#if !BUG_289
     if ( is_infinite() ) {
 	_task = new srn_multiserver( this, name(), ~0 );
 	_worker_port = ps_allocate_port( name().c_str(), _task->task_id() );
@@ -758,9 +771,11 @@ Server_Task::create_instance()
 	_worker_port = -1;
 	_type = Task::Type::SERVER;
     }
+#endif
 }
 
 
+#if !BUG_289
 bool
 Server_Task::start()
 {
@@ -777,6 +792,7 @@ Server_Task::kill()
     _worker_port = -1;
     return *this;
 }
+#endif
 
 /* ------------------------------------------------------------------------ */
 
@@ -818,6 +834,7 @@ Semaphore_Task::create_instance()
     buf += "-wait";
     /* entry for waiting request - send to token. */
     _task = new srn_semaphore( this, buf );
+#if !BUG_289
     _worker_port = ps_allocate_port( buf.c_str(), _task->task_id() );
 
     /* Entry for signal request */
@@ -825,9 +842,11 @@ Semaphore_Task::create_instance()
     buf += "-signal";
     _signal_task = new srn_signal( this,  buf );
     _signal_port = ps_allocate_port( buf.c_str(), _signal_task->task_id() );
+#endif
 }
 
 
+#if !BUG_289
 bool
 Semaphore_Task::start()
 {
@@ -843,6 +862,7 @@ Semaphore_Task::kill()
     _signal_port  = -1;
     return *this;
 }
+#endif
 
 Semaphore_Task&
 Semaphore_Task::reset_stats()
@@ -985,6 +1005,7 @@ ReadWriteLock_Task::create_instance()
     /*  srn_rwlock_server should not be blocked, even if number of concurrent */
     /*	readers is greater than the maximum number of the reader lock.*/
     _task = new srn_rwlock_server( this, buf.c_str() );
+#if !BUG_289
     _readerQ_port = ps_allocate_port( buf.c_str(), _task->task_id() );
     _writerQ_port = ps_allocate_port( buf.c_str(), _task->task_id() );
     _signal_port2 = ps_allocate_port( buf.c_str(), _task->task_id() );
@@ -1000,6 +1021,7 @@ ReadWriteLock_Task::create_instance()
     buf += "-reader-signal";
     _signal_task = new srn_signal( this,  buf );
     _signal_port = ps_allocate_port( buf.c_str(), _signal_task->task_id() );
+#endif
 
     /*  writer token*/
     buf = name();
@@ -1008,7 +1030,7 @@ ReadWriteLock_Task::create_instance()
 }
 
 
-
+#if !BUG_289
 bool
 ReadWriteLock_Task::start()
 {
@@ -1032,6 +1054,7 @@ ReadWriteLock_Task::kill()
     Semaphore_Task::kill();
     return *this;
 }
+#endif
 
 
 ReadWriteLock_Task&
@@ -1148,6 +1171,7 @@ Pseudo_Task::create_instance()
 }
 
 
+#if !BUG_289
 bool
 Pseudo_Task::start()
 {
@@ -1162,3 +1186,4 @@ Pseudo_Task::kill()
     _task = 0;
     return *this;
 }
+#endif

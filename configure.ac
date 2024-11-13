@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-# $Id: configure.ac 17461 2024-11-12 15:08:49Z greg $
+# $Id: configure.ac 17467 2024-11-13 14:57:26Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([lqns],[5.31],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([config])
@@ -52,8 +52,7 @@ AC_CHECK_PROGS([XFIG2DEV], fig2dev)
 AM_CONDITIONAL([HAVE_FIG2DEV], test -n "$XFIG2DEV")
 
 AC_ARG_ENABLE([latex-doc],
-    [AS_HELP_STRING([--disable-latex-doc], [disable building the PDF
-    documentation from LaTeX source])],
+    [AS_HELP_STRING([--disable-latex-doc], [disable building the PDF documentation from LaTeX source])],
     [latexdoc=no],
     [latexdoc=yes])
 
@@ -68,6 +67,11 @@ fi
 AM_CONDITIONAL([HAVE_LATEX], test -n "$XLATEX")
 AM_CONDITIONAL([BUILD_latexdoc], test "x$latexdoc" = "xyes")
 
+AC_ARG_ENABLE([parasol],
+    [AS_HELP_STRING([--disable-parasol], [disable using Parasol with lqsim])],
+    [with_parasol=no],
+    [with_parasol=yes])
+AM_CONDITIONAL([HAVE_PARASOL], test "xwith_parasol" = "xyes")
 # ----------------------------------------------------------------------
 # Checks for typedefs, structures, and compiler characteristics.
 #

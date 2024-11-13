@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.h 17449 2024-11-08 16:11:38Z greg $
+ * $Id: processor.h 17466 2024-11-13 14:17:16Z greg $
  */
 
 #ifndef	PROCESSOR_H
@@ -91,7 +91,11 @@ public:
 
 public:
     bool trace_flag;			/* For tracing.			*/
+#if BUG_289
+    VariableResult r_util;		/* Utilization.			*/
+#else
     ParasolResult r_util;		/* Utilization.			*/
+#endif
     Group * _group;			/*				*/
 
 protected:

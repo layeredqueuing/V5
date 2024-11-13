@@ -1,7 +1,7 @@
 /* result.cc	-- Greg Franks Fri Jun  5 2009
  *
  * ------------------------------------------------------------------------
- * $Id: result.cc 17459 2024-11-12 12:17:46Z greg $
+ * $Id: result.cc 17466 2024-11-13 14:17:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -12,6 +12,7 @@
 #include <iomanip>
 #include "result.h"
 #include "model.h"
+#include "instance.h"
 
 /*
  * For block statistics.
@@ -329,7 +330,7 @@ std::string VariableResult::__type_name( "VARIABLE" );
 void VariableResult::record( double value )
 {
 
-    double delta = ps_now - _old_time;
+    double delta = Instance::now() - _old_time;
     if ( delta == 0.0 ) {
 	_old_value = value;
     } else {
@@ -337,7 +338,7 @@ void VariableResult::record( double value )
 	double temp = _integral + _resid;
 	_resid += (_integral - temp);
 	_integral = temp; 
-	_old_time = ps_now;
+	_old_time = Instance::now();
 	_old_value = value;
     }
 }
@@ -365,24 +366,30 @@ VariableResult::record_offset( double value, double start )
 void VariableResult::reset()
 {
     Result::reset();
-    _start = ps_now;
-    _old_time = ps_now;
+    _start = Instance::now();
+    _old_time = Instance::now();
     _integral = 0.0;
     _resid = 0.0;
 }
 
 double VariableResult::getMean() const
 {
-    double period = ps_now - _start;
+    double period = Instance::now() - _start;
     if ( period > 0.0 ) {
-	_integral += (ps_now - _old_time) * _old_value;
-	_old_time = ps_now;
+	_integral += (Instance::now() - _old_time) * _old_value;
+	_old_time = Instance::now();
 	return _integral / period;
     } else {
 	return 0.;
     }
 }
+
+double VariableResult::getOther() const
+{
+    return Instance::now() - _start;
+}
 
+#if !BUG_289
 void ParasolResult::init( const long id )
 {
     _raw = id;		/* We already have a stat.  just set it up. */
@@ -410,3 +417,4 @@ double ParasolResult::getOther() const
     ps_get_stat( _raw, &value, &other );
     return other;
 }
+#endif

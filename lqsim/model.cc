@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 17462 2024-11-12 21:55:04Z greg $
+ * $Id: model.cc 17466 2024-11-13 14:17:16Z greg $
  */
 
 #include "lqsim.h"
@@ -34,7 +34,9 @@
 #include <lqio/json_document.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
+#if !BUG_289
 #include <parasol/para_internals.h>
+#endif
 #include "activity.h"
 #include "entry.h"
 #include "errmsg.h"
@@ -50,9 +52,9 @@ extern "C" {
     extern void test_all_stacks();
 }
 
-//#if defined(_PARASOL)
+#if !BUG_289
 int Model::__genesis_task_id = 0;
-//#endif
+#endif
 Model * Model::__model = nullptr;
 bool Model::__enable_print_interval = false;
 unsigned int Model::__print_interval = 0;
@@ -423,12 +425,12 @@ Model::print( std::ostream& output ) const
 */
     if ( number_blocks > 2 ) {
 	output << "Blocked simulation statistics for " << _input_file_name << std::endl
-	       << "\tTime = " << ps_now << ".  Period = " << _parameters._block_period << std::endl << std::endl
+	       << "\tTime = " << Instance::now() << ".  Period = " << _parameters._block_period << std::endl << std::endl
 	       << "Name                                     Type       Mean        95%% +/-      99%% +/-   #Obs/Int" << std::endl
 	       << std::setw( long_width ) << std::setfill( '-' ) << "-" << std::endl;
     } else {
 	output << "Simulation statistics for " << _input_file_name << std::endl
-	       << "\ttime = " << ps_now << std::endl << std::endl
+	       << "\ttime = " << Instance::now() << std::endl << std::endl
 	       << "Name                                     Type       Mean     #Obs/Int" << std::endl
 	       << std::setw( short_width ) << std::setfill( '-' ) << "-" << std::endl;
     }
@@ -619,14 +621,15 @@ bool
 Model::run( int task_id )
 {
     bool rc = false;
+#if !BUG_289
     __genesis_task_id = task_id;
-
+#endif
     if ( verbose_flag ) {
 	(void) putc( 'C', stderr );		/* Constructing */
     }
 
 #ifdef LQX_DEBUG
-    printf( "In Model::run() ps_now: %g\n", ps_now );
+    printf( "In Model::run() ps_now: %g\n", Instance::now() );
     fflush( stdout );
 #endif
 
@@ -647,8 +650,10 @@ Model::run( int task_id )
 		if ( verbose_flag ) {
 		    (void) putc( 'I', stderr );
 		}
+#if !BUG_289
 		ps_sleep( _parameters._initial_delay );
 		if ( deferred_exception ) throw std::runtime_error( "terminating" );
+#endif
 	    }
 
 	    /*
@@ -668,7 +673,9 @@ Model::run( int task_id )
 		    (void) fprintf( stderr, " %c", "0123456789"[number_blocks%10] );
 		}
 
+#if !BUG_289
 		ps_sleep( _parameters._block_period );
+#endif
 		accumulate_data();
 
 		if ( number_blocks > 2 ) {
@@ -708,12 +715,14 @@ Model::run( int task_id )
 
     /* Force simulation to terminate. */
 
+#if !BUG_289
     ps_run_time = -1.1;
     ps_sleep(1.0);
 
     /* Remove instances */
 
     std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::kill ) );
+#endif
 
     return rc;
 }
@@ -722,9 +731,11 @@ Model::run( int task_id )
 void
 Model::start_task( Task * task )
 {
+#if !BUG_289
     if ( !task->start() ) {
 	throw std::runtime_error( std::string("Failed to start task '") + task->name() + "'." );
     }
+#endif
 }
 
 

@@ -1,7 +1,7 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 17459 2024-11-12 12:17:46Z greg $
+ * $Id: target.cc 17466 2024-11-13 14:17:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -62,6 +62,7 @@ tar_t::send_synchronous( const Entry * src, const int priority, const long reply
     double time_stamp;		/* Time of reception.		*/
     Message msg( src, this );
 
+#if !BUG_289
     Instance * ip = object_tab[ps_myself];
 
     ip->timeline_trace( SYNC_INTERACTION_INITIATED, src, _entry );
@@ -80,6 +81,7 @@ tar_t::send_synchronous( const Entry * src, const int priority, const long reply
 
     ps_receive( reply_port, NEVER, &j1, &time_stamp, (char **)&acceptor_id, &acceptor_port );
     ip->timeline_trace( SYNC_INTERACTION_COMPLETED, src, acceptor_id->client );
+#endif
 }
 
 
@@ -99,6 +101,7 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
 	msg->init( src, this );
 
 	r_loss_prob.record( 0 );
+#if !BUG_289
 	Instance * ip = object_tab[ps_myself];
 	ip->timeline_trace( ASYNC_INTERACTION_INITIATED, src, _entry );
 
@@ -110,6 +113,7 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
 				      priority + _entry->priority() ) == SYSERR ) {
 	    throw std::runtime_error( "tar_t::send_asynchronous" );
 	}
+#endif
     } else {
 	r_loss_prob.record( 1 );
 	if ( Pragma::__pragmas->abort_on_dropped_message() ) {

@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 17462 2024-11-12 21:55:04Z greg $
+ * $Id: entry.cc 17467 2024-11-13 14:57:26Z greg $
  */
 
 #include "lqsim.h"
@@ -186,6 +186,7 @@ Entry::initialize()
 		
     _join_list = nullptr;		/* Reset */
     
+#if !BUG_289
     switch ( task()->type() ) {
     case Task::Type::CLIENT:
 	_port = -1;
@@ -205,10 +206,9 @@ Entry::initialize()
 	_port = task()->std_port();
 	break;
     }
+#endif
 
-    for ( std::vector<Activity>::iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
-	phase->initialize();
-    }
+    std::for_each( _phase.begin(), _phase.end(), std::mem_fn( &Activity::initialize ) );
     
     /* forwarding component */
 			
@@ -550,11 +550,7 @@ Entry::throughput_variance() const
 double
 Entry::minimum_service_time() const
 {
-    double sum = 0.;
-    for ( std::vector<double>::const_iterator i = _minimum_service_time.begin(); i != _minimum_service_time.end(); ++i ) {
-	sum += *i;
-    }
-    return sum;
+    return std::accumulate( _minimum_service_time.begin(), _minimum_service_time.end(), 0.0, []( double l, double r ){ return l + r; } );
 }
 
 

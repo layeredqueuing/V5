@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 17462 2024-11-12 21:55:04Z greg $
+ * $Id: processor.cc 17467 2024-11-13 14:57:26Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -39,6 +39,7 @@ Processor *Processor::processor_table[MAX_NODES+1];			/* NodeId to processor		*/
 
 const std::map<const scheduling_type,const int> Processor::scheduling_types =
 {
+#if !BUG_289
     { SCHEDULE_CUSTOMER,    PS_FIFO },
     { SCHEDULE_DELAY,	    PS_FIFO },
     { SCHEDULE_FIFO,	    PS_FIFO },
@@ -46,6 +47,7 @@ const std::map<const scheduling_type,const int> Processor::scheduling_types =
     { SCHEDULE_PPR,	    PS_PR },
     { SCHEDULE_PS,	    PS_FIFO },
     { SCHEDULE_CFS,	    PS_CFS }
+#endif
 };
 
 
@@ -84,6 +86,7 @@ Processor::Processor( LQIO::DOM::Processor* dom )
 Processor&
 Processor::create()
 {
+#if !BUG_289
     _node_id = ps_build_node( name().c_str(), multiplicity(), cpu_rate(), quantum(),
 			      scheduling_types.at(discipline()),
 			      SF_PER_NODE|SF_PER_HOST );
@@ -91,8 +94,10 @@ Processor::create()
     if ( _node_id < 0 || MAX_NODES < _node_id ) {
 	LQIO::input_error( ERR_CANNOT_CREATE_X, "processor", name().c_str() );
     } else {
+	r_util.init( ps_get_node_stat_index( _node_id ) );	// defined by Parasol
 	processor_table[_node_id] = this;
     }
+#endif
     return *this;
 }
 
@@ -134,6 +139,7 @@ Processor::is_infinite() const
 void
 Processor::reschedule( Instance * ip )
 {
+#if !BUG_289
     ps_my_schedule_time = ps_now;
     if ( (Pragma::__pragmas->scheduling_model() & SCHEDULE_NATURAL) == 0 ) {
 	Custom_Processor * pp = dynamic_cast<Custom_Processor *>(find(ps_my_node));
@@ -144,6 +150,7 @@ Processor::reschedule( Instance * ip )
 	    ps_sleep(0);
 	}
     }
+#endif
 }
 
 /*----------------------------------------------------------------------*/
@@ -178,6 +185,7 @@ Custom_Processor::~Custom_Processor()
 Custom_Processor&
 Custom_Processor::create()
 {
+#if !BUG_289
     _node_id = ps_build_node2( name().c_str(), multiplicity(), cpu_rate(), cpu_scheduler_task, SF_PER_NODE|SF_PER_HOST );
 
     if ( _node_id < 0 || MAX_NODES < _node_id ) {
@@ -185,6 +193,7 @@ Custom_Processor::create()
     } else {
 	processor_table[_node_id] = this;
     }
+#endif
     return *this;
 }
 
@@ -200,8 +209,10 @@ int cpu_scheduler_port;			/* Port to send CPU requests to.	*/
 void
 Custom_Processor::cpu_scheduler_task ( void * )
 {
+#if !BUG_289
     Custom_Processor * pp = dynamic_cast<Custom_Processor *>(Processor::find(ps_my_node));
     pp->main();
+#endif
 }
 
 
@@ -210,18 +221,23 @@ Custom_Processor::main()
 {
     long * rtrq = static_cast<long *>(calloc( MAX_TASKS, sizeof(long) ));
 
+#if !BUG_289
     _active_task[ps_my_host] = nullptr;
     _scheduler = ps_std_port(ps_myself);
+#endif
 
     for ( ;; ) {
 	long type;
 	long task_id;
 	double time_stamp;
 	char * message;
+#if !BUG_289
 	double quantum = NEVER;
 	double start_time = ps_now;
+#endif
 	Instance * ip;
 
+#if !BUG_289
 	if ( ps_receive( ps_my_std_port, quantum, &type, &time_stamp, &message, &task_id ) == 0 ) {
 	    type = SN_PREEMPT;
 	}
@@ -313,6 +329,7 @@ Custom_Processor::main()
 	    abort();
 	    break;
 	}
+#endif
     }
 }
 
@@ -329,6 +346,7 @@ Custom_Processor::run_task( long task_id )
 
     trace( PROC_RUNNING_TASK, ip );
 
+#if !BUG_289
     _active_task[ps_my_host] = ip;
     if ( ip ) {
 	if ( ip->r_a_execute != nullptr ) {
@@ -340,6 +358,7 @@ Custom_Processor::run_task( long task_id )
     }
 
     ps_schedule( task_id, ps_my_host );
+#endif
 
     return quantum();
 }
@@ -368,9 +387,9 @@ Custom_Processor::trace( const processor_events event, ... )
 	double quantum;
 
 	if ( trace_driver ) {
-	    (void) fprintf( stddbg, "\nTime* %8g P %s: ", ps_now, name().c_str() );
+	    (void) fprintf( stddbg, "\nTime* %8g P %s: ", Instance::now(), name().c_str() );
 	} else {
-	    (void) fprintf( stddbg, "%8g P %s: ", ps_now, name().c_str() );
+	    (void) fprintf( stddbg, "%8g P %s: ", Instance::now(), name().c_str() );
 	}
 
 	switch ( event ) {
@@ -393,9 +412,11 @@ Custom_Processor::trace( const processor_events event, ... )
 	case PROC_RUNNING_TASK:
 	    ip = va_arg( args, Instance * );
 	    quantum = va_arg( args, double );
+#if !BUG_289
 	    (void) fprintf( stddbg, "Running %s (%ld). Delay to schedule %g.",
 			    ip->name().c_str(), ip->task_id(),
-			    ps_now - ps_schedule_time(ip->task_id()) );
+			    Instance::now() - ps_schedule_time(ip->task_id()) );
+#endif
 	    break;
 
 	case PROC_IDLE:
@@ -408,6 +429,7 @@ Custom_Processor::trace( const processor_events event, ... )
 	    task_id = va_arg( args, unsigned );
 	    (void) fprintf( stddbg, "Processor for task %s (%ld): ",
 			    ip->name().c_str(), ip->task_id() );
+#if !BUG_289
 	    switch ( type ) {
 	    case SN_PREEMPT:
 		(void) fprintf( stddbg, "PREEMPT - task %d (%s)", task_id, ps_task_name(task_id) );
@@ -425,10 +447,10 @@ Custom_Processor::trace( const processor_events event, ... )
 		(void) fprintf( stddbg, "????? - %d", task_id );
 		break;
 	    }
+#endif
 	    break;
-
-
 	}
+
 	if ( !trace_driver ) {
 	    fprintf( stddbg, "\n" );
 	}
@@ -584,6 +606,7 @@ add_communication_delay( const char * from_proc_name, const char * to_proc_name,
     }
 }
 
+#if !BUG_289
 /*
  * Define these suckers even though they are not used.
  */
@@ -597,3 +620,4 @@ extern "C" {
     void node_repair_handler( ps_event_t *ep ) {}
     void user_event_handler( ps_event_t *ep ) {}
 }
+#endif
