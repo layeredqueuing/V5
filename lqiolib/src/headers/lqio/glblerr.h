@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.h 17411 2024-10-31 21:18:36Z greg $
+ * $Id: glblerr.h 17460 2024-11-12 14:14:37Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -108,7 +108,6 @@ namespace LQIO {
 	WRN_PRAGMA_ARGUMENT_INVALID,
 	WRN_PRAGMA_UNKNOWN,
 	WRN_PRIO_TASK_ON_FIFO_PROC,
-	WRN_PROCESSOR_HAS_NO_TASKS,
 	WRN_QUANTUM_SCHEDULING,
 	WRN_SCHEDULING_NOT_SUPPORTED,
 	WRN_TASK_HAS_VISIT_PROBABILITY,

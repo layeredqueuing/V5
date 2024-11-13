@@ -12,43 +12,32 @@
 /*
  * Global vars for setting up simulation.
  *
- * $Id: lqsim.h 17422 2024-11-04 00:36:47Z greg $
+ * $Id: lqsim.h 17457 2024-11-12 11:19:54Z greg $
  */
 
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif
 #include <cstdio>
-#include <lqio/input.h>
-#if HAVE_SYS_TYPES_H
-#include <sys/types.h>    /* Need def for size_t */
-#endif
-#include <parasol/parasol.h>
+#include <regex>
 
+#define BUG_289		0	// Parasol
 #define	BUG_313		1
 
-#define GROUP_SCHEDULING       0
+#if BUG_289
+
+#else
+#include <parasol/parasol.h>
+#endif
 
 #define	MAX_PHASES	3
 #define MAX_TASKS	16384
 #define	MAX_PORTS	16384
-#define	MAX_LINKS	100
 #define	MAX_NODES	32768
-
-#define	MAX_CLASSES	MAX_TASKS
-#define	MAX_TARGETS	256
-#define MAX_PROC	MAX_TASKS
-#define MAX_GROUPS	MAX_TASKS
-
-#define MAX_MESSAGES	16384
 
 #define	LINKS_MESSAGE_SIZE	1
 
 #define EPSILON 0.000001
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 extern bool debug_flag;			/* Debugging flag set?      	*/
 extern bool debug_interactive_stepping;
@@ -71,6 +60,11 @@ extern int scheduling_model;		/* Slice/Natural scheduling.	*/
 
 extern char * histogram_output_file;	/* File name for histogram data	*/
 
+extern std::regex processor_match_pattern;	/* Pattern to match.	    */
+extern std::regex task_match_pattern;		/* Pattern to match.	    */
+
+extern FILE * stddbg;
+
 void * my_malloc( size_t size );
 void * my_realloc( void * ptr, size_t size );
 void report_matherr( FILE * output );
@@ -88,10 +82,6 @@ extern bool deferred_exception;		/* Fault detected in thread	*/
 #define	SCHEDULE_CUSTOM		0x1
 #define	SCHEDULE_NATURAL	0x2
 #define SCHEDULE_CUSTOM_NATURAL	0x3
-
-#if defined(_AIX)
-extern char * strdup( char * str );
-#endif
 
 /* For open queues. */
 #define DEFAULT_QUEUE_SIZE	1024
@@ -158,7 +148,4 @@ typedef enum
 #define ACTIVITY_FORK_BIT (1<<ACTIVITY_FORK)
 #define ACTIVITY_JOIN_BIT (1<<ACTIVITY_JOIN)
 
-#if defined(__cplusplus)
-}
-#endif
 #endif

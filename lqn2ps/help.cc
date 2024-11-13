@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 17347 2024-10-09 17:49:35Z greg $
+ * $Id: help.cc 17461 2024-11-12 15:08:49Z greg $
  */
 
 #include "lqn2ps.h"
@@ -140,10 +140,9 @@ man()
 {
     static const char * comm = ".\\\"";
     char date[32];
+#if HAVE_TIME_H
     time_t tloc;
     time( &tloc );
-
-#if defined(HAVE_CTIME)
     strftime( date, 32, "%d %B %Y", localtime( &tloc ) );
 #endif
 
@@ -151,7 +150,7 @@ man()
 	      << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 17347 2024-10-09 17:49:35Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 17461 2024-11-12 15:08:49Z greg $" << std::endl
 	      << comm << std::endl
 	      << comm << " --------------------------------" << std::endl;
 

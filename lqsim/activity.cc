@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 17439 2024-11-06 00:52:22Z greg $
+ * $Id: activity.cc 17462 2024-11-12 21:55:04Z greg $
  */
 
 #include "lqsim.h"
@@ -29,6 +29,7 @@
 #include "activity.h"
 #include "entry.h"
 #include "errmsg.h"
+#include "histogram.h"
 #include "message.h"
 #include "model.h"
 #include "processor.h"
@@ -53,7 +54,7 @@ Activity::Activity( Task * cp, LQIO::DOM::Phase * dom )
       _calls(),
       _task(cp),
       _phase(0),
-      _index(cp ? cp->_activity.size(): -1),
+      _index(cp ? cp->activities().size(): -1),
       _prewaiting(0),
       _reply(),
       _is_reachable(false),
@@ -191,17 +192,6 @@ Activity::configure()
 Activity&
 Activity::initialize()
 {
-    r_util.init();
-    r_cpu_util.init();
-    r_service.init();
-    r_slices.init();
-    r_sends.init();
-    r_proc_delay.init();
-    r_proc_delay_sqr.init();
-    r_cycle.init();
-    r_cycle_sqr.init();
-    r_afterQuorumThreadWait.init();
-
     if ( getDOM() != nullptr) {
 	_calls.initialize();
     }

@@ -9,7 +9,7 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 17440 2024-11-06 01:09:27Z greg $
+ * $Id: group.cc 17462 2024-11-12 21:55:04Z greg $
  */
 
 #include "lqsim.h"
@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <lqio/input.h>
 #include <lqio/error.h>
+#include "entry.h"
 #include "errmsg.h"
 #include "processor.h"
 #include "group.h"
@@ -100,7 +101,6 @@ Group::create()
 
     std::for_each( tasks().begin(), tasks().end(), [=]( Task * task ){ if ( task->group_id() == -1 ) { task->set_group_id( group_id ); } } );
 
-    r_util.init();
     return *this;
 }
 
@@ -172,7 +172,7 @@ Group::insertDOMResults()
     for ( std::set<Task *>::const_iterator t = tasks().begin(); t != tasks().end(); ++t ) {
 	Task * cp = *t;
 	
-	for ( std::vector<Entry *>::const_iterator entry = cp->_entry.begin(); entry != cp->_entry.end(); ++entry ) {
+	for ( std::vector<Entry *>::const_iterator entry = cp->entries().begin(); entry != cp->entries().end(); ++entry ) {
 	    for ( std::vector<Activity>::iterator phase = (*entry)->_phase.begin(); phase != (*entry)->_phase.end(); ++phase ) {
 		proc_util_mean += phase->r_cpu_util.mean();
 		proc_util_var  += phase->r_cpu_util.variance();

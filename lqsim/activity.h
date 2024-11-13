@@ -10,7 +10,7 @@
 /*
  * Activities (and phases).
  *
- * $Id: activity.h 17433 2024-11-05 13:59:00Z greg $
+ * $Id: activity.h 17457 2024-11-12 11:19:54Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -21,13 +21,13 @@
 #include <deque>
 #include <lqio/dom_activity.h>
 #include "actlist.h"
-#include "histogram.h"
 #include "random.h"
 #include "result.h"
 #include "target.h"
 
 class Task;
 class Entry;
+class Histogram;
 
 class Activity {
     friend class Instance;		// for _calls;

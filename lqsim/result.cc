@@ -1,7 +1,7 @@
 /* result.cc	-- Greg Franks Fri Jun  5 2009
  *
  * ------------------------------------------------------------------------
- * $Id: result.cc 17449 2024-11-08 16:11:38Z greg $
+ * $Id: result.cc 17459 2024-11-12 12:17:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -79,12 +79,6 @@ std::string Result::getName( const std::string& name ) const
     std::ostringstream s;
     s << std::left << std::setw( 6 ) << _dom->getTypeName() << " " << std::left << std::setw( 11 ) << _dom->getName() << " - " << std::left << std::setw( 18 ) << name;
     return s.str();
-}
-
-
-void Result::init()
-{
-    clear_results();
 }
 
 

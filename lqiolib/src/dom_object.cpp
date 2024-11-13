@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 17434 2024-11-05 15:37:43Z greg $
+ *  $Id: dom_object.cpp 17460 2024-11-12 14:14:37Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -103,7 +103,6 @@ namespace LQIO {
 	    { LQIO::WRN_NON_CFS_PROCESSOR,		{ LQIO::error_severity::WARNING,  "is a processor which is not running fair share scheduling" } },
 	    { LQIO::WRN_NOT_USED,			{ LQIO::error_severity::WARNING,  "is not used" } },
 	    { LQIO::WRN_PRIO_TASK_ON_FIFO_PROC,		{ LQIO::error_severity::WARNING,  "with priority is running on processor \"%s\" which does not have priority scheduling" } },
-	    { LQIO::WRN_PROCESSOR_HAS_NO_TASKS,		{ LQIO::error_severity::WARNING,  "has no tasks" } },
 	    { LQIO::WRN_QUANTUM_SCHEDULING,		{ LQIO::error_severity::WARNING,  "using \"%s\" scheduling has a non-zero quantum specified" } },
 	    { LQIO::WRN_SCHEDULING_NOT_SUPPORTED,	{ LQIO::error_severity::WARNING,  "with %s scheduling is not supported" } },
 	    { LQIO::WRN_TASK_HAS_VISIT_PROBABILITY,	{ LQIO::error_severity::WARNING,  "is not a reference task; visit probabilities for entries are ignored." } },

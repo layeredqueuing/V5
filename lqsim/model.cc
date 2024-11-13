@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 17440 2024-11-06 01:09:27Z greg $
+ * $Id: model.cc 17462 2024-11-12 21:55:04Z greg $
  */
 
 #include "lqsim.h"
@@ -246,17 +246,16 @@ Model::prepare()
     /* Add all of the tasks we will be needing */
     for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator nextTask = taskList.begin(); nextTask != taskList.end(); ++nextTask ) {
 	LQIO::DOM::Task* task = nextTask->second;
-	std::vector<LQIO::DOM::Entry*>::const_iterator nextEntry;
 	std::vector<LQIO::DOM::Entry*> activityEntries;
 
 	/* Now we can go ahead and add the task */
 	Task* newTask = Task::add(task);
 
 	/* Add the entries so we can reverse them */
-	for ( nextEntry = task->getEntryList().begin(); nextEntry != task->getEntryList().end(); ++nextEntry ) {
-	    newTask->_entry.push_back( Entry::add( *nextEntry, newTask ) );
-	    if ((*nextEntry)->getStartActivity() != nullptr) {
-		activityEntries.push_back(*nextEntry);
+	for ( std::vector<LQIO::DOM::Entry*>::const_iterator entry = task->getEntryList().begin(); entry != task->getEntryList().end(); ++entry ) {
+	    const_cast<std::vector<Entry *>&>(newTask->entries()).push_back( Entry::add( *entry, newTask ) );
+	    if ((*entry)->getStartActivity() != nullptr) {
+		activityEntries.push_back(*entry);
 	    }
 	}
 
@@ -320,12 +319,7 @@ Model::prepare()
 
     /* Go back and add all of the lists and calls now that activities all exist */
     for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-	for ( std::vector<Activity*>::const_iterator ap = (*task)->_activity.begin(); ap != (*task)->_activity.end(); ++ap) {
-	    Activity* activity = *ap;
-	    activity->add_calls()
-		.add_reply_list()
-		.add_activity_lists();
-	}
+	std::for_each( (*task)->activities().begin(), (*task)->activities().end(), []( Activity * activity ){ activity->add_calls().add_reply_list().add_activity_lists(); } );
     }
 
     /* Use the generated connections list to finish up */
@@ -499,9 +493,15 @@ Model::start()
     /* Which we can use here... */
 
     _parameters.set( _document->getPragmaList(), client_cycle_time );
+    Random::seed( _parameters._seed );
+
+    deferred_exception = false;
 
     _start_time.init();
 
+#if BUG_289
+    create();
+#else
     if (debug_interactive_stepping) {
 	simulation_flags = RPF_STEP; 	/* tomari quorum */
     }
@@ -511,9 +511,8 @@ Model::start()
 	simulation_flags = simulation_flags | RPF_WARNING;
     }
 
-    deferred_exception = false;
-    Random::seed( _parameters._seed );
     ps_run_parasol( _parameters._run_time+1.0, _parameters._seed, simulation_flags );	/* Calls ps_genesis */
+#endif
 
     /*
      * Run completed.
@@ -535,7 +534,7 @@ Model::start()
 	    LQIO::runtime_error( ADV_PRECISION, _parameters._precision, _parameters._block_period * number_blocks + _parameters._initial_delay, _confidence );
 	}
 	for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-	    const auto entries = (*task)->_entry;
+	    const auto entries = (*task)->entries();
 	    std::for_each( entries.begin(), entries.end(), []( const Entry * entry ){ if ( entry->has_lost_messages() ) { entry->getDOM()->runtime_error( LQIO::ADV_MESSAGES_DROPPED ); } } );
 	}
     }
@@ -771,7 +770,7 @@ Model::rms_confidence()
     for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
 	if ( (*task)->type() == Task::Type::OPEN_ARRIVAL_SOURCE || (*task)->is_aysnc_inf_server() ) continue;		/* Skip. */
 
-	for ( std::vector<Entry *>::const_iterator nextEntry = (*task)->_entry.begin(); nextEntry != (*task)->_entry.end(); ++nextEntry ) {
+	for ( std::vector<Entry *>::const_iterator nextEntry = (*task)->entries().begin(); nextEntry != (*task)->entries().end(); ++nextEntry ) {
 	    double temp = normalized_conf95( (*nextEntry)->r_cycle );
 	    if ( temp > 0 ) {
 		sum_sqr += ( temp * temp );
@@ -793,6 +792,8 @@ Model::normalized_conf95( const Result& stat )
 }
 
 
+
+#if !BUG_289
 /*
  * Progenator task.
  */
@@ -805,6 +806,7 @@ ps_genesis(void *)
     }
     ps_suspend( ps_myself );
 }
+#endif
 
 /*
  * set the simulation run time parameters.

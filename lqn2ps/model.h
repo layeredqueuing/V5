@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 17452 2024-11-10 12:04:53Z greg $
+ * $Id: model.h 17454 2024-11-11 16:25:09Z greg $
  */
 
 #ifndef _MODEL_H
@@ -95,7 +95,8 @@ protected:
     class Stats
     {
     public:
-	Stats();
+	Stats() : n(0), x(0), x_sqr(0), log_x(0), one_x(0), min(std::numeric_limits<double>::max()), max(-std::numeric_limits<double>::max()), min_filename(), max_filename(), f(nullptr) {}
+
 	std::ostream& operator<<( std::ostream& output ) const { return print( output ); }
 
         Stats & accumulate( double value, const std::filesystem::path& );
@@ -114,8 +115,8 @@ protected:
 	double one_x;
 	double min;
 	double max;
-	std::filesystem::path min_filename;
-	std::filesystem::path max_filename;
+	std::string min_filename;
+	std::string max_filename;
 	modelFunc f;
     };
 

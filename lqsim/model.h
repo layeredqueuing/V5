@@ -10,29 +10,18 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 17436 2024-11-05 23:16:25Z greg $
+ * $Id: model.h 17461 2024-11-12 15:08:49Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
 #define LQSIM_MODEL_H
 
 #include "lqsim.h"
-#include <regex>
 #include <lqio/dom_document.h>
 #include <lqio/common_io.h>
 #include "result.h"
 
-namespace LQIO {
-    namespace DOM {
-	class Document;
-    }
-}
-
 extern matherr_type matherr_disposition;    	/* What to do on math fault     */
-extern FILE * stddbg;
-
-extern std::regex processor_match_pattern;	/* Pattern to match.	    */
-extern std::regex task_match_pattern;		/* Pattern to match.	    */
 
 /*
  * Information unique to a particular instance of a task.
@@ -42,14 +31,14 @@ extern bool abort_on_dropped_message;
 extern bool reschedule_on_async_send;
 extern bool print_lqx;
 
-#if defined(_PARASOL)
+#if !BUG_289
 extern "C" void ps_genesis(void *);
 #endif
 
 class Task;
 
 class Model {
-#if defined(_PARASOL)
+#if !BUG_289
     friend void ps_genesis(void *);
 #endif
 

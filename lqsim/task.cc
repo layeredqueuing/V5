@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 17427 2024-11-04 23:19:53Z greg $
+ * $Id: task.cc 17463 2024-11-12 22:14:26Z greg $
  */
 
 #include "lqsim.h"
@@ -23,12 +23,14 @@
 #include <lqio/labels.h>
 #include <lqio/error.h>
 #include <lqio/dom_actlist.h>
-#include "errmsg.h"
-#include "task.h"
-#include "instance.h"
 #include "activity.h"
-#include "processor.h"
+#include "entry.h"
+#include "errmsg.h"
 #include "group.h"
+#include "histogram.h"
+#include "instance.h"
+#include "processor.h"
+#include "task.h"
 
 #define N_SEMAPHORE_ENTRIES 2
 #define N_RWLOCK_ENTRIES 4
@@ -73,15 +75,15 @@ Task::Task( const Task::Type type, int priority, LQIO::DOM::Task* dom, Processor
       _compute_func(nullptr),
       _active(0),
       _max_phases(1),
-      _act_list(),
+      _entries(),
+      _activities(),
+      _precedences(),
       _forks(),
       _joins(),
       _pending_msgs(),
       _join_start_time(0.0),
       _free_msgs(),
       _type(type),
-      _entry(),
-      _activity(),
       trace_flag(false),
       _hist_data(nullptr),
       r_cycle("Cycle time",dom),
@@ -97,8 +99,8 @@ Task::Task( const Task::Type type, int priority, LQIO::DOM::Task* dom, Processor
 
 Task::~Task()
 {
-    std::for_each( _activity.begin(), _activity.end(), []( Activity * activity ){ delete activity; } );
-    std::for_each( _act_list.begin(), _act_list.end(), []( ActivityList * list ){ delete list; } );
+    std::for_each( activities().begin(), activities().end(), []( Activity * activity ){ delete activity; } );
+    std::for_each( precedences().begin(), precedences().end(), []( ActivityList * list ){ delete list; } );
     std::for_each( _free_msgs.begin(), _free_msgs.end(), []( Message * message ){ delete message; } );
 
     if ( _hist_data ) {
@@ -117,15 +119,15 @@ Task::configure()
 {
     /* I need the instance variable "task" set from this point on. */
 
-    double total_calls = std::accumulate( _activity.begin(), _activity.end(), 0.0, []( double l, Activity * r ){ return l + r->configure(); } );
-    std::for_each( _act_list.begin(), _act_list.end(), std::mem_fn( &ActivityList::configure ) );
-    total_calls = std::accumulate( _entry.begin(), _entry.end(), total_calls, []( double l, Entry * r ) { return l + r->configure(); } );
+    double total_calls = std::accumulate( activities().begin(), activities().end(), 0.0, []( double l, Activity * r ){ return l + r->configure(); } );
+    std::for_each( precedences().begin(), precedences().end(), std::mem_fn( &ActivityList::configure ) );
+    total_calls = std::accumulate( entries().begin(), entries().end(), total_calls, []( double l, Entry * r ) { return l + r->configure(); } );
 
     if ( total_calls == 0 && is_reference_task() ) {
 	getDOM()->runtime_error( LQIO::WRN_NOT_USED );
     }
 
-    for ( std::vector<Activity *>::const_iterator ap = _activity.begin(); ap != _activity.end(); ++ap ) {
+    for ( std::vector<Activity *>::const_iterator ap = activities().begin(); ap != activities().end(); ++ap ) {
 	if ( !(*ap)->is_reachable() ) {
 	    (*ap)->getDOM()->runtime_error( LQIO::WRN_NOT_USED );
 	} else if ( !(*ap)->is_specified() ) {
@@ -172,9 +174,6 @@ Task::create()
 	alloc_pool();
     }
 
-    r_cycle.init();
-    r_util.init();
-    r_group_util.init();
     return *this;
 }
 
@@ -182,8 +181,8 @@ Task::create()
 Task&
 Task::initialize()
 {
-    std::for_each( _activity.begin(), _activity.end(), std::mem_fn( &Activity::initialize ) );
-    std::for_each( _entry.begin(), _entry.end(), std::mem_fn( &Entry::initialize ) );
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Activity::initialize ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::initialize ) );
     std::for_each( _forks.begin(), _forks.end(), std::mem_fn( &AndForkActivityList::initialize ) );
 
     /*
@@ -232,7 +231,7 @@ Task::set_start_activity( LQIO::DOM::Entry* dom )
 bool
 Task::has_send_no_reply() const
 {
-    return std::any_of( _entry.begin(), _entry.end(), std::mem_fn( &Entry::is_send_no_reply ) );
+    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::is_send_no_reply ) );
 }
 
 /*
@@ -240,14 +239,14 @@ Task::has_send_no_reply() const
  */
 
 Activity *
-Task::add_activity( LQIO::DOM::Activity * dom_activity )
+Task::add_activity( LQIO::DOM::Activity * dom )
 {
-    Activity * activity = find_activity( dom_activity->getName().c_str() );
+    Activity * activity = find_activity( dom->getName() );
     if ( activity ) {
-	LQIO::input_error( LQIO::ERR_DUPLICATE_SYMBOL, "Activity", dom_activity->getName().c_str() );
+	LQIO::input_error( LQIO::ERR_DUPLICATE_SYMBOL, "Activity", dom->getName().c_str() );
     } else {
-	activity = new Activity( this, dom_activity );
-	_activity.push_back( activity );
+	activity = new Activity( this, dom );
+	_activities.push_back( activity );
     }
     return activity;
 }
@@ -262,8 +261,8 @@ Task::add_activity( LQIO::DOM::Activity * dom_activity )
 Activity *
 Task::find_activity( const std::string& name ) const
 {
-    std::vector<Activity *>::const_iterator ap = std::find_if( _activity.begin(), _activity.end(), [=]( const Activity * activity ){ return activity->name() == name; } );
-    if ( ap != _activity.end() ) {
+    std::vector<Activity *>::const_iterator ap = std::find_if( activities().begin(), activities().end(), [=]( const Activity * activity ){ return activity->name() == name; } );
+    if ( ap != activities().end() ) {
 	return *ap;
     } else {
 	return nullptr;
@@ -348,8 +347,8 @@ Task::reset_stats()
     r_util.reset();
     r_cycle.reset();
 
-    std::for_each( _entry.begin(), _entry.end(), std::mem_fn( &Entry::reset_stats ) );
-    std::for_each( _activity.begin(), _activity.end(), std::mem_fn( &Activity::reset_stats ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::reset_stats ) );
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Activity::reset_stats ) );
     std::for_each( _joins.begin(), _joins.end(), std::mem_fn( &AndJoinActivityList::reset_stats ) );
 
     /* Histogram stuff */
@@ -369,8 +368,8 @@ Task::accumulate_data()
     r_util.accumulate();
     r_cycle.accumulate();
 
-    std::for_each( _entry.begin(), _entry.end(), std::mem_fn( &Entry::accumulate_data ) );
-    std::for_each( _activity.begin(), _activity.end(), std::mem_fn( &Activity::accumulate_data ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::accumulate_data ) );
+    std::for_each( activities().begin(), activities().end(), std::mem_fn( &Activity::accumulate_data ) );
     std::for_each( _joins.begin(), _joins.end(), std::mem_fn( &AndJoinActivityList::accumulate_data ) );
 
     /* Histogram stuff */
@@ -387,8 +386,8 @@ Task::print( std::ostream& output ) const
 {
     output << r_util << r_cycle;	// Change me.
 
-    std::for_each( _entry.begin(), _entry.end(), [&]( const Entry * entry ){ entry->print( output ); } );
-    std::for_each( _activity.begin(), _activity.end(), [&]( const Activity* activity ){ activity->print( output ); } );
+    std::for_each( entries().begin(), entries().end(), [&]( const Entry * entry ){ entry->print( output ); } );
+    std::for_each( activities().begin(), activities().end(), [&]( const Activity* activity ){ activity->print( output ); } );
     std::for_each( _joins.begin(), _joins.end(), [&]( const AndJoinActivityList * join ){ join->print( output ); } );
 
     return output;
@@ -409,13 +408,13 @@ Task::insertDOMResults()
     }
 
     if ( has_activities() ) {
-	std::for_each( _activity.begin(), _activity.end(), std::mem_fn( &Activity::insertDOMResults ) );
+	std::for_each( activities().begin(), activities().end(), std::mem_fn( &Activity::insertDOMResults ) );
 	std::for_each( _joins.begin(), _joins.end(), std::mem_fn( &AndJoinActivityList::insertDOMResults ) );
     }
 
     double taskProcUtil = 0.0;		/* Total processor utilization. */
     double taskProcVar = 0.0;
-    for ( std::vector<Entry *>::const_iterator nextEntry = _entry.begin(); nextEntry != _entry.end(); ++nextEntry ) {
+    for ( std::vector<Entry *>::const_iterator nextEntry = entries().begin(); nextEntry != entries().end(); ++nextEntry ) {
 	Entry * ep = *nextEntry;
 	ep->insertDOMResults();
 
@@ -427,9 +426,9 @@ Task::insertDOMResults()
 	}
     }
 
-    for ( std::vector<Activity *>::const_iterator next_activity = _activity.begin(); next_activity != _activity.end(); ++next_activity ) {
-	taskProcUtil += (*next_activity)->r_cpu_util.mean();
-	taskProcVar  += (*next_activity)->r_cpu_util.variance();
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	taskProcUtil += (*activity)->r_cpu_util.mean();
+	taskProcVar  += (*activity)->r_cpu_util.variance();
     }
 
     /* Store totals */
@@ -483,23 +482,23 @@ Task::add( LQIO::DOM::Task* dom )
     if ( !LQIO::DOM::Common_IO::is_default_value( dom->getPriority(), 0 ) && ( processor->discipline() == SCHEDULE_FIFO
 										   || processor->discipline() == SCHEDULE_PS
 										   || processor->discipline() == SCHEDULE_RAND ) ) {
-	dom->input_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, processor_name.c_str() );
+	dom->runtime_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, processor_name.c_str() );
     }
 
     int priority = dom->hasPriority() ? dom->getPriorityValue() : 0;
     if ( priority < MIN_PRIORITY || MAX_PRIORITY < priority ) {
 	priority = dom->getPriorityValue() > MAX_PRIORITY ? MAX_PRIORITY : 0;
-	LQIO::input_error( WRN_INVALID_PRIORITY, dom->getPriorityValue(), MIN_PRIORITY, MAX_PRIORITY, priority );
+	LQIO::runtime_error( WRN_INVALID_PRIORITY, dom->getPriorityValue(), MIN_PRIORITY, MAX_PRIORITY, priority );
     }
 //    priority = MAX_PRIORITY - priority;		/* Bug 453. */
     
     Group * group = nullptr;
     if ( !domGroup && processor->discipline() == SCHEDULE_CFS ) {
-	dom->input_error( LQIO::ERR_NO_GROUP_SPECIFIED, processor_name.c_str() );
+	dom->runtime_error( LQIO::ERR_NO_GROUP_SPECIFIED, processor_name.c_str() );
     } else if ( domGroup ) {
 	group = Group::find( domGroup->getName().c_str() );
 	if ( !group ) {
-	    LQIO::input_error( LQIO::ERR_NOT_DEFINED, domGroup->getName().c_str() );
+	    LQIO::runtime_error( LQIO::ERR_NOT_DEFINED, domGroup->getName().c_str() );
 	}
     }
 
@@ -511,7 +510,12 @@ Task::add( LQIO::DOM::Task* dom )
 	    dom->runtime_error( LQIO::WRN_TASK_QUEUE_LENGTH );
 	}
 	if ( dom->isInfinite() ) {
-	    dom->input_error( LQIO::ERR_REFERENCE_TASK_IS_INFINITE );
+	    dom->runtime_error( LQIO::ERR_REFERENCE_TASK_IS_INFINITE );
+	}
+	if ( dom->getEntryList().size() != 1 ) {
+	    LQIO::error_severity old = LQIO::DOM::DocumentObject::setSeverity( LQIO::ERR_TASK_ENTRY_COUNT, LQIO::error_severity::WARNING );
+	    dom->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, dom->getEntryList().size(), 1 );
+	    LQIO::DOM::DocumentObject::setSeverity( LQIO::ERR_TASK_ENTRY_COUNT, old );
 	}
 	cp = new Reference_Task( Task::Type::CLIENT, priority, dom, processor, group );
 	break;
@@ -636,8 +640,8 @@ Task::is_infinite() const
 bool
 Task::has_think_time() const
 {
-    return std::any_of( _entry.begin(), _entry.end(), std::mem_fn( &Entry::has_think_time ) )
-	|| std::any_of( _activity.begin(), _activity.end(), std::mem_fn( &Activity::has_think_time ) )
+    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::has_think_time ) )
+	|| std::any_of( activities().begin(), activities().end(), std::mem_fn( &Activity::has_think_time ) )
 	|| getDOM() != nullptr && getDOM()->hasThinkTime();
 }
 
@@ -646,7 +650,7 @@ Task::has_think_time() const
 bool
 Task::has_lost_messages() const
 {
-    return std::any_of( _entry.begin(), _entry.end(), std::mem_fn( &Entry::has_lost_messages ) );
+    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::has_lost_messages ) );
 }
 
 
@@ -660,7 +664,7 @@ Task::derive_utilization() const
 /* ------------------------------------------------------------------------ */
 
 Reference_Task::Reference_Task( const Task::Type type, int priority, LQIO::DOM::Task* dom, Processor * aProc, Group * aGroup )
-    : Task( type, priority, dom, aProc, aGroup ), _think_time(0.0), _task_list()
+    : Task( type, priority, dom, aProc, aGroup ), _think_time(0.0), _clients()
 {
 }
 
@@ -668,35 +672,32 @@ Reference_Task::Reference_Task( const Task::Type type, int priority, LQIO::DOM::
 void
 Reference_Task::create_instance()
 {
-    if ( n_entries() != 1 ) {
-	LQIO::error_severity old = LQIO::DOM::DocumentObject::setSeverity( LQIO::ERR_TASK_ENTRY_COUNT, LQIO::error_severity::WARNING );
-	getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), 1 );
-	LQIO::DOM::DocumentObject::setSeverity( LQIO::ERR_TASK_ENTRY_COUNT, old );
-    }
     if ( getDOM()->hasThinkTime() ) {
 	_think_time = getDOM()->getThinkTimeValue();
     }
-    _task_list.clear();
+    _clients.clear();
     for ( unsigned i = 0; i < multiplicity(); ++i ) {
-	_task_list.push_back( new srn_client( this, name() ) );
+	_clients.push_back( new srn_client( this, name() ) );
     }
 }
 
 
+#if !BUG_289
 bool
 Reference_Task::start()
 {
-    for ( std::vector<srn_client *>::const_iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
+    for ( std::vector<srn_client *>::const_iterator t = _clients.begin(); t != _clients.end(); ++t ) {
 	if ( ps_resume( (*t)->task_id() ) != OK ) return false;
     }
     return true;
 }
+#endif
 
 
 Reference_Task&
 Reference_Task::kill()
 {
-    for ( std::vector<srn_client *>::const_iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
+    for ( std::vector<srn_client *>::const_iterator t = _clients.begin(); t != _clients.end(); ++t ) {
 	ps_kill( (*t)->task_id() );
     }
     return *this;
@@ -728,7 +729,7 @@ Server_Task::set_synchronization_server()
 bool
 Server_Task::is_aysnc_inf_server() const
 {
-    return std::any_of( _entry.begin(), _entry.end(), std::mem_fn( &Entry::is_send_no_reply ) );
+    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::is_send_no_reply ) );
 }
 
 
@@ -790,31 +791,24 @@ Semaphore_Task::Semaphore_Task( const Task::Type type, int priority, LQIO::DOM::
 }
 
 
-Semaphore_Task&
-Semaphore_Task::create()
-{
-    Task::create();
-    r_hold.init();
-    r_hold_sqr.init();
-    r_hold_util.init();
-    return *this;
-}
-
 void
 Semaphore_Task::create_instance()
 {
+    Entry * entry_1 = entries().at(0);
+    Entry * entry_2 = entries().at(1);
+	
     if ( n_entries() != N_SEMAPHORE_ENTRIES ) {
 	getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), N_SEMAPHORE_ENTRIES );
-    } else if ( (_entry[0]->is_signal() && !_entry[1]->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::WAIT ) )
-	 || ( _entry[0]->is_wait() && !_entry[1]->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::SIGNAL ) ) ) {
+    } else if ( (entry_1->is_signal() && !entry_2->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::WAIT ) )
+	 || ( entry_1->is_wait() && !entry_2->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::SIGNAL ) ) ) {
 	getDOM()->runtime_error( LQIO::ERR_DUPLICATE_SEMAPHORE_ENTRY_TYPES,
-				 _entry[0]->getDOM()->getName().c_str(),
-				 _entry[1]->getDOM()->getName().c_str(),
-				 _entry[0]->is_signal() ? "signal" : "wait" );
-    } else if ( _entry[0]->is_wait() && !_entry[0]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
-	_entry[0]->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT );
-    } else if ( _entry[1]->is_wait() && !_entry[1]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
-	_entry[1]->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT );
+				 entry_1->getDOM()->getName().c_str(),
+				 entry_2->getDOM()->getName().c_str(),
+				 entry_1->is_signal() ? "signal" : "wait" );
+    } else if ( entry_1->is_wait() && !entry_1->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
+	entry_1->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT );
+    } else if ( entry_2->is_wait() && !entry_2->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
+	entry_2->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT );
     }
     if ( !_hist_data && getDOM()->hasHistogram() ) {
 	_hist_data = new Histogram( getDOM()->getHistogram() );
@@ -823,13 +817,13 @@ Semaphore_Task::create_instance()
     std::string buf = name();
     buf += "-wait";
     /* entry for waiting request - send to token. */
-    _task = new srn_semaphore( this, buf.c_str() );
+    _task = new srn_semaphore( this, buf );
     _worker_port = ps_allocate_port( buf.c_str(), _task->task_id() );
 
     /* Entry for signal request */
     buf = name();
     buf += "-signal";
-    _signal_task = new srn_signal( this,  buf.c_str() );
+    _signal_task = new srn_signal( this,  buf );
     _signal_port = ps_allocate_port( buf.c_str(), _signal_task->task_id() );
 }
 
@@ -932,55 +926,55 @@ ReadWriteLock_Task::create_instance()
     for (int i=0;i<N_RWLOCK_ENTRIES;i++){ E[i]=-1; }
 
     for (int i=0;i<N_RWLOCK_ENTRIES;i++){
-	if ( _entry[i]->is_r_unlock() ) {
+	if ( entries()[i]->is_r_unlock() ) {
 	    if (E[0]== -1) { E[0]=i; }
 	    else{ // duplicate entry TYPE error
 		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name().c_str() );
 	    }
-	} else if ( _entry[i]->is_r_lock() ) {
+	} else if ( entries()[i]->is_r_lock() ) {
 	    if (E[1]== -1) { E[1]=i; }
 	    else{
 		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name().c_str() );
 	    }
-	} else if ( _entry[i]->is_w_unlock() ) {
+	} else if ( entries()[i]->is_w_unlock() ) {
 	    if (E[2]== -1) { E[2]=i; }
 	    else{
 		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name().c_str() );
 	    }
-	} else if ( _entry[i]->is_w_lock() ) {
+	} else if ( entries()[i]->is_w_lock() ) {
 	    if (E[3]== -1) { E[3]=i; }
 	    else{
 		LQIO::runtime_error( LQIO::ERR_DUPLICATE_SYMBOL, name().c_str() );
 	    }
 	} else {
 	    LQIO::runtime_error( LQIO::ERR_NO_RWLOCK, name().c_str() );
-	    std::cerr << "entry names: " << _entry[0]->name() << ", " << _entry[1]->name() <<", " << _entry[2]->name()<< ", " << _entry[3]->name() << std::endl;
+	    std::cerr << "entry names: " << entries()[0]->name() << ", " << entries()[1]->name() <<", " << entries()[2]->name()<< ", " << entries()[3]->name() << std::endl;
 	}
     }
     //test reader lock entry
-    if ( !_entry[E[1]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::READ_LOCK ) ) {
-	_entry[E[1]]->getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
+    if ( !entries()[E[1]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::READ_LOCK ) ) {
+	entries()[E[1]]->getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
     }
-    if ( !_entry[E[1]]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
-	_entry[E[1]]->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT  );
+    if ( !entries()[E[1]]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
+	entries()[E[1]]->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT  );
     }
 
     //test reader unlock entry
-    if ( !_entry[E[0]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::READ_UNLOCK ) ) {
-	_entry[E[0]]->getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
+    if ( !entries()[E[0]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::READ_UNLOCK ) ) {
+	entries()[E[0]]->getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
     }
 
     //test writer lock entry
-    if ( !_entry[E[3]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::WRITE_LOCK ) ) {
-	_entry[E[3]]->getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
+    if ( !entries()[E[3]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::WRITE_LOCK ) ) {
+	entries()[E[3]]->getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
     }
-    if ( !_entry[E[3]]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
-	_entry[E[3]]->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT );
+    if ( !entries()[E[3]]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
+	entries()[E[3]]->getDOM()->runtime_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT );
     }
 
     //test writer unlock entry
-    if ( !_entry[E[2]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::WRITE_UNLOCK ) ) {
-	_entry[E[2]]->getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
+    if ( !entries()[E[2]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::WRITE_UNLOCK ) ) {
+	entries()[E[2]]->getDOM()->runtime_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES );
     }
 
 
@@ -998,39 +992,22 @@ ReadWriteLock_Task::create_instance()
     buf = name();
     buf += "-reader-queue";
     /* entry for waiting lock reader request - send to token. */
-    _reader = new srn_semaphore( this, buf.c_str() );
+    _reader = new srn_semaphore( this, buf );
     _worker_port = ps_allocate_port( buf.c_str(), _reader->task_id() );
 
     /* Entry for signal request */
     buf = name();
     buf += "-reader-signal";
-    _signal_task = new srn_signal( this,  buf.c_str() );
+    _signal_task = new srn_signal( this,  buf );
     _signal_port = ps_allocate_port( buf.c_str(), _signal_task->task_id() );
 
     /*  writer token*/
     buf = name();
     buf += "-writer-token";
-    _writer = new srn_writer_token( this, buf.c_str() );
+    _writer = new srn_writer_token( this, buf );
 }
 
 
-
-ReadWriteLock_Task&
-ReadWriteLock_Task::create()
-{
-    Semaphore_Task::create();
-    r_reader_hold.init();
-    r_reader_hold_sqr.init();
-    r_reader_wait.init();
-    r_reader_wait_sqr.init();
-    r_reader_hold_util.init();
-    r_writer_hold.init();
-    r_writer_hold_sqr.init();
-    r_writer_wait.init();
-    r_writer_wait_sqr.init();
-    r_writer_hold_util.init();
-    return *this;
-}
 
 bool
 ReadWriteLock_Task::start()
@@ -1157,7 +1134,7 @@ Pseudo_Task::insertDOMResults()
 
     /* Waiting times for open arrivals */
 
-    std::for_each( _entry.begin(), _entry.end(), std::mem_fn( &Entry::insertDOMResults ) );
+    std::for_each( entries().begin(), entries().end(), std::mem_fn( &Entry::insertDOMResults ) );
     return *this;
 }
 

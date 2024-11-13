@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 17408 2024-10-30 17:40:57Z greg $
+ * $Id: model.cc 17461 2024-11-12 15:08:49Z greg $
  *
  * Load the SRVN model.
  */
@@ -35,6 +35,7 @@
 #include <lqio/dom_actlist.h>
 #include <lqio/dom_bindings.h>
 #include <lqio/dom_entry.h>
+#include <lqio/dom_task.h>
 #include <lqio/error.h>
 #include <lqio/filename.h>
 #include <lqio/glblerr.h>
@@ -54,12 +55,6 @@
 #include "results.h"
 #include "runlqx.h"
 #include "task.h"
-
-#if HAVE_SYS_TIMES_H
-typedef struct tms tms_t;
-#else
-typedef double tms_t;
-#endif
 
 bool Model::__forwarding_present;
 LQIO::DOM::CPUTime Model::__start_time;

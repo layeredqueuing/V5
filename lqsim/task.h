@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * Lqsim-parasol task interface.
  *
- * $Id: task.h 17433 2024-11-05 13:59:00Z greg $
+ * $Id: task.h 17463 2024-11-12 22:14:26Z greg $
  */
 
 /************************************************************************/
@@ -22,21 +22,20 @@
 #include <string>
 #include <list>
 #include <algorithm>
-#include <cstdio>
 #include <lqio/dom_task.h>
-#include <parasol/parasol.h>
 
-#include "entry.h"
+#include "actlist.h"
 #include "message.h"
 #include "result.h"
 
-class Task;
-class Processor;
-class Group;
-class ParentGroup;
-class Instance;
 class Activity;
 class ActivityList;
+class Entry;
+class Group;
+class Instance;
+class ParentGroup;
+class Processor;
+class Task;
 class srn_client;
 
 #define	PRIORITY_OFFSET	10
@@ -110,7 +109,11 @@ public:
     Type type() const { return _type; }
     const std::string& type_name() const { return type_strings.at(_type); }
 
-    unsigned n_entries() const { return _entry.size(); }
+    const std::vector<Entry *>& entries() const { return _entries; }
+    const std::vector<Activity *>& activities() const { return _activities; }
+    const std::vector<ActivityList *>& precedences() const { return  _precedences; }
+
+    unsigned n_entries() const { return _entries.size(); }
     unsigned max_phases() const { return _max_phases; }
     Task& max_phases( unsigned max_phases ) { _max_phases = std::max( _max_phases, max_phases ); return *this; }
 
@@ -131,16 +134,16 @@ public:
     bool is_reference_task() const { return type() == Type::CLIENT; }
     virtual bool is_sync_server() const { return false; }
     virtual bool is_aysnc_inf_server() const { return false; }
-    bool has_activities() const { return _activity.size() > 0; }	/* True if activities present.	*/
-    bool has_threads() const { return _forks.size() > 0; }
+    bool has_activities() const { return !_activities.empty(); }	/* True if activities present.	*/
+    bool has_threads() const { return !_forks.empty(); }
     bool has_think_time() const;
     bool has_lost_messages() const;
     virtual bool derive_utilization() const;
 
     void set_start_activity( LQIO::DOM::Entry* theDOMEntry );
     Activity * add_activity( LQIO::DOM::Activity * activity );
-    unsigned max_activities() const { return _activity.size(); }	/* Max # of activities.		*/
-    Task& add_list( ActivityList * list ) { _act_list.push_back( list ); return *this; }
+    unsigned max_activities() const { return _activities.size(); }	/* Max # of activities.		*/
+    Task& add_list( ActivityList * list ) { _precedences.push_back( list ); return *this; }
     Task& add_fork( AndForkActivityList * list ) { _forks.push_back( list ); return *this; }
     Task& add_join( AndJoinActivityList * list ) { _joins.push_back( list ); return *this; }
 
@@ -176,7 +179,9 @@ private:
     unsigned _active;				/* Number of active instances.	*/
     unsigned _max_phases;			/* Max # phases, this task.	*/
 
-    std::vector<ActivityList *> _act_list;	/* activity list array 		*/
+    std::vector<Entry *> _entries;		/* entry array		        */
+    std::vector<Activity *>_activities;		/* List of activities.		*/
+    std::vector<ActivityList *> _precedences;	/* activity list array 		*/
     std::vector<AndForkActivityList *> _forks;	/* List of forks for this task	*/
     std::vector<AndJoinActivityList *> _joins; 	/* List of joins for this task	*/
     std::list<Message *> _pending_msgs;		/* Messages blocked by join.	*/
@@ -188,9 +193,6 @@ protected:
     Type _type;
 
 public:
-    std::vector<Entry *> _entry;		/* entry array		        */
-    std::vector<Activity *>_activity;		/* List of activities.		*/
-
     bool trace_flag;				/* True if task is to be traced	*/
 
     Histogram * _hist_data;            		/* Structure which stores histogram data for this task */
@@ -213,7 +215,9 @@ public:
 
     virtual double think_time() const { return _think_time; }			/* Cached.  see create()	*/
 
+#if !BUG_289
     virtual bool start();
+#endif
     virtual Reference_Task& kill();
 
 protected:
@@ -221,7 +225,7 @@ protected:
 
 private:
     double _think_time;				/* Cached copy of think time.	*/
-    std::vector<srn_client *> _task_list;	/* task id's of clients		*/
+    std::vector<srn_client *> _clients;		/* task id's of clients		*/
 };
 
 class Server_Task : public Task
@@ -256,7 +260,6 @@ public:
     int signal_port() const { return _signal_port; }
     Instance * signal_task() const { return _signal_task; }
 
-    virtual Semaphore_Task& create();
     virtual bool start();
     virtual Semaphore_Task& kill();
 
@@ -291,7 +294,6 @@ public:
     int readerQ_port() const { return _readerQ_port; }
     int signal_port2() const { return _signal_port2; }
 
-    virtual ReadWriteLock_Task& create();
     virtual bool start();
     virtual ReadWriteLock_Task& kill();
 

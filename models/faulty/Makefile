@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 17429 2024-11-05 00:52:21Z greg $
+# $Id: Makefile 17460 2024-11-12 14:14:37Z greg $
 # ------------------------------------------------------------------------
 
 ERR=	err_arrival_rate.lqn \
@@ -67,13 +67,14 @@ ERR=	err_arrival_rate.lqn \
 	err_task_has_no_entries.lqnx \
 	err_wrong_task_for_entry.lqn
 
-
 ADV=	adv_messages_dropped.lqnx
 
 WRN=	wrn_entry_has_no_requests.lqn \
 	wrn_infinite_multi_server.lqn \
 	wrn_infinite_multi_server.lqnx \
-	wrn_not_used.lqnx \
+	wrn_not_used-client.lqnx \
+	wrn_not_used-server.lqnx \
+	wrn_not_used-processor.lqnx \
 	wrn_scheduling_not_supported.lqnx
 
 lqns:	

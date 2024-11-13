@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 17208 2024-05-13 14:58:52Z greg $
+ * $Id: processor.cc 17460 2024-11-12 14:14:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -110,7 +110,7 @@ Processor::configure( const unsigned nSubmodels )
 {
     if ( nEntries() == 0 ) {
 	if ( isInteresting() || nClients() == 0 ) {
-	    getDOM()->runtime_error( LQIO::WRN_PROCESSOR_HAS_NO_TASKS );
+	    getDOM()->runtime_error( LQIO::WRN_NOT_USED );
 	}
 	return *this;
     }

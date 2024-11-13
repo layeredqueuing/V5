@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 17452 2024-11-10 12:04:53Z greg $
+ * $Id: model.cc 17461 2024-11-12 15:08:49Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -18,9 +18,6 @@
 #include <limits>
 #include <stdexcept>
 #include <time.h>
-#if HAVE_SYS_TIMES_H
-#include <sys/times.h>
-#endif
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -2315,7 +2312,7 @@ Model::printSXDMeta( std::ostream& output ) const
     output << "<!DOCTYPE office:document-meta PUBLIC \"-//OpenOffice.org//DTD OfficeDocument 1.0//EN\" \"office.dtd\">" << std::endl;
     output << "<office:document-meta xmlns:office=\"http://openoffice.org/2000/office\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:meta=\"http://openoffice.org/2000/meta\" xmlns:presentation=\"http://openoffice.org/2000/presentation\" xmlns:fo=\"http://www.w3.org/1999/XSL/Format\" office:version=\"1.0\">" << std::endl;
     output << "<office:meta>" << std::endl;
-#if HAVE_CTIME
+#if HAVE_TIME_H
     time_t tloc;
     time( &tloc );
     strftime( buf, 32, "%Y-%m-%d %H:%M:%S", localtime( &tloc ) );
@@ -2329,12 +2326,6 @@ Model::printSXDMeta( std::ostream& output ) const
     output << "<meta:generator>" << LQIO::io_vars.lq_toolname << " Version " << VERSION << "</meta:generator>" << std::endl;
     output << "<meta:creation-date>" << buf << "</meta:creation-date>" << std::endl;
     output << "<meta:editing-cycles>1</meta:editing-cycles>" << std::endl;
-#if HAVE_SYS_TIMES_H
-    struct tms run_time;
-    times( &run_time );
-    strftime( buf, 32, "PT%MM%SS", localtime( &tloc ) );
-    output << "<meta:editing-duration>" << buf << "</meta:editing-duration>" << std::endl;
-#endif
     output << "<meta:user-defined meta:name=\"Info 1\">" << command_line << "</meta:user-defined>" << std::endl;
     output << "<meta:user-defined meta:name=\"Info 2\"/>" << std::endl;
     output << "<meta:user-defined meta:name=\"Info 3\"/>" << std::endl;
@@ -2516,18 +2507,10 @@ Model::printSummary( std::ostream& output ) const
 
 /* ------------------------------------------------------------------------ */
 
-Model::Stats::Stats()
-    : n(0), x(0), x_sqr(0), log_x(0), one_x(0), min(std::numeric_limits<double>::max()), max(-std::numeric_limits<double>::max()), f(nullptr)
-{
-    min_filename = "";
-    max_filename = "";
-}
-
-
-
 Model::Stats&
-Model::Stats::accumulate( double value, const std::filesystem::path& filename )
+Model::Stats::accumulate( double value, const std::filesystem::path& path )
 {
+    const std::string filename = path.string();
     n += 1;
     x += value;
     x_sqr += value * value;
@@ -2552,7 +2535,7 @@ Model::Stats::accumulate( double value, const std::filesystem::path& filename )
 
 
 Model::Stats&
-Model::Stats::accumulate( const Model * model, const std::string& filename )
+Model::Stats::accumulate( const Model * model, const std::filesystem::path& filename )
 {
     assert( model != nullptr && f != nullptr );
     return accumulate( static_cast<double>((model->*f)()), filename );
@@ -2942,12 +2925,11 @@ Squashed_Model::generate()
 	    (*task)->setLevel( CLIENT_LEVEL );
 	}
     }
-    for ( std::set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	if ( aProcessor->level() == 0 ) {
-	    dynamic_cast<const LQIO::DOM::Processor *>(aProcessor->getDOM())->runtime_error( LQIO::WRN_NOT_USED );
+    for ( std::set<Processor *>::const_iterator processor = Processor::__processors.begin(); processor != Processor::__processors.end(); ++processor ) {
+	if ( (*processor)->level() == 0 ) {
+	    dynamic_cast<const LQIO::DOM::Processor *>((*processor)->getDOM())->runtime_error( LQIO::WRN_NOT_USED );
 	} else {
-	    aProcessor->setLevel( SERVER_LEVEL );
+	    (*processor)->setLevel( SERVER_LEVEL );
 	}
     }
 

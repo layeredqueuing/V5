@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 17423 2024-11-04 01:58:07Z greg $
+ * $Id: lqsim.cc 17455 2024-11-12 01:28:49Z greg $
  */
 
 #define STACK_TESTING
@@ -57,8 +57,6 @@ extern FILE* Timeline_Open(char* file_name); /* Open the timeline output stream 
 
 #if defined(HAVE_IEEEFP_H) && !defined(MSDOS) && !defined(__WINNT__)
 typedef	fp_except_t fp_bit_type;
-#elif defined(_AIX)
-typedef	fpflag_t fp_bit_type;
 #else
 typedef	int fp_bit_type;
 #endif
@@ -267,12 +265,6 @@ static struct {
     { FE_INVALID, "Invalid operation" },
     { FE_OVERFLOW, "Overflow" },
     { FE_UNDERFLOW, "Underflow" },
-#elif defined(_AIX)
-    { FP_INVALID, "Invalid operation" },
-    { FP_OVERFLOW, "Overflow" },
-    { FP_UNDERFLOW, "Underflow" },
-    { FP_DIV_BY_ZERO, "Divide by zero" },
-    { FP_INEXACT, "Inexact result" },
 #elif  defined(MSDOS)
     { SW_INVALID, "Invalid operation" },
     { SW_UNDERFLOW, "Underflow" },
@@ -319,7 +311,7 @@ main( int argc, char * argv[] )
     std::copy( local_error_messages.begin(), local_error_messages.end(), std::inserter( LQIO::error_messages, LQIO::error_messages.begin() ) );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2024-11-03 20:58:07 -0500 (Sun, 03 Nov 2024) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2024-11-11 20:28:49 -0500 (Mon, 11 Nov 2024) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Handy defaults.						*/

@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: actlist.cc 17433 2024-11-05 13:59:00Z greg $
+ * $Id: actlist.cc 17459 2024-11-12 12:17:46Z greg $
  */
 
 #include "lqsim.h"
@@ -26,7 +26,9 @@
 #include <lqio/input.h>
 #include "activity.h"
 #include "actlist.h"
+#include "entry.h"
 #include "errmsg.h"
+#include "histogram.h"
 #include "instance.h"
 #include "model.h"
 #include "task.h"
@@ -134,8 +136,6 @@ AndForkActivityList::initialize()
 AndJoinActivityList&
 AndJoinActivityList::initialize()
 {
-    r_join.init();
-    r_join_sqr.init();
     return *this;
 }
 

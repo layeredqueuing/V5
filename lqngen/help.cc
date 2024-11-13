@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: help.cc 17461 2024-11-12 15:08:49Z greg $
  */
 
 #include "lqngen.h"
@@ -235,20 +235,18 @@ void
 man()
 {
     static const char * comm = ".\\\"";
+    const std::string program_name = Flags::lqn2lqx ? "lqn2lqx" : "lqngen";
     char date[32];
+#if HAVE_TIME_H
     time_t tloc;
     time( &tloc );
-
-    const string program_name = Flags::lqn2lqx ? "lqn2lqx" : "lqngen";
-
-#if defined(HAVE_CTIME)
     strftime( date, 32, "%d %B %Y", localtime( &tloc ) );
 #endif
 
     cout << comm << " -*- nroff -*-" << endl
 	 << ".TH " << program_name << " 1 \"" << date << "\"  \"" << VERSION << "\"" << endl;
 
-    cout << comm << " $Id: help.cc 13727 2020-08-04 14:06:18Z greg $" << endl
+    cout << comm << " $Id: help.cc 17461 2024-11-12 15:08:49Z greg $" << endl
 	 << comm << endl
 	 << comm << " --------------------------------" << endl;
 

@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 17099 2024-03-04 22:02:11Z greg $
+ * $Id: help.cc 17461 2024-11-12 15:08:49Z greg $
  */
 
 #include "lqns.h"
@@ -2291,14 +2291,14 @@ HelpTroff::preamble( std::ostream& output ) const
     time_t tloc;
     time( &tloc );
 
-#if defined(HAVE_CTIME)
+#if HAVE_TIME_H
     strftime( date, 32, "%d %B %Y", localtime( &tloc ) );
 #endif
 
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 17099 2024-03-04 22:02:11Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 17461 2024-11-12 15:08:49Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2582,7 +2582,7 @@ std::ostream&
 HelpLaTeX::preamble( std::ostream& output ) const
 {
     char date[32];
-#if defined(HAVE_CTIME)
+#if HAVE_TIME_H
     time_t tloc;
     time( &tloc );
 
@@ -2597,7 +2597,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 17099 2024-03-04 22:02:11Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 17461 2024-11-12 15:08:49Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

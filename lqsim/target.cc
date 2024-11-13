@@ -1,7 +1,7 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 17427 2024-11-04 23:19:53Z greg $
+ * $Id: target.cc 17459 2024-11-12 12:17:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -45,9 +45,6 @@ tar_t::tar_t( Entry * entry, double calls )
 void
 tar_t::initialize()
 {
-    r_delay.init();
-    r_delay_sqr.init();
-    r_loss_prob.init();
 }
 
 

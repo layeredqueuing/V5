@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: processor.cc 17327 2024-10-02 19:54:29Z greg $
+ * $Id: processor.cc 17460 2024-11-12 14:14:37Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -114,7 +114,7 @@ Processor::find( const std::string& name  )
     if ( name.empty() ) return nullptr;
     vector<Processor *>::const_iterator processor = std::find_if( ::__processor.begin(), ::__processor.end(), [&]( const Processor * processor ){ return processor->name() == name; } );
     if ( processor == __processor.end() ) {
-	return 0;
+	return nullptr;
     } else {
 	return *processor;
     }
@@ -249,8 +249,7 @@ Processor::transmorgrify( unsigned max_count )
     const unsigned int copies = multiplicity();		/* Check for validity before is_single_place... */
 
     if ( is_not_used() ) {
-	/* Not used at all */
-	std::cerr << "Procssor " << name() << " is not used." << std::endl;
+	get_dom()->runtime_error( LQIO::WRN_NOT_USED );
 	
     } else if ( is_single_place_processor() ) {
 
@@ -284,7 +283,7 @@ Processor::transmorgrify( unsigned max_count )
 	for ( i = 0; i < n_tasks(); i = j ) {
 	    int start_prio = _history[i].task->priority();
 	    unsigned count = 0;
-	    struct place_object * prio_place = 0;
+	    struct place_object * prio_place = nullptr;
 
 	    /* Create Priority places */
 

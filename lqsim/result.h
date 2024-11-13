@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  *
  * ------------------------------------------------------------------------
- * $Id: result.h 17449 2024-11-08 16:11:38Z greg $
+ * $Id: result.h 17459 2024-11-12 12:17:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -27,7 +27,6 @@ public:
     virtual ~Result() {}
     typedef LQIO::DOM::DocumentObject& (LQIO::DOM::DocumentObject::*set_fn)( const double );
 
-    void init();
     virtual void record( double ) = 0;	/* record a sample.		*/
 
     double accumulate();

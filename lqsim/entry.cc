@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 17427 2024-11-04 23:19:53Z greg $
+ * $Id: entry.cc 17462 2024-11-12 21:55:04Z greg $
  */
 
 #include "lqsim.h"
@@ -24,6 +24,7 @@
 #include "activity.h"
 #include "entry.h"
 #include "errmsg.h"
+#include "histogram.h"
 #include "instance.h"
 #include "model.h"
 #include "pragma.h"
@@ -184,7 +185,6 @@ Entry::initialize()
     }
 		
     _join_list = nullptr;		/* Reset */
-    r_cycle.init();
     
     switch ( task()->type() ) {
     case Task::Type::CLIENT:
@@ -661,7 +661,7 @@ Entry::add_open_arrival_task()
 
     /* Set up a task to handle it */
 
-    cp->_entry.push_back( from_entry );
+    const_cast<std::vector<Entry *>&>(cp->entries()).push_back( from_entry );
 
     /* Set up calls per cycle.  1 call is made per cycle */
 

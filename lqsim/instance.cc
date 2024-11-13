@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 17450 2024-11-08 18:40:45Z greg $
+ * $Id: instance.cc 17462 2024-11-12 21:55:04Z greg $
  */
 
 /*
@@ -26,12 +26,15 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <lqio/dom_document.h>
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include "activity.h"
+#include "entry.h"
 #include "errmsg.h"
 #include "group.h"
 #include "instance.h"
+#include "histogram.h"
 #include "message.h"
 #include "pragma.h"
 #include "processor.h"
@@ -112,9 +115,9 @@ Instance::client_cycle( Random * distribution )
 
     /* Force a reschedule IFF we don't sleep */
     if ( _cp->n_entries() == 1 ) {
-	server_cycle( _cp->_entry[0], 0, think_time == 0. );
+	server_cycle( _cp->entries()[0], 0, think_time == 0. );
     } else {
-	server_cycle( _cp->_entry[static_cast<size_t>(_cp->n_entries()*Random::number())], 0, think_time == 0. );
+	server_cycle( _cp->entries()[static_cast<size_t>(_cp->n_entries()*Random::number())], 0, think_time == 0. );
     }
 }
 
@@ -312,7 +315,7 @@ srn_open_arrivals::run (void)
     /* ---------------------- Main loop --------------------------- */
 
     for ( ;; ) {				/* Start Client Cycle	*/
-	server_cycle( _cp->_entry[0], 0, false );
+	server_cycle( _cp->entries()[0], 0, false );
     }
 }
 
@@ -1505,11 +1508,7 @@ Instance::next_activity( Entry * ep, Activity * ap_in, bool reschedule )
 		    /* Mark entry as ready to accept messages.  Wait_for_message will take the 	*/
 		    /* first pending message to this entry if any are present.			*/
 		    
-		    for ( std::vector<Entry *>::const_iterator e = _cp->_entry.begin(); e != _cp->_entry.end(); ++e ) {
-			if ( (*e)->_join_list == join_list ) {
-			    (*e)->_join_list = nullptr;
-			}
-		    }
+		    std::for_each( _cp->entries().begin(), _cp->entries().end(), [=]( Entry * entry ){ if ( entry->_join_list == join_list ) entry->_join_list = nullptr; } );
 		} else {
 		    /* Mark entry busy */
 		    ep->_join_list = join_list;
