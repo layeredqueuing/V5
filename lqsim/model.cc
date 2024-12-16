@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 17466 2024-11-13 14:17:16Z greg $
+ * $Id: model.cc 17514 2024-12-05 20:33:10Z greg $
  */
 
 #include "lqsim.h"
@@ -34,9 +34,7 @@
 #include <lqio/json_document.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
-#if !BUG_289
-#include <parasol/para_internals.h>
-#endif
+#include "lqsim.h"
 #include "activity.h"
 #include "entry.h"
 #include "errmsg.h"
@@ -48,11 +46,11 @@
 #include "runlqx.h"		// Coupling here is ugly at the moment
 #include "task.h"
 
+#if HAVE_PARASOL
 extern "C" {
     extern void test_all_stacks();
 }
 
-#if !BUG_289
 int Model::__genesis_task_id = 0;
 #endif
 Model * Model::__model = nullptr;
@@ -243,18 +241,20 @@ Model::prepare()
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 2: Add Tasks/Entries] */
 
     /* In the DOM, tasks have entries, but here entries need to go first */
-    const std::map<std::string,LQIO::DOM::Task*>& taskList = _document->getTasks();
+    const std::map<std::string,LQIO::DOM::Task*>& tasks = _document->getTasks();
 
     /* Add all of the tasks we will be needing */
-    for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator nextTask = taskList.begin(); nextTask != taskList.end(); ++nextTask ) {
-	LQIO::DOM::Task* task = nextTask->second;
-	std::vector<LQIO::DOM::Entry*> activityEntries;
-
+    for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator nextTask = tasks.begin(); nextTask != tasks.end(); ++nextTask ) {
+	LQIO::DOM::Task* dom = nextTask->second;
+	const std::vector<LQIO::DOM::Entry*>& entries = dom->getEntryList();
+	const std::map<std::string,LQIO::DOM::Activity*>& activities = dom->getActivities();
+	
 	/* Now we can go ahead and add the task */
-	Task* newTask = Task::add(task);
+	Task* newTask = Task::add(dom);
 
 	/* Add the entries so we can reverse them */
-	for ( std::vector<LQIO::DOM::Entry*>::const_iterator entry = task->getEntryList().begin(); entry != task->getEntryList().end(); ++entry ) {
+	std::vector<LQIO::DOM::Entry*> activityEntries;
+	for ( std::vector<LQIO::DOM::Entry*>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
 	    const_cast<std::vector<Entry *>&>(newTask->entries()).push_back( Entry::add( *entry, newTask ) );
 	    if ((*entry)->getStartActivity() != nullptr) {
 		activityEntries.push_back(*entry);
@@ -262,19 +262,10 @@ Model::prepare()
 	}
 
 	/* Add activities for the task (all of them) */
-	const std::map<std::string,LQIO::DOM::Activity*>& activities = task->getActivities();
-	std::map<std::string,LQIO::DOM::Activity*>::const_iterator iter;
-	for (iter = activities.begin(); iter != activities.end(); ++iter) {
-	    const LQIO::DOM::Activity* activity = iter->second;
-	    newTask->add_activity(const_cast<LQIO::DOM::Activity*>(activity));
-	}
+	std::for_each( activities.begin(), activities.end(), [=]( auto& activity ){ newTask->add_activity(const_cast<LQIO::DOM::Activity*>(activity.second)); } );
 
 	/* Set all the start activities */
-	std::vector<LQIO::DOM::Entry*>::iterator entryIter;
-	for (entryIter = activityEntries.begin(); entryIter != activityEntries.end(); ++entryIter) {
-	    LQIO::DOM::Entry* theDOMEntry = *entryIter;
-	    newTask->set_start_activity(theDOMEntry);
-	}
+	std::for_each( activityEntries.begin(), activityEntries.end(), [=]( auto entry ){ newTask->set_start_activity(entry); } );
     }
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 3: Add Calls/Phase Parameters] */
@@ -292,19 +283,12 @@ Model::prepare()
 	    const std::vector<LQIO::DOM::Call*>& originatingCalls = phase->getCalls();
 
 	    /* Add all of the calls to the system */
-	    for (std::vector<LQIO::DOM::Call*>::const_iterator call = originatingCalls.begin(); call != originatingCalls.end(); ++call) {
-		newEntry->add_call( p, *call );			/* Add the call to the system */
-	    }
-
+	    std::for_each( originatingCalls.begin(), originatingCalls.end(), [=]( LQIO::DOM::Call * call ){ newEntry->add_call( p, call ); } );			/* Add the call to the system */
 	}
 
 	/* Add in all of the P(frwd) calls */
 	const std::vector<LQIO::DOM::Call*>& forwarding = entry->getForwarding();
-	std::vector<LQIO::DOM::Call*>::const_iterator nextFwd;
-	for ( nextFwd = forwarding.begin(); nextFwd != forwarding.end(); ++nextFwd ) {
-	    Entry* targetEntry = Entry::find((*nextFwd)->getDestinationEntry()->getName());
-	    newEntry->add_forwarding(targetEntry, *nextFwd );
-	}
+	std::for_each( forwarding.begin(), forwarding.end(), [=]( LQIO::DOM::Call * call ){ Entry* targetEntry = Entry::find(call->getDestinationEntry()->getName()); newEntry->add_forwarding(targetEntry, call ); } );
 
 	/* Add reply */
 
@@ -350,6 +334,10 @@ Model::extend()
 
 
 /*
+#if !HAVE_PARASOL
+ * Called from Model::start to create the processor mutexs and task threads.
+ * Everything should be running with this method returns.
+#else
  * Called from ps_genesis() by ps_run_parasol().
  *
  * Create all of the parasol tasks instances after the simulation has
@@ -358,12 +346,15 @@ Model::extend()
  * Model::create() will call Task::initialize() which will call
  * XXX::initialize(). XXX:configure() is called from ::start() which
  * is called before ps_run_parasol().
+#endif
  */
 
 bool
 Model::create()
 {
+#if HAVE_PARASOL
     std::for_each( Processor::__processors.begin(), Processor::__processors.end(), std::mem_fn( &Processor::create ) );
+#endif
     std::for_each( Group::__groups.begin(), Group::__groups.end(), std::mem_fn( &Group::create ) );
     std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::create ) );
 
@@ -386,92 +377,6 @@ Model::create()
     return true;
 }
 
-/*----------------------------------------------------------------------*/
-/*			  Output Functions.				*/
-/*----------------------------------------------------------------------*/
-
-/*
- * Set up file descriptors and call proper output routine.
- */
-
-void
-Model::print_intermediate()
-{
-    _document->setResultConvergenceValue(_confidence)
-	.setResultValid(_confidence <= _parameters._precision)
-	.setResultIterations(number_blocks)
-	.setResultDescription();
-
-    _document->print( _output_file_name, SolverInterface::Solve::customSuffix, _output_format, rtf_flag, number_blocks );
-}
-
-
-/*
- * Human format statistics.
- */
-
-std::ostream&
-Model::print( std::ostream& output ) const
-{
-    static const unsigned int long_width = 99;
-    static const unsigned int short_width = 69;
-
-/*
-  123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_
-  ssssssssssssssssssssssssssssssssssssss tttttttt nnnnnnnnnnnn nnnnnnnnnnnn nnnnnnnnnnnn nnnnnnnn
-  Name                                     Type       Mean        95% +/-      99% +/-   #Obs|Int
-  ssssssssssssssssssssssssssssssssssssss tttttttt nnnnnnnnnnnn nnnnnnnn
-  Name                                     Type       Mean     #Obs|Int
-*/
-    if ( number_blocks > 2 ) {
-	output << "Blocked simulation statistics for " << _input_file_name << std::endl
-	       << "\tTime = " << Instance::now() << ".  Period = " << _parameters._block_period << std::endl << std::endl
-	       << "Name                                     Type       Mean        95%% +/-      99%% +/-   #Obs/Int" << std::endl
-	       << std::setw( long_width ) << std::setfill( '-' ) << "-" << std::endl;
-    } else {
-	output << "Simulation statistics for " << _input_file_name << std::endl
-	       << "\ttime = " << Instance::now() << std::endl << std::endl
-	       << "Name                                     Type       Mean     #Obs/Int" << std::endl
-	       << std::setw( short_width ) << std::setfill( '-' ) << "-" << std::endl;
-    }
-
-    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), [&]( const Task * task ){ task->print( output ); } );
-
-    const int fill = (((number_blocks > 2) ? long_width : short_width) - 23) / 2;
-    output << std::setw( fill ) << std::setfill( '-' ) << "-" << " Processor Information " << std::setw( fill ) << std::setfill( '-' ) << "-" << std::endl;
-
-    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), [&]( const Processor * processor ){ processor->print( output ); } );
-
-    output << std::endl << std::endl;
-    return output;
-}
-
-
-/*
- * Go through data structures and insert results into the DOM
- */
-
-void
-Model::insertDOMResults()
-{
-    /* Insert general information about simulation run */
-
-    LQIO::DOM::CPUTime stop_time;
-    stop_time.init();
-    stop_time -= _start_time;
-    stop_time.insertDOMResults( *_document );
-
-    _document->setResultConvergenceValue(_confidence)
-	.setResultValid( _confidence <= _parameters._precision || _parameters._precision == 0.0 )
-	.setResultIterations(number_blocks)
-	.setResultSolverInformation()
-	.setResultPlatformInformation();
-
-    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::insertDOMResults ) );
-    std::for_each( Group::__groups.begin(), Group::__groups.end(), std::mem_fn( &Group::insertDOMResults ) );
-    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), std::mem_fn( &Processor::insertDOMResults ) );
-}
-
 /* -------------------------------------------------------------------- */
 /* Stuff called from runlqx.cc						*/
 /* -------------------------------------------------------------------- */
@@ -483,12 +388,13 @@ Model::insertDOMResults()
 bool
 Model::start()
 {
-    int simulation_flags= 0x00;
-
-    /* This will compute the minimum service time for each entry.  Note thate XXX::initialize() is called
-     * through Model::run() */
-
     std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::configure ) );
+
+    /*
+     * This will compute the minimum service time for each entry.  Note thate XXX::initialize() is called
+     * through Model::run()
+     */
+
     std::deque<Entry *> stack;
     const double client_cycle_time = std::accumulate( Entry::__entries.begin(), Entry::__entries.end(), 0.0, [=]( double l, Entry * r ) { return l + r->compute_minimum_service_time( const_cast<std::deque<Entry *>&>(stack) ); } );
 
@@ -501,9 +407,8 @@ Model::start()
 
     _start_time.init();
 
-#if BUG_289
-    create();
-#else
+#if HAVE_PARASOL
+    int simulation_flags= 0x00;
     if (debug_interactive_stepping) {
 	simulation_flags = RPF_STEP; 	/* tomari quorum */
     }
@@ -514,6 +419,8 @@ Model::start()
     }
 
     ps_run_parasol( _parameters._run_time+1.0, _parameters._seed, simulation_flags );	/* Calls ps_genesis */
+#else
+    run();
 #endif
 
     /*
@@ -541,20 +448,26 @@ Model::start()
 	}
     }
 
+#if STACK_TESTING
     if ( check_stacks ) {
 #if HAVE_MCHECK
 	mcheck_check_all();
 #endif
 	fprintf( stderr, "%s: ", _input_file_name.string().c_str() );
+#if HAVE_PARASOL
 	test_all_stacks();
+#endif
     }
+#endif
 
+#if HAVE_PARASOL
     for ( unsigned i = 1; i <= total_tasks; ++i ) {
-	Instance * ip = object_tab.at(i);
+	Instance::Instance * ip = object_tab.at(i);
 	if ( !ip ) continue;
 	delete ip;
 	object_tab[i] = nullptr;
     }
+#endif
 
     if ( deferred_exception ) {
 	throw std::domain_error( "invalid parameter" );
@@ -609,7 +522,24 @@ Model::restart()
     }
 }
 
-/* ------------------------------------------------------------------------ */
+/* -------------------------------------------------------------------- */
+/* Parasol interface							*/
+/* -------------------------------------------------------------------- */
+#if HAVE_PARASOL
+/*
+ * Progenator task.
+ */
+
+void
+ps_genesis(void *)
+{
+    Model::__genesis_task_id = ps_myself;
+    if (!Model::__model->run() ) {
+	LQIO::runtime_error( ERR_INITIALIZATION_FAILED );
+    }
+    ps_suspend( ps_myself );
+}
+#endif
 
 /*
  *  Run the simulation.  Called from ps_genesis.  Create all parasol
@@ -618,18 +548,15 @@ Model::restart()
  */
 
 bool
-Model::run( int task_id )
+Model::run()
 {
     bool rc = false;
-#if !BUG_289
-    __genesis_task_id = task_id;
-#endif
     if ( verbose_flag ) {
 	(void) putc( 'C', stderr );		/* Constructing */
     }
 
 #ifdef LQX_DEBUG
-    printf( "In Model::run() ps_now: %g\n", Instance::now() );
+    printf( "In Model::run() ps_now: %g\n", Processor::now() );
     fflush( stdout );
 #endif
 
@@ -639,21 +566,18 @@ Model::run( int task_id )
 	} else if ( no_execute_flag ) {
 	    rc = true;
 	} else {
-
 	    /*
 	     * Start all of the tasks.
 	     */
 
-	    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), &Model::start_task );
+	    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), []( Task * task ){ task->run(); } );
 
 	    if ( _parameters._initial_delay ) {
 		if ( verbose_flag ) {
 		    (void) putc( 'I', stderr );
 		}
-#if !BUG_289
-		ps_sleep( _parameters._initial_delay );
+		sleep( _parameters._initial_delay );
 		if ( deferred_exception ) throw std::runtime_error( "terminating" );
-#endif
 	    }
 
 	    /*
@@ -673,9 +597,7 @@ Model::run( int task_id )
 		    (void) fprintf( stderr, " %c", "0123456789"[number_blocks%10] );
 		}
 
-#if !BUG_289
-		ps_sleep( _parameters._block_period );
-#endif
+		sleep( _parameters._block_period );
 		accumulate_data();
 
 		if ( number_blocks > 2 ) {
@@ -713,31 +635,23 @@ Model::run( int task_id )
 	deferred_exception = true;
     }
 
+#if HAVE_PARASOL
     /* Force simulation to terminate. */
 
-#if !BUG_289
     ps_run_time = -1.1;
     ps_sleep(1.0);
 
     /* Remove instances */
 
-    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::kill ) );
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::stop ) );
 #endif
 
     return rc;
 }
-
-
-void
-Model::start_task( Task * task )
-{
-#if !BUG_289
-    if ( !task->start() ) {
-	throw std::runtime_error( std::string("Failed to start task '") + task->name() + "'." );
-    }
-#endif
-}
-
+
+/*----------------------------------------------------------------------*/
+/*			  Statistics Functions.				*/
+/*----------------------------------------------------------------------*/
 
 /*
  * Accumulate data from this run.
@@ -779,7 +693,7 @@ Model::rms_confidence()
     double n = 0;
 
     for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-	if ( (*task)->type() == Task::Type::OPEN_ARRIVAL_SOURCE || (*task)->is_aysnc_inf_server() ) continue;		/* Skip. */
+	if ( (*task)->type() == Task::Type::OPEN_ARRIVAL_SOURCE || (*task)->is_async_inf_server() ) continue;		/* Skip. */
 
 	for ( std::vector<Entry *>::const_iterator nextEntry = (*task)->entries().begin(); nextEntry != (*task)->entries().end(); ++nextEntry ) {
 	    double temp = normalized_conf95( (*nextEntry)->r_cycle );
@@ -801,24 +715,94 @@ Model::normalized_conf95( const Result& stat )
     }
     return -1.0;
 }
+
+/*----------------------------------------------------------------------*/
+/*			  Output Functions.				*/
+/*----------------------------------------------------------------------*/
 
-
-
-#if !BUG_289
 /*
- * Progenator task.
+ * Set up file descriptors and call proper output routine.
  */
 
 void
-ps_genesis(void *)
+Model::print_intermediate()
 {
-    if (!Model::__model->run( ps_myself ) ) {
-	LQIO::runtime_error( ERR_INITIALIZATION_FAILED );
-    }
-    ps_suspend( ps_myself );
+    _document->setResultConvergenceValue(_confidence)
+	.setResultValid(_confidence <= _parameters._precision)
+	.setResultIterations(number_blocks)
+	.setResultDescription();
+
+    _document->print( _output_file_name, SolverInterface::Solve::customSuffix, _output_format, rtf_flag, number_blocks );
 }
-#endif
+
+
+/*
+ * Human format statistics.
+ */
+
+std::ostream&
+Model::print( std::ostream& output ) const
+{
+    static const unsigned int long_width = 99;
+    static const unsigned int short_width = 69;
+
+/*
+  123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_
+  ssssssssssssssssssssssssssssssssssssss tttttttt nnnnnnnnnnnn nnnnnnnnnnnn nnnnnnnnnnnn nnnnnnnn
+  Name                                     Type       Mean        95% +/-      99% +/-   #Obs|Int
+  ssssssssssssssssssssssssssssssssssssss tttttttt nnnnnnnnnnnn nnnnnnnn
+  Name                                     Type       Mean     #Obs|Int
+*/
+    if ( number_blocks > 2 ) {
+	output << "Blocked simulation statistics for " << _input_file_name << std::endl
+	       << "\tTime = " << Processor::now() << ".  Period = " << _parameters._block_period << std::endl << std::endl
+	       << "Name                                     Type       Mean        95%% +/-      99%% +/-   #Obs/Int" << std::endl
+	       << std::setw( long_width ) << std::setfill( '-' ) << "-" << std::endl;
+    } else {
+	output << "Simulation statistics for " << _input_file_name << std::endl
+	       << "\ttime = " << Processor::now() << std::endl << std::endl
+	       << "Name                                     Type       Mean     #Obs/Int" << std::endl
+	       << std::setw( short_width ) << std::setfill( '-' ) << "-" << std::endl;
+    }
+
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), [&]( const Task * task ){ task->print( output ); } );
+
+    const int fill = (((number_blocks > 2) ? long_width : short_width) - 23) / 2;
+    output << std::setw( fill ) << std::setfill( '-' ) << "-" << " Processor Information " << std::setw( fill ) << std::setfill( '-' ) << "-" << std::endl;
+
+    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), [&]( const Processor * processor ){ processor->print( output ); } );
+
+    output << std::endl << std::endl;
+    return output;
+}
+
+
+/*
+ * Go through data structures and insert results into the DOM
+ */
+
+void
+Model::insertDOMResults()
+{
+    /* Insert general information about simulation run */
+
+    LQIO::DOM::CPUTime stop_time;
+    stop_time.init();
+    stop_time -= _start_time;
+    stop_time.insertDOMResults( *_document );
+
+    _document->setResultConvergenceValue(_confidence)
+	.setResultValid( _confidence <= _parameters._precision || _parameters._precision == 0.0 )
+	.setResultIterations(number_blocks)
+	.setResultSolverInformation()
+	.setResultPlatformInformation();
+
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), std::mem_fn( &Task::insertDOMResults ) );
+    std::for_each( Group::__groups.begin(), Group::__groups.end(), std::mem_fn( &Group::insertDOMResults ) );
+    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), std::mem_fn( &Processor::insertDOMResults ) );
+}
 
+/* ------------------------------------------------------------------------ */
 /*
  * set the simulation run time parameters.
  * Full auto will derive based on service times of tasks.

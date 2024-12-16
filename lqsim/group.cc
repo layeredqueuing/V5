@@ -9,7 +9,7 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 17466 2024-11-13 14:17:16Z greg $
+ * $Id: group.cc 17501 2024-11-27 21:32:50Z greg $
  */
 
 #include "lqsim.h"
@@ -63,10 +63,16 @@ Group::create()
 	    Task * cp = Task::find( (*t)->getName() );
 	    assert( cp );
 	    _tasks.insert(cp);
+	    cp->setGroup(this);
+#if HAVE_PARASOL
 	    cp->set_group_id(-1);
+#endif
 	}
     } else {
+	std::for_each( tasks().begin(), tasks().end(), []( Task * task ){ task->setGroup(nullptr); } );
+#if HAVE_PARASOL
 	std::for_each( tasks().begin(), tasks().end(), []( Task * task ){ task->set_group_id(-1); } );
+#endif
     }
 
     /* Assign all multi-server tasks their own group */
@@ -76,7 +82,7 @@ Group::create()
 	for ( std::set<Task *>::iterator t = tasks().begin(); t != tasks().end(); ++t ) {
 	    Task * cp = *t;
 	    if ( cp->multiplicity() > 1 ) {
-#if !BUG_289
+#if HAVE_PARASOL
 		int group_id = ps_build_group( name(), new_share, _processor.node_id(), cap() );
 		if ( group_id < 0 ) {
 		    LQIO::input_error( ERR_CANNOT_CREATE_X, "group", name() );
@@ -91,17 +97,16 @@ Group::create()
     
     /* Now do the remaining tasks - fixed rate, or single multi-processor */
 
-#if !BUG_289
+#if HAVE_PARASOL
     int group_id = ps_build_group( name(), std::max( 0.0, share - share_sum ), _processor.node_id(), cap() );
     if ( group_id < 0 ) {
 	LQIO::input_error( ERR_CANNOT_CREATE_X, "group", name() );
 	return *this;
     }
-#else
-    int group_id = 0;
+    std::for_each( tasks().begin(), tasks().end(), [=]( Task * task ){ if ( task->group_id() == -1 ) { task->set_group_id( group_id ); } } );
 #endif
 
-    std::for_each( tasks().begin(), tasks().end(), [=]( Task * task ){ if ( task->group_id() == -1 ) { task->set_group_id( group_id ); } } );
+    std::for_each( tasks().begin(), tasks().end(), [=]( Task * task ){ if ( task->group() == nullptr ) { task->setGroup( this ); } } );
 
     return *this;
 }

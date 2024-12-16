@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol entry interface.
  *
- * $Id: entry.h 17410 2024-10-31 13:54:12Z greg $
+ * $Id: entry.h 17481 2024-11-18 11:37:38Z greg $
  */
 
 #ifndef ENTRY_H
@@ -27,7 +27,7 @@
 class Task;
 
 class Entry {				/* task entry struct	        */
-    friend class Instance;
+    friend class Instance::Instance;
     
     struct Collect
     {
@@ -145,7 +145,11 @@ private:
     Activity * _activity;		/* Activity list.		*/
     Type _recv;				/* flag...			*/
     Task * _task;			/* Owner of entry.		*/
+#if HAVE_PARASOL
     Targets _fwd;			/* forward info		        */
+#else
+    std::vector<int> _fwd;		/* New data structure required	*/
+#endif
     ActivityList * _join_list;		/* For joins			*/
 };
 

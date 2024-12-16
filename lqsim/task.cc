@@ -5,12 +5,14 @@
 /* 									*/
 /* May 1996								*/
 /* June 2009								*/
+/* November 2024							*/
 /************************************************************************/
 
 /*
- * Input output processing.
+ * Task interface between the DOM and the simulation engine.  Passive.
+ * Instance objects are the active component.
  *
- * $Id: task.cc 17466 2024-11-13 14:17:16Z greg $
+ * $Id: task.cc 17513 2024-12-05 12:52:35Z greg $
  */
 
 #include "lqsim.h"
@@ -29,13 +31,16 @@
 #include "group.h"
 #include "histogram.h"
 #include "instance.h"
+#include "pragma.h"
 #include "processor.h"
 #include "task.h"
 
-#define N_SEMAPHORE_ENTRIES 2
-#define N_RWLOCK_ENTRIES 4
-
 std::set<Task *, Task::ltTask> Task::__tasks;	/* Task table.	*/
+
+#if !HAVE_PARASOL
+template class Rendezvous::Multi_Server<int,int>;
+template class Rendezvous::Single_Server<int,int>;
+#endif
 
 const std::map<const Task::Type,const std::string> Task::type_strings =  {
     { Task::Type::UNDEFINED,              "Undefined" },
@@ -67,14 +72,14 @@ const std::map<const Task::Type,const std::string> Task::type_strings =  {
 
 unsigned total_tasks = 0;
 
-Task::Task( const Task::Type type, int priority, LQIO::DOM::Task* dom, Processor * processor, Group * a_group )
+Task::Task( LQIO::DOM::Task* dom, Processor * processor, Group * group )
     : _dom(dom),
-      _priority(priority),
       _processor(processor),
+      _group(group),
+#if HAVE_PARASOL
       _group_id(-1),
-#if !BUG_289
-      _compute_func(nullptr),
 #endif
+      _compute_func(nullptr),
       _active(0),
       _max_phases(1),
       _entries(),
@@ -82,16 +87,17 @@ Task::Task( const Task::Type type, int priority, LQIO::DOM::Task* dom, Processor
       _precedences(),
       _forks(),
       _joins(),
+#if HAVE_PARASOL
       _pending_msgs(),
-      _join_start_time(0.0),
       _free_msgs(),
-      _type(type),
+#endif
       trace_flag(false),
       _hist_data(nullptr),
       r_cycle("Cycle time",dom),
       r_util("Utilization",dom),
       r_group_util("Group Utilization",dom),
-      _hold_active(0)
+      _hold_active(0),
+      _join_start_time(0.0)
 {
     if ( processor ) {
 	processor->add_task(this);
@@ -103,7 +109,9 @@ Task::~Task()
 {
     std::for_each( activities().begin(), activities().end(), []( Activity * activity ){ delete activity; } );
     std::for_each( precedences().begin(), precedences().end(), []( ActivityList * list ){ delete list; } );
+#if HAVE_PARASOL
     std::for_each( _free_msgs.begin(), _free_msgs.end(), []( Message * message ){ delete message; } );
+#endif
 
     if ( _hist_data ) {
 	delete _hist_data;
@@ -153,9 +161,11 @@ Task::create()
      * tasks compute by "sleeping".
      */
 
-#if !BUG_289
-    _compute_func = (!processor() || processor()->is_infinite()) ? ps_sleep : ps_compute;
-#endif
+    if ( processor() == nullptr ) {
+	_compute_func = &Processor::sleep;
+    } else {
+	_compute_func = processor()->get_compute_func();
+    }
 
     /* JOIN Stuff -- All entries are free. */
 
@@ -163,8 +173,8 @@ Task::create()
 
     if ( debug_flag ){
 	(void) fprintf( stddbg, "\n-+++++---- %s task %s", type_name().c_str(), name().c_str() );
-#if !BUG_289
-	if ( _compute_func == ps_sleep ) {
+#if HAVE_PARASOL
+	if ( _compute_func == &Processor::sleep ) {
 	    (void) fprintf( stddbg, " [delay]" );
 	}
 #endif
@@ -177,7 +187,9 @@ Task::create()
     initialize();
 
     if ( has_send_no_reply() ) {
+#if HAVE_PARASOL
 	alloc_pool();
+#endif
     }
 
     return *this;
@@ -206,11 +218,13 @@ Task::initialize()
     return *this;
 }
 
+#if HAVE_PARASOL
 int
 Task::node_id() const
 {
     return processor() ? processor()->node_id() : 0;
 }
+#endif
 
 void
 Task::set_start_activity( LQIO::DOM::Entry* dom )
@@ -276,6 +290,7 @@ Task::find_activity( const std::string& name ) const
 }
 
 
+#if HAVE_PARASOL
 /*
  * allocate message pool for asynchronous messages.
  */
@@ -283,16 +298,22 @@ Task::find_activity( const std::string& name ) const
 void
 Task::alloc_pool()
 {
-    unsigned size = DEFAULT_QUEUE_SIZE;
-    if ( getDOM()->hasQueueLength() ) {
-	try {
-	    size = getDOM()->getQueueLengthValue();
+    unsigned long size = Pragma::__pragmas->queue_size();
+    if ( size == 0 ) {
+	if ( getDOM()->hasQueueLength() ) {
+	    try {
+		size = getDOM()->getQueueLengthValue();
+	    }
+	    catch ( const std::domain_error& e ) {
+		getDOM()->throw_invalid_parameter( "pool size", e.what() );
+	    }
 	}
-	catch ( const std::domain_error& e ) {
-	    getDOM()->throw_invalid_parameter( "pool size", e.what() );
+	if ( size == 0 ) {
+	    size = DEFAULT_QUEUE_SIZE;
 	}
     }
-    for ( unsigned int i = 0; i < size; ++i ) {
+
+    for ( unsigned long i = 0; i < size; ++i ) {
 	_free_msgs.push_back( new Message );
     }
 }
@@ -314,12 +335,15 @@ Task::free_message( Message * msg )
 {
     /* Async message -- acummulate queuing + service (M/G/m model) */
 
-    double delta = Instance::now() - msg->time_stamp;
-    tar_t *tp = msg->target;
+    double delta = Processor::now() - msg->time_stamp;
+    Call *tp = msg->target;
     tp->r_delay.record( delta );
     tp->r_delay_sqr.record( square( delta ) );
     _free_msgs.push_back( msg );
 }
+#endif
+
+
 
 double
 Task::throughput() const
@@ -486,17 +510,18 @@ Task::add( LQIO::DOM::Task* dom )
     Processor * processor = Processor::find( processor_name );
 
     if ( !LQIO::DOM::Common_IO::is_default_value( dom->getPriority(), 0 ) && ( processor->discipline() == SCHEDULE_FIFO
-										   || processor->discipline() == SCHEDULE_PS
-										   || processor->discipline() == SCHEDULE_RAND ) ) {
+									       || processor->discipline() == SCHEDULE_PS
+									       || processor->discipline() == SCHEDULE_RAND ) ) {
 	dom->runtime_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, processor_name.c_str() );
     }
 
+#if HAVE_PARASOL
     int priority = dom->hasPriority() ? dom->getPriorityValue() : 0;
     if ( priority < MIN_PRIORITY || MAX_PRIORITY < priority ) {
 	priority = dom->getPriorityValue() > MAX_PRIORITY ? MAX_PRIORITY : 0;
 	LQIO::runtime_error( WRN_INVALID_PRIORITY, dom->getPriorityValue(), MIN_PRIORITY, MAX_PRIORITY, priority );
     }
-//    priority = MAX_PRIORITY - priority;		/* Bug 453. */
+#endif
     
     Group * group = nullptr;
     if ( !domGroup && processor->discipline() == SCHEDULE_CFS ) {
@@ -523,7 +548,7 @@ Task::add( LQIO::DOM::Task* dom )
 	    dom->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, dom->getEntryList().size(), 1 );
 	    LQIO::DOM::DocumentObject::setSeverity( LQIO::ERR_TASK_ENTRY_COUNT, old );
 	}
-	cp = new Reference_Task( Task::Type::CLIENT, priority, dom, processor, group );
+	cp = new Reference_Task( dom, processor, group );
 	break;
 
     case SCHEDULE_PPR:
@@ -532,16 +557,14 @@ Task::add( LQIO::DOM::Task* dom )
 	if ( dom->hasThinkTime() ) {
 	    dom->runtime_error( LQIO::ERR_NON_REF_THINK_TIME );
 	}
-	Task::Type a_type;
 
 	if ( dom->isInfinite() ) {
-	    a_type = Task::Type::INFINITE_SERVER;
+	    cp = new Infinite_Server_Task( dom, processor, group );
 	} else if ( dom->isMultiserver() ) {
-	    a_type = Task::Type::MULTI_SERVER;
+	    cp = new Multi_Server_Task( dom, processor, group );
 	} else {
-	    a_type = Task::Type::SERVER;
+	    cp = new Server_Task( dom, processor, group );
 	}
-	cp = new Server_Task( a_type, priority, dom, processor, group );
 	break;
 
     case SCHEDULE_DELAY:
@@ -554,7 +577,7 @@ Task::add( LQIO::DOM::Task* dom )
 	if ( dom->hasQueueLength() ) {
 	    dom->runtime_error( LQIO::WRN_TASK_QUEUE_LENGTH );
 	}
-	cp = new Server_Task( Task::Type::INFINITE_SERVER, priority, dom, processor, group );
+	cp = new Infinite_Server_Task( dom, processor, group );
 	break;
 
 /*+ BUG_164 */
@@ -565,12 +588,11 @@ Task::add( LQIO::DOM::Task* dom )
 	if ( dom->isInfinite() ) {
 	    dom->runtime_error( LQIO::ERR_INFINITE_SERVER );
 	}
- 	cp = new Semaphore_Task( Task::Type::SEMAPHORE, priority, dom, processor, group );
+ 	cp = new Semaphore_Task( dom, processor, group );
 	break;
 /*- BUG_164 */
 
 /* reader_writer lock */
-
     case SCHEDULE_RWLOCK:
 	if ( dom->hasQueueLength() ) {
 	    dom->runtime_error( LQIO::WRN_TASK_QUEUE_LENGTH );
@@ -578,12 +600,12 @@ Task::add( LQIO::DOM::Task* dom )
 	if ( dom->isInfinite() ) {
 	    dom->runtime_error( LQIO::ERR_INFINITE_SERVER );
 	}
- 	cp = new ReadWriteLock_Task( Task::Type::RWLOCK, priority, dom, processor, group );
+ 	cp = new ReadWriteLock_Task( dom, processor, group );
 	break;
 /* reader_writer lock*/
 
     default:
-	cp = new Server_Task( Task::Type::SERVER, priority, dom, processor, group );		/* Punt... */
+	cp = new Server_Task( dom, processor, group );		/* Punt... */
 	dom->runtime_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label.at(sched_type).str.c_str() );
 	break;
     }
@@ -669,9 +691,17 @@ Task::derive_utilization() const
 
 /* ------------------------------------------------------------------------ */
 
-Reference_Task::Reference_Task( const Task::Type type, int priority, LQIO::DOM::Task* dom, Processor * aProc, Group * aGroup )
-    : Task( type, priority, dom, aProc, aGroup ), _think_time(0.0), _clients()
+Reference_Task::Reference_Task( LQIO::DOM::Task* dom, Processor * processor, Group * group )
+    : Task( dom, processor, group ), _think_time(0.0), _clients()
 {
+}
+
+
+Reference_Task::~Reference_Task()
+{
+#if !HAVE_PARASOL
+    std::for_each( _clients.begin(), _clients.end(), []( Instance::Client * client ) { delete client; } );
+#endif
 }
 
 
@@ -683,51 +713,58 @@ Reference_Task::create_instance()
     }
     _clients.clear();
     for ( unsigned i = 0; i < multiplicity(); ++i ) {
-	_clients.push_back( new srn_client( this, name() ) );
+	_clients.push_back( new Instance::Client( this, name() ) );
     }
 }
 
 
-#if !BUG_289
 bool
-Reference_Task::start()
+Reference_Task::run()
 {
-    for ( std::vector<srn_client *>::const_iterator t = _clients.begin(); t != _clients.end(); ++t ) {
-	if ( ps_resume( (*t)->task_id() ) != OK ) return false;
-    }
-    return true;
-}
+#if HAVE_PARASOL
+    return std::all_of( _clients.begin(), _clients.end(), []( Instance::Instance * task ){ return ps_resume( task->task_id() ) == OK; } );
+#else
+    return std::all_of( _clients.begin(), _clients.end(), []( Instance::Instance * task ){ return task->set_thread( new std::thread( &Instance::Instance::run, task ) ); } );
 #endif
+}
 
 
-#if !BUG_289
 Reference_Task&
-Reference_Task::kill()
+Reference_Task::stop()
 {
-    for ( std::vector<srn_client *>::const_iterator t = _clients.begin(); t != _clients.end(); ++t ) {
-	ps_kill( (*t)->task_id() );
-    }
+#if HAVE_PARASOL
+    std::for_each( _clients.begin(), _clients.end(), []( Instance::Instance * task ){ return ps_kill( task->task_id() ); } );
+#else
+    // Need to stop...
+    std::for_each( _clients.begin(), _clients.end(), []( Instance::Instance * task ){ task->get_thread()->join(); } );
+#endif
     return *this;
 }
-#endif
 
 /* ------------------------------------------------------------------------ */
 
-Server_Task::Server_Task( const Task::Type type, int priority, LQIO::DOM::Task* dom, Processor * aProc, Group * aGroup )
-    : Task( type, priority, dom, aProc, aGroup ),
-      _task(0),
-      _worker_port(-1),
+Server_Task::Server_Task( LQIO::DOM::Task* dom, Processor * processor, Group * group )
+    : Task( dom, processor, group ),
+      _server(nullptr),
       _sync_server(false)
 {
+}
+
+
+Server_Task::~Server_Task()
+{
+#if !HAVE_PARASOL
+    delete _server;
+#endif
 }
 
 int
 Server_Task::std_port() const
 {
-#if BUG_289
+#if !HAVE_PARASOL
     return 0;
 #else
-    return ps_std_port(_task->task_id());
+    return ps_std_port(_server->task_id());
 #endif
 }
 
@@ -735,13 +772,6 @@ void
 Server_Task::set_synchronization_server()
 {
     _sync_server = true;
-}
-
-
-bool
-Server_Task::is_aysnc_inf_server() const
-{
-    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::is_send_no_reply ) );
 }
 
 
@@ -754,54 +784,199 @@ Server_Task::is_aysnc_inf_server() const
 void
 Server_Task::create_instance()
 {
-#if !BUG_289
-    if ( is_infinite() ) {
-	_task = new srn_multiserver( this, name(), ~0 );
-	_worker_port = ps_allocate_port( name().c_str(), _task->task_id() );
-	_type = Task::Type::INFINITE_SERVER;
-	if ( is_aysnc_inf_server() ) {
-	    getDOM()->runtime_error( LQIO::WRN_INFINITE_SERVER_OPEN_ARRIVALS );
-	}
-    } else if ( is_multiserver() ) {
-	_task = new srn_multiserver( this, name(), multiplicity() );
-	_worker_port = ps_allocate_port( name().c_str(), _task->task_id() );
-	_type = Task::Type::MULTI_SERVER;
-    } else {
-	_task = new srn_server( this, name() );
-	_worker_port = -1;
-	_type = Task::Type::SERVER;
-    }
+#if HAVE_PARASOL
+    _server = new Instance::Server( this, name() );
 #endif
 }
 
 
-#if !BUG_289
 bool
-Server_Task::start()
+Server_Task::run()
 {
-    return ps_resume( _task->task_id() ) == OK;
+#if HAVE_PARASOL
+    return ps_resume( _server->task_id() ) == OK;
+#else
+    return _server->set_thread( new std::thread( &Instance::Instance::run, _server ) );
+#endif
 }
 
 
 Server_Task&
-Server_Task::kill()
+Server_Task::stop()
 {
-    ps_suspend( _task->task_id() );
-    ps_kill( _task->task_id() );
-    _task = 0;
-    _worker_port = -1;
+#if HAVE_PARASOL
+    ps_suspend( _server->task_id() );
+    ps_kill( _server->task_id() );
+#else
+    _server->get_thread()->join();
+#endif
+    _server = nullptr;
     return *this;
 }
-#endif
 
 /* ------------------------------------------------------------------------ */
 
-Semaphore_Task::Semaphore_Task( const Task::Type type, int priority, LQIO::DOM::Task* dom, Processor * aProc, Group * aGroup )
-    : Server_Task( type, priority, dom, aProc, aGroup ),
+Multi_Server_Task::Multi_Server_Task( LQIO::DOM::Task* dom, Processor * processor, Group * group )
+    : Task( dom, processor, group ),
+      _server(nullptr),
+#if HAVE_PARASOL
+      _worker_port(-1)
+#else
+      _rendezvous(dom->getCopiesValue()),
+      _servers()
+#endif
+{
+}
+
+
+Multi_Server_Task::~Multi_Server_Task()
+{
+#if !HAVE_PARASOL
+    delete _server;
+#endif
+}
+
+
+int
+Multi_Server_Task::std_port() const
+{
+#if HAVE_PARASOL
+    return ps_std_port(_server->task_id());
+#else
+    return 0;
+#endif
+}
+
+
+/*
+ * Define task type at run time.  It may change because of LQX
+ * execution.  Simple servers are more efficient than multi-servers
+ * with 1 worker.
+ */
+
+void
+Multi_Server_Task::create_instance()
+{
+#if HAVE_PARASOL
+    _server = new Instance::Multiserver( this, name(), multiplicity() );
+    _worker_port = ps_allocate_port( name().c_str(), _server->task_id() );
+#endif
+}
+
+
+bool
+Multi_Server_Task::run()
+{
+#if HAVE_PARASOL
+    return ps_resume( _server->task_id() ) == OK;
+#else
+    return false;
+#endif
+}
+
+
+Multi_Server_Task&
+Multi_Server_Task::stop()
+{
+#if HAVE_PARASOL
+    ps_suspend( _server->task_id() );
+    ps_kill( _server->task_id() );
+    _server = nullptr;
+    _worker_port = -1;
+#else
+    std::for_each( _servers.begin(), _servers.end(), []( Instance::Instance * task ){ task->get_thread()->join(); } );
+#endif
+    return *this;
+}
+
+/* ------------------------------------------------------------------------ */
+
+Infinite_Server_Task::Infinite_Server_Task( LQIO::DOM::Task* dom, Processor * processor, Group * group )
+    : Task( dom, processor, group ),
+      _server(nullptr),
+      _worker_port(-1)
+#if !HAVE_PARASOL
+    , _rendezvous(dom->getCopiesValue())
+#endif
+{
+}
+
+
+Infinite_Server_Task::~Infinite_Server_Task()
+{
+#if !HAVE_PARASOL
+    delete _server;
+#endif
+}
+
+int
+Infinite_Server_Task::std_port() const
+{
+#if HAVE_PARASOL
+    return ps_std_port(_server->task_id());
+#else
+    return 0;
+#endif
+}
+
+bool
+Infinite_Server_Task::is_async_inf_server() const
+{
+    return std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::is_send_no_reply ) );
+}
+
+
+/*
+ * Define task type at run time.  It may change because of LQX
+ * execution.  Simple servers are more efficient than multi-servers
+ * with 1 worker.
+ */
+
+void
+Infinite_Server_Task::create_instance()
+{
+#if HAVE_PARASOL
+    if ( is_async_inf_server() ) {
+	getDOM()->runtime_error( LQIO::WRN_INFINITE_SERVER_OPEN_ARRIVALS );
+    }
+    _server = new Instance::Multiserver( this, name(), ~0 );
+    _worker_port = ps_allocate_port( name().c_str(), _server->task_id() );
+#endif
+}
+
+
+bool
+Infinite_Server_Task::run()
+{
+#if HAVE_PARASOL
+    return ps_resume( _server->task_id() ) == OK;
+#else
+    return false;
+#endif
+}
+
+
+Infinite_Server_Task&
+Infinite_Server_Task::stop()
+{
+#if HAVE_PARASOL
+    ps_suspend( _server->task_id() );
+    ps_kill( _server->task_id() );
+    _server = nullptr;
+    _worker_port = -1;
+#endif
+    return *this;
+}
+
+/* ------------------------------------------------------------------------ */
+
+Semaphore_Task::Semaphore_Task( LQIO::DOM::Task* dom, Processor * processor, Group * group )
+    : Server_Task( dom, processor, group ),
       r_hold("Hold Time",dom),
       r_hold_sqr("Hold Time Sq",dom),
       r_hold_util("Hold Utilization",dom),
       _signal_task(0),
+      _worker_port(0),
       _signal_port(-1)
 {
 }
@@ -830,44 +1005,46 @@ Semaphore_Task::create_instance()
 	_hist_data = new Histogram( getDOM()->getHistogram() );
     }
 
-    std::string buf = name();
-    buf += "-wait";
+#if HAVE_PARASOL
+    std::string buf = name() + "-wait";
     /* entry for waiting request - send to token. */
-    _task = new srn_semaphore( this, buf );
-#if !BUG_289
-    _worker_port = ps_allocate_port( buf.c_str(), _task->task_id() );
+    _server = new Instance::Semaphore( this, buf );
+    _worker_port = ps_allocate_port( buf.c_str(), _server->task_id() );
 
     /* Entry for signal request */
-    buf = name();
-    buf += "-signal";
-    _signal_task = new srn_signal( this,  buf );
+    buf = name() + "-signal";
+    _signal_task = new Instance::Signal( this,  buf );
     _signal_port = ps_allocate_port( buf.c_str(), _signal_task->task_id() );
 #endif
 }
 
 
-#if !BUG_289
 bool
-Semaphore_Task::start()
+Semaphore_Task::run()
 {
-    if ( !Server_Task::start() ) return false;
+#if HAVE_PARASOL
+    if ( !Server_Task::run() ) return false;
     return ps_resume( _signal_task->task_id() ) == OK;
+#else
+    return false;
+#endif
 }
 
 Semaphore_Task&
-Semaphore_Task::kill()
+Semaphore_Task::stop()
 {
-    Server_Task::kill();
+#if HAVE_PARASOL
+    Server_Task::stop();
     ps_kill( _signal_task->task_id() );
     _signal_port  = -1;
+#endif
     return *this;
 }
-#endif
 
 Semaphore_Task&
 Semaphore_Task::reset_stats()
 {
-    Task::reset_stats();
+    Server_Task::reset_stats();
 
     r_hold.reset();
     r_hold_sqr.reset();
@@ -915,8 +1092,8 @@ Semaphore_Task::print( std::ostream& output ) const
 
 /* ------------------------------------------------------------------------ */
 
-ReadWriteLock_Task::ReadWriteLock_Task( const Task::Type type, int priority, LQIO::DOM::Task* dom, Processor * proc, Group * group )
-    : Semaphore_Task( type, priority, dom, proc, group ),
+ReadWriteLock_Task::ReadWriteLock_Task( LQIO::DOM::Task* dom, Processor * proc, Group * group )
+    : Semaphore_Task( dom, proc, group ),
       r_reader_hold("Reader Hold Time",dom),
       r_reader_hold_sqr("Reader Hold Time sq",dom),
       r_reader_wait("Reader Blocked Time",dom),
@@ -943,9 +1120,9 @@ ReadWriteLock_Task::create_instance()
     }
 
     int E[N_RWLOCK_ENTRIES];
-    for (int i=0;i<N_RWLOCK_ENTRIES;i++){ E[i]=-1; }
+    for (unsigned int i=0;i<N_RWLOCK_ENTRIES;i++){ E[i]=-1; }
 
-    for (int i=0;i<N_RWLOCK_ENTRIES;i++){
+    for (unsigned int i=0;i<N_RWLOCK_ENTRIES;i++){
 	if ( entries()[i]->is_r_unlock() ) {
 	    if (E[0]== -1) { E[0]=i; }
 	    else{ // duplicate entry TYPE error
@@ -1004,45 +1181,49 @@ ReadWriteLock_Task::create_instance()
     /*  waiting for request - send to reader_queue or writer_token. */
     /*  srn_rwlock_server should not be blocked, even if number of concurrent */
     /*	readers is greater than the maximum number of the reader lock.*/
-    _task = new srn_rwlock_server( this, buf.c_str() );
-#if !BUG_289
-    _readerQ_port = ps_allocate_port( buf.c_str(), _task->task_id() );
-    _writerQ_port = ps_allocate_port( buf.c_str(), _task->task_id() );
-    _signal_port2 = ps_allocate_port( buf.c_str(), _task->task_id() );
+    _server = new Instance::RWLock_Server( this, buf );
+#if HAVE_PARASOL
+    _readerQ_port = ps_allocate_port( buf.c_str(), _server->task_id() );
+    _writerQ_port = ps_allocate_port( buf.c_str(), _server->task_id() );
+    _signal_port2 = ps_allocate_port( buf.c_str(), _server->task_id() );
 
     buf = name();
     buf += "-reader-queue";
     /* entry for waiting lock reader request - send to token. */
-    _reader = new srn_semaphore( this, buf );
+    _reader = new Instance::Semaphore( this, buf );
     _worker_port = ps_allocate_port( buf.c_str(), _reader->task_id() );
 
     /* Entry for signal request */
     buf = name();
     buf += "-reader-signal";
-    _signal_task = new srn_signal( this,  buf );
+    _signal_task = new Instance::Signal( this,  buf );
     _signal_port = ps_allocate_port( buf.c_str(), _signal_task->task_id() );
 #endif
 
     /*  writer token*/
     buf = name();
     buf += "-writer-token";
-    _writer = new srn_writer_token( this, buf );
+    _writer = new Instance::Writer_Token( this, buf );
 }
 
 
-#if !BUG_289
 bool
-ReadWriteLock_Task::start()
+ReadWriteLock_Task::run()
 {
-    return Semaphore_Task::start()		/* Starts _signal_task */
+#if HAVE_PARASOL
+    return Semaphore_Task::run()		/* Starts _signal_task */
 	&& ps_resume( _reader->task_id() )
 	&& ps_resume( _writer->task_id() );
+#else
+    return false;
+#endif
 }
 
 
 ReadWriteLock_Task&
-ReadWriteLock_Task::kill()
+ReadWriteLock_Task::stop()
 {
+#if HAVE_PARASOL
     ps_suspend( _reader->task_id() );
     ps_suspend( _writer->task_id() );
     ps_suspend( _signal_task->task_id() );
@@ -1051,10 +1232,10 @@ ReadWriteLock_Task::kill()
     ps_kill( _writer->task_id() );
     ps_kill( _signal_task->task_id() );
 
-    Semaphore_Task::kill();
+    Semaphore_Task::stop();
+#endif
     return *this;
 }
-#endif
 
 
 ReadWriteLock_Task&
@@ -1167,23 +1348,27 @@ Pseudo_Task::create_instance()
 {
     if ( type() != Task::Type::OPEN_ARRIVAL_SOURCE ) return;
 
-    _task = new srn_open_arrivals( this, name() );	/* Create a fake task.			*/
+    _task = new Instance::Open_Arrivals( this, name() );	/* Create a fake task.			*/
 }
 
 
-#if !BUG_289
 bool
-Pseudo_Task::start()
+Pseudo_Task::run()
 {
+#if HAVE_PARASOL
     return ps_resume( _task->task_id() ) == OK;
+#else
+    return _task->set_thread( new std::thread( &Instance::Instance::run, _task ) );
+#endif
 }
 
 
 Pseudo_Task&
-Pseudo_Task::kill()
+Pseudo_Task::stop()
 {
+#if HAVE_PARASOL
     ps_kill( _task->task_id() );
     _task = 0;
+#endif
     return *this;
 }
-#endif

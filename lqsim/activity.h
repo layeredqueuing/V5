@@ -10,7 +10,7 @@
 /*
  * Activities (and phases).
  *
- * $Id: activity.h 17457 2024-11-12 11:19:54Z greg $
+ * $Id: activity.h 17499 2024-11-27 14:14:11Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -25,12 +25,15 @@
 #include "result.h"
 #include "target.h"
 
-class Task;
 class Entry;
 class Histogram;
+class Task;
+namespace Instance {
+    class Instance;
+}
 
 class Activity {
-    friend class Instance;		// for _calls;
+    friend class Instance::Instance;		// for _calls;
     friend class Entry;
     friend class Pseudo_Entry;
     
@@ -109,7 +112,6 @@ private:
     Random * _slice_time;		/* Distribution generator	*/
     Random * _think_time;		/* Distribution generator	*/
     Targets _calls;			/* target info			*/
-    
     Task * _task;			/* Pointer to task class	*/
     unsigned _phase;			/* Phase number (not needed)	*/
     

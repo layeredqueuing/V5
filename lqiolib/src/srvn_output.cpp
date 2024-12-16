@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 17446 2024-11-07 11:54:11Z greg $
+ *  $Id: srvn_output.cpp 17503 2024-12-02 21:04:43Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -297,7 +297,6 @@ namespace LQIO {
             output << entry_header( max_service_time_str ) << newline;
             std::for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryMaxServiceTime ) );
         }
-
 
         /* print mean number of Rendezvous */
 
@@ -1463,7 +1462,7 @@ namespace LQIO {
         } else {
             myType << "Uni";
         }
-        _output << std::setw(9) << myType.str() << " " << std::setw(5) << entity.getReplicasValue() << " ";
+        _output << std::setw(7) << myType.str() << " " << std::setw(6) << std::right << entity.getReplicasValue() << "  " << std::left;
     }
 
 #if defined(BUG_393)
@@ -1862,14 +1861,15 @@ namespace LQIO {
             const DOM::Group * group = task.getGroup();
             _output << ' ' << std::setw(__maxStrLen-1) << ( group ? group->getName() : "--");
         }
-        _output << ' ' << std::setw(3) << Input::print_double_parameter( task.getPriority(), 0. );
+        _output << ' ' << std::setw(3) << std::right << Input::print_double_parameter( task.getPriority(), 0. );
         if ( task.getDocument()->taskHasThinkTime() ) {
-            _output << std::setw(__maxDblLen-1);
+            _output << ' ' << std::setw(__maxDblLen-2);
             if ( task.getSchedulingType() == SCHEDULE_CUSTOMER ) {
                 _output << Input::print_double_parameter( task.getThinkTime() );
             } else {
-                _output << " ";
+                _output << ' ';
             }
+	    _output << ' ';
         }
 
         const std::vector<DOM::Entry *> & entries = task.getEntryList();

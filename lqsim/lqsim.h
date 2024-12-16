@@ -12,7 +12,7 @@
 /*
  * Global vars for setting up simulation.
  *
- * $Id: lqsim.h 17466 2024-11-13 14:17:16Z greg $
+ * $Id: lqsim.h 17479 2024-11-15 21:03:38Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -21,12 +21,9 @@
 #include <cstdio>
 #include <regex>
 
-#define BUG_289		0	// Remove parasol if not 0
 #define	BUG_313		1
 
-#if BUG_289
-
-#else
+#if HAVE_PARASOL
 #include <parasol/parasol.h>
 #endif
 

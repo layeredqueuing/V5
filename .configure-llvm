@@ -1,1 +1,4 @@
-./configure 'CC=clang' 'CXX=clang++' -C --prefix=/usr/local
+#!/bin/sh
+# Mac configure.  Parasol doesn't work.
+# $Id$
+./configure  --disable-parasol 'CC=clang' 'CXX=clang++' -C --prefix=/usr/local

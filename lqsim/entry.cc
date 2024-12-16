@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Entry interface.
  *
- * $Id: entry.cc 17467 2024-11-13 14:57:26Z greg $
+ * $Id: entry.cc 17481 2024-11-18 11:37:38Z greg $
  */
 
 #include "lqsim.h"
@@ -166,7 +166,9 @@ Entry::configure()
     /* forwarding component */
 			
     if ( is_rendezvous() ) {
+#if HAVE_PARASOL
 	_fwd.configure( LQIO::DOM::Phase::STOCHASTIC, false );		// don't normalize.
+#endif
     }
 
     return total_calls;
@@ -186,7 +188,7 @@ Entry::initialize()
 		
     _join_list = nullptr;		/* Reset */
     
-#if !BUG_289
+#if HAVE_PARASOL
     switch ( task()->type() ) {
     case Task::Type::CLIENT:
 	_port = -1;
@@ -213,7 +215,9 @@ Entry::initialize()
     /* forwarding component */
 			
     if ( is_rendezvous() ) {
+#if HAVE_PARASOL
 	_fwd.initialize();
+#endif
     }
 
     return *this;
@@ -347,7 +351,9 @@ Entry::add_forwarding( Entry* to_entry, LQIO::DOM::Call * call )
     if ( task()->is_reference_task() ) {
 	getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_FORWARDING, name().c_str() );
     } else {
+#if HAVE_PARASOL
 	_fwd.store_target_info( to_entry, call );
+#endif
     }
     return *this;
 }
@@ -363,7 +369,9 @@ Entry::accumulate_data()
     /* Forwarding */
 
     if ( is_rendezvous() ) {
+#if HAVE_PARASOL
 	_fwd.accumulate_data();
+#endif
     }
     return *this;
 }
@@ -377,7 +385,9 @@ Entry::reset_stats()
     /* Forwarding */
 	    
     if ( is_rendezvous() ) {
+#if HAVE_PARASOL
 	_fwd.reset_stats();
+#endif
     }
     return *this;
 }
@@ -467,7 +477,9 @@ Entry::insertDOMResults()
 	_dom->setResultSquaredCoeffVariation(sum_cycle_var/square(sum_cycle));
     }
 	      
+#if HAVE_PARASOL
     _fwd.insertDOMResults();
+#endif
 
     /* Open arrivals are done in Task::PseudoTask */
     return *this;
@@ -524,13 +536,11 @@ Entry::compute_minimum_service_time( std::deque<Entry *>& stack )
     }
     
 
-    double sum = 0.0;
     if ( task()->type() == Task::Type::CLIENT || open_arrival_rate() != 0. ) {
-	for( std::vector<double>::const_iterator i = _minimum_service_time.begin(); i != _minimum_service_time.end(); ++i ) {
-	    sum += *i;
-	}
+	return std::accumulate( _minimum_service_time.begin(), _minimum_service_time.end(), 0.0, []( double l, double r ) { return l + r; } );
+    } else {
+	return 0.;
     }
-    return sum;
 }
 
 
@@ -596,6 +606,7 @@ Pseudo_Entry::configure()
 Entry&
 Pseudo_Entry::insertDOMResults()
 {
+#if HAVE_PARASOL
     for ( Targets::const_iterator tp = _phase[0]._calls.begin(); tp != _phase[0]._calls.end(); ++tp ) {
 	Entry * ep = tp->entry();
 	LQIO::DOM::Entry * dom = ep->getDOM();
@@ -605,6 +616,7 @@ Pseudo_Entry::insertDOMResults()
 	    dom->setResultWaitingTimeVariance( tp->variance_delay() );
 	}
     }
+#endif
     return *this;
 }
 
@@ -661,7 +673,9 @@ Entry::add_open_arrival_task()
 
     /* Set up calls per cycle.  1 call is made per cycle */
 
+#if HAVE_PARASOL
     from_entry->_phase[0]._calls.store_target_info( this, 1.0 );
+#endif
 
     open_arrival_count += 1;
 
@@ -688,7 +702,9 @@ Entry::add_call( const unsigned int p, LQIO::DOM::Call* domCall )
     if ( domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS && !to_entry->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) return;
     if ( domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY && !to_entry->test_and_set_recv( Entry::Type::SEND_NO_REPLY ) ) return;
 
+#if HAVE_PARASOL
     _phase.at(p-1)._calls.store_target_info( to_entry, domCall );
+#endif
 }
 
 /*
@@ -719,12 +735,15 @@ Entry::print_debug_info()
 
     if ( _fwd.size() > 0 ) {
 	fprintf( stddbg, "\tfwds:  " );
+#if HAVE_PARASOL
+
 	for ( Targets::const_iterator tp = _fwd.begin(); tp != _fwd.end(); ++tp ) {
 	    if ( tp != _fwd.begin() ) {
 		(void) fprintf( stddbg, ", " );
 	    }
 	    tp->print( stddbg );
 	}
-	(void) fprintf( stddbg, ".\n" );    
+	(void) fprintf( stddbg, ".\n" );
+#endif
     }
 }

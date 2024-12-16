@@ -7,10 +7,10 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 17455 2024-11-12 01:28:49Z greg $
+ * $Id: lqsim.cc 17502 2024-12-02 19:37:48Z greg $
  */
 
-#define STACK_TESTING
+#define STACK_TESTING 0
 
 #include "lqsim.h"
 #include <cstdlib>
@@ -77,7 +77,9 @@ bool verbose_flag 	      = false;	/* Verbose text output?	    	*/
 bool no_execute_flag	      = false;	/* Run simulation if false	*/
 bool timeline_flag	      = false;	/* Generate output for timeline	*/
 bool trace_msgbuf_flag        = false;	/* Observe msg buffer operation	*/
+#if STACK_TESTING
 bool check_stacks	      = false;	/* Enable parasol stack check.	*/
+#endif
 
 bool debug_interactive_stepping = false;
 
@@ -119,6 +121,7 @@ static const struct option longopts[] =
     { "output",           required_argument, 0, 'o' },
     { "parseable",        no_argument,	     0, 'p' },
     { "pragma",           required_argument, 0, 'P' },
+    { "queue-size",       required_argument, 0, 'Q' },
     { "rtf",		  no_argument,	     0, 'r' },
     { "raw-statistics",   no_argument,       0, 'R' },
     { "seed",             required_argument, 0, 'S' },
@@ -138,7 +141,7 @@ static const struct option longopts[] =
     { "debug-lqx",        no_argument,       0, 256+'l' },
     { "debug-xml",        no_argument,       0, 256+'x' },
     { "print-lqx",	  no_argument,	     0, 256+'s' },
-#if defined(STACK_TESTING)
+#if STACK_TESTING
     { "check-stacks",	  no_argument,	     0, 256+'S' },
 #endif
     { nullptr, 0, 0, 0 }
@@ -146,7 +149,7 @@ static const struct option longopts[] =
 #else
 const struct option * = nullptr;
 #endif
-static const char opts[] = "aA:B:c:C:de:G:h:HI:jm:MnN:o:pP:rRsS:t:T:vVwx";
+static const char opts[] = "aA:B:c:C:de:G:h:HI:jm:MnN:o:pP:Q:rRsS:t:T:vVwx";
 
 static const std::map<const std::string,const std::string> opthelp  = {
     { "no-advisories",	    "Do not output advisory messages." },
@@ -305,13 +308,12 @@ main( int argc, char * argv[] )
 
     /* Set the program name and revision numbers.			*/
 
-
     LQIO::io_vars.init( VERSION, basename( argv[0] ), LQIO::severity_action );
     std::copy( local_error_messages.begin(), local_error_messages.end(), std::inserter( LQIO::error_messages, LQIO::error_messages.begin() ) );
     std::copy( local_error_messages.begin(), local_error_messages.end(), std::inserter( LQIO::error_messages, LQIO::error_messages.begin() ) );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2024-11-11 20:28:49 -0500 (Mon, 11 Nov 2024) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2024-12-02 14:37:48 -0500 (Mon, 02 Dec 2024) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Handy defaults.						*/
@@ -506,6 +508,10 @@ main( int argc, char * argv[] )
 		Model::__enable_print_interval = true;
 		break;
 				
+	    case 'Q':
+		pragmas.insert(LQIO::DOM::Pragma::_queue_size_,optarg);
+		break;
+		
 	    case 'r':
 		rtf_flag = true;
 		break;
@@ -535,7 +541,7 @@ main( int argc, char * argv[] )
 		print_lqx = true;
 		break;
 		
-#if defined(STACK_TESTING)
+#if STACK_TESTING
 	    case 256+'S':
 		check_stacks = true;
 		break;

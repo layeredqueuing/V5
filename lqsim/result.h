@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  *
  * ------------------------------------------------------------------------
- * $Id: result.h 17466 2024-11-13 14:17:16Z greg $
+ * $Id: result.h 17479 2024-11-15 21:03:38Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -16,9 +16,12 @@ namespace LQIO {
 	class DocumentObject;
     }
 }
+namespace Instance {
+    class Instance;
+}
 
 class Result {
-    friend class Instance; 		// Old interface for processors.
+    friend class Instance::Instance; 		// Old interface for processors.
 
 protected:
     Result( const std::string& name, LQIO::DOM::DocumentObject * dom ) :  _dom(dom), _name(getName(name)), _sum(0.), _sum_sqr(0.), _count(0.), _count_sqr(0.), _avg_count(0.), _n(0), _resid(0.) {}
@@ -116,7 +119,7 @@ private:
     mutable double _integral;		/* variable integral		*/
 };
 
-#if !BUG_289
+#if HAVE_PARASOL
 class ParasolResult : public VariableResult
 {
 public:

@@ -2,16 +2,13 @@
  * pragma.h	-- Greg Franks
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.h 16443 2023-02-25 00:56:26Z greg $
+ * $Id: pragma.h 17502 2024-12-02 19:37:48Z greg $
  * ------------------------------------------------------------------------
  */
 
 #ifndef _LQSIM_PRAGMA_H
 #define _LQSIM_PRAGMA_H
 
-#if HAVE_CONFIG_H
-#include <config.h>
-#endif
 #include <string>
 #include <map>
 #include <lqio/dom_pragma.h>
@@ -40,6 +37,7 @@ public:
     int nice() const { return _nice_value; }
     unsigned int number_of_blocks() const { return _number_of_blocks; }
     double precision() const { return _precision; }
+    unsigned long queue_size() const { return _queue_size; }
     int quorum_delayed_calls() const { return _quorum_delayed_calls; }
     bool reschedule_on_async_send() const { return _reschedule_on_async_send; }
     int scheduling_model() const { return _scheduling_model; }
@@ -63,6 +61,7 @@ private:
     void set_max_blocks( const std::string& );
     void set_nice( const std::string& );
     void set_precision( const std::string& );
+    void set_queue_size( const std::string& );
     void set_quorum_delayed_calls( const std::string& );
     void set_reschedule_on_async_send( const std::string& );
     void set_run_time( const std::string& );
@@ -86,6 +85,7 @@ private:
     int _nice_value;
     unsigned int _number_of_blocks;
     double _precision;
+    unsigned long _queue_size;
     int _quorum_delayed_calls;
     bool _reschedule_on_async_send;
     double _run_time;
@@ -97,8 +97,6 @@ private:
     bool _spex_header;
     unsigned int _spex_iteration_limit;
     double _spex_underrelaxation;
-
-    
 
 public:
     static Pragma * __pragmas;

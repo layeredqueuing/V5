@@ -4,7 +4,7 @@
  * Distribution function tests.
  * ------------------------------------------------------------------------
  *
- * $Id: disttest.cc 14616 2021-04-21 13:20:38Z greg $
+ * $Id: disttest.cc 17487 2024-11-19 15:02:37Z greg $
  */
 
 #include <cstdlib>
@@ -77,13 +77,4 @@ int main ( int argc, char * argv[] )
     
     return 0;
 }
-
-template class Vector<double>;
-template class Vector<unsigned int>;
-template class Vector<unsigned long>;
-template class VectorMath<unsigned int>;
-template class VectorMath<double>;
-template class Vector<Vector<unsigned> >;
-template class Vector<VectorMath<double> >;
-template class Vector<VectorMath<unsigned> >;
 

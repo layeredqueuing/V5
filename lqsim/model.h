@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 17466 2024-11-13 14:17:16Z greg $
+ * $Id: model.h 17510 2024-12-04 16:03:30Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -20,6 +20,10 @@
 #include <lqio/dom_document.h>
 #include <lqio/common_io.h>
 #include "result.h"
+#if !HAVE_PARASOL
+#include <thread>
+#include <chrono>
+#endif
 
 extern matherr_type matherr_disposition;    	/* What to do on math fault     */
 
@@ -31,14 +35,14 @@ extern bool abort_on_dropped_message;
 extern bool reschedule_on_async_send;
 extern bool print_lqx;
 
-#if !BUG_289
+#if HAVE_PARASOL
 extern "C" void ps_genesis(void *);
 #endif
 
 class Task;
 
 class Model {
-#if !BUG_289
+#if HAVE_PARASOL
     friend void ps_genesis(void *);
 #endif
 
@@ -94,7 +98,7 @@ public:
 
     bool operator!() const { return _document == nullptr; }
 
-#if !BUG_289
+#if HAVE_PARASOL
     static int genesis_task_id() { return __genesis_task_id; }
 #endif
     static double block_period() { return __model->_parameters._block_period; }
@@ -120,12 +124,17 @@ private:
     void print_intermediate();
     std::ostream& print( std::ostream& output ) const;
     
-    bool run( int );
-    static void start_task( Task * );
+    bool run();
 
     static double rms_confidence();
     static double normalized_conf95( const Result& stat );
 
+#if HAVE_PARASOL
+    static inline void sleep( double time ) { ps_sleep( time ); }
+#else
+    static inline void sleep( double time ) { std::this_thread::sleep_for( std::chrono::milliseconds(static_cast<long>(time*1000)) ); }
+#endif
+    
 private:
     LQIO::DOM::Document* _document;
     const std::filesystem::path _input_file_name;
@@ -134,7 +143,7 @@ private:
     LQIO::DOM::CPUTime _start_time;
     simulation_parameters _parameters;
     double _confidence;
-#if defined(_PARASOL)
+#if HAVE_PARASOL
     static int __genesis_task_id;
 #endif
     static Model * __model;

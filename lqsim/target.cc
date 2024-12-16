@@ -1,7 +1,7 @@
 /* target.cc	-- Greg Franks Tue Jun 23 2009
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 17466 2024-11-13 14:17:16Z greg $
+ * $Id: target.cc 17501 2024-11-27 21:32:50Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,7 +20,7 @@
 #include "target.h"
 #include "task.h"
 
-tar_t::tar_t( Entry * entry, LQIO::DOM::Call * dom ) 
+Call::Call( Entry * entry, LQIO::DOM::Call * dom ) 
     : r_delay("Wait",dom),
       r_delay_sqr("Wait sq",dom),
       r_loss_prob("Loss",dom),
@@ -33,7 +33,7 @@ tar_t::tar_t( Entry * entry, LQIO::DOM::Call * dom )
  * Special constructor for open arrivals.
  */
 
-tar_t::tar_t( Entry * entry, double calls )
+Call::Call( Entry * entry, double calls )
     : r_delay("Wait",nullptr),
       r_delay_sqr("Wait sqr",nullptr),
       r_loss_prob("Loss",nullptr),
@@ -43,7 +43,7 @@ tar_t::tar_t( Entry * entry, double calls )
 
 
 void
-tar_t::initialize()
+Call::initialize()
 {
 }
 
@@ -54,7 +54,7 @@ tar_t::initialize()
  */
 
 void
-tar_t::send_synchronous( const Entry * src, const int priority, const long reply_port )
+Call::send_synchronous( const Entry * src, const int priority, const long reply_port )
 {
     long j1; 			/* junk args			*/
     long acceptor_port;		/* Std port of acceptor.	*/
@@ -62,8 +62,8 @@ tar_t::send_synchronous( const Entry * src, const int priority, const long reply
     double time_stamp;		/* Time of reception.		*/
     Message msg( src, this );
 
-#if !BUG_289
-    Instance * ip = object_tab[ps_myself];
+#if HAVE_PARASOL
+    Instance::Instance * ip = object_tab[ps_myself];
 
     ip->timeline_trace( SYNC_INTERACTION_INITIATED, src, _entry );
     if ( link() >= 0 ) {	/* !!!SEND!!! */
@@ -74,7 +74,7 @@ tar_t::send_synchronous( const Entry * src, const int priority, const long reply
     } else if ( ps_send_priority( _entry->get_port(), _entry->entry_id(),
 			       (char *)&msg, reply_port,
 			       priority + _entry->priority() ) == SYSERR ) {
-	throw std::runtime_error( "tar_t::send_synchronous" );
+	throw std::runtime_error( "Call::send_synchronous" );
     }
 
     ps_my_schedule_time = ps_now;		/* In case we don't block...	*/
@@ -92,8 +92,9 @@ tar_t::send_synchronous( const Entry * src, const int priority, const long reply
  */
 
 void
-tar_t::send_asynchronous( const Entry * src, const int priority )
+Call::send_asynchronous( const Entry * src, const int priority )
 {
+#if HAVE_PARASOL
     Entry * dst = _entry;
     Task * cp = dst->task();
     Message * msg = cp->alloc_message();
@@ -101,8 +102,7 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
 	msg->init( src, this );
 
 	r_loss_prob.record( 0 );
-#if !BUG_289
-	Instance * ip = object_tab[ps_myself];
+	Instance::Instance * ip = object_tab[ps_myself];
 	ip->timeline_trace( ASYNC_INTERACTION_INITIATED, src, _entry );
 
 	if ( link() >= 0 ) {	/* !!!SEND!!! */
@@ -111,20 +111,20 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
 	} else if ( ps_send_priority( _entry->get_port(), _entry->entry_id(),
 				      (char *)msg, -1,
 				      priority + _entry->priority() ) == SYSERR ) {
-	    throw std::runtime_error( "tar_t::send_asynchronous" );
+	    throw std::runtime_error( "Call::send_asynchronous" );
 	}
-#endif
     } else {
 	r_loss_prob.record( 1 );
 	if ( Pragma::__pragmas->abort_on_dropped_message() ) {
 	    LQIO::runtime_error( ERR_MSG_POOL_EMPTY, src->name().c_str(), _entry->name().c_str() );
-	    throw std::runtime_error( "tar_t::send_asynchronous" );
+	    throw std::runtime_error( "Call::send_asynchronous" );
 	}
     }
+#endif
 }
 
 void
-tar_t::configure()
+Call::configure()
 {
     if ( _entry->task()->is_reference_task() ) {
 	_entry->task()->getDOM()->runtime_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, _entry->name().c_str() );
@@ -146,14 +146,14 @@ tar_t::configure()
 
 
 bool 
-tar_t::dropped_messages() const
+Call::dropped_messages() const
 { 
     return !reply() && r_loss_prob.mean() > 0.005; 
 }
 
 
 double
-tar_t::mean_delay() const
+Call::mean_delay() const
 {
     if ( dropped_messages() ) {
 	return std::numeric_limits<double>::infinity();
@@ -163,7 +163,7 @@ tar_t::mean_delay() const
 }
 
 double
-tar_t::variance_delay() const
+Call::variance_delay() const
 {
     if ( dropped_messages() ) {
 	return std::numeric_limits<double>::infinity();
@@ -178,7 +178,7 @@ tar_t::variance_delay() const
  */
 
 double
-tar_t::compute_minimum_service_time( std::deque<Entry *>& stack ) const
+Call::compute_minimum_service_time( std::deque<Entry *>& stack ) const
 {
     if ( reply() ) {
 	if ( entry()->_minimum_service_time[0] == 0. ) {
@@ -191,7 +191,7 @@ tar_t::compute_minimum_service_time( std::deque<Entry *>& stack ) const
 }
 
 FILE *
-tar_t::print( FILE * output ) const
+Call::print( FILE * output ) const
 {
     (void) fprintf( output, "%5.2f * %s", calls(), _entry->name().c_str() );
     return output;
@@ -199,8 +199,8 @@ tar_t::print( FILE * output ) const
 
 
 
-tar_t&
-tar_t::insertDOMResults()
+Call&
+Call::insertDOMResults()
 {
     if ( _call == nullptr ) return *this;
 
@@ -244,7 +244,7 @@ tar_t::insertDOMResults()
 
 
 std::ostream&
-tar_t::print( std::ostream& output ) const
+Call::print( std::ostream& output ) const
 {
     output << r_delay
 	   << r_delay_sqr;
@@ -261,10 +261,10 @@ tar_t::print( std::ostream& output ) const
 void
 Targets::store_target_info( Entry * to_entry, LQIO::DOM::Call* call  )
 {
-    if ( std::any_of( _target.begin(), _target.end(), [=]( const tar_t& target ){ return target.entry() == to_entry; } ) ) {
+    if ( std::any_of( _target.begin(), _target.end(), [=]( const Call& target ){ return target.entry() == to_entry; } ) ) {
 	call->input_error( LQIO::WRN_MULTIPLE_SPECIFICATION );
     } else {
-	_target.emplace_back( tar_t( to_entry, call ) );
+	_target.emplace_back( Call( to_entry, call ) );
     }
 }
 
@@ -276,10 +276,10 @@ Targets::store_target_info( Entry * to_entry, LQIO::DOM::Call* call  )
 void
 Targets::store_target_info( Entry * to_entry, double value )
 {
-    if ( std::any_of( _target.begin(), _target.end(), [=]( const tar_t& target ){ return target.entry() == to_entry; } ) ) {
+    if ( std::any_of( _target.begin(), _target.end(), [=]( const Call& target ){ return target.entry() == to_entry; } ) ) {
 //	call->input_error( LQIO::WRN_MULTIPLE_SPECIFICATION );
     } else if ( value > 0 ) {
-	_target.emplace_back( tar_t( to_entry, value ) );
+	_target.emplace_back( Call( to_entry, value ) );
     }
 }
 
@@ -297,13 +297,13 @@ Targets::configure( LQIO::DOM::Phase::Type type, bool normalize )
 {
     _type = type;
     
-    std::for_each( _target.begin(), _target.end(), std::mem_fn( &tar_t::configure ) );
+    std::for_each( _target.begin(), _target.end(), std::mem_fn( &Call::configure ) );
     const double sum = std::accumulate( _target.begin(), _target.end(), static_cast<double>(0.0),
-				  []( double sum, tar_t& target ){ target._tprob = sum + target.calls(); return target._tprob; } );
+				  []( double sum, Call& target ){ target._tprob = sum + target.calls(); return target._tprob; } );
 
     if ( _type != LQIO::DOM::Phase::Type::DETERMINISTIC && normalize ) {	// STOCHASTIC conflicts with Parasol.
 	/* Normalize STOCHASTIC, but not forwarding. */
-	std::for_each( _target.begin(), _target.end(), [=]( tar_t& target ){ target._tprob /= (sum + 1); } );
+	std::for_each( _target.begin(), _target.end(), [=]( Call& target ){ target._tprob /= (sum + 1); } );
     }
     return sum;
 }
@@ -312,7 +312,7 @@ Targets::configure( LQIO::DOM::Phase::Type type, bool normalize )
 void
 Targets::initialize()
 {
-    std::for_each( _target.begin(), _target.end(), std::mem_fn( &tar_t::initialize ) );
+    std::for_each( _target.begin(), _target.end(), std::mem_fn( &Call::initialize ) );
 }
 
 
@@ -323,35 +323,35 @@ Targets::initialize()
  * they are needed for deterministic scheduling history.
  */
 
-tar_t *
-Targets::entry_to_send_to ( unsigned int&i, unsigned int& j ) const
+Call *
+Targets::get_next_target( std::pair<size_t,size_t>& history ) const
 {
-    if ( size() != 0 ) {
-	double	p;		/* branch probability		*/
+    if ( size() == 0 ) return nullptr;
+    double p;		/* branch probability		*/
+    size_t& i = history.first;
+    size_t& j = history.second;
+    
+    switch ( _type ) {
 
-	switch ( _type ) {
+    case LQIO::DOM::Phase::Type::STOCHASTIC:
+	p = Random::number();
+	for ( i = 0; i < size() && p >= _target[i]._tprob; i = i + 1 );
+	break;
 
-	case LQIO::DOM::Phase::Type::STOCHASTIC:
-	    p = Random::number();
-	    for ( i = 0; i < size() && p >= _target[i]._tprob; i = i + 1 );
-	    break;
-
-	case LQIO::DOM::Phase::Type::DETERMINISTIC:
-	    j = j + 1;
-	    while ( i < size() && j > _target[i].calls() ) {
-		j = 1;
-		i = i + 1;
-	    }
-	    break;
-
-	default:
-	    abort();
+    case LQIO::DOM::Phase::Type::DETERMINISTIC:
+	j = j + 1;
+	while ( i < size() && j > _target[i].calls() ) {
+	    j = 1;
+	    i = i + 1;
 	}
-	if ( i < size() ) {
-	    return const_cast<tar_t *>(&_target[i]);
-	}
+	break;
+
+    default:
+	abort();
     }
-
+    if ( i < size() ) {
+	return const_cast<Call *>(&_target[i]);
+    }
     return nullptr;
 }
 
@@ -360,7 +360,7 @@ Targets::entry_to_send_to ( unsigned int&i, unsigned int& j ) const
 Targets&
 Targets::accumulate_data()
 {
-    for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
+    for ( std::vector<Call>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
 	tp->r_delay_sqr.accumulate_variance( tp->r_delay.accumulate() );
 	if ( !tp->reply() ) {
 	    tp->r_loss_prob.accumulate();
@@ -374,7 +374,7 @@ Targets::accumulate_data()
 Targets&
 Targets::reset_stats()
 {
-    for ( std::vector<tar_t>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
+    for ( std::vector<Call>::iterator tp = _target.begin(); tp != _target.end(); ++tp ) {
  	tp->r_delay.reset();
  	tp->r_delay_sqr.reset();
  	if ( !tp->reply() ) {
@@ -389,7 +389,7 @@ Targets::reset_stats()
 std::ostream&
 Targets::print( std::ostream& output ) const
 {
-    std::for_each( _target.begin(), _target.end(), [&]( const tar_t& target ){ target.print( output ); } );
+    std::for_each( _target.begin(), _target.end(), [&]( const Call& target ){ target.print( output ); } );
     return output;
 }
 
@@ -397,6 +397,6 @@ Targets::print( std::ostream& output ) const
 Targets&
 Targets::insertDOMResults()
 {
-    std::for_each( _target.begin(), _target.end(), std::mem_fn( &tar_t::insertDOMResults ) );
+    std::for_each( _target.begin(), _target.end(), std::mem_fn( &Call::insertDOMResults ) );
     return *this;
 }

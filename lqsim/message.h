@@ -1,37 +1,36 @@
-/* -*- c++ -*- */
-
-/************************************************************************/
-/* Copyright the Real-Time and Distributed Systems Group,		*/
-/* Department of Systems and Computer Engineering,			*/
-/* Carleton University, Ottawa, Ontario, Canada. K1S 5B6		*/
-/* 									*/
-/* May 1996.								*/
-/************************************************************************/
-
-/*
- * Global vars for simulation.
+/* -*- c++ -*-
+ * Messages sent between tasks.
  *
- * $Id: message.h 17403 2024-10-30 01:30:01Z greg $
+ * Copyright the Real-Time and Distributed Systems Group,
+ * Department of Systems and Computer Engineering,
+ * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
+ *
+ * May 1996.
+ * November 2024
+ *
+ * ------------------------------------------------------------------------
+ * $Id: message.h 17499 2024-11-27 14:14:11Z greg $
+ * ------------------------------------------------------------------------
  */
 
-#ifndef MESSAGE_H
-#define MESSAGE_H
+#ifndef LQSIM_MESSAGE_H
+#define LQSIM_MESSAGE_H
 
 class Activity;
 class Entry;
-class tar_t;
+class Call;
 
 class Message {
 public:
-    Message( const Entry * e=nullptr, tar_t * tp=nullptr ) { init( e, tp ); }
-    Message * init( const Entry * e, tar_t * tp );
+    Message( const Entry * e=nullptr, Call * tp=nullptr );
+    Message * init( const Entry * ep, Call * src );
     
+public:
+    const Entry * client;		/* Pointer to sending entry.    */
+    Call * target;			/* Index of appropriate stat.	*/
     Activity * activity;		/* Activity to run.		*/
     double time_stamp;			/* Time stamp of message send.	*/
-    const Entry * client;		/* Pointer to sending entry.    */
     int reply_port;			/* Place to send reply.		*/
     const Entry * intermediate;		/* Pointer to intermediate entry*/
-    tar_t * target;			/* Index of appropriate stat.	*/
 };
-
 #endif

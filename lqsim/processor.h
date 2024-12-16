@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.h 17466 2024-11-13 14:17:16Z greg $
+ * $Id: processor.h 17514 2024-12-05 20:33:10Z greg $
  */
 
 #ifndef	PROCESSOR_H
@@ -19,15 +19,32 @@
 #include <vector>
 #include <map>
 #include <string>
+#if HAVE_PARASOL
+#include <parasol/para_internals.h>
+#else
+#include <mutex>
+#endif
 #include <lqio/dom_processor.h>
+#include "lqsim.h"
 #include "result.h"
 
 class Group;
-class Instance;
 class Task;
+namespace Instance {
+    class Instance;
+}
 
 class Processor {
 public:
+    typedef void (Processor::*compute_fptr)( double );
+
+#if HAVE_PARASOL
+    static inline double now() { return ps_now; }
+    inline void sleep( double time ) { ps_sleep( time ); }
+#else
+    static double now();
+    void sleep( double time );
+#endif
 
     /*
      * Compare to processors by their name.  Used by the set class to
@@ -46,15 +63,22 @@ private:
      * Translate input.h types to para_proto.h types.
      */
 
+#if HAVE_PARASOL
     static const std::map<const scheduling_type,const int> scheduling_types;
-
+#endif
+   
+    
 protected:
+#if HAVE_PARASOL
     static Processor * processor_table[MAX_NODES+1];
+#endif
 
 public:
     static Processor * find( const std::string& );
+#if HAVE_PARASOL
     static Processor * find( const int i ) { return processor_table[i]; }
-    static void reschedule( Instance * ip );
+#endif
+    static void reschedule( Instance::Instance * ip );
     static void add( const std::pair<std::string,LQIO::DOM::Processor*>& );
 
 private:
@@ -64,7 +88,6 @@ private:
 public:
     Processor( LQIO::DOM::Processor * );
     virtual ~Processor() {}
-    Processor& create();
 
     LQIO::DOM::Processor * getDOM() const { return _dom; }
 
@@ -74,14 +97,18 @@ public:
     int replicas() const { return _dom->hasReplicas() ? _dom->getReplicasValue() : 0.0; } 
     scheduling_type discipline() const { return _dom->getSchedulingType(); }
     unsigned multiplicity() const;					/* Special access!		*/
+    void add_task( Task * );
 
+#if HAVE_PARASOL
+    Processor& create();
     long node_id() const { return _node_id; }
+#endif
 
     bool is_infinite() const;
     bool is_multiserver() const { return multiplicity() > 1; }
     bool derive_utilization() const;
 
-    void add_task( Task * );
+    compute_fptr get_compute_func() const;
 
     virtual Processor& reset_stats() { r_util.reset(); return *this; }
     virtual Processor& accumulate_data() { r_util.accumulate(); return *this; }
@@ -89,24 +116,33 @@ public:
 
     std::ostream& print( std::ostream& ) const;
 
+private:
+    void compute( double time );
+
 public:
     bool trace_flag;			/* For tracing.			*/
-#if BUG_289
-    VariableResult r_util;		/* Utilization.			*/
-#else
+#if HAVE_PARASOL
     ParasolResult r_util;		/* Utilization.			*/
+#else
+    VariableResult r_util;		/* Utilization.			*/
 #endif
     Group * _group;			/*				*/
 
 protected:
+#if HAVE_PARASOL
     long _node_id;			/* Parasol node id	.	*/
+#endif
+    int _active;			/* Number of processors running.*/
 
 private:
     LQIO::DOM::Processor * _dom;
     std::vector<Task *> _tasks;
+#if !HAVE_PARASOL
+    std::mutex _mutex;
+#endif
 };
-
-
+
+#if HAVE_PARASOL
 
 class Custom_Processor : public Processor
 {
@@ -134,8 +170,8 @@ private:
     void trace( const processor_events event, ... );
     
 private:
-    int _active;			/* Number of processors running.*/
-    Instance ** _active_task;		/* Active tasks.		*/
+    Instance::Instance ** _active_task;	/* Active tasks.		*/
     long _scheduler;			/* Port of the scheduler.	*/
 };
+#endif
 #endif

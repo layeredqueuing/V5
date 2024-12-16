@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 17400 2024-10-28 20:52:36Z greg $
+ * $Id: petrisrvn.cc 17507 2024-12-04 01:52:14Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -77,7 +77,7 @@ static void my_handler (int);
  * Command options.
  */
 
-static const char * opts = "dHI:jkm:no:pP:rRtvVwxz:";
+static const char * opts = "dHI:jkm:no:pP:Q:rRtvVwxz:";
 
 #if HAVE_GETOPT_LONG
 static const struct option longopts[] =
@@ -93,6 +93,7 @@ static const struct option longopts[] =
     { "output",             required_argument,  0, 'o' },
     { "parseable",          no_argument,        0, 'p' },
     { "pragma",             required_argument,  0, 'P' },
+    { "queue-size",         required_argument,	0, 'Q' },
     { "rtf",	            no_argument,        0, 'r' },
     { "reload-net",	    no_argument,	0, 'R' },
     { "trace-greatspn",     no_argument,        0, 't' },
@@ -104,7 +105,6 @@ static const struct option longopts[] =
     { "no-header",	    no_argument,	0, 256+'h' },
     { "print-comment",	    no_argument,	0, 256+'c' },
     { "overtaking",	    optional_argument,	0, 256+'O' },
-    { "queue-limit",        required_argument,	0, 256+'Q' },
     { "random-processors",  no_argument,	0, 256+'p' },
     { "random-queueing",    no_argument,	0, 256+'q' },
     { "reload-lqx",	    no_argument,        0, 256+'r' },
@@ -309,7 +309,7 @@ main(int argc, char *argv[])
 	    simplify_network = true;
 	    break;
 
-	case 256+'Q':
+	case 'Q':
 	    pragmas.insert(LQIO::DOM::Pragma::_queue_size_,optarg);
 	    break;
 

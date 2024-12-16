@@ -9,17 +9,21 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 17467 2024-11-13 14:57:26Z greg $
+ * $Id: processor.cc 17514 2024-12-05 20:33:10Z greg $
  * ------------------------------------------------------------------------
  */
 
+#include "lqsim.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdarg>
 #include <cstdlib>
 #include <iomanip>
 #include <regex>
-#include "lqsim.h"
+#if !HAVE_PARASOL
+#include <thread>
+#include <chrono>
+#endif
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include <lqio/labels.h>
@@ -35,11 +39,15 @@
 #define	SN_PREEMPT	100			/* Message.			*/
 
 std::set<Processor *, Processor::ltProcessor> Processor::__processors;	/* Processor table.		*/
+#if HAVE_PARASOL
 Processor *Processor::processor_table[MAX_NODES+1];			/* NodeId to processor		*/
+#else
+static const auto start_time =  std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now());
+#endif
 
+#if HAVE_PARASOL
 const std::map<const scheduling_type,const int> Processor::scheduling_types =
 {
-#if !BUG_289
     { SCHEDULE_CUSTOMER,    PS_FIFO },
     { SCHEDULE_DELAY,	    PS_FIFO },
     { SCHEDULE_FIFO,	    PS_FIFO },
@@ -47,8 +55,8 @@ const std::map<const scheduling_type,const int> Processor::scheduling_types =
     { SCHEDULE_PPR,	    PS_PR },
     { SCHEDULE_PS,	    PS_FIFO },
     { SCHEDULE_CFS,	    PS_CFS }
-#endif
 };
+#endif
 
 
 /*
@@ -72,13 +80,17 @@ Processor::Processor( LQIO::DOM::Processor* dom )
     : trace_flag(false),
       r_util("Utilization",dom),
       _group(nullptr),
+#if HAVE_PARASOL
       _node_id(0),
+#endif
+      _active(0),
       _dom( dom )
 {
     trace_flag = std::regex_match( name(), processor_match_pattern );
 }
 
 
+#if HAVE_PARASOL
 /*
  * Create a processor
  */
@@ -86,7 +98,6 @@ Processor::Processor( LQIO::DOM::Processor* dom )
 Processor&
 Processor::create()
 {
-#if !BUG_289
     _node_id = ps_build_node( name().c_str(), multiplicity(), cpu_rate(), quantum(),
 			      scheduling_types.at(discipline()),
 			      SF_PER_NODE|SF_PER_HOST );
@@ -97,9 +108,9 @@ Processor::create()
 	r_util.init( ps_get_node_stat_index( _node_id ) );	// defined by Parasol
 	processor_table[_node_id] = this;
     }
-#endif
     return *this;
 }
+#endif
 
 
 
@@ -137,9 +148,9 @@ Processor::is_infinite() const
  */
 
 void
-Processor::reschedule( Instance * ip )
+Processor::reschedule( Instance::Instance * ip )
 {
-#if !BUG_289
+#if HAVE_PARASOL
     ps_my_schedule_time = ps_now;
     if ( (Pragma::__pragmas->scheduling_model() & SCHEDULE_NATURAL) == 0 ) {
 	Custom_Processor * pp = dynamic_cast<Custom_Processor *>(find(ps_my_node));
@@ -152,18 +163,89 @@ Processor::reschedule( Instance * ip )
     }
 #endif
 }
+
+
+bool
+Processor::derive_utilization() const {
+    return discipline() != SCHEDULE_FIFO
+	&& discipline() != SCHEDULE_DELAY
+	&& (Pragma::__pragmas->scheduling_model() & SCHEDULE_CUSTOM) == 0;
+}
+
+
+/*
+ * Used to save the tasks running on this processor.
+ */
+
+void
+Processor::add_task( Task * task )
+{
+    _tasks.push_back( task );
+}
+
+
+Processor::compute_fptr
+Processor::get_compute_func() const
+{
+    if ( is_infinite() ) {
+	return &Processor::sleep;
+    } else {
+	return &Processor::compute;
+    }
+}
+
+
+#if !HAVE_PARASOL
+/* static */ double
+Processor::now()
+{
+    const auto stop_time = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now());
+    const std::chrono::duration<double> diff = stop_time - start_time;
+    return diff.count();
+}
+#endif
+
+
+
+void
+Processor::compute( double time )
+{
+#if HAVE_PARASOL
+    ps_compute( time );
+#else
+    std::unique_lock<std::mutex> lock(_mutex);
+    _active += 1;
+    // if _active > copies wait
+    // wait_for( time... ).
+    std::this_thread::sleep_for( std::chrono::milliseconds(static_cast<long>(time*1000)) );
+    // notify
+    _active -= 1;
+#endif
+}
+
+
+#if !HAVE_PARASOL
+void
+Processor::sleep( double time )
+{
+    std::this_thread::sleep_for( std::chrono::milliseconds(static_cast<long>(time*1000)) );
+}
+#endif
 
+#if HAVE_PARASOL
 /*----------------------------------------------------------------------*/
-/*			  Output Functions.				*/
+/* Non-standard Scheduling types.					*/
 /*----------------------------------------------------------------------*/
 
+#define PRIORITIES
+
+int cpu_scheduler_port;			/* Port to send CPU requests to.	*/
 
 Custom_Processor::Custom_Processor( LQIO::DOM::Processor * domProcessor )
-    : Processor( domProcessor ), _active(0), _active_task(0), _scheduler(-1)
-
+    : Processor( domProcessor ), _active_task(nullptr), _scheduler(-1)
 {
     if ( !is_infinite() ) {
-	_active_task  = new Instance * [multiplicity()];
+	_active_task  = new Instance::Instance * [multiplicity()];
     }
 }
 
@@ -185,7 +267,6 @@ Custom_Processor::~Custom_Processor()
 Custom_Processor&
 Custom_Processor::create()
 {
-#if !BUG_289
     _node_id = ps_build_node2( name().c_str(), multiplicity(), cpu_rate(), cpu_scheduler_task, SF_PER_NODE|SF_PER_HOST );
 
     if ( _node_id < 0 || MAX_NODES < _node_id ) {
@@ -193,14 +274,9 @@ Custom_Processor::create()
     } else {
 	processor_table[_node_id] = this;
     }
-#endif
     return *this;
 }
 
-
-#define PRIORITIES
-
-int cpu_scheduler_port;			/* Port to send CPU requests to.	*/
 
 /*
  * The scheduler (of all evil)
@@ -209,10 +285,8 @@ int cpu_scheduler_port;			/* Port to send CPU requests to.	*/
 void
 Custom_Processor::cpu_scheduler_task ( void * )
 {
-#if !BUG_289
     Custom_Processor * pp = dynamic_cast<Custom_Processor *>(Processor::find(ps_my_node));
     pp->main();
-#endif
 }
 
 
@@ -221,23 +295,18 @@ Custom_Processor::main()
 {
     long * rtrq = static_cast<long *>(calloc( MAX_TASKS, sizeof(long) ));
 
-#if !BUG_289
     _active_task[ps_my_host] = nullptr;
     _scheduler = ps_std_port(ps_myself);
-#endif
 
     for ( ;; ) {
 	long type;
 	long task_id;
 	double time_stamp;
 	char * message;
-#if !BUG_289
 	double quantum = NEVER;
 	double start_time = ps_now;
-#endif
-	Instance * ip;
+	Instance::Instance * ip;
 
-#if !BUG_289
 	if ( ps_receive( ps_my_std_port, quantum, &type, &time_stamp, &message, &task_id ) == 0 ) {
 	    type = SN_PREEMPT;
 	}
@@ -329,7 +398,6 @@ Custom_Processor::main()
 	    abort();
 	    break;
 	}
-#endif
     }
 }
 
@@ -342,11 +410,9 @@ Custom_Processor::main()
 double
 Custom_Processor::run_task( long task_id )
 {
-    Instance * ip = object_tab[task_id];
-
+    Instance::Instance * ip = object_tab[task_id];
     trace( PROC_RUNNING_TASK, ip );
 
-#if !BUG_289
     _active_task[ps_my_host] = ip;
     if ( ip ) {
 	if ( ip->r_a_execute != nullptr ) {
@@ -358,12 +424,11 @@ Custom_Processor::run_task( long task_id )
     }
 
     ps_schedule( task_id, ps_my_host );
-#endif
 
     return quantum();
 }
 
-
+
 /*
  * Trace processor events.
  */
@@ -376,8 +441,8 @@ Custom_Processor::trace( const processor_events event, ... )
 
     /* Args for va-arg */
 
-    Instance * ip;
-    Instance * ip2;
+    Instance::Instance * ip;
+    Instance::Instance * ip2;
     unsigned type;
     unsigned task_id;
 
@@ -387,22 +452,22 @@ Custom_Processor::trace( const processor_events event, ... )
 	double quantum;
 
 	if ( trace_driver ) {
-	    (void) fprintf( stddbg, "\nTime* %8g P %s: ", Instance::now(), name().c_str() );
+	    (void) fprintf( stddbg, "\nTime* %8g P %s: ", now(), name().c_str() );
 	} else {
-	    (void) fprintf( stddbg, "%8g P %s: ", Instance::now(), name().c_str() );
+	    (void) fprintf( stddbg, "%8g P %s: ", now(), name().c_str() );
 	}
 
 	switch ( event ) {
 	case PROC_PRIO_PREEMPTING_TASK:
-	    ip  = va_arg( args, Instance * );
-	    ip2 = va_arg( args, Instance *  );
+	    ip  = va_arg( args, Instance::Instance * );
+	    ip2 = va_arg( args, Instance::Instance *  );
 	    (void) fprintf( stddbg, "%s (%ld) preempting %s (%ld).",
 			    ip->name().c_str(),  ip->task_id(),
 			    ip2->name().c_str(), ip2->task_id() );
 	    break;
 
 	case PROC_PREEMPTING_TASK:
-	    ip      = va_arg( args, Instance * );
+	    ip      = va_arg( args, Instance::Instance * );
 	    quantum = va_arg( args, double );
 	    (void) fprintf( stddbg, "Preempting %s (%ld). quantum=%g",
 			    ip->name().c_str(), ip->task_id(),
@@ -410,13 +475,11 @@ Custom_Processor::trace( const processor_events event, ... )
 	    break;
 
 	case PROC_RUNNING_TASK:
-	    ip = va_arg( args, Instance * );
+	    ip = va_arg( args, Instance::Instance * );
 	    quantum = va_arg( args, double );
-#if !BUG_289
 	    (void) fprintf( stddbg, "Running %s (%ld). Delay to schedule %g.",
 			    ip->name().c_str(), ip->task_id(),
-			    Instance::now() - ps_schedule_time(ip->task_id()) );
-#endif
+			    now() - ps_schedule_time(ip->task_id()) );
 	    break;
 
 	case PROC_IDLE:
@@ -424,12 +487,11 @@ Custom_Processor::trace( const processor_events event, ... )
 	    break;
 
 	case PROC_GENERAL:
-	    ip      = va_arg( args, Instance * );
+	    ip      = va_arg( args, Instance::Instance * );
 	    type    = va_arg( args, unsigned );
 	    task_id = va_arg( args, unsigned );
 	    (void) fprintf( stddbg, "Processor for task %s (%ld): ",
 			    ip->name().c_str(), ip->task_id() );
-#if !BUG_289
 	    switch ( type ) {
 	    case SN_PREEMPT:
 		(void) fprintf( stddbg, "PREEMPT - task %d (%s)", task_id, ps_task_name(task_id) );
@@ -447,7 +509,6 @@ Custom_Processor::trace( const processor_events event, ... )
 		(void) fprintf( stddbg, "????? - %d", task_id );
 		break;
 	    }
-#endif
 	    break;
 	}
 
@@ -459,25 +520,7 @@ Custom_Processor::trace( const processor_events event, ... )
 
     va_end( args );
 }
-
-
-bool
-Processor::derive_utilization() const {
-    return discipline() != SCHEDULE_FIFO
-	&& discipline() != SCHEDULE_DELAY
-	&& (Pragma::__pragmas->scheduling_model() & SCHEDULE_CUSTOM) == 0;
-}
-
-
-/*
- * Used to save the tasks running on this processor.
- */
-
-void
-Processor::add_task( Task * task )
-{
-    _tasks.push_back( task );
-}
+#endif
 
 /*----------------------------------------------------------------------*/
 /*			  Output Functions.				*/
@@ -581,11 +624,15 @@ Processor::add( const std::pair<std::string,LQIO::DOM::Processor*>& p )
     }
 
     Processor * processor = nullptr;
+#if HAVE_PARASOL
     if ( Pragma::__pragmas->scheduling_model() & SCHEDULE_CUSTOM ) {
 	processor = new Custom_Processor( dom );
     } else {
 	processor = new Processor( dom );
     }
+#else
+    processor = new Processor( dom );
+#endif
     Processor::__processors.insert( processor );
 }
 
@@ -606,7 +653,7 @@ add_communication_delay( const char * from_proc_name, const char * to_proc_name,
     }
 }
 
-#if !BUG_289
+#if HAVE_PARASOL
 /*
  * Define these suckers even though they are not used.
  */

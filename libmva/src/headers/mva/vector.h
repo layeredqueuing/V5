@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: vector.h 17275 2024-09-10 20:35:49Z greg $
+ * $Id: vector.h 17487 2024-11-19 15:02:37Z greg $
  *
  * Vector.  Range checked from 1..n (and not from 0..n-1).
  * VectorMath.  Adds the operators +, -, *, /, square, sum (so only use on numbers).
@@ -21,12 +21,6 @@
 #include <cassert>
 #include <iostream>
 #include <iterator>
-
-template <typename Type> class Vector;
-template <typename Type> class VectorMath;
-template <typename Type> class VectorIterator;
-template <typename Type> inline std::ostream& operator << ( std::ostream& output, const Vector<Type>& self ) { return self.print( output ); }
-template <typename Type> inline std::ostream& operator << ( std::ostream& output, const VectorMath<Type>& self ) { return self.print( output ); }
 
 const int VectorSize = 0;
 
@@ -349,4 +343,7 @@ public:
 	    return sum;
 	}
 };
+
+template <typename Type> inline std::ostream& operator << ( std::ostream& output, const Vector<Type>& self ) { return self.print( output ); }
+template <typename Type> inline std::ostream& operator << ( std::ostream& output, const VectorMath<Type>& self ) { return self.print( output ); }
 #endif

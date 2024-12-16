@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 16443 2023-02-25 00:56:26Z greg $
+ * $Id: pragma.cc 17506 2024-12-04 01:45:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -27,6 +27,7 @@ const std::map<const std::string,Pragma::fptr> Pragma::__set_pragma = {
     { LQIO::DOM::Pragma::_max_blocks_, 			&Pragma::set_max_blocks },
     { LQIO::DOM::Pragma::_nice_,			&Pragma::set_nice },
     { LQIO::DOM::Pragma::_precision_, 	        	&Pragma::set_precision },
+    { LQIO::DOM::Pragma::_queue_size_,			&Pragma::set_queue_size },
     { LQIO::DOM::Pragma::_quorum_reply_,		&Pragma::set_quorum_delayed_calls },
     { LQIO::DOM::Pragma::_reschedule_on_async_send_,	&Pragma::set_reschedule_on_async_send },
     { LQIO::DOM::Pragma::_run_time_, 			&Pragma::set_run_time },
@@ -51,6 +52,7 @@ Pragma::Pragma() :
     _nice_value(0),
     _number_of_blocks(0),
     _precision(0.0),
+    _queue_size(0),
     _quorum_delayed_calls(false),	/* Quorum reply (BUG_311)	*/
     _reschedule_on_async_send(false),	/* force schedule after snr.	*/
     _run_time(0.0),
@@ -156,6 +158,16 @@ void Pragma::set_precision( const std::string& value )
     char * endptr = nullptr;
     _precision = std::strtod( value.c_str(), &endptr );
     if ( *endptr != '\0' || _precision < 0.001 ) {
+	throw std::domain_error( value );
+    }
+}
+
+void
+Pragma::set_queue_size( const std::string& value )
+{
+    char * endptr = nullptr;
+    _queue_size = std::strtol( value.c_str(), &endptr, 10 );
+    if ( *endptr != '\0' ) {
 	throw std::domain_error( value );
     }
 }

@@ -10,20 +10,20 @@
  * November 2020.
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.h 17433 2024-11-05 13:59:00Z greg $
+ * $Id: actlist.h 17497 2024-11-22 19:08:28Z greg $
  * ------------------------------------------------------------------------
  */
 
 #ifndef ACTLIST_H
 #define ACTLIST_H
 
+#include <deque>
 #include <set>
 #include "result.h"
 
 class Entry;
 class Activity;
 class Histogram;
-class Task;
 class Activity;
 
 class InputActivityList;

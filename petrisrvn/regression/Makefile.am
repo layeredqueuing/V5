@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 17406 2024-10-30 17:11:43Z greg $
+# $Id: Makefile.am 17507 2024-12-04 01:52:14Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -121,6 +121,10 @@ sync:	$(SYNC)
 
 other:	$(OTHER)
 	echo $(OTHER) | tr -s " " "\n" | srvndiff $(DIFFOPTS) -Q  . ../../models/regression/petri-results
+
+09-sanity.lqxo:	09-sanity.lqnx
+	$(SRVN) $(OPTS) -Q5 $<
+	@srvndiff -q $(DIFFOPTS) $@ ../../models/regression/petri-results/$@
 
 33-spex-convergence.lqxo: 33-spex-convergence.lqnx
 	$(SRVN) -w -o $*.out $<

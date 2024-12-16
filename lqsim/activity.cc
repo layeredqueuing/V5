@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 17462 2024-11-12 21:55:04Z greg $
+ * $Id: activity.cc 17499 2024-11-27 14:14:11Z greg $
  */
 
 #include "lqsim.h"
@@ -102,7 +102,11 @@ Activity::rename( const std::string& s )
 bool
 Activity::has_lost_messages() const
 {
-    return std::any_of(_calls.begin(),_calls.end(), std::mem_fn( &tar_t::dropped_messages ) );
+#if HAVE_PARASOL
+    return std::any_of(_calls.begin(),_calls.end(), std::mem_fn( &Call::dropped_messages ) );
+#else
+    return false;
+#endif
 }
 
 double
@@ -140,7 +144,11 @@ Activity::configure()
 
     if ( !is_specified() ) return 0.0;
     
+#if HAVE_PARASOL
     const double n_calls = _calls.configure( type() );
+#else
+    const double n_calls = 0.;
+#endif
     
     if ( has_think_time() ) {
 	try { 
@@ -193,7 +201,9 @@ Activity&
 Activity::initialize()
 {
     if ( getDOM() != nullptr) {
+#if HAVE_PARASOL
 	_calls.initialize();
+#endif
     }
     return *this;
 }
@@ -278,7 +288,11 @@ double Activity::count_replies( ActivityList::Collect& data ) const
 double
 Activity::compute_minimum_service_time( std::deque<Entry *>& stack ) const
 {
-    return get_service_time() + std::accumulate( _calls.begin(), _calls.end(), 0.0, [=]( double l, const tar_t& r ){ return l + r.compute_minimum_service_time(const_cast<std::deque<Entry *>&>(stack)); } );
+#if HAVE_PARASOL
+    return get_service_time() + std::accumulate( _calls.begin(), _calls.end(), 0.0, [=]( double l, const Call& r ){ return l + r.compute_minimum_service_time(const_cast<std::deque<Entry *>&>(stack)); } );
+#else
+    return 0.0;
+#endif
 }
     
 
@@ -315,7 +329,9 @@ Activity::reset_stats()
     r_service.reset();
     r_afterQuorumThreadWait.reset();	/* tomari quorum */
 
+#if HAVE_PARASOL
     _calls.reset_stats();
+#endif
  
     /* Histogram stuff */
  
@@ -352,7 +368,9 @@ Activity::accumulate_data()
 	r_cpu_util.accumulate();
     }
     r_cycle_sqr.accumulate_variance( r_cycle.accumulate() );	/* Do last! */
+#if HAVE_PARASOL
     _calls.accumulate_data();
+#endif
 
     /* Histogram stuff */
 
@@ -391,7 +409,9 @@ Activity::add_calls()
 	} else if ( domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY && !destEntry->test_and_set_recv( Entry::Type::SEND_NO_REPLY ) ) {
 	    continue;
 	} else if ( !destEntry->task()->is_reference_task()) {
+#if HAVE_PARASOL
 	    _calls.store_target_info( destEntry, domCall );
+#endif
 	}
     }
     return *this;
@@ -544,6 +564,7 @@ Activity::print_debug_info()
 
     if ( _calls.size() > 0 ) {
 	fprintf( stddbg, "\tcalls:  " );
+#if HAVE_PARASOL
 	for ( Targets::const_iterator tp = _calls.begin(); tp != _calls.end(); ++tp ) {
 	    if ( tp != _calls.begin() ) {
 		(void) fprintf( stddbg, ", " );
@@ -551,6 +572,7 @@ Activity::print_debug_info()
 	    tp->print( stddbg );
 	}
 	(void) fprintf( stddbg, ".\n" );
+#endif
     }
 
     if ( is_activity() ) {
@@ -595,7 +617,9 @@ Activity::insertDOMResults()
 	_hist_data->insertDOMResults();
     }
 
+#if HAVE_PARASOL
     _calls.insertDOMResults();
+#endif
     return *this;
 }
 
@@ -826,7 +850,9 @@ Activity::print( std::ostream& output ) const
 	       << r_afterQuorumThreadWait;
     }
 
+#if HAVE_PARASOL
     _calls.print( output );
+#endif
     return output;
 }
 

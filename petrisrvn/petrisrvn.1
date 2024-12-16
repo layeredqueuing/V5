@@ -99,8 +99,14 @@ the addition of the suffix \fB.p\fR.  If a suffix already exists on
 \fB\-P\fP, \fB\-\-pragma\fR=\fIvalue\fR
 Set \fIpragma\fP to value.  See the section on pragmas below.
 .TP
+\fB\-Q\fP, \fB\-\-queue-size\fR=\fIn\fP
+Set the queue size for open arrival or asynchronous sends to
+\fIarg\fP.  Queue overflows are reported as lost messages.
+.TP
 \fB\-r\fP, \fB\-\-rtf\fR
-Output results using Rich Text Format instead of plain text.  Processors, entries and tasks with high utilizations are coloured in red.
+Output results using Rich Text Format instead of plain text.
+Processors, entries and tasks with high utilizations are coloured in
+red.
 .TP
 \fB\-R\fR, \fB\-\-reload-net\fR
 Reread a preexisting, solved model (generated using \fB\-k\fR).
@@ -183,10 +189,6 @@ Force all processors to use first-come, first-served scheduling.
 Force all processors to use random scheduling for message servicing
 (reduces state space)
 .RE
-.TP
-\fBqueue-size\fR=\fIn\fP
-Set the queue size for open arrival or asynchronous sends to
-\fIarg\fP.  Queue overflows are reported as lost messages.
 .TP
 \fBreschedule-on-async-send\fR=\fI{true,false}\fR
 Force a resechedule of the processor (requeue) when an asynchronous

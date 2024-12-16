@@ -71,7 +71,7 @@ AC_ARG_ENABLE([parasol],
     [AS_HELP_STRING([--disable-parasol], [disable using Parasol with lqsim])],
     [with_parasol=no],
     [with_parasol=yes])
-AM_CONDITIONAL([HAVE_PARASOL], test "xwith_parasol" = "xyes")
+AM_CONDITIONAL([HAVE_PARASOL], test "x$with_parasol" = "xyes")
 # ----------------------------------------------------------------------
 # Checks for typedefs, structures, and compiler characteristics.
 #

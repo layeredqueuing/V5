@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 17434 2024-11-05 15:37:43Z greg $
+# $Id: Makefile.am 17502 2024-12-02 19:37:48Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -74,8 +74,7 @@ FORK=	85-fork.lqxo \
 	87-fork.lqxo \
 	88-quorum.lqxo \
 	89-quorum.lqxo 
-OTHER=	32-async-inf.lqxo \
-	90-A01.lqxo \
+OTHER=	90-A01.lqxo \
 	90-B07.lqxo \
 	91-cs3-1.lqxo \
 	92-open.lqxo \
@@ -101,7 +100,7 @@ SUFFIXES = .diff .d .lqxo .lqnx
 	-srvndiff ../../models/regression/sim-results/$< $< > $@
 
 check:	$(OBJS)
-#	echo $(OBJS) | tr -s " " "\n" | srvndiff -Q $(EPSILON) -@- . ../../models/regression/sim-results
+	echo $(OBJS) | tr -s " " "\n" | srvndiff -Q $(EPSILON) -@- . ../../models/regression/sim-results
 
 check-syntax:
 	$(MAKE) OPTS=-n check
@@ -124,44 +123,44 @@ distclean:	clean
 	-rm -f Makefile
 
 sanity:	$(SANITY)
-	echo $(SANITY) | tr -s " " "\n" | srvndiff -S0.01 -Q -@- . ../../models/regression/sim-results
+	echo $(SANITY) | tr -s " " "\n" | srvndiff $(EPSILON) -Q -@- . ../../models/regression/sim-results
 
 interlock: $(INTER)
-	echo $(INTER) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/sim-results
+	echo $(INTER) | tr -s " " "\n" | srvndiff $(EPSILON) -Q -@- . ../../models/regression/sim-results
 
 multi:	$(MULTI)
-	echo $(MULTI) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/sim-results
+	echo $(MULTI) | tr -s " " "\n" | srvndiff $(EPSILON) -Q -@- . ../../models/regression/sim-results
 
 act:	$(ACT)
-	echo $(ACT) | tr -s " " "\n" | srvndiff -Q -@- -S0.01 . ../../models/regression/sim-results
+	echo $(ACT) | tr -s " " "\n" | srvndiff $(EPSILON) -Q -@- . ../../models/regression/sim-results
 
 fork:	$(FORK)
-	echo $(FORK) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/sim-results
+	echo $(FORK) | tr -s " " "\n" | srvndiff $(EPSILON) -Q -@- . ../../models/regression/sim-results
 
 repl:	$(REPL)
-	echo $(REPL) | tr -s " " "\n" | srvndiff -Q -@- -S0.02 . ../../models/regression/sim-results
+	echo $(REPL) | tr -s " " "\n" | srvndiff $(EPSILON) -Q -@- . ../../models/regression/sim-results
 
 sim:	$(SIM)
-	echo $(SIM) | tr -s " " "\n" | srvndiff -Q -@- -S0.02 . ../../models/regression/sim-results
+	echo $(SIM) | tr -s " " "\n" | srvndiff $(EPSILON) -Q -@- . ../../models/regression/sim-results
 
 sema:	$(SEMA)
-	echo $(SEMA) | tr -s " " "\n" | srvndiff -Q -@- -S0.02 . ../../models/regression/sim-results
+	echo $(SEMA) | tr -s " " "\n" | srvndiff $(EPSILON) -Q -@- . ../../models/regression/sim-results
 
 sync:	$(SYNC)
-	echo $(SYNC) | tr -s " " "\n" | srvndiff -Q -@- -S0.02 . ../../models/regression/sim-results
+	echo $(SYNC) | tr -s " " "\n" | srvndiff $(EPSILON) -Q -@-  . ../../models/regression/sim-results
 
 other:	$(OTHER)
-	echo $(OTHER) | tr -s " " "\n" | srvndiff -Q -@- -S0.02 . ../../models/regression/sim-results
+	echo $(OTHER) | tr -s " " "\n" | srvndiff $(EPSILON) -Q -@- . ../../models/regression/sim-results
 
 quick:
 	$(MAKE) OPTS='-S123456 -T10000' EPSILON='-A +t -S10.0' check
 
 32-async-inf.lqxo: 32-async-inf.lqnx
-	$(SRVN) -C1.0,250000,1000000 -Pstop-on-message-loss=f -w -S1049217653 32-async-inf.lqnx
+	$(SRVN) -C1.0,500000,5000000 -Q10000 -Pstop-on-message-loss=f -w -S1049217653 32-async-inf.lqnx
 
 33-spex-convergence.lqxo: 33-spex-convergence.lqnx
 	$(SRVN) -B5,100000 -o $*.out $<
-	@mv $*.d/$*-006.lqxo $@
+	@mv $*.d/$*-007.lqxo $@
 	@srvndiff -Q $(EPSILON) $@ ../../models/regression/sim-results/$@
 	@rm -rf $*.d
 

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * Lqsim-parasol task interface.
  *
- * $Id: task.h 17466 2024-11-13 14:17:16Z greg $
+ * $Id: task.h 17513 2024-12-05 12:52:35Z greg $
  */
 
 /************************************************************************/
@@ -25,30 +25,28 @@
 #include <lqio/dom_task.h>
 
 #include "actlist.h"
-#include "message.h"
+#include "processor.h"
 #include "result.h"
+#if HAVE_PARASOL
+#include <parasol/para_internals.h>
+#include "message.h"
+#else
+#include "rendezvous.h"
+#endif
 
 class Activity;
 class ActivityList;
 class Entry;
 class Group;
-class Instance;
 class ParentGroup;
-class Processor;
-class Task;
-class srn_client;
-
-#define	PRIORITY_OFFSET	10
-
-#if !BUG_289
-typedef SYSCALL (*syscall_func_ptr)( double );
-#else
-#define MAX_PRIORITY 100
-#define MIN_PRIORITY 0
-#endif
+namespace Instance {
+    class Instance;
+    class Client;
+    class Server;
+}
 
 class Task {
-    friend class Instance;
+    friend class Instance::Instance;
 
     /*
      * Compare to tasks by their name.  Used by the set class to
@@ -93,14 +91,14 @@ public:
 
 public:
     static Task * find( const std::string& task_name );
-    static Task * add( LQIO::DOM::Task* domTask );
+    static Task * add( LQIO::DOM::Task* dom );
 
 private:
     Task( const Task& ) = delete;
     Task& operator=( const Task& ) = delete;
 
 public:
-    Task( const Type type, int priority, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
+    Task( LQIO::DOM::Task* dom, Processor * processor, Group * group );
     virtual ~Task();
 
     LQIO::DOM::Task * getDOM() const{ return _dom; }
@@ -109,10 +107,10 @@ public:
     virtual const std::string& name() const { return _dom->getName(); }
     virtual scheduling_type discipline() const { return _dom->getSchedulingType(); }
     virtual unsigned multiplicity() const;					/* Special access!		*/
-    virtual int priority() const { return _priority; }
+    virtual int priority() const { return _dom->hasPriority() ? _dom->getPriorityValue() : 0; }
 
-    Type type() const { return _type; }
-    const std::string& type_name() const { return type_strings.at(_type); }
+    virtual Type type() const = 0;
+    const std::string& type_name() const { return type_strings.at(type()); }
 
     const std::vector<Entry *>& entries() const { return _entries; }
     const std::vector<Activity *>& activities() const { return _activities; }
@@ -122,15 +120,21 @@ public:
     unsigned max_phases() const { return _max_phases; }
     Task& max_phases( unsigned max_phases ) { _max_phases = std::max( _max_phases, max_phases ); return *this; }
 
-    Instance * add_task ( const char *task_name, Type type, int cpu_no, Instance * rip );
+    Instance::Instance * add_task ( const char *task_name, Type type, int cpu_no, Instance::Instance * rip );
     virtual int std_port() const { return -1; }
+#if HAVE_PARASOL
     virtual int worker_port() const { return -1; }
     int node_id() const;
+#endif
     Processor * processor() const { return _processor; }
+    Group * group() const { return _group; }
+    Task& setGroup( Group * group ) { _group = group; return *this; }
+#if HAVE_PARASOL
+    void set_group_id( int group_id ) { _group_id = group_id; }
     int group_id() const { return _group_id; }
-    Task& set_group_id( int group_id ) { _group_id = group_id; return *this; }
     Message * alloc_message();
     void free_message( Message * msg );
+#endif
 
     Activity * find_activity( const std::string& activity_name ) const;
 
@@ -138,7 +142,7 @@ public:
     bool is_multiserver() const { return multiplicity() > 1; }
     bool is_reference_task() const { return type() == Type::CLIENT; }
     virtual bool is_sync_server() const { return false; }
-    virtual bool is_aysnc_inf_server() const { return false; }
+    virtual bool is_async_inf_server() const { return false; }
     bool has_activities() const { return !_activities.empty(); }	/* True if activities present.	*/
     bool has_threads() const { return !_forks.empty(); }
     bool has_think_time() const;
@@ -155,10 +159,8 @@ public:
     virtual Task& configure();		/* Called after recalulateDynamicVariables but before create */
     virtual Task& create();
     Task& initialize();			/* Called after create() and start()	*/
-#if !BUG_289
-    virtual bool start() = 0;
-    virtual Task& kill() = 0;
-#endif
+    virtual bool run() = 0;
+    virtual Task& stop() = 0;
 
     virtual Task& reset_stats();
     virtual Task& accumulate_data();
@@ -171,20 +173,21 @@ protected:
 private:
     bool has_send_no_reply() const;
 
+#if HAVE_PARASOL
     void alloc_pool();
+#endif
 
     double throughput() const;
     double throughput_variance() const;
 
 private:
     LQIO::DOM::Task* _dom;			/* Stores all of the data.      */
-    const int _priority;			/* Parasol priority		*/
-
     Processor * _processor;			/* node			        */
-    int _group_id;				/* group  			*/
-#if !BUG_289
-    syscall_func_ptr _compute_func;		/* function to use to "compute"	*/
+    Group * _group;				/* group  			*/
+#if HAVE_PARASOL
+    int _group_id;
 #endif
+    Processor::compute_fptr _compute_func;	/* function to use to "compute"	*/
     unsigned _active;				/* Number of active instances.	*/
     unsigned _max_phases;			/* Max # phases, this task.	*/
 
@@ -193,23 +196,22 @@ private:
     std::vector<ActivityList *> _precedences;	/* activity list array 		*/
     std::vector<AndForkActivityList *> _forks;	/* List of forks for this task	*/
     std::vector<AndJoinActivityList *> _joins; 	/* List of joins for this task	*/
+
+#if HAVE_PARASOL
     std::list<Message *> _pending_msgs;		/* Messages blocked by join.	*/
-    double _join_start_time;			/* non-zero if in sync-join	*/
-
     std::list<Message *> _free_msgs;		/* Pool of messages 		*/
-
-protected:
-    Type _type;
+#endif
 
 public:
     bool trace_flag;				/* True if task is to be traced	*/
 
-    Histogram * _hist_data;            		/* Structure which stores histogram data for this task */
+    Histogram * _hist_data;            		/* Histogram data for this task */
     SampleResult r_cycle;			/* Cycle time.		        */
     VariableResult r_util;			/* Utilization.		        */
     VariableResult r_group_util;		/* group Utilization.		*/
 
     unsigned _hold_active;			/* Number of active instances.	*/
+    double _join_start_time;			/* non-zero if in sync-join	*/
 };
 
 
@@ -220,61 +222,121 @@ private:
     Reference_Task& operator=( const Reference_Task& ) = delete;
 
 public:
-    Reference_Task( const Type type, int priority, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
+    Reference_Task( LQIO::DOM::Task* dom, Processor * processor, Group * group );
+    virtual ~Reference_Task();
 
+    virtual Type type() const { return Task::Type::CLIENT; }
     virtual double think_time() const { return _think_time; }			/* Cached.  see create()	*/
 
-#if !BUG_289
-    virtual bool start();
-    virtual Reference_Task& kill();
-#endif
+    virtual bool run();
+    virtual Reference_Task& stop();
 
 protected:
     virtual void create_instance();
 
 private:
     double _think_time;				/* Cached copy of think time.	*/
-    std::vector<srn_client *> _clients;		/* task id's of clients		*/
+    std::vector<Instance::Client *> _clients;	/* task id's of clients		*/
 };
 
 class Server_Task : public Task
 {
 public:
-    Server_Task( const Type type, int priority, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
+    Server_Task( LQIO::DOM::Task* dom, Processor * processor, Group * group );
+    virtual ~Server_Task();
 
+    virtual Type type() const { return Task::Type::SERVER; }
     virtual int std_port() const;
 
     void set_synchronization_server();
     virtual bool is_sync_server() const { return _sync_server; }
-    virtual bool is_aysnc_inf_server() const;
-    virtual int worker_port() const { return _worker_port; }
-
-#if !BUG_289
-    virtual bool start();
-    virtual Server_Task& kill();
-#endif
+    virtual bool run();
+    virtual Server_Task& stop();
 
 protected:
     virtual void create_instance();
 
 protected:
-    Instance * _task;				/* task id of main inst	        */
-    int _worker_port;				/* Port for workers to send to.	*/
+    Instance::Instance * _server;		/* task id of main inst	        */
     bool _sync_server;				/* True if we sync here		*/
+
+private:
+#if !HAVE_PARASOL
+    Rendezvous::Single_Server<int,int> _rendezvous;
+#endif
+};
+
+class Multi_Server_Task : public Task
+{
+public:
+    Multi_Server_Task( LQIO::DOM::Task* dom, Processor * processor, Group * group );
+    virtual ~Multi_Server_Task();
+
+    virtual Type type() const { return Task::Type::MULTI_SERVER; }
+    virtual int std_port() const;
+
+#if HAVE_PARASOL
+    virtual int worker_port() const { return _worker_port; }
+#endif
+
+    virtual bool run();
+    virtual Multi_Server_Task& stop();
+
+protected:
+    virtual void create_instance();
+
+protected:
+    Instance::Instance * _server;		/* task id of main inst	        */
+
+private:
+#if HAVE_PARASOL
+    int _worker_port;				/* Port for workers to send to.	*/
+#else
+    Rendezvous::Multi_Server<int,int> _rendezvous;
+    std::vector<Instance::Client *> _servers;	/* task id's of clients		*/
+#endif
+};
+
+class Infinite_Server_Task : public Task
+{
+public:
+    Infinite_Server_Task( LQIO::DOM::Task* dom, Processor * processor, Group * group );
+    virtual ~Infinite_Server_Task();
+
+    virtual Type type() const { return Task::Type::MULTI_SERVER; }
+    virtual int std_port() const;
+
+    virtual bool is_async_inf_server() const;
+    virtual int worker_port() const { return _worker_port; }
+
+    virtual bool run();
+    virtual Infinite_Server_Task& stop();
+
+protected:
+    virtual void create_instance();
+
+protected:
+    Instance::Instance * _server;		/* task id of main inst	        */
+
+private:
+    int _worker_port;				/* Port for workers to send to.	*/
+#if !HAVE_PARASOL
+    Rendezvous::Multi_Server<int,int> _rendezvous;
+#endif
 };
 
 class Semaphore_Task : public Server_Task
 {
 public:
-    Semaphore_Task( const Type type, int priority, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
+    Semaphore_Task( LQIO::DOM::Task* dom, Processor * processor, Group * group );
 
+    virtual Type type() const { return Task::Type::SEMAPHORE; }
+    virtual int worker_port() const { return _worker_port; }
     int signal_port() const { return _signal_port; }
-    Instance * signal_task() const { return _signal_task; }
+    Instance::Instance * signal_task() const { return _signal_task; }
 
-#if !BUG_289
-    virtual bool start();
-    virtual Semaphore_Task& kill();
-#endif
+    virtual bool run();
+    virtual Semaphore_Task& stop();
 
     virtual Semaphore_Task& reset_stats();
     virtual Semaphore_Task& accumulate_data();
@@ -291,26 +353,29 @@ public:
     VariableResult r_hold_util;
 
 protected:
-    Instance * _signal_task;			/* 				*/
+    Instance::Instance * _signal_task;		/* 				*/
+    int _worker_port;
     int _signal_port;				/* Port for signals to send to.	*/
+
+private:
+    static const unsigned int N_SEMAPHORE_ENTRIES = 2;
 };
 
 class ReadWriteLock_Task : public Semaphore_Task
 {
 public:
-    ReadWriteLock_Task( const Type type, int priority, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
+    ReadWriteLock_Task( LQIO::DOM::Task* dom, Processor * processor, Group * group );
 
-    Instance * writer() const { return _writer; }
-    Instance * reader() const { return _reader; }
+    virtual Type type() const { return Task::Type::RWLOCK; }
+    Instance::Instance * writer() const { return _writer; }
+    Instance::Instance * reader() const { return _reader; }
 
     int writerQ_port() const { return _writerQ_port; }	/* for RWLOCK */
     int readerQ_port() const { return _readerQ_port; }
     int signal_port2() const { return _signal_port2; }
 
-#if !BUG_289
-    virtual bool start();
-    virtual ReadWriteLock_Task& kill();
-#endif
+    virtual bool run();
+    virtual ReadWriteLock_Task& stop();
 
     virtual ReadWriteLock_Task& reset_stats();
     virtual ReadWriteLock_Task& accumulate_data();
@@ -335,21 +400,23 @@ public:
     VariableResult r_writer_hold_util;
 
 private:
-    Instance * _reader;				/* task id for readers' queue   */
-    Instance * _writer;	  	        	/* task id for writer_token	*/
+    Instance::Instance * _reader;		/* task id for readers' queue   */
+    Instance::Instance * _writer;	  	/* task id for writer_token	*/
 
     int _signal_port2;				/* Signal Port for writer_token	*/
     int _writerQ_port;				/* Port for writer message queue*/
     int _readerQ_port;				/* Port for reader message queue*/
 
+    static const unsigned int N_RWLOCK_ENTRIES = 4;
 };
 
 
 class Pseudo_Task : public Task
 {
 public:
-    Pseudo_Task( const std::string& name ) : Task( Type::OPEN_ARRIVAL_SOURCE, MAX_PRIORITY, nullptr, nullptr, nullptr ), _name(name) {}
+    Pseudo_Task( const std::string& name ) : Task( nullptr, nullptr, nullptr ), _name(name) {}
 
+    virtual Type type() const { return Task::Type::OPEN_ARRIVAL_SOURCE; }
     virtual const std::string& name() const { return _name; }
     virtual scheduling_type discipline() const { return SCHEDULE_DELAY; }
     virtual unsigned multiplicity() const { return 1; }			/* Special access!		*/
@@ -360,19 +427,16 @@ public:
 
     virtual Pseudo_Task& insertDOMResults();
 
-#if !BUG_289
-    virtual bool start();
-    virtual Pseudo_Task& kill();
-#endif
+    virtual bool run();
+    virtual Pseudo_Task& stop();
 
 protected:
     virtual void create_instance();
 
 private:
     const std::string _name;
-    Instance * _task;			/* task id of main inst	        */
+    Instance::Instance * _task;			/* task id of main inst	        */
 };
-
 
 extern unsigned total_tasks;
 #endif
