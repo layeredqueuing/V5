@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * Lqsim-parasol task interface.
  *
- * $Id: task.h 17513 2024-12-05 12:52:35Z greg $
+ * $Id: task.h 17515 2024-12-16 21:49:45Z greg $
  */
 
 /************************************************************************/
@@ -104,10 +104,10 @@ public:
     LQIO::DOM::Task * getDOM() const{ return _dom; }
 
     virtual double think_time() const { abort(); return 0.0; }			/* Cached.  see create()	*/
-    virtual const std::string& name() const { return _dom->getName(); }
-    virtual scheduling_type discipline() const { return _dom->getSchedulingType(); }
+    virtual const std::string& name() const { return getDOM()->getName(); }
+    virtual scheduling_type discipline() const { return getDOM()->getSchedulingType(); }
     virtual unsigned multiplicity() const;					/* Special access!		*/
-    virtual int priority() const { return _dom->hasPriority() ? _dom->getPriorityValue() : 0; }
+    virtual int priority() const { return getDOM()->getPriorityValue(); }
 
     virtual Type type() const = 0;
     const std::string& type_name() const { return type_strings.at(type()); }
@@ -226,7 +226,7 @@ public:
     virtual ~Reference_Task();
 
     virtual Type type() const { return Task::Type::CLIENT; }
-    virtual double think_time() const { return _think_time; }			/* Cached.  see create()	*/
+    virtual double think_time() const { return getDOM()->getThinkTimeValue(); }
 
     virtual bool run();
     virtual Reference_Task& stop();
@@ -235,7 +235,6 @@ protected:
     virtual void create_instance();
 
 private:
-    double _think_time;				/* Cached copy of think time.	*/
     std::vector<Instance::Client *> _clients;	/* task id's of clients		*/
 };
 

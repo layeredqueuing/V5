@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 17514 2024-12-05 20:33:10Z greg $
+ * $Id: processor.cc 17515 2024-12-16 21:49:45Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -183,6 +183,11 @@ Processor::add_task( Task * task )
     _tasks.push_back( task );
 }
 
+
+/*
+ * Return a pointer to the compute function suitable for the type of
+ * processor.
+ */
 
 Processor::compute_fptr
 Processor::get_compute_func() const

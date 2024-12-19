@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: message.cc 17505 2024-12-03 23:16:26Z greg $
+ * $Id: message.cc 17518 2024-12-19 15:18:23Z greg $
  */
 
 #include "message.h"

@@ -12,7 +12,7 @@
  * Task interface between the DOM and the simulation engine.  Passive.
  * Instance objects are the active component.
  *
- * $Id: task.cc 17513 2024-12-05 12:52:35Z greg $
+ * $Id: task.cc 17516 2024-12-17 16:42:35Z greg $
  */
 
 #include "lqsim.h"
@@ -692,7 +692,7 @@ Task::derive_utilization() const
 /* ------------------------------------------------------------------------ */
 
 Reference_Task::Reference_Task( LQIO::DOM::Task* dom, Processor * processor, Group * group )
-    : Task( dom, processor, group ), _think_time(0.0), _clients()
+    : Task( dom, processor, group ), _clients()
 {
 }
 
@@ -708,10 +708,7 @@ Reference_Task::~Reference_Task()
 void
 Reference_Task::create_instance()
 {
-    if ( getDOM()->hasThinkTime() ) {
-	_think_time = getDOM()->getThinkTimeValue();
-    }
-    _clients.clear();
+    _clients.clear();		// can't do this in destructor
     for ( unsigned i = 0; i < multiplicity(); ++i ) {
 	_clients.push_back( new Instance::Client( this, name() ) );
     }

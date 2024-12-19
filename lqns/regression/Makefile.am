@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 17406 2024-10-30 17:11:43Z greg $
+# $Id: Makefile.am 17518 2024-12-19 15:18:23Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -169,7 +169,7 @@ distclean:	clean
 	@-rm -f Makefile
 
 33-spex-convergence.lqxo: 33-spex-convergence.lqnx
-	$(SRVN) -o $*.out $<
+	$(SRVN) -o $*.out 33-spex-convergence.lqnx
 	@mv $*.d/$*-007.lqxo $@
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 	@rm -rf $*.d
@@ -180,23 +180,23 @@ distclean:	clean
 # 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 50-replication-pan.lqxo: 50-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo$@ $<
+	$(SRVN) $(OPTS) -Preplication=pan -xo$@ 50-replication.lqnx
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 51-replication-pan.lqxo: 51-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo$@ $<
+	$(SRVN) $(OPTS) -Preplication=pan -xo$@ 51-replication.lqnx
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 52-replication-pan.lqxo: 52-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo$@ $<
+	$(SRVN) $(OPTS) -Preplication=pan -xo$@ 52-replication.lqnx
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 55-replication-pan.lqxo: 55-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo$@ $<
+	$(SRVN) $(OPTS) -Preplication=pan -xo$@ 55-replication.lqnx
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 56-replication-pan.lqxo: 56-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo$@ $<
+	$(SRVN) $(OPTS) -Preplication=pan -xo$@ 56-replication.lqnx
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 90-A01-novar.lqxo: 90-A01.lqnx
@@ -208,7 +208,7 @@ distclean:	clean
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 94-5101-a2-q2b1.lqxo: 94-5101-a2-q2b1.lqnx
-	$(SRVN) $(OPTS) -a $<
+	$(SRVN) $(OPTS) -a 94-5101-a2-q2b1.lqnx
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 sanity:	$(SANITY)
