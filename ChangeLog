@@ -1,3 +1,11 @@
+2025-01-19  Gregory Franks  <greg@Gregs-Retina-iMac.local>
+
+	* lqiolib, lqns
+	- bug fixes
+	* lqsim
+	- bug fixe
+	- refactor for move to std::thread
+
 2024-09-19  Greg Franks  <greg@merlin.sce.carleton.ca>
 
 	* documentation
@@ -618,4 +626,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 17304 2024-09-19 13:54:02Z greg $
+$Id: ChangeLog 17521 2025-01-19 19:57:04Z greg $

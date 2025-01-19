@@ -1,3 +1,11 @@
+* Bugs fixed in 5.32
+377	lqiolib		Replies not generated when activity model converted.
+435	petrisrv	petrisrvn and lqsim results differ for a send interlock with phase 2.
+457	lqsim		Replace custom random variable genertion with <random>
+484	lqns		EXC_BAD_ACCESS: MVA::utilization()
+482	lqiolib		Use std::filesystem::path instead of std::string.
+485	lqsim		90-B07. The service time at e2 is wrong.
+
 * Bugs fixed in 5.31
 468 	lqiolib 	bug-467.xlqn:48: error: Entry "WebServer" has a start activity defined. Activity "analyze" is a duplicate.
 469 	lqiolib 	Reload json results from spex model fails. 

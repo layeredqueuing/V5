@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 17511 2024-12-04 16:14:43Z greg $
+ * $Id: instance.cc 17521 2025-01-19 19:57:04Z greg $
  */
 
 /*
@@ -1331,7 +1331,6 @@ Instance::Instance::random_shuffle_reply( std::vector<const Entry *>& array )
 /*                         Activity sequencing.                         */
 /*----------------------------------------------------------------------*/
 
-
 /*
  * Sequence through activity list.
  */
