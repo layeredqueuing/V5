@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_entity.h 17332 2024-10-03 15:25:44Z greg $
+ *  $Id: dom_entity.h 17526 2025-02-09 13:00:08Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -38,8 +38,6 @@ namespace LQIO {
 	    virtual ~Entity();
 
 	    /* Accessors and Mutators */
-	    const unsigned int getId() const;
-	    void setId(const unsigned int newId);
 	    const scheduling_type getSchedulingType() const;
 	    void setSchedulingType(const scheduling_type type);
 	    bool hasCopies() const;
@@ -68,7 +66,6 @@ namespace LQIO {
 	    
 	private:
 	    /* Instance variables for Entities */
-	    unsigned int _entityId;
 	    scheduling_type _entitySchedulingType;
 	    const ExternalVariable* _copies;
 	    const ExternalVariable* _replicas;

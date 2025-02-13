@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 17503 2024-12-02 21:04:43Z greg $
+ *  $Id: srvn_output.cpp 17527 2025-02-10 21:17:01Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -48,9 +48,9 @@ namespace LQIO {
     static inline void throw_bad_parameter() { throw std::domain_error( "invalid parameter" ); }
 
     bool
-    SRVN::for_each_entry_any_of::operator()( const std::pair<unsigned int,DOM::Entity *>& ep ) const
+    SRVN::for_each_entry_any_of::operator()( const DOM::Entity * entity ) const
     {
-	const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
+	const DOM::Task * task = dynamic_cast<const DOM::Task *>(entity);
 	if ( task == nullptr ) return false;
 
 	const std::vector<DOM::Entry *> & entries = task->getEntryList();
@@ -58,9 +58,9 @@ namespace LQIO {
     }
 
     int
-    SRVN::for_each_entry_count_if::operator()( const std::pair<unsigned int,DOM::Entity *>& ep ) const
+    SRVN::for_each_entry_count_if::operator()( const DOM::Entity * entity ) const
     {
-	const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
+	const DOM::Task * task = dynamic_cast<const DOM::Task *>(entity);
 	if ( task == nullptr ) return 0;
 
 	const std::vector<DOM::Entry *> & entries = task->getEntryList();
@@ -90,9 +90,9 @@ namespace LQIO {
 	}
     }
 
-    SRVN::Output::Output( const DOM::Document& document, const std::map<unsigned, DOM::Entity *>& entities,
+    SRVN::Output::Output( const DOM::Document& document,
                           bool print_confidence_intervals, bool print_variances, bool print_histograms )
-        : _document(document), _entities(entities),
+        : _document(document), _entities(document.getEntities()),
           _print_variances(print_variances), _print_histograms(print_histograms)
     {
         /* Set various globals for pretting printing */
@@ -753,8 +753,8 @@ namespace LQIO {
     /* Parseable Output                                                 */
     /* ---------------------------------------------------------------- */
 
-    SRVN::Parseable::Parseable( const DOM::Document& document, const std::map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals )
-        : SRVN::Output( document, entities, print_confidence_intervals )
+    SRVN::Parseable::Parseable( const DOM::Document& document, bool print_confidence_intervals )
+        : SRVN::Output( document, print_confidence_intervals )
     {
         ObjectOutput::__parseable = true;               /* Set global for formatting. */
         ObjectOutput::__rtf = false;                    /* Set global for formatting. */
@@ -984,8 +984,8 @@ namespace LQIO {
     /* RTF Output                                                       */
     /* ---------------------------------------------------------------- */
 
-    SRVN::RTF::RTF( const DOM::Document& document, const std::map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals )
-        : SRVN::Output( document, entities, print_confidence_intervals )
+    SRVN::RTF::RTF( const DOM::Document& document, bool print_confidence_intervals )
+        : SRVN::Output( document, print_confidence_intervals )
     {
         ObjectOutput::__parseable = false;              /* Set global for formatting. */
         ObjectOutput::__rtf = true;                     /* Set global for formatting. */
@@ -1022,8 +1022,8 @@ namespace LQIO {
     /* Input Output                                                     */
     /* ---------------------------------------------------------------- */
 
-    SRVN::Input::Input( const DOM::Document& document, const std::map<unsigned, DOM::Entity *>& entities, bool annotate )
-        : _document(document), _entities(entities), _annotate(annotate)
+    SRVN::Input::Input( const DOM::Document& document, bool annotate )
+        : _document(document), _entities(document.getEntities()), _annotate(annotate)
     {
         /* Initialize lengths */
         const std::map<std::string,DOM::Entry*>& entries = document.getEntries();
@@ -1239,15 +1239,15 @@ namespace LQIO {
     }
 
     bool
-    SRVN::Input::is_processor( const std::pair<unsigned,DOM::Entity *>& ep )
+    SRVN::Input::is_processor( const DOM::Entity * entity )
     {
-        return dynamic_cast<const DOM::Processor *>(ep.second) != 0;
+        return dynamic_cast<const DOM::Processor *>(entity) != nullptr;
     }
 
     bool
-    SRVN::Input::is_task( const std::pair<unsigned, DOM::Entity *>& ep )
+    SRVN::Input::is_task( const DOM::Entity * entity )
     {
-        return dynamic_cast<const DOM::Task *>(ep.second) != 0;
+        return dynamic_cast<const DOM::Task *>(entity) != nullptr;
     }
 
     /*
@@ -1436,10 +1436,10 @@ namespace LQIO {
     /* -------------------------------------------------------------------- */
 
     void
-    SRVN::EntityOutput::operator()( const std::pair<unsigned,DOM::Entity *>& ep ) const
+    SRVN::EntityOutput::operator()( const DOM::Entity * entity ) const
     {
         std::ios_base::fmtflags oldFlags = _output.setf( std::ios::left, std::ios::adjustfield );
-        (this->*_func)( *ep.second );
+        (this->*_func)( *entity );
         _output.flags(oldFlags);
     }
     
@@ -1497,9 +1497,9 @@ namespace LQIO {
     /* -------------------------------------------------------------------- */
 
     void
-    SRVN::ProcessorOutput::operator()( const std::pair<unsigned, DOM::Entity *>& ep) const
+    SRVN::ProcessorOutput::operator()( const DOM::Entity * entity ) const
     {
-        const DOM::Processor * processor = dynamic_cast<const DOM::Processor *>(ep.second);
+	const DOM::Processor * processor = dynamic_cast<const DOM::Processor *>(entity);
         if ( !processor ) return;
 
         std::ios_base::fmtflags oldFlags = _output.setf( std::ios::left, std::ios::adjustfield );
@@ -1698,9 +1698,9 @@ namespace LQIO {
     }
 
     void
-    SRVN::ProcessorInput::operator()( const std::pair<unsigned, DOM::Entity *>& ep) const
+    SRVN::ProcessorInput::operator()( const DOM::Entity * entity) const
     {
-        const DOM::Processor * processor = dynamic_cast<const DOM::Processor *>(ep.second);
+        const DOM::Processor * processor = dynamic_cast<const DOM::Processor *>(entity);
         if ( !processor ) return;
 
         std::ios_base::fmtflags oldFlags = _output.setf( std::ios::left, std::ios::adjustfield );
@@ -1839,9 +1839,9 @@ namespace LQIO {
     /* -------------------------------------------------------------------- */
 
     void
-    SRVN::TaskOutput::operator()( const std::pair<unsigned, DOM::Entity *>& ep) const
+    SRVN::TaskOutput::operator()( const DOM::Entity * entity) const
     {
-        const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
+        const DOM::Task * task = dynamic_cast<const DOM::Task *>(entity);
         if ( !task ) return;
 
         std::ios_base::fmtflags oldFlags = _output.setf( std::ios::left, std::ios::adjustfield );
@@ -2147,9 +2147,9 @@ namespace LQIO {
      */
 
     void
-    SRVN::TaskInput::operator()( const std::pair<unsigned, DOM::Entity *>& ep) const
+    SRVN::TaskInput::operator()( const DOM::Entity * entity) const
     {
-        const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
+        const DOM::Task * task = dynamic_cast<const DOM::Task *>(entity);
         if ( !task ) return;
 
         std::ios_base::fmtflags oldFlags = _output.setf( std::ios::left, std::ios::adjustfield );
@@ -2329,15 +2329,15 @@ namespace LQIO {
     /* -------------------------------------------------------------------- */
 
     void
-    SRVN::EntryOutput::operator()( const std::pair<unsigned, DOM::Entity *>& ep) const
+    SRVN::EntryOutput::operator()( const DOM::Entity *entity) const
     {
-        const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
+        const DOM::Task * task = dynamic_cast<const DOM::Task *>(entity);
         if ( !task ) return;
 
         std::ios_base::fmtflags oldFlags = _output.setf( std::ios::left, std::ios::adjustfield );
         const std::vector<DOM::Entry *>& entries = task->getEntryList();
         bool print_task_name = true;
-	std::for_each( entries.begin(), entries.end(), [&]( DOM::Entry * entry ){ (this->*_entryFunc)( *entry, *(ep.second), print_task_name ); } );
+	std::for_each( entries.begin(), entries.end(), [&]( DOM::Entry * entry ){ (this->*_entryFunc)( *entry, *(entity), print_task_name ); } );
 
         const std::map<std::string,DOM::Activity*>& activities = task->getActivities();
         if ( activities.size() > 0 && _activityFunc != nullptr ) {
@@ -2352,7 +2352,7 @@ namespace LQIO {
                 found = true;
             }
             if ( found ) {
-                _output << entity_name( *(ep.second), print_task_name ) << activity_separator(0) << newline;
+                _output << entity_name( *(entity), print_task_name ) << activity_separator(0) << newline;
 		std::for_each( activities.begin(), activities.end(), [&]( const std::pair<std::string,DOM::Activity*>& activity ){ (this->*_activityFunc)( *activity.second ); } );
             }
         }
@@ -2362,9 +2362,9 @@ namespace LQIO {
         _output.flags(oldFlags);
     }
 
-    void SRVN::EntryOutput::CountForwarding::operator()( const std::pair<unsigned, DOM::Entity *>& ep )
+    void SRVN::EntryOutput::CountForwarding::operator()( const DOM::Entity * entity )
     {
-        const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
+        const DOM::Task * task = dynamic_cast<const DOM::Task *>(entity);
         if ( !task ) return;
 
         const std::vector<DOM::Entry *>& entries = task->getEntryList();
@@ -3032,9 +3032,9 @@ namespace LQIO {
      */
 
     void
-    SRVN::CallOutput::operator()( const std::pair<unsigned, DOM::Entity *>& ep) const
+    SRVN::CallOutput::operator()( const DOM::Entity * entity) const
     {
-        const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
+        const DOM::Task * task = dynamic_cast<const DOM::Task *>(entity);
         if ( !task ) return;
 
         std::ios_base::fmtflags oldFlags = _output.setf( std::ios::left, std::ios::adjustfield );
@@ -3055,7 +3055,7 @@ namespace LQIO {
 		for ( std::map<const DOM::Entry *, ForPhase>::iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
 		    ForPhase& calls_by_phase = next_y->second;
 		    calls_by_phase.setMaxPhase( __parseable ? __maxPhase : entry->getMaximumPhase() );
-		    _output << entity_name( *(ep.second), print_task_name )
+		    _output << entity_name( *(entity), print_task_name )
 			    << entry_name( *entry )
 			    << entry_name( *(next_y->first) )
 			    << print_calls( *this, calls_by_phase, _meanFunc) << newline;
@@ -3087,7 +3087,7 @@ namespace LQIO {
 		    } else if ( _meanFunc ) {
 			const DOM::Entry * dest = call->getDestinationEntry();
                         if ( count == 0 ) {
-                            _output << entity_name( *(ep.second), print_task_name ) << activity_separator(0) << newline;
+                            _output << entity_name( *(entity), print_task_name ) << activity_separator(0) << newline;
                             count += 1;
                         }
                         _output << std::setw(__maxStrLen) << " "  << std::setw(__maxStrLen-1) << activity->getName() << " " << entry_name( *dest ) << std::setw(__maxDblLen-1);
@@ -3224,11 +3224,11 @@ namespace LQIO {
     /* -------------------------------------------------------------------- */
 
     void
-    SRVN::HistogramOutput::operator()( const std::pair<unsigned, DOM::Entity *>& ep ) const
+    SRVN::HistogramOutput::operator()( const DOM::Entity * entity ) const
     {
         if ( __parseable ) return;
 
-        const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
+        const DOM::Task * task = dynamic_cast<const DOM::Task *>(entity);
         if ( !task ) return;
 
         const std::vector<DOM::Entry *>& entries = task->getEntryList();

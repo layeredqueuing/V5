@@ -7,7 +7,7 @@
  * However, to eliminate code here, the spex construction functions will have to save the
  * LQX expressions and then construct the program.
  * ------------------------------------------------------------------------
- * $Id: generate.cc 17431 2024-11-05 10:08:21Z greg $
+ * $Id: generate.cc 17527 2025-02-10 21:17:01Z greg $
  */
 
 #include "lqngen.h"
@@ -756,7 +756,7 @@ Generate::printHeader( std::ostream& output, const LQIO::DOM::Document& document
     std::for_each( &document_observation[0], &document_observation[5], DocumentHeading( output, i + 2 ) );
 
     /* Make the result variables */
-    const std::map<unsigned,LQIO::DOM::Entity *>& entities = document.getEntities();
+    const std::vector<LQIO::DOM::Entity *>& entities = document.getEntities();
     for_each( entities.begin(), entities.end(), EntityHeading( output, i + 2 ) );
 
     /* Entry stats here */
@@ -785,7 +785,7 @@ Generate::printResults( std::ostream& output, const LQIO::DOM::Document& documen
     std::for_each( &document_observation[0], &document_observation[5], DocumentResult( output, i + 2 ) );
 
     /* Make the result variables */
-    const std::map<unsigned,LQIO::DOM::Entity *>& entities = document.getEntities();
+    const std::vector<LQIO::DOM::Entity *>& entities = document.getEntities();
     std::for_each( entities.begin(), entities.end(), EntityResult( output, i + 2 ) );
 
     /* Entry stats here */
@@ -931,9 +931,8 @@ Generate::DocumentHeading::operator()( struct document_observation& obs ) const
 }
 
 void
-Generate::EntityHeading::operator()( const std::pair<unsigned,LQIO::DOM::Entity *>& e ) const
+Generate::EntityHeading::operator()( const LQIO::DOM::Entity * entity ) const
 {
-    const LQIO::DOM::Entity * entity = e.second;
     if ( isInterestingProcessor( entity ) && Flags::observe[Flags::UTILIZATION] ) {
         _output << "\", " << std::endl << indent( _i ) << "  "
 		<< "\"p(" << entity->getName() << ").util";
@@ -993,9 +992,8 @@ Generate::DocumentResult::operator()( struct document_observation& obs ) const
 
 
 void
-Generate::EntityResult::operator()( const std::pair<unsigned,LQIO::DOM::Entity *>& e ) const
+Generate::EntityResult::operator()( const LQIO::DOM::Entity * entity ) const
 {
-    const LQIO::DOM::Entity * entity = e.second;
     if ( isInterestingProcessor( entity ) && Flags::observe[Flags::UTILIZATION] ) {
 	_output << "," << std::endl << indent( _i ) << "  "
 		<< "processor(\"" << entity->getName() << "\").utilization";
@@ -1073,7 +1071,7 @@ Generate::addSpex( get_set_var_fptr f, const ModelVariable::variableValueFunc g 
 	std::for_each( &document_observation[0], &document_observation[5], documentObservation );
 
 	/* Make the result variables */
-	const std::map<unsigned,LQIO::DOM::Entity *>& entities = _document->getEntities();
+	const std::vector<LQIO::DOM::Entity *>& entities = _document->getEntities();
 	std::for_each( entities.begin(), entities.end(), EntityObservation() );
 
 	/* Entry stats here */
@@ -1167,9 +1165,8 @@ Generate::documentObservation( struct document_observation& obs )
 }
 
 void
-Generate::EntityObservation::operator()( const std::pair<unsigned,LQIO::DOM::Entity *>& e ) const
+Generate::EntityObservation::operator()( const LQIO::DOM::Entity * entity ) const
 {
-    const LQIO::DOM::Entity * entity = e.second;
     std::pair<LQIO::Spex::obs_var_tab_t::const_iterator, LQIO::Spex::obs_var_tab_t::const_iterator> range = LQIO::Spex::observations().equal_range( entity );
     if ( isInterestingProcessor( entity ) && Flags::observe[Flags::UTILIZATION] ) {
 	if ( count_if( range.first, range.second, HasKey( KEY_UTILIZATION ) ) == 0 ) {
@@ -1423,7 +1420,7 @@ Generate::print( std::ostream& output ) const
     switch ( _output_format ) {
     case LQIO::DOM::Document::InputFormat::AUTOMATIC:
     case LQIO::DOM::Document::InputFormat::LQN: {
-	LQIO::SRVN::Input srvn( getDOM(), _document->getEntities(), Flags::annotate_input );
+	LQIO::SRVN::Input srvn( getDOM(), Flags::annotate_input );
 	srvn.print( output );
 	break;
     }

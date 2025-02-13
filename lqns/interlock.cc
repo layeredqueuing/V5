@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 16515 2023-03-14 17:56:28Z greg $
+ * $Id: interlock.cc 17525 2025-02-06 19:26:27Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -331,11 +331,13 @@ Interlock::pruneInterlock()
     /* For all tasks in common entry... subtract off their common entries */
 
     std::set<const Entry *> prune;
-    for ( std::set<const Entry *>::const_iterator i = _commonEntries.begin(); i != _commonEntries.end(); ++i ) {
+    for ( std::set<const Entry *>::const_iterator i = _commonEntries.begin(); i != _commonEntries.end(); ) {
 	const Entity * dst = (*i)->owner();
 	const std::set<const Entry *>& dst_entries = dst->commonEntries();
-	for ( std::set<const Entry *>::const_iterator entry = dst_entries.begin(); entry != dst_entries.end(); ++entry ) {
-	    _commonEntries.erase( *entry );		// Nop if not found
+	if ( dst_entries.find( *i ) != dst_entries.end() ) {
+	    i = _commonEntries.erase( i );
+	} else {
+	    ++i;
 	}
     }
 }

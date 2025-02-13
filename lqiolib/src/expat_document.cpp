@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 17359 2024-10-12 01:32:27Z greg $
+ * $Id: expat_document.cpp 17527 2025-02-10 21:17:01Z greg $
  *
  * Read in XML input files.
  *
@@ -2282,7 +2282,7 @@ namespace LQIO {
 
 	    /* Export in model input order */
 
-	    const std::map<unsigned,Entity *>& entities = _document.getEntities();
+	    const std::vector<Entity *>& entities = _document.getEntities();
 	    std::for_each( entities.begin(), entities.end(), ExportProcessor( output, *this ) );
 
             if ( !_document.instantiated() ) {

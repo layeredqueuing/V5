@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 17454 2024-11-11 16:25:09Z greg $
+ * $Id: model.h 17528 2025-02-11 20:24:22Z greg $
  */
 
 #ifndef _MODEL_H
@@ -10,6 +10,7 @@
 #include "lqn2ps.h"
 #include <filesystem>
 #include <vector>
+#include <set>
 #include <lqio/common_io.h>
 #include "layer.h"
 #include "point.h"
@@ -85,11 +86,12 @@ protected:
     typedef std::ostream& (Model::*printSXDFunc)( std::ostream& ) const;
 
     struct Remap {
-	Remap( std::map<unsigned, LQIO::DOM::Entity *>& entities ) : _entities(entities) {}
+	Remap( std::vector<LQIO::DOM::Entity *>& entities ) : _mapped(), _entities(entities) {}
 	void operator()( const Layer& );
 	void operator()( const Entity * );
     private:
-	std::map<unsigned, LQIO::DOM::Entity *>& _entities;
+	std::set<const Entity *> _mapped;
+	std::vector<LQIO::DOM::Entity *>& _entities;
     };
     
     class Stats
@@ -221,7 +223,7 @@ private:
     std::filesystem::path getExtension();
     Model const& accumulateTaskStats( const std::filesystem::path& ) const;	/* Does not count ref. tasks. */
     Model const& accumulateEntryStats( const std::filesystem::path& ) const;	/* Does not count ref. tasks. */
-    std::map<unsigned, LQIO::DOM::Entity *>& remapEntities() const;
+    void remapEntities() const;
 
     std::ostream& printEEPIC( std::ostream& output ) const;
 #if EMF_OUTPUT
@@ -443,6 +445,20 @@ protected:
 
 class SRVN_Model : virtual public Model, public Batch_Model
 {
+private:
+    /*
+     * Compare two entities by their submodel.
+     */
+
+    struct lt_submodel
+    {
+	bool operator()(const Entity * e1, const Entity * e2) const
+	    {
+		return (e1->level() < e2->level())
+		    || (e1->level() == e2->level() && !e2->getDOM()) || (e1->getDOM() && e1->name() < e2->name());
+	    }
+    };
+
 private:
     SRVN_Model( LQIO::DOM::Document * document, const std::filesystem::path& input_file_name, const std::filesystem::path& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ),

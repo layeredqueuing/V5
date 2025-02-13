@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 17345 2024-10-09 16:02:00Z greg $
+ * $Id: srvn_output.h 17527 2025-02-10 21:17:01Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -256,7 +256,7 @@ namespace LQIO {
 	    typedef bool (DOM::Entry::*test)() const;
 	    for_each_entry_count_if( test f ) : _f(f) {}
  
-	    int operator()( const std::pair<unsigned int,DOM::Entity *>& ) const;
+	    int operator()( const DOM::Entity * ) const;
  	private:
 	    const test _f;
  	};
@@ -266,7 +266,7 @@ namespace LQIO {
 	    typedef bool (DOM::Entry::*test)() const;
 	    for_each_entry_any_of( test f ) : _f(f) {}
  
-	    bool operator()( const std::pair<unsigned int,DOM::Entity *>& ) const;
+	    bool operator()( const DOM::Entity * ) const;
  	private:
 	    const test _f;
  	};
@@ -305,7 +305,7 @@ namespace LQIO {
 
 	class Output {
 	public:
-	    Output( const DOM::Document&, const std::map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals=true, bool print_variances=true, bool print_histograms=true );
+	    Output( const DOM::Document&, bool print_confidence_intervals=true, bool print_variances=true, bool print_histograms=true );
 	    virtual ~Output();
 	    virtual std::ostream& print( std::ostream& output ) const;
 
@@ -328,7 +328,7 @@ namespace LQIO {
 
 	protected:
 	    const DOM::Document& _document;
-	    const std::map<unsigned, DOM::Entity *>& _entities;
+	    const std::vector<DOM::Entity *>& _entities;
 	    const bool _print_variances;
 
 	private:
@@ -357,7 +357,7 @@ namespace LQIO {
 	class Parseable : public Output {
 
 	public:
-	    Parseable( const DOM::Document&, const std::map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals=true );
+	    Parseable( const DOM::Document&, bool print_confidence_intervals=true );
 	    virtual ~Parseable();
 	    virtual std::ostream& print( std::ostream& output ) const;
 
@@ -376,7 +376,7 @@ namespace LQIO {
 
 	class RTF : public Output {
 	public:
-	    RTF( const DOM::Document&, const std::map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals=true );
+	    RTF( const DOM::Document&, bool print_confidence_intervals=true );
 	    virtual ~RTF();
 
 	protected:
@@ -386,7 +386,7 @@ namespace LQIO {
 
 	class Input {
 	public:
-	    Input( const DOM::Document&, const std::map<unsigned, DOM::Entity *>& entities, bool annotate );
+	    Input( const DOM::Document&, bool annotate );
 	    virtual ~Input();
 
 	private:
@@ -404,8 +404,8 @@ namespace LQIO {
 	    std::ostream& printHeader( std::ostream& output ) const;
 	    std::ostream& printGeneral( std::ostream& output ) const;
 	    std::ostream& printResultConvergenceVariables( std::ostream& output, const std::vector<std::pair<const std::string,LQX::SyntaxTreeNode *>>&, const std::string& ) const;
-	    static bool is_processor( const std::pair<unsigned, DOM::Entity *>& );
-	    static bool is_task( const std::pair<unsigned, DOM::Entity *>& );
+	    static bool is_processor( const DOM::Entity * );
+	    static bool is_task( const DOM::Entity * );
 	    static std::ostream& doubleAndNotEqual( std::ostream& output, const std::string& s, const DOM::ExternalVariable * v, double d );
 	    static std::ostream& integerAndGreaterThan( std::ostream& output, const std::string& s, const DOM::ExternalVariable * v, double d );
 	    static std::ostream& printIntegerExtvarParameter( std::ostream& output, const DOM::ExternalVariable * v, double d );
@@ -413,7 +413,7 @@ namespace LQIO {
 
 	protected:
 	    const DOM::Document& _document;
-	    const std::map<unsigned, DOM::Entity *>& _entities;
+	    const std::vector<DOM::Entity *>& _entities;
 
 	private:
 	    const bool _annotate;
@@ -525,7 +525,7 @@ namespace LQIO {
 
 	public:
 	    EntityOutput( std::ostream& output, voidEntityFunc f=nullptr ) : ObjectOutput(output), _func(f) {}
-	    void operator()( const std::pair<unsigned,DOM::Entity *>& ) const;
+	    void operator()( const DOM::Entity * ) const;
 
 #if defined(BUG_393)
 	    void printMarginalQueueProbabilities( const DOM::Entity& ) const;
@@ -541,7 +541,7 @@ namespace LQIO {
 	class EntityInput : public ObjectInput {
 	public:
 	    EntityInput( std::ostream& output ) : ObjectInput( output ) {}
-	    virtual void operator()( const std::pair<unsigned, DOM::Entity *>& ) const = 0;
+	    virtual void operator()( const DOM::Entity * ) const = 0;
 
 	    static std::ostream& print( std::ostream& output, const DOM::Entity* e );
 	};
@@ -559,7 +559,7 @@ namespace LQIO {
 
 	public:
 	    ProcessorOutput( std::ostream& output, voidProcessorFunc f ) : EntityOutput(output), _func(f) {}
-	    void operator()( const std::pair<unsigned,DOM::Entity *>& ) const;
+	    void operator()( const DOM::Entity * ) const;
 
 	    void printParameters( const DOM::Processor& ) const;
 	    void printUtilizationAndWaiting( const DOM::Processor& ) const;
@@ -586,7 +586,7 @@ namespace LQIO {
 
 	public:
 	    ProcessorInput( std::ostream& output, voidProcessorFunc f ) : EntityInput(output), _func(f) {}
-	    void operator()( const std::pair<unsigned, DOM::Entity *>& ) const;
+	    void operator()( const DOM::Entity * ) const;
 
 	    void print( const DOM::Processor& ) const;
 
@@ -644,7 +644,7 @@ namespace LQIO {
 
 	public:
 	    TaskOutput( std::ostream& output, voidTaskFunc f ) : EntityOutput(output), _func(f) {}
-	    void operator()( const std::pair<unsigned, DOM::Entity *>& ) const;
+	    void operator()( const DOM::Entity * ) const;
 
 	    void printParameters( const DOM::Task& ) const;
 	    void printScheduling( const DOM::Task& ) const;
@@ -684,7 +684,7 @@ namespace LQIO {
 
 	public:
 	    TaskInput( std::ostream& output, voidTaskFunc f ) : EntityInput(output), _func(f) {}
-	    void operator()( const std::pair<unsigned, DOM::Entity *>& ) const;
+	    void operator()( const DOM::Entity * ) const;
 
 	    void print( const DOM::Task& ) const;
 	    void printEntryInput( const DOM::Task& ) const;
@@ -701,7 +701,7 @@ namespace LQIO {
 	    class CountForwarding {
 	    public:
 		CountForwarding() : _count(0) {}
-		virtual void operator()( const std::pair<unsigned, DOM::Entity *>& );
+		virtual void operator()( const DOM::Entity * );
 		
 		unsigned int getCount() const { return _count; }
 	    private:
@@ -722,7 +722,7 @@ namespace LQIO {
 
 	public:
 	    EntryOutput( std::ostream& output, const voidEntryFunc ef, const voidActivityFunc af=0, const testActivityFunc tf=0 ) : ObjectOutput(output), _entryFunc(ef), _activityFunc(af), _testFunc(tf) {}
-	    virtual void operator()( const std::pair<unsigned, DOM::Entity *>& ) const;
+	    virtual void operator()( const DOM::Entity * ) const;
 
 	    /* Input values */
 
@@ -874,7 +874,7 @@ namespace LQIO {
 
 	public:
 	    CallOutput( std::ostream& output, const DOM::Call::boolCallFunc t, const callConfFPtr m=NULL, const callConfFPtr v=NULL ) : ObjectOutput(output), _testFunc(t), _meanFunc(m), _confFunc(v), _count(0) {}
-	    virtual void operator()( const std::pair<unsigned, DOM::Entity *>& ) const;
+	    virtual void operator()( const DOM::Entity * ) const;
 
 	public:
 	    unsigned int getCount() const { return _count; }
@@ -918,7 +918,7 @@ namespace LQIO {
 
 	public:
 	    HistogramOutput( std::ostream& output, const histogramFunc func ) : ObjectOutput(output), _func(func) {}
-	    virtual void operator()( const std::pair<unsigned, DOM::Entity *>& ) const;
+	    virtual void operator()( const DOM::Entity * ) const;
 
 	public:
 	    void printHistogram( const DOM::Histogram& ) const;

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 17406 2024-10-30 17:11:43Z greg $
+ *  $Id: dom_document.cpp 17527 2025-02-10 21:17:01Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -118,7 +118,7 @@ namespace LQIO {
 	Document::Document( InputFormat format )
 	    : _modelComment(), _extraComment(),
 	      _processors(), _groups(), _tasks(), _entries(),
-	      _entities(), _variables(), _controlVariables(), _nextEntityId(0),
+	      _entities(), _variables(), _controlVariables(),
 	      _format(format),
 	      _lqxProgram(""), _lqxProgramLineNumber(0), _parsedLQXProgram(nullptr), _instantiated(false), _pragmas(),
 	      _maximumPhase(0), _hasResults(false),
@@ -239,17 +239,12 @@ namespace LQIO {
 	    return new ConstantExternalVariable( __initialValues.at( index ) );
 	}
 
-	unsigned Document::getNextEntityId()
-	{
-	    /* Obtain the next valid identifier */
-	    return _nextEntityId++;
-	}
-
 	void Document::addProcessorEntity(Processor* processor)
 	{
 	    /* Map in the processor entity */
-	    _entities[processor->getId()] = processor;
-	    _processors[processor->getName()] = processor;
+	    if( _processors.emplace(processor->getName(),processor).second ) {
+		_entities.push_back(processor);
+	    }
 	}
 
 	Processor* Document::getProcessorByName(const std::string& name) const
@@ -272,8 +267,9 @@ namespace LQIO {
 	void Document::addTaskEntity(Task* task)
 	{
 	    /* Map in the task entity */
-	    _entities[task->getId()] = task;
-	    _tasks[task->getName()] = task;
+	    if ( _tasks.emplace(task->getName(),task).second ) {
+		_entities.push_back(task);
+	    }
 	}
 
 	Task* Document::getTaskByName(const std::string& name) const
@@ -339,9 +335,9 @@ namespace LQIO {
 	    return _groups;
 	}
 
-	const std::map<unsigned,Entity*>& Document::getEntities() const
+	const std::vector<Entity*>& Document::getEntities() const
 	{
-	    /* Return the pointer */
+	    /* Return list of entities.  Used for output. */
 	    return _entities;
 	}
 
@@ -1032,7 +1028,7 @@ namespace LQIO {
 	{
 	    switch ( format ) {
 	    case OutputFormat::RTF: {
-		SRVN::RTF srvn( *this, _entities );
+		SRVN::RTF srvn( *this );
 		srvn.print( output );
 		break;
 	    }
@@ -1049,7 +1045,7 @@ namespace LQIO {
 		break;
 	    }
 	    default: {
-		SRVN::Output srvn( *this, _entities );
+		SRVN::Output srvn( *this );
 		srvn.print( output );
 		break;
 	    }

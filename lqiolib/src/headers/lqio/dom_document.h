@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 17367 2024-10-15 19:36:32Z greg $
+ *  $Id: dom_document.h 17527 2025-02-10 21:17:01Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -73,9 +73,6 @@ namespace LQIO {
 	    /* STORE: Model Parameter Information */
 	    void setModelParameters(const std::string& comment, ExternalVariable* conv_val, ExternalVariable* it_limit, ExternalVariable* print_int, ExternalVariable* underrelax_coeff, const void * arg );
 
-	    /* Obtaining identifiers for entities */
-	    unsigned getNextEntityId();
-
 	    /* Handling Entries, Processors, Tasks, Phases and Groups */
 	    void addProcessorEntity(Processor* processor);
 	    Processor* getProcessorByName(const std::string& name) const;
@@ -90,7 +87,7 @@ namespace LQIO {
 	    const std::map<std::string,Group*>& getGroups() const;	// For output functions.
 	    const std::map<std::string,Task*>& getTasks() const;	// For output functions.
 	    const std::map<std::string,Entry*>& getEntries() const;	//
-	    const std::map<unsigned,Entity *>& getEntities() const;	// For remapping by lqn2ps.
+	    const std::vector<Entity *>& getEntities() const;		// For remapping by lqn2ps.
 
 	    void clearAllMaps();		/* For rep2flat. */
 
@@ -271,14 +268,13 @@ namespace LQIO {
 	    std::map<std::string, Group*> _groups;		/* group.name -> Group */
 	    std::map<std::string, Task*> _tasks;		/* task.name -> Task */
 	    std::map<std::string, Entry*> _entries;		/* entry.name -> Entry */
-	    std::map<unsigned, Entity*> _entities;		/* entity.id -> Entity */
+	    std::vector<Entity*> _entities;			/* Entities by input order */
 
 	    /* We need to make sure all variables named the same point the same */
 	    std::map<const std::string, SymbolExternalVariable*> _variables;
 	    std::map<const std::string, const ExternalVariable*> _controlVariables;
 	    static std::map<const std::string, const double> __initialValues;
 
-	    unsigned _nextEntityId;				/* for sorting, see _entities	*/
 	    const InputFormat _format;				/* input format			*/
 
 	    /* The stored LQX program, if any */

@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 16425 2023-02-14 16:53:54Z greg $
+# $Id: Makefile.am 17524 2025-01-21 23:45:13Z greg $
 # ------------------------------------------------------------------------
 ACLOCAL_AMFLAGS=-I config
 SUBDIRS = lqx lqiolib libmva parasol lqns lqsim lqn2csv lqn2ps lqngen petrisrvn qnsolver srvndiff doc xml dist
@@ -36,8 +36,10 @@ $(distdir).dmg:
 	-rm -rf /tmp/$(distdir)
 
 winnt-zip:
+	$(MAKE) 
 	zip -uj $(distdir)-winnt.zip ./lqn2csv/lqn2csv.exe ./lqn2ps/lqn2ps.exe ./lqngen/lqngen.exe ./lqns/lqns.exe ./lqsim/lqsim.exe ./qnsolver/qnsolver.exe ./srvndiff/srvndiff.exe ./doc/tutorial/tutorial.pdf ./doc/userman/userman.pdf
 
 zip:
+	$(MAKE) 
 	zip -uj $(distdir).zip ./lqn2csv/lqn2csv ./lqn2ps/lqn2ps ./lqngen/lqngen ./lqns/lqns ./lqsim/lqsim ./qnsolver/qnsolver ./srvndiff/srvndiff ./doc/tutorial/tutorial.pdf ./doc/userman/userman.pdf
 
