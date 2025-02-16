@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17532 2025-02-13 18:51:14Z greg $
+ * $Id: model.cc 17533 2025-02-15 12:46:51Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -794,7 +794,7 @@ Model::reinitializeSubmodels()
 void
 Model::reorderOutput() const
 {
-    /* For ordering the multiset */
+    /* For ordering the multiset. Never use || here! */
     struct compare {
 	bool operator()( const Entity *l, const Entity *r ) const { return l->submodel() < r->submodel() && l->name() < r->name(); }
     };
@@ -805,21 +805,14 @@ Model::reorderOutput() const
 
     /* go through all the tasks and processors and save based on their depth. Processor and tasks names can collide. */
 
-    // std::set<Entity *,compare> mapped;
     std::multiset<Entity *,compare> mapped;
     std::copy_if( __task.begin(), __task.end(), std::inserter( mapped, mapped.end() ), predicate );
     std::copy_if( __processor.begin(), __processor.end(), std::inserter( mapped, mapped.end() ), predicate );
 	       
     /* Change the order in the DOM.  DO NOT clear entities because the vector has to be the right size */
     std::vector<LQIO::DOM::Entity *>& entities = const_cast<std::vector<LQIO::DOM::Entity *>&>(getDOM()->getEntities());
-//    std::cerr << "Mapped: ";
-//    for ( const auto *e : mapped ) { std::cerr << e->name() << std::endl; } 
     assert( mapped.size() == entities.size() );
     std::transform( mapped.begin(), mapped.end(), entities.begin(), []( Entity * entity ){ return entity->getDOM(); } );
-//    std:: cerr << "Transform: ";
-//    std::transform( mapped.begin(), mapped.end(), entities.begin(), []( Entity * entity ){ std::cerr << entity->name() << std::endl; return entity->getDOM(); } );
-//    std::cerr << "Result: ";
-//    for ( const auto *e : entities ) { std::cerr << e->getName() << std::endl; } 
 }
 
 
