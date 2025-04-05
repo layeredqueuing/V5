@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 16874 2023-11-30 14:44:47Z greg $
+ * $Id: entity.h 17536 2025-04-02 13:42:13Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -102,6 +102,7 @@ public:
     virtual bool hasBogusUtilization() const;
 
     virtual double utilization() const = 0;
+    virtual double normalizedUtilization() const;
 
     const std::vector<GenericCall *>& callers() const { return _callers; }
     void addDstCall( GenericCall * aCall ) { _callers.push_back( aCall ); }
@@ -163,7 +164,7 @@ public:
 protected:
     double radius() const;
     unsigned countCallers() const;
-    
+	
 private:
     Graphic::Colour chainColour( unsigned int ) const;
     std::ostream& drawServerToClient( std::ostream&, const double, const double, const Entity *, std::vector<bool> &, const unsigned ) const;

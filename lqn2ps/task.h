@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 16973 2024-01-29 19:51:08Z greg $
+ * $Id: task.h 17536 2025-04-02 13:42:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -81,9 +81,6 @@ private:
 public:
     enum class root_level_t { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS };
 
-    static bool holdingTimePresent;
-    static bool holdingVariancePresent;
-    static void reset();
     static Task* create( const LQIO::DOM::Task* domTask, std::vector<Entry *>& entries );
 
 protected:
@@ -135,13 +132,10 @@ public:
 
     double openArrivalRate() const;
 
-    virtual double holdingTime( const unsigned p ) const { return 0.0; }
-    virtual double holdingVariance( const unsigned p ) const { return 0.0; }
     double throughput() const;
-    double utilization( const unsigned p ) const;
     virtual double utilization() const;
     double processorUtilization() const;
-    double idleTime() const;
+    double computeThinkTime() const;
 
     bool hasActivities() const { return activities().size() != 0; }
     virtual bool hasCalls( const callPredicate ) const;

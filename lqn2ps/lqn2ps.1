@@ -1,6 +1,6 @@
 .\" -*- nroff -*-
-.TH lqn2ps 1 "25 April 2024"  "5.30"
-.\" $Id: lqn2ps.1 17183 2024-04-25 19:05:46Z greg $
+.TH lqn2ps 1 "03 April 2025"  "5.32"
+.\" $Id: lqn2ps.1 17539 2025-04-03 18:47:11Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -179,13 +179,13 @@ Generate input for xfig(1).
 .TP
 \fBjson\fR
 Generate an JSON input file.  If results are available, they are included.
-The \fB\-h\fR and \fB\-S\fR options can be used to generate new input models
+The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.
 New input files are always "cleaned up".
 .TP
 \fBlqx\fR
 Generate an XML input file.  If results are available, they are included.
-The \fB\-h\fR and \fB\-S\fR options can be used to generate new input models
+The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.  If SPEX is present, it will be converted to LQX.
 New input files are always "cleaned up".
 .TP
@@ -203,7 +203,7 @@ Generate a new output file in Rich Text Format using the results from a parseabl
 .TP
 \fBlqn\fR
 Generate a new input file.	 Results are ignored unless a subset of the input file is being generated.
-The \fB\-h\fR and \fB\-S\fR options can be used to generate new input models
+The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.
 If a parseable output file is available, the transformed subset will derive service times based on results. 
 Refer to \fI``SRVN Input File Format''\fR for a complete
@@ -225,7 +225,7 @@ The output file must be a regular file.  Output to special files is not supporte
 .TP
 \fBxml\fR
 Generate an XML input file.  If results are available, they are included.
-The \fB\-h\fR and \fB\-S\fR options can be used to generate new input models
+The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.
 New input files are always "cleaned up".
 .RE
@@ -274,6 +274,9 @@ Remove all replication from the model.
 \fB\-S\fR, \fB\-\-submodel=\fIsubmodel\fR
 The \fB\-S\fI submodel\fR option is used to generate a diagram of the submodel number given as an argument.
 If this option is used with \fBlqn2lqn\fP, parameters will be derived to approximate the submodel at the time of the final solution.
+.TP
+\fB\-U\fR, \fB\-\-normalize-utilizations\fR
+Normalize utilizations to the range of 0 to 1.
 .TP
 \fB\-V\fR, \fB\-\-version\fR
 Tool version.
@@ -347,6 +350,9 @@ Rename entries/activities by taking only capital letters, letters following an u
 .TP
 \fBsubmodels\fR
 For graphical output, output the submodels (though this only works for a strictly layered model).
+.TP
+\fBtasks-only\fR
+Draw the model omitting all entries.
 .TP
 \fBtask-scheduling\fR
 Change the scheduling for all fixed-rate tasks to ?.

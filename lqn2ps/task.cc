@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17375 2024-10-16 18:17:28Z greg $
+ * $Id: task.cc 17539 2025-04-03 18:47:11Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -54,9 +54,6 @@ std::set<Task *,LT<Task> > Task::__tasks;
 std::map<std::string,unsigned> Task::__key_table;		/* For squishName 	*/
 std::map<std::string,std::string> Task::__symbol_table;		/* For rename		*/
 const std::string ReferenceTask::__BCMP_station_name("terminal");	/* No more than 8 characters -- qnap2 limit. */
-
-bool Task::holdingTimePresent           = false;
-bool Task::holdingVariancePresent       = false;
 
 const double Task::JLQNDEF_TASK_BOX_SCALING = 1.2;
 
@@ -114,21 +111,6 @@ Task::~Task()
     std::for_each( activities().begin(), activities().end(), []( Activity * activity ){ delete activity; } );
     std::for_each( precedences().begin(), precedences().end(), []( ActivityList * activitylist ){ delete activitylist; } );
 }
-
-
-
-/*
- * Reset globals.
- */
-
-void
-Task::reset()
-{
-    holdingTimePresent = false;
-    holdingVariancePresent = false;
-}
-
-
 
 /* ------------------------ Instance Methods -------------------------- */
 
@@ -169,17 +151,6 @@ Task::throughput() const
     return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getResultThroughput();
 }
 
-/* -- */
-
-double
-Task::utilization( const unsigned p ) const
-{
-    assert( 0 < p && p <= LQIO::DOM::Phase::MAX_PHASE );
-
-    return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getResultPhasePUtilization(p);
-}
-
-
 /* --- */
 
 double
@@ -203,12 +174,11 @@ Task::processorUtilization() const
  */
 
 double
-Task::idleTime() const
+Task::computeThinkTime() const
 {
-    const LQIO::DOM::Task * dom = dynamic_cast<const LQIO::DOM::Task *>(getDOM());
-    const double util = dom->getResultUtilization();
-    const double tput = dom->getResultThroughput();
-    const double n    = static_cast<double>(dom->getCopiesValue());
+    const double util = utilization();
+    const double tput = throughput();
+    const double n    = static_cast<double>(copiesValue());
     return ( util >= n || tput == 0 ) ? 0 : (n - util) / tput;
 }
 
@@ -1057,25 +1027,16 @@ Task::isInClosedModel( const std::vector<Entity *>& servers ) const
 size_t
 Task::findChildren( CallStack& callStack, const unsigned directPath )
 {
-    const size_t depth = std::max( callStack.size(), level() );
-    size_t max_depth = depth;
+    const size_t max_depth = std::max( callStack.size(), level() );
 
-    setLevel( depth ).addPath( directPath );
+    setLevel( max_depth ).addPath( directPath );
 
-    for ( std::set<const Processor *>::const_iterator processor = processors().begin(); processor != processors().end(); ++processor ) {
-	const_cast<Processor *>(*processor)->setLevel( std::max( (*processor)->level(), depth + 1 ) ).addPath( directPath );
-	max_depth = std::max( max_depth, (*processor)->level() );	
-    }
+    std::for_each( processors().begin(), processors().end(), [=]( const Processor * processor )
+	{ const_cast<Processor *>(processor)->setLevel( std::max( processor->level(), max_depth + 1 ) ).addPath( directPath ); } );
 
     const Entry * dstEntry = callStack.back() ? callStack.back()->dstEntry() : nullptr;
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	max_depth = std::max( max_depth,
-			      (*entry)->findChildren( callStack,
-						      (((*entry) == dstEntry) || (*entry)->hasOpenArrivalRate())
-						      ? directPath : 0  ) );
-    }
-
-    return max_depth;
+    return std::accumulate( entries().begin(), entries().end(), max_depth, [&]( size_t depth, const Entry * entry )
+	{ return std::max( depth, entry->findChildren( callStack, ((entry == dstEntry) || entry->hasOpenArrivalRate()) ? directPath : 0  ) ); } );
 }
 
 
@@ -1219,9 +1180,9 @@ Task::create_chain::operator()( const Task * task ) const
 #if 0
 	    think_time = divideLQXExpressions( subtractLQXExpressions( getLQXVariable( dom->getCopies(), 1. ), new LQX::ConstantValueExpression( task->utilization() ) ), 
 					       new LQX::ConstantValueExpression( task->throughput() ) );
-// 	    std::cerr << "Task::create_chain::operator()( " << name << " ): think_time = " << ( task->copiesValue() - task->utilization() ) / task->throughput() << std::endl;
+// 	    std::cerr << "Task::create_chain::operator()( " << name << " ): think_time = " << task->computeThinkTime() << std::endl;
 #endif
-	    think_time = new LQX::ConstantValueExpression( ( task->copiesValue() - task->utilization() ) / task->throughput() );
+	    think_time = new LQX::ConstantValueExpression( task->computeThinkTime() );
 	}
 	_model.insertClosedChain( name, getLQXVariable( dom->getCopies(), 1. ), think_time );
     }
@@ -1626,7 +1587,9 @@ Task::moveTo( const double x, const double y )
 
     if ( Flags::aggregation() == Aggregate::ENTRIES ) {
 	_label->moveTo( bottomCenter() ).moveBy( 0, height() / 2 );
-    } else if ( !queueing_output() ) {
+    } else if ( queueing_output() ) {
+	_label->moveTo( bottomCenter() ).moveBy( 0, height() / 5 );
+    } else {
 
 	/* Move Label -- do after X extent recalculated */
 
@@ -1635,10 +1598,8 @@ Task::moveTo( const double x, const double y )
 	} else if ( _layers.size() ) {
 	    _label->moveTo( topCenter() ).moveBy( 0, -entries().front()->height() - 10 );
 	} else {
-	    _label->moveTo( bottomCenter() ).moveBy( 0, height() / 5 );
+	    _label->moveTo( bottomCenter() ).moveBy( 0, (height() - entries().front()->height()) / 2 );	// Half way from bottom of entry
 	}
-    } else {
-	_label->moveTo( bottomCenter() ).moveBy( 0, height() / 5 );
     }
 
     return *this;
@@ -1806,12 +1767,12 @@ Task::label()
 		labelQueueingNetwork( &Entry::labelQueueingNetworkTaskResponseTime, *_label );
 	    } else if ( throughput() > 0 ) {
 		/* We have results so derive */
-		_label->newLine() << " Z=" << (copiesValue() - utilization()) / throughput();
+		_label->newLine() << " Z=" << computeThinkTime();
 	    } else {
 		labelQueueingNetwork( &Entry::labelQueueingNetworkTaskServiceTime, *_label );
 	    }
 	} else {
-	    if ( Flags::aggregation() == Aggregate::ENTRIES && Flags::print[PRINT_AGGREGATE].opts.value.b ) {
+	    if ( Flags::aggregation() == Aggregate::ENTRIES && Flags::print[TASK_SERVICE_TIME].opts.value.b ) {
 		_label->newLine() << " [" << service_time( *entries().front() ) << ']';
 	    }
 	    if ( hasThinkTime()  ) {
@@ -1837,7 +1798,7 @@ Task::label()
 		_label->newLine() << begin_math();
 		print_goop = true;
 	    }
-	    *_label << _rho() << "=" << opt_pct(utilization());
+	    *_label << _rho() << "=" << opt_pct(Flags::normalize_utilization ? normalizedUtilization() : utilization());
 	    if ( hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
 		_label->colour(Graphic::Colour::RED);
 	    }
@@ -2534,7 +2495,7 @@ ReferenceTask::hasBogusUtilization() const
 {
     if ( !Flags::have_results ) return false;
 
-    const double u = utilization() / copiesValue();
+    const double u = normalizedUtilization();
     const double z = dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getThinkTimeValue();
     return (z == 0. && u < 0.99) || 1.01 < u;
 }

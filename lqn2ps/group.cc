@@ -1,6 +1,6 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 16967 2024-01-28 20:33:35Z greg $
+ * $Id: group.cc 17536 2025-04-02 13:42:13Z greg $
  */
 
 #include <algorithm>
@@ -242,7 +242,7 @@ GroupByRegex::match( const std::string& s ) const
 }
 
 GroupByProcessor::GroupByProcessor( const unsigned nLayers, const Processor * processor )
-  : Group( nLayers, processor->name() ), myProcessor( processor )
+  : Group( nLayers, processor->name() ), _processor( processor )
 {
 }
 
@@ -251,20 +251,20 @@ GroupByProcessor::GroupByProcessor( const unsigned nLayers, const Processor * pr
 GroupByProcessor&
 GroupByProcessor::label()
 {
-    *_label << myProcessor->name();
+    *_label << processor()->name();
     if ( Flags::print_input_parameters() ) {
-	if ( myProcessor->isMultiServer() ) {
-	    *_label << " {" << myProcessor->copies() << "}";
-	} else if ( myProcessor->isInfinite() ) {
+	if ( processor()->isMultiServer() ) {
+	    *_label << " {" << processor()->copies() << "}";
+	} else if ( processor()->isInfinite() ) {
 	    *_label << " {" << _infty() << "}";
 	}
-	if ( myProcessor->isReplicated() ) {
-	    *_label << " <" << myProcessor->replicas() << ">";
+	if ( processor()->isReplicated() ) {
+	    *_label << " <" << processor()->replicas() << ">";
 	}
     }
     if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
-	_label->newLine() << begin_math( &Label::mu ) << "=" << myProcessor->utilization() << end_math();
-	if ( myProcessor->hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
+	_label->newLine() << begin_math( &Label::mu ) << "=" << opt_pct(Flags::normalize_utilization ? processor()->normalizedUtilization() : processor()->utilization()) << end_math();
+	if ( processor()->hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
 	    _label->colour(Graphic::Colour::RED);
 	}
     }
@@ -420,7 +420,7 @@ GroupByShareGroup::positionLabel() const
 GroupByShareGroup&
 GroupByShareGroup::label()
 {
-    *_label << myShare->name() << " " << share()->share() * 100.0 << "%";
+    *_label << share()->name() << " " << share()->share() * 100.0 << "%";
     return *this;
 }
 

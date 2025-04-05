@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 17074 2024-02-28 20:35:29Z greg $
+ * $Id: entry.h 17536 2025-04-02 13:42:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -176,8 +176,8 @@ public:
     double serviceExceeded() const;
     double throughput() const;
     double throughputBound() const;
-    double utilization( const unsigned p ) const;
     double utilization() const;
+    double normalizedUtilization() const;
     double variance( const unsigned p ) const;
     double variance() const;
     double visitProbability() const;
@@ -286,6 +286,8 @@ public:
     /* Printing */
     
     virtual const Entry& draw( std::ostream& ) const;
+
+protected:
 
 private:
     Call * findCall( const Entry * anEntry, const callPredicate = 0 ) const;

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 17368 2024-10-15 21:03:38Z greg $
+ * $Id: call.cc 17539 2025-04-03 18:47:11Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -1789,7 +1789,7 @@ TaskCall::label()
 {
     if ( Flags::print_input_parameters() ) {
 	bool print_goop = false;
-	if ( hasRendezvous() && Flags::print[PRINT_AGGREGATE].opts.value.b ) {
+	if ( hasRendezvous() && Flags::print[TASK_SERVICE_TIME].opts.value.b ) {
 	    *_label << "(" << rendezvous() << ")";
 	    print_goop = true;
 	}

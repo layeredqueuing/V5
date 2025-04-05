@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 17368 2024-10-15 21:03:38Z greg $
+ * $Id: activity.cc 17538 2025-04-03 17:18:30Z greg $
  */
 
 #include "activity.h"
@@ -35,17 +35,6 @@
 bool Activity::hasJoins = 0;
 std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> Activity::actConnections;
 std::map<LQIO::DOM::ActivityList*, ActivityList *> Activity::domToNative;
-
-struct ExecReplyXY
-{
-    typedef GenericCall& (GenericCall::*funcPtrXY)( double x, double y );
-    ExecReplyXY( funcPtrXY f, double x, double y ) : _f(f), _x(x), _y(y) {};
-    void operator()( const std::pair<Entry *,Reply *>& object ) const { (object.second->*_f)( _x, _y ); }
-private:
-    funcPtrXY _f;
-    double _x;
-    double _y;
-};
 
 /*----------------------------------------------------------------------*/
 /*                    Activities are like phases....                    */

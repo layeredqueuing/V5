@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 17368 2024-10-15 21:03:38Z greg $
+ * $Id: layer.cc 17536 2025-04-02 13:42:13Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -584,7 +584,7 @@ Layer::transmorgrifyClients( LQIO::DOM::Document * document )		/* BUG_440 */
 	/* set think times. */
 	    
 	if ( document->hasResults() ) {
-	    dynamic_cast<LQIO::DOM::Task *>(const_cast<LQIO::DOM::DocumentObject *>(task->getDOM()))->setThinkTimeValue( task->idleTime() );
+	    dynamic_cast<LQIO::DOM::Task *>(const_cast<LQIO::DOM::DocumentObject *>(task->getDOM()))->setThinkTimeValue( task->computeThinkTime() );
 	}
 
     }

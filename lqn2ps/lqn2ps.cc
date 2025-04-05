@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 17454 2024-11-11 16:25:09Z greg $
+ * $Id: lqn2ps.cc 17539 2025-04-03 18:47:11Z greg $
  *
  * Command line processing.
  *
@@ -78,6 +78,7 @@ std::vector<Options::Type> Flags::print = {
     { "replication",           'R', "ARG",                 {&Options::replication,  Replication::NONE}, "Transform replication." },
 #endif
     { "submodel",              'S', "submodel",            {&Options::integer,      0},                 "Print submodel <n>." },
+    { "normalize-utilizations",'U', nullptr,               {&Options::none,         0},                 "Normalize utilizations to the range of 0 to 1." },
     { "version",               'V', nullptr,               {&Options::boolean,      false},             "Tool version." },
     { "no-warnings",           'W', nullptr,               {&Options::boolean,      false},             "Suppress warnings." },
     { "x-spacing",             'X', "spacing[,width]",     {&Options::real,         DEFAULT_X_SPACING}, "X spacing [and task width] (points)." },
@@ -113,8 +114,6 @@ std::vector<Options::Type> Flags::print = {
     { "reload-lqx",      0x200+'r', nullptr,               {&Options::none,         0},                 "\"Run\" the LQX program reloading results generated earlier." },
     { "spex-to-lqx",     0x200+'o', nullptr,               {&Options::none,         0},                 "Convert SPEX to LQX for XML output." },
     { "include-only",    0x200+'I', "regexp",              {&Options::string,       static_cast<std::regex *>(nullptr)},       "Include only objects with name matching <regexp>" },
-
-    /* -- below here is not stored in flag_values enumeration -- */
 
     /* Layering shortcuts */
 #if 0
@@ -221,7 +220,7 @@ main(int argc, char *argv[])
     char * options;
     std::filesystem::path output_file_name = "";
 
-    sscanf( "$Date: 2024-11-11 11:25:09 -0500 (Mon, 11 Nov 2024) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2025-04-03 14:47:11 -0400 (Thu, 03 Apr 2025) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -278,7 +277,7 @@ main(int argc, char *argv[])
 
 	    case 0x200+'A':;
 		Flags::set_aggregation( Aggregate::ACTIVITIES );
-		Flags::print[PRINT_AGGREGATE].opts.value.b = true;
+		Flags::print[TASK_SERVICE_TIME].opts.value.b = true;
 		break;
 
 	    case 'B':
@@ -554,7 +553,7 @@ main(int argc, char *argv[])
 
 	    case 0x200+'P':
 		Flags::set_aggregation( Aggregate::ENTRIES );
-		Flags::print[PRINT_AGGREGATE].opts.value.b = true;
+		Flags::print[TASK_SERVICE_TIME].opts.value.b = true;
 		break;
 
 	    case 'Q':
@@ -595,16 +594,20 @@ main(int argc, char *argv[])
 		Flags::sort = Sorting::NONE;
 		break;
 
+	    case 0x200+'S':
+		Flags::print[PRINT_SUMMARY].opts.value.b = true;
+		break;
+
 	    case 0x200+'t':
 		special( "tasks-only", "true", pragmas );
 		break;
 
+	    case 'U':
+		Flags::normalize_utilization = true;
+		break;
+		
 	    case 'V':
 		Flags::print[XX_VERSION].opts.value.b = true;
-		break;
-
-	    case 0x200+'S':
-		Flags::print[SUMMARY].opts.value.b = true;
 		break;
 
 	    case 0x200+'w':
@@ -617,19 +620,9 @@ main(int argc, char *argv[])
 		break;
 
 	    case 'X':
-		switch ( sscanf( optarg, "%lf,%lf", &Flags::print[X_SPACING].opts.value.d, &Flags::icon_width ) ) {
-		case 1: break;
-
-		default:
-		    if ( sscanf( optarg, ",%lf", &Flags::icon_width ) < 1 ) {
-			throw std::invalid_argument( optarg );
-		    }
-		    /* Fall through */
-		case 2:
-		    Flags::entry_width = Flags::icon_width * 0.625;
-		    break;
+		if ( sscanf( optarg, "%lf,%lf", &Flags::print[X_SPACING].opts.value.d, &Flags::icon_width ) == 0 || Flags::x_spacing() < 1 || Flags::icon_width < 1 ) {
+		    throw std::invalid_argument( optarg );
 		}
-
 		break;
 
 	    case 0x200+'X':
@@ -637,16 +630,8 @@ main(int argc, char *argv[])
 		break;
 
 	    case 'Y':
-		switch ( sscanf( optarg, "%lf,%lf", &Flags::print[Y_SPACING].opts.value.d, &Flags::icon_height ) ) {
-		case 1: break;
-
-		default:
-		    if ( sscanf( optarg, ",%lf", &Flags::icon_height ) < 1 ) {
-			throw std::invalid_argument( optarg );
-		    }
-		    /* Fall through */
-		case 2:
-		    Flags::entry_height = Flags::icon_height * 0.6;
+		if ( sscanf( optarg, "%lf,%lf", &Flags::print[Y_SPACING].opts.value.d, &Flags::icon_height ) == 0 || Flags::icon_height < 1 || Flags::y_spacing() < 1 ) {
+		    throw std::invalid_argument( optarg );
 		}
 		break;
 
@@ -689,6 +674,9 @@ main(int argc, char *argv[])
 		std::vector<Options::Type>::iterator f = std::find_if( Flags::print.begin(), Flags::print.end(), Options::find_option( c ) );
 		if ( f != Flags::print.end() ) {
 		    f->opts.value.b = enable;
+		    if ( enable && f->opts.param.s == &Options::result ) {
+			Flags::set_print_results( true );	// Enable printing if +<something>
+		    }
 		} else {
 		    usage( false );
 		    exit( 1 );
@@ -817,6 +805,8 @@ main(int argc, char *argv[])
     if ( Flags::bcmp_model ) {
 	Flags::set_aggregation( Aggregate::ENTRIES );
     }
+
+    Flags::entry_height = Flags::icon_height * (Flags::print_input_parameters() ? 0.6 : 0.5);
 
     /*
      * Change font size because scaleBy doesn't -- Fig doesn't use points for it's coordinates,

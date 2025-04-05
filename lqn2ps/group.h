@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * group.h	-- Greg Franks
  *
- * $Id: group.h 15613 2022-06-01 10:24:28Z greg $
+ * $Id: group.h 17536 2025-04-02 13:42:13Z greg $
  */
 
 #ifndef _GROUP_H
@@ -92,7 +92,7 @@ private:
 class GroupByProcessor : public Group
 {
 public:
-    GroupByProcessor( unsigned int, const Processor * aProcessor );
+    GroupByProcessor( unsigned int, const Processor * processor );
 
     GroupByProcessor& label();
 
@@ -101,17 +101,17 @@ public:
 
 protected:
 
-    virtual const Processor * processor() const { return myProcessor; }
+    virtual const Processor * processor() const { return _processor; }
 
 private:
-    const Processor * myProcessor;
+    const Processor * _processor;
 };
 
 
 class GroupByShare : public GroupByProcessor
 {
 public:
-    GroupByShare( unsigned int nLayers, const Processor * aProcessor ) : GroupByProcessor( nLayers, aProcessor ) {}
+    GroupByShare( unsigned int nLayers, const Processor * processor ) : GroupByProcessor( nLayers, processor ) {}
 
 protected:
     virtual bool populate() = 0;
@@ -121,7 +121,7 @@ protected:
 class GroupByShareDefault : public GroupByShare
 {
 public:
-    GroupByShareDefault( unsigned int nLayers, const Processor * aProcessor ) : GroupByShare( nLayers, aProcessor ) {}
+    GroupByShareDefault( unsigned int nLayers, const Processor * processor ) : GroupByShare( nLayers, processor ) {}
 
     virtual bool isPseudoGroup() const { return true; }
 
@@ -135,20 +135,20 @@ protected:
 class GroupByShareGroup : public GroupByShare
 {
 public:
-    GroupByShareGroup( unsigned int nLayers, const Processor * aProcessor, const Share * aShare ) : GroupByShare( nLayers, aProcessor ), myShare( aShare ) {}
+    GroupByShareGroup( unsigned int nLayers, const Processor * processor, const Share * aShare ) : GroupByShare( nLayers, processor ), _share( aShare ) {}
 
     virtual GroupByShareGroup & resizeBox();
     virtual GroupByShareGroup const& positionLabel() const;
 
 protected:
-    const Share * share() const { return myShare; }
+    const Share * share() const { return _share; }
     virtual LineStyle linestyle() const { return Graphic::LineStyle::DASHED_DOTTED; }	/* Draw a different box style */
 
     virtual bool populate();
     virtual GroupByShareGroup& label();
 
 private:
-    const Share * myShare;
+    const Share * _share;
 };
 
 class GroupSquashed : public Group

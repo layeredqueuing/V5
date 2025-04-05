@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17428 2024-11-05 00:47:59Z greg $
+ * $Id: task.cc 17534 2025-02-27 18:38:41Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -288,16 +288,9 @@ Task::configure( const unsigned nSubmodels )
 unsigned
 Task::findChildren( Call::stack& callStack, const bool directPath ) const
 {
-    return std::accumulate( entries().begin(), entries().end(), Entity::findChildren( callStack, directPath ), find_max_depth( callStack, directPath ) );
+    return std::accumulate( entries().begin(), entries().end(), Entity::findChildren( callStack, directPath ), [&]( unsigned int depth, const Entry * entry )
+	{ return std::max( depth, entry->findChildren( callStack, directPath && entry == callStack.back()->dstEntry() ) ); } );
 }
-
-
-unsigned int
-Task::find_max_depth::operator()( unsigned int depth, const Entry * entry )
-{
-    return std::max( depth, entry->findChildren( _callStack, _directPath && entry == _dstEntry) );
-}
-
 
 
 

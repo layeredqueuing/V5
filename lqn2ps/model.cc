@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 17528 2025-02-11 20:24:22Z greg $
+ * $Id: model.cc 17539 2025-04-03 18:47:11Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -345,7 +345,6 @@ Model::create( const std::filesystem::path& input_file_name, const LQIO::DOM::Pr
 
     LQIO::io_vars.reset();
 
-    Task::reset();
     Entry::reset();
     Call::reset();
     Activity::reset();
@@ -700,7 +699,7 @@ Model::process()
 	std::for_each( _layers.begin(), _layers.end(), std::mem_fn( &Layer::aggregate ) );
     }
 
-    if ( Flags::print[SUMMARY].opts.value.b || Flags::print_submodels ) {
+    if ( Flags::print[PRINT_SUMMARY].opts.value.b || Flags::print_submodels ) {
 	printSummary( std::cerr );
     }
 
@@ -1094,13 +1093,14 @@ Model::topologicalSort()
 {
     size_t max_depth = 0;
 
-    unsigned int i = 1;			/* Client path number */
+    unsigned int i = 0;			/* Client path number */
     for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
 	if ( (*task)->rootLevel() == Task::root_level_t::IS_NON_REFERENCE
 	     || (Flags::client_tasks != nullptr && regex_match( (*task)->name(), *Flags::client_tasks ) ) ) continue;
 
 	try {
 	    CallStack callStack;	/* Open arrivals start at level 1 */
+	    i += 1;
 	    if ( (*task)->rootLevel() == Task::root_level_t::HAS_OPEN_ARRIVALS ) callStack.push_back( nullptr );
 	    max_depth = std::max( (*task)->findChildren( callStack, i ), max_depth );
 	}
@@ -1108,8 +1108,6 @@ Model::topologicalSort()
 	    max_depth = std::max( error.depth(), max_depth );
 	    (*task)->getDOM()->runtime_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
 	}
-
-	i += 1;
     }
 
     return max_depth;

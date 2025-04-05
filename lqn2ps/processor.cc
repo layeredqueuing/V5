@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 17368 2024-10-15 21:03:38Z greg $
+ * $Id: processor.cc 17536 2025-04-02 13:42:13Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -454,7 +454,7 @@ Processor::label()
 		_label->newLine() << begin_math();
 		print_goop = true;
 	    }
-	    *_label << _rho() << "=" << opt_pct(utilization());
+	    *_label << _rho() << "=" << opt_pct(Flags::normalize_utilization ? normalizedUtilization() : utilization());
 	    if ( hasBogusUtilization() && Flags::colouring() != Colouring::NONE ) {
 		_label->colour(Graphic::Colour::RED);
 	    }

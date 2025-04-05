@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: option.h 17378 2024-10-16 23:25:26Z greg $
+ * $Id: option.h 17539 2025-04-03 18:47:11Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -237,7 +237,7 @@ public:
 	    } value;
 	} opts;
     
-    const char * msg;
+	const char * msg;
     };
 
 public:

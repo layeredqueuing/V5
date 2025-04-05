@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 17428 2024-11-05 00:47:59Z greg $
+ * $Id: task.h 17534 2025-02-27 18:38:41Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -40,15 +40,6 @@ public:
     friend class Interlock;		// BUG_425 deprecate
 
 private:
-    struct find_max_depth {
-	find_max_depth( Call::stack& callStack, bool directPath ) : _callStack(callStack), _directPath(directPath), _dstEntry(callStack.back()->dstEntry()) {}
-	unsigned int operator()( unsigned int depth, const Entry * entry );
-    private:
-	Call::stack& _callStack;
-	const bool _directPath;
-	const Entry * _dstEntry;
-    };
-    
     struct add_customers {
 	unsigned int operator()( unsigned int addend, const std::pair<const Task *,unsigned int>& augend ) const { return add( addend, augend.second ); }
 	unsigned int operator()( unsigned int addend, const Entity * augend ) const { return add( addend, augend->population() ); }	// BUG_425 deprecate

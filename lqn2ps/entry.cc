@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 17368 2024-10-15 21:03:38Z greg $
+ * $Id: entry.cc 17536 2025-04-02 13:42:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -576,16 +576,20 @@ Entry::throughputBound() const
 
 
 double
-Entry::utilization( const unsigned p ) const
-{
-    return getPhase(p).utilization();
-}
-
-
-double
 Entry::utilization() const
 {
     return getDOM()->getResultUtilization();
+}
+
+
+/*
+ * Return utilization normalized to the number of copies.
+ */
+ 
+double
+Entry::normalizedUtilization() const
+{
+    return utilization() / owner()->copiesValue();
 }
 
 /*
@@ -1669,7 +1673,7 @@ Entry::colour() const
     switch ( Flags::colouring() ) {
     case Colouring::RESULTS:
 	if ( Flags::have_results && Flags::graphical_output_style == Output_Style::JLQNDEF && !owner()->isReferenceTask() ) {
-	    return colourForUtilization( owner()->isInfinite() ? 0.0 : utilization() / owner()->copiesValue() );
+	    return colourForUtilization( owner()->isInfinite() ? 0.0 : normalizedUtilization() );
 	} else if ( serviceExceeded() > 0. ) {
 	    return Graphic::Colour::RED;
 	}
@@ -1945,7 +1949,7 @@ Entry::label()
 	    _label->newLine() << begin_math( &Label::lambda ) << "=" << opt_pct(throughput()) << end_math();
 	}
 	if ( Flags::print[ENTRY_UTILIZATION].opts.value.b ) {
-	    _label->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(utilization()) << end_math();
+	    _label->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(Flags::normalize_utilization ? normalizedUtilization() : utilization()) << end_math();
 	}
 //	if ( Flags::print[PROCESSOR_UTILIZATION].opts.value.b ) {
 //	    _label->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(processorUtilization()) << end_math();
@@ -2169,7 +2173,6 @@ Entry::remove_from_dst( Call * call )
     if ( call != nullptr ) const_cast<Entry *>(call->dstEntry())->removeDstCall( call );
 }
 #endif
-
 
 
 #if REP2FLAT
