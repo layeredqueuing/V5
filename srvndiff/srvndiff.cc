@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 17074 2024-02-28 20:35:29Z greg $
+ * $Id: srvndiff.cc 17544 2025-04-16 21:50:39Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -477,7 +477,7 @@ static struct {
     { "include",		     'Y', false, required_argument, "Include only <obj> with <regex> from results.  Object can be task, processor, or entry", nullptr },
     { "results",                     'a', true,  no_argument,       "Print all/no results", nullptr },
     { "processor-waiting",           'b', true,  no_argument,       "Print processor waiting times", &print_processor_waiting },
-    { "coefficient-of-variation",    'c', true,  no_argument,       "Pring coefficient of variation results", &print_cv_square },
+    { "coefficient-of-variation",    'c', true,  no_argument,       "Print coefficient of variation results", &print_cv_square },
     { "asynch-send-variance",        'd', true,  no_argument,       "Print send-no-reply waiting time variance", &print_snr_waiting_variance },
     { "entry-throughput", 	     'e', true,  no_argument,       "Print entry throughput", &print_entry_throughput },
     { "throughput-bound",            'f', false, no_argument,       "Print throughput bounds", &print_throughput_bound },
@@ -999,7 +999,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2024-02-28 15:35:29 -0500 (Wed, 28 Feb 2024) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2025-04-16 17:50:39 -0400 (Wed, 16 Apr 2025) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );

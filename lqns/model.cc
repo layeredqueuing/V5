@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17533 2025-02-15 12:46:51Z greg $
+ * $Id: model.cc 17542 2025-04-15 18:27:31Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -1032,9 +1032,9 @@ Model::topologicalSort()
     for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
 	Call::stack callStack;
 	switch ( (*task)->rootLevel() ) {
+	case Task::root_level_t::IS_REFERENCE: (*task)->setSubmodel( 1 ); break;
 	case Task::root_level_t::IS_NON_REFERENCE: continue;
 	case Task::root_level_t::HAS_OPEN_ARRIVALS: callStack.push_back(&null_call); break;	/* Open arrivals start at 1 */
-	default: break;
 	}
 	try {
 	    max_depth = std::max( (*task)->findChildren( callStack, true ), max_depth );

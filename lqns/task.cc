@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17534 2025-02-27 18:38:41Z greg $
+ * $Id: task.cc 17543 2025-04-16 21:42:50Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -634,8 +634,7 @@ Task::clearSurrogateDelay()
 
 
 /*
- * Return one if any of the entries on the receiver is called
- * and zero otherwise.
+ * Return true if any of the entries on the receiver is called
  */
 
 bool
@@ -674,9 +673,9 @@ Task::rootLevel() const
 {
     root_level_t level = root_level_t::IS_NON_REFERENCE;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	if ( (*entry)->isCalledUsingRendezvous() || (*entry)->isCalledUsingSendNoReply() ) {
+	if ( (*entry)->isCalledUsing( Entry::RequestType::RENDEZVOUS ) || (*entry)->isCalledUsing( Entry::RequestType::SEND_NO_REPLY ) ) {
 	    return root_level_t::IS_NON_REFERENCE;	/* Non root task */
-	} else if ( (*entry)->isCalledUsingOpenArrival() ) {
+	} else if ( (*entry)->isCalledUsing( Entry::RequestType::OPEN_ARRIVAL ) ) {
 	    level = root_level_t::HAS_OPEN_ARRIVALS;	/* Root task, but move to lower level */
 	}
     }
@@ -1569,6 +1568,15 @@ ReferenceTask::reinitializeClient()
 
 
 
+void
+ReferenceTask::setSubmodel( const unsigned submodel )
+{
+    assert( submodel == 1 );
+    Entity::setSubmodel( submodel );
+}
+
+
+
 /*
  * Dynamic Updates / Late Finalization
  * In order to integrate LQX's support for model changes we need to
@@ -1697,8 +1705,8 @@ ServerTask::check() const
     if ( std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::hasVisitProbability ) ) ) {
 	getDOM()->runtime_error( LQIO::WRN_TASK_HAS_VISIT_PROBABILITY );
     }
-    if ( isInfinite() && (std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::isCalledUsingSendNoReply ) )
-			  || std::any_of( entries().begin(), entries().end(), std::mem_fn( &Entry::isCalledUsingOpenArrival ) ) ) ) {
+    if ( isInfinite() && (std::any_of( entries().begin(), entries().end(), []( const Entry * entry ){ return entry->isCalledUsing( Entry::RequestType::SEND_NO_REPLY ); } )
+			  || std::any_of( entries().begin(), entries().end(), []( const Entry * entry ) { return entry->isCalledUsing( Entry::RequestType::OPEN_ARRIVAL ); } ) ) ) {
 	getDOM()->runtime_error( LQIO::WRN_INFINITE_SERVER_OPEN_ARRIVALS );
     }
 

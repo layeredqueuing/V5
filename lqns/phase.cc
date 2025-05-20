@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 17428 2024-11-05 00:47:59Z greg $
+ * $Id: phase.cc 17543 2025-04-16 21:42:50Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -315,6 +315,7 @@ Phase::findChildren( Call::stack& callStack, const bool directPath ) const
 	if ( (*call)->isForwardedCall() ) continue;
 
 	const Entity * dstTask = (*call)->dstTask();
+
 	try {
 
 	    /*
@@ -332,7 +333,6 @@ Phase::findChildren( Call::stack& callStack, const bool directPath ) const
 		}
 		max_depth = std::max( dstTask->findChildren( callStack, directPath ), max_depth );
 		callStack.pop_back();
-
 	    }
 	}
 	catch ( const Call::call_cycle& error ) {
