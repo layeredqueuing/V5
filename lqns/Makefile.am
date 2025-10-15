@@ -18,7 +18,7 @@ noinst_HEADERS	= activity.h actlist.h call.h entity.h entry.h \
 
 EXTRA_DIST	= lqns.1 
 
-lqns_CXXFLAGS   = -std=c++17 -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-overloaded-virtual
+lqns_CXXFLAGS   = -std=gnu++17 -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-overloaded-virtual
 lqns_LDADD	= -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio  -L../libmva/src/.libs -lmva
 lqns_LDFLAGS	= @STATIC@
 man1_MANS	= lqns.1

@@ -52,6 +52,7 @@
  */
 
 #include <cstdio>
+#include <cstdarg>
 #include <stdexcept>
 #include <string>
 #include <map>
@@ -200,7 +201,7 @@ namespace LQIO {
     void input_error( unsigned err, ... );
     bool output_error_message( error_severity );
     void severity_action( error_severity );
-    void verrprintf( FILE *, error_severity, const char *, unsigned int, unsigned int, const char *, va_list );
+    void verrprintf( FILE *, error_severity, const char *, unsigned int, unsigned int, const char *, std::va_list );
                 
     class undefined_symbol : public std::runtime_error
     {

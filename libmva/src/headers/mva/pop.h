@@ -83,8 +83,6 @@ public:
 
 private:
     Vector<unsigned> _N;
-
-    
 };
 
 inline std::ostream& operator<<( std::ostream& output, const Population& self ) { return self.print( output ); }

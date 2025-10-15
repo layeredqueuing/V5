@@ -13,5 +13,5 @@ libmva_la_SOURCES = fpgoop.cc \
 	server.cc 
 
 libmva_la_CPPFLAGS = -I headers/mva
-libmva_la_CXXFLAGS = -std=c++17 -Wall -Wno-unknown-pragmas
+libmva_la_CXXFLAGS = -std=gnu++17 -Wall -Wno-unknown-pragmas
 libmva_la_LDFLAGS =  -no-undefined -version-info 0:1:0

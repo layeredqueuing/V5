@@ -26,7 +26,7 @@ noinst_HEADERS 	= actlayer.h activity.h actlist.h arc.h call.h element.h entity.
 
 EXTRA_DIST	= lqn2ps.1 
 
-lqn2ps_CXXFLAGS = -std=c++17 -Wall -Wno-parentheses -Wno-switch -Wno-unknown-pragmas -Wno-overloaded-virtual
+lqn2ps_CXXFLAGS = -std=gnu++17 -Wall -Wno-parentheses -Wno-switch -Wno-unknown-pragmas -Wno-overloaded-virtual
 lqn2ps_LDADD	= -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio 
 lqn2ps_LDFLAGS	= @STATIC@
 
