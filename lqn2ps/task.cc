@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17539 2025-04-03 18:47:11Z greg $
+ * $Id: task.cc 17549 2025-10-16 19:58:27Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1036,7 +1036,7 @@ Task::findChildren( CallStack& callStack, const unsigned directPath )
 
     const Entry * dstEntry = callStack.back() ? callStack.back()->dstEntry() : nullptr;
     return std::accumulate( entries().begin(), entries().end(), max_depth, [&]( size_t depth, const Entry * entry )
-	{ return std::max( depth, entry->findChildren( callStack, ((entry == dstEntry) || entry->hasOpenArrivalRate()) ? directPath : 0  ) ); } );
+	{ return std::max( depth, entry->findChildren( callStack, ((entry == dstEntry) || entry->hasOpenArrivalRate()) ? directPath : 0  ) ); } ) + 1;
 }
 
 

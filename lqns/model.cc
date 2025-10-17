@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17542 2025-04-15 18:27:31Z greg $
+ * $Id: model.cc 17548 2025-10-16 18:54:11Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -800,7 +800,7 @@ Model::reorderOutput() const
     };
     /* For only copying the originals back */
     const struct predicate {
-	bool operator()( const Entity *e ) const { return !e->isReplica() && e->getDOM() != nullptr; }
+	bool operator()( const Entity *e ) const { return e->getReplicaNumber() == 1 && e->getDOM() != nullptr; }
     } predicate;
 
     /* go through all the tasks and processors and save based on their depth. Processor and tasks names can collide. */
@@ -811,7 +811,7 @@ Model::reorderOutput() const
 	       
     /* Change the order in the DOM.  DO NOT clear entities because the vector has to be the right size */
     std::vector<LQIO::DOM::Entity *>& entities = const_cast<std::vector<LQIO::DOM::Entity *>&>(getDOM()->getEntities());
-    assert( mapped.size() == entities.size() );
+    assert(  mapped.size() == entities.size() );
     std::transform( mapped.begin(), mapped.end(), entities.begin(), []( Entity * entity ){ return entity->getDOM(); } );
 }
 

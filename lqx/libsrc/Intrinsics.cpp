@@ -377,16 +377,17 @@ namespace LQX {
 		break;
 	    } 
 	    case Symbol::SYM_STRING: {
-		const char* rawValue = current->getStringValue();
-		if (!strcasecmp(rawValue, "true") || !strcasecmp(rawValue, "yes")) { decodedValue = true; }
-		else if (!strcasecmp(rawValue, "false") || !strcasecmp(rawValue, "no")) { decodedValue = false; }
+		std::string rawValue = current->getStringValue();
+		std::transform(rawValue.begin(), rawValue.end(), rawValue.begin(), [](unsigned char c){ return std::tolower(c); });
+		if (rawValue == "true" || rawValue == "yes") { decodedValue = true; }
+		else if (rawValue == "false" || rawValue == "no") { decodedValue = false; }
 		else { got = false; }
 		break;
 	    } 
 	    case Symbol::SYM_NULL: {
 		decodedValue = false;
 		break;
-	    } 
+	    }
 	    case Symbol::SYM_OBJECT: {
 		got = false;
 		break;

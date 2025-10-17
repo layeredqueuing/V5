@@ -1,4 +1,4 @@
-# $Id: Makefile.am 16989 2024-01-31 11:40:29Z greg $
+# $Id: Makefile.am 17546 2025-10-15 23:09:02Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 # This project uses Libtool to generate a product
