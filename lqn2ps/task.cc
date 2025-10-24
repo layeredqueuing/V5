@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17549 2025-10-16 19:58:27Z greg $
+ * $Id: task.cc 17552 2025-10-23 18:47:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1027,16 +1027,19 @@ Task::isInClosedModel( const std::vector<Entity *>& servers ) const
 size_t
 Task::findChildren( CallStack& callStack, const unsigned directPath )
 {
-    const size_t max_depth = std::max( callStack.size(), level() );
+    const size_t this_depth = std::max( callStack.size(), level() );
 
-    setLevel( max_depth ).addPath( directPath );
+    setLevel( this_depth ).addPath( directPath );
 
-    std::for_each( processors().begin(), processors().end(), [=]( const Processor * processor )
-	{ const_cast<Processor *>(processor)->setLevel( std::max( processor->level(), max_depth + 1 ) ).addPath( directPath ); } );
+    size_t max_depth = std::accumulate( processors().begin(), processors().end(), this_depth + 1, [&]( size_t depth, const Processor * processor ) {
+	const_cast<Processor *>(processor)->setLevel( std::max( processor->level(), this_depth + 1 ) ).addPath( directPath );
+	return std::max( depth, processor->level() );
+    } );
 
     const Entry * dstEntry = callStack.back() ? callStack.back()->dstEntry() : nullptr;
-    return std::accumulate( entries().begin(), entries().end(), max_depth, [&]( size_t depth, const Entry * entry )
-	{ return std::max( depth, entry->findChildren( callStack, ((entry == dstEntry) || entry->hasOpenArrivalRate()) ? directPath : 0  ) ); } ) + 1;
+    return std::accumulate( entries().begin(), entries().end(), max_depth, [&]( size_t depth, const Entry * entry ) {
+	return std::max( depth, entry->findChildren( callStack, ((entry == dstEntry) || entry->hasOpenArrivalRate()) ? directPath : 0  ) );
+    } );
 }
 
 

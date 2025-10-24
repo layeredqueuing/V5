@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17543 2025-04-16 21:42:50Z greg $
+ * $Id: task.cc 17552 2025-10-23 18:47:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1667,7 +1667,7 @@ ReferenceTask::sanityCheck() const
 {
     const double u = utilization() / copies();
     if ( (!(hasThinkTime() || thinkTime() > 0.) && u < 0.99) || 1.01 < u ) {
-	LQIO::runtime_error( ADV_INVALID_UTILIZATION, getDOM()->getTypeName(), name().c_str(), copies(), utilization() );
+	LQIO::runtime_error( ADV_INVALID_REF_TASK_UTILIZATION, name().c_str(), utilization(), copies() );
     }
     return *this;
 }

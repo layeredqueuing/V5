@@ -1,4 +1,4 @@
-/* $Id: para_library.c 17453 2024-11-10 12:08:26Z greg $ */
+/* $Id: para_library.c 17553 2025-10-23 18:50:56Z greg $ */
 
 /************************************************************************/
 /*	para_library.c - PARASOL library source file			*/
@@ -789,7 +789,7 @@ SYSCALL	ps_kill(
 	sched_info	*si;
 	long	sib;				/* sibling index	*/
 	long	temp;				/* temporary		*/
-	void	release_ports();		/* port killer		*/
+	void	release_ports(ps_task_t *tp);	/* port killer		*/
 
 	if(task >= ps_task_tab.tab_size || task < 2) {
 		return(BAD_PARAM("task"));
@@ -1709,7 +1709,6 @@ SYSCALL	ps_leave_port_set(
 	ps_port_t	*psp;			/* port set pointer	*/
 	ps_tp_pair_t *pairp;			/* pair pointer		*/
 	ps_tp_pair_t *lastp;			/* last pair pointer	*/
-	void	free_pair();			/* tp pair sink		*/
 	long	i;				/* loop index		*/
 	long	istop;				/* loop stopper		*/
 	long	type;				/* message type		*/
@@ -1943,7 +1942,7 @@ SYSCALL	ps_pass_port(
 	char	string[TEMP_STR_SIZE];		/* temp string		*/
 	ps_tp_pair_t *pairp;			/* pair pointer		*/
 	ps_tp_pair_t *lastp;			/* last pair pointer	*/
-	void	free_pair();			/* tp pair sink		*/
+	void	free_pair(ps_tp_pair_t *);	/* tp pair sink		*/
 	long	task2;				/* Saves the owner	*/
 
 	if(port < 0 || port >= ps_port_tab.tab_size)
@@ -2558,7 +2557,7 @@ SYSCALL	ps_reset_semaphore(
 	char		string[30];		/* trace string		*/
 	ps_tp_pair_t	*pp;			/* tp pair pointer	*/
 	ps_tp_pair_t	*opp;			/* old tp pair pointer	*/
-	void	free_pair();			/* tp pair sink		*/
+	void	free_pair(ps_tp_pair_t	*);	/* tp pair sink		*/
 
 	if(sid < 0)
 		return(BAD_PARAM("sid"));
@@ -2606,10 +2605,10 @@ SYSCALL ps_signal_semaphore(
 )
 {
 	long		i;			/* loop index		*/
-	ps_sema_t		*sp;		/* semaphore pointer	*/
+	ps_sema_t	*sp;			/* semaphore pointer	*/
 	char		string[30];		/* trace string		*/
 	ps_tp_pair_t	*qpp;			/* tp queue pointer	*/
-	void	free_pair();			/* tp pair sink		*/
+	void	free_pair(ps_tp_pair_t*);	/* tp pair sink		*/
 
 	if(sid < 0)
 		return(BAD_PARAM("sid"));
