@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17548 2025-10-16 18:54:11Z greg $
+ * $Id: model.cc 17561 2025-11-04 01:31:08Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -199,6 +199,10 @@ Model::solve( solve_using solve_function, const std::filesystem::path& inputFile
 	}
 
 	if ( status == 0 ) {
+	    /* Don't create directories etc if there are no loops (i.e., parameters only) */
+	    if ( LQIO::Spex::has_input_vars_but_no_loops() ) {
+		SolverInterface::Solve::implicitSolve = true;
+	    }
 	    /* Invoke the LQX program itself */
 	    if ( !program->invoke() ) {
 		LQIO::runtime_error( LQIO::ERR_LQX_EXECUTION, inputFileName.c_str() );
@@ -834,7 +838,6 @@ Model::compute()
     if ( Options::Trace::verbose() ) std::cerr << "Solve..." << std::endl;
 
     report.start();
-
     _converged = false;
     const double delta = run();
     report.finish( _converged, delta, _iterations );

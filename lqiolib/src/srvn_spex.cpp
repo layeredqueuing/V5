@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 17555 2025-10-30 16:31:12Z greg $
+ *  $Id: srvn_spex.cpp 17561 2025-11-04 01:31:08Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -115,6 +115,15 @@ namespace LQIO {
 	return __input_variables.size() > 0 || __observation_variables.size() > 0 || __document_variables.size() > 0;
     }
 
+    /*
+     * Return true if spex is present, but it won't loop because there are no arrays
+     */
+    
+    bool Spex::has_input_vars_but_no_loops()
+    {
+	return (__input_variables.size() > 0 || __observation_variables.size() > 0 || __document_variables.size() > 0) && __array_variables.empty();
+    }
+    
 
     bool Spex::duplicate_symbol( const std::string& name  )
     {

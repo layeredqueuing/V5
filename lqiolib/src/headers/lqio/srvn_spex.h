@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 17330 2024-10-02 21:00:46Z greg $
+ * $Id: srvn_spex.h 17561 2025-11-04 01:31:08Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -263,6 +263,7 @@ namespace LQIO {
 	static bool has_input_var( const std::string& );
 	static bool has_observation_var( const std::string& );
 	static bool has_array_var( const std::string& );
+	static bool has_input_vars_but_no_loops();
 	static LQX::SyntaxTreeNode * get_input_var_expr( const std::string& );
 	static void clear_input_variables() { __input_variables.clear(); }
 

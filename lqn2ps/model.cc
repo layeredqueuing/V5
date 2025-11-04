@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 17539 2025-04-03 18:47:11Z greg $
+ * $Id: model.cc 17561 2025-11-04 01:31:08Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -478,6 +478,10 @@ Model::create( const std::filesystem::path& input_file_name, const LQIO::DOM::Pr
 		    if ( Flags::dump_graphviz ) {
 			program->getGraphvizRepresentation( std::cout );
 		    } else if ( status == 0 ) {
+			/* Don't create directories etc if there are no loops (i.e., parameters only) */
+			if ( LQIO::Spex::has_input_vars_but_no_loops() ) {
+			    SolverInterface::Solve::implicitSolve = true;
+			}
 			/* Invoke the LQX program itself */
 			if ( !program->invoke() ) {
 			    LQIO::runtime_error( LQIO::ERR_LQX_EXECUTION, input_file_name.c_str() );

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 17461 2024-11-12 15:08:49Z greg $
+ * $Id: model.cc 17561 2025-11-04 01:31:08Z greg $
  *
  * Load the SRVN model.
  */
@@ -157,6 +157,10 @@ Model::solve( solve_using solver_function, const std::string& inputFileName, LQI
 	    }
 
 	    if ( status == 0 ) {
+		/* Don't create directories etc if there are no loops (i.e., parameters only) */
+		if ( LQIO::Spex::has_input_vars_but_no_loops() ) {
+		    SolverInterface::Solve::implicitSolve = true;
+		}
 		/* Invoke the LQX program itself */
 		if ( !program->invoke() ) {
 		    LQIO::runtime_error( LQIO::ERR_LQX_EXECUTION, inputFileName.c_str() );
