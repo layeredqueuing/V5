@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: model.h 17335 2024-10-04 18:00:09Z greg $
+ * $Id: model.h 17560 2025-11-03 22:45:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,6 +17,7 @@
 #if !defined MODEL_H
 #define MODEL_H
 #include <map>
+#include <filesystem>
 #include <cmath>
 #include <string>
 
@@ -35,10 +36,10 @@ namespace LQIO {
 }
 
 namespace Model {
+    class Value;
+}
 
-    class Output;
-    std::ostream& operator<<( std::ostream&, const Model::Output& );
-
+namespace Model {
     enum class Mode { PATHNAME, FILENAME_STRIP, DIRECTORY_STRIP, DIRECTORY };
 
     class Object {
@@ -60,18 +61,19 @@ namespace Model {
 	static const std::map<const Object::Type,const std::pair<const std::string,const std::string>> __object_type;
     };
 
-    class Output
+    class Value
     {
-	friend std::ostream& operator<<( std::ostream&, const Model::Output& );
-
     public:
-	enum class Type { DOUBLE, STRING };
+	enum class Type { DOUBLE, STRING, PATHNAME };
 
-	Output( double value ) : _type(Type::DOUBLE) { _u._double = value; }
-	Output( const char * string ) : _type(Type::STRING) { _u._string = string; }
+	Value( double value ) : _type(Type::DOUBLE) { _u._double = value; }
+	Value( const char * string ) : _type(Type::STRING) { _u._string = string; }
+	Value( const std::filesystem::path& path );
 
-	Output& operator=( const Output& src );
-	bool operator!=( const Output& dst ) const;
+	virtual ~Value() {}
+	
+	Value& operator=( const Value& src );
+	bool operator!=( const Value& dst ) const;
 	
 	bool isnan() const { return _type == Type::DOUBLE && std::isnan( _u._double ); }
 
@@ -145,13 +147,13 @@ namespace Model {
 
     public:
 	Result( const LQIO::DOM::Document& dom ) : _dom(dom) {}
-	std::vector<Model::Output> operator()( const std::vector<Model::Output>&, const std::pair<std::string,Model::Result::Type>& ) const;
+	std::vector<Model::Value> operator()( const std::vector<Model::Value>&, const std::pair<std::string,Model::Result::Type>& ) const;
 	static std::string ObjectName( const std::string&, const std::pair<std::string,Model::Result::Type>& );
 	static std::string TypeName( const std::string&, const std::pair<std::string,Model::Result::Type>& );
 	static bool equal( Type, Type );
 	static bool isIndependentVariable( Type );
 	static bool isDependentVariable( Type );
-	static void printHeader( std::ostream&, const std::string&, const std::vector<Model::Result::result_t>& results, Result::get_field f, size_t width );
+	static void insertHeader( std::vector<std::vector<Model::Value>>& data, const std::string&, const std::vector<Model::Result::result_t>& results, Result::get_field f );
 
 	static const std::string& getObjectType( const std::pair<std::string,Model::Result::Type>& );
 	static const std::string& getObjectName( const std::pair<std::string,Model::Result::Type>& );
@@ -180,43 +182,35 @@ namespace Model {
 
     class Process {
     public:
-	Process( std::ostream& output, const std::vector<Model::Result::result_t>& results, size_t limit, size_t header_column_width, Mode mode, const std::pair<size_t,double>& x_index ) : _output(output), _results(results), _limit(limit), _header_column_width(header_column_width), _mode(mode), _x_index(x_index), _i(0) {}
+	Process( std::vector<std::vector<Model::Value>>& data, const std::vector<Model::Result::result_t>& results, size_t limit, Mode mode, const std::pair<size_t,double>& x_index ) : _data(data), _results(results), _limit(limit), _mode(mode), _x_index(x_index), _model_no(0) {}
 
-	void operator()( const std::string& filename );
+	void operator()( const std::filesystem::path& path );
 
     private:
 	size_t x_index() const { return _x_index.first; }
-	Model::Output x_value() const { return _x_index.second; }
-	void set_x_value( const Model::Output& value ) { _x_index.second = value; }
-	void print_filename( const std::string& ) const;
+	Model::Value x_value() const { return _x_index.second; }
+	void set_x_value( const Model::Value& value ) { _x_index.second = value; }
 
     private:
-	std::ostream& _output;
+	std::vector<std::vector<Model::Value>>& _data;
 	const std::vector<Model::Result::result_t>& _results;
 	const size_t _limit;
-	const size_t _header_column_width;
-	const Mode _mode;
-	std::pair<size_t,Model::Output> _x_index;	/* For splot output */
-	unsigned int _i;			/* Record number */
+	Mode _mode;
+	std::pair<size_t,Model::Value> _x_index;	/* For splot output */
+	unsigned int _model_no;				/* Record number */
     };
 
-    class PrintHeader {
+    class InsertHeader {
     public:
-	PrintHeader( std::ostream& output, Result::get_field f ) : _output(output), _f(f) {}
-	void operator()( const std::pair<std::string,Model::Result::Type>& ) const;
+	InsertHeader( std::vector<Model::Value>& row, Result::get_field f ) : _row(row), _f(f) {}
+	void operator()( const std::pair<std::string,Model::Result::Type>& result ) { _row.emplace_back( (*_f)( result ) ); }
 
     private:
-	std::ostream& _output;
+	std::vector<Model::Value>& _row;
 	const Result::get_field _f;
     };
 
-    class PrintLine {
-    public:
-	PrintLine( std::ostream& output ) : _output(output) {}
-	void operator()( const Model::Output& ) const;
-
-    private:
-	std::ostream& _output;
-    };
 }
+
+std::ostream& operator<<( std::ostream&, const Model::Value& );
 #endif

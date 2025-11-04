@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 17359 2024-10-12 01:32:27Z greg $
+ * $Id: lqn2csv.cc 17560 2025-11-03 22:45:15Z greg $
  *
  * Command line processing.
  *
@@ -40,13 +40,16 @@
 #include <lqio/dom_task.h>
 #include "model.h"
 #include "gnuplot.h"
+#include "output.h"
 
 int gnuplot_flag    = 0;
 int no_header       = 0;
 int debug_xml	    = 0;
 size_t limit	    = 0;
 int precision	    = 0;
-int width	    = 0;
+size_t width        = 0;
+size_t path_width   = 0;
+bool transpose 	    = false;
 
 const std::vector<struct option> longopts = {
     /* name */ /* has arg */ /*flag */ /* val */
@@ -90,6 +93,7 @@ const std::vector<struct option> longopts = {
     { "precision",	            required_argument, nullptr, 0x100+'p' },
     { "limit",		            required_argument, nullptr, 0x100+'l' },
     { "no-header",                  no_argument,       &no_header, 1 },
+    { "transpose",		    no_argument,       nullptr, 0x100+'t' },
     { "width",		            required_argument, nullptr, 0x100+'w' },
     { "version",	            no_argument,       nullptr, 0x100+'v' },
     { "debug-xml",	            no_argument,       &debug_xml, 1 },
@@ -138,6 +142,7 @@ const static std::map<int,const std::string> help_str
     { 0x100+'l', "Limit output to the first <arg> files read." },
     { 0x100+'w', "Set the width of the result columns to <arg>.  Suppress commas." },
     { 0x100+'p', "Set the precision for output to <arg>." },
+    { 0x100+'t', "Transpose the output such that results are in rows and files are in columns." },
     { 0x100+'v', "Print out version number." },
     { 0x100+'h', "Print out this list." }
 };
@@ -212,7 +217,7 @@ private:
 std::vector<Model::Result::result_t> results;
 
 static void process( std::ostream& output, int argc, char **argv, const std::vector<Model::Result::result_t>& results, size_t limit );
-static void process_directory( std::ostream& output, const std::string& dirname, const Model::Process& );
+static void process_directory( const std::string& dirname, const Model::Process& );
 static Model::Mode get_mode( int argc, char **argv, int optind );
 static void fetch_arguments( const std::filesystem::path& filename, std::vector<Model::Result::result_t>& results );
 static void handle_arguments( int argc, char * argv[], Disposition, std::vector<Model::Result::result_t>& results );
@@ -232,7 +237,7 @@ main( int argc, char *argv[] )
     extern int optind;
     static char copyrightDate[20];
 
-    sscanf( "$Date: 2024-10-11 21:32:27 -0400 (Fri, 11 Oct 2024) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2025-11-03 17:45:15 -0500 (Mon, 03 Nov 2025) $", "%*s %s %*s", copyrightDate );
 
     toolname = basename( argv[0] );
     opts = makeopts( longopts );	/* Convert to regular options */
@@ -329,28 +334,38 @@ process( std::ostream& output, int argc, char **argv, const std::vector<Model::R
 
     /* Load results, then got through results printing them out. */
 
-    const size_t filename_column_width = (width == 1) ? 1 : (mode == Model::Mode::DIRECTORY) ? width : std::accumulate( &argv[optind], &argv[argc], 1, max_strlen( mode ) );
+    path_width = (width == 1) ? 1 : (mode == Model::Mode::DIRECTORY) ? width : std::accumulate( &argv[optind], &argv[argc], 1, max_strlen( mode ) );
     
+    std::vector<std::vector<Model::Value>> data;
     if ( gnuplot_flag ) {
 	plot.preamble();
     } else if ( no_header == 0 ) {
-	Model::Result::printHeader( output, "Object", results, &Model::Result::getObjectType, filename_column_width );
-	Model::Result::printHeader( output, "Name",   results, &Model::Result::getObjectName, filename_column_width );
-	Model::Result::printHeader( output, "Result", results, &Model::Result::getTypeName,   filename_column_width  );
+	Model::Result::insertHeader( data, "Object", results, &Model::Result::getObjectType );
+	Model::Result::insertHeader( data, "Name",   results, &Model::Result::getObjectName );
+	Model::Result::insertHeader( data, "Result", results, &Model::Result::getTypeName );
     }
 
     /* For all files do... */
 
     try {
 	if ( mode == Model::Mode::DIRECTORY ) {
-	    process_directory( output, argv[optind], Model::Process( output, results, limit, filename_column_width, mode, plot.getSplotXIndex() ) );
+	    process_directory( argv[optind], Model::Process( data, results, limit, mode, plot.getSplotXIndex() ) );
 	} else {
-	    std::for_each( &argv[optind], &argv[argc], Model::Process( output, results, limit, filename_column_width, mode, plot.getSplotXIndex() ) );
+	    std::for_each( &argv[optind], &argv[argc], Model::Process( data, results, limit, mode, plot.getSplotXIndex() ) );
 	}
 
+	if ( precision > 0 ) {
+	    output.precision(precision);
+	} 
+	if ( transpose ) {
+	    size_t columns = std::accumulate( data.begin(), data.end(), 0, []( size_t l, std::vector<Model::Value>& row ) { return std::max( l, row.size() ); } );
+	    Output::columns( output, data, columns );
+	} else {
+	    Output::rows( output, data );
+	}
 	if ( gnuplot_flag ) {
 	    plot.plot();
-	}
+	} 
     }
     catch ( const std::runtime_error& e ) {
 	std::cerr << toolname << ": " << e.what() << std::endl;
@@ -364,7 +379,7 @@ process( std::ostream& output, int argc, char **argv, const std::vector<Model::R
  */
 
 static void
-process_directory( std::ostream& output, const std::string& dirname, const Model::Process& process )
+process_directory( const std::string& dirname, const Model::Process& process )
 {
 #if HAVE_GLOB
     /* look for foo-001.lqxo~001~, then for foo-001.lqxo, then foo.lqxo~00~,... (spex && print-interval, spex, print-interval). */
@@ -492,6 +507,10 @@ handle_arguments( int argc, char * argv[], Disposition disposition, std::vector<
 	    
 	    case 0x100+'w':
 		width = strtol( optarg, &endptr, 10 );
+		break;
+	    
+	    case 0x100+'t':
+		transpose = true;
 		break;
 	    
 	    case 'o':

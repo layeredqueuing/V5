@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 17338 2024-10-07 16:05:02Z greg $
+ * $Id: model.cc 17560 2025-11-03 22:45:15Z greg $
  *
  * Command line processing.
  *
@@ -95,19 +95,23 @@ const std::map<const Model::Object::Type,const std::pair<const std::string,const
     { Model::Object::Type::PROCESSOR, { "Processor", "Proc"  } },
     { Model::Object::Type::TASK,      { "Task",      "Task"  } }
 };
+
+Model::Value::Value( const std::filesystem::path& path ) : _type(Type::PATHNAME)
+{
+    _u._string = strdup( path.c_str() );
+}
 
-
-Model::Output& Model::Output::operator=( const Output& src )
+Model::Value& Model::Value::operator=( const Value& src )
 {
     std::memcpy( reinterpret_cast<char *>(this), reinterpret_cast<const char *>(&src), sizeof( *this ) );
     return *this;
 }
 
-bool Model::Output::operator!=( const Output& dst ) const
+bool Model::Value::operator!=( const Value& dst ) const
 {
     return std::memcmp( reinterpret_cast<const char *>(this), reinterpret_cast<const char *>(&dst), sizeof( *this ) ) != 0;
 }
-
+
 bool Model::Result::isIndependentVariable( Model::Result::Type type )
 {
     static const std::set<Result::Type> independent = {
@@ -128,117 +132,82 @@ bool Model::Result::isDependentVariable( Model::Result::Type type )
     return type != Type::NONE && !isIndependentVariable( type );
 }
 
-void Model::Result::printHeader( std::ostream& output, const std::string& name, const std::vector<Model::Result::result_t>& results, Result::get_field f, size_t header_column_width )
+void Model::Result::insertHeader( std::vector<std::vector<Model::Value>>& data, const std::string& name, const std::vector<Model::Result::result_t>& results, Result::get_field f )
 {
-    if ( width == 0 ) {
-	output << "\"" << name << "\"";
-    } else {
-	const std::ios_base::fmtflags flags = output.setf( std::ios::left, std::ios::adjustfield );
-	output << std::setw( header_column_width ) << name;
-	output.flags(flags);
-    }
-    std::for_each( results.begin(), results.end(), Model::PrintHeader( output, f ) );
-    output << std::endl;
-}
-
-
-void
-Model::PrintHeader::operator()( const std::pair<std::string,Model::Result::Type>& result ) const
-{
-    if ( width == 0 ) {
-	_output << ",\"" << (*_f)( result ) << "\"";
-    } else {
-	_output << " " << std::setw( width-1 ) << (*_f)( result );
-    }
+    data.emplace_back( std::vector<Model::Value>() );
+    std::vector<Model::Value>& row = data.back();
+    row.emplace_back( std::filesystem::path( data.size() == 1 ? "Model" : " " ));
+    std::for_each( results.begin(), results.end(), Model::InsertHeader( row, f ) );
 }
 
 /*
  * Load a file then extract results using Model::Result::operator().
  */
 
-void Model::Process::operator()( const std::string& pathname )
+void Model::Process::operator()( const std::filesystem::path& pathname )
 {
-    if ( _limit > 0 && _i >= _limit ) return;
+    if ( _limit > 0 && _model_no >= _limit ) return;
     
     /* Load results */
     unsigned int error_code = 0;
     LQIO::DOM::Document * dom = LQIO::DOM::Document::load( pathname, LQIO::DOM::Document::InputFormat::AUTOMATIC, error_code, true );
     if ( !dom ) {
-	throw std::runtime_error( "Input model was not loaded successfully." );
+	throw std::runtime_error( std::string(pathname) + ": not loaded successfully." );
     }
-    _i += 1;
+    _model_no += 1;
+    _data.emplace_back( std::vector<Model::Value>() );
+    std::vector<Model::Value>& row = _data.back();
+
+    if ( _mode == Mode::DIRECTORY ) {
+	row.emplace_back( _model_no );		// File (record) number
+    } else if ( _mode == Mode::FILENAME_STRIP ) {
+	row.emplace_back( pathname.parent_path() );
+    } else if ( _mode == Mode::DIRECTORY_STRIP ) {
+	row.emplace_back( pathname.filename() );
+    } else {
+	row.emplace_back( pathname );
+    }
 
     /* Extract into vector of doubles */
 
-    std::vector<Model::Output> data;
-    data = std::accumulate( _results.begin(), _results.end(), data, Model::Result( *dom ) );
+    row = std::accumulate( _results.begin(), _results.end(), row, Model::Result( *dom ) );
 
     /* We now have a vector of doubles */
     /* if splot, and data.x2 changes, then output newline if not first record */
 
-    if ( x_index() != 0 && x_value() != data.at( x_index() ) ) {
-	set_x_value( data.at( x_index() ) );
-	if ( _i != 1 ) {
-	    _output << std::endl;
+    if ( x_index() != 0 && x_value() != row.at( x_index() ) ) {
+	set_x_value( row.at( x_index() ) );
+	if ( _model_no != 1 ) {
+	    _data.emplace_back( std::vector<Model::Value>() );
 	}
     }
-
-
-    if ( _mode == Mode::DIRECTORY ) {
-	_output << _i;				// File (record) number
-    } else if ( _mode == Mode::FILENAME_STRIP ) {
-	const std::string dirname = pathname.substr( 0, pathname.find_last_of( "/" ) );
-	print_filename( dirname );		// Directory name
-    } else if ( _mode == Mode::DIRECTORY_STRIP ) {
-	const std::string filename = pathname.substr(pathname.find_last_of( "/" ) + 1);
-	print_filename( filename );		// File name
-    } else {
-	print_filename( pathname );
-    }
-
-    std::for_each( data.begin(), data.end(), Model::PrintLine( _output ) );
-
-    _output << std::endl;
-}
-
-
-void
-Model::Process::print_filename( const std::string& filename ) const
-{
-    const std::ios_base::fmtflags flags = _output.setf( std::ios::left, std::ios::adjustfield );
-    if ( width != 0 ) {
-	_output << std::setw(_header_column_width) << filename;
-    } else {
-	_output << "\"" << filename << "\"";
-    }
-    _output.flags(flags);
 }
 
 /*
  * Get the value of the result and append it to the string "in" (fold operation for std::accumulate).
  */
 
-std::vector<Model::Output>
-Model::Result::operator()( const std::vector<Model::Output>& in, const std::pair<std::string,Model::Result::Type>& arg ) const
+std::vector<Model::Value>
+Model::Result::operator()( const std::vector<Model::Value>& in, const std::pair<std::string,Model::Result::Type>& arg ) const
 {
     const Model::Result::result_fields& result = __results.at( arg.second );
-    std::vector<Model::Output> out = in;
+    std::vector<Model::Value> out = in;
 
     if ( result.type == Model::Object::Type::DOCUMENT ) {
 	const Model::Result::sfptr f = __document_results.at( arg.second );
 	if ( f != nullptr ) {
-	    out.emplace_back( Model::Output( ((_dom.*f)()).c_str() ) );
+	    out.emplace_back( Model::Value( ((_dom.*f)()).c_str() ) );
 	} else {
-	    out.emplace_back( Model::Output( dom().getResultMVAStep() ) );
+	    out.emplace_back( Model::Value( dom().getResultMVAStep() ) );
 	}
 	
     } else {
 	const LQIO::DOM::DocumentObject * object = findObject( arg.first, result.type );
 
 	if ( object == nullptr ) {
-	    out.emplace_back( Model::Output( std::numeric_limits<double>::quiet_NaN() ) );
+	    out.emplace_back( Model::Value( std::numeric_limits<double>::quiet_NaN() ) );
 	} else if ( result.f != nullptr ) {
-	    out.emplace_back( Model::Output( (object->*(result.f))() ) );		/* Invoke function to find value	*/
+	    out.emplace_back( Model::Value( (object->*(result.f))() ) );		/* Invoke function to find value	*/
 	} else if ( arg.second == Result::Type::MARGINAL_PROBABILITIES && dynamic_cast<const LQIO::DOM::Entity *>(object) != nullptr ) {
 	    const std::vector<double>& marginals = dynamic_cast<const LQIO::DOM::Entity *>(object)->getResultMarginalQueueProbabilities();
 	    copy(marginals.begin(), marginals.end(), back_inserter( out ));
@@ -397,31 +366,4 @@ Model::Result::getTypeName( const std::pair<std::string,Model::Result::Type>& re
 {
     if ( precision == 0 || 5 < precision ) return __results.at(result.second).name;
     else return __results.at(result.second).abbreviation;
-}
-
-/* Output an item, separated by commas. */
-
-void
-Model::PrintLine::operator()( const Model::Output& item ) const
-{
-    if ( width == 0 ) {
-	_output << ",";
-    } else {
-	_output << " ";
-	_output.width( width-1 );
-    }
-
-    if ( precision > 0 ) {
-	_output.precision(precision);
-    } 
-    _output << item;
-}
-
-
-std::ostream& Model::operator<<( std::ostream& output, const Model::Output& item )
-{
-    if ( item._type == Model::Output::Type::DOUBLE && !std::isnan( item._u._double ) ) output << item._u._double;
-    else if ( item._type == Model::Output::Type::STRING && item._u._string != nullptr ) output << "\"" << item._u._string << "\"";
-    else output << "NULL";
-    return output;
 }

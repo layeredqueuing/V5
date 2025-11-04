@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pop.h 17546 2025-10-15 23:09:02Z greg $
+ * $Id: pop.h 17554 2025-10-29 23:17:31Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -19,6 +19,10 @@
 
 #include <numeric>
 #include "vector.h"
+
+#if __MSYS__
+#undef _N
+#endif
 
 class Population 
 {

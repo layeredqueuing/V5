@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 17499 2024-11-27 14:14:11Z greg $
+# $Id: Makefile.am 17554 2025-10-29 23:17:31Z greg $
 #----------------------------------------------------------------------
 SUBDIRS		= regression
 
@@ -21,7 +21,7 @@ noinst_HEADERS	+= rendezvous.h
 endif
 EXTRA_DIST	= lqsim.1
 
-lqsim_CXXFLAGS	= -std=c++17 -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-switch -Wno-overloaded-virtual
+lqsim_CXXFLAGS	= -std=gnu++17 -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-switch -Wno-overloaded-virtual
 lqsim_LDADD	= -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio
 if HAVE_PARASOL
 lqsim_LDADD	+= -L../parasol/src -lparasolc

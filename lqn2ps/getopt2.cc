@@ -47,8 +47,6 @@ static char RcsId[] = "$Header$";
 #endif
 #include "getopt2.h"
 
-extern "C" char *optarg;
-extern "C" int optind, opterr, optopt;
 char    optsign;		/* '-' || '+'. */
 
 #define	BADCH	(int)'?'

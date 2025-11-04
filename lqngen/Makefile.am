@@ -1,6 +1,6 @@
 # Makefile for .
 # Copyright (C) 2003 Greg Franks <rgfranks@alumni.uwaterloo.ca>
-# $Id: Makefile.am 16989 2024-01-31 11:40:29Z greg $
+# $Id: Makefile.am 17554 2025-10-29 23:17:31Z greg $
 # ----------------------------------------------------------------------
 
 AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers 
@@ -11,7 +11,7 @@ noinst_HEADERS 	= generate.h help.h lqngen.h randomvar.h
 
 EXTRA_DIST	= lqngen.1 lqn2lqx.1
 
-lqngen_CXXFLAGS = -std=c++17 -Wall -Wno-parentheses -Wno-switch -Wno-unknown-pragmas -Wno-overloaded-virtual
+lqngen_CXXFLAGS = -std=gnu++17 -Wall -Wno-parentheses -Wno-switch -Wno-unknown-pragmas -Wno-overloaded-virtual
 lqngen_LDADD 	= -L../lqiolib/src/.libs -llqio -L../lqx/libsrc/.libs -llqx 
 lqngen_LDFLAGS	= @STATIC@
 
