@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: prob.h 15493 2022-04-01 16:18:17Z greg $
+ * $Id: prob.h 17565 2025-11-06 16:53:07Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -26,7 +26,8 @@ class Probability {
     friend class Positive;
 	
 public:
-    Probability( const double arg=0.0 ) : value(check( arg )) {}
+    Probability() : value( 0.0 ) {}
+    Probability( const double arg ) : value(check( arg )) {}
     Probability( const Probability& arg  ) : value(arg.value) {}
     Probability& operator=( const Probability& arg ) { value = arg.value; return *this; }
     Probability& operator=( const double arg ) { value = check( arg ); return *this; }
@@ -48,7 +49,8 @@ private:
 
 class Positive {
 public:
-    Positive( const double arg=0.0 ) : value(check( arg )) {}
+    Positive() : value( 0.0 ) {}
+    Positive( const double arg ) : value(check( arg )) {}
     Positive( const Positive& arg ) : value(arg.value) {}
     Positive( const Probability& arg ) : value(arg.value) {}
     Positive& operator=( const Positive& arg ) { value = arg.value; return *this; }

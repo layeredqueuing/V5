@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 17560 2025-11-03 22:45:15Z greg $
+ * $Id: lqn2csv.cc 17576 2025-11-10 18:11:11Z greg $
  *
  * Command line processing.
  *
@@ -54,7 +54,10 @@ bool transpose 	    = false;
 const std::vector<struct option> longopts = {
     /* name */ /* has arg */ /*flag */ /* val */
     { "open-wait",                  required_argument, nullptr, 'a' }, 
+    { "arrival-rate",		    required_argument, nullptr, 'A' },
     { "bounds",                     required_argument, nullptr, 'b' }, 
+    { "calls",	                    required_argument, nullptr, 'c' },
+    { "activity-calls",             required_argument, nullptr, 'C' },
     { "demand",		            required_argument, nullptr, 'd' },
     { "activity-demand",            required_argument, nullptr, 'D' },
     { "entry-utilization",          required_argument, nullptr, 'e' }, 
@@ -64,16 +67,17 @@ const std::vector<struct option> longopts = {
     { "solver-information",         no_argument,       nullptr, 'i' },
     { "join-delays",                required_argument, nullptr, 'j' }, 
     { "loss-probability",           required_argument, nullptr, 'l' },
+    { "activity-loss-probability",  required_argument, nullptr, 'L' },
     { "processor-multiplicity",     required_argument, nullptr, 'm' },
-    { "marginal-probabilities",     required_argument, nullptr, 'P' },
     { "task-multiplicity",          required_argument, nullptr, 'n' },
-    { "output",                     required_argument, nullptr, 'o' },
+    { "output",                     required_argument, nullptr, 'o' }, /* */
     { "processor-utilization",      required_argument, nullptr, 'p' }, 
-    { "marginal-probability",       required_argument, nullptr, 'P' }, 
+    { "marginal-probabilities",     required_argument, nullptr, 'P' },
     { "processor-waiting",          required_argument, nullptr, 'q' }, 
     { "activity-processor-waiting", required_argument, nullptr, 'Q' }, 
-    { "requests",	            required_argument, nullptr, 'r' },
-    { "activity-requests",          required_argument, nullptr, 'R' },
+    { "marginal-probability",       required_argument, nullptr, 'P' }, 
+    { "task-replication",           required_argument, nullptr, 'r' }, 
+    { "processor-replication",      required_argument, nullptr, 'R' }, 
     { "service",                    required_argument, nullptr, 's' }, 
     { "activity-service",           required_argument, nullptr, 'S' }, 
     { "task-throughput",            required_argument, nullptr, 't' }, 
@@ -88,13 +92,15 @@ const std::vector<struct option> longopts = {
     { "comment",	            no_argument,       nullptr, '#' },
     { "arguments",	            required_argument, nullptr, '@' },
     { "gnuplot",                    no_argument,       &gnuplot_flag, 1 },
-    { "help",		            no_argument,       nullptr, 0x100+'h' },
-    { "mva-steps",	            no_argument,       nullptr, 0x100+'s' },
+    { "mva-steps",	            no_argument,       nullptr, 0x100+'S' },
+    { "mva-waits",	            no_argument,       nullptr, 0x100+'W' },
+    { "space",			    no_argument,       nullptr, 0x100+'x' },
+    { "width",		            required_argument, nullptr, 0x100+'w' },
     { "precision",	            required_argument, nullptr, 0x100+'p' },
     { "limit",		            required_argument, nullptr, 0x100+'l' },
     { "no-header",                  no_argument,       &no_header, 1 },
     { "transpose",		    no_argument,       nullptr, 0x100+'t' },
-    { "width",		            required_argument, nullptr, 0x100+'w' },
+    { "help",		            no_argument,       nullptr, 0x100+'h' },
     { "version",	            no_argument,       nullptr, 0x100+'v' },
     { "debug-xml",	            no_argument,       &debug_xml, 1 },
     { nullptr,                      0,                 nullptr, 0 }
@@ -106,6 +112,8 @@ const static std::map<int,const std::string> help_str
     { 'a', "print open arrival waiting time for <entry>." }, 
     { 'A', "print open arrival rate for <entry> (independent variable)." },
     { 'b', "print throughput bound for <entry>." }, 
+    { 'c', "print the number of requests from source <entry>, phase <n> to destination <entry> (independent variable)." }, 
+    { 'C', "print the number of requests from source <task>, <activity> to destination <entry> (independent variable)." }, 
     { 'd', "print demand for <entry>, phase <n> (independent variable)." },
     { 'D', "print demand for <task>, <activity> (independent variable)." },
     { 'e', "print utilization for <entry>." }, 
@@ -123,8 +131,8 @@ const static std::map<int,const std::string> help_str
     { 'P', "print out the marginal queue probabilities for the processor or task <entity>." },
     { 'q', "print waiting time at the processor for <entry>, phase <n>." }, 
     { 'Q', "print waiting time at the processor for <task>, <activity>." }, 
-    { 'r', "print the number of requests from source <entry>, phase <n> to destination <entry> (independent variable)." }, 
-    { 'R', "print the number of requests from source <task>, <activity> to destination <entry> (independent variable)." }, 
+    { 'r', "print task replication (independent variable). " },
+    { 'R', "print proceesor replication (independent variable). " },
     { 's', "print service time for <entry>, phase <n>." }, 
     { 'S', "print service time for <task>, <activity>." }, 
     { 't', "print throughput for <task>." }, 
@@ -138,7 +146,9 @@ const static std::map<int,const std::string> help_str
     { 'z', "print think time for <task> (independent variable)" },
     { '@', "Read the argument list from <arg>.  --output-file and --arguments are ignored." },
     { '#', "print out the model comment field." },
-    { 0x100+'s', "print out the number of times the MVA step() function was called."  },
+    { 0x100+'S', "print out the number of times the MVA step() function was called."  },
+    { 0x100+'W', "print out the number of times the MVA wait() function was called."  },
+    { 0x100+'x', "Insert an empty entry." },
     { 0x100+'l', "Limit output to the first <arg> files read." },
     { 0x100+'w', "Set the width of the result columns to <arg>.  Suppress commas." },
     { 0x100+'p', "Set the precision for output to <arg>." },
@@ -152,6 +162,8 @@ const static std::map<int,Model::Result::Type> result_type
     { 'a', Model::Result::Type::OPEN_ARRIVAL_WAIT      }, 
     { 'A', Model::Result::Type::OPEN_ARRIVAL_RATE      }, 
     { 'b', Model::Result::Type::THROUGHPUT_BOUND       }, 
+    { 'c', Model::Result::Type::PHASE_CALLS            }, 
+    { 'C', Model::Result::Type::ACTIVITY_CALLS         }, 
     { 'd', Model::Result::Type::PHASE_DEMAND	       }, 
     { 'D', Model::Result::Type::ACTIVITY_DEMAND	       }, 
     { 'e', Model::Result::Type::ENTRY_UTILIZATION      }, 
@@ -163,24 +175,29 @@ const static std::map<int,Model::Result::Type> result_type
     { 'L', Model::Result::Type::ACTIVITY_PR_RQST_LOST  }, 
 //  { 0,   Model::Result::Type::PHASE_UTILIZATION      },
     { 'm', Model::Result::Type::PROCESSOR_MULTIPLICITY }, 
+    { 'n', Model::Result::Type::TASK_MULTIPLICITY      }, 
     { 'p', Model::Result::Type::PROCESSOR_UTILIZATION  }, 
     { 'P', Model::Result::Type::MARGINAL_PROBABILITIES },
     { 'q', Model::Result::Type::PHASE_PROCESSOR_WAITING}, 
     { 'Q', Model::Result::Type::ACTIVITY_PROCESSOR_WAITING }, 
-    { 'r', Model::Result::Type::PHASE_WAITING          }, 
+    { 'r', Model::Result::Type::TASK_REPLICATION       }, 
+    { 'R', Model::Result::Type::PROCESSOR_REPLICATION  }, 
     { 's', Model::Result::Type::PHASE_SERVICE          }, 
-    { 'n', Model::Result::Type::TASK_MULTIPLICITY      }, 
+    { 'S', Model::Result::Type::ACTIVITY_SERVICE       }, 
     { 't', Model::Result::Type::TASK_THROUGHPUT        }, 
     { 'u', Model::Result::Type::TASK_UTILIZATION       }, 
     { 'v', Model::Result::Type::PHASE_VARIANCE         }, 
     { 'V', Model::Result::Type::ACTIVITY_VARIANCE      }, 
     { 'w', Model::Result::Type::PHASE_WAITING          }, 
+    { 'W', Model::Result::Type::ACTIVITY_WAITING       }, 
     { 'x', Model::Result::Type::PHASE_PR_SVC_EXCD      }, 
     { 'X', Model::Result::Type::ACTIVITY_PR_SVC_EXCD   }, 
     { 'z', Model::Result::Type::TASK_THINK_TIME	       },
     { '#', Model::Result::Type::COMMENT	       	       },
     { 'i', Model::Result::Type::SOLVER_VERSION         },
-    { 0x100+'s', Model::Result::Type::MVA_STEPS	       },
+    { 0x100+'S', Model::Result::Type::MVA_STEPS	       },
+    { 0x100+'W', Model::Result::Type::MVA_WAITS	       },
+    { 0x100+'x', Model::Result::Type::NONE	       }
 };
 
 enum class Disposition { handle, ignore, fault };
@@ -190,8 +207,9 @@ struct max_strlen {
     size_t operator()( size_t l, std::filesystem::path name ) {
 	if ( name.empty() ) return l;
 	switch ( _mode ) {
-	case Model::Mode::DIRECTORY_STRIP: name = name.filename(); break;
-	case Model::Mode::FILENAME_STRIP:  name.remove_filename(); break;
+	case Model::Mode::EXTENSION_ONLY: name = name.extension(); break;
+	case Model::Mode::FILENAME_ONLY:  name = name.stem(); break;
+	case Model::Mode::DIRECTORY_ONLY: name.remove_filename(); break;
 	default: break;
 	}
 	return std::max( l, name.native().size() );
@@ -212,6 +230,13 @@ struct directory_match {
     bool operator()( std::filesystem::path directory ) { directory.remove_filename(); return directory == _directory; }
 private:
     std::filesystem::path _directory;
+};
+    
+struct dir_stem_match {
+    dir_stem_match( const std::filesystem::path& path ) : _path(path) { _path.replace_extension(""); }	/* strip extention */
+    bool operator()( std::filesystem::path path ) { path.replace_extension(""); return path == _path; }
+private:
+    std::filesystem::path _path;
 };
     
 std::vector<Model::Result::result_t> results;
@@ -237,7 +262,7 @@ main( int argc, char *argv[] )
     extern int optind;
     static char copyrightDate[20];
 
-    sscanf( "$Date: 2025-11-03 17:45:15 -0500 (Mon, 03 Nov 2025) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2025-11-10 13:11:11 -0500 (Mon, 10 Nov 2025) $", "%*s %s %*s", copyrightDate );
 
     toolname = basename( argv[0] );
     opts = makeopts( longopts );	/* Convert to regular options */
@@ -411,15 +436,16 @@ process_directory( const std::string& dirname, const Model::Process& process )
 
 
 /*
- * Return the mode to be used.  If there are a set of filenames, and they are all the same, then strip them on output.
+ * Return the mode to be used.  If there are a set of filenames, then strip the common components them on output.
  */
  
 static Model::Mode
 get_mode( int argc, char **argv, int optind )
 {
     if ( argc - optind == 1 && std::filesystem::is_directory( argv[optind] ) ) return Model::Mode::DIRECTORY;
-    else if ( std::all_of( &argv[optind+1], &argv[argc], directory_match( argv[optind] ) ) ) return Model::Mode::DIRECTORY_STRIP;
-    else if ( std::all_of( &argv[optind+1], &argv[argc], filename_match( argv[optind] ) ) ) return Model::Mode::FILENAME_STRIP;
+    else if ( std::all_of( &argv[optind+1], &argv[argc], dir_stem_match( argv[optind] ) ) ) return Model::Mode::EXTENSION_ONLY;
+    else if ( std::all_of( &argv[optind+1], &argv[argc], directory_match( argv[optind] ) ) ) return Model::Mode::FILENAME_ONLY;
+    else if ( std::all_of( &argv[optind+1], &argv[argc], filename_match( argv[optind] ) ) ) return Model::Mode::DIRECTORY_ONLY;
     else return Model::Mode::PATHNAME;
 }
 
@@ -491,7 +517,7 @@ handle_arguments( int argc, char * argv[], Disposition disposition, std::vector<
 	    if ( optarg != nullptr ) {
 		results.emplace_back( optarg, result->second );
 	    } else {
-		results.emplace_back( "--", result->second );
+		results.emplace_back( "", result->second );
 	    }
 	} else {
 	    /* Ignore non-results options with args. (-o, -a...) */

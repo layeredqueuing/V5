@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 17507 2024-12-04 01:52:14Z greg $
+ * $Id: petrisrvn.cc 17569 2025-11-06 20:13:08Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -355,6 +355,7 @@ main(int argc, char *argv[])
 	    break;
 
 	case 'w':
+	    LQIO::io_vars.severity_level = LQIO::error_severity::ERROR;
 	    pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_run_time_);
 	    break;
 

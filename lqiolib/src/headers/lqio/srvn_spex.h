@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 17561 2025-11-04 01:31:08Z greg $
+ * $Id: srvn_spex.h 17565 2025-11-06 16:53:07Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -337,6 +337,7 @@ namespace LQIO {
 	static std::map<std::string,LQX::SyntaxTreeNode *> __observation_variables;	/* Saves all observations (name, and funky assignment) */
 	static std::map<std::string,ComprehensionInfo> __comprehensions;	/* Saves all comprehensions for $<name> */
 	static expr_list __deferred_assignment;					/* Saves all parameters that depend on a variable for latter assignment */
+	static expr_list __inline_assignment;					/* Saves all parameters that depend on a variable for latter assignment */
 
 	/* For SRVN input output */
 

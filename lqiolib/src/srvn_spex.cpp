@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 17561 2025-11-04 01:31:08Z greg $
+ *  $Id: srvn_spex.cpp 17578 2025-11-11 17:23:37Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -57,6 +57,7 @@ namespace LQIO {
 	__observations.clear();
 	__comprehensions.clear();
 	__deferred_assignment.clear();
+	__inline_assignment.clear();
 	__input_variables.clear();			/* Saves input values per iteration */
 	__observation_variables.clear();		/* */
 	__document_variables.clear();			/* Saves all key-$var for the document */
@@ -121,7 +122,7 @@ namespace LQIO {
     
     bool Spex::has_input_vars_but_no_loops()
     {
-	return (__input_variables.size() > 0 || __observation_variables.size() > 0 || __document_variables.size() > 0) && __array_variables.empty();
+	return (__input_variables.size() > 0 || __observation_variables.size() > 0 || __document_variables.size() > 0) && __array_variables.empty() && __convergence_variables.empty();
     }
     
 
@@ -187,7 +188,7 @@ namespace LQIO {
 	    if ( __print_comment ) {
 		main_line->push_back( GnuPlot::print_node( "\"" + DOM::__document->getModelComment() + "\"" ) );
 	    }
-	    if ( !__no_header ) {
+	    if ( !__no_header && !__result_variables.empty() ) {
 		main_line->push_back( print_header() );
 	    }
 	}
@@ -498,8 +499,10 @@ namespace LQIO {
 	    }
 	}
 
+	/* load in all deferred assignment statements, eg '$x = $loop'... */
+	loop_code->insert( loop_code->end(), Spex::__deferred_assignment.begin(), Spex::__deferred_assignment.end() );
+
 	/* Assign input variables which are not array vars. */
-	
 	for ( std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator iv_p = __input_variables.begin(); iv_p != __input_variables.end(); ++iv_p ) {
 	    const std::string& name = iv_p->first;
 	    if ( (*is_global_var)( name ) && std::find( array_variables().begin(), array_variables().end(), name ) == array_variables().end() ) {
@@ -507,8 +510,8 @@ namespace LQIO {
 	    }
 	}
 
-	/* load in all deferred assignment statements, eg '$x = $loop'... */
-	loop_code->insert( loop_code->end(), Spex::__deferred_assignment.begin(), Spex::__deferred_assignment.end() );
+	/* Now do all inline expressions. Do AFTER deferred and input variables. */
+	loop_code->insert( loop_code->end(), __inline_assignment.begin(), __inline_assignment.end() );
 
 	/* Increment magic variable $0 */
 	loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "_0", false ),
@@ -958,6 +961,7 @@ namespace LQIO {
     std::map<std::string,LQX::SyntaxTreeNode *> Spex::__observation_variables;	/* Saves all observations (name, and funky assignment) */
     std::map<std::string,Spex::ComprehensionInfo> Spex::__comprehensions;	/* Saves all comprehensions for $<name> */
     expr_list Spex::__deferred_assignment;
+    expr_list Spex::__inline_assignment;
 
     std::set<std::string> Spex::__global_variables;				/* Document global variables. (input) */
     std::map<std::string,LQX::SyntaxTreeNode *> Spex::__input_variables;	/* Save for printing when __verbose == true */
@@ -1208,7 +1212,7 @@ void spex_set_program( void * param_arg, void * result_arg, void * convergence_a
     expr_list * program = static_cast<expr_list * >(spex_list( param_arg, nullptr ));
 	
     if ( LQIO::spex.__observations.empty() ) {
-	LQIO::runtime_error( LQIO::WRN_NO_SPEX_OBSERVATIONS );
+	LQIO::runtime_error( LQIO::ADV_NO_SPEX_OBSERVATIONS );
     }
 
     /* Handle this here -- can't change after program is compiled */
@@ -1441,7 +1445,7 @@ void * spex_inline_expression( void * expr )
     std::ostringstream name;
     name << "$_" << std::setw(3) << std::setfill('0') << LQIO::Spex::__inline_expression.size() << "_" << std::setfill(' ');
     LQX::SyntaxTreeNode * statement = new LQX::AssignmentStatementNode( new LQX::VariableExpression(name.str(),true), static_cast<LQX::SyntaxTreeNode *>(expr) );
-    LQIO::Spex::__deferred_assignment.push_back( statement );
+    LQIO::Spex::__inline_assignment.push_back( statement );
     LQIO::DOM::ExternalVariable * var = LQIO::DOM::__document->db_build_parameter_variable(name.str(),nullptr);
     LQIO::Spex::__inline_expression.insert( std::pair<const LQIO::DOM::ExternalVariable *,const LQX::SyntaxTreeNode*>(var,static_cast<LQX::SyntaxTreeNode *>(expr)) );
     return var;

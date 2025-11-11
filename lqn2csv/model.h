@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: model.h 17560 2025-11-03 22:45:15Z greg $
+ * $Id: model.h 17576 2025-11-10 18:11:11Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -40,12 +40,13 @@ namespace Model {
 }
 
 namespace Model {
-    enum class Mode { PATHNAME, FILENAME_STRIP, DIRECTORY_STRIP, DIRECTORY };
+    enum class Mode { PATHNAME, FILENAME_ONLY, DIRECTORY_ONLY, EXTENSION_ONLY, DIRECTORY };
 
     class Object {
     public:
 	enum class Type
 	{
+	    NONE,
 	    ACTIVITY,
 	    ACTIVITY_CALL,
 	    DOCUMENT,
@@ -55,6 +56,7 @@ namespace Model {
 	    PHASE,
 	    PHASE_CALL,
 	    PROCESSOR,
+	    SOLVER,
 	    TASK
 	};
 
@@ -87,16 +89,17 @@ namespace Model {
     class Result {
     public:
 	typedef double (LQIO::DOM::DocumentObject::*fptr)() const;
-	typedef const std::string& (LQIO::DOM::Document::*sfptr)() const;
-	
+	typedef const std::string& (LQIO::DOM::Document::*sfptr)() const;	
+	typedef double (LQIO::DOM::Document::*dfptr)() const;	
+
 	enum class Type
 	{
 	    NONE,
+	    ACTIVITY_CALLS,
 	    ACTIVITY_DEMAND,
+	    ACTIVITY_PROCESSOR_WAITING,
 	    ACTIVITY_PR_RQST_LOST, 
 	    ACTIVITY_PR_SVC_EXCD, 
-	    ACTIVITY_PROCESSOR_WAITING,
-	    ACTIVITY_REQUEST_RATE,
 	    ACTIVITY_SERVICE,
 	    ACTIVITY_THROUGHPUT,
 	    ACTIVITY_VARIANCE,
@@ -108,24 +111,27 @@ namespace Model {
 	    JOIN_DELAYS, 
 	    MARGINAL_PROBABILITIES,
 	    MVA_STEPS, 
-	    OPEN_ARRIVAL_WAIT,
+	    MVA_WAITS, 
 	    OPEN_ARRIVAL_RATE,
+	    OPEN_ARRIVAL_WAIT,
+	    PHASE_CALLS,
 	    PHASE_DEMAND,
 	    PHASE_PROCESSOR_WAITING,
 	    PHASE_PR_RQST_LOST, 
 	    PHASE_PR_SVC_EXCD, 
-	    PHASE_REQUEST_RATE,
 	    PHASE_SERVICE,
 	    PHASE_UTILIZATION,
 	    PHASE_VARIANCE,
 	    PHASE_WAITING,
 	    PROCESSOR_MULTIPLICITY,
+	    PROCESSOR_REPLICATION,
 	    PROCESSOR_UTILIZATION,
 	    SOLVER_VERSION,
 	    TASK_MULTIPLICITY,
+	    TASK_REPLICATION,
+	    TASK_THINK_TIME,
 	    TASK_THROUGHPUT,
 	    TASK_UTILIZATION,
-	    TASK_THINK_TIME,
 	    THROUGHPUT_BOUND
 	};
 
@@ -175,6 +181,7 @@ namespace Model {
     public:
 	static const std::map<Type,result_fields> __results;
 	static const std::map<Type,sfptr> __document_results;
+	static const std::map<Type,dfptr> __solver_results;
 
     private:
 	const LQIO::DOM::Document& _dom;

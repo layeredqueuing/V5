@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_entity.h 17526 2025-02-09 13:00:08Z greg $
+ *  $Id: dom_entity.h 17577 2025-11-10 18:41:17Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -48,6 +48,7 @@ namespace LQIO {
 	    void setCopiesValue(const unsigned int);
 	    bool hasReplicas() const;
 	    const unsigned int getReplicasValue() const;
+	    double getReplicasValueAsDouble() const { return static_cast<double>( getReplicasValue() ); }
 	    const ExternalVariable* getReplicas() const;
 	    void setReplicasValue(const unsigned int newReplicas);
 	    void setReplicas(const ExternalVariable* newReplicas);

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 17539 2025-04-03 18:47:11Z greg $
+ * $Id: call.cc 17564 2025-11-04 14:12:41Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -980,12 +980,15 @@ Call::label()
 	    *_label << '(' << print_calls(*this) << ')';
 	}
 	const LQIO::DOM::ExternalVariable& fan_out = srcTask()->fanOut( dstTask() );
-	if ( LQIO::DOM::ExternalVariable::isPresent( &fan_out, 1.0 )  ) {
-	    *_label << ", O=" << fan_out;
-	}
 	const LQIO::DOM::ExternalVariable& fan_in = dstTask()->fanIn( srcTask() );
-	if ( LQIO::DOM::ExternalVariable::isPresent( &fan_in, 1.0 ) ) {
-	    *_label << ", I=" << fan_in;
+	const bool has_fan_out = LQIO::DOM::ExternalVariable::isPresent( &fan_out );
+	const bool has_fan_in = LQIO::DOM::ExternalVariable::isPresent( &fan_in );
+	if ( has_fan_out || has_fan_in ) {
+	    *_label << " <";
+	    if ( has_fan_out ) *_label << fan_out; else *_label << "1";
+	    *_label << ":";
+	    if ( has_fan_in ) *_label << fan_in; else *_label << "1";
+	    *_label << ">";
 	}
     }
     if ( Flags::have_results ) {

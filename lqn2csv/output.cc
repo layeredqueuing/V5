@@ -50,15 +50,21 @@ std::ostream&
 Output::columns( std::ostream& output, const std::vector<std::vector<Model::Value>>& data, size_t columns )
 {
     for ( size_t column = 0; column < columns; ++column ) {
+	size_t j = 0;
 	std::for_each( data.begin(), data.end(), [&]( const std::vector<Model::Value>& row ) {
 	    if ( row.size() == 0 ) return;
-	    if ( width == 0 ) {
-		output << ",";
-	    } else {
-		output << " ";
-		output.width( width - 1 );
+	    if ( j > 0 ) {
+		if ( width == 0 ) {
+		    output << ",";
+		} else {
+		    output << " ";
+		    output.width( width - 1 );
+		}
+	    } else if ( width > 0 ) {
+		output.width( width );
 	    }
 	    output << row.at(column);
+	    j += 1;
 	} );
 	output << std::endl;
     }

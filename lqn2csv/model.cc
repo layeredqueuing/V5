@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 17560 2025-11-03 22:45:15Z greg $
+ * $Id: model.cc 17576 2025-11-10 18:11:11Z greg $
  *
  * Command line processing.
  *
@@ -42,11 +42,12 @@
 
 const std::map<Model::Result::Type,Model::Result::result_fields> Model::Result::__results =
 {
+    { Model::Result::Type::NONE,		       { Model::Object::Type::NONE,          "",            "",     nullptr } },
     { Model::Result::Type::ACTIVITY_DEMAND,            { Model::Object::Type::ACTIVITY,      "Demand",      "demd", &LQIO::DOM::DocumentObject::getServiceTimeValue          } },
     { Model::Result::Type::ACTIVITY_PROCESSOR_WAITING, { Model::Object::Type::ACTIVITY,      "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultProcessorWaiting    } },
     { Model::Result::Type::ACTIVITY_PR_RQST_LOST,      { Model::Object::Type::ACTIVITY_CALL, "Drop Prob",   "pdrp", &LQIO::DOM::DocumentObject::getResultDropProbability     } },
     { Model::Result::Type::ACTIVITY_PR_SVC_EXCD,       { Model::Object::Type::ACTIVITY,      "Pr. Exceed",  "pxcd", &LQIO::DOM::DocumentObject::getResultMaxServiceTimeExceeded } },
-    { Model::Result::Type::ACTIVITY_REQUEST_RATE,      { Model::Object::Type::ACTIVITY_CALL, "Request",     "requ", &LQIO::DOM::DocumentObject::getCallMeanValue             } },
+    { Model::Result::Type::ACTIVITY_CALLS,             { Model::Object::Type::ACTIVITY_CALL, "Calls",       "call", &LQIO::DOM::DocumentObject::getCallMeanValue             } },
     { Model::Result::Type::ACTIVITY_SERVICE,           { Model::Object::Type::ACTIVITY,      "Service",     "serv", &LQIO::DOM::DocumentObject::getResultServiceTime         } },
     { Model::Result::Type::ACTIVITY_THROUGHPUT,        { Model::Object::Type::ACTIVITY,      "Throughput",  "tput", &LQIO::DOM::DocumentObject::getResultThroughput          } },
     { Model::Result::Type::ACTIVITY_VARIANCE,          { Model::Object::Type::ACTIVITY,      "Variance",    "vari", &LQIO::DOM::DocumentObject::getResultServiceTimeVariance } },
@@ -57,37 +58,47 @@ const std::map<Model::Result::Type,Model::Result::result_fields> Model::Result::
     { Model::Result::Type::HOLD_TIMES,                 { Model::Object::Type::JOIN,          "Hold Time",   "hold", &LQIO::DOM::DocumentObject::getResultHoldingTime         } },
     { Model::Result::Type::JOIN_DELAYS,                { Model::Object::Type::JOIN,          "Join Delay",  "join", &LQIO::DOM::DocumentObject::getResultJoinDelay           } },
     { Model::Result::Type::MARGINAL_PROBABILITIES,     { Model::Object::Type::ENTITY,        "Probability", "prob", nullptr } },
-    { Model::Result::Type::MVA_STEPS,                  { Model::Object::Type::DOCUMENT,      "step()",      "step", nullptr } },
+    { Model::Result::Type::MVA_STEPS,                  { Model::Object::Type::SOLVER,        "step()",      "step", nullptr } },
+    { Model::Result::Type::MVA_WAITS,                  { Model::Object::Type::SOLVER,        "wait()",      "wait", nullptr } },
     { Model::Result::Type::OPEN_ARRIVAL_RATE,          { Model::Object::Type::ENTRY,         "Rate",        "rate", &LQIO::DOM::DocumentObject::getOpenArrivalRateValue      } },
     { Model::Result::Type::OPEN_ARRIVAL_WAIT,          { Model::Object::Type::ENTRY,         "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultWaitingTime         } },
     { Model::Result::Type::PHASE_DEMAND,               { Model::Object::Type::PHASE,         "Demand",      "demd", &LQIO::DOM::DocumentObject::getServiceTimeValue          } },
     { Model::Result::Type::PHASE_PROCESSOR_WAITING,    { Model::Object::Type::PHASE,         "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultProcessorWaiting    } },
     { Model::Result::Type::PHASE_PR_RQST_LOST,         { Model::Object::Type::PHASE_CALL,    "Drop Prob",   "pdrp", &LQIO::DOM::DocumentObject::getResultDropProbability     } },
     { Model::Result::Type::PHASE_PR_SVC_EXCD,          { Model::Object::Type::PHASE,         "Pr. Exceed",  "pxcd", &LQIO::DOM::DocumentObject::getResultMaxServiceTimeExceeded } },
-    { Model::Result::Type::PHASE_REQUEST_RATE,         { Model::Object::Type::PHASE_CALL,    "Request",     "reqs", &LQIO::DOM::DocumentObject::getCallMeanValue             } },
+    { Model::Result::Type::PHASE_CALLS,                { Model::Object::Type::PHASE_CALL,    "Calls",       "call", &LQIO::DOM::DocumentObject::getCallMeanValue             } },
     { Model::Result::Type::PHASE_SERVICE,              { Model::Object::Type::PHASE,         "Service",     "serv", &LQIO::DOM::DocumentObject::getResultServiceTime         } },
     { Model::Result::Type::PHASE_VARIANCE,             { Model::Object::Type::PHASE,         "Variance",    "vari", &LQIO::DOM::DocumentObject::getResultVarianceServiceTime } },
     { Model::Result::Type::PHASE_WAITING,              { Model::Object::Type::PHASE_CALL,    "Waiting",     "wait", &LQIO::DOM::DocumentObject::getResultWaitingTime         } },
     { Model::Result::Type::PROCESSOR_MULTIPLICITY,     { Model::Object::Type::PROCESSOR,     "Copies",      "mult", &LQIO::DOM::DocumentObject::getCopiesValueAsDouble       } },
+    { Model::Result::Type::PROCESSOR_REPLICATION,      { Model::Object::Type::PROCESSOR,     "Replicas",    "repl", &LQIO::DOM::DocumentObject::getReplicasValueAsDouble     } },
     { Model::Result::Type::PROCESSOR_UTILIZATION,      { Model::Object::Type::PROCESSOR,     "Utilization", "util", &LQIO::DOM::DocumentObject::getResultUtilization         } },
     { Model::Result::Type::SOLVER_VERSION,	       { Model::Object::Type::DOCUMENT,      "Version",     "vrsn", nullptr } },
     { Model::Result::Type::TASK_MULTIPLICITY,          { Model::Object::Type::TASK,          "Copies",      "mult", &LQIO::DOM::DocumentObject::getCopiesValueAsDouble       } },
+    { Model::Result::Type::TASK_REPLICATION,           { Model::Object::Type::TASK,          "Replicas",    "repl", &LQIO::DOM::DocumentObject::getReplicasValueAsDouble     } },
     { Model::Result::Type::TASK_THINK_TIME,            { Model::Object::Type::TASK,          "Think Time",  "thnk", &LQIO::DOM::DocumentObject::getThinkTimeValue            } },
     { Model::Result::Type::TASK_THROUGHPUT,            { Model::Object::Type::TASK,          "Throughput",  "tput", &LQIO::DOM::DocumentObject::getResultThroughput          } },
     { Model::Result::Type::TASK_UTILIZATION,           { Model::Object::Type::TASK,          "Utilization", "util", &LQIO::DOM::DocumentObject::getResultUtilization         } },
     { Model::Result::Type::THROUGHPUT_BOUND,           { Model::Object::Type::ENTRY,         "Bound",       "bond", &LQIO::DOM::DocumentObject::getResultThroughputBound     } }
 };
 
-const std::map<Model::Result::Type,Model::Result::sfptr> Model::Result::__document_results =
+const std::map<Model::Result::Type,Model::Result::sfptr> Model::Result::__document_results =		/* Returns a string */
 {
-    { Model::Result::Type::MVA_STEPS,                  nullptr },		/* Returns a double */
     { Model::Result::Type::COMMENT,		       &LQIO::DOM::Document::getModelComment },
     { Model::Result::Type::SOLVER_VERSION,	       &LQIO::DOM::Document::getResultSolverInformation }
 };
 
+const std::map<Model::Result::Type,Model::Result::dfptr> Model::Result::__solver_results =		/* Returns a double */
+{
+    { Model::Result::Type::MVA_STEPS,                  &LQIO::DOM::Document::getResultMVAStep },
+    { Model::Result::Type::MVA_WAITS,                  &LQIO::DOM::Document::getResultMVAWait }
+};
+
 const std::map<const Model::Object::Type,const std::pair<const std::string,const std::string>> Model::Object::__object_type = {
+    { Model::Object::Type::NONE,      { "",          ""      } },
     { Model::Object::Type::ACTIVITY,  { "Activity",  "Act"   } },
     { Model::Object::Type::DOCUMENT,  { "Document",  "Doc"   } },
+    { Model::Object::Type::SOLVER,    { "Solver",    "MVA"   } },
     { Model::Object::Type::ENTITY,    { "Entity",    "Ta/Pr" } },
     { Model::Object::Type::ENTRY,     { "Entry",     "Entry" } },
     { Model::Object::Type::JOIN,      { "Join",      "Join"  } },
@@ -116,12 +127,14 @@ bool Model::Result::isIndependentVariable( Model::Result::Type type )
 {
     static const std::set<Result::Type> independent = {
 	Type::ACTIVITY_DEMAND,
-	Type::ACTIVITY_REQUEST_RATE,
+	Type::ACTIVITY_CALLS,
 	Type::OPEN_ARRIVAL_RATE,
 	Type::PHASE_DEMAND,
-	Type::PHASE_REQUEST_RATE,
+	Type::PHASE_CALLS,
 	Type::PROCESSOR_MULTIPLICITY,
+	Type::PROCESSOR_REPLICATION,
 	Type::TASK_MULTIPLICITY,
+	Type::TASK_REPLICATION,
 	Type::TASK_THINK_TIME };
 
     return independent.find( type ) != independent.end();
@@ -158,14 +171,12 @@ void Model::Process::operator()( const std::filesystem::path& pathname )
     _data.emplace_back( std::vector<Model::Value>() );
     std::vector<Model::Value>& row = _data.back();
 
-    if ( _mode == Mode::DIRECTORY ) {
-	row.emplace_back( _model_no );		// File (record) number
-    } else if ( _mode == Mode::FILENAME_STRIP ) {
-	row.emplace_back( pathname.parent_path() );
-    } else if ( _mode == Mode::DIRECTORY_STRIP ) {
-	row.emplace_back( pathname.filename() );
-    } else {
-	row.emplace_back( pathname );
+    switch ( _mode ) {
+    case Mode::DIRECTORY:	row.emplace_back( _model_no ); break;		// File (record) number
+    case Mode::DIRECTORY_ONLY:	row.emplace_back( pathname.parent_path() ); break;
+    case Mode::FILENAME_ONLY:	row.emplace_back( pathname.stem() ); break;
+    case Mode::EXTENSION_ONLY:	row.emplace_back( pathname.extension() ); break;
+    default: 			row.emplace_back( pathname ); break;
     }
 
     /* Extract into vector of doubles */
@@ -195,19 +206,22 @@ Model::Result::operator()( const std::vector<Model::Value>& in, const std::pair<
 
     if ( result.type == Model::Object::Type::DOCUMENT ) {
 	const Model::Result::sfptr f = __document_results.at( arg.second );
-	if ( f != nullptr ) {
-	    out.emplace_back( Model::Value( ((_dom.*f)()).c_str() ) );
-	} else {
-	    out.emplace_back( Model::Value( dom().getResultMVAStep() ) );
-	}
+	out.emplace_back( ((_dom.*f)()).c_str() );
+
+    } else if ( result.type == Model::Object::Type::SOLVER ) {
+	const Model::Result::dfptr f = __solver_results.at( arg.second );
+	out.emplace_back( (dom().*f)() );
 	
+    } else if ( result.type == Model::Object::Type::NONE ) {
+	out.emplace_back( "" );
+
     } else {
 	const LQIO::DOM::DocumentObject * object = findObject( arg.first, result.type );
 
 	if ( object == nullptr ) {
-	    out.emplace_back( Model::Value( std::numeric_limits<double>::quiet_NaN() ) );
+	    out.emplace_back( std::numeric_limits<double>::quiet_NaN() );
 	} else if ( result.f != nullptr ) {
-	    out.emplace_back( Model::Value( (object->*(result.f))() ) );		/* Invoke function to find value	*/
+	    out.emplace_back( (object->*(result.f))() );		/* Invoke function to find value	*/
 	} else if ( arg.second == Result::Type::MARGINAL_PROBABILITIES && dynamic_cast<const LQIO::DOM::Entity *>(object) != nullptr ) {
 	    const std::vector<double>& marginals = dynamic_cast<const LQIO::DOM::Entity *>(object)->getResultMarginalQueueProbabilities();
 	    copy(marginals.begin(), marginals.end(), back_inserter( out ));

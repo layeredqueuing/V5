@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<!-- lqn2xml -o53-replication.lqnx -->
+<lqn-model name="/home/greg/usr/papers/bug-333-replication/models/pan-thesis/case-4" description="Layered Queuening Network Model." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+  <parameters>
+$FIAB = 4
+$FIBC = 2
+$FOAB = 2
+$FOBC = 2
+$KA = 4
+$KB = 2
+$KC = 2
+  </parameters>
+  <solver-params comment="Pan Thesis, Case-4." conv_val="1e-05" it_limit="500" underrelax_coeff="0.9" print_int="10"/>
+  <processor name="A1" scheduling="fcfs" replication="$KA">
+    <task name="A1" scheduling="ref" replication="$KA">
+      <fan-out dest="B1" value="$FOAB"/>
+      <entry name="A1" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="A1_1" phase="1" host-demand-mean="1">
+            <synch-call dest="B1" calls-mean="1">
+            </synch-call>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="B1" scheduling="fcfs" replication="$KB">
+    <task name="B1" scheduling="fcfs" replication="$KB">
+      <fan-in source="A1" value="$FIAB"/>
+      <fan-out dest="C1" value="$FOBC"/>
+      <entry name="B1" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="B1_1" phase="1" host-demand-mean="1">
+            <synch-call dest="C1" calls-mean="1">
+            </synch-call>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="C1" scheduling="fcfs" replication="$KC">
+    <task name="C1" scheduling="fcfs" replication="$KC">
+      <fan-in source="B1" value="$FIBC"/>
+      <entry name="C1" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="C1_1" phase="1" host-demand-mean="1">
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+</lqn-model>

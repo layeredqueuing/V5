@@ -50,6 +50,14 @@ independent variable for plotting.
 .TP 8
 \fB\-b\fP, \fB\-\-bounds=\fIentry\fR
 Print the throughput bound for \fIentry\fP.
+.TP 8
+\fB\-c\fP, \fB\-\-calls=\fIentry\fP,\fIn\fR,\fIdest\fP
+Print the number of calls from \fIentry\fP, phase \fIn\fP to the
+entry \fIdest\fP.  This is an independent variable for plotting.
+.TP 8
+\fB\-C\fP, \fB\-\-activity\-calls=\fItask\fR,\fIactivity\fP,\fIdest\fP
+Print the number of calls from \fItask\fP, \fIactivity\fP to the
+entry \fIdest\fP.  This is an independent variable for plotting.
 .TP
 \fB\-d\fP, \fP\-\-demand=\fIentry\fP,\fIn\fR
 Print the demand for \fIentry\fP, phase \fIn\fP.  This is an
@@ -111,13 +119,13 @@ the result is used with others.
 \fB\-q\fP, \fB\-\-processor\-waiting=\fIentry\fP,\fIn\fR
 Print the waiting time at the processor for \fIentry\fP, phase \fIn\fP.
 .TP 8
-\fB\-r\fP, \fB\-\-requests=\fIentry\fP,\fIn\fR,\fIdest\fP
-Print the number of requests from \fIentry\fP, phase \fIn\fP to the
-entry \fIdest\fP.  This is an independent variable for plotting.
+\fB\-r\fP, \fB\-\-task-replicas=\fItask\fP,\fIn\fR
+Print the number of replicas of \fItask\fP.  This is an independent
+variable for plotting.
 .TP 8
-\fB\-R\fP, \fB\-\-activity\-requests=\fItask\fR,\fIactivity\fP,\fIdest\fP
-Print the number of requests from \fItask\fP, \fIactivity\fP to the
-entry \fIdest\fP.  This is an independent variable for plotting.
+\fB\-r\fP, \fB\-\-processor-replicas=\fIprocessor\fP,\fIn\fR
+Print the number of replicas of \fIprocessor\fP.  This is an independent
+variable for plotting.
 .TP 8
 \fB\-s\fP, \fB\-\-service=\fIentry\fP,\fIn\fR
 Print the service time for \fIentry\fP, phase \fIn\fP.
@@ -165,8 +173,18 @@ Print out the model comment field.
 Print out the number of times the MVA step() function was called when
 solving the model.
 .TP 8
+\fB\fB\-\-mva-wait\fR
+Print out the number of times the MVA wait() function was called when
+solving the model.
+.TP 8
+\fB\fB\-\-space\fR
+Inssert a blank column (or row if transposed).
+.TP 8
 \fB\fB\-\-limit=\fIn\fR
 If set, then limit the output to \fIn\fP lines.
+.TP 8
+\fB\fB\-\-transpose\fP
+Transpose rows and columns on output.
 .TP 8
 \fB\fB\-\-gnuplot\fP
 Generate gnuplot ouptut.

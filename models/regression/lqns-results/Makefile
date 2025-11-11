@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 17394 2024-10-28 11:31:19Z greg $
+# $Id: Makefile 17565 2025-11-06 16:53:07Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqns
@@ -44,15 +44,17 @@ DSTS =	00-sanity.lqxo \
 	47-activities.lqxo \
 	48-activities.lqxo \
 	50-replication.lqxo \
-	50-replication-pan.lqxo \
+	50-replication.pan \
 	51-replication.lqxo \
-	51-replication-pan.lqxo \
+	51-replication.pan \
 	52-replication.lqxo \
-	52-replication-pan.lqxo \
+	52-replication.pan \
+	53-replication.lqxo \
+	53-replication.pan \
 	55-replication.lqxo \
-	55-replication-pan.lqxo \
+	55-replication.pan \
 	56-replication.lqxo \
-	56-replication-pan.lqxo \
+	56-replication.pan \
 	75-distributions.lqxo \
 	76-distributions.lqxo \
 	85-fork.lqxo \
@@ -74,11 +76,14 @@ QUORUM=	88-quorum.lqxo \
 SRCS = $(DSTS:.lqxo=.lqnx)
 
 .SUFFIXES:
-.SUFFIXES: .diff .out .lqxo .lqnx
+.SUFFIXES: .diff .out .pan .lqxo .lqnx
 .PHONY:	.files
 
 .lqnx.lqxo:
 	$(SRVN) $(OPTS) $<
+
+.lqnx.pan:
+	$(SRVN) $(OPTS) -Preplication=pan -xo $@ $<
 
 .files:	
 	@-rm -f .files
@@ -91,21 +96,6 @@ all:	$(DSTS) .files
 	mv $*.d/$*-002.lqxo $*.lqxo
 	rm $*.d
 
-50-replication-pan.lqxo: 50-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo $@ $<
-
-51-replication-pan.lqxo: 51-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo $@ $<
-
-52-replication-pan.lqxo: 52-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo $@ $<
-
-55-replication-pan.lqxo: 55-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -w -xo $@ $<
-
-56-replication-pan.lqxo: 56-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -w -xo $@ $<
-
 90-A01-novar.lqxo:	90-A01.lqnx
 	$(SRVN) -Pvariance=none -x -o$@ $<
 
@@ -114,4 +104,3 @@ all:	$(DSTS) .files
 
 diff:
 	srvndiff -@.files ../petri-results ../sim-results .
-

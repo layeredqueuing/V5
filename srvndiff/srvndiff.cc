@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 17544 2025-04-16 21:50:39Z greg $
+ * $Id: srvndiff.cc 17575 2025-11-10 17:29:48Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -25,14 +25,15 @@
 #include <cassert>
 #include <cfenv>
 #include <cmath>
-#include <cstring>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <filesystem>
 #include <limits>
 #include <regex>
-#include <string>
 #include <sstream>
+#include <string>
 #include <vector>
 #if HAVE_GLOB_H
 #include <glob.h>
@@ -283,6 +284,7 @@ double iteration_tab[MAX_PASS];
 double mva_wait_tab[MAX_PASS];
 bool confidence_intervals_present[MAX_PASS];
 std::string comment_tab[MAX_PASS];
+std::vector<std::filesystem::path> path_name;
 std::map<int, processor_info> processor_tab[MAX_PASS];
 std::map<int, group_info> group_tab[MAX_PASS];
 std::map<int, task_info> task_tab[MAX_PASS];
@@ -529,6 +531,27 @@ private:
 std::vector<std::regex> exclude[ST_SYMTBL_TYPES];
 std::vector<std::regex> include[ST_SYMTBL_TYPES];
 
+struct filename_match {
+    filename_match( const std::filesystem::path& filename ) : _filename(filename.filename()) {}
+    bool operator()( const std::filesystem::path& filename ) { return _filename == filename.filename(); }
+private:
+    const std::filesystem::path _filename;
+};
+    
+struct directory_match {
+    directory_match( const std::filesystem::path& directory ) : _directory(directory) { _directory.remove_filename(); }
+    bool operator()( std::filesystem::path directory ) { directory.remove_filename(); return directory == _directory; }
+private:
+    std::filesystem::path _directory;
+};
+    
+struct dir_stem_match {
+    dir_stem_match( const std::filesystem::path& path ) : _path(path) { _path.replace_extension(""); }	/* strip extention */
+    bool operator()( std::filesystem::path path ) { path.replace_extension(""); return path == _path; }
+private:
+    std::filesystem::path _path;
+};
+
 /*
  * Local functions.
  */
@@ -537,7 +560,7 @@ static void usage( const bool full_usage = true );
 static void compact_format();
 static bool format_ok( const char * value, int choice, int * size );
 static FILE *my_fopen(const char *filename, const char *mode);
-static void compare_directories(unsigned n, char * const dirs[]);
+static void compare_directories(const unsigned n, char * const dirs[]);
 #if !HAVE_GLOB
 static void build_file_list(const char *dir, glob_t *dir_list);
 #endif
@@ -576,7 +599,7 @@ static void print_iteration_totals ( const result_str_t result, unsigned passes,
 static void print_total_statistics( const std::vector<stats_buf> &results, const unsigned start, const unsigned passes, const char * cat_string, const char * type_str, output_func_ptr print_func, const unsigned bits );
 static void error_print_func( FILE * output, unsigned j, double value, double delta );
 static void time_print_func( FILE * output, unsigned j, double value, double delta );
-static void commonize(unsigned n, char *const dirs[]);
+static void commonize(unsigned n, char * const dirs[]);
 static int results_warning( const char * fmt, ... );
 static int readInResults(const char *filename);
 extern "C" int mystrcmp( const void *a, const void *b);
@@ -585,8 +608,6 @@ double rms_error( const std::vector<stats_buf>&, std::vector<double>& rms );
 extern int getsubopt (char **, char * const *, char **);
 #endif
 static void makeopts( std::string& opts, std::vector<struct option>& longopts );
-static void minimize_path_name( std::vector<std::string>& path_name );
-
 
 /*----------------------------------------------------------------------*/
 /*			      Main line					*/
@@ -999,7 +1020,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2025-04-16 17:50:39 -0400 (Wed, 16 Apr 2025) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2025-11-10 12:29:48 -0500 (Mon, 10 Nov 2025) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1302,61 +1323,20 @@ my_fopen (const char *filename, const char *mode)
     return fptr;
 }
 
-static void
-minimize_path_name( std::vector<std::string>& path_name )
-{
-    const size_t passes = path_name.size();
-    std::vector<std::string> dir_name = path_name;
-
-    /* find directory names */
-
-    for ( size_t j = 0; j < passes; ++j ) {
-	std::string temp = dir_name[j];
-	dir_name[j] = dirname( const_cast<char *>(temp.c_str()) );		/* Clobbers temp */
-	if ( dir_name[j] == "." ) {
-	    char cwd[MAXPATHLEN];
-	    dir_name[j] = basename( getcwd( cwd, MAXPATHLEN ) );
-	}
-    }
-
-    bool all_match = true;
-    for ( size_t j = 1; all_match && j < passes; ++j ) {
-	all_match = dir_name[0] == dir_name[j];
-    }
-
-    if ( all_match ) {
-	/* If all the directories are the same, use the file name */
-	for ( size_t j = 0; j < passes; ++j ) {
-	    std::string temp = path_name[j];
-	    path_name[j] = basename( const_cast<char *>(temp.c_str()) );
-	    size_t pos = path_name[j].rfind( '.' );	/* Strip extension */
-	    if ( 0 < pos && pos != std::string::npos ) {
-		path_name[j] = path_name[j].substr( 0, pos );
-	    }
-	}
-    } else {
-	/* Use last part of path which is NOT the file name */
-	for ( size_t j = 0; j < passes; ++j ) {
-	    path_name[j] = basename( const_cast<char *>(dir_name[j].c_str()) );
-	}
-    }
-}
-
-
 /*
  * Compare all files in dir1 with dir2.  Files must end with '.p'.
  */
 
 static void
-compare_directories (unsigned n, char * const dirs[])
+compare_directories (const unsigned n, char * const dirs[])
 {
     static const std::vector<std::string> patterns = { "*.p", "*.lqxo", "*.lqjo" };
-
+    
     if ( list_of_files ) {
 	build_file_list2( n, dirs );
     } else {
-#if HAVE_GLOB
 	for ( unsigned i = 0; i < n; ++i ) {
+#if HAVE_GLOB
 	    int rc = 0;
 	    dir_list[i].gl_pathc = 0;
 	    if ( file_pattern.empty() ) {
@@ -1375,12 +1355,10 @@ compare_directories (unsigned n, char * const dirs[])
 	    if ( dir_list[i].gl_pathc == 0 ) {
 		(void) fprintf( stderr, "%s: no matching files in %s!\n", lq_toolname, dirs[i] );
 	    }
-	}
 #else
-	for ( unsigned int i = 0; i < n; ++i ) {
 	    build_file_list( dirs[i], &dir_list[i] );
-	}
 #endif
+	}
     }
 
     if ( n > 1 ) {
@@ -1755,6 +1733,8 @@ compare_files (const unsigned n, char * const files[] )
     init_counters();
     differences_found = false;
 
+    /* Let er rip! */
+    
     for ( i = 0; i < n && !an_error; ++i ) {
 	an_error = an_error | process_file( files[i], i );
     }
@@ -1784,16 +1764,13 @@ compare_files (const unsigned n, char * const files[] )
 static void
 print ( unsigned passes, char * const names[] )
 {
-    std::string temp = names[0];
-    std::string file_name = basename( const_cast<char *>(temp.c_str()) );
-    size_t pos = file_name.rfind( '.' );
-    file_name = file_name.substr( 0, pos );
+    const std::string model_name = std::filesystem::path( names[0] ).stem().replace_extension( "" );
 
     if ( print_comment ) {
 	/* Find first comment in file (not .p) and print it.  Probably broken for latex mode and other non-common features. */
 	for ( unsigned j = 0; j < passes; ++j ) {
 	    if ( comment_tab[j].size() > 0 ) {
-		(void) fprintf( output, "%s: %s\n\n", file_name.c_str(), comment_tab[j].c_str() );
+		(void) fprintf( output, "%s: %s\n\n", model_name.c_str(), comment_tab[j].c_str() );
 		break;
 	    }
 	}
@@ -1803,111 +1780,111 @@ print ( unsigned passes, char * const names[] )
 	make_header( header, names, passes, print_confidence_intervals, print_error_only );
     } else if ( print_latex ) {
 	make_header( header, names, passes, print_confidence_intervals, print_error_only );
-	(void) fprintf( output, header, 16, 16, file_name.c_str() );
+	(void) fprintf( output, header, 16, 16, model_name.c_str() );
     }
 
     /* Run times */
 
     if ( print_solver_information ) {
-	print_information( P_SOLVER_VERSION, file_name.c_str(), passes );
+	print_information( P_SOLVER_VERSION, model_name.c_str(), passes );
     }
     
     if ( print_runtimes ) {
-	print_runtime( P_RUNTIME, file_name.c_str(), passes, 0 );
+	print_runtime( P_RUNTIME, model_name.c_str(), passes, 0 );
     }
 
     if ( print_iterations ) {
-	print_iteration( P_ITERATIONS, file_name.c_str(), passes, 0 );
+	print_iteration( P_ITERATIONS, model_name.c_str(), passes, 0 );
     }
 
     if ( print_mva_waits ) {
-	print_iteration( P_MVA_WAITS, file_name.c_str(), passes, 0 );
+	print_iteration( P_MVA_WAITS, model_name.c_str(), passes, 0 );
     }
 
     /* Waiting */
 
     if ( print_waiting ) {
-	print_entry_waiting( P_WAITING, file_name.c_str(), passes );
+	print_entry_waiting( P_WAITING, model_name.c_str(), passes );
     }
 
     /* Waiting time variance */
 
     if ( print_waiting_variance ) {
-	print_entry_waiting( P_WAIT_VAR, file_name.c_str(), passes );
+	print_entry_waiting( P_WAIT_VAR, model_name.c_str(), passes );
     }
 
     /* Waiting */
 
     if ( print_waiting ) {
-	print_forwarding_waiting( P_FWD_WAITING, file_name.c_str(), passes );
+	print_forwarding_waiting( P_FWD_WAITING, model_name.c_str(), passes );
     }
 
     /* Waiting time variance */
 
     if ( print_waiting_variance ) {
-	print_forwarding_waiting( P_FWD_WAIT_VAR, file_name.c_str(), passes );
+	print_forwarding_waiting( P_FWD_WAIT_VAR, model_name.c_str(), passes );
     }
 
     /* Waiting */
 
     if ( print_snr_waiting ) {
-	print_entry_waiting( P_SNR_WAITING, file_name.c_str(), passes );
+	print_entry_waiting( P_SNR_WAITING, model_name.c_str(), passes );
     }
 
     /* Waiting time variance */
 
     if ( print_snr_waiting_variance ) {
-	print_entry_waiting( P_SNR_WAIT_VAR, file_name.c_str(), passes );
+	print_entry_waiting( P_SNR_WAIT_VAR, model_name.c_str(), passes );
     }
 
     /* Waiting */
 
     if ( print_loss_probability ) {
-	print_entry_waiting( P_DROP, file_name.c_str(), passes );
+	print_entry_waiting( P_DROP, model_name.c_str(), passes );
     }
 
     /* Join delays */
 
     if ( print_join_delay ) {
-	print_activity_join( P_JOIN, file_name.c_str(), passes );
+	print_activity_join( P_JOIN, model_name.c_str(), passes );
     }
 
     /* Join delay variance */
 
     if ( print_join_variance ) {
-	print_activity_join( P_JOIN_VAR, file_name.c_str(), passes );
+	print_activity_join( P_JOIN_VAR, model_name.c_str(), passes );
     }
 
     /* Service */
 
     if ( print_service ) {
-	print_phase_result( P_SERVICE, file_name.c_str(), passes );
+	print_phase_result( P_SERVICE, model_name.c_str(), passes );
     }
 
     /* Variance */
 
     if ( print_variance ) {
-	print_phase_result( P_VARIANCE, file_name.c_str(), passes );
+	print_phase_result( P_VARIANCE, model_name.c_str(), passes );
     }
 
     /* Max service time exceeded. */
 
     if ( print_exceeded ) {
-	print_phase_result( P_EXCEEDED, file_name.c_str(), passes );
+	print_phase_result( P_EXCEEDED, model_name.c_str(), passes );
     }
 
     /* Coefficient of Variantion Squared (I'm Lazy) */
 
     if ( print_cv_square ) {
-	print_phase_result( P_CV_SQUARE, file_name.c_str(), passes );
+	print_phase_result( P_CV_SQUARE, model_name.c_str(), passes );
     }
 
     /*+ BUG_164 */
     /* Utilizations Hold time for semaphore (phase 2 only) */
 
     if ( print_sema_util ) {
-	print_task_result( P_SEMAPHORE_UTIL, file_name.c_str(), passes );
-	print_task_result( P_SEMAPHORE_WAIT, file_name.c_str(), passes );
+	print_task_result( P_SEMAPHORE_UTIL, model_name.c_str(), passes );
+	print_task_result( P_SEMAPHORE_WAIT, model_name.c_str(), passes );
     }
 
     /* Hold time variance (phase 2 only) */
@@ -1922,13 +1899,13 @@ print ( unsigned passes, char * const names[] )
     /* Utilizations and Hold time for rwlock  */
 
     if ( print_rwlock_util ) {
-	print_task_result( P_RWLOCK_READER_UTIL, file_name.c_str(), passes );
-	print_task_result( P_RWLOCK_WRITER_UTIL, file_name.c_str(), passes );
+	print_task_result( P_RWLOCK_READER_UTIL, model_name.c_str(), passes );
+	print_task_result( P_RWLOCK_WRITER_UTIL, model_name.c_str(), passes );
 
-	print_task_result( P_RWLOCK_READER_WAIT, file_name.c_str(), passes );
-	print_task_result( P_RWLOCK_WRITER_WAIT, file_name.c_str(), passes );
-	print_task_result( P_RWLOCK_READER_HOLD, file_name.c_str(), passes );
-	print_task_result( P_RWLOCK_WRITER_HOLD, file_name.c_str(), passes );
+	print_task_result( P_RWLOCK_READER_WAIT, model_name.c_str(), passes );
+	print_task_result( P_RWLOCK_WRITER_WAIT, model_name.c_str(), passes );
+	print_task_result( P_RWLOCK_READER_HOLD, model_name.c_str(), passes );
+	print_task_result( P_RWLOCK_WRITER_HOLD, model_name.c_str(), passes );
     }
     /*- RWLOCK */
 
@@ -1936,53 +1913,53 @@ print ( unsigned passes, char * const names[] )
     /* Throughput */
 
     if ( print_throughput_bound ) {
-	print_entry_result( P_BOUND, file_name.c_str(), passes );
+	print_entry_result( P_BOUND, model_name.c_str(), passes );
     }
     
     if ( print_entry_throughput ) {
-	print_entry_result( P_ENTRY_TPUT, file_name.c_str(), passes );
+	print_entry_result( P_ENTRY_TPUT, model_name.c_str(), passes );
     }
 
     if ( print_task_throughput ) {
-	print_task_result( P_THROUGHPUT, file_name.c_str(), passes );
+	print_task_result( P_THROUGHPUT, model_name.c_str(), passes );
     }
 
     /* Task Utilization */
 
     if ( print_task_util ) {
-	print_task_result( P_UTILIZATION, file_name.c_str(), passes );
+	print_task_result( P_UTILIZATION, model_name.c_str(), passes );
     }
 
     /* waiting time for open chains */
 
     if ( print_open_wait ) {
-	print_entry_result( P_OPEN_WAIT, file_name.c_str(), passes );
+	print_entry_result( P_OPEN_WAIT, model_name.c_str(), passes );
     }
 
     if ( print_loss_probability ) {
-	print_entry_result( P_OPEN_DROP, file_name.c_str(), passes );
+	print_entry_result( P_OPEN_DROP, model_name.c_str(), passes );
     }
     
     /* Group utilization */
 
     if ( print_group_util && group_tab[FILE1].size() > 0 ) {
-	print_group( P_GROUP_UTIL, file_name.c_str(), passes );
+	print_group( P_GROUP_UTIL, model_name.c_str(), passes );
     }
 
     /* Processor utilization */
 
     if ( print_processor_util ) {
-	print_processor( P_PROCESSOR_UTIL, file_name.c_str(), passes );
+	print_processor( P_PROCESSOR_UTIL, model_name.c_str(), passes );
     }
 
     /* Processor waiting times */
 
     if ( print_processor_waiting ) {
-	print_phase_result( P_PROCESSOR_WAIT, file_name.c_str(), passes );
+	print_phase_result( P_PROCESSOR_WAIT, model_name.c_str(), passes );
     }
 
     if ( print_overtaking ) {
-	print_entry_overtaking( P_OVERTAKING, file_name.c_str(), passes, entry_tab[FILE1].size() );
+	print_entry_overtaking( P_OVERTAKING, model_name.c_str(), passes, entry_tab[FILE1].size() );
     }
 
     if ( !print_rms_error_only ) {
@@ -1996,6 +1973,15 @@ print ( unsigned passes, char * const names[] )
 static void
 make_header ( char * h_ptr, char * const names[], const unsigned passes, const bool print_conf, const bool only_print_error )
 {
+    std::vector<std::filesystem::path> column_names(passes);
+    for ( unsigned int i = 0; i < passes; ++i ) column_names[i] = names[i];	/* Get path names */
+
+    /* Look for unique path component */
+
+    if ( std::all_of( std::next(column_names.begin()), column_names.end(), dir_stem_match( column_names.front() ) ) ) std::for_each( column_names.begin(), column_names.end(), []( std::filesystem::path& path ){ path = path.extension(); } );
+    else if ( std::all_of( std::next(column_names.begin()), column_names.end(), directory_match( column_names.front() ) ) ) std::for_each( column_names.begin(), column_names.end(), []( std::filesystem::path& path ){ path = path.stem().replace_extension( "" ); } );
+    else if ( std::all_of( std::next(column_names.begin()), column_names.end(), filename_match( column_names.front() ) ) ) std::for_each( column_names.begin(), column_names.end(), []( std::filesystem::path& path ){ path.remove_filename(); } );
+																									  
     char * o_ptr = h_ptr;		/* Pointer into header string.	*/
 
     if ( print_latex ) {
@@ -2008,21 +1994,8 @@ make_header ( char * h_ptr, char * const names[], const unsigned passes, const b
 	h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), "\\begin{tabular}{|c|*{%d}{d{2}|}}\n\\hline\n%%-*.*s ", columns );
     }
 
-    /* Now make a cute header. */
-    std::vector<std::string> column_name(passes);
-    for ( unsigned int j = 0; j < passes; ++j ) {
-	column_name[j] = names[j];
-    }
-    minimize_path_name( column_name );
-
-    /* Replace column names if necessary */
-    for ( std::map<int,const std::string>::const_iterator header = headings.begin(); header != headings.end(); ++header ) {
-	column_name.at(header->first) = header->second;
-    }
-
     for ( unsigned int j = 0; j < passes && h_ptr - o_ptr < LINE_WIDTH; ++j ) {
 	unsigned field_width;		/* default heading width.	*/
-	unsigned l;
 
 	if ( only_print_error ) {
 	    if ( j == 0 ) continue;			/* Skip col 0 on error reports */
@@ -2041,19 +2014,20 @@ make_header ( char * h_ptr, char * const names[], const unsigned passes, const b
 	    }
 	}
 
-	l = column_name[j].size();
+	const char * column_name = column_names[j].c_str();
+	size_t l = strlen( column_name );
 
 	h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), "%*s", separator_width, separator_format );
 
 	if ( print_latex ) {
-	    h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), "\\multicolumn{1}{c|}{%s}", column_name[j].c_str() );
+	    h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), "\\multicolumn{1}{c|}{%s}", column_name );
 	} else if ( l >= field_width ) {
 	    h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), "%*.*s",
-			    field_width, field_width, column_name[j].c_str() );
+			    field_width, field_width, column_name );
 	} else {
 	    h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), "%*c%*.*s%*c",
 			    (field_width-l)/2, ' ',
-			    l, l, column_name[j].c_str(),
+			    l, l, column_name,
 			    (field_width+1-l)/2, ' ' );
 	}
 
@@ -3842,30 +3816,22 @@ check_ovtk( unsigned i, unsigned j, unsigned k, unsigned p_j, unsigned p_i  )
  */
 
 static void
-commonize (unsigned n, char *const dirs[])
+commonize (unsigned n, char * const dirs[])
 {
     unsigned i;		/* Index across directories.	*/
 
     for ( i = 1; i < n; ++i ) {
 	unsigned j;	/* Index into file names in dir	*/
 	for ( j = 0; j < dir_list[0].gl_pathc && j < dir_list[i].gl_pathc; ) {
-	    char * src = basename( dir_list[0].gl_pathv[j] );
-	    char * dst = basename( dir_list[i].gl_pathv[j] );
-	    int result = strcmp( src, dst );
+	    std::filesystem::path src = std::filesystem::path( dir_list[0].gl_pathv[j] ).filename().stem();
+	    std::filesystem::path dst = std::filesystem::path( dir_list[i].gl_pathv[j] ).filename().stem();
+	    
+	    if ( src == dst ) {
+		j += 1;
+		continue;
+	    } 
 
-	    if ( result != 0 ) {
-		/* Check for xml/p variance */
-		char * p = strrchr( src, '.' );
-		char * q = strrchr( dst, '.' );
-		for ( ; p && q && *p != '.' && *p == *q; ++p, ++q );
-		if ( p && q && *p == '.' && *q == '.'
-		     && ( ( strcmp( p, ".p" ) == 0 && ( strcmp( q, ".lqxo" ) == 0 || strcmp( q, ".xml" ) == 0 || strcmp( q, ".lqjo" ) == 0 || strcmp( q, ".json" ) == 0 ) )
-			  || ( strcmp( q, ".p" ) == 0 && ( strcmp( p, ".lqxo" ) == 0 || strcmp( p, ".xml" ) == 0 || strcmp( p, ".lqjo" ) == 0 || strcmp( p, ".json" ) == 0 ) ) ) ) {
-		    result = 0;
-		}
-	    }
-
-	    if ( result > 0 ) {
+	    if ( src > dst ) {
 		unsigned k;		/* Index for squishing list.	*/
 
 		/* dir2 entry not found -- shift and delete... */
@@ -3879,7 +3845,7 @@ commonize (unsigned n, char *const dirs[])
 		dir_list[i].gl_pathv[k] = (char *)0;
 		dir_list[i].gl_pathc -= 1;
 
-	    } else if ( result < 0 ) {
+	    } else {
 		unsigned l;		/* Index for squishing dirs.	*/
 
 		/* dir1 entry not found -- shift and delete all dirs up to dir2 */
@@ -3895,9 +3861,6 @@ commonize (unsigned n, char *const dirs[])
 		    dir_list[l].gl_pathv[k] = (char *)0;
 		    dir_list[l].gl_pathc -= 1;
 		}
-
-	    } else {
-		++j;
 	    }
 	}
     }

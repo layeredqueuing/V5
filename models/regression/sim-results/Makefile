@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 17394 2024-10-28 11:31:19Z greg $
+# $Id: Makefile 17565 2025-11-06 16:53:07Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
@@ -48,6 +48,7 @@ DST =	$(SANITY) \
 	50-replication.lqxo \
 	51-replication.lqxo \
 	52-replication.lqxo \
+	53-replication.lqxo \
 	55-replication.lqxo \
 	56-replication.lqxo \
 	60-semaphore.lqxo \
@@ -104,27 +105,32 @@ diff:
 # ----
 
 50-replication.lqxo:	50-replication.lqnx
-	rep2flat -Oxml -o$*-flag.lqnx $<
+	rep2flat -Oxml -o$*-flat.lqnx $<
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	rm $*-flat.lqnx $*-flat.lqxo
 
 51-replication.lqxo:	51-replication.lqnx
-	rep2flat -Oxml -o$*-flag.lqnx $<
+	rep2flat -Oxml -o$*-flat.lqnx $<
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	rm $*-flat.lqnx $*-flat.lqxo
 
 52-replication.lqxo:	52-replication.lqnx
-	rep2flat -Oxml -o$*-flag.lqnx $<
+	rep2flat -Oxml -o$*-flat.lqnx $<
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	rm $*-flat.lqnx $*-flat.lqxo
+
+53-replication.lqxo:	53-replication.lqnx
+	rep2flat -Oxml -o$*-flat.lqnx $<
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	rm $*-flat.lqnx $*-flat.lqxo
 
 55-replication.lqxo:	55-replication.lqnx
-	rep2flat -Oxml -o$*-flag.lqnx $<
+	rep2flat -Oxml -o$*-flat.lqnx $<
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	rm $*-flat.lqnx $*-flat.lqxo
 
 56-replication.lqxo:	56-replication.lqnx
-	rep2flat -Oxml -o$*-flag.lqnx $<
+	rep2flat -Oxml -o$*-flat.lqnx $<
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	rm $*-flat.lqnx $*-flat.lqxo
 

@@ -10,7 +10,7 @@
  * Error processing for srvn program.
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: error.cpp 17406 2024-10-30 17:11:43Z greg $
+ * $Id: error.cpp 17566 2025-11-06 18:46:09Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -64,11 +64,11 @@ std::map<unsigned int, LQIO::error_message_type> LQIO::error_messages = {
     { LQIO::ERR_TOO_MANY_X,			{ LQIO::error_severity::ERROR,    "Number of %s is outside of program limits of (1,%d)." } },
     { LQIO::ERR_UNEXPECTED_ATTRIBUTE,		{ LQIO::error_severity::ERROR,    "Element \"%s\", unexpected attribute: \"%s\"." } },
     { LQIO::ADV_LQX_IMPLICIT_SOLVE,		{ LQIO::error_severity::ADVISORY, "No solve() call found in the lqx program in file: %s.  solve() was invoked implicitly." } },
+    { LQIO::ADV_NO_SPEX_OBSERVATIONS,		{ LQIO::error_severity::ADVISORY, "No SPEX Observations were specified in the input model." } },
     { LQIO::ADV_SPEX_UNUSED_RESULT_VARIABLE,	{ LQIO::error_severity::ADVISORY, "SPEX result variable \"%s\" was not used as an array or in an observation." } },
     { LQIO::ADV_TOO_MANY_GNUPLOT_VARIABLES,	{ LQIO::error_severity::ADVISORY, "Too many dependent variables to plot from \"%s\" onwards." } },
     { LQIO::WRN_SCHEDULING_NOT_SUPPORTED,	{ LQIO::error_severity::WARNING,  "%s scheduling specified for %s \"%s\" is not supported." } },
     { LQIO::WRN_INVALID_SPEX_RESULT_PHASE,	{ LQIO::error_severity::WARNING,  "Invalid phase, %d, specified for SPEX result \"%%%s\" for entry \"%s\"." } },
-    { LQIO::WRN_NO_SPEX_OBSERVATIONS,		{ LQIO::error_severity::WARNING,  "No SPEX Observations were specified in the input model." } },
     { LQIO::WRN_MULTIPLE_SPECIFICATION,		{ LQIO::error_severity::WARNING,  "Parameter is specified multiple times." } },
     { LQIO::WRN_PRAGMA_UNKNOWN,			{ LQIO::error_severity::WARNING,  "Pragma \"%s\" is not recognized." } },
     { LQIO::WRN_PRAGMA_ARGUMENT_INVALID,	{ LQIO::error_severity::WARNING,  "Pragma \"%s\": invalid argument \"%s\"." } },

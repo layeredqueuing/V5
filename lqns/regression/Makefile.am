@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 17518 2024-12-19 15:18:23Z greg $
+# $Id: Makefile.am 17569 2025-11-06 20:13:08Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -49,8 +49,15 @@ ACT=	40-activities.lqxo \
 REPL=	50-replication.lqxo \
 	51-replication.lqxo \
 	52-replication.lqxo \
+	53-replication.lqxo \
 	55-replication.lqxo \
-	56-replication.lqxo
+	56-replication.lqxo \
+	50-replication.pan \
+	51-replication.pan \
+	52-replication.pan \
+	53-replication.pan \
+	55-replication.pan \
+	56-replication.pan
 SIM=	70-priority.lqxo \
 	71-fair.lqxo \
 	72-fair.lqxo \
@@ -76,12 +83,7 @@ SPEX=	01-sanity-l.csv \
 	01-sanity-s.csv
 
 EXTRA=	90-A01-novar.lqxo \
-	90-A01-stoch.lqxo \
-	50-replication-pan.lqxo \
-	51-replication-pan.lqxo \
-	52-replication-pan.lqxo \
-	55-replication-pan.lqxo \
-	56-replication-pan.lqxo
+	90-A01-stoch.lqxo
 
 DISTTEST=disttest
 
@@ -98,10 +100,14 @@ SRCS3=	$(OBJS:.csv=.xlqn)
 
 EXTRA_DIST = $(SRCS1) $(SRCS2) $(SRCS3)
 
-SUFFIXES = .diff .svg .csv .d .lqxo .lqnx .xlqn
+SUFFIXES = .diff .svg .csv .d .pan .lqxo .lqnx .xlqn
 
 .lqnx.lqxo:
 	$(SRVN) $(OPTS) $<
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
+
+.lqnx.pan:
+	$(SRVN) $(OPTS) -Preplication=pan -xo $@ $<
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 .lqx.csv:
@@ -163,7 +169,7 @@ disttest.o:	disttest.cc
 	$(CXX) -I.. -I../../libmva/src/headers -c -o disttest.o disttest.cc
 
 clean:
-	@-rm -rf *.lqxo *.csv *.out *.diff .files *.d
+	@-rm -rf *.lqxo *.csv *.out *.diff .files *.pan *.d
 
 distclean:	clean 
 	@-rm -f Makefile
@@ -178,26 +184,6 @@ distclean:	clean
 # 48-activities.lqxo: 48-activities.lqnx
 # 	$(SRVN) $(OPTS) -a $<
 # 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
-
-50-replication-pan.lqxo: 50-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo$@ 50-replication.lqnx
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
-
-51-replication-pan.lqxo: 51-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo$@ 51-replication.lqnx
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
-
-52-replication-pan.lqxo: 52-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo$@ 52-replication.lqnx
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
-
-55-replication-pan.lqxo: 55-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo$@ 55-replication.lqnx
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
-
-56-replication-pan.lqxo: 56-replication.lqnx
-	$(SRVN) $(OPTS) -Preplication=pan -xo$@ 56-replication.lqnx
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$@
 
 90-A01-novar.lqxo: 90-A01.lqnx
 	$(SRVN) -Pvariance=none -a -xo$@ 90-A01.lqnx

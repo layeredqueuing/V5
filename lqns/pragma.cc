@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 16441 2023-02-23 21:39:47Z greg $ *
+ * $Id: pragma.cc 17567 2025-11-06 19:39:20Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -118,18 +118,17 @@ Pragma::set( const std::map<std::string,std::string>& list )
     __cache = new Pragma();
 
     for ( std::map<std::string,std::string>::const_iterator i = list.begin(); i != list.end(); ++i ) {
-	const std::string& param = i->first;
-	const std::map<const std::string,const fptr>::const_iterator j = __set_pragma.find(param);
+	const std::map<const std::string,const fptr>::const_iterator j = __set_pragma.find(i->first);
 	if ( j != __set_pragma.end() ) {
 	    try {
 		fptr f = j->second;
 		(__cache->*f)(i->second);
 	    }
 	    catch ( const std::domain_error& e ) {
-		LQIO::runtime_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
+		LQIO::runtime_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, i->first.c_str(), e.what() );
 	    }
 	    catch ( const std::invalid_argument& e ) {
-		LQIO::runtime_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
+		LQIO::runtime_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, i->second.c_str(), e.what() );
 	    }
 	}
     }

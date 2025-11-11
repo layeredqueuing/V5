@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 17451 2024-11-09 12:06:44Z greg $
+ * $Id: lqns.cc 17567 2025-11-06 19:39:20Z greg $
  *
  * Command line processing.
  *
@@ -146,7 +146,7 @@ int main (int argc, char *argv[])
     
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2024-11-09 07:06:44 -0500 (Sat, 09 Nov 2024) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2025-11-06 14:39:20 -0500 (Thu, 06 Nov 2025) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = fp_exception_reporting::DEFERRED_ABORT;
 
@@ -169,6 +169,7 @@ int main (int argc, char *argv[])
 	try {
 	    switch ( c ) {
 	    case 'a':
+		LQIO::io_vars.severity_level = LQIO::error_severity::WARNING;
 		pragmas.insert( LQIO::DOM::Pragma::_severity_level_, LQIO::DOM::Pragma::_warning_ );
 		break;
 
@@ -403,7 +404,8 @@ int main (int argc, char *argv[])
 		break;
 
 	    case 'w':
-		pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_run_time_);
+		LQIO::io_vars.severity_level = LQIO::error_severity::ERROR;
+		pragmas.insert(LQIO::DOM::Pragma::_severity_level_, LQIO::DOM::Pragma::_run_time_);
 		break;
 
 	    case 'x':
