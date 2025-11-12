@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 17582 2025-11-12 01:09:35Z greg $
+ * $Id: qnsolver.cc 17585 2025-11-12 18:15:57Z greg $
  */
 
 #include "config.h"
@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <getopt.h>
+#include <ctype.h>
 #if HAVE_LIBGEN_H
 #include <libgen.h>
 #endif
@@ -461,7 +462,7 @@ usage()
 	} else {
 	    s = " ";
 	}
-	if ( isascii(o->val) && isgraph(o->val) ) {
+	if ( (o->val & ~0x7f) == 0 && isgraph(o->val) ) {
 	    std::cerr << " -" << static_cast<char>(o->val) << ", ";
 	} else {
 	    std::cerr << "     ";

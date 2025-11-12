@@ -1,13 +1,10 @@
 /*  -*- c++ -*-
- * $Id: fpgoop.cc 17581 2025-11-11 23:42:01Z greg $
+ * $Id: fpgoop.cc 17584 2025-11-12 17:06:47Z greg $
  *
  * Floating point exception handling.  It is all different on all machines.
  * See:
  *   linux...	sigaction(2)
  * 
- * if feenableexcept (fenv.h) is present, use it,
- * else if fpsetmask (ieeefp.h) is present, use it,
- *
  * A Common interface is presented to check for divide by zero, overflow,
  * and invalid operations.  Callers must either call set_fp_abort() to
  * cause immediate termination of the application at the fault location, of
@@ -111,7 +108,7 @@ set_fp_abort()
     /* Best way */
     feenableexcept( fp_bits );
 #endif
-#if HAVE_SIGACTION
+#if HAVE_SIGACTION && HAVE_SIGEMPTYSET && !defined(__CYGWIN__)
     struct sigaction my_action;
 
 #if defined(SA_SIGINFO)
@@ -196,14 +193,6 @@ check_fp_ok()
 
     return fetestexcept( fp_bits ) == 0;
 
-#elif HAVE_IEEEFP_H && HAVE_FPGETSTICKY
-
-    return (fpgetsticky() & fp_bits) == 0;
-
-#elif defined(__WINNT__) && HAVE__STATUSFP
-
-    return (_statusfp() & (EM_ZERODIVIDE|EM_OVERFLOW)) == 0;
-
 #else
 
     return true;
@@ -235,22 +224,6 @@ set_fp_ok( bool overflow )
     }
     feclearexcept( FE_ALL_EXCEPT );
 
-#elif HAVE_IEEEFP_H && HAVE_FPSETSTICKY
-
-    if ( matherr_disposition == fp_exception_reporting::IGNORE ) {
-	fp_bits = 0;
-    } else {
-	fp_bits = FP_X_INV | FP_X_DZ;
-	if ( overflow ) {
-	    fp_bits |= FP_X_OFL;
-	}
-    }
-
-    fpsetsticky( FP_CLEAR );
-
-#elif defined(__WINNT__) && HAVE__CLEARFP
-    _clearfp();
-
 #endif
 }
 
@@ -267,10 +240,6 @@ fp_status_bits()
 #if  HAVE_FENV_H && HAVE_FETESTEXCEPT
 
     return fetestexcept( FE_ALL_EXCEPT );
-
-#elif HAVE_IEEEFP_H && HAVE_FPGETSTICKY
-
-    return fpgetsticky();
 
 #else
     return 0;

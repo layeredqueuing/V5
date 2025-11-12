@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 17581 2025-11-11 23:42:01Z greg $
+ * $Id: call.cc 17583 2025-11-12 15:49:54Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -982,9 +982,9 @@ Call::label()
 	const bool has_fan_in = LQIO::DOM::ExternalVariable::isPresent( &fan_in );
 	if ( has_fan_out || has_fan_in ) {
 	    *_label << " <";
-	    if ( has_fan_out ) *_label << fan_out; else *_label << "1";
-	    *_label << ":";
 	    if ( has_fan_in ) *_label << fan_in; else *_label << "1";
+	    *_label << ":";
+	    if ( has_fan_out ) *_label << fan_out; else *_label << "1";
 	    *_label << ">";
 	}
     }

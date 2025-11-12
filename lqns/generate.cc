@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 17378 2024-10-16 23:25:26Z greg $
+ * $Id: generate.cc 17584 2025-11-12 17:06:47Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -16,12 +16,13 @@
 
 #include "lqns.h"
 #include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <sstream>
-#include <fstream>
-#include <cstdlib>
-#include <cmath>
 #include <getopt.h>
 #include <lqio/bcmp_document.h>
 #if HAVE_EXPAT_H

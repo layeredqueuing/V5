@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 17068 2024-02-27 22:16:51Z greg $
+# $Id: Makefile.am 17584 2025-11-12 17:06:47Z greg $
 #----------------------------------------------------------------------
 
 SUBDIRS=	wspnlib regression
@@ -39,7 +39,7 @@ noinst_HEADERS=	activity.h \
 
 EXTRA_DIST 	= petrisrvn.1
 
-petrisrvn_CXXFLAGS  = -std=c++17 -Wall -Wno-parentheses -Wno-unknown-pragmas
+petrisrvn_CXXFLAGS  = -std=gnu++17 -Wall -Wno-parentheses -Wno-unknown-pragmas
 petrisrvn_LDADD	    = -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio -Lwspnlib -lwspn
 petrisrvn_LDFLAGS   = @STATIC@
 man1_MANS	    = petrisrvn.1

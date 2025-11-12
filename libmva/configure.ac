@@ -1,5 +1,5 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 17581 2025-11-11 23:42:01Z greg $
+# $Id: configure.ac 17584 2025-11-12 17:06:47Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
@@ -26,9 +26,8 @@ AC_CHECK_HEADERS([getopt.h])	# For regression test.
 # Checks for library functions.
 AC_CHECK_LIB([m], [sqrt])
 AC_FUNC_ERROR_AT_LINE
-AC_CHECK_FUNCS([feclearexcept feenableexcept fesetexceptflag fetestexcept finite fpgetsticky fpsetmask fpsetsticky])
-AC_CHECK_FUNCS([sigaction])
+AC_CHECK_FUNCS([feclearexcept feenableexcept fesetexceptflag fetestexcept])
+AC_CHECK_FUNCS([sigaction sigemptyset])
 AC_CHECK_FUNCS([getopt_long])	# For regression test.
-AC_CHECK_FUNCS([_clearfp _controlfp_s _statusfp])		# windows
 AC_CONFIG_FILES([Makefile src/Makefile src/headers/mva/Makefile regression/Makefile])
 AC_OUTPUT

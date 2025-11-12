@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 17582 2025-11-12 01:09:35Z greg $
+ * $Id: petrisrvn.cc 17584 2025-11-12 17:06:47Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -48,6 +48,8 @@
 #include "errmsg.h"
 #include "model.h"
 #include "pragma.h"
+
+#pragma STDC FENV_ACCESS ON
 
 static bool copyright_flag	= false; /* Print copyright notice	*/
 
@@ -191,7 +193,7 @@ main(int argc, char *argv[])
     comm_delay_flag  = false;
 #endif
 
-#if defined(HAVE_FEENABLEEXCEPT)
+#if HAVE_FEENABLEEXCEPT
     feenableexcept( FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW );
 #endif
     signal(SIGFPE, my_handler);
