@@ -1,5 +1,5 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 17197 2024-05-03 20:45:00Z greg $
+# $Id: configure.ac 17581 2025-11-11 23:42:01Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
@@ -17,8 +17,7 @@ AC_PROG_CXX
 AC_LANG(C++)
 
 # Checks for header files.
-AC_CHECK_HEADERS([fenv.h ieeefp.h signal.h])
-AC_CHECK_HEADERS([float.h])
+AC_CHECK_HEADERS([signal.h])
 AC_CHECK_HEADERS([xmmintrin.h])
 AC_CHECK_HEADERS([getopt.h])	# For regression test.
 

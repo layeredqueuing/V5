@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 17378 2024-10-16 23:25:26Z greg $
+ * $Id: qnsolver.cc 17582 2025-11-12 01:09:35Z greg $
  */
 
 #include "config.h"
@@ -10,7 +10,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <getopt.h>
+#if HAVE_LIBGEN_H
 #include <libgen.h>
+#endif
 #if HAVE_EXPAT_H
 #include <lqio/jmva_document.h>
 #endif

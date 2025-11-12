@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 17569 2025-11-06 20:13:08Z greg $
+ * $Id: petrisrvn.cc 17582 2025-11-12 01:09:35Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -19,7 +19,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
+#include <cfenv>
 #include <errno.h>
+#if HAVE_LIBGEN_H
+#include <libgen.h>
+#endif
 #if HAVE_SYS_STAT_H
 #include <sys/stat.h>
 #endif
@@ -27,18 +31,9 @@
 #include <unistd.h>
 #endif
 #include <signal.h>
-#if HAVE_FENV_H
-#include <fenv.h>
-#elif HAVE_IEEEFP_H && !defined(MSDOS)
-#include <ieeefp.h>
-#endif
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
 #if HAVE_GETOPT_H
 #include <getopt.h>
 #endif
-#include <libgen.h>
 #include <lqio/commandline.h>
 #include <lqio/dom_document.h>
 #include <lqio/error.h>
@@ -196,10 +191,8 @@ main(int argc, char *argv[])
     comm_delay_flag  = false;
 #endif
 
-#if defined(HAVE_FENV_H) && defined(HAVE_FEENABLEEXCEPT)
+#if defined(HAVE_FEENABLEEXCEPT)
     feenableexcept( FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW );
-#elif  defined(HAVE_IEEEFP_H) && defined(HAVE_FPSETMASK)
-    fpsetmask( FP_X_INV | FP_X_DZ | FP_X_OFL );
 #endif
     signal(SIGFPE, my_handler);
 

@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 17549 2025-10-16 19:58:27Z greg $
+ * $Id: help.cc 17581 2025-11-11 23:42:01Z greg $
  */
 
 #include "lqns.h"
@@ -36,7 +36,6 @@ static const std::map<const std::string,const std::string> opt_help = {
     { "bounds-only",				"Compute throughput bounds only." },
     { LQIO::DOM::Pragma::_convergence_value_,	"Set the convergence value to <n.n>." },
     { "debug",					"Enable debug code. See -Hd." },
-    { "error",					"Set floating point exception mode." },
     { LQIO::DOM::Pragma::_fast_,		"Solve using one-step-linearizer, batch layering and Conway multiserver." },
     { "help",					"Print a summary of the command line options.  The optional argument shows help for -d, -t, -z, and -P respectively." },
     { "huge",					"Solve using one-step-schweitzer, no interlocking, and Rolia multiserver." },
@@ -93,7 +92,6 @@ const std::map<const int,const Help::help_fptr> Help::__option_table =
     { 'b',	&Help::flagBound },
     { 'c',	&Help::flagConvergence },
     { 'd',	&Help::flagDebug },
-    { 'e',	&Help::flagError },
     { 'f',	&Help::flagFast },
     { 'h',	&Help::flagHuge },
     { 'H',	&Help::flagHelp },
@@ -724,31 +722,6 @@ Help::flagDebugXML( std::ostream& output, bool verbose ) const
     return output;
 }
 
-
-std::ostream&
-Help::flagError( std::ostream& output, bool verbose ) const
-{
-    output << "This option is to enable floating point exception handling." << ix( *this, "floating point!exception" ) << std::endl
-	   << emph( *this, "Arg" ) << " must be one of the following:" << std::endl;
-    increase_indent( output );
-    ol_begin( output );
-    li( output ) << bold( *this, "a" ) << std::endl
-		 << "Abort immediately on a floating point error (provided the floating point unit can do so)." << std::endl;
-    li( output ) << bold( *this, "d" ) << std::endl
-		 << "Abort on floating point errors. (default)" << std::endl;
-    li( output ) << bold( *this, "i" ) << std::endl
-		 << "Ignore floating point errors." << std::endl;
-    li( output ) << bold( *this, "w" ) << std::endl
-		 << "Warn on floating point errors." << std::endl;
-    ol_end( output );
-    output << "The solver checks for floating point overflow," << ix( *this, "overflow" ) << " division by zero and invalid operations." << std::endl
-	   << "Underflow and inexact result exceptions are always ignored." << std::endl;
-    pp( output );
-    output << "In some instances, infinities " << ix( *this, "infinity" ) << ix( *this, "floating point!infinity" ) << " will be propogated within the solver.  Please refer to the" << std::endl
-	   << bold( *this, LQIO::DOM::Pragma::_stop_on_message_loss_ ) << " pragma below." << std::endl;
-    decrease_indent( output );
-    return output;
-}
 
 std::ostream&
 Help::flagExactMVA( std::ostream& output, bool verbose ) const
@@ -2298,7 +2271,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 17549 2025-10-16 19:58:27Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 17581 2025-11-11 23:42:01Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2597,7 +2570,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 17549 2025-10-16 19:58:27Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 17581 2025-11-11 23:42:01Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

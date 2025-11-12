@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 17537 2025-04-02 16:04:54Z greg $
+ * $Id: entity.cc 17581 2025-11-11 23:42:01Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -19,9 +19,6 @@
 #include <functional>
 #include <sstream>
 #include <cstdlib>
-#if HAVE_IEEEFP_H
-#include <ieeefp.h>
-#endif
 #include <lqx/SyntaxTree.h>
 #include <lqio/dom_document.h>
 #include <lqio/dom_entity.h>

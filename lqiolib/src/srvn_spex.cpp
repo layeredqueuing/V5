@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 17578 2025-11-11 17:23:37Z greg $
+ *  $Id: srvn_spex.cpp 17580 2025-11-11 18:20:16Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -111,18 +111,18 @@ namespace LQIO {
      * Return true if there are any $vars (either as parameters, observations for objects (%f...), or observations for the document (%usr...)
      */
 
-    bool Spex::has_vars() const
+    bool Spex::has_vars()
     {
-	return __input_variables.size() > 0 || __observation_variables.size() > 0 || __document_variables.size() > 0;
+	return !(__input_variables.empty() && __observation_variables.empty() && __document_variables.empty());
     }
 
     /*
      * Return true if spex is present, but it won't loop because there are no arrays
      */
     
-    bool Spex::has_input_vars_but_no_loops()
+    bool Spex::has_loops()
     {
-	return (__input_variables.size() > 0 || __observation_variables.size() > 0 || __document_variables.size() > 0) && __array_variables.empty() && __convergence_variables.empty();
+	return !__array_variables.empty() || !__convergence_variables.empty();
     }
     
 
@@ -553,9 +553,7 @@ namespace LQIO {
 
 	/* Insert all functions to extract results. */
 
-	for ( std::map<std::string,LQX::SyntaxTreeNode *>::iterator obs_p = __observation_variables.begin(); obs_p != __observation_variables.end(); ++obs_p ) {
-	    block->push_back( obs_p->second );
-	}
+	std::for_each( __observation_variables.begin(), __observation_variables.end(), [&]( std::pair<const std::string,LQX::SyntaxTreeNode *>& var ) { block->push_back( var.second );	} );
 
 //	    if ( __verbose ) {
 //		block->push_back( new LQX::MethodInvocationExpression("print_symbol_table") );
@@ -563,13 +561,12 @@ namespace LQIO {
 
 	/* Check result for observations.  Remove unused and flag -- they won't be in __observation_variables. */
 
-	for ( std::vector<var_name_and_expr>::const_iterator var = __result_variables.begin(); var != __result_variables.end(); ++var ) {
-	    if ( var->first == "$0" ) continue;		// Ignore $0.
-	    const std::string& name = var->first;
-	    if ( var->second == nullptr && !has_observation_var( name ) && !has_input_var( name ) ) {
+	std::for_each( __result_variables.begin(), __result_variables.end(), []( std::pair<const std::string,LQX::SyntaxTreeNode *>& var ) {
+	    const std::string& name = var.first;
+	    if ( name != "$0$" && var.second == nullptr && !has_observation_var( name ) && !has_input_var( name ) ) {
 		LQIO::input_error( LQIO::ADV_SPEX_UNUSED_RESULT_VARIABLE, name.c_str() );
 	    }
-	}
+	} );
 
 	/* Insert print expression for results */
 
@@ -589,7 +586,9 @@ namespace LQIO {
     expr_list * Spex::solve_failure( expr_list * result ) const
     {
 	expr_list * block = make_list( new LQX::FilePrintStatementNode( make_list( new LQX::ConstantValueExpression( "solver failed: $0=" ), new LQX::VariableExpression( "_0", false ), nullptr ), true, false ), nullptr );
-	block->push_back( new LQX::BreakStatementNode() );
+	if ( has_loops() ) {
+	    block->push_back( new LQX::BreakStatementNode() );
+	}
 	return block;
     }
 

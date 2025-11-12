@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 17561 2025-11-04 01:31:08Z greg $
+ * $Id: model.cc 17579 2025-11-11 18:04:04Z greg $
  */
 
 #include "lqsim.h"
@@ -173,9 +173,8 @@ Model::solve( solve_using run_function, const std::filesystem::path& input_file_
 
 	    if ( status == 0 ) {
 		/* Don't create directories etc if there are no loops (i.e., parameters only) */
-		if ( LQIO::Spex::has_input_vars_but_no_loops() ) {
-		    SolverInterface::Solve::implicitSolve = true;
-		}
+		SolverInterface::Solve::implicitSolve = LQIO::Spex::has_vars() && !LQIO::Spex::has_loops();
+
 		/* Invoke the LQX program itself */
 		if ( !program->invoke() ) {		/* Run simulation	*/
 		    LQIO::runtime_error( LQIO::ERR_LQX_EXECUTION, input_file_name.c_str() );

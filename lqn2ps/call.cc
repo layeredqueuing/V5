@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 17564 2025-11-04 14:12:41Z greg $
+ * $Id: call.cc 17581 2025-11-11 23:42:01Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -16,9 +16,6 @@
 #include <cassert>
 #include <cstdlib>
 #include <cmath>
-#if HAVE_IEEEFP_H && !defined(MSDOS)
-#include <ieeefp.h>
-#endif
 #include <lqio/bcmp_to_lqn.h>
 #include <lqio/dom_call.h>
 #include <lqio/dom_activity.h>

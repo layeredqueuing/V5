@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: label.cc 16856 2023-11-20 21:35:25Z greg $
+ * $Id: label.cc 17581 2025-11-11 23:42:01Z greg $
  */
 
 #include "lqn2ps.h"
@@ -9,9 +9,6 @@
 #include <cstdlib>
 #include <cstdarg>
 #include <limits>
-#if HAVE_IEEEFP_H && !defined(MSDOS)
-#include <ieeefp.h>
-#endif
 #if HAVE_GD_H
 #include <gdfontt.h>
 #include <gdfonts.h>

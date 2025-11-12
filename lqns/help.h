@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 17099 2024-03-04 22:02:11Z greg $
+ * $Id: help.h 17581 2025-11-11 23:42:01Z greg $
  */
 
 #ifndef _HELP_H
@@ -142,7 +142,6 @@ private:
     std::ostream& flagDebugSRVN( std::ostream& output, bool verbose ) const;
     std::ostream& flagDebugSubmodels( std::ostream& output, bool verbose ) const;
     std::ostream& flagDebugXML( std::ostream& output, bool verbose ) const;
-    std::ostream& flagError( std::ostream& output, bool verbose ) const;
     std::ostream& flagExactMVA( std::ostream& output, bool verbose ) const;
     std::ostream& flagFast( std::ostream& output, bool verbose ) const;
     std::ostream& flagHelp( std::ostream& output, bool verbose ) const;

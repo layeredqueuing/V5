@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-# $Id: configure.ac 17523 2025-01-19 21:00:07Z greg $
+# $Id: configure.ac 17582 2025-11-12 01:09:35Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([lqns],[5.32],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([config])
@@ -84,7 +84,7 @@ AC_STRUCT_TM
 # ----------------------------------------------------------------------
 # Checks for header files.
 #
-AC_CHECK_HEADERS([errno.h fenv.h float.h getopt.h glob.h ieeefp.h libgen.h mcheck.h strings.h time.h unistd.h])
+AC_CHECK_HEADERS([errno.h float.h getopt.h glob.h libgen.h mcheck.h strings.h time.h unistd.h])
 AC_CHECK_HEADERS([sys/errno.h sys/mman.h sys/resource.h sys/times.h sys/utsname.h])
 AC_CHECK_HEADERS([expat.h])
 AC_CHECK_HEADERS([gd.h])

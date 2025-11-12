@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 17565 2025-11-06 16:53:07Z greg $
+ * $Id: srvn_spex.h 17579 2025-11-11 18:04:04Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -263,7 +263,8 @@ namespace LQIO {
 	static bool has_input_var( const std::string& );
 	static bool has_observation_var( const std::string& );
 	static bool has_array_var( const std::string& );
-	static bool has_input_vars_but_no_loops();
+	static bool has_vars();				/* True if any $var (except control args) set */
+	static bool has_loops();			/* True if any array or convergence variables set */
 	static LQX::SyntaxTreeNode * get_input_var_expr( const std::string& );
 	static void clear_input_variables() { __input_variables.clear(); }
 
@@ -297,7 +298,6 @@ namespace LQIO {
 	Spex(const Spex&) = delete;
 	Spex& operator=( const Spex& ) = delete;
 
-	bool has_vars() const;							/* True if any $var (except control args) set */
 	static bool duplicate_symbol( const std::string& );
 	static bool duplicate_symbol( const ObservationInfo& obs );
 	

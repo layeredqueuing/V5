@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 17502 2024-12-02 19:37:48Z greg $
+ * $Id: lqsim.cc 17581 2025-11-11 23:42:01Z greg $
  */
 
 #define STACK_TESTING 0
@@ -15,6 +15,7 @@
 #include "lqsim.h"
 #include <cstdlib>
 #include <cmath>
+#include <cfenv>
 #include <cstring>
 #include <filesystem>
 #include <stdexcept>
@@ -22,15 +23,6 @@
 #include <time.h>
 #include <errno.h>
 #include <libgen.h>
-#if HAVE_FENV_H
-#include <fenv.h>
-#endif
-#if HAVE_IEEEFP_H && !defined(MSDOS)
-#include <ieeefp.h>
-#endif
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
 #if HAVE_GETOPT_H
 #include <getopt.h>
 #endif
@@ -313,7 +305,7 @@ main( int argc, char * argv[] )
     std::copy( local_error_messages.begin(), local_error_messages.end(), std::inserter( LQIO::error_messages, LQIO::error_messages.begin() ) );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2024-12-02 14:37:48 -0500 (Mon, 02 Dec 2024) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2025-11-11 18:42:01 -0500 (Tue, 11 Nov 2025) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Handy defaults.						*/

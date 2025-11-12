@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 17567 2025-11-06 19:39:20Z greg $
+ * $Id: lqns.cc 17581 2025-11-11 23:42:01Z greg $
  *
  * Command line processing.
  *
@@ -63,7 +63,6 @@ const struct option longopts[] =
     { "bounds-only",				no_argument,	   nullptr, 'b' },
     { LQIO::DOM::Pragma::_convergence_value_,	required_argument, nullptr, 'c' },
     { "debug",					required_argument, nullptr, 'd' },
-    { "error",					required_argument, nullptr, 'e' },
     { LQIO::DOM::Pragma::_fast_,		no_argument,	   nullptr, 'f' },
     { "huge",					no_argument,	   nullptr, 'h' },
     { "help",					optional_argument, nullptr, 'H' },
@@ -146,9 +145,7 @@ int main (int argc, char *argv[])
     
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2025-11-06 14:39:20 -0500 (Thu, 06 Nov 2025) $", "%*s %s %*s", copyrightDate );
-
-    matherr_disposition = fp_exception_reporting::DEFERRED_ABORT;
+    sscanf( "$Date: 2025-11-11 18:42:01 -0500 (Tue, 11 Nov 2025) $", "%*s %s %*s", copyrightDate );
 
     init_flags();
 
@@ -205,30 +202,6 @@ int main (int argc, char *argv[])
 		    } else {
 			throw std::invalid_argument( std::string("--debug=") + subopt );
 		    }
-		}
-		break;
-
-	    case 'e':                       /* Error handling.      */
-		switch ( optarg[0] ) {
-		case 'a':
-		    matherr_disposition = fp_exception_reporting::IMMEDIATE_ABORT;
-		    break;
-
-		case 'd':
-		    matherr_disposition = fp_exception_reporting::DEFERRED_ABORT;
-		    break;
-
-		case 'i':
-		    matherr_disposition = fp_exception_reporting::IGNORE;
-		    break;
-
-		case 'w':
-		    matherr_disposition = fp_exception_reporting::REPORT;
-		    break;
-
-		default:
-		    std::cerr << LQIO::io_vars.lq_toolname << ": invalid argument to -e -- " << optarg << std::endl;
-		    break;
 		}
 		break;
 

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17561 2025-11-04 01:31:08Z greg $
+ * $Id: model.cc 17581 2025-11-11 23:42:01Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -200,9 +200,8 @@ Model::solve( solve_using solve_function, const std::filesystem::path& inputFile
 
 	if ( status == 0 ) {
 	    /* Don't create directories etc if there are no loops (i.e., parameters only) */
-	    if ( LQIO::Spex::has_input_vars_but_no_loops() ) {
-		SolverInterface::Solve::implicitSolve = true;
-	    }
+	    SolverInterface::Solve::implicitSolve = LQIO::Spex::has_vars() && !LQIO::Spex::has_loops();
+
 	    /* Invoke the LQX program itself */
 	    if ( !program->invoke() ) {
 		LQIO::runtime_error( LQIO::ERR_LQX_EXECUTION, inputFileName.c_str() );
@@ -243,9 +242,6 @@ Model::load( const std::filesystem::path& input_filename, const std::filesystem:
      */
 
     set_fp_ok( false );			// Reset floating point. -- stop on overflow?
-    if ( matherr_disposition == fp_exception_reporting::IMMEDIATE_ABORT ) {
-	set_fp_abort();
-    }
 
     LQIO::io_vars.reset();
     Entry::reset();

@@ -1,11 +1,11 @@
 /*  -*- c++ -*-
- * $Id: fpgoop.cc 16214 2022-12-30 20:41:46Z greg $
+ * $Id: fpgoop.cc 17581 2025-11-11 23:42:01Z greg $
  *
  * Floating point exception handling.  It is all different on all machines.
  * See:
  *   linux...	sigaction(2)
  * 
- * if feenableexcet (fenv.h) is present, use it,
+ * if feenableexcept (fenv.h) is present, use it,
  * else if fpsetmask (ieeefp.h) is present, use it,
  *
  * A Common interface is presented to check for divide by zero, overflow,
@@ -34,12 +34,6 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
-#if HAVE_IEEEFP_H
-#include <ieeefp.h>
-#endif
 #if HAVE_SIGNAL_H
 #include <signal.h>
 #endif
@@ -69,7 +63,6 @@ static struct {
     { 0, 0 }
 };
 
-static int fp_bits = 0;
 fp_exception_reporting matherr_disposition;	/* What to do about math probs.	*/
 
 /*
@@ -117,21 +110,6 @@ set_fp_abort()
 #if HAVE_FENV_H && HAVE_FEENABLEEXCEPT
     /* Best way */
     feenableexcept( fp_bits );
-#elif HAVE_IEEEFP_H && HAVE_FPSETMASK
-    fpsetmask( fp_bits );
-#elif !defined(__WINNT__) && HAVE_XMMINTRIN_H
-    if ((fp_bits & FE_INVALID) != 0)	{ _mm_setcsr(_MM_MASK_MASK & ~_MM_MASK_INVALID); }
-    if ((fp_bits & FE_DIVBYZERO) != 0)	{ _mm_setcsr(_MM_MASK_MASK & ~_MM_MASK_DIV_ZERO); }
-    if ((fp_bits & FE_OVERFLOW ) != 0) 	{ _mm_setcsr(_MM_MASK_MASK & ~_MM_MASK_OVERFLOW); }
-#elif defined __APPLE__ && __AARCH64EL__
-    std::fenv_t env;
-    fegetenv(&env);
-    env.__fpcr = env.__fpcr | __fpcr_trap_invalid |  __fpcr_trap_divbyzero |  __fpcr_trap_overflow;
-    fesetenv(&env);
-#elif defined(__WINNT__) && HAVE__CONTROLFP_S
-    _controlfp_s(NULL, ~(_EM_ZERODIVIDE | _EM_OVERFLOW), _MCW_EM);
-#else
-    #warning No FP abort.
 #endif
 #if HAVE_SIGACTION
     struct sigaction my_action;

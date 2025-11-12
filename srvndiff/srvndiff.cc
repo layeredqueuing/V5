@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 17575 2025-11-10 17:29:48Z greg $
+ * $Id: srvndiff.cc 17582 2025-11-12 01:09:35Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -35,23 +35,20 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#if HAVE_LIBGEN_H
+#include <libgen.h>
+#endif
 #if HAVE_GLOB_H
 #include <glob.h>
 #else
 #include <dirent.h>
 #endif
-#if HAVE_IEEEFP_H
-#include <ieeefp.h>
+#if HAVE_UNISTD_H
+#include <unistd.h>
 #endif
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/param.h>
-#if HAVE_FLOAT_H
-#include <float.h>
-#endif
-#if HAVE_LIBGEN_H
-#include <libgen.h>
-#endif
 #include "error.h"
 #if !HAVE_GETSUBOPT
 #include "getsbopt.h"
@@ -65,9 +62,6 @@
 #include "json_document.h"
 #include "srvndiff.h"
 #include "parseable.h"
-#if HAVE_UNISTD_H
-#include "unistd.h"
-#endif
 
 extern "C" int resultdebug;
 extern "C" int resultlineno;	/* Line number of current parse line in input file */
@@ -1020,7 +1014,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2025-11-10 12:29:48 -0500 (Mon, 10 Nov 2025) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2025-11-11 20:09:35 -0500 (Tue, 11 Nov 2025) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
