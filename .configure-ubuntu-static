@@ -1,0 +1,1 @@
+./configure 'CC=clang' 'CXX=clang++ -stdlib=libc++' --disable-shared -C --prefix=/usr/local
