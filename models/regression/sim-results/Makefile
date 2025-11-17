@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 17565 2025-11-06 16:53:07Z greg $
+# $Id: Makefile 17586 2025-11-12 19:51:48Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
@@ -120,9 +120,10 @@ diff:
 	rm $*-flat.lqnx $*-flat.lqxo
 
 53-replication.lqxo:	53-replication.lqnx
-	rep2flat -Oxml -o$*-flat.lqnx $<
+	lqn2ps --run-lqx -Oxml -o$*.temp $<	# instantiate variables
+	rep2flat -Oxml -o$*-flat.lqnx $*.temp
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
-	rm $*-flat.lqnx $*-flat.lqxo
+	rm $*-flat.lqnx $*-flat.lqxo $*.temp
 
 55-replication.lqxo:	55-replication.lqnx
 	rep2flat -Oxml -o$*-flat.lqnx $<

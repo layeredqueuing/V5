@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 17507 2024-12-04 01:52:14Z greg $
+# $Id: Makefile.am 17586 2025-11-12 19:51:48Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -144,6 +144,14 @@ other:	$(OTHER)
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	@rm $*-flat.*
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/petri-results/$@
+
+53-replication.lqxo:	53-replication.lqnx
+	@lqn2ps --run-lqx -Oxml -o$*.temp $<	# instantiate variables
+	@rep2flat -Oxml -o$*-flat.lqnx $*.temp
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.* $*.temp
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/petri-results/$@
 
 55-replication.lqxo:	55-replication.lqnx

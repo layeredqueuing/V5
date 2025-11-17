@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 17584 2025-11-12 17:06:47Z greg $
+ * $Id: petrisrvn.cc 17588 2025-11-13 13:18:08Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -19,7 +19,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
-#include <cfenv>
 #include <errno.h>
 #if HAVE_LIBGEN_H
 #include <libgen.h>
@@ -68,7 +67,6 @@ bool simplify_network		= false; /* Delete single place procs.  */
 double	x_scaling		= 1.0;	 /* Auto-squish if val == 0.	*/
 
 static const char * net_dir_name	= "nets";
-static void my_handler (int);
 
 /*
  * Command options.
@@ -192,11 +190,6 @@ main(int argc, char *argv[])
     inter_proc_delay = 0.0;
     comm_delay_flag  = false;
 #endif
-
-#if HAVE_FEENABLEEXCEPT
-    feenableexcept( FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW );
-#endif
-    signal(SIGFPE, my_handler);
 
     pragmas.insert( getenv( "PETRISRVN_PRAGMAS" ) );
 
@@ -484,15 +477,4 @@ usage (void)
     }
     fprintf( stderr, " [file ...]\n" );
 #endif
-}
-
-
-/*
- * signal handler for fp errors.
- */
-
-static void
-my_handler (int sig )
-{
-    abort();
 }

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: bcmp_document.h 17251 2024-06-17 17:31:44Z greg $
+ *  $Id: bcmp_document.h 17587 2025-11-12 20:26:46Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -383,8 +383,8 @@ namespace BCMP {
 	bool empty() const { return _chains.size() == 0 || _stations.size() == 0; }
 	bool insertComment( const std::string comment ) { _comment = comment; return true; }
 	const std::string& comment() const { return _comment; }
-	void setResultDescription( const std::string& result_description ) { _result_description = result_description; }
-	const std::string& getResultDescription() const { return _result_description; }
+	void setModelDescription( const std::string& model_description ) { _model_description = model_description; }
+	const std::string& getModelDescription() const { return _model_description; }
 	Chain::map_t& chains() { return _chains; }
 	const Chain::map_t& chains() const { return _chains; }
 	Station::map_t& stations() { return _stations; }
@@ -456,7 +456,7 @@ namespace BCMP {
 
     private:
 	std::string _comment;			/* Model Comment (input generally)	*/
-	std::string _result_description;	/* Solver version etc.			*/
+	std::string _model_description;		/* Solver version etc.			*/
 	Chain::map_t _chains;
 	Station::map_t _stations;
 	LQX::Environment * _environment;

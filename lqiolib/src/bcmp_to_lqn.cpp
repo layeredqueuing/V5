@@ -1,6 +1,6 @@
 
 /* -*- c++ -*-
- * $Id: bcmp_to_lqn.cpp 16880 2023-12-04 18:12:03Z greg $
+ * $Id: bcmp_to_lqn.cpp 17587 2025-11-12 20:26:46Z greg $
  *
  * Read in XML input files.
  *
@@ -34,7 +34,7 @@ DOM::BCMP_to_LQN::convert()
     _lqn.addPragma( LQIO::DOM::Pragma::_bcmp_, LQIO::DOM::Pragma::_true_ );
     _lqn.addPragma( LQIO::DOM::Pragma::_prune_, LQIO::DOM::Pragma::_true_ );
     _lqn.addPragma( LQIO::DOM::Pragma::_mva_, LQIO::DOM::Pragma::_exact_ );
-    _lqn.setExtraComment( "** Processors are the stations in the queueing model.  Tasks are place holders for classes. **" );
+    _lqn.setResultComment( "** Processors are the stations in the queueing model.  Tasks are place holders for classes. **" );
     try {
 	std::for_each( chains().begin(), chains().end(), createLQNTaskProcessor( *this ) );
 	std::for_each( stations().begin(), stations().end(), createLQNTaskProcessor( *this ) );

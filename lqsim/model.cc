@@ -9,7 +9,7 @@
 /*
  * Input processing.
  *
- * $Id: model.cc 17579 2025-11-11 18:04:04Z greg $
+ * $Id: model.cc 17587 2025-11-12 20:26:46Z greg $
  */
 
 #include "lqsim.h"
@@ -439,7 +439,7 @@ Model::start()
     }
 
     if ( !deferred_exception && LQIO::io_vars.anError() == 0 ) {
-	_document->setResultDescription();
+	_document->setModelDescription();
 	_document->print( _output_file_name, _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : std::string(""), _output_format, rtf_flag );
 
 	if ( _confidence > _parameters._precision && _parameters._precision > 0.0 ) {
@@ -733,7 +733,7 @@ Model::print_intermediate()
     _document->setResultConvergenceValue(_confidence)
 	.setResultValid(_confidence <= _parameters._precision)
 	.setResultIterations(number_blocks)
-	.setResultDescription();
+	.setModelDescription();
 
     _document->print( _output_file_name, SolverInterface::Solve::customSuffix, _output_format, rtf_flag, number_blocks );
 }

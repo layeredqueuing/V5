@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 17579 2025-11-11 18:04:04Z greg $
+ * $Id: model.cc 17587 2025-11-12 20:26:46Z greg $
  *
  * Load the SRVN model.
  */
@@ -672,7 +672,7 @@ Model::compute()
 	    }
 	    insert_DOM_results( rc == true, stats );	/* Save results */
 
-	    _document->setResultDescription();
+	    _document->setModelDescription();
 	    _document->print( _output_file_name, suffix, _output_format, rtf_flag );
 
 	    if ( inservice_match_pattern != nullptr ) {
@@ -1565,7 +1565,7 @@ Model::insert_DOM_results( const bool valid, const solution_stats_t& stats ) con
 
     std::stringstream buf;
     buf << "Tangible: " << stats.tangible << ", Vanishing: " << stats.vanishing;
-    _document->setExtraComment( buf.str() );
+    _document->setResultComment( buf.str() );
 
     LQIO::DOM::CPUTime stop_time;
     stop_time.init();

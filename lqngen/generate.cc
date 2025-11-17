@@ -7,7 +7,7 @@
  * However, to eliminate code here, the spex construction functions will have to save the
  * LQX expressions and then construct the program.
  * ------------------------------------------------------------------------
- * $Id: generate.cc 17527 2025-02-10 21:17:01Z greg $
+ * $Id: generate.cc 17587 2025-11-12 20:26:46Z greg $
  */
 
 #include "lqngen.h"
@@ -148,7 +148,7 @@ Generate::generate()
 {
     if ( _processor.size() > 0 ) return *this;
 
-    _document->setResultDescription( "Layered Queueing Network Model." );
+    _document->setModelDescription( "Layered Queueing Network Model." );
     populateLayers();
 
     std::vector<unsigned int> stride(  _number_of_layers + 1 );

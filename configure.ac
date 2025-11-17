@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-# $Id: configure.ac 17582 2025-11-12 01:09:35Z greg $
+# $Id: configure.ac 17591 2025-11-13 18:28:50Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([lqns],[5.32],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([config])
@@ -125,7 +125,7 @@ AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([getopt_long getrusage getsubopt glob mcheck_check_all uname])
-AC_CHECK_FUNCS([feclearexcept feenableexcept fesetexceptflag fetestexcept fpgetsticky fpsetmask fpsetsticky])
+AC_CHECK_FUNCS([feclearexcept feenableexcept fesetexceptflag fetestexcept])
 AC_CHECK_FUNCS([lgamma])
 if test "x$enable_shared" = "xyes"; then
    AC_CHECK_FUNCS([gdFTUseFontConfig gdImageFilledArc gdImageSetAntiAliased gdImageGifPtr])

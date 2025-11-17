@@ -1,4 +1,4 @@
-/* $Id: standalone.c 17453 2024-11-10 12:08:26Z greg $ */
+/* $Id: standalone.c 17590 2025-11-13 18:12:21Z greg $ */
 /************************************************************************/
 /*	para_library.c - PARASOL library source file			*/
 /*									*/
@@ -26,19 +26,6 @@
 
 #include <parasol/para_internals.h>
 #include <parasol/para_privates.h>
-#if defined(HAVE_FENV_H)
-#if defined(__GNUC__) && defined(linux)
-#define __USE_GNU
-#endif
-#if defined(__sparc)
-#define __EXTENSIONS__
-#endif
-#include <fenv.h>
-#endif
-#if defined(HAVE_IEEEFP_H)
-#include <ieeefp.h>
-#endif
-
 
 /************************************************************************/
 /*		PARASOL Driver Support Functions			*/
@@ -129,13 +116,6 @@ int main(
 		ps_abort("Invalid # of PARASOL parameters");
 	}
 
-/*	Enable floating polong exceptions 				*/
-#if defined(HAVE_FENV_H) && defined(HAVE_FEENABLEEXCEPT)
-	feenableexcept( FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW );
-#elif  defined(HAVE_IEEEFP_H) && defined(HAVE_FPSETMASK)
-    fpsetmask( FP_X_INV | FP_X_DZ | FP_X_OFL );
-#endif
-	
 	ps_run_parasol(duration, seed, flags);
 	if (ps_stat_tab.used && (bs_time < 0.0))
 		ps_stats();

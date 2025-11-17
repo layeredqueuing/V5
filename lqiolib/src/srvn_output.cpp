@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 17527 2025-02-10 21:17:01Z greg $
+ *  $Id: srvn_output.cpp 17587 2025-11-12 20:26:46Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -1170,8 +1170,8 @@ namespace LQIO {
         output << "# Invoked as: " << io_vars.lq_command_line << ' ' << DOM::Document::__input_file_name << std::endl
 	       << "# " << DOM::Common_IO::svn_id() << std::endl
 	       << "# " << std::setfill( '-' ) << std::setw( 72 ) << '-' << std::setfill( ' ' ) << std::endl;
-        if ( !_document.getExtraComment().empty() ) {
-            output << "# " << _document.getExtraComment() << std::endl;
+        if ( !_document.getResultComment().empty() ) {
+            output << "# " << _document.getResultComment() << std::endl;
         }
 
         const std::map<std::string,std::string>& pragmas = _document.getPragmaList();
@@ -1380,8 +1380,8 @@ namespace LQIO {
         if ( !comment.empty() ) {
             _output << "Comment: " << comment << newline;
         }
-        if ( !document.getExtraComment().empty() ) {
-            _output << "Other:   " << document.getExtraComment() << newline;
+        if ( !document.getResultComment().empty() ) {
+            _output << "Other:   " << document.getResultComment() << newline;
         }
         if ( document.getSymbolExternalVariableCount() > 0 ) {
             _output << "Variables: ";

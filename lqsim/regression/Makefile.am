@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 17516 2024-12-17 16:42:35Z greg $
+# $Id: Makefile.am 17586 2025-11-12 19:51:48Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -49,6 +49,7 @@ OVER=	31-overtaking.lqxo \
 REPL=	50-replication.lqxo \
 	51-replication.lqxo \
 	52-replication.lqxo \
+	53-replication.lqxo \
 	55-replication.lqxo \
 	56-replication.lqxo 
 SEMA =  60-semaphore.lqxo \
@@ -181,6 +182,14 @@ quick:
 	$(SRVN) $(OPTS) $*-flat.lqnx
 	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
 	@rm $*-flat.*
+
+53-replication.lqxo:	53-replication.lqnx
+	@lqn2ps --run-lqx -Oxml -o$*.temp $<	# instantiate variables
+	@rep2flat -Oxml -o$*-flat.lqnx $*.temp
+	$(SRVN) $(OPTS) $*-flat.lqnx
+	@lqn2ps -Oxml -o$*.lqxo --merge-replicas $*-flat.lqxo
+	@rm $*-flat.* $*.temp
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/sim-results/$@
 
 55-replication.lqxo:	55-replication.lqnx
 	@rep2flat -Oxml -o$*-flat.lqnx $<

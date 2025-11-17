@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 17446 2024-11-07 11:54:11Z greg $
+ * $Id: json_document.cpp 17587 2025-11-12 20:26:46Z greg $
  *
  * Read in JSON input files.
  *
@@ -305,8 +305,8 @@ namespace LQIO {
 	const std::map<const char*,const JSON_Document::ImportHeader,JSON_Document::ImportHeader>  JSON_Document::header_table =
 	{
 	    { Xcomment,		    ImportHeader( &Document::setModelComment ) },
-	    { Xname,		    ImportHeader() },
-	    { Xdescription,	    ImportHeader( &Document::setResultDescription ) },
+	    { Xname,		    ImportHeader( &Document::setModelName ) },
+	    { Xdescription,	    ImportHeader( &Document::setModelDescription ) },
 	    { "#",		    ImportHeader( &Document::setModelComment ) }
 	};
 	
@@ -2885,8 +2885,8 @@ namespace LQIO {
 
 	    _output << begin_object( Xheader );
 	    ExportComment( _output, _conf_95 ).print( document );
-	    _output << attribute( Xname, base_name().string() )
-		    << next_attribute( Xdescription, document.getResultDescription() );
+	    _output << attribute( Xname, document.getModelName() )
+		    << next_attribute( Xdescription, document.getModelDescription() );
 	    _output << end_object();
 	}
 	

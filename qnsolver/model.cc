@@ -296,7 +296,7 @@ Model::saveResults( size_t iteration )
 {
     const std::string description = LQIO::io_vars.lq_toolname + " " + LQIO::io_vars.lq_version + " solution for " + _input.getInputFileName().string()
 	+ " (" + solver_name() + ")";
-    const_cast<BCMP::Model&>(_model).setResultDescription( description );
+    const_cast<BCMP::Model&>(_model).setModelDescription( description );
 
     if ( _bounds_model ) {
 	_bounds_model->saveResults();

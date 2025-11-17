@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 17359 2024-10-12 01:32:27Z greg $
+ * $Id: qnap2_document.cpp 17587 2025-11-12 20:26:46Z greg $
  *
  * Read in XML input files.
  *
@@ -1816,8 +1816,8 @@ namespace QNIO {
     QNAP2_Document::Output::print( std::ostream& output ) const
     {
 	const std::streamsize old_precision = output.precision(__precision);
-	if ( !model().getResultDescription().empty() ) {
-	    output << " - " << model().getResultDescription() << " - " << std::endl;
+	if ( !model().getModelDescription().empty() ) {
+	    output << " - " << model().getModelDescription() << " - " << std::endl;
 	}
 	output.fill('*');
 	output << std::setw(__width*6+7) << "*" << std::endl;

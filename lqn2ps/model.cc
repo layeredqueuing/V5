@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 17579 2025-11-11 18:04:04Z greg $
+ * $Id: model.cc 17587 2025-11-12 20:26:46Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -807,7 +807,7 @@ Model::process()
 	}
 	if ( Flags::print[MODEL_DESCRIPTION].opts.value.b ) {
 	    if ( !_label->empty() ) _label->newLine();
-	    *_label << _document->getResultDescription();
+	    *_label << _document->getModelDescription();
 	}
 	if ( Flags::print[MODEL_COMMENT].opts.value.b ) {
 	    if ( !_label->empty() ) _label->newLine();
@@ -865,8 +865,8 @@ Model::store()
 	return true;
     }
 #endif
-    if ( input_output() && _document->getResultDescription().empty() ) {
-	_document->setResultDescription( "Layered Queuening Network Model." );
+    if ( input_output() && _document->getModelDescription().empty() ) {
+	_document->setModelDescription( "Layered Queuening Network Model." );
     }
 
     if ( output_output() && !Flags::have_results ) {
@@ -1858,7 +1858,7 @@ Model::printGD( std::ostream& output, outputFuncPtr func ) const
 std::ostream&
 Model::printPostScript( std::ostream& output ) const
 {
-  printPostScriptPrologue( output, getDOM()->getResultDescription(),
+  printPostScriptPrologue( output, getDOM()->getModelDescription(),
 			     static_cast<int>(left()+0.5),
 			     static_cast<int>(bottom()+0.5),
 			     static_cast<int>(right()+0.5),
@@ -1946,7 +1946,7 @@ Model::printModelComment( std::ostream& output, const std::string& head, const s
 {
     output << head << LQIO::DOM::Common_IO::svn_id() << tail << std::endl
 	   << head << "Invoked as: " << command_line << ' ' << _inputFileName << tail << std::endl;
-    const std::string& description = getDOM()->getResultDescription();
+    const std::string& description = getDOM()->getModelDescription();
     if ( !description.empty() ) output << head << "Description: " << description << tail << std::endl;
     const std::string& comment = getDOM()->getModelComment();
     if ( !comment.empty() ) output << head << "Comment: " << comment << tail << std::endl;
@@ -2124,7 +2124,7 @@ Model::printQNAP2( std::ostream& output ) const
 {
     if ( queueing_output() ) {
 	QNIO::QNAP2_Document model( _layers.at(Flags::queueing_model()).getBCMPModel() );
-	model.setComment( _document->getResultDescription() );
+	model.setComment( _document->getModelDescription() );
 	model.exportModel( output );
     }
     return output;

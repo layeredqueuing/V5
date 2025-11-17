@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 17581 2025-11-11 23:42:01Z greg $
+ * $Id: model.cc 17587 2025-11-12 20:26:46Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -850,7 +850,7 @@ Model::compute()
 
     /* OK.  It solved. Now save the output. */
 
-    const_cast<LQIO::DOM::Document *>(getDOM())->setResultDescription();
+    const_cast<LQIO::DOM::Document *>(getDOM())->setModelDescription();
     report.insertDOMResults();
     insertDOMResults();
     getDOM()->print( _output_file_name, getDOM()->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : std::string(""), _output_format, flags.rtf_output );
