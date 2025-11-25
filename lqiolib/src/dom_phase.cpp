@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_phase.cpp 17438 2024-11-06 00:18:05Z greg $
+ *  $Id: dom_phase.cpp 17596 2025-11-21 20:04:52Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -54,10 +54,10 @@ namespace LQIO {
 	      _thinkTime(src._thinkTime),
 	      _coeffOfVariationSq(ExternalVariable::clone(src._coeffOfVariationSq)),
 	      _histogram(nullptr),	/* not copied */
-	      _resultServiceTime(0.0), _resultServiceTimeVariance(0.0),
-	      _resultVarianceServiceTime(0.0), _resultVarianceServiceTimeVariance(0.0),
-	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
-	      _resultProcessorWaiting(0.0), _resultProcessorWaitingVariance(0.0),
+	      _resultServiceTime(src._resultServiceTime), _resultServiceTimeVariance(src._resultServiceTimeVariance),
+	      _resultVarianceServiceTime(src._resultVarianceServiceTime), _resultVarianceServiceTimeVariance(0.0),
+	      _resultUtilization(src._resultUtilization), _resultUtilizationVariance(src._resultUtilizationVariance),
+	      _resultProcessorWaiting(src._resultProcessorWaiting), _resultProcessorWaitingVariance(src._resultProcessorWaitingVariance),
 	      _hasResultServiceTimeVariance(false)
 	{
 	}
@@ -65,9 +65,7 @@ namespace LQIO {
 	Phase::~Phase()
 	{
 	    /* Go through the list of calls after freeing service time */
-	    for ( std::vector<Call*>::iterator call = _calls.begin(); call != _calls.end(); ++call) {
-		delete *call;
-	    }
+	    std::for_each( _calls.begin(), _calls.end(), []( Call* call ) { delete call; } );
 	    if ( _histogram != nullptr ) delete _histogram;
 	}
 

@@ -2,7 +2,7 @@
  * element.h	-- Greg Franks
  *
  * ------------------------------------------------------------------------
- * $Id: element.h 16872 2023-11-29 15:56:00Z greg $
+ * $Id: element.h 17595 2025-11-21 16:40:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -124,5 +124,6 @@ protected:
     std::set<unsigned> _serverChains;	/* Chains when I am a server	*/
 };
 
+bool operator<( const Element&, const Element& );
 typedef bool (* compare_func_ptr)( const Element *, const Element * );
 #endif

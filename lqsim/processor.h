@@ -10,7 +10,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.h 17514 2024-12-05 20:33:10Z greg $
+ * $Id: processor.h 17600 2025-11-25 20:26:11Z greg $
  */
 
 #ifndef	PROCESSOR_H
@@ -92,16 +92,20 @@ public:
     LQIO::DOM::Processor * getDOM() const { return _dom; }
 
     const std::string& name() const { return _dom->getName(); }
-    double cpu_rate() const { return _dom->hasRate() ? _dom->getRateValue() : 1.0; }	/* Processor rate.		*/
+    double cpu_rate() const { return _dom->hasRate() ? _dom->getRateValue() : 1.0; }		/* Processor rate.		*/
     double quantum() const { return _dom->hasQuantum() ? _dom->getQuantumValue() : 0.0; }	/* Time quantum.		*/
     int replicas() const { return _dom->hasReplicas() ? _dom->getReplicasValue() : 0.0; } 
     scheduling_type discipline() const { return _dom->getSchedulingType(); }
-    unsigned multiplicity() const;					/* Special access!		*/
+    unsigned multiplicity() const;								/* Special access!		*/
     void add_task( Task * );
 
 #if HAVE_PARASOL
     Processor& create();
     long node_id() const { return _node_id; }
+#else
+//   compute will add event (END) with time + delta
+//    void acquire();	// get processor lock, insert onto event list for start  increment global bust count.
+//    void release();	// release processor lock, decrement global busy count.
 #endif
 
     bool is_infinite() const;

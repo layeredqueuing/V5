@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 17586 2025-11-12 19:51:48Z greg $
+# $Id: Makefile.am 17593 2025-11-21 12:51:09Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -45,6 +45,7 @@ ACT=	40-activities.lqxo \
 	46-activities.lqxo 
 REPL=	50-replication.lqxo \
 	52-replication.lqxo \
+	53-replication.lqxo \
 	55-replication.lqxo \
 	56-replication.lqxo 
 SEMA =  60-semaphore.lqxo \

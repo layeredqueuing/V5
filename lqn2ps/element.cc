@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 16872 2023-11-29 15:56:00Z greg $
+ * $Id: element.cc 17595 2025-11-21 16:40:35Z greg $
  */
 
 #include "element.h"
@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cctype>
 #include <map>
+#include <string>
 #include <lqio/error.h>
 #include <lqx/SyntaxTree.h>
 #include "errmsg.h"
@@ -307,7 +308,7 @@ Element::depth( const unsigned depth  )
  * Generic compare functions
  */
 
-bool
+/* static */ bool
 Element::compare( const Element * e1, const Element * e2 )
 {
     if ( Flags::sort == Sorting::NONE ) {
@@ -323,8 +324,8 @@ Element::compare( const Element * e1, const Element * e2 )
     }
 
     switch ( Flags::sort ) {
-    case Sorting::REVERSE: return e2->name() > e1->name();
-    case Sorting::FORWARD: return e1->name() < e2->name();
+    case Sorting::REVERSE: return *e2 < *e1;
+    case Sorting::FORWARD: return *e1 < *e2;
     default: return false;
     }
 }
@@ -404,7 +405,7 @@ Element::baseReplicaName( unsigned int& replica ) const
 {
     const std::string& name = this->name();
     const size_t pos = name.rfind( '_' );
-    if ( pos == std::string::npos ) {
+    if ( pos == name.npos ) {
 	replica = 1;
 	return name;
     } else { 
@@ -440,3 +441,32 @@ Element::cloneObservations( const LQIO::DOM::DocumentObject * old_DOM, const LQI
     observations.insert( new_observations.begin(), new_observations.end() );	/* and in with the new 	*/
 }
 #endif
+
+/*
+ * Compare two elements by name.  If it might be replicated, i.e,
+ * <name>_<number>, then more work is needed.
+ */
+
+bool operator<( const Element& e1, const Element& e2 )
+{
+    const std::string& s1 = e1.name();
+    const std::string& s2 = e2.name();
+    const std::string::size_type n1 = s1.rfind( "_" );
+    const std::string::size_type n2 = s2.rfind( "_" );
+    if ( n1 != s1.npos && n2 != s2.npos
+	 && s1.substr( 0, n1 ) == s2.substr( 0, n2 ) ) {
+
+	/* base names match, compare suffixes as integers */
+
+	try {
+	    const std::string x1 = s1.substr( n1+1 );
+	    const std::string x2 = s2.substr( n2+1 );
+	    std::size_t pos1, pos2;
+	    const int i1 = std::stoi( x1, &pos1 );
+	    const int i2 = std::stoi( x2, &pos2 );
+	    if ( pos1 == x1.size() && pos2 == x2.size() ) return i1 < i2;
+	}
+	catch ( std::invalid_argument& x ) {}
+    }
+    return s1 < s2;
+}

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 17539 2025-04-03 18:47:11Z greg $
+ * $Id: lqn2ps.h 17595 2025-11-21 16:40:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -538,6 +538,6 @@ private:
 
 template <class Type> struct LT
 {
-    bool operator()(const Type * a, const Type * b) const { return a->name() < b->name(); }
+    bool operator()(const Type * a, const Type * b) const { return *a < *b; }
 };
 #endif

@@ -10,7 +10,7 @@
  * Error processing for srvn program.
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: error.cpp 17566 2025-11-06 18:46:09Z greg $
+ * $Id: error.cpp 17594 2025-11-21 13:01:49Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -127,7 +127,7 @@ bool
 LQIO::output_error_message( error_severity level )
 {
     return LQIO::io_vars.severity_level == error_severity::ALL	/* Always */
-	|| level == error_severity::FATAL				/* Always */
+	|| level == error_severity::FATAL			/* Always */
 	|| (LQIO::io_vars.severity_level == error_severity::WARNING && (level == error_severity::WARNING || level == error_severity::ERROR) )
 	|| (LQIO::io_vars.severity_level == error_severity::ADVISORY && (level == error_severity::ADVISORY || level == error_severity::ERROR ) )
 	|| (LQIO::io_vars.severity_level == error_severity::ERROR && (level == error_severity::ERROR ) );

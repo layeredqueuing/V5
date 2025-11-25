@@ -10,7 +10,7 @@
  * June 2009.
  * December 2024.
  * ------------------------------------------------------------------------
- * $Id: instance.h 17510 2024-12-04 16:03:30Z greg $
+ * $Id: instance.h 17597 2025-11-24 19:58:22Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -18,7 +18,10 @@
 #define INSTANCE_H
 
 #include <vector>
+#if !HAVE_PARASOL
 #include <thread>
+#include <condition_variable>
+#endif
 #include "lqsim.h"
 #include "task.h"
 
@@ -104,6 +107,10 @@ namespace Instance
 	double _hold_start_time;	/* For semaphores		*/
 
     private:
+#if !HAVE_PARASOL
+	std::thread* _thread;
+	std::condition_variable _instance_cv;
+#endif
 	Processor * _processor;
 	std::vector<Message *> _entry;	/* Msg at local entry i		*/
 
@@ -114,8 +121,6 @@ namespace Instance
 	const long _reply_port;		/* reply port id		*/
 	const long _thread_port;	/* Messages from threads.	*/
 	long _start_port;		/* Messages to threads.		*/
-#else
-	std::thread* _thread;
 #endif
 
 	int active_threads;		/* Threads that are running.	*/

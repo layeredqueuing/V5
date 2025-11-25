@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_task.cpp 17434 2024-11-05 15:37:43Z greg $
+ *  $Id: dom_task.cpp 17596 2025-11-21 20:04:52Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -64,14 +64,14 @@ namespace LQIO {
 	      _group(),					/* Need to reset this */
 	      _activities(), _precedences(),
 	      _fanOut(), _fanIn(),
-	      _resultPhaseCount(0),
-	      _resultProcUtilization(0.0), _resultProcUtilizationVariance(0.0),
-	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
-	      _resultUtilization(0.0), _resultUtilizationVariance(0.0)
+	      _resultPhaseCount(src._resultPhaseCount),
+	      _resultProcUtilization(src._resultProcUtilization), _resultProcUtilizationVariance(src._resultProcUtilizationVariance),
+	      _resultThroughput(src._resultThroughput), _resultThroughputVariance(src._resultThroughputVariance),
+	      _resultUtilization(src._resultUtilization), _resultUtilizationVariance(src._resultUtilizationVariance)
 	{
 	    for ( unsigned int p = 0; p < Phase::MAX_PHASE; ++p ) {
-		_resultPhaseUtilizations[p] = 0;
-		_resultPhaseUtilizationVariances[p] = 0;
+		_resultPhaseUtilizations[p] = src._resultPhaseUtilizations[p];
+		_resultPhaseUtilizationVariances[p] = src._resultPhaseUtilizationVariances[p];
 	    }
 	    for ( std::map<const std::string, const LQIO::DOM::ExternalVariable *>::iterator fan_out = _fanOut.begin(); fan_out != _fanOut.end(); ++fan_out ) {
 		fan_out->second = ExternalVariable::clone(fan_out->second);
@@ -322,9 +322,7 @@ namespace LQIO {
 
 	void Task::deleteActivities()
 	{
-	    for ( std::map<std::string,Activity*>::iterator activity = _activities.begin(); activity != _activities.end(); ++activity ) {
-		delete activity->second;
-	    }
+	    std::for_each( _activities.begin(), _activities.end(), []( const std::pair<std::string,Activity*>& activity ){ delete activity.second; } );
 	    _activities.clear();
 	}
 		
@@ -369,19 +367,13 @@ namespace LQIO {
 
 	void Task::deleteActivityLists()
 	{
-	    for ( std::set<ActivityList*>::const_iterator precedence = _precedences.begin(); precedence != _precedences.end(); ++precedence ) {
-		delete *precedence;
-	    }
+	    std::for_each( _precedences.begin(), _precedences.end(), []( ActivityList* precedence ) { delete precedence; } );
 	    _precedences.clear();
 	}
 
 	bool Task::hasAndJoinActivityList() const
 	{
-	    const std::set<ActivityList*>& list = getActivityLists();
-	    for ( std::set<ActivityList*>::const_iterator precedence = list.begin(); precedence != list.end(); ++precedence ) {
-		if ( dynamic_cast<AndJoinActivityList *>(*precedence ) ) return true;
-	    }
-	    return false;
+	    return std::any_of( getActivityLists().begin(), getActivityLists().end(), []( const ActivityList* precedence ){ return dynamic_cast<const AndJoinActivityList *>(precedence) != nullptr; } );
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

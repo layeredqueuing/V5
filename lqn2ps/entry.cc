@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 17536 2025-04-02 13:42:13Z greg $
+ * $Id: entry.cc 17597 2025-11-24 19:58:22Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -141,6 +141,7 @@ Entry::getPhase( unsigned p )
     Phase& phase = j->second;
     if ( i.second ) {
 	phase.initialize( this, p );
+	Model::phaseCount.at(p) += 1;
     }
     return phase;
 }
@@ -290,7 +291,7 @@ Entry::rendezvous( const Entry * toEntry, unsigned int p, const LQIO::DOM::Call 
 {
     if ( value && const_cast<Entry *>(toEntry)->isCalledBy( request_type::RENDEZVOUS ) ) {
  	Model::rendezvousCount[0] += 1;
-	Model::rendezvousCount[p] += 1;
+	Model::rendezvousCount.at(p) += 1;
 	getPhase( p );
 	Call * aCall = findOrAddCall( toEntry, &GenericCall::hasRendezvousOrNone );
 	aCall->rendezvous( p, value );
@@ -347,7 +348,7 @@ Entry::sendNoReply( const Entry * toEntry, unsigned int p, const LQIO::DOM::Call
 {
     if ( value  && const_cast<Entry *>(toEntry)->isCalledBy( request_type::SEND_NO_REPLY ) ) {
 	Model::sendNoReplyCount[0] += 1;
-	Model::sendNoReplyCount[p] += 1;
+	Model::sendNoReplyCount.at(p) += 1;
 	getPhase( p );
 	Call * aCall = findOrAddCall( toEntry, &GenericCall::hasSendNoReplyOrNone );
 	aCall->sendNoReply( p, value );

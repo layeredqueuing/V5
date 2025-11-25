@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 17587 2025-11-12 20:26:46Z greg $
+ * $Id: model.cc 17597 2025-11-24 19:58:22Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -74,16 +74,16 @@ std::map<unsigned int,double> Model::__offset_layer;
 
 unsigned Model::openArrivalCount  = 0;
 unsigned Model::forwardingCount	  = 0;
-unsigned Model::rendezvousCount[MAX_PHASES+1];
-unsigned Model::sendNoReplyCount[MAX_PHASES+1];
-unsigned Model::phaseCount[MAX_PHASES+1];
+std::array<unsigned,MAX_PHASES+1> Model::rendezvousCount;
+std::array<unsigned,MAX_PHASES+1> Model::sendNoReplyCount;
+std::array<unsigned,MAX_PHASES+1> Model::phaseCount;
 int Model::maxModelNumber = 1;
 
 /* output */
 bool Model::boundsPresent		= false;
 bool Model::variancePresent		= false;
 
-Model::Stats Model::stats[Model::N_STATS];
+std::array<Model::Stats,Model::N_STATS> Model::stats;
 
 static DoubleManip to_inches( const double );
 
@@ -534,11 +534,9 @@ Model::prepare( const LQIO::DOM::Document * document )
 
     openArrivalCount		= 0;
     forwardingCount		= 0;
-    for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
-	rendezvousCount[p]	= 0;
-	sendNoReplyCount[p] 	= 0;
-	phaseCount[p]		= 0;
-    }
+    rendezvousCount.fill(0);
+    sendNoReplyCount.fill(0);
+    phaseCount.fill(0);
 
     /* We use this to add all calls */
     std::vector<LQIO::DOM::Entry*> allEntries;

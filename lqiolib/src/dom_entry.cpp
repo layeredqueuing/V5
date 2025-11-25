@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 17411 2024-10-31 21:18:36Z greg $
+ *  $Id: dom_entry.cpp 17596 2025-11-21 20:04:52Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -40,9 +40,8 @@ namespace LQIO {
 	      _resultThroughput(0.0), _resultThroughputBound(0.0), _resultThroughputVariance(0.0),
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
 	      _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
-	      _hasResultsForPhase(),  _hasOpenWait(false), _hasThroughputBound(false), _hasResultSquaredCoeffVariation(false), _hasResultDropProbability(false)
+	      _hasResultsForPhase(),  _hasOpenWait(), _hasThroughputBound(), _hasResultSquaredCoeffVariation(), _hasResultDropProbability()
 	{
-	    clearPhaseResults();
 	}
     
 	Entry::Entry( const Entry& src ) 
@@ -52,50 +51,27 @@ namespace LQIO {
 	      _openArrivalRate(src._openArrivalRate), _entryPriority(src._entryPriority), _visitProbability(src._visitProbability),
 	      _semaphoreType(src._semaphoreType), _rwlockType(src._rwlockType), _forwarding(src._forwarding),
 	      _startActivity(nullptr),
-	      _resultDropProbability(0.0), _resultDropProbabilityVariance(0.0),
-	      _resultPhasePProcessorWaiting(), _resultPhasePProcessorWaitingVariance(),
-	      _resultPhasePServiceTime(), _resultPhasePServiceTimeVariance(),
-	      _resultPhasePVarianceServiceTime(), _resultPhasePVarianceServiceTimeVariance(),
-	      _resultProcessorUtilization(0.0), _resultProcessorUtilizationVariance(0.0),
-	      _resultSquaredCoeffVariation(0.0), _resultSquaredCoeffVariationVariance(0.0),
-	      _resultThroughput(0.0), _resultThroughputBound(0.0), _resultThroughputVariance(0.0),
-	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
-	      _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
-	      _hasResultsForPhase(),  _hasOpenWait(false), _hasThroughputBound(false), _hasResultSquaredCoeffVariation(false), _hasResultDropProbability(false)
+	      _resultDropProbability(src._resultDropProbability), _resultDropProbabilityVariance(src._resultDropProbabilityVariance),
+	      _resultPhasePProcessorWaiting(src._resultPhasePProcessorWaiting), _resultPhasePProcessorWaitingVariance(src._resultPhasePProcessorWaitingVariance),
+	      _resultPhasePServiceTime(src._resultPhasePServiceTime), _resultPhasePServiceTimeVariance(src._resultPhasePServiceTimeVariance),
+	      _resultPhasePVarianceServiceTime(src._resultPhasePVarianceServiceTime), _resultPhasePVarianceServiceTimeVariance(src._resultPhasePVarianceServiceTimeVariance),
+	      _resultProcessorUtilization(src._resultProcessorUtilization), _resultProcessorUtilizationVariance(src._resultProcessorUtilizationVariance),
+	      _resultSquaredCoeffVariation(src._resultSquaredCoeffVariation), _resultSquaredCoeffVariationVariance(src._resultSquaredCoeffVariationVariance),
+	      _resultThroughput(src._resultThroughput), _resultThroughputBound(src._resultThroughputBound), _resultThroughputVariance(src._resultThroughputVariance),
+	      _resultUtilization(src._resultUtilization), _resultUtilizationVariance(src._resultUtilizationVariance),
+	      _resultWaitingTime(src._resultWaitingTime), _resultWaitingTimeVariance(src._resultWaitingTimeVariance),
+	      _hasResultsForPhase(src._hasResultsForPhase), _hasOpenWait(src._hasOpenWait), _hasThroughputBound(src._hasThroughputBound), _hasResultSquaredCoeffVariation(src._hasResultSquaredCoeffVariation), _hasResultDropProbability(src._hasResultDropProbability)
 	{
-	    clearPhaseResults();
 	}
 
 	Entry::~Entry()
 	{
 	    /* Destroy our owned phase information */
-	    for ( std::map<unsigned, Phase*>::iterator phase = _phases.begin(); phase != _phases.end(); ++phase) {
-		delete phase->second;
-	    }
-	    for ( std::vector<Call *>::iterator forwarding = _forwarding.begin(); forwarding != _forwarding.end(); ++forwarding) {
-		delete *forwarding;
-	    }
-	    for ( std::map<unsigned, Histogram*>::iterator histogram = _histograms.begin(); histogram != _histograms.end(); ++histogram) {
-		delete histogram->second;
-	    }
+	    std::for_each( _phases.begin(), _phases.end(), []( const std::pair<unsigned, Phase*>& phase ){ delete phase.second; } );
+	    std::for_each( _forwarding.begin(), _forwarding.end(), []( Call * forwarding) { delete forwarding; } );
+	    std::for_each( _histograms.begin(), _histograms.end(), []( const std::pair<unsigned, Histogram*>& histogram ){ delete histogram.second; } );
 	}
 
-	Entry& Entry::clearPhaseResults()
-	{
-	    for ( unsigned p = 0; p < Phase::MAX_PHASE; ++p ) {
-		_resultPhasePProcessorWaiting[p] = 0.0;
-		_resultPhasePProcessorWaitingVariance[p] = 0.0;
-		_resultPhasePServiceTime[p] = 0.0;
-		_resultPhasePServiceTimeVariance[p] = 0.0;
-		_resultPhasePVarianceServiceTime[p] = 0.0;
-		_resultPhasePVarianceServiceTimeVariance[p] = 0.0;
-		_resultPhasePUtilization[p] = 0.0;
-		_resultPhasePUtilizationVariance[p] = 0.0;
-		_hasResultsForPhase[p] = false;
-	    }
-	    return *this;
-	}
-	
 	Entry * Entry::clone() const
 	{	
 	    return new Entry( *this );
@@ -383,8 +359,7 @@ namespace LQIO {
 	    if ( isStandardEntry() ) {
 		getPhase(p)->setHistogram( histogram );
 	    } else {
-		assert(0 < p && p <= Phase::MAX_PHASE);
-		_histograms[p] = histogram;
+		_histograms.at(p-1) = histogram;
 	    }
 	}
 
@@ -680,20 +655,16 @@ namespace LQIO {
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
-	/*
+ 	/*
 	 * If I am a standard entry, proxy the call to the phase.  Otherwise, get/store
 	 * the result locally (activity entries have phase results too).
 	 */
 
-	Entry& 
-	Entry::setResultPhaseP( const unsigned p, double * result, double value ) 
+	void
+	Entry::setResultPhaseP( const unsigned p, std::array<double,Phase::MAX_PHASE>& result, double value ) 
 	{
-	    assert( 0 < p && p <= Phase::MAX_PHASE );
-	    if ( value ) {
-		_hasResultsForPhase[p-1] = true;
-	    }
-	    result[p-1] = value;
-	    return *this;
+	    result.at(p-1) = value;
+	    _hasResultsForPhase[p-1] |= (value != 0.0);
 	}
 
 	/*
@@ -724,8 +695,7 @@ namespace LQIO {
 	    if ( isStandardEntry() && phase != _phases.end() ) {
 		return phase->second->getResultServiceTime();
 	    } else {
-		assert( 0 < p && p <= Phase::MAX_PHASE );
-		return _resultPhasePServiceTime[p-1];
+		return _resultPhasePServiceTime.at(p-1);
 	    }
 	}
 
@@ -749,8 +719,7 @@ namespace LQIO {
 	    if ( isStandardEntry() && phase != _phases.end() ) {
 		return phase->second->getResultServiceTimeVariance();
 	    } else {
-		assert( 0 < p && p <= Phase::MAX_PHASE );
-		return _resultPhasePServiceTimeVariance[p-1];
+		return _resultPhasePServiceTimeVariance.at(p-1);
 	    }
 	}
     
@@ -774,8 +743,7 @@ namespace LQIO {
 	    if ( isStandardEntry() && phase != _phases.end() ) {
 		return phase->second->getResultVarianceServiceTime();
 	    } else {
-		assert( 0 < p && p <= Phase::MAX_PHASE );
-		return _resultPhasePVarianceServiceTime[p-1];
+		return _resultPhasePVarianceServiceTime.at(p-1);
 	    }
 	}
 
@@ -799,15 +767,14 @@ namespace LQIO {
 	    if ( isStandardEntry() && phase != _phases.end() ) {
 		return phase->second->getResultVarianceServiceTimeVariance();
 	    } else {
-		assert( 0 < p && p <= Phase::MAX_PHASE );
-		return _resultPhasePVarianceServiceTimeVariance[p-1];
+		return _resultPhasePVarianceServiceTimeVariance.at(p-1);
 	    }
 	}
 
 	Entry& Entry::setResultPhasePProcessorWaiting(unsigned p, double resultProcessorWaiting ) 
 	{
 	    if ( isStandardEntry() ) {
-		if ( hasPhase( p ) || resultProcessorWaiting> 0 ) {
+		if ( hasPhase( p ) || resultProcessorWaiting > 0 ) {
 		    getPhase( p )->setResultProcessorWaiting( resultProcessorWaiting );
 		}
 	    } else {
@@ -823,8 +790,7 @@ namespace LQIO {
 	    if ( isStandardEntry() && phase != _phases.end() ) {
 		return phase->second->getResultProcessorWaiting();
 	    } else {
-		assert( 0 < p && p <= Phase::MAX_PHASE );
-		return _resultPhasePProcessorWaiting[p-1];
+		return _resultPhasePProcessorWaiting.at(p-1);
 	    }
 	}
 
@@ -848,8 +814,7 @@ namespace LQIO {
 	    if ( isStandardEntry() && phase != _phases.end() ) {
 		return phase->second->getResultProcessorWaitingVariance();
 	    } else {
-		assert( 0 < p && p <= Phase::MAX_PHASE );
-		return _resultPhasePProcessorWaitingVariance[p-1];
+		return _resultPhasePProcessorWaitingVariance.at(p-1);
 	    }
 	}
     
@@ -873,8 +838,7 @@ namespace LQIO {
 	    if ( isStandardEntry() && phase != _phases.end() ) {
 		return phase->second->getResultUtilization();
 	    } else {
-		assert( 0 < p && p <= Phase::MAX_PHASE );
-		return _resultPhasePUtilization[p-1];
+		return _resultPhasePUtilization.at(p-1);
 	    }
 	}
 
@@ -898,8 +862,7 @@ namespace LQIO {
 	    if ( isStandardEntry() && phase != _phases.end() ) {
 		return phase->second->getResultUtilizationVariance();
 	    } else {
-		assert( 0 < p && p <= Phase::MAX_PHASE );
-		return _resultPhasePUtilizationVariance[p-1];
+		return _resultPhasePUtilizationVariance.at(p-1);
 	    }
 	}
 
@@ -944,16 +907,15 @@ namespace LQIO {
 	unsigned Entry::getResultPhaseCount() const
 	{
 	    unsigned int maxPhase = 0;
-	    for ( unsigned int p = 1; p <= Phase::MAX_PHASE; ++p) {
-		if ( hasResultsForPhase(p) ) maxPhase = p;
+	    for ( unsigned int p = Phase::MAX_PHASE; p > 0; p -= 1 ) {
+		if ( _hasResultsForPhase[p-1] ) maxPhase = p;
 	    }
 	    return maxPhase;
 	}
 	
 	bool Entry::hasResultsForPhase(unsigned p) const
 	{
-	    assert(0 < p && p <= Phase::MAX_PHASE);
-	    return _hasResultsForPhase[p-1];
+	    return _hasResultsForPhase.at(p-1);
 	}
     
 	bool Entry::hasResultsForOpenWait() const

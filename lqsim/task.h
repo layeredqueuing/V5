@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * Lqsim-parasol task interface.
  *
- * $Id: task.h 17515 2024-12-16 21:49:45Z greg $
+ * $Id: task.h 17597 2025-11-24 19:58:22Z greg $
  */
 
 /************************************************************************/
@@ -23,7 +23,6 @@
 #include <list>
 #include <algorithm>
 #include <lqio/dom_task.h>
-
 #include "actlist.h"
 #include "processor.h"
 #include "result.h"

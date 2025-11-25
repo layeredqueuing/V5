@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 16972 2024-01-29 19:23:49Z greg $
+ * $Id: phase.cc 17597 2025-11-24 19:58:22Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -95,17 +95,7 @@ Phase::name() const
 bool 
 Phase::hasServiceTime() const
 {
-#if 0
-    const LQIO::DOM::Phase * dom = getDOM();
-    if ( dom ) {
-	const LQIO::DOM::ExternalVariable * var = dom->getServiceTime();
-	return var && var->wasSet();
-    } else {
-	return false;
-    }
-#else
-    return getDOM() && getDOM()->getServiceTime() != 0;
-#endif
+    return getDOM() && getDOM()->getServiceTime() != nullptr;
 }
 
 
@@ -453,6 +443,8 @@ static struct {
     { nullptr, nullptr }
 };
 
+
+
 /*
  * Strip suffix _<N>.  Merge results from replicas 2..N to 1.
  */
@@ -463,12 +455,12 @@ Phase::replicatePhase( LQIO::DOM::Phase * root, unsigned int replica )
     if ( root == nullptr || getDOM() == nullptr ) return *this;
 
     if ( replica == 1 ) {
-	std::string& name = const_cast<std::string&>(getDOM()->getName());
+	const std::string& name = const_cast<std::string&>(getDOM()->getName());
 	if ( name.size() <= 2 ) return *this;
-	size_t pos = name.rfind( '_' );
+	const std::string::size_type pos = name.rfind( '_' );
 	char * end_ptr = nullptr;
-	if ( pos != std::string::npos && (strtol( &name[pos+1], &end_ptr, 10 ) == 1 && *end_ptr == '\0') ) {
-	    name = name.substr( 0, pos );
+	if ( pos != name.npos && (strtol( &name[pos+1], &end_ptr, 10 ) == 1 && *end_ptr == '\0') ) {
+	    const_cast<LQIO::DOM::Phase*>(getDOM())->setName( name.substr( 0, pos ) );
 	}
     } else {
 	for ( unsigned int i = 0; phase_mean[i].first != nullptr; ++i ) {
@@ -495,7 +487,7 @@ Phase::replicateCall()
 	const std::string& dst_name = (*call)->getDestinationEntry()->getName();
 	size_t pos = dst_name.rfind( '_' );
 	char * end_ptr = nullptr;
-	if ( pos == std::string::npos || (strtol( &dst_name[pos+1], &end_ptr, 10 ) == 1 && *end_ptr == '\0') ) {
+	if ( pos == dst_name.npos || (strtol( &dst_name[pos+1], &end_ptr, 10 ) == 1 && *end_ptr == '\0') ) {
 	    calls.push_back( *call );
 	}
     }
