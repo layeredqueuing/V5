@@ -1,15 +1,17 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 17600 2025-11-25 20:26:11Z greg $
+# $Id: Makefile.am 17601 2025-11-26 17:13:49Z greg $
 #----------------------------------------------------------------------
 SUBDIRS		= regression
+#check_PROGRAMS	= eventhandler_test
 
 AM_CPPFLAGS	= -I../lqx/libsrc/headers/ -I../lqiolib/src/headers 
 if HAVE_PARASOL
 AM_CPPFLAGS	+= -I../parasol/include -DHAVE_PARASOL=1
 endif
-bin_PROGRAMS	= lqsim
+bin_PROGRAMS	= lqsim eventhandler
 lqsim_SOURCES	= activity.cc actlist.cc entry.cc errmsg.cc eventhandler.cc group.cc histogram.cc instance.cc lqsim.cc \
 		  message.cc model.cc pragma.cc processor.cc random.cc result.cc runlqx.cc task.cc target.cc
+eventhandler_SOURCES	= eventhandler_test.cc eventhandler.cc 
 if HAVE_PARASOL
 lqsim_SOURCES	+= 
 endif

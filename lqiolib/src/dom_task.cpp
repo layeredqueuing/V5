@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_task.cpp 17596 2025-11-21 20:04:52Z greg $
+ *  $Id: dom_task.cpp 17603 2025-11-26 22:09:43Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -37,21 +37,14 @@ namespace LQIO {
 	      _activities(), _precedences(),
 	      _fanOut(), _fanIn(),
 	      _resultPhaseCount(0),
+	      _resultPhaseUtilizations(), _resultPhaseUtilizationVariances(),
 	      _resultProcUtilization(0.0), _resultProcUtilizationVariance(0.0),
 	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
 	      _resultBottleneckStrength(0.0)
 	{
 	    /* Associate the entries with tasks */
-	    std::vector<Entry *>::const_iterator nextEntry;
-	    for ( nextEntry = entryList.begin(); nextEntry != entryList.end(); ++nextEntry ) {
-		(*nextEntry)->setTask(this);
-	    }
-
-	    for ( unsigned int p = 0; p < Phase::MAX_PHASE; ++p ) {
-		_resultPhaseUtilizations[p] = 0;
-		_resultPhaseUtilizationVariances[p] = 0;
-	    }
+	    std::for_each( entryList.begin(), entryList.end(), [this]( Entry * entry ){ entry->setTask(this); } );
 	}
 
 	Task::Task( const Task& src )
@@ -62,23 +55,16 @@ namespace LQIO {
 	      _priority(ExternalVariable::clone(src._priority)),
 	      _thinkTime(ExternalVariable::clone(src._thinkTime)),
 	      _group(),					/* Need to reset this */
-	      _activities(), _precedences(),
-	      _fanOut(), _fanIn(),
+	      _activities(), _precedences(),		/* Need to reset this */
+	      _fanOut(), _fanIn(),			/* Deep copy */
 	      _resultPhaseCount(src._resultPhaseCount),
+	      _resultPhaseUtilizations( src._resultPhaseUtilizations ), _resultPhaseUtilizationVariances( src._resultPhaseUtilizationVariances ),
 	      _resultProcUtilization(src._resultProcUtilization), _resultProcUtilizationVariance(src._resultProcUtilizationVariance),
 	      _resultThroughput(src._resultThroughput), _resultThroughputVariance(src._resultThroughputVariance),
 	      _resultUtilization(src._resultUtilization), _resultUtilizationVariance(src._resultUtilizationVariance)
 	{
-	    for ( unsigned int p = 0; p < Phase::MAX_PHASE; ++p ) {
-		_resultPhaseUtilizations[p] = src._resultPhaseUtilizations[p];
-		_resultPhaseUtilizationVariances[p] = src._resultPhaseUtilizationVariances[p];
-	    }
-	    for ( std::map<const std::string, const LQIO::DOM::ExternalVariable *>::iterator fan_out = _fanOut.begin(); fan_out != _fanOut.end(); ++fan_out ) {
-		fan_out->second = ExternalVariable::clone(fan_out->second);
-	    }
-	    for ( std::map<const std::string, const LQIO::DOM::ExternalVariable *>::iterator fan_in = _fanIn.begin(); fan_in != _fanIn.end(); ++fan_in ) {
-		fan_in->second = ExternalVariable::clone(fan_in->second);
-	    }
+	    std::for_each( src._fanOut.begin(), src._fanOut.end(), [this]( const std::pair<const std::string, const LQIO::DOM::ExternalVariable *>& fan_out ){ _fanOut.emplace( fan_out.first, ExternalVariable::clone(fan_out.second) ); } );
+	    std::for_each( src._fanIn.begin(), src._fanIn.end(), [this]( const std::pair<const std::string, const LQIO::DOM::ExternalVariable *>& fan_in ){ _fanIn.emplace( fan_in.first, ExternalVariable::clone(fan_in.second) ); } );
 	}
 
 	Task::~Task()

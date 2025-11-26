@@ -8,15 +8,17 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 17527 2025-02-10 21:17:01Z greg $
+ * $Id: srvn_output.h 17603 2025-11-26 22:09:43Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
 
+#pragma once
 #ifndef __SRVN_OUTPUT_H
 #define __SRVN_OUTPUT_H
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <map>
 #include <ostream>
@@ -274,8 +276,8 @@ namespace LQIO {
 	class ForPhase {
 	public:
 	    ForPhase();
-	    const DOM::Call*& operator[](const unsigned ix) { assert( ix && ix <= DOM::Phase::MAX_PHASE ); return ia[ix-1]; }
-	    const DOM::Call* operator[](const unsigned ix) const { assert( ix && ix <= DOM::Phase::MAX_PHASE ); return ia[ix-1]; }
+	    const DOM::Call*& operator[](const unsigned ix) { return _calls.at(ix-1); }
+	    const DOM::Call* operator[](const unsigned ix) const { return _calls[ix-1]; }
 		
 	    ForPhase& setMaxPhase( const unsigned mp ) { _maxPhase = mp; return *this; }
 	    const unsigned getMaxPhase() const { return _maxPhase; }
@@ -283,7 +285,7 @@ namespace LQIO {
 	    const DOM::Call::Type getType() const { return _type; }
 
 	private:
-	    const DOM::Call * ia[DOM::Phase::MAX_PHASE];
+	    std::array<const DOM::Call *,DOM::Phase::MAX_PHASE> _calls;
 	    unsigned _maxPhase;
 	    DOM::Call::Type _type;
 	};

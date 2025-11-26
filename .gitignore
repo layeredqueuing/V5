@@ -119,6 +119,7 @@ lqns/lqns
 lqns/regression/disttest
 lqsim/doc
 lqsim/lqsim
+lqsim/eventhandler
 lqx/drvsrc/lqx
 lqx/libsrc/Parser_pre.cpp
 lqx/libsrc/Parser_pre.h

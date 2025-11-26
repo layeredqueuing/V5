@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 17587 2025-11-12 20:26:46Z greg $
+ *  $Id: srvn_output.cpp 17603 2025-11-26 22:09:43Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -68,11 +68,8 @@ namespace LQIO {
     }
 
     SRVN::ForPhase::ForPhase()
-	: _maxPhase(DOM::Phase::MAX_PHASE), _type(DOM::Call::Type::NULL_CALL)
+	: _calls(), _maxPhase(DOM::Phase::MAX_PHASE), _type(DOM::Call::Type::NULL_CALL)
     {
-	for ( unsigned p = 0; p < DOM::Phase::MAX_PHASE; ++p ) {
-	    ia[p] = 0;
-	}
     }
 
     void

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * Event handler.  Advances simulation time.
  *
- * $Id: eventhandler.h 17600 2025-11-25 20:26:11Z greg $
+ * $Id: eventhandler.h 17604 2025-11-26 22:37:54Z greg $
  */
 
 /************************************************************************/
@@ -13,8 +13,9 @@
 /************************************************************************/
 
 #pragma once
-#include <atomic>
 #include <functional>
+#include <condition_variable>
+#include <mutex>
 #include <queue>
 #include <vector>
 
@@ -29,7 +30,7 @@ private:
     Type type;
 };
 
-bool operator>( const Event& e1, const Event& e2 ) { return e1.getTime() > e2.getTime(); }
+inline bool operator>( const Event& e1, const Event& e2 ) { return e1.getTime() > e2.getTime(); }
 
 
 class EventHandler {
@@ -38,20 +39,23 @@ public:
 
     void run();
     void add_event( const Event& event );
-    static void processor_request() { __in_use += 1; }
-    static void processor_release();
+    static void processor_acquire() { __event_handler->acquire(); }
+    static void processor_release() { __event_handler->release(); }
 
 private:
-    void notify() { _update_time = true; _update_time.notify_one(); }
+    void notify();
+    void acquire();
+    void release();
 
 private:
     static EventHandler * __event_handler;
-    static std::atomic<unsigned int> __in_use;
 
 private:
     std::priority_queue<Event,std::vector<Event>,std::greater<Event>> _event_list;
     double _current_time;
-    std::atomic<bool> _update_time;
+    std::mutex _mutex;
+    std::condition_variable _update_time;
+    unsigned int _in_use;
 };
 
 /* while event.list[head] == now and type == start; resume thread; pop head */

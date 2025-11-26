@@ -1,14 +1,16 @@
 /* -*- c++ -*-
- *  $Id: dom_task.h 17434 2024-11-05 15:37:43Z greg $
+ *  $Id: dom_task.h 17603 2025-11-26 22:09:43Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
 
+#pragma once
 #ifndef __LQIO_DOM_TASK__
 #define __LQIO_DOM_TASK__
 
+#include <array>
 #include <set>
 #include <map>
 #include "dom_entity.h"
@@ -174,8 +176,8 @@ namespace LQIO {
   	
 	    /* Computation Results from LQNS */
 	    unsigned int _resultPhaseCount;
-	    double _resultPhaseUtilizations[Phase::MAX_PHASE];
-	    double _resultPhaseUtilizationVariances[Phase::MAX_PHASE];
+	    std::array<double,Phase::MAX_PHASE> _resultPhaseUtilizations;
+	    std::array<double,Phase::MAX_PHASE> _resultPhaseUtilizationVariances;
 	    double _resultProcUtilization;
 	    double _resultProcUtilizationVariance;
 	    double _resultThroughput;
