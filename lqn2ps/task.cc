@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 17552 2025-10-23 18:47:54Z greg $
+ * $Id: task.cc 17605 2025-11-27 18:26:25Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2191,16 +2191,16 @@ Task::expandActivities( const Task& src, int replica )
 
 
 LQIO::DOM::Task *
-Task::cloneDOM( const std::string& name, LQIO::DOM::Processor * dom_processor ) const
+Task::cloneDOM( const std::string& name, LQIO::DOM::Processor * processor ) const
 {
-    LQIO::DOM::Task * dom_task = new LQIO::DOM::Task( *dynamic_cast<const LQIO::DOM::Task*>(getDOM()) );
+    LQIO::DOM::Task * task = new LQIO::DOM::Task( *dynamic_cast<const LQIO::DOM::Task*>(getDOM()) );
 
-    dom_task->setName( name );
-    dom_task->setProcessor( dom_processor );
-    const_cast<LQIO::DOM::Document *>(getDOM()->getDocument())->addTaskEntity( dom_task );	    /* Reconnect all of the dom stuff. */
-    dom_processor->addTask( dom_task );
+    task->setName( name );
+    task->setProcessor( processor );
+    const_cast<LQIO::DOM::Document *>(getDOM()->getDocument())->addTaskEntity( task );	    /* Reconnect all of the dom stuff. */
+    processor->addTask( task );
 
-    return dom_task;
+    return task;
 }
 
 
@@ -2234,7 +2234,7 @@ static struct {
 Task&
 Task::replicateTask( LQIO::DOM::DocumentObject ** root )
 {
-    unsigned int replica = 0;
+    unsigned int replica = 0;		// set by baseReplicaName
     std::string root_name = baseReplicaName( replica );
     LQIO::DOM::Task * task = dynamic_cast<LQIO::DOM::Task *>(*root);
     if ( replica == 1 ) {
@@ -2275,7 +2275,7 @@ Task::replicateTask( LQIO::DOM::DocumentObject ** root )
 Task&
 Task::replicateCall() 
 {
-    unsigned int replica = 0;
+    unsigned int replica = 0;		// set by baseReplicaName
     std::string root_name = baseReplicaName( replica );
     if ( replica == 1 ) {
 	std::for_each( activities().begin(), activities().end(), std::mem_fn( &Activity::replicateCall ) );
@@ -2311,7 +2311,7 @@ Task::UpdateFanInOut::updateFanInOut( const std::vector<Call *>& calls ) const
 	const unsigned dst_replicas = dst.getReplicasValue();
 	if ( dst_replicas > src_replicas ) {
 	    double fan_out = static_cast<double>(dst_replicas) / static_cast<double>(src_replicas);
-	    if ( fan_out == rint( fan_out ) ) {
+	    if ( fan_out == std::rint( fan_out ) ) {
 		_src.setFanOutValue( dst.getName(), static_cast<unsigned>(fan_out) );
 	    } else {
 		_src.setFanOutValue( dst.getName(), dst_replicas );
@@ -2319,7 +2319,7 @@ Task::UpdateFanInOut::updateFanInOut( const std::vector<Call *>& calls ) const
 	    }
 	} else if ( src_replicas > dst_replicas ) {
 	    double fan_in = static_cast<double>(src_replicas) / static_cast<double>(dst_replicas);
-	    if ( fan_in == rint( fan_in ) ) {
+	    if ( fan_in == std::rint( fan_in ) ) {
 		dst.setFanInValue( _src.getName(), static_cast<unsigned>(fan_in) );
 	    } else {
 		_src.setFanOutValue( dst.getName(), dst_replicas );
@@ -2356,17 +2356,17 @@ Task::draw( std::ostream& output ) const
 	{ SCHEDULE_UNIFORM,     'u' }
     };
 
-    std::ostringstream aComment;
-    aComment << "Task " << name()
+    std::ostringstream comment;
+    comment << "Task " << name()
 	     << task_scheduling.at( scheduling() )
 	     << " " << entries_of( *this );
     if ( processor() ) {
-	aComment << " " << processor()->name();
+	comment << " " << processor()->name();
     }
 #if defined(BUG_375)
-    aComment << " span=" << span() << ", index=" << index();
+    comment << " span=" << span() << ", index=" << index();
 #endif
-    _node->comment( output, aComment.str() );
+    _node->comment( output, comment.str() );
     _node->fillColour( colour() );
     if ( Flags::colouring() == Colouring::NONE ) {
 	_node->penColour( Graphic::Colour::DEFAULT );			// No colour.
@@ -2404,7 +2404,7 @@ Task::draw( std::ostream& output ) const
     }
     _node->polygon( output, points );
 
-    _label->backgroundColour( colour() ).comment( output, aComment.str() );
+    _label->backgroundColour( colour() ).comment( output, comment.str() );
     output << *_label;
 
     if ( Flags::aggregation() != Aggregate::ENTRIES ) {
@@ -2429,11 +2429,11 @@ Task::draw( std::ostream& output ) const
 std::ostream&
 Task::drawClient( std::ostream& output, const bool is_in_open_model, const bool is_in_closed_model ) const
 {
-    std::string aComment;
-    aComment += "========== ";
-    aComment += name();
-    aComment += " ==========";
-    _node->comment( output, aComment );
+    std::string comment;
+    comment += "========== ";
+    comment += name();
+    comment += " ==========";
+    _node->comment( output, comment );
     _node->penColour( colour() == Graphic::Colour::GREY_10 ? Graphic::Colour::BLACK : colour() ).fillColour( colour() );
 
     _label->moveTo( bottomCenter() )
@@ -2466,12 +2466,12 @@ ReferenceTask::ReferenceTask( const LQIO::DOM::Task* dom, const Processor * proc
 ReferenceTask *
 ReferenceTask::clone( unsigned int replica, const std::string& name, const Processor * processor, const Share * share ) const
 {
-    LQIO::DOM::Task * dom_task = cloneDOM( name, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()) ) );
+    LQIO::DOM::Task * task = cloneDOM( name, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()) ) );
 
 //	.setGroup( share->getDOM() );
 
     std::vector<Entry *> entries;
-    return new ReferenceTask( dom_task, processor, share, groupEntries( replica, entries ) );
+    return new ReferenceTask( task, processor, share, groupEntries( replica, entries ) );
 }
 
 
@@ -2593,12 +2593,12 @@ ServerTask::ServerTask( const LQIO::DOM::Task* dom, const Processor * processor,
 ServerTask*
 ServerTask::clone( unsigned int replica, const std::string& name, const Processor * processor, const Share * share ) const
 {
-    LQIO::DOM::Task * dom_task = cloneDOM( name, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()) ) );
+    LQIO::DOM::Task * task = cloneDOM( name, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()) ) );
 
 //	.setGroup( share->getDOM() );
 
     std::vector<Entry *> entries;
-    return new ServerTask( dom_task, processor, share, groupEntries( replica, entries ) );
+    return new ServerTask( task, processor, share, groupEntries( replica, entries ) );
 }
 
 
@@ -2631,10 +2631,10 @@ SemaphoreTask::SemaphoreTask( const LQIO::DOM::Task* dom, const Processor * proc
 SemaphoreTask*
 SemaphoreTask::clone( unsigned int replica, const std::string& name, const Processor * processor, const Share * share ) const
 {
-    LQIO::DOM::Task * dom_task = cloneDOM( name, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()) ) );
+    LQIO::DOM::Task * task = cloneDOM( name, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()) ) );
 
     std::vector<Entry *> entries;
-    return new SemaphoreTask( dom_task, processor, share, groupEntries( replica, entries ) );
+    return new SemaphoreTask( task, processor, share, groupEntries( replica, entries ) );
 }
 
 
@@ -2649,10 +2649,10 @@ RWLockTask::RWLockTask( const LQIO::DOM::Task* dom, const Processor * processor,
 RWLockTask*
 RWLockTask::clone( unsigned int replica, const std::string& name, const Processor * processor, const Share * share ) const
 {
-    LQIO::DOM::Task * dom_task = cloneDOM( name, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()) ) );
+    LQIO::DOM::Task * task = cloneDOM( name, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()) ) );
 
     std::vector<Entry *> entries;
-    return new RWLockTask( dom_task, processor, share, groupEntries( replica, entries ) );
+    return new RWLockTask( task, processor, share, groupEntries( replica, entries ) );
 }
 
 

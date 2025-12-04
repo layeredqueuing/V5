@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_task.cpp 17603 2025-11-26 22:09:43Z greg $
+ *  $Id: dom_task.cpp 17605 2025-11-27 18:26:25Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -56,15 +56,13 @@ namespace LQIO {
 	      _thinkTime(ExternalVariable::clone(src._thinkTime)),
 	      _group(),					/* Need to reset this */
 	      _activities(), _precedences(),		/* Need to reset this */
-	      _fanOut(), _fanIn(),			/* Deep copy */
+	      _fanOut(), _fanIn(),			/* Need to reset this */
 	      _resultPhaseCount(src._resultPhaseCount),
 	      _resultPhaseUtilizations( src._resultPhaseUtilizations ), _resultPhaseUtilizationVariances( src._resultPhaseUtilizationVariances ),
 	      _resultProcUtilization(src._resultProcUtilization), _resultProcUtilizationVariance(src._resultProcUtilizationVariance),
 	      _resultThroughput(src._resultThroughput), _resultThroughputVariance(src._resultThroughputVariance),
 	      _resultUtilization(src._resultUtilization), _resultUtilizationVariance(src._resultUtilizationVariance)
 	{
-	    std::for_each( src._fanOut.begin(), src._fanOut.end(), [this]( const std::pair<const std::string, const LQIO::DOM::ExternalVariable *>& fan_out ){ _fanOut.emplace( fan_out.first, ExternalVariable::clone(fan_out.second) ); } );
-	    std::for_each( src._fanIn.begin(), src._fanIn.end(), [this]( const std::pair<const std::string, const LQIO::DOM::ExternalVariable *>& fan_in ){ _fanIn.emplace( fan_in.first, ExternalVariable::clone(fan_in.second) ); } );
 	}
 
 	Task::~Task()

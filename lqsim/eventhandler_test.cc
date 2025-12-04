@@ -13,18 +13,27 @@
  */
 
 #include <chrono>
+#include <iostream>
 #include <thread>
 #include <iostream>
 #include "eventhandler.h"
 
 class Task {
 public:
-    Task( const std::string name, EventHandler& scheduler ) : _name(name), _scheduler(scheduler) {}
+    Task( const std::string& name, EventHandler& scheduler ) : _name(name), _scheduler(scheduler) {}
     
     void operator()( double time ) {
-	EventHandler::processor_acquire();
-	std::cerr << _name << std::endl;
-	EventHandler::processor_release();
+	while ( _scheduler.get_time() < 10 ) {
+	    std::condition_variable resume;
+	    std::cout << _scheduler.get_time() << ": "<< _name << " start." << std::endl;
+	    _scheduler.start_event( resume );
+	    std::cout << _scheduler.get_time() << ": "<< _name << " acquire." << std::endl;
+	    EventHandler::processor_acquire();
+	    std::cout << _scheduler.get_time() << ": "<< _name << " stop." << std::endl;
+	    _scheduler.stop_event( time );
+	    std::cout << _scheduler.get_time() << ": "<< _name << " release." << std::endl;
+	    EventHandler::processor_release();
+	}
     }
 
 private:

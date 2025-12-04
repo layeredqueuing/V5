@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 17372 2024-10-16 14:33:42Z greg $
+ *  $Id: srvn_input.cpp 17612 2025-12-02 20:04:19Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -1182,6 +1182,7 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::filesystem::path
 	return false;
     } 
 
+    document.setModelName( input_file_name.stem().string() );
     srvnlineno = 1;
 
 #if HAVE_MMAP

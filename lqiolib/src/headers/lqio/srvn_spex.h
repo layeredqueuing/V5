@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 17579 2025-11-11 18:04:04Z greg $
+ * $Id: srvn_spex.h 17610 2025-12-02 18:55:21Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -322,8 +322,6 @@ namespace LQIO {
 	static std::ostream& printInputVariable( std::ostream& output, const var_name_and_expr& var );
 	static std::ostream& printInputArrayVariable( std::ostream& output, const var_name_and_expr& var );
 	static std::ostream& printVarNameAndExpr( std::ostream& output, const var_name_and_expr& var );
-
-	static std::vector<var_name_and_expr>::const_iterator find( std::vector<var_name_and_expr>::const_iterator, std::vector<var_name_and_expr>::const_iterator, const std::string& );
 
     public:
 	static std::set<std::string> __global_variables;			/* Document global variables. (input) */
