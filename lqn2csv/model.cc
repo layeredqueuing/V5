@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: model.cc 17576 2025-11-10 18:11:11Z greg $
+ * $Id: model.cc 17625 2025-12-18 18:24:53Z greg $
  *
  * Command line processing.
  *
@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <filesystem>
 #include <iomanip>
 #include <limits>
 #include <numeric>
@@ -109,7 +110,7 @@ const std::map<const Model::Object::Type,const std::pair<const std::string,const
 
 Model::Value::Value( const std::filesystem::path& path ) : _type(Type::PATHNAME)
 {
-    _u._string = strdup( path.c_str() );
+    _u._pathname = new std::filesystem::path( path );
 }
 
 Model::Value& Model::Value::operator=( const Value& src )
@@ -149,8 +150,8 @@ void Model::Result::insertHeader( std::vector<std::vector<Model::Value>>& data, 
 {
     data.emplace_back( std::vector<Model::Value>() );
     std::vector<Model::Value>& row = data.back();
-    row.emplace_back( std::filesystem::path( data.size() == 1 ? "Model" : " " ));
-    std::for_each( results.begin(), results.end(), Model::InsertHeader( row, f ) );
+    row.emplace_back( data.size() == 1 ? "Model" : "" );
+    std::for_each( results.begin(), results.end(), [&]( const std::pair<std::string,Model::Result::Type>& result ){ row.emplace_back( (*f)( result ) ); } );
 }
 
 /*
@@ -365,8 +366,9 @@ Model::Result::equal( Model::Result::Type type_1, Model::Result::Type type_2 )
 const std::string&
 Model::Result::getObjectType( const std::pair<std::string,Model::Result::Type>& result )
 {
-    if ( precision == 0 || 5 < precision ) return Model::Object::__object_type.at(__results.at(result.second).type).first;
-    else return Model::Object::__object_type.at(__results.at(result.second).type).second;
+    const auto& item = Model::Object::__object_type.at(__results.at(result.second).type);
+    if ( precision == 0 || 5 < precision ) return item.first;
+    else return item.second;
 }
 
 const std::string&

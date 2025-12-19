@@ -13,6 +13,7 @@
  */
 
 #include "config.h"
+#include <cstring>
 #include <iomanip>
 #include "output.h"
 #include "lqn2csv.h"
@@ -75,16 +76,30 @@ Output::columns( std::ostream& output, const std::vector<std::vector<Model::Valu
 
 std::ostream& operator<<( std::ostream& output, const Model::Value& item )
 {
-    if ( item._type == Model::Value::Type::DOUBLE && !std::isnan( item._u._double ) ) {
-	output << std::right << item._u._double;
-    } else if ( (item._type == Model::Value::Type::STRING || item._type == Model::Value::Type::PATHNAME) && item._u._string != nullptr ) {
-	std::string s;	// concatenate if necessary
-	if ( width == 0 ) s = "\"";
-	s += item._u._string;
-	if ( width == 0 ) s += "\"";
-	output << std::left << s;
-    } else {
-	output << std::right << "NULL";
+    switch ( item._type ) {
+    case Model::Value::Type::DOUBLE:
+	if ( !std::isnan( item._u._double ) ) {
+	    output << std::right << item._u._double;
+	} else {
+	    output << std::right << "NULL";
+	}
+	break;
+    case Model::Value::Type::STRING:
+	if ( item._u._string == nullptr || strlen( item._u._string ) == 0 ) {
+	    output << "";
+	} else if ( width == 0 ) {	// quote CSV output
+	    output << "\"" << item._u._string << "\""; 
+	} else {
+	    output << std::left << item._u._string;
+	}
+	break;
+    case Model::Value::Type::PATHNAME:
+	if ( item._u._pathname != nullptr ) {
+	    output << std::left << *item._u._pathname;
+	} else {
+	    output << "";
+	}
+	break;
     }
     return output;
 }

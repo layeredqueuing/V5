@@ -10,19 +10,22 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.h 17600 2025-11-25 20:26:11Z greg $
+ * $Id: processor.h 17628 2025-12-18 20:13:22Z greg $
  */
 
 #ifndef	PROCESSOR_H
 #define PROCESSOR_H
 
 #include <vector>
-#include <map>
+#include <regex>
 #include <string>
 #if HAVE_PARASOL
+#include <map>
 #include <parasol/para_internals.h>
 #else
+#include <deque>
 #include <mutex>
+#include <condition_variable>
 #endif
 #include <lqio/dom_processor.h>
 #include "lqsim.h"
@@ -93,8 +96,8 @@ public:
 
     const std::string& name() const { return _dom->getName(); }
     double cpu_rate() const { return _dom->hasRate() ? _dom->getRateValue() : 1.0; }		/* Processor rate.		*/
-    double quantum() const { return _dom->hasQuantum() ? _dom->getQuantumValue() : 0.0; }	/* Time quantum.		*/
-    int replicas() const { return _dom->hasReplicas() ? _dom->getReplicasValue() : 0.0; } 
+    double quantum() const { return _dom->getQuantumValue(); }					/* Time quantum (default is 0.)	*/
+    int replicas() const { return _dom->getReplicasValue(); } 
     scheduling_type discipline() const { return _dom->getSchedulingType(); }
     unsigned multiplicity() const;								/* Special access!		*/
     void add_task( Task * );
@@ -103,9 +106,8 @@ public:
     Processor& create();
     long node_id() const { return _node_id; }
 #else
-//   compute will add event (END) with time + delta
-//    void acquire();	// get processor lock, insert onto event list for start  increment global bust count.
-//    void release();	// release processor lock, decrement global busy count.
+    void acquire( std::condition_variable& resume );	// get processor lock, insert onto event list for start  increment global bust count.
+    void release( std::condition_variable& resume );	// release processor lock, decrement global busy count.
 #endif
 
     bool is_infinite() const;
@@ -124,6 +126,9 @@ private:
     void compute( double time );
 
 public:
+    static std::regex match_pattern;
+
+public:
     bool trace_flag;			/* For tracing.			*/
 #if HAVE_PARASOL
     ParasolResult r_util;		/* Utilization.			*/
@@ -135,15 +140,15 @@ public:
 protected:
 #if HAVE_PARASOL
     long _node_id;			/* Parasol node id	.	*/
+#else
+    std::mutex _mutex;
+    std::deque<Task *> _ready_to_run;
 #endif
     int _active;			/* Number of processors running.*/
 
 private:
     LQIO::DOM::Processor * _dom;
     std::vector<Task *> _tasks;
-#if !HAVE_PARASOL
-    std::mutex _mutex;
-#endif
 };
 
 #if HAVE_PARASOL

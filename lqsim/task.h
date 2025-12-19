@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * Lqsim-parasol task interface.
  *
- * $Id: task.h 17597 2025-11-24 19:58:22Z greg $
+ * $Id: task.h 17626 2025-12-18 19:38:44Z greg $
  */
 
 /************************************************************************/
@@ -17,11 +17,12 @@
 #ifndef	LQSIM_TASK_H
 #define LQSIM_TASK_H
 
-#include <set>
-#include <vector>
-#include <string>
-#include <list>
 #include <algorithm>
+#include <list>
+#include <regex>
+#include <set>
+#include <string>
+#include <vector>
 #include <lqio/dom_task.h>
 #include "actlist.h"
 #include "processor.h"
@@ -178,6 +179,9 @@ private:
 
     double throughput() const;
     double throughput_variance() const;
+
+public:
+    static std::regex match_pattern;		/* Pattern to match.		*/
 
 private:
     LQIO::DOM::Task* _dom;			/* Stores all of the data.      */

@@ -12,7 +12,7 @@
 /*
  * Global vars for setting up simulation.
  *
- * $Id: lqsim.h 17479 2024-11-15 21:03:38Z greg $
+ * $Id: lqsim.h 17626 2025-12-18 19:38:44Z greg $
  */
 
 #if HAVE_CONFIG_H
@@ -56,9 +56,6 @@ extern int trace_driver;		/* trace sim. drriver.		*/
 extern int scheduling_model;		/* Slice/Natural scheduling.	*/
 
 extern char * histogram_output_file;	/* File name for histogram data	*/
-
-extern std::regex processor_match_pattern;	/* Pattern to match.	    */
-extern std::regex task_match_pattern;		/* Pattern to match.	    */
 
 extern FILE * stddbg;
 

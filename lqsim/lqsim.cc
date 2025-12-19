@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 17581 2025-11-11 23:42:01Z greg $
+ * $Id: lqsim.cc 17626 2025-12-18 19:38:44Z greg $
  */
 
 #define STACK_TESTING 0
@@ -44,6 +44,8 @@
 #include "errmsg.h"
 #include "model.h"
 #include "pragma.h"
+#include "processor.h"
+#include "task.h"
 
 extern FILE* Timeline_Open(char* file_name); /* Open the timeline output stream */
 
@@ -234,7 +236,6 @@ static const char * events[] = {
     "enqueue_writer"	/* ENQUEUE_WRITER */
 };
 
-std::regex processor_match_pattern;
 std::regex task_match_pattern;
 
 /*
@@ -305,7 +306,7 @@ main( int argc, char * argv[] )
     std::copy( local_error_messages.begin(), local_error_messages.end(), std::inserter( LQIO::error_messages, LQIO::error_messages.begin() ) );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2025-11-11 18:42:01 -0500 (Tue, 11 Nov 2025) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2025-12-18 14:38:44 -0500 (Thu, 18 Dec 2025) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Handy defaults.						*/
@@ -552,11 +553,11 @@ main( int argc, char * argv[] )
 			break;
 
 		    case PROCESSOR:
-			processor_match_pattern = (value != nullptr) ? value : ".*";
+			Processor::match_pattern = (value != nullptr) ? value : ".*";
 			break;
 				
 		    case TASK:
-			task_match_pattern = (value != nullptr) ? value : ".*";
+			Task::match_pattern = (value != nullptr) ? value : ".*";
 			break;
 
 		    case EVENTS:

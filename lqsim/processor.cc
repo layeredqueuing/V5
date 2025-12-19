@@ -9,7 +9,7 @@
 /*
  * Lqsim-parasol Processor interface.
  *
- * $Id: processor.cc 17515 2024-12-16 21:49:45Z greg $
+ * $Id: processor.cc 17629 2025-12-18 20:16:50Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -39,6 +39,8 @@
 #define	SN_PREEMPT	100			/* Message.			*/
 
 std::set<Processor *, Processor::ltProcessor> Processor::__processors;	/* Processor table.		*/
+std::regex Processor::match_pattern;
+
 #if HAVE_PARASOL
 Processor *Processor::processor_table[MAX_NODES+1];			/* NodeId to processor		*/
 #else
@@ -82,11 +84,15 @@ Processor::Processor( LQIO::DOM::Processor* dom )
       _group(nullptr),
 #if HAVE_PARASOL
       _node_id(0),
+#else
+      _mutex(),
+      _ready_to_run(),
 #endif
       _active(0),
-      _dom( dom )
+      _dom( dom ),
+      _tasks()
 {
-    trace_flag = std::regex_match( name(), processor_match_pattern );
+    trace_flag = std::regex_match( name(), Processor::match_pattern );
 }
 
 
@@ -167,9 +173,13 @@ Processor::reschedule( Instance::Instance * ip )
 
 bool
 Processor::derive_utilization() const {
+#if HAVE_PARASOL
     return discipline() != SCHEDULE_FIFO
 	&& discipline() != SCHEDULE_DELAY
 	&& (Pragma::__pragmas->scheduling_model() & SCHEDULE_CUSTOM) == 0;
+#else
+    return false;
+#endif
 }
 
 
@@ -208,8 +218,23 @@ Processor::now()
     const std::chrono::duration<double> diff = stop_time - start_time;
     return diff.count();
 }
-#endif
 
+
+// get processor lock, insert onto event list for start  increment global busy count.
+void
+Processor::acquire( std::condition_variable& resume )
+{
+    std::unique_lock<std::mutex> lock(_mutex);
+}
+
+
+// release processor lock, decrement global busy count.
+void
+Processor::release( std::condition_variable& resume )
+{
+    std::unique_lock<std::mutex> lock(_mutex);
+}
+#endif
 
 
 void

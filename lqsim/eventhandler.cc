@@ -9,7 +9,7 @@
 /*
  * Event handling (the scheduler)
  *
- * $Id: eventhandler.cc 17611 2025-12-02 19:54:19Z greg $
+ * $Id: eventhandler.cc 17620 2025-12-12 19:54:15Z greg $
  */
 
 #include <cassert>
@@ -20,6 +20,13 @@
 #include "eventhandler.h"
 
 EventHandler * EventHandler::__event_handler(nullptr);
+std::condition_variable EventHandler::__start_scheduler;
+
+void
+Event::resume() const
+{
+    _resume->notify_one();
+}
 
 std::ostream&
 Event::print( std::ostream& output ) const
@@ -33,7 +40,7 @@ Event::print( std::ostream& output ) const
     return output;
 }
 
-EventHandler::EventHandler() : _event_list(), _current_time(0.0), _mutex(), _update_time(), _in_use(0)
+EventHandler::EventHandler() : _event_list(), _current_time(0.0), _mutex(), _scheduler(), _in_use(0)
 {
     assert( __event_handler == nullptr );
     __event_handler = this;
@@ -44,39 +51,21 @@ EventHandler::start_event( std::condition_variable& resume )
 {
     std::unique_lock<std::mutex> lock(_mutex);
     _event_list.emplace( _current_time, Event::Type::START, &resume );
+    _in_use += 1;
+    _scheduler.notify_one();
     resume.wait( lock );
 }
 
 
 void
-EventHandler::stop_event( double delta )
+EventHandler::stop_event( std::condition_variable& resume, double delta )
 {
-    std::unique_lock<std::mutex> lock(_mutex);
-    _event_list.emplace( _current_time + delta, Event::Type::STOP, nullptr );
-}
-
-/*
- * Barrier synchronization to ensure that all processors have run to
- * completion so that the event list is temporily ordered.
- */
-
-void
-EventHandler::acquire()
-{
-    std::unique_lock<std::mutex> lock(_mutex);
-    _in_use += 1;
-}
-
-void
-EventHandler::release()
-{
-    std::lock_guard<std::mutex> lock(_mutex);
-    if ( _in_use > 0 ) {
-	_in_use -= 1;
-    }
-    if ( _in_use == 0 ) {
-	_update_time.notify_one();
-    }
+    std::unique_lock<std::mutex> lock(_mutex);	
+    _event_list.emplace( _current_time + delta, Event::Type::STOP, &resume );
+    assert( _in_use > 0 );
+    _in_use -= 1;
+    _scheduler.notify_one();
+    resume.wait( lock );
 }
 
 void
@@ -84,28 +73,32 @@ EventHandler::run()
 {
     std::cout << "Event handler running." << std::endl;
     while ( !_event_list.empty() ) {
-	/* Do all events at current time */
 	std::unique_lock<std::mutex> lock(_mutex);
+
+	/* Do all events at current time */
 	while ( !_event_list.empty() && _event_list.top().get_type() == Event::Type::START ) {
 	    const Event& top = _event_list.top();
-	    top.print( std::cout );
-	    if ( top.get_resume() ) {
-		// if start event, then allow task to run.
-		top.get_resume()->notify_one();
-	    }
+	    top.resume();
 	    _event_list.pop();
 	}
 
 	/* wait for in_use == 0 */
-	_update_time.wait( lock, [this](){ return _in_use == 0; } );
+	_scheduler.wait( lock, [this](){ return _in_use == 0; } );
 
 	/* If I have a stop event, update the time.  Pop all duplicate times */
 	if ( !_event_list.empty() && _event_list.top().get_type() == Event::Type::STOP ) {
-	    _current_time = _event_list.top().get_time();
+	    const Event& top = _event_list.top();
+	    _current_time = top.get_time();
+	    top.resume();
 	    _event_list.pop();
 	    while ( !_event_list.empty() && _event_list.top().get_type() == Event::Type::STOP && _event_list.top().get_time() == _current_time ) {
+		const Event& top = _event_list.top();
+		top.resume();
 		_event_list.pop();
 	    }
 	}
+
+	/* wait for a start event */
+	_scheduler.wait( lock, [this](){ return _in_use != 0; } );
     }
 }

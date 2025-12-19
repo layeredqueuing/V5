@@ -9,7 +9,7 @@
  *
  * October, 2021
  *
- * $Id: model.h 17576 2025-11-10 18:11:11Z greg $
+ * $Id: model.h 17625 2025-12-18 18:24:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -70,6 +70,7 @@ namespace Model {
 
 	Value( double value ) : _type(Type::DOUBLE) { _u._double = value; }
 	Value( const char * string ) : _type(Type::STRING) { _u._string = string; }
+	Value( const std::string& string ) : _type(Type::STRING) { _u._string = string.c_str(); }
 	Value( const std::filesystem::path& path );
 
 	virtual ~Value() {}
@@ -83,6 +84,7 @@ namespace Model {
 	union {
 	    double _double;
 	    const char * _string;
+	    const std::filesystem::path * _pathname;
 	} _u;
     };
 
@@ -206,17 +208,6 @@ namespace Model {
 	std::pair<size_t,Model::Value> _x_index;	/* For splot output */
 	unsigned int _model_no;				/* Record number */
     };
-
-    class InsertHeader {
-    public:
-	InsertHeader( std::vector<Model::Value>& row, Result::get_field f ) : _row(row), _f(f) {}
-	void operator()( const std::pair<std::string,Model::Result::Type>& result ) { _row.emplace_back( (*_f)( result ) ); }
-
-    private:
-	std::vector<Model::Value>& _row;
-	const Result::get_field _f;
-    };
-
 }
 
 std::ostream& operator<<( std::ostream&, const Model::Value& );

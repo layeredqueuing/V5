@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 17460 2024-11-12 14:14:37Z greg $
+# $Id: Makefile 17627 2025-12-18 19:39:38Z greg $
 # ------------------------------------------------------------------------
 
 ERR=	err_arrival_rate.lqn \
@@ -92,7 +92,7 @@ lqsim:
 
 
 petrisrvn:
-	for i in $(ERR); do (petrisrvn $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
+	@for i in $(ERR); do (petrisrvn $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done
 
 lqn2ps:
 	for i in $(ERR); do (lqn2ps -Onull -o/dev/null $$i > /dev/null 2>&1); j=$$?; if test $$j -eq 0; then echo $$i failed; elif test $$j -ge 128; then echo $$i faulted; else echo $$i passed; fi; done

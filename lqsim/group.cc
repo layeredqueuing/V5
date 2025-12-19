@@ -9,7 +9,7 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 17501 2024-11-27 21:32:50Z greg $
+ * $Id: group.cc 17622 2025-12-18 16:04:10Z greg $
  */
 
 #include "lqsim.h"
@@ -106,7 +106,7 @@ Group::create()
     std::for_each( tasks().begin(), tasks().end(), [=]( Task * task ){ if ( task->group_id() == -1 ) { task->set_group_id( group_id ); } } );
 #endif
 
-    std::for_each( tasks().begin(), tasks().end(), [=]( Task * task ){ if ( task->group() == nullptr ) { task->setGroup( this ); } } );
+    std::for_each( tasks().begin(), tasks().end(), [this]( Task * task ){ if ( task->group() == nullptr ) { task->setGroup( this ); } } );
 
     return *this;
 }

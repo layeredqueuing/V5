@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_processor.cpp 17595 2025-11-21 16:40:35Z greg $
+ *  $Id: dom_processor.cpp 17626 2025-12-18 19:38:44Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -85,12 +85,7 @@ namespace LQIO {
 
 	double Processor::getQuantumValue() const
 	{
-	    /* Return the processor quantum */
-	    double value = 0.0;
-	    if ( !_processorQuantum || _processorQuantum->getValue(value) != true || value <= 0.0 ) {
-		throw std::domain_error( "invalid quantum" );
-	    }
-	    return value;
+	    return getDoubleValue( _processorQuantum, 0. );
 	}
 
 	void Processor::setQuantumValue(const double value )

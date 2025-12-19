@@ -12,7 +12,7 @@
  * Task interface between the DOM and the simulation engine.  Passive.
  * Instance objects are the active component.
  *
- * $Id: task.cc 17516 2024-12-17 16:42:35Z greg $
+ * $Id: task.cc 17627 2025-12-18 19:39:38Z greg $
  */
 
 #include "lqsim.h"
@@ -36,6 +36,7 @@
 #include "task.h"
 
 std::set<Task *, Task::ltTask> Task::__tasks;	/* Task table.	*/
+std::regex Task::match_pattern;		/* Pattern to match.	    */
 
 #if !HAVE_PARASOL
 template class Rendezvous::Multi_Server<int,int>;
@@ -169,7 +170,7 @@ Task::create()
 
     /* JOIN Stuff -- All entries are free. */
 
-    trace_flag	= std::regex_match( name(), task_match_pattern );
+    trace_flag	= std::regex_match( name(), Task::match_pattern );
 
     if ( debug_flag ){
 	(void) fprintf( stddbg, "\n-+++++---- %s task %s", type_name().c_str(), name().c_str() );
@@ -982,12 +983,15 @@ Semaphore_Task::Semaphore_Task( LQIO::DOM::Task* dom, Processor * processor, Gro
 void
 Semaphore_Task::create_instance()
 {
+    if ( n_entries() != N_SEMAPHORE_ENTRIES ) {
+	getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), N_SEMAPHORE_ENTRIES );
+	return;
+    }
+	
     Entry * entry_1 = entries().at(0);
     Entry * entry_2 = entries().at(1);
 	
-    if ( n_entries() != N_SEMAPHORE_ENTRIES ) {
-	getDOM()->runtime_error( LQIO::ERR_TASK_ENTRY_COUNT, n_entries(), N_SEMAPHORE_ENTRIES );
-    } else if ( (entry_1->is_signal() && !entry_2->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::WAIT ) )
+    if ( (entry_1->is_signal() && !entry_2->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::WAIT ) )
 	 || ( entry_1->is_wait() && !entry_2->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::SIGNAL ) ) ) {
 	getDOM()->runtime_error( LQIO::ERR_DUPLICATE_SEMAPHORE_ENTRY_TYPES,
 				 entry_1->getDOM()->getName().c_str(),

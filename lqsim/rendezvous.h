@@ -3,7 +3,7 @@
  * Message passing data structure.
  *
  * ------------------------------------------------------------------------
- * $Id: rendezvous.h 17495 2024-11-21 21:38:47Z greg $
+ * $Id: rendezvous.h 17621 2025-12-18 15:57:27Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -48,7 +48,7 @@ namespace Rendezvous {
 	    std::unique_lock<std::mutex> lock(_mutex);
 	    /* return the pointer to the send buffer */
 	    while ( is_empty() ) { // (i.e. _send == nullptr ) then 
-		_recv_cv.wait();
+		_recv_cv.wait( lock );
 	    }
 	    get( in );
 	}

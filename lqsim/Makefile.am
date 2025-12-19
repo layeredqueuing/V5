@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------
-# $Id: Makefile.am 17601 2025-11-26 17:13:49Z greg $
+# $Id: Makefile.am 17621 2025-12-18 15:57:27Z greg $
 #----------------------------------------------------------------------
 SUBDIRS		= regression
 #check_PROGRAMS	= eventhandler_test
@@ -8,10 +8,11 @@ AM_CPPFLAGS	= -I../lqx/libsrc/headers/ -I../lqiolib/src/headers
 if HAVE_PARASOL
 AM_CPPFLAGS	+= -I../parasol/include -DHAVE_PARASOL=1
 endif
-bin_PROGRAMS	= lqsim eventhandler
+bin_PROGRAMS	= lqsim eventhandler_test processor_test
 lqsim_SOURCES	= activity.cc actlist.cc entry.cc errmsg.cc eventhandler.cc group.cc histogram.cc instance.cc lqsim.cc \
 		  message.cc model.cc pragma.cc processor.cc random.cc result.cc runlqx.cc task.cc target.cc
-eventhandler_SOURCES	= eventhandler_test.cc eventhandler.cc 
+eventhandler_test_SOURCES	= eventhandler_test.cc eventhandler.cc 
+processor_test_SOURCES	= processor_test.cc eventhandler.cc processor.cc result.cc
 if HAVE_PARASOL
 lqsim_SOURCES	+= 
 endif
@@ -29,6 +30,10 @@ if HAVE_PARASOL
 lqsim_LDADD	+= -L../parasol/src -lparasolc
 endif
 lqsim_LDFLAGS	= @STATIC@
+
+processor_test_CXXFLAGS = -std=gnu++20 -Wall -UHAVE_PARASOL -Wno-unknown-pragmas 
+processor_test_LDADD = -L../lqiolib/src/.libs -llqio
+
 man1_MANS	= lqsim.1
 
 install-exec-hook:
